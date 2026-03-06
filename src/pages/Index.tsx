@@ -1,14 +1,23 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import HeroSection from '@/components/home/HeroSection';
+import TrustBar from '@/components/home/TrustBar';
+import DualPathCards from '@/components/home/DualPathCards';
+import CategoryGrid from '@/components/home/CategoryGrid';
+import FeaturedProducts from '@/components/home/FeaturedProducts';
+import SolutionsSection from '@/components/home/SolutionsSection';
+import InstallerTeaser from '@/components/home/InstallerTeaser';
+import WhyElights from '@/components/home/WhyElights';
 
-const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
-};
+const Index = () => (
+  <>
+    <HeroSection />
+    <TrustBar />
+    <DualPathCards />
+    <CategoryGrid />
+    <FeaturedProducts />
+    <SolutionsSection />
+    <InstallerTeaser />
+    <WhyElights />
+  </>
+);
 
 export default Index;
