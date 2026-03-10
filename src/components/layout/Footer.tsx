@@ -1,60 +1,102 @@
 import { Link } from 'react-router-dom';
-import { Zap, Mail, Phone, MapPin } from 'lucide-react';
+import { Zap, Mail, Phone, MessageCircle } from 'lucide-react';
+import { categories } from '@/data/products';
 
-const Footer = () => (
-  <footer className="gradient-dark text-muted mt-16">
-    <div className="container py-12">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        <div>
-          <div className="flex items-center gap-1.5 mb-4">
-            <div className="gradient-primary rounded-lg p-1.5">
-              <Zap className="h-4 w-4 text-primary-foreground" />
+const Footer = () => {
+  const topCats = [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, 6);
+
+  return (
+    <footer className="gradient-dark text-muted mt-16">
+      <div className="container py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-1.5 mb-4">
+              <div className="gradient-primary rounded-lg p-1.5">
+                <Zap className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-bold text-background">
+                e<span className="text-primary">LIGHTS</span>
+              </span>
             </div>
-            <span className="text-lg font-bold text-background">
-              e<span className="text-primary">LIGHTS</span>
-            </span>
-          </div>
-          <p className="text-sm text-background/60 leading-relaxed">
-            Iluminación LED profesional para proyectos, empresas y hogar. 
-            Stock permanente y despacho a todo Chile.
-          </p>
-        </div>
-        <div>
-          <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Catálogo</h4>
-          <nav className="space-y-2">
-            {['Ampolletas LED', 'Tubos LED', 'Paneles LED', 'Campanas Industriales', 'Proyectores LED'].map(item => (
-              <Link key={item} to="/catalogo" className="block text-sm text-background/60 hover:text-primary transition-colors">{item}</Link>
-            ))}
-          </nav>
-        </div>
-        <div>
-          <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Empresa</h4>
-          <nav className="space-y-2">
-            {['Cotizar Proyecto', 'Área Instaladores', 'Cotizador Inteligente', 'Términos y Condiciones'].map(item => (
-              <Link key={item} to="/" className="block text-sm text-background/60 hover:text-primary transition-colors">{item}</Link>
-            ))}
-          </nav>
-        </div>
-        <div>
-          <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Contacto</h4>
-          <div className="space-y-2.5">
-            <a href="mailto:ventas@elights.cl" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
-              <Mail className="h-4 w-4" /> ventas@elights.cl
+            <p className="text-sm text-background/60 leading-relaxed mb-4">
+              Iluminación LED profesional para proyectos, empresas y hogar.
+              Stock permanente y despacho a todo Chile.
+            </p>
+            
+              href="https://wa.me/56991273128"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs font-semibold bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/20 rounded-full px-3 py-1.5 hover:bg-[#25D366]/20 transition-colors"
+            >
+              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp directo
             </a>
-            <a href="tel:+56912345678" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
-              <Phone className="h-4 w-4" /> +56 9 1234 5678
-            </a>
-            <span className="flex items-center gap-2 text-sm text-background/60">
-              <MapPin className="h-4 w-4" /> Santiago, Chile
-            </span>
           </div>
+
+          <div>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Catálogo</h4>
+            <nav className="space-y-1.5">
+              {topCats.map(cat => (
+                <Link
+                  key={cat.id}
+                  to={`/catalogo/${cat.slug}`}
+                  className="flex items-center justify-between text-sm text-background/60 hover:text-primary transition-colors"
+                >
+                  <span>{cat.name}</span>
+                  <span className="text-[10px] text-background/30">{cat.productCount}</span>
+                </Link>
+              ))}
+              <Link to="/catalogo" className="block text-sm text-primary hover:underline mt-2">
+                Ver todas las categorías →
+              </Link>
+            </nav>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Empresa</h4>
+            <nav className="space-y-1.5">
+              {[
+                { label: 'Solicitar cotización', to: '/cotizacion' },
+                { label: 'Área Instaladores', to: '/instaladores' },
+                { label: 'Cotizador inteligente', to: '/cotizador' },
+                { label: 'Términos y condiciones', to: '/' },
+                { label: 'Política de privacidad', to: '/' },
+              ].map(({ label, to }) => (
+                <Link key={label} to={to} className="block text-sm text-background/60 hover:text-primary transition-colors">
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Contacto</h4>
+            <div className="space-y-3">
+              <a href="mailto:ventas@elights.cl" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
+                <Mail className="h-4 w-4 shrink-0" /> ventas@elights.cl
+              </a>
+              <a href="tel:+56991273128" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
+                <Phone className="h-4 w-4 shrink-0" /> +56 9 9127 3128
+              </a>
+              <a href="https://wa.me/56991273128" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-background/60 hover:text-[#25D366] transition-colors">
+                <MessageCircle className="h-4 w-4 shrink-0" /> WhatsApp
+              </a>
+            </div>
+            <div className="mt-5 p-3 bg-background/5 rounded-lg border border-background/10">
+              <p className="text-xs text-background/50 leading-relaxed">
+                Lunes a viernes 9:00–18:00 hrs.<br />
+                Santiago, Chile
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-background/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40">
+          <span>© {new Date().getFullYear()} eLIGHTS — Todos los derechos reservados</span>
+          <span>Iluminación al alcance de tus proyectos.</span>
         </div>
       </div>
-      <div className="border-t border-background/10 mt-8 pt-6 text-center text-xs text-background/40">
-        © {new Date().getFullYear()} eLIGHTS — Todos los derechos reservados
-      </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 export default Footer;
