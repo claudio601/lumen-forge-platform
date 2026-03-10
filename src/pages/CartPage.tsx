@@ -1,12 +1,17 @@
 import { useApp } from '@/context/AppContext';
-import { formatCLP } from '@/data/products';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Zap } from 'lucide-react';
 
 const CartPage = () => {
-  const { cart, updateCartQty, removeFromCart, cartTotal, clearCart } = useApp();
+  const { cart, updateCartQty, removeFromCart, cartTotal, clearCart, isB2B, formatDisplayPrice, displayPrice, priceLabel } = useApp();
+
+  // cartTotal is always sum of IVA-inclusive prices — derive display total
+  const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.product.price) * i.quantity, 0);
+  const ivaAmount = isB2B ? 0 : Math.round(displayTotal - displayTotal / 1.19);
+  const neto = isB2B ? displayTotal : Math.round(displayTotal / 1.19);
+
+  const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
 
   if (cart.length === 0) {
     return (
@@ -40,13 +45,14 @@ const CartPage = () => {
                   {item.product.name}
                 </Link>
                 <p className="text-xs text-muted-foreground font-mono">{item.product.sku}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatDisplayPrice(item.product.price)} c/u {priceLabel}</p>
               </div>
               <div className="flex items-center border rounded-lg">
                 <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateCartQty(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
                 <span className="px-3 text-sm font-semibold">{item.quantity}</span>
                 <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateCartQty(item.product.id, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
               </div>
-              <p className="font-bold text-sm w-24 text-right">{formatCLP(item.product.price * item.quantity)}</p>
+              <p className="font-bold text-sm w-24 text-right">{fmt(displayPrice(item.product.price) * item.quantity)}</p>
               <button onClick={() => removeFromCart(item.product.id)} className="text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -56,29 +62,44 @@ const CartPage = () => {
 
         <div className="border rounded-xl p-6 h-fit sticky top-32">
           <h2 className="font-bold mb-4">Resumen del pedido</h2>
-          <div className="space-y-2 mb-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatCLP(cartTotal)}</span>
+          <div className="space-y-2 mb-4 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal neto</span>
+              <span>{fmt(neto)}</span>
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">IVA (19%)</span>
+              <span>{isB2B ? <span className="text-muted-foreground text-xs">facturado aparte</span> : fmt(ivaAmount)}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Despacho</span>
               <span className="text-muted-foreground">Por calcular</span>
             </div>
             <hr />
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <span>{formatCLP(cartTotal)}</span>
+            <div className="flex justify-between font-bold text-base">
+              <span>Total {priceLabel}</span>
+              <span>{fmt(displayTotal)}</span>
             </div>
+            {isB2B && (
+              <p className="text-[11px] text-muted-foreground bg-primary/5 rounded-lg p-2 mt-2">
+                Precio neto. IVA (19%) se agrega en la factura: <strong>{fmt(Math.round(displayTotal * 0.19))}</strong>
+              </p>
+            )}
           </div>
-          <Button className="w-full gradient-primary text-primary-foreground h-12 text-base" disabled>
-            Proceder al pago
+          <Button
+            className="w-full gradient-primary text-primary-foreground h-12 text-base gap-2"
+            onClick={() => {
+              cart.forEach(item => {
+                window.open(`https://elights.cl/products/${item.product.permalink}`, '_blank');
+              });
+            }}
+          >
+            <ShoppingCart className="h-4 w-4" /> Ir a comprar en eLights
           </Button>
-          <p className="text-[10px] text-muted-foreground text-center mt-2">Integración de pago próximamente (Mercado Pago / Flow)</p>
+          <p className="text-[10px] text-muted-foreground text-center mt-2">
+            Te llevamos a cada producto en la tienda para completar la compra con Webpay
+          </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default CartPage;
