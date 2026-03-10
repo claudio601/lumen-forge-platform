@@ -9,23 +9,25 @@ const WhatsAppButton = () => {
       {expanded && (
         <div className="bg-background border rounded-xl shadow-lg p-4 w-64 animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-sm">Escríbenos por WhatsApp</span>
+            <span className="font-semibold text-sm">Escribenos por WhatsApp</span>
             <button onClick={() => setExpanded(false)}><X className="h-4 w-4" /></button>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">Lunes a viernes 9:00–18:00 hrs. Respuesta rápida.</p>
+          <p className="text-xs text-muted-foreground mb-3">Lunes a viernes 9:00-18:00 hrs. Respuesta rapida.</p>
           
-            href="https://wa.me/56991273128?text=Hola,%20me%20interesa%20cotizar%20iluminaci%C3%B3n%20LED"
+            href="https://wa.me/56991273128?text=Hola,%20me%20interesa%20cotizar%20iluminacion%20LED"
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full text-center bg-[#25D366] text-white text-sm font-semibold py-2 rounded-lg hover:bg-[#20b558] transition-colors"
+            className="block w-full text-center text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+            style={{backgroundColor:'#25D366'}}
           >
-            Iniciar chat →
+            Iniciar chat
           </a>
         </div>
       )}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="bg-[#25D366] text-white rounded-full shadow-lg hover:bg-[#20b558] transition-all hover:scale-110 flex items-center gap-2 px-4 py-3"
+        className="text-white rounded-full shadow-lg transition-all hover:scale-110 flex items-center gap-2 px-4 py-3"
+        style={{backgroundColor:'#25D366'}}
       >
         <MessageCircle className="h-5 w-5" />
         <span className="text-sm font-semibold">WhatsApp</span>
