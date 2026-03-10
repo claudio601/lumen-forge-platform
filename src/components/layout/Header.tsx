@@ -1,213 +1,102 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import {
-  Search, ShoppingCart, FileText, User, Menu, X, ChevronDown, Zap,
-  Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers,
-  AlignJustify, AlertTriangle, Shield, Sun, Tag, Settings,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useApp } from '@/context/AppContext';
+import { Link } from 'react-router-dom';
+import { Zap, Mail, Phone, MessageCircle } from 'lucide-react';
 import { categories } from '@/data/products';
-import TopInfoBar from './TopInfoBar';
 
-const iconMap: Record<string, React.ElementType> = {
-  Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers,
-  AlignJustify, AlertTriangle, Zap, Shield, Sun, Tag, Settings,
-};
-
-const Header = () => {
-  const { cartCount, quoteCount, isB2B, toggleB2B } = useApp();
-  const [search, setSearch] = useState('');
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [catOpen, setCatOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (search.trim()) {
-      navigate(`/buscar?q=${encodeURIComponent(search.trim())}`);
-      setSearch('');
-    }
-  };
+const Footer = () => {
+  const topCats = [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, 6);
 
   return (
-    <header className="sticky top-0 z-50 bg-background border-b shadow-sm">
-      <TopInfoBar />
-      <div className="container py-3">
-        <div className="flex items-center gap-4">
-          <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-
-          <Link to="/" className="flex items-center gap-1 shrink-0">
-            <div className="gradient-primary rounded-lg p-1.5">
-              <Zap className="h-5 w-5 text-primary-foreground" />
+    <footer className="gradient-dark text-muted mt-16">
+      <div className="container py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-1.5 mb-4">
+              <div className="gradient-primary rounded-lg p-1.5">
+                <Zap className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-bold text-background">
+                e<span className="text-primary">LIGHTS</span>
+              </span>
             </div>
-            <span className="text-xl font-bold tracking-tight">
-              e<span className="text-gradient-primary">LIGHTS</span>
-            </span>
-          </Link>
-
-          <div className="relative hidden lg:block">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 border-primary/20 text-foreground hover:bg-accent"
-              onClick={() => setCatOpen(!catOpen)}
+            <p className="text-sm text-background/60 leading-relaxed mb-4">
+              Iluminación LED profesional para proyectos, empresas y hogar.
+              Stock permanente y despacho a todo Chile.
+            </p>
+            
+              href="https://wa.me/56991273128"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs font-semibold bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/20 rounded-full px-3 py-1.5 hover:bg-[#25D366]/20 transition-colors"
             >
-              <Menu className="h-4 w-4" />
-              Categorías
-              <ChevronDown className={`h-3 w-3 transition-transform ${catOpen ? 'rotate-180' : ''}`} />
-            </Button>
-            {catOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />
-                <div className="absolute left-0 top-full mt-2 z-50 bg-background border rounded-xl shadow-xl w-[720px] p-5 animate-fade-in">
-                  <div className="grid grid-cols-3 gap-x-6 gap-y-1">
-                    {categories.map(cat => {
-                      const Icon = iconMap[cat.icon] || Zap;
-                      return (
-                        <div key={cat.id} className="py-2">
-                          <Link
-                            to={`/catalogo/${cat.slug}`}
-                            className="flex items-center gap-2 font-semibold text-sm text-foreground hover:text-primary transition-colors mb-1"
-                            onClick={() => setCatOpen(false)}
-                          >
-                            <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
-                            {cat.name}
-                            <span className="ml-auto text-[10px] text-muted-foreground font-normal">{cat.productCount}</span>
-                          </Link>
-                          {cat.subcategories.slice(0, 3).map(sub => (
-                            <Link
-                              key={sub.slug}
-                              to={`/catalogo/${cat.slug}/${sub.slug}`}
-                              className="block text-xs text-muted-foreground hover:text-primary transition-colors pl-5 py-0.5"
-                              onClick={() => setCatOpen(false)}
-                            >
-                              {sub.name}
-                            </Link>
-                          ))}
-                          {cat.subcategories.length > 3 && (
-                            <Link
-                              to={`/catalogo/${cat.slug}`}
-                              className="block text-xs text-primary/60 hover:text-primary transition-colors pl-5 py-0.5"
-                              onClick={() => setCatOpen(false)}
-                            >
-                              +{cat.subcategories.length - 3} más…
-                            </Link>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="border-t mt-3 pt-3 flex justify-between items-center">
-                    <span className="text-xs text-muted-foreground">
-                      {categories.reduce((s, c) => s + c.productCount, 0)} productos en total
-                    </span>
-                    <Link to="/catalogo" className="text-xs font-semibold text-primary hover:underline" onClick={() => setCatOpen(false)}>
-                      Ver catálogo completo →
-                    </Link>
-                  </div>
-                </div>
-              </>
-            )}
+              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp directo
+            </a>
           </div>
 
-          <form onSubmit={handleSearch} className="flex-1 max-w-xl hidden md:flex">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar por SKU, producto, watts, kelvin..."
-                className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-              />
-            </div>
-          </form>
-
-          <div className="flex items-center gap-1 ml-auto">
-            <button
-              onClick={toggleB2B}
-              title={isB2B ? 'Modo empresa activo — precios sin IVA' : 'Activar precios para empresa'}
-              className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
-                isB2B
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-background text-muted-foreground border-border hover:border-primary hover:text-primary'
-              }`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${isB2B ? 'bg-primary-foreground' : 'bg-muted-foreground'}`} />
-              {isB2B ? 'B2B · Precio neto' : 'B2C · Con IVA'}
-            </button>
-            <Link to="/buscar" className="md:hidden p-2 hover:bg-accent rounded-lg transition-colors">
-              <Search className="h-5 w-5" />
-            </Link>
-            <Link to="/cotizacion" className="relative p-2 hover:bg-accent rounded-lg transition-colors" title="Cotización">
-              <FileText className="h-5 w-5" />
-              {quoteCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
-                  {quoteCount}
-                </span>
-              )}
-            </Link>
-            <Link to="/carro" className="relative p-2 hover:bg-accent rounded-lg transition-colors" title="Carro">
-              <ShoppingCart className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-            <Link to="/instaladores" className="hidden sm:flex p-2 hover:bg-accent rounded-lg transition-colors" title="Mi cuenta">
-              <User className="h-5 w-5" />
-            </Link>
-          </div>
-        </div>
-
-        <form onSubmit={handleSearch} className="mt-3 md:hidden">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar productos..."
-              className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-        </form>
-      </div>
-
-      {menuOpen && (
-        <div className="lg:hidden border-t bg-background animate-fade-in">
-          <div className="container py-4 space-y-1">
-            {categories.map(cat => {
-              const Icon = iconMap[cat.icon] || Zap;
-              return (
+          <div>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Catálogo</h4>
+            <nav className="space-y-1.5">
+              {topCats.map(cat => (
                 <Link
                   key={cat.id}
                   to={`/catalogo/${cat.slug}`}
-                  className="flex items-center gap-2 py-2 px-3 text-sm font-medium hover:bg-accent rounded-md transition-colors"
-                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-between text-sm text-background/60 hover:text-primary transition-colors"
                 >
-                  <Icon className="h-4 w-4 text-primary shrink-0" />
-                  {cat.name}
-                  <span className="ml-auto text-xs text-muted-foreground">{cat.productCount}</span>
+                  <span>{cat.name}</span>
+                  <span className="text-[10px] text-background/30">{cat.productCount}</span>
                 </Link>
-              );
-            })}
-            <hr className="my-2" />
-            <Link to="/cotizacion" className="block py-2 px-3 text-sm font-medium text-primary hover:bg-accent rounded-md" onClick={() => setMenuOpen(false)}>
-              Solicitar cotización
-            </Link>
-            <Link to="/instaladores" className="block py-2 px-3 text-sm font-medium hover:bg-accent rounded-md" onClick={() => setMenuOpen(false)}>
-              Área Instaladores
-            </Link>
+              ))}
+              <Link to="/catalogo" className="block text-sm text-primary hover:underline mt-2">
+                Ver todas las categorías →
+              </Link>
+            </nav>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Empresa</h4>
+            <nav className="space-y-1.5">
+              {[
+                { label: 'Solicitar cotización', to: '/cotizacion' },
+                { label: 'Área Instaladores', to: '/instaladores' },
+                { label: 'Cotizador inteligente', to: '/cotizador' },
+                { label: 'Términos y condiciones', to: '/' },
+                { label: 'Política de privacidad', to: '/' },
+              ].map(({ label, to }) => (
+                <Link key={label} to={to} className="block text-sm text-background/60 hover:text-primary transition-colors">
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Contacto</h4>
+            <div className="space-y-3">
+              <a href="mailto:ventas@elights.cl" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
+                <Mail className="h-4 w-4 shrink-0" /> ventas@elights.cl
+              </a>
+              <a href="tel:+56991273128" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
+                <Phone className="h-4 w-4 shrink-0" /> +56 9 9127 3128
+              </a>
+              <a href="https://wa.me/56991273128" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-background/60 hover:text-[#25D366] transition-colors">
+                <MessageCircle className="h-4 w-4 shrink-0" /> WhatsApp
+              </a>
+            </div>
+            <div className="mt-5 p-3 bg-background/5 rounded-lg border border-background/10">
+              <p className="text-xs text-background/50 leading-relaxed">
+                Lunes a viernes 9:00–18:00 hrs.<br />
+                Santiago, Chile
+              </p>
+            </div>
           </div>
         </div>
-      )}
-    </header>
+
+        <div className="border-t border-background/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40">
+          <span>© {new Date().getFullYear()} eLIGHTS — Todos los derechos reservados</span>
+          <span>Iluminación al alcance de tus proyectos.</span>
+        </div>
+      </div>
+    </footer>
   );
 };
 
-export default Header;
+export default Footer;
