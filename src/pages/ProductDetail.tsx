@@ -1,17 +1,21 @@
 import { useParams, Link } from 'react-router-dom';
-import { products, formatCLP } from '@/data/products';
+import { products } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, FileText, Minus, Plus, Download, MessageCircle, Zap, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, FileText, Minus, Plus, Download, MessageCircle, Zap, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 
+const JUMPSELLER_BASE = 'https://elights.cl/products';
+
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find(p => p.id === id);
-  const { addToCart, addToQuote } = useApp();
+  const { addToCart, addToQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
   const [qty, setQty] = useState(1);
+  const [activeImg, setActiveImg] = useState(0);
+  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
 
   if (!product) {
     return (
@@ -22,20 +26,22 @@ const ProductDetail = () => {
     );
   }
 
+  const images = product.images?.filter((_, i) => !imgErrors[i]) ?? [];
+  const hasImages = images.length > 0;
   const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
 
   const specs = [
-    { label: 'Potencia', value: `${product.watts}W` },
-    { label: 'Flujo luminoso', value: `${product.lumens} lm` },
-    { label: 'Temperatura de color', value: `${product.kelvin}K` },
-    { label: 'CRI', value: product.cri ? `>${product.cri}` : '—' },
-    { label: 'Voltaje', value: product.voltage },
-    { label: 'Grado IP', value: product.ip || '—' },
-    { label: 'Ángulo de haz', value: product.beamAngle ? `${product.beamAngle}°` : '—' },
-    { label: 'Vida útil', value: product.lifetime ? `${product.lifetime.toLocaleString()}h` : '—' },
-    { label: 'Garantía', value: product.warranty },
-    { label: 'Instalación', value: product.installationType || '—' },
-  ];
+    { label: 'Potencia',             value: product.watts   ? `${product.watts}W`                        : null },
+    { label: 'Flujo luminoso',       value: product.lumens  ? `${product.lumens.toLocaleString('es-CL')} lm` : null },
+    { label: 'Temperatura de color', value: product.kelvin  ? `${product.kelvin}K`                       : null },
+    { label: 'CRI',                  value: product.cri     ? `>${product.cri}`                          : null },
+    { label: 'Voltaje',              value: product.voltage                                               ?? null },
+    { label: 'Grado IP',             value: product.ip                                                    ?? null },
+    { label: 'Ángulo de haz',        value: product.beamAngle ? `${product.beamAngle}°`                 : null },
+    { label: 'Vida útil',            value: product.lifetime  ? `${product.lifetime.toLocaleString()}h` : null },
+    { label: 'Garantía',             value: product.warranty                                             ?? null },
+    { label: 'Instalación',          value: product.installationType                                     ?? null },
+  ].filter(s => s.value);
 
   return (
     <div className="container py-8">
@@ -44,54 +50,116 @@ const ProductDetail = () => {
       </Link>
 
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
-        {/* Image */}
-        <div className="bg-surface rounded-xl flex items-center justify-center aspect-square">
-          <Zap className="h-32 w-32 text-primary/15" />
+        <div className="space-y-3">
+          <div className="bg-surface rounded-xl flex items-center justify-center aspect-square overflow-hidden relative group">
+            {hasImages ? (
+              <>
+                <img
+                  src={images[activeImg]}
+                  alt={`${product.name} — imagen ${activeImg + 1}`}
+                  onError={() => setImgErrors(p => ({ ...p, [activeImg]: true }))}
+                  className="w-full h-full object-contain p-6"
+                />
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImg(i => (i - 1 + images.length) % images.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setActiveImg(i => (i + 1) % images.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                      {images.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveImg(i)}
+                          className={`h-1.5 rounded-full transition-all ${i === activeImg ? 'w-4 bg-primary' : 'w-1.5 bg-primary/30'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <Zap className="h-32 w-32 text-primary/15" />
+            )}
+          </div>
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {images.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveImg(i)}
+                  className={`shrink-0 h-16 w-16 rounded-lg border-2 overflow-hidden bg-surface transition-all ${
+                    i === activeImg ? 'border-primary shadow-sm' : 'border-transparent hover:border-primary/40'
+                  }`}
+                >
+                  <img src={img} alt={`${product.name} thumbnail ${i + 1}`} className="w-full h-full object-contain p-1" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Info */}
         <div>
           <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>
           <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
-          
-          <div className="flex flex-wrap gap-2 mb-4">
-            {product.tags.map(t => (
-              <span key={t} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{t}</span>
-            ))}
-          </div>
-
+          {product.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {product.tags.map(t => (
+                <span key={t} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{t}</span>
+              ))}
+            </div>
+          )}
           <div className="flex items-center gap-3 mb-4">
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${product.stock > 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
-              {product.stock > 0 ? `${product.stock} en stock` : 'Sin stock'}
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${product.stock > 0 ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+              {product.stock > 0 ? `${product.stock} en stock` : 'Disponible — consultar stock'}
             </span>
           </div>
-
-          <p className="text-3xl font-bold mb-6">{formatCLP(product.price)}</p>
-
-          {/* Quantity + CTAs */}
+          <div className="flex items-baseline gap-2 mb-6">
+            <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+              {priceLabel}
+            </span>
+            {isB2B && (
+              <span className="text-sm text-muted-foreground">
+                ({new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(product.price)} c/IVA)
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center border rounded-lg">
               <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}><Minus className="h-4 w-4" /></button>
               <span className="px-4 text-sm font-semibold min-w-[3rem] text-center">{qty}</span>
               <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(qty + 1)}><Plus className="h-4 w-4" /></button>
             </div>
+            <span className="text-sm text-muted-foreground">
+              Subtotal: {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(displayPrice(product.price) * qty)} {priceLabel}
+            </span>
           </div>
-
           <div className="flex gap-3 mb-6">
-            <Button size="lg" className="flex-1 gradient-primary text-primary-foreground gap-2 h-12" onClick={() => { addToCart(product, qty); toast.success('Agregado al carro'); }}>
+            <Button size="lg" className="flex-1 gradient-primary text-primary-foreground gap-2 h-12"
+              onClick={() => window.open(`${JUMPSELLER_BASE}/${product.permalink}`, '_blank')}>
               <ShoppingCart className="h-4 w-4" /> Comprar
+              <ExternalLink className="h-3 w-3 opacity-60" />
             </Button>
-            <Button size="lg" variant="outline" className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12" onClick={() => { addToQuote(product, qty); toast.success('Agregado a cotización'); }}>
+            <Button size="lg" variant="outline" className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
+              onClick={() => { addToQuote(product, qty); toast.success('Agregado a cotización'); }}>
               <FileText className="h-4 w-4" /> Cotizar
             </Button>
           </div>
-
           <div className="flex gap-3">
             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
               <Download className="h-3.5 w-3.5" /> Ficha técnica
             </Button>
-            <a href="https://wa.me/56912345678" target="_blank" rel="noopener noreferrer">
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-whatsapp">
+            <a href={`https://wa.me/56991273128?text=Hola%2C%20consulta%20por%20${encodeURIComponent(product.name)}%20(SKU%3A%20${product.sku})`} target="_blank" rel="noopener noreferrer">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                 <MessageCircle className="h-3.5 w-3.5" /> Consultar por WhatsApp
               </Button>
             </a>
@@ -99,33 +167,35 @@ const ProductDetail = () => {
         </div>
       </div>
 
-      {/* Specs table */}
-      <div className="grid lg:grid-cols-2 gap-8 mb-12">
-        <div>
-          <h2 className="text-lg font-bold mb-4">Especificaciones técnicas</h2>
-          <div className="border rounded-xl overflow-hidden">
-            {specs.map((s, i) => (
-              <div key={s.label} className={`flex justify-between px-4 py-3 text-sm ${i % 2 === 0 ? 'bg-surface' : 'bg-background'}`}>
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className="font-medium">{s.value}</span>
-              </div>
-            ))}
+      {specs.length > 0 && (
+        <div className="grid lg:grid-cols-2 gap-8 mb-12">
+          <div>
+            <h2 className="text-lg font-bold mb-4">Especificaciones técnicas</h2>
+            <div className="border rounded-xl overflow-hidden">
+              {specs.map((s, i) => (
+                <div key={s.label} className={`flex justify-between px-4 py-3 text-sm ${i % 2 === 0 ? 'bg-surface' : 'bg-background'}`}>
+                  <span className="text-muted-foreground">{s.label}</span>
+                  <span className="font-medium">{s.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div>
-          <h2 className="text-lg font-bold mb-4">Aplicaciones</h2>
-          <div className="grid grid-cols-2 gap-2">
-            {product.applications.map(a => (
-              <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
-                <span className="h-2 w-2 bg-primary rounded-full" />
-                {a}
+          {product.applications.length > 0 && (
+            <div>
+              <h2 className="text-lg font-bold mb-4">Aplicaciones</h2>
+              <div className="grid grid-cols-2 gap-2">
+                {product.applications.map(a => (
+                  <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
+                    <span className="h-2 w-2 bg-primary rounded-full" />
+                    {a}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Related */}
       {related.length > 0 && (
         <div>
           <h2 className="text-lg font-bold mb-4">Productos relacionados</h2>
