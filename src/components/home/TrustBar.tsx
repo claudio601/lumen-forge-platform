@@ -1,30 +1,27 @@
-import { Package, Truck, Headphones, BadgePercent } from 'lucide-react';
+import { Truck, Clock, Shield, Phone, Award, Zap } from 'lucide-react';
 
-const items = [
-  { icon: Package, label: 'Stock disponible', desc: 'Despacho inmediato' },
-  { icon: Truck, label: 'Despacho a todo Chile', desc: 'Cobertura nacional' },
-  { icon: Headphones, label: 'Asesoría técnica', desc: 'Equipo especializado' },
-  { icon: BadgePercent, label: 'Precios mayoristas', desc: 'Descuentos por volumen' },
+const benefits = [
+  { icon: Truck, text: 'Envío gratis Santiago +$250k' },
+  { icon: Clock, text: 'Despacho 48–72 hrs hábiles' },
+  { icon: Shield, text: 'Garantía de fábrica' },
+  { icon: Phone, text: 'Soporte técnico incluido' },
+  { icon: Award, text: 'Productos certificados CE/IEC' },
+  { icon: Zap, text: 'Stock permanente Chile' },
 ];
 
 const TrustBar = () => (
-  <section className="border-y bg-background">
-    <div className="container py-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {items.map(({ icon: Icon, label, desc }) => (
-          <div key={label} className="flex items-center gap-3">
-            <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
-              <Icon className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">{label}</p>
-              <p className="text-xs text-muted-foreground">{desc}</p>
-            </div>
+  <div className="bg-surface border-y py-3">
+    <div className="container">
+      <div className="flex items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
+        {benefits.map(({ icon: Icon, text }) => (
+          <div key={text} className="flex items-center gap-2 shrink-0 text-sm text-muted-foreground">
+            <Icon className="h-4 w-4 text-primary shrink-0" />
+            <span className="whitespace-nowrap">{text}</span>
           </div>
         ))}
       </div>
     </div>
-  </section>
+  </div>
 );
 
 export default TrustBar;

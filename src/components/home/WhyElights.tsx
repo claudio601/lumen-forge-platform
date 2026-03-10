@@ -1,25 +1,37 @@
-import { CheckCircle2 } from 'lucide-react';
+import { Zap, Shield, Truck, Phone, Award, Clock, Users, Lightbulb, Star } from 'lucide-react';
 
 const reasons = [
-  'Stock permanente con despacho inmediato',
-  'Catálogo técnico completo con especificaciones',
-  'Precios mayoristas para empresas e instaladores',
-  'Asesoría técnica especializada en iluminación',
-  'Cobertura de despacho a todo Chile',
-  'Garantía directa en todos los productos',
+  { icon: Zap, title: 'Stock permanente', desc: 'Productos disponibles de inmediato, sin esperas de importación.' },
+  { icon: Shield, title: 'Garantía de fábrica', desc: 'Todos nuestros productos incluyen garantía oficial del fabricante.' },
+  { icon: Truck, title: 'Despacho a todo Chile', desc: 'Enviamos por Starken, Cruz del Sur, PDQ y ECOEx.' },
+  { icon: Phone, title: 'Soporte técnico', desc: 'Asesoría en selección, instalación y post-venta incluida.' },
+  { icon: Award, title: 'Productos certificados', desc: 'Certificación CE, IEC y normas eléctricas chilenas.' },
+  { icon: Clock, title: 'Entrega 48–72 hrs', desc: 'Despacho rápido desde Santiago a todo el país.' },
+  { icon: Users, title: 'Precios B2B', desc: 'Tarifas especiales para empresas, instaladores y proyectos.' },
+  { icon: Lightbulb, title: 'Asesoría de proyectos', desc: 'Te ayudamos a elegir la solución correcta para tu proyecto.' },
+  { icon: Star, title: '+10 años en el mercado', desc: 'Experiencia y confianza en iluminación LED industrial.' },
 ];
 
 const WhyElights = () => (
-  <section className="container py-12">
-    <h2 className="text-2xl font-bold mb-2 text-center">¿Por qué elegir eLIGHTS?</h2>
-    <p className="text-muted-foreground text-center mb-8">Tu partner de iluminación LED profesional en Chile</p>
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl mx-auto">
-      {reasons.map(r => (
-        <div key={r} className="flex items-start gap-3 p-4 rounded-lg bg-surface">
-          <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-          <span className="text-sm font-medium">{r}</span>
-        </div>
-      ))}
+  <section className="py-16 bg-surface">
+    <div className="container">
+      <div className="text-center mb-10">
+        <h2 className="text-2xl font-bold mb-2">¿Por qué elegir eLIGHTS?</h2>
+        <p className="text-muted-foreground">Tu proveedor confiable de iluminación LED profesional en Chile</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {reasons.map(({ icon: Icon, title, desc }) => (
+          <div key={title} className="bg-background rounded-xl p-5 border hover:border-primary/30 transition-colors">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="gradient-primary rounded-lg p-2">
+                <Icon className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <h3 className="font-semibold text-sm">{title}</h3>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+          </div>
+        ))}
+      </div>
     </div>
   </section>
 );

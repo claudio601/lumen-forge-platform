@@ -1,59 +1,78 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Product, CartItem, QuoteItem } from '@/data/products';
+import { createContext, useContext, useState, ReactNode } from 'react';
+import { Product } from '@/data/products';
+
+interface CartItem { product: Product; quantity: number; }
+interface QuoteItem { product: Product; quantity: number; notes?: string; }
 
 interface AppContextType {
   cart: CartItem[];
-  quoteItems: QuoteItem[];
   addToCart: (product: Product, qty?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateCartQty: (productId: string, qty: number) => void;
-  addToQuote: (product: Product, qty?: number) => void;
-  removeFromQuote: (productId: string) => void;
-  updateQuoteQty: (productId: string, qty: number) => void;
+  removeFromCart: (id: string) => void;
+  updateCartQty: (id: string, qty: number) => void;
   clearCart: () => void;
-  clearQuote: () => void;
-  cartTotal: number;
   cartCount: number;
+  cartTotal: number;
+  quoteCart: QuoteItem[];
+  addToQuote: (product: Product, qty?: number, notes?: string) => void;
+  removeFromQuote: (id: string) => void;
+  clearQuote: () => void;
   quoteCount: number;
+  isB2B: boolean;
+  toggleB2B: () => void;
+  displayPrice: (price: number) => number;
+  formatDisplayPrice: (price: number) => string;
+  priceLabel: string;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+const AppContext = createContext<AppContextType | null>(null);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
+  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>([]);
+  const [isB2B, setIsB2B] = useState(false);
 
-  const addToCart = useCallback((product: Product, qty = 1) => {
+  const addToCart = (product: Product, qty = 1) => {
     setCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + qty } : i);
       return [...prev, { product, quantity: qty }];
     });
-  }, []);
+  };
 
-  const removeFromCart = useCallback((id: string) => setCart(p => p.filter(i => i.product.id !== id)), []);
-  const updateCartQty = useCallback((id: string, qty: number) => setCart(p => p.map(i => i.product.id === id ? { ...i, quantity: Math.max(1, qty) } : i)), []);
+  const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.product.id !== id));
+  const updateCartQty = (id: string, qty: number) => {
+    if (qty <= 0) { removeFromCart(id); return; }
+    setCart(prev => prev.map(i => i.product.id === id ? { ...i, quantity: qty } : i));
+  };
+  const clearCart = () => setCart([]);
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
 
-  const addToQuote = useCallback((product: Product, qty = 1) => {
-    setQuoteItems(prev => {
+  const addToQuote = (product: Product, qty = 1, notes?: string) => {
+    setQuoteCart(prev => {
       const existing = prev.find(i => i.product.id === product.id);
       if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + qty } : i);
-      return [...prev, { product, quantity: qty }];
+      return [...prev, { product, quantity: qty, notes }];
     });
-  }, []);
+  };
+  const removeFromQuote = (id: string) => setQuoteCart(prev => prev.filter(i => i.product.id !== id));
+  const clearQuote = () => setQuoteCart([]);
+  const quoteCount = quoteCart.reduce((s, i) => s + i.quantity, 0);
 
-  const removeFromQuote = useCallback((id: string) => setQuoteItems(p => p.filter(i => i.product.id !== id)), []);
-  const updateQuoteQty = useCallback((id: string, qty: number) => setQuoteItems(p => p.map(i => i.product.id === id ? { ...i, quantity: Math.max(1, qty) } : i)), []);
-
-  const clearCart = useCallback(() => setCart([]), []);
-  const clearQuote = useCallback(() => setQuoteItems([]), []);
-
-  const cartTotal = cart.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-  const quoteCount = quoteItems.reduce((sum, i) => sum + i.quantity, 0);
+  const toggleB2B = () => setIsB2B(v => !v);
+  const displayPrice = (price: number) => isB2B ? Math.round(price / 1.19) : price;
+  const formatDisplayPrice = (price: number) => {
+    const p = displayPrice(price);
+    return `$${p.toLocaleString('es-CL')}`;
+  };
+  const priceLabel = isB2B ? 'Precio neto (sin IVA)' : 'Precio c/IVA';
 
   return (
-    <AppContext.Provider value={{ cart, quoteItems, addToCart, removeFromCart, updateCartQty, addToQuote, removeFromQuote, updateQuoteQty, clearCart, clearQuote, cartTotal, cartCount, quoteCount }}>
+    <AppContext.Provider value={{
+      cart, addToCart, removeFromCart, updateCartQty, clearCart, cartCount, cartTotal,
+      quoteCart, addToQuote, removeFromQuote, clearQuote, quoteCount,
+      isB2B, toggleB2B, displayPrice, formatDisplayPrice, priceLabel,
+    }}>
       {children}
     </AppContext.Provider>
   );
