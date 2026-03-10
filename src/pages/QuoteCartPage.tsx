@@ -1,31 +1,82 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, Zap, CheckCircle2 } from 'lucide-react';
+import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+const EMAILJS_SERVICE_ID  = 'service_elights';
+const EMAILJS_TEMPLATE_ID = 'template_6y0bq3l';
+const EMAILJS_PUBLIC_KEY  = '8StzB2ZV2J_JVa7DL';
+
+const ELIGHTS_EMAIL = 'ventas@elights.cl';
+
+async function sendViaEmailJS(templateParams: Record<string, string>): Promise<void> {
+  const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      service_id:  EMAILJS_SERVICE_ID,
+      template_id: EMAILJS_TEMPLATE_ID,
+      user_id:     EMAILJS_PUBLIC_KEY,
+      template_params: templateParams,
+    }),
+  });
+  if (!res.ok) throw new Error(`EmailJS error: ${res.status}`);
+}
+
 const QuoteCartPage = () => {
-  const { quoteItems, updateQuoteQty, removeFromQuote, clearQuote } = useApp();
+  const { quoteItems, updateQuoteQty, removeFromQuote, clearQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
   const [form, setForm] = useState({
-    nombre: '', email: '', telefono: '', rutEmpresa: '', razonSocial: '', giro: '', direccion: '', comentarios: '',
+    nombre: '', email: '', telefono: '', rutEmpresa: '',
+    razonSocial: '', giro: '', direccion: '', comentarios: '',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const itemsText = quoteItems.map(i =>
+    `• ${i.product.sku} — ${i.product.name} x${i.quantity} = ${fmt(displayPrice(i.product.price) * i.quantity)} ${priceLabel}`
+  ).join('\n');
+
+  const totalDisplay = quoteItems.reduce((s, i) => s + displayPrice(i.product.price) * i.quantity, 0);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nombre || !form.email || !form.telefono || !form.rutEmpresa || !form.razonSocial || !form.giro || !form.direccion) {
+    const required = ['nombre','email','telefono','rutEmpresa','razonSocial','giro','direccion'] as const;
+    if (required.some(f => !form[f])) {
       toast.error('Completa todos los campos requeridos');
       return;
     }
-    // CRM-ready: this data would create a Lead in Pipedrive with source='quote_cart'
-    console.log('Quote request (CRM Lead):', { items: quoteItems, contact: form, source: 'quote_cart' });
-    setSubmitted(true);
-    clearQuote();
+    setSending(true);
+    try {
+      await sendViaEmailJS({
+        to_email:      ELIGHTS_EMAIL,
+        reply_to:      form.email,
+        from_name:     form.nombre,
+        razon_social:  form.razonSocial,
+        rut_empresa:   form.rutEmpresa,
+        giro:          form.giro,
+        telefono:      form.telefono,
+        direccion:     form.direccion,
+        comentarios:   form.comentarios || '—',
+        items_lista:   itemsText,
+        total:         `${fmt(totalDisplay)} ${priceLabel}`,
+        modo_precio:   isB2B ? 'B2B (neto sin IVA)' : 'B2C (con IVA incluido)',
+        fecha:         new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
+      });
+      setSubmitted(true);
+      clearQuote();
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al enviar. Contáctanos por WhatsApp al +56 9 9127 3128');
+    } finally {
+      setSending(false);
+    }
   };
 
   if (submitted) {
@@ -33,7 +84,9 @@ const QuoteCartPage = () => {
       <div className="container py-16 text-center max-w-md mx-auto">
         <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Solicitud enviada</h1>
-        <p className="text-muted-foreground mb-6">Nuestro equipo comercial te contactará a la brevedad con tu cotización personalizada.</p>
+        <p className="text-muted-foreground mb-6">
+          Nuestro equipo comercial revisará tu solicitud y te contactará a la brevedad con tu cotización personalizada.
+        </p>
         <Button asChild className="gradient-primary text-primary-foreground">
           <Link to="/catalogo">Seguir explorando</Link>
         </Button>
@@ -64,15 +117,12 @@ const QuoteCartPage = () => {
         Un asesor comercial revisará tu solicitud y te enviará una cotización personalizada con precios especiales.
       </p>
 
-      {/* Quote items */}
       <div className="border rounded-xl overflow-hidden mb-8">
-        <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto] gap-4">
-          <span>Producto</span>
-          <span>Cantidad</span>
-          <span></span>
+        <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto_auto] gap-4">
+          <span>Producto</span><span>Precio unit.</span><span>Cantidad</span><span></span>
         </div>
         {quoteItems.map(item => (
-          <div key={item.product.id} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto] gap-4 items-center">
+          <div key={item.product.id} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-surface rounded-lg flex items-center justify-center shrink-0">
                 <Zap className="h-5 w-5 text-primary/20" />
@@ -81,6 +131,10 @@ const QuoteCartPage = () => {
                 <p className="font-semibold text-sm line-clamp-1">{item.product.name}</p>
                 <p className="text-[10px] text-muted-foreground font-mono">{item.product.sku}</p>
               </div>
+            </div>
+            <div className="text-sm font-medium text-right">
+              <span>{formatDisplayPrice(item.product.price)}</span>
+              <span className="text-[10px] text-muted-foreground ml-1">{priceLabel}</span>
             </div>
             <div className="flex items-center border rounded-lg">
               <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
@@ -92,19 +146,23 @@ const QuoteCartPage = () => {
             </button>
           </div>
         ))}
+        <div className="px-4 py-3 border-t bg-surface flex justify-end items-center gap-2">
+          <span className="text-sm text-muted-foreground">Total referencial:</span>
+          <span className="font-bold">{fmt(totalDisplay)}</span>
+          <span className="text-xs text-muted-foreground">{priceLabel}</span>
+        </div>
       </div>
 
-      {/* B2B Form */}
       <form onSubmit={handleSubmit} className="max-w-2xl">
         <h2 className="text-lg font-bold mb-4">Datos de contacto</h2>
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           {[
-            { name: 'nombre', label: 'Nombre y Apellido', required: true },
-            { name: 'email', label: 'Email', type: 'email', required: true },
-            { name: 'telefono', label: 'Teléfono', type: 'tel', required: true },
-            { name: 'rutEmpresa', label: 'RUT Empresa', required: true },
-            { name: 'razonSocial', label: 'Razón Social', required: true },
-            { name: 'giro', label: 'Giro', required: true },
+            { name: 'nombre',      label: 'Nombre y Apellido',  required: true },
+            { name: 'email',       label: 'Email',              type: 'email', required: true },
+            { name: 'telefono',    label: 'Teléfono',           type: 'tel',   required: true },
+            { name: 'rutEmpresa',  label: 'RUT Empresa',        required: true },
+            { name: 'razonSocial', label: 'Razón Social',       required: true },
+            { name: 'giro',        label: 'Giro',               required: true },
           ].map(field => (
             <div key={field.name}>
               <label className="text-sm font-medium mb-1 block">
@@ -129,8 +187,11 @@ const QuoteCartPage = () => {
             <textarea name="comentarios" value={form.comentarios} onChange={handleChange} rows={3} className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none" />
           </div>
         </div>
-        <Button type="submit" size="lg" className="w-full gradient-primary text-primary-foreground h-14 text-base font-bold gap-2">
-          <Send className="h-5 w-5" /> ENVIAR SOLICITUD DE PRESUPUESTO
+        <Button type="submit" size="lg" disabled={sending} className="w-full gradient-primary text-primary-foreground h-14 text-base font-bold gap-2">
+          {sending
+            ? <><span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Enviando...</>
+            : <><Send className="h-5 w-5" /> ENVIAR SOLICITUD DE PRESUPUESTO</>
+          }
         </Button>
       </form>
     </div>
