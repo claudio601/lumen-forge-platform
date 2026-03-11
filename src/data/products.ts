@@ -376,3 +376,13 @@ export const searchProducts = (q: string) => {
   const ql = q.toLowerCase();
   return products.filter(p => p.name.toLowerCase().includes(ql) || p.sku.toLowerCase().includes(ql));
 };
+export const popularSearches = [
+  'Panel LED 60x60',
+  'Proyector LED 100W',
+  'Campana Industrial',
+  'Tubo LED T8',
+  'Ampolleta LED',
+  'Dicroica GU10',
+  'Proyector IP66',
+  'Panel LED 120x30',
+];
