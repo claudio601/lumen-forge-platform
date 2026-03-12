@@ -29,24 +29,24 @@ const HeroSection = () => (
         >
           <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
             <span className="h-1.5 w-1.5 bg-purple-400 rounded-full animate-pulse" />
-            Catalogo tecnico con stock disponible
+            Catálogo técnico con stock disponible
           </div>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-white">
-            Iluminacion LED profesional para{' '}
+            Iluminación LED profesional para{' '}
             <span style={{ background: 'linear-gradient(135deg, #c084fc, #a855f7, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               proyectos, empresas y hogar
             </span>
           </h1>
 
           <p className="text-base md:text-lg text-gray-300 mb-8 leading-relaxed">
-            Catalogo tecnico completo, stock permanente, despacho a todo Chile y asesoria especializada para tu proyecto de iluminacion.
+            Catálogo técnico completo, stock permanente, despacho a todo Chile y asesoría especializada para tu proyecto de iluminación.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
             <Button asChild size="lg" className="gap-2 text-base px-8 h-12 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)' }}>
               <Link to="/catalogo">
-                Explorar catalogo <ArrowRight className="h-4 w-4" />
+                Explorar catálogo <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button asChild size="lg" className="gap-2 text-base h-12 text-white font-semibold" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(168,85,247,0.4)', backdropFilter: 'blur(8px)' }}>
@@ -58,8 +58,8 @@ const HeroSection = () => (
 
           <div className="flex flex-wrap gap-5">
             {[
-              { icon: Truck, text: 'Envio gratis +$250k' },
-              { icon: Shield, text: 'Garantia de fabrica' },
+              { icon: Truck, text: 'Envío gratis +$250k' },
+              { icon: Shield, text: 'Garantía de fábrica' },
               { icon: Zap, text: 'Despacho 48-72 hrs' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-gray-300 text-sm">
