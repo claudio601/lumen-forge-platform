@@ -16,6 +16,7 @@ interface AppContextType {
   addToQuote: (product: Product, qty?: number, notes?: string) => void;
   removeFromQuote: (id: string) => void;
   clearQuote: () => void;
+  updateQuoteQty: (id: string, qty: number) => void;
   quoteCount: number;
   isB2B: boolean;
   toggleB2B: () => void;
@@ -57,6 +58,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
   const removeFromQuote = (id: string) => setQuoteCart(prev => prev.filter(i => i.product.id !== id));
   const clearQuote = () => setQuoteCart([]);
+  const updateQuoteQty = (id: string, qty: number) => {
+    if (qty <= 0) { removeFromQuote(id); return; }
+    setQuoteCart(prev => prev.map(i => i.product.id === id ? { ...i, quantity: qty } : i));
+  };
   const quoteCount = quoteCart.reduce((s, i) => s + i.quantity, 0);
 
   const toggleB2B = () => setIsB2B(v => !v);
@@ -70,7 +75,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AppContext.Provider value={{
       cart, addToCart, removeFromCart, updateCartQty, clearCart, cartCount, cartTotal,
-      quoteCart, addToQuote, removeFromQuote, clearQuote, quoteCount,
+      quoteCart, addToQuote, removeFromQuote, clearQuote, updateQuoteQty, quoteCount,
       isB2B, toggleB2B, displayPrice, formatDisplayPrice, priceLabel,
     }}>
       {children}

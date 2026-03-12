@@ -26,7 +26,7 @@ async function sendViaEmailJS(templateParams: Record<string, string>): Promise<v
 }
 
 const QuoteCartPage = () => {
-  const { quoteItems, updateQuoteQty, removeFromQuote, clearQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
+  const { quoteCart, updateQuoteQty, removeFromQuote, clearQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({
@@ -39,11 +39,11 @@ const QuoteCartPage = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const itemsText = quoteItems.map(i =>
+  const itemsText = quoteCart.map(i =>
     `• ${i.product.sku} — ${i.product.name} x${i.quantity} = ${fmt(displayPrice(i.product.price) * i.quantity)} ${priceLabel}`
   ).join('\n');
 
-  const totalDisplay = quoteItems.reduce((s, i) => s + displayPrice(i.product.price) * i.quantity, 0);
+  const totalDisplay = quoteCart.reduce((s, i) => s + displayPrice(i.product.price) * i.quantity, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +94,7 @@ const QuoteCartPage = () => {
     );
   }
 
-  if (quoteItems.length === 0) {
+  if (quoteCart.length === 0) {
     return (
       <div className="container py-16 text-center">
         <FileText className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
@@ -121,7 +121,7 @@ const QuoteCartPage = () => {
         <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto_auto] gap-4">
           <span>Producto</span><span>Precio unit.</span><span>Cantidad</span><span></span>
         </div>
-        {quoteItems.map(item => (
+        {quoteCart.map(item => (
           <div key={item.product.id} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-surface rounded-lg flex items-center justify-center shrink-0">
