@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 
-const JUMPSELLER_BASE = 'https://elights.cl/products';
+const JUMPSELLER_BASE = 'https://elights.cl';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -50,7 +50,9 @@ const ProductDetail = () => {
       </Link>
 
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        {/* Image gallery */}
         <div className="space-y-3">
+          {/* Main image */}
           <div className="bg-surface rounded-xl flex items-center justify-center aspect-square overflow-hidden relative group">
             {hasImages ? (
               <>
@@ -90,6 +92,8 @@ const ProductDetail = () => {
               <Zap className="h-32 w-32 text-primary/15" />
             )}
           </div>
+
+          {/* Thumbnails */}
           {images.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1">
               {images.map((img, i) => (
@@ -100,16 +104,23 @@ const ProductDetail = () => {
                     i === activeImg ? 'border-primary shadow-sm' : 'border-transparent hover:border-primary/40'
                   }`}
                 >
-                  <img src={img} alt={`${product.name} thumbnail ${i + 1}`} className="w-full h-full object-contain p-1" loading="lazy" />
+                  <img
+                    src={img}
+                    alt={`${product.name} thumbnail ${i + 1}`}
+                    className="w-full h-full object-contain p-1"
+                    loading="lazy"
+                  />
                 </button>
               ))}
             </div>
           )}
         </div>
 
+        {/* Info */}
         <div>
           <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>
           <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
+
           {product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
               {product.tags.map(t => (
@@ -117,14 +128,20 @@ const ProductDetail = () => {
               ))}
             </div>
           )}
+
           <div className="flex items-center gap-3 mb-4">
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${product.stock > 0 ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              product.stock > 0 ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+            }`}>
               {product.stock > 0 ? `${product.stock} en stock` : 'Disponible — consultar stock'}
             </span>
           </div>
+
           <div className="flex items-baseline gap-2 mb-6">
             <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+              isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+            }`}>
               {priceLabel}
             </span>
             {isB2B && (
@@ -133,6 +150,8 @@ const ProductDetail = () => {
               </span>
             )}
           </div>
+
+          {/* Quantity */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center border rounded-lg">
               <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}><Minus className="h-4 w-4" /></button>
@@ -143,17 +162,21 @@ const ProductDetail = () => {
               Subtotal: {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(displayPrice(product.price) * qty)} {priceLabel}
             </span>
           </div>
+
           <div className="flex gap-3 mb-6">
-            <Button size="lg" className="flex-1 gradient-primary text-primary-foreground gap-2 h-12"
-              onClick={() => window.open(`${JUMPSELLER_BASE}/${product.permalink}`, '_blank')}>
+            <Button
+              size="lg"
+              className="flex-1 gradient-primary text-primary-foreground gap-2 h-12"
+              onClick={() => window.open(`${JUMPSELLER_BASE}/${product.permalink}`, '_blank')}
+            >
               <ShoppingCart className="h-4 w-4" /> Comprar
               <ExternalLink className="h-3 w-3 opacity-60" />
             </Button>
-            <Button size="lg" variant="outline" className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
-              onClick={() => { addToQuote(product, qty); toast.success('Agregado a cotización'); }}>
+            <Button size="lg" variant="outline" className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12" onClick={() => { addToQuote(product, qty); toast.success('Agregado a cotización'); }}>
               <FileText className="h-4 w-4" /> Cotizar
             </Button>
           </div>
+
           <div className="flex gap-3">
             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
               <Download className="h-3.5 w-3.5" /> Ficha técnica
@@ -167,6 +190,7 @@ const ProductDetail = () => {
         </div>
       </div>
 
+      {/* Specs table */}
       {specs.length > 0 && (
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           <div>
@@ -196,6 +220,7 @@ const ProductDetail = () => {
         </div>
       )}
 
+      {/* Related */}
       {related.length > 0 && (
         <div>
           <h2 className="text-lg font-bold mb-4">Productos relacionados</h2>

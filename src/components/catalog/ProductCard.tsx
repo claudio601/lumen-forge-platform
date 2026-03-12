@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, FileText, Zap } from 'lucide-react';
+import { ShoppingCart, FileText, Zap, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
-const JUMPSELLER_BASE = 'https://elights.cl/products';
+// Mientras el checkout nativo no esté listo, "Comprar" redirige a Jumpseller
+const JUMPSELLER_BASE = 'https://elights.cl';
 
 interface Props {
   product: Product;
 }
 
 const ProductCard = ({ product }: Props) => {
-  const { addToQuote, formatDisplayPrice, priceLabel, isB2B } = useApp();
+  const { addToCart, addToQuote, formatDisplayPrice, priceLabel, isB2B } = useApp();
   const [imgError, setImgError] = useState(false);
   const firstImage = product.images?.[0];
   const showImage = firstImage && !imgError;
@@ -66,7 +67,9 @@ const ProductCard = ({ product }: Props) => {
         <div className="flex items-baseline gap-1.5">
           <p className="text-lg font-bold text-foreground">{formatDisplayPrice(product.price)}</p>
           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-            isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+            isB2B
+              ? 'bg-primary/10 text-primary'
+              : 'bg-muted text-muted-foreground'
           }`}>
             {priceLabel}
           </span>
