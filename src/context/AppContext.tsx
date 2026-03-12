@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/data/products';
 
 interface CartItem { product: Product; quantity: number; }
@@ -27,10 +27,21 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
+function loadFromSession<T>(key: string, fallback: T): T {
+  try {
+    const raw = sessionStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
+}
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>([]);
-  const [isB2B, setIsB2B] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>(() => loadFromSession('elights_cart', []));
+  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>(() => loadFromSession('elights_quote', []));
+  const [isB2B, setIsB2B] = useState(() => loadFromSession('elights_b2b', false));
+
+  useEffect(() => { sessionStorage.setItem('elights_cart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { sessionStorage.setItem('elights_quote', JSON.stringify(quoteCart)); }, [quoteCart]);
+  useEffect(() => { sessionStorage.setItem('elights_b2b', JSON.stringify(isB2B)); }, [isB2B]);
 
   const addToCart = (product: Product, qty = 1) => {
     setCart(prev => {
@@ -39,7 +50,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return [...prev, { product, quantity: qty }];
     });
   };
-
   const removeFromCart = (id: string) => setCart(prev => prev.filter(i => i.product.id !== id));
   const updateCartQty = (id: string, qty: number) => {
     if (qty <= 0) { removeFromCart(id); return; }
