@@ -386,3 +386,16 @@ export const popularSearches = [
   'Proyector IP66',
   'Panel LED 120x30',
 ];
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface QuoteItem {
+  product: Product;
+  quantity: number;
+}
+
+export const formatCLP = (n: number) =>
+  new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
