@@ -6,7 +6,7 @@ import { Product } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
-// Mientras el checkout nativo no esté listo, "Comprar" redirige a Jumpseller
+// TODO Fase 2: compra directa de producto único
 const JUMPSELLER_BASE = 'https://elights.cl';
 
 interface Props {
