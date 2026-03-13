@@ -85,7 +85,7 @@ export default async function handler(req: Request): Promise<Response> {
       status: 'Pending',
       products: items.map((item) => ({
         id: item.jumpseller_id,
-        qty: item.quantity,
+        quantity: item.quantity,  // fix: era "qty", debe ser "quantity"
         price: item.price,
       })),
     },
@@ -93,6 +93,9 @@ export default async function handler(req: Request): Promise<Response> {
 
   // Autenticación Basic (login:token en Base64)
   const credentials = Buffer.from(`${login}:${token}`).toString('base64');
+
+  // Log de depuracion antes del fetch
+  console.log('Calling Jumpseller API with', items.length, 'items');
 
   // Llamada a Jumpseller API
   let jumpseller: Response;
@@ -104,6 +107,7 @@ export default async function handler(req: Request): Promise<Response> {
         Authorization: `Basic ${credentials}`,
       },
       body: JSON.stringify(orderPayload),
+      signal: AbortSignal.timeout(15000), // fix: timeout de 15 segundos
     });
   } catch (err) {
     console.error('Network error calling Jumpseller API:', err);
@@ -115,6 +119,9 @@ export default async function handler(req: Request): Promise<Response> {
       },
     });
   }
+
+  // Log de depuracion del status de respuesta
+  console.log('Jumpseller response status:', jumpseller.status);
 
   if (!jumpseller.ok) {
     const errText = await jumpseller.text();
