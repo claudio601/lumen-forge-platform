@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/data/products';
 
-interface CartItem { product: Product; quantity: number; }
+export interface CartItem { product: Product; quantity: number; }
 interface QuoteItem { product: Product; quantity: number; notes?: string; }
 
 interface AppContextType {
