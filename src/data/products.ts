@@ -14,6 +14,7 @@ export interface Product {
   featured: boolean;
   stock: boolean;
   brand: string;
+    jumpseller_id: number;
 }
 
 export interface Category {
