@@ -74,7 +74,7 @@ const ProductCard = ({ product }: Props) => {
           <Button
             size="sm"
             className="flex-1 gradient-primary text-primary-foreground gap-1 text-xs h-8"
-            onClick={() => { addToCart(product); navigate('/cart'); }}
+            onClick={() => { addToCart(product); navigate('/carro'); }}
           >
             <ShoppingCart className="h-3.5 w-3.5" />
             Comprar
