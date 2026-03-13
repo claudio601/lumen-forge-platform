@@ -1,13 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingCart, FileText, Zap, ExternalLink } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, FileText, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
-
-// TODO Fase 2: compra directa de producto único
-const JUMPSELLER_BASE = 'https://elights.cl';
 
 interface Props {
   product: Product;
@@ -15,6 +12,7 @@ interface Props {
 
 const ProductCard = ({ product }: Props) => {
   const { addToCart, addToQuote, formatDisplayPrice, priceLabel, isB2B } = useApp();
+  const navigate = useNavigate();
   const [imgError, setImgError] = useState(false);
   const firstImage = product.images?.[0];
   const showImage = firstImage && !imgError;
@@ -67,9 +65,7 @@ const ProductCard = ({ product }: Props) => {
         <div className="flex items-baseline gap-1.5">
           <p className="text-lg font-bold text-foreground">{formatDisplayPrice(product.price)}</p>
           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-            isB2B
-              ? 'bg-primary/10 text-primary'
-              : 'bg-muted text-muted-foreground'
+            isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
           }`}>
             {priceLabel}
           </span>
@@ -78,17 +74,22 @@ const ProductCard = ({ product }: Props) => {
           <Button
             size="sm"
             className="flex-1 gradient-primary text-primary-foreground gap-1 text-xs h-8"
-            onClick={() => window.open(`${JUMPSELLER_BASE}/${product.permalink}`, '_blank')}
+            onClick={() => { addToCart(product); navigate('/cart'); }}
           >
-            <ShoppingCart className="h-3.5 w-3.5" /> Comprar
+            <ShoppingCart className="h-3.5 w-3.5" />
+            Comprar
           </Button>
           <Button
             size="sm"
             variant="outline"
             className="gap-1 text-xs border-primary/30 text-primary hover:bg-accent h-8"
-            onClick={() => { addToQuote(product); toast.success('Agregado a cotización'); }}
+            onClick={() => {
+              addToQuote(product);
+              toast.success('Agregado a cotización');
+            }}
           >
-            <FileText className="h-3.5 w-3.5" /> Cotizar
+            <FileText className="h-3.5 w-3.5" />
+            Cotizar
           </Button>
         </div>
       </div>
