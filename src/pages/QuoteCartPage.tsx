@@ -11,19 +11,16 @@ const EMAILJS_PUBLIC_KEY  = '8StzB2ZV2J_JVa7DL';
 
 const ELIGHTS_EMAIL = 'ventas@elights.cl';
 
-async function sendViaEmailJS(templateParams: Record<string, string>): Promise<void> {
-  const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      service_id:  EMAILJS_SERVICE_ID,
-      template_id: EMAILJS_TEMPLATE_ID,
-      user_id:     EMAILJS_PUBLIC_KEY,
-      template_params: templateParams,
-    }),
+const sendEmail = async (payload: object) => {
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec";
+  const response = await fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`EmailJS error: ${res.status}`);
-}
+  const result = await response.json();
+  if (result.status !== "ok") throw new Error(result.message || "Error enviando email");
+};
 
 const QuoteCartPage = () => {
   const { quoteCart, updateQuoteQty, removeFromQuote, clearQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
@@ -54,7 +51,7 @@ const QuoteCartPage = () => {
     }
     setSending(true);
     try {
-      await sendViaEmailJS({
+      await sendEmail({
         to_email:      ELIGHTS_EMAIL,
         reply_to:      form.email,
         from_name:     form.nombre,
