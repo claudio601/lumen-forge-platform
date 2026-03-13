@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { createOrder } from '@/services/jumpsellerCart';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,11 +8,13 @@ import { Button } from '@/components/ui/button';
 const CartPage = () => {
   const { cart, updateCartQty, removeFromCart, cartTotal, clearCart, isB2B, formatDisplayPrice, displayPrice, priceLabel } = useApp();
 
+  const [loading, setLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
   // cartTotal is always sum of IVA-inclusive prices — derive display total
   const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.product.price) * i.quantity, 0);
   const ivaAmount = isB2B ? 0 : Math.round(displayTotal - displayTotal / 1.19);
   const neto = isB2B ? displayTotal : Math.round(displayTotal / 1.19);
-
   const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
 
   if (cart.length === 0) {
@@ -29,10 +33,10 @@ const CartPage = () => {
   return (
     <div className="container py-8">
       <Link to="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Seguir comprando
+        <ArrowLeft className="h-4 w-4" />
+        Seguir comprando
       </Link>
       <h1 className="text-2xl font-bold mb-6">Carro de compras</h1>
-
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-3">
           {cart.map(item => (
@@ -59,7 +63,6 @@ const CartPage = () => {
             </div>
           ))}
         </div>
-
         <div className="border rounded-xl p-6 h-fit sticky top-32">
           <h2 className="font-bold mb-4">Resumen del pedido</h2>
           <div className="space-y-2 mb-4 text-sm">
@@ -88,19 +91,42 @@ const CartPage = () => {
           </div>
           <Button
             className="w-full gradient-primary text-primary-foreground h-12 text-base gap-2"
-            onClick={() => {
-              // Abre cada producto en Jumpseller en nueva pestaña
-              // Fase 2: reemplazar por API de carrito nativa de Jumpseller
-              cart.forEach(item => {
-                window.open(`https://elights.cl/${item.product.permalink}`, '_blank');
-              });
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setCheckoutError(null);
+              try {
+                const checkoutUrl = await createOrder(cart);
+                window.location.href = checkoutUrl;
+              } catch (err) {
+                setCheckoutError(err instanceof Error ? err.message : 'Error al procesar el pedido. Intenta nuevamente.');
+                setLoading(false);
+              }
             }}
           >
-            <ShoppingCart className="h-4 w-4" /> Ir a comprar en eLights
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                Procesando...
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-4 w-4" />
+                Ir a comprar en eLights
+              </>
+            )}
           </Button>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
-            Te llevamos a cada producto en la tienda para completar la compra con Webpay
+            Te llevamos a pagar con Webpay en eLights
           </p>
+          {checkoutError && (
+            <p className="text-xs text-destructive text-center mt-2 bg-destructive/10 rounded-lg px-3 py-2">
+              {checkoutError}
+            </p>
+          )}
         </div>
       </div>
     </div>
