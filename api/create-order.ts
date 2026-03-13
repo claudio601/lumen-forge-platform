@@ -14,6 +14,8 @@ interface CreateOrderBody {
 
 const CORS_ORIGIN = 'https://nuevo.elights.cl';
 
+export const config = { runtime: 'edge' };
+
 export default async function handler(req: Request): Promise<Response> {
   // Manejo de preflight CORS
   if (req.method === 'OPTIONS') {
@@ -92,7 +94,7 @@ export default async function handler(req: Request): Promise<Response> {
   };
 
   // Autenticación Basic (login:token en Base64)
-  const credentials = Buffer.from(`${login}:${token}`).toString('base64');
+  const credentials = btoa(`${login}:${token}`);
 
   // Log de depuracion antes del fetch
   console.log('Calling Jumpseller API with', items.length, 'items');
