@@ -10,6 +10,7 @@ interface OrderItem {
 
 interface CreateOrderBody {
   items: OrderItem[];
+  customer_id?: number;
 }
 
 const CORS_ORIGIN = 'https://nuevo.elights.cl';
@@ -68,7 +69,7 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  const { items } = body;
+  const { items, customer_id } = body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return new Response(JSON.stringify({ error: 'items array is required and must not be empty' }), {
@@ -81,20 +82,20 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // Construir payload para Jumpseller Orders API
-  // https://jumpseller.com/support/api/#tag/Orders/operation/postOrders
-  const orderPayload = {
+  // customer_id es requerido por Jumpseller para crear ordenes via API
+  const orderPayload: Record<string, unknown> = {
     order: {
-      status: 'Pending',
       products: items.map((item) => ({
         id: item.jumpseller_id,
-        quantity: item.quantity,  // fix: era "qty", debe ser "quantity"
+        quantity: item.quantity,
         price: item.price,
       })),
+      ...(customer_id ? { customer: { id: customer_id } } : {}),
     },
   };
 
-  // Autenticación Basic (login:token en Base64)
-  const credentials = btoa(`${login}:${token}`);
+  // URL con query params (Basic Auth no funciona correctamente con este endpoint)
+  const apiUrl = `https://api.jumpseller.com/v1/orders.json?login=${login}&authtoken=${token}`;
 
   // Log de depuracion antes del fetch
   console.log('Calling Jumpseller API with', items.length, 'items');
@@ -102,14 +103,13 @@ export default async function handler(req: Request): Promise<Response> {
   // Llamada a Jumpseller API
   let jumpseller: Response;
   try {
-    jumpseller = await fetch('https://api.jumpseller.com/v1/orders.json', {
+    jumpseller = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${credentials}`,
       },
       body: JSON.stringify(orderPayload),
-      signal: AbortSignal.timeout(15000), // fix: timeout de 15 segundos
+      signal: AbortSignal.timeout(15000),
     });
   } catch (err) {
     console.error('Network error calling Jumpseller API:', err);
@@ -144,9 +144,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // Jumpseller retorna la orden creada; extraemos el checkout_url
   const checkoutUrl: string | undefined =
-    data?.order?.checkout_url ??
-    data?.checkout_url ??
-    data?.payment_url;
+    data?.order?.checkout_url ?? data?.checkout_url ?? data?.payment_url;
 
   if (!checkoutUrl) {
     console.error('Jumpseller response missing checkout_url:', JSON.stringify(data));
@@ -162,7 +160,7 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
-  return new Response(JSON.stringify({ checkout_url: checkoutUrl }), {
+  return new Response(JSON.stringify({ checkout_url: checkoutUrl, order_id: data?.order?.id }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
