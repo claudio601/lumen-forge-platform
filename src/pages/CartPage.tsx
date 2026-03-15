@@ -1,15 +1,11 @@
-import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { createOrder } from '@/services/jumpsellerCart';
+import { buildCheckoutUrl } from '@/services/jumpsellerCart';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const CartPage = () => {
   const { cart, updateCartQty, removeFromCart, cartTotal, clearCart, isB2B, formatDisplayPrice, displayPrice, priceLabel } = useApp();
-
-  const [loading, setLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   // cartTotal is always sum of IVA-inclusive prices — derive display total
   const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.product.price) * i.quantity, 0);
@@ -91,42 +87,17 @@ const CartPage = () => {
           </div>
           <Button
             className="w-full gradient-primary text-primary-foreground h-12 text-base gap-2"
-            disabled={loading}
-            onClick={async () => {
-              setLoading(true);
-              setCheckoutError(null);
-              try {
-                const checkoutUrl = await createOrder(cart);
-                window.location.href = checkoutUrl;
-              } catch (err) {
-                setCheckoutError(err instanceof Error ? err.message : 'Error al procesar el pedido. Intenta nuevamente.');
-                setLoading(false);
-              }
+            onClick={() => {
+              const url = buildCheckoutUrl(cart);
+              window.location.href = url;
             }}
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                </svg>
-                Procesando...
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="h-4 w-4" />
-                Ir a comprar en eLights
-              </>
-            )}
+            <ShoppingCart className="h-4 w-4" />
+            Ir a comprar en eLights
           </Button>
           <p className="text-[10px] text-muted-foreground text-center mt-2">
             Te llevamos a pagar con Webpay en eLights
           </p>
-          {checkoutError && (
-            <p className="text-xs text-destructive text-center mt-2 bg-destructive/10 rounded-lg px-3 py-2">
-              {checkoutError}
-            </p>
-          )}
         </div>
       </div>
     </div>
