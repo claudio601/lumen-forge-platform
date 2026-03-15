@@ -6,6 +6,7 @@ import { CartItem } from '@/context/AppContext';
 
 interface OrderItem {
   jumpseller_id: number;
+  jumpseller_variant_id?: number;
   quantity: number;
   price: number;
 }
@@ -23,6 +24,7 @@ export async function createOrder(items: CartItem[]): Promise<string> {
 
   const orderItems: OrderItem[] = items.map((item) => ({
     jumpseller_id: item.product.jumpseller_id,
+    jumpseller_variant_id: item.product.jumpseller_variant_id,
     quantity: item.quantity,
     price: item.product.price,
   }));
@@ -32,7 +34,7 @@ export async function createOrder(items: CartItem[]): Promise<string> {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ items: orderItems }),
+    body: JSON.stringify({ items: orderItems, customer_email: 'guest@elights.cl' }),
   });
 
   if (!response.ok) {
