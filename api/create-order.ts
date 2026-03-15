@@ -1,8 +1,7 @@
 // api/create-order.ts
 // Vercel Node.js Function — proxy seguro para crear órdenes en Jumpseller
-// Flujo simple: recibe items → un solo POST a Jumpseller → retorna checkout_url
-
-export const config = { runtime: 'nodejs' };
+// Usa VercelRequest/VercelResponse (Node.js IncomingMessage) en vez de Web API Request
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 interface OrderItem {
   jumpseller_id: number;
@@ -18,58 +17,33 @@ interface CreateOrderBody {
 
 const CORS_ORIGIN = 'https://nuevo.elights.cl';
 
-const corsHeaders = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': CORS_ORIGIN,
-};
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': CORS_ORIGIN,
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      },
-    });
-  }
-
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: corsHeaders,
-    });
-  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const login = process.env.JUMPSELLER_LOGIN;
   const token = process.env.JUMPSELLER_TOKEN;
 
+  console.log('Handler reached. Method:', req.method, 'ContentType:', req.headers['content-type']);
+  console.log('Credentials present — login:', !!login, 'token:', !!token);
+
   if (!login || !token) {
     console.error('Missing Jumpseller credentials');
-    return new Response(JSON.stringify({ error: 'Server configuration error' }), {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return res.status(500).json({ error: 'Server configuration error' });
   }
 
-  let body: CreateOrderBody;
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-      status: 400,
-      headers: corsHeaders,
-    });
-  }
+  console.log('Body received:', JSON.stringify(req.body));
 
+  const body = req.body as CreateOrderBody;
   const { items } = body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
-    return new Response(
-      JSON.stringify({ error: 'items array is required and must not be empty' }),
-      { status: 400, headers: corsHeaders }
-    );
+    return res.status(400).json({ error: 'items array is required and must not be empty' });
   }
 
   // Payload de orden — una sola llamada a Jumpseller
@@ -102,10 +76,7 @@ export default async function handler(req: Request): Promise<Response> {
   } catch (err) {
     clearTimeout(timeoutId);
     console.error('Network error calling Jumpseller API:', err);
-    return new Response(JSON.stringify({ error: 'Failed to reach Jumpseller API' }), {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return res.status(500).json({ error: 'Failed to reach Jumpseller API' });
   }
 
   clearTimeout(timeoutId);
@@ -114,13 +85,10 @@ export default async function handler(req: Request): Promise<Response> {
   if (!jumpseller.ok) {
     const errText = await jumpseller.text();
     console.error('Jumpseller API error:', jumpseller.status, errText);
-    return new Response(
-      JSON.stringify({ error: `Jumpseller API error: ${jumpseller.status}`, detail: errText }),
-      {
-        status: jumpseller.status >= 400 && jumpseller.status < 500 ? 400 : 500,
-        headers: corsHeaders,
-      }
-    );
+    return res.status(jumpseller.status >= 400 && jumpseller.status < 500 ? 400 : 500).json({
+      error: `Jumpseller API error: ${jumpseller.status}`,
+      detail: errText,
+    });
   }
 
   const data = await jumpseller.json();
@@ -131,14 +99,14 @@ export default async function handler(req: Request): Promise<Response> {
 
   if (!checkoutUrl) {
     console.error('Missing checkout_url in response:', JSON.stringify(data));
-    return new Response(
-      JSON.stringify({ error: 'Jumpseller did not return a checkout URL', raw: data }),
-      { status: 500, headers: corsHeaders }
-    );
+    return res.status(500).json({
+      error: 'Jumpseller did not return a checkout URL',
+      raw: data,
+    });
   }
 
-  return new Response(
-    JSON.stringify({ checkout_url: checkoutUrl, order_id: data?.order?.id }),
-    { status: 200, headers: corsHeaders }
-  );
+  return res.status(200).json({
+    checkout_url: checkoutUrl,
+    order_id: data?.order?.id,
+  });
 }
