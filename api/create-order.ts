@@ -77,7 +77,8 @@ export default async function handler(req: Request): Promise<Response> {
     order: {
       customer: { email: 'guest@elights.cl' },
       products: items.map((item) => ({
-        id: item.jumpseller_variant_id ?? item.jumpseller_id,
+        id: item.jumpseller_id,
+        variant_id: item.jumpseller_variant_id,
         quantity: item.quantity,
       })),
     },
