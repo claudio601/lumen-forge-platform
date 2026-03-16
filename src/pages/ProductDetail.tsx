@@ -133,7 +133,7 @@ const ProductDetail = () => {
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
               product.stock === true ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
             }`}>
-              {product.stock === true ? `${product.stock} en stock` : 'Disponible — consultar stock'}
+              {product.stock === true ? 'En stock' : 'Disponible — consultar stock'}
             </span>
           </div>
 
