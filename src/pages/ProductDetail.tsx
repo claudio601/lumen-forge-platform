@@ -121,9 +121,9 @@ const ProductDetail = () => {
           <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>
           <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
 
-          {product.tags.length > 0 && (
+          {(product.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
-              {product.tags.map(t => (
+              {(product.tags ?? []).map(t => (
                 <span key={t} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{t}</span>
               ))}
             </div>
@@ -131,9 +131,9 @@ const ProductDetail = () => {
 
           <div className="flex items-center gap-3 mb-4">
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              product.stock > 0 ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
+              product.stock === true ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
             }`}>
-              {product.stock > 0 ? `${product.stock} en stock` : 'Disponible — consultar stock'}
+              {product.stock === true ? `${product.stock} en stock` : 'Disponible — consultar stock'}
             </span>
           </div>
 
@@ -204,11 +204,11 @@ const ProductDetail = () => {
               ))}
             </div>
           </div>
-          {product.applications.length > 0 && (
+          {(product.applications ?? []).length > 0 && (
             <div>
               <h2 className="text-lg font-bold mb-4">Aplicaciones</h2>
               <div className="grid grid-cols-2 gap-2">
-                {product.applications.map(a => (
+                {(product.applications ?? []).map(a => (
                   <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
                     <span className="h-2 w-2 bg-primary rounded-full" />
                     {a}

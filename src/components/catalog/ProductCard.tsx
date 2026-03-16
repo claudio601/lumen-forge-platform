@@ -32,12 +32,12 @@ const ProductCard = ({ product }: Props) => {
           ) : (
             <Zap className="h-16 w-16 text-primary/20" />
           )}
-          {product.stock > 0 && (
+          {product.stock === true && (
             <span className="absolute top-2 left-2 bg-success/10 text-success text-[10px] font-semibold px-2 py-0.5 rounded-full">
               En stock
             </span>
           )}
-          {product.stock === 0 && (
+          {product.stock === false && (
             <span className="absolute top-2 left-2 bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
               Sin stock
             </span>
