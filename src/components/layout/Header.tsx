@@ -38,14 +38,9 @@ const Header = () => {
                                   <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
                                     {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                                   </button>
-                                  <Link to="/" className="flex items-center gap-1 shrink-0">
-                                              <div className="gradient-primary rounded-lg p-1.5">
-                                                            <Zap className="h-5 w-5 text-primary-foreground" />
-                                              </div>
-                                              <span className="text-xl font-bold tracking-tight">
-                                                            e<span className="text-gradient-primary">LIGHTS</span>
-                                              </span>
-                                  </Link>
+                                  <Link to="/" className="flex items-center shrink-0">
+          <img src="/logo.svg" alt="eLights" className="h-9 w-auto" />
+        </Link>
                         
                                   <div className="relative hidden lg:block">
                                               <Button
