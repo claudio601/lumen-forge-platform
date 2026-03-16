@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import { categories } from '@/data/products';
 import TopInfoBar from './TopInfoBar';
+import Logo from '../Logo';
 
 const iconMap: Record<string, React.ElementType> = {
     Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers,
@@ -38,9 +39,7 @@ const Header = () => {
                                   <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
                                     {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                                   </button>
-                                  <Link to="/" className="flex items-center shrink-0">
-          <img src="/logo.svg" alt="eLights" className="h-9 w-auto" />
-        </Link>
+                                  <Logo />
                         
                                   <div className="relative hidden lg:block">
                                               <Button
