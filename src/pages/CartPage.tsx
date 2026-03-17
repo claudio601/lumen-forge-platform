@@ -1,7 +1,7 @@
 import { useApp } from '@/context/AppContext';
 import { buildCheckoutUrl } from '@/services/jumpsellerCart';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft, Zap } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const CartPage = () => {
@@ -11,7 +11,7 @@ const CartPage = () => {
   const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.product.price) * i.quantity, 0);
   const ivaAmount = isB2B ? 0 : Math.round(displayTotal - displayTotal / 1.19);
   const neto = isB2B ? displayTotal : Math.round(displayTotal / 1.19);
-  const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currenhcy: 'CLP', minimumFractionDigits: 0 }).format(n);
 
   if (cart.length === 0) {
     return (
@@ -37,9 +37,12 @@ const CartPage = () => {
         <div className="lg:col-span-2 space-y-3">
           {cart.map(item => (
             <div key={item.product.id} className="border rounded-xl p-4 flex gap-4 items-center">
-              <div className="h-16 w-16 bg-surface rounded-lg flex items-center justify-center shrink-0">
-                <Zap className="h-8 w-8 text-primary/20" />
-              </div>
+              <img
+                src={item.product.image}
+                alt={item.product.name}
+                className="h-16 w-16 object-contain rounded-lg bg-surface"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
               <div className="flex-1 min-w-0">
                 <Link to={`/producto/${item.product.id}`} className="font-semibold text-sm hover:text-primary transition-colors line-clamp-1">
                   {item.product.name}
