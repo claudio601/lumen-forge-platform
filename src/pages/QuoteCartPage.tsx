@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
