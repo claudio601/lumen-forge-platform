@@ -12,9 +12,9 @@ const benefits = [
 const TrustBar = () => (
   <div className="bg-surface border-y py-3">
     <div className="container">
-      <div className="flex items-center justify-between gap-4 overflow-x-auto scrollbar-hide">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 md:grid-cols-6">
         {benefits.map(({ icon: Icon, text }) => (
-          <div key={text} className="flex items-center gap-2 shrink-0 text-sm text-muted-foreground">
+                    <div key={text} className="flex items-center gap-2 text-sm text-muted-foreground">
             <Icon className="h-4 w-4 text-primary shrink-0" />
             <span className="whitespace-nowrap">{text}</span>
           </div>
