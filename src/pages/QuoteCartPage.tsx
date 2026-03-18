@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, Zap, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -121,9 +121,12 @@ const QuoteCartPage = () => {
         {quoteCart.map(item => (
           <div key={item.product.id} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 bg-surface rounded-lg flex items-center justify-center shrink-0">
-                <Zap className="h-5 w-5 text-primary/20" />
-              </div>
+              <img
+                src={item.product.image}
+                alt={item.product.name}
+                className="h-10 w-10 object-contain rounded-lg bg-surface"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
               <div>
                 <p className="font-semibold text-sm line-clamp-1">{item.product.name}</p>
                 <p className="text-[10px] text-muted-foreground font-mono">{item.product.sku}</p>
