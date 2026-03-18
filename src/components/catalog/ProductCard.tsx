@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, FileText, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Product } from '@/data/products';
+import { Product, PROJECT_CATEGORIES } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { toast } from 'sonner';
 
@@ -70,6 +70,11 @@ const ProductCard = ({ product }: Props) => {
             {priceLabel}
           </span>
         </div>
+        {PROJECT_CATEGORIES.includes(product.category) && (
+          <p className="text-[10px] text-muted-foreground">
+            Precio referencial · Descuentos por proyecto
+          </p>
+        )}
         <div className="flex gap-2 pt-1">
           <Button
             size="sm"
