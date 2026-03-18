@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    Search, ShoppingCart, FileText, User, Menu, X, ChevronDown, Zap,
-    Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers,
-    AlignJustify, AlertTriangle, Shield, Sun, Tag, Settings,
+    Search, ShoppingCart, FileText, User, Menu, X, ChevronDown,
+    Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
+    AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
+    TestTube, Ruler, TrainTrack, UtilityPole,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
@@ -12,8 +13,9 @@ import TopInfoBar from './TopInfoBar';
 import Logo from '../Logo';
 
 const iconMap: Record<string, React.ElementType> = {
-    Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers,
-    AlignJustify, AlertTriangle, Zap, Shield, Sun, Tag, Settings,
+    Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
+    AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
+    TestTube, Ruler, TrainTrack, UtilityPole,
 };
 
 const Header = () => {

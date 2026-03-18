@@ -1,10 +1,15 @@
 import { Link } from 'react-router-dom';
-import { Zap, Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers, AlignJustify, AlertTriangle, Shield, Sun, Tag, Settings } from 'lucide-react';
+import {
+    Zap, Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
+    AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
+    TestTube, Ruler, TrainTrack, UtilityPole,
+} from 'lucide-react';
 import { categories } from '@/data/products';
 
 const iconMap: Record<string, React.ElementType> = {
-  Lightbulb, Square, Minus, Focus, Factory, SunDim, Lamp, Layers,
-  AlignJustify, AlertTriangle, Zap, Shield, Sun, Tag, Settings,
+    Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
+    AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
+    TestTube, Ruler, TrainTrack, UtilityPole, Zap,
 };
 
 const CategoryGrid = () => (

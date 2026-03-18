@@ -31,21 +31,21 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { id: 'proyectores-led', name: 'Proyectores LED', slug: 'proyectores-led', icon: 'Focus', productCount: 68, subcategories: [] },
-  { id: 'paneles-led', name: 'Paneles LED', slug: 'paneles-led', icon: 'Square', productCount: 72, subcategories: [] },
-  { id: 'iluminacion-exterior', name: 'Iluminación Exterior', slug: 'iluminacion-exterior', icon: 'Sun', productCount: 36, subcategories: [] },
-  { id: 'campanas-led', name: 'Campanas LED', slug: 'campanas-led', icon: 'Factory', productCount: 26, subcategories: [] },
+  { id: 'proyectores-led', name: 'Proyectores LED', slug: 'proyectores-led', icon: 'Projector', productCount: 68, subcategories: [] },
+  { id: 'paneles-led', name: 'Paneles LED', slug: 'paneles-led', icon: 'PanelTop', productCount: 72, subcategories: [] },
+  { id: 'iluminacion-exterior', name: 'Iluminación Exterior', slug: 'iluminacion-exterior', icon: 'SunMedium', productCount: 36, subcategories: [] },
+  { id: 'campanas-led', name: 'Campanas LED', slug: 'campanas-led', icon: 'Warehouse', productCount: 26, subcategories: [] },
   { id: 'solar', name: 'Solar', slug: 'solar', icon: 'Sun', productCount: 11, subcategories: [] },
-  { id: 'alumbrado-publico', name: 'Alumbrado Público', slug: 'alumbrado-publico', icon: 'Lamp', productCount: 8, subcategories: [] },
-  { id: 'cinta-led', name: 'Cinta LED', slug: 'cinta-led', icon: 'Minus', productCount: 19, subcategories: [] },
-  { id: 'tubos-led', name: 'Tubos LED', slug: 'tubos-led', icon: 'Minus', productCount: 17, subcategories: [] },
-  { id: 'lineales-led', name: 'Lineales LED', slug: 'lineales-led', icon: 'AlignLeft', productCount: 10, subcategories: [] },
-  { id: 'fuentes-de-poder', name: 'Fuentes de Poder', slug: 'fuentes-de-poder', icon: 'Zap', productCount: 14, subcategories: [] },
+  { id: 'alumbrado-publico', name: 'Alumbrado Público', slug: 'alumbrado-publico', icon: 'RadioTower', productCount: 8, subcategories: [] },
+  { id: 'cinta-led', name: 'Cinta LED', slug: 'cinta-led', icon: 'Waves', productCount: 19, subcategories: [] },
+  { id: 'tubos-led', name: 'Tubos LED', slug: 'tubos-led', icon: 'TestTube', productCount: 17, subcategories: [] },
+  { id: 'lineales-led', name: 'Lineales LED', slug: 'lineales-led', icon: 'Ruler', productCount: 10, subcategories: [] },
+  { id: 'fuentes-de-poder', name: 'Fuentes de Poder', slug: 'fuentes-de-poder', icon: 'PlugZap', productCount: 14, subcategories: [] },
   { id: 'iluminacion-antiexplosiva', name: 'Iluminación Antiexplosiva', slug: 'iluminacion-antiexplosiva', icon: 'ShieldAlert', productCount: 13, subcategories: [] },
-  { id: 'emergencia-led', name: 'Emergencia LED', slug: 'emergencia-led', icon: 'AlertTriangle', productCount: 11, subcategories: [] },
-  { id: 'focos-a-riel', name: 'Focos a Riel', slug: 'focos-a-riel', icon: 'Focus', productCount: 10, subcategories: [] },
+  { id: 'emergencia-led', name: 'Emergencia LED', slug: 'emergencia-led', icon: 'Siren', productCount: 11, subcategories: [] },
+  { id: 'focos-a-riel', name: 'Focos a Riel', slug: 'focos-a-riel', icon: 'TrainTrack', productCount: 10, subcategories: [] },
   { id: 'ampolletas-led', name: 'Ampolletas LED', slug: 'ampolletas-led', icon: 'Lightbulb', productCount: 6, subcategories: [] },
-  { id: 'poste', name: 'Poste', slug: 'poste', icon: 'AlignVerticalJustifyCenter', productCount: 3, subcategories: [] },
+  { id: 'poste', name: 'Poste', slug: 'poste', icon: 'UtilityPole', productCount: 3, subcategories: [] },
 ];
 
 export const products: Product[] = [
