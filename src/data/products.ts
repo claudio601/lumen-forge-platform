@@ -29,7 +29,15 @@ export interface Category {
   productCount: number;
   subcategories: string[];
 }
-
+export const PROJECT_CATEGORIES = [
+    'alumbrado-publico',
+    'iluminacion-exterior',
+    'solar',
+    'lineales-led',
+    'emergencia-led',
+    'iluminacion-antiexplosiva',
+    'poste',
+  ];
 export const categories: Category[] = [
   { id: 'proyectores-led', name: 'Proyectores LED', slug: 'proyectores-led', icon: 'Projector', productCount: 68, subcategories: [] },
   { id: 'paneles-led', name: 'Paneles LED', slug: 'paneles-led', icon: 'PanelTop', productCount: 72, subcategories: [] },
