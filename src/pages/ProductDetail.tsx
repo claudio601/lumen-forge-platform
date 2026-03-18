@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { products } from '@/data/products';
+import { products, PROJECT_CATEGORIES } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, FileText, Minus, Plus, Download, MessageCircle, Zap, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
@@ -137,7 +137,7 @@ const ProductDetail = () => {
             </span>
           </div>
 
-          <div className="flex items-baseline gap-2 mb-6">
+          <div className="flex items-baseline gap-2 mb-2">
             <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
               isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
@@ -150,6 +150,14 @@ const ProductDetail = () => {
               </span>
             )}
           </div>
+
+        {PROJECT_CATEGORIES.includes(product.category) ? (
+          <p className="text-xs text-muted-foreground mb-6">
+            Precio referencial · Contáctanos para descuentos por volumen y proyecto
+          </p>
+        ) : (
+          <div className="mb-4" />
+        )}
 
           {/* Quantity */}
           <div className="flex items-center gap-3 mb-4">
