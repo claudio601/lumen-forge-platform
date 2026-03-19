@@ -1,28 +1,1693 @@
 {
-  "generated_at": "2026-03-19T16:50:26.801325+00:00",
+  "generated_at": "2026-03-19T18:12:16.605394+00:00",
   "currency": "CLP",
-  "competitors": {},
+  "competitors": {
+    "PowerEnergy": {
+      "Proyectores LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Antiexplosivo Led 150W",
+          "price_clp": 331890,
+          "price_raw": "$331.890",
+          "url": "https://powerenergy.cl/producto/proyector-antiexplosivo-led-150w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Antiexplosivo Led 100W",
+          "price_clp": 293490,
+          "price_raw": "$293.490",
+          "url": "https://powerenergy.cl/producto/proyector-antiexplosivo-led-100w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Base Soporte Atril 150Cm",
+          "price_clp": 23390,
+          "price_raw": "$23.390",
+          "url": "https://powerenergy.cl/producto/base-soporte-atril-150cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 400W Luz Fría",
+          "price_clp": 126690,
+          "price_raw": "$126.690",
+          "url": "https://powerenergy.cl/producto/proyector-polux-400w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "PROYECTOR POLUX 300W LUZ FRÍA",
+          "price_clp": 76690,
+          "price_raw": "$76.690",
+          "url": "https://powerenergy.cl/producto/proyector-polux-300w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 200W Luz Fría",
+          "price_clp": 45790,
+          "price_raw": "$45.790",
+          "url": "https://powerenergy.cl/producto/proyector-polux-200w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 150W Luz Fría",
+          "price_clp": 37540,
+          "price_raw": "$37.540",
+          "url": "https://powerenergy.cl/producto/proyector-polux-150w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 100W Con Sensor Luz Fría",
+          "price_clp": 31190,
+          "price_raw": "$31.190",
+          "url": "https://powerenergy.cl/producto/proyector-polux-100w-con-sensor-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 100W Luz Fría",
+          "price_clp": 23040,
+          "price_raw": "$23.040",
+          "url": "https://powerenergy.cl/producto/proyector-polux-100w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "PROYECTOR POLUX 50W LUZ CÁLIDA DS43",
+          "price_clp": 22090,
+          "price_raw": "$22.090",
+          "url": "https://powerenergy.cl/producto/proyector-polux-50w-luz-calida-ds43/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 20W Con Sensor, Luz Fría",
+          "price_clp": 14590,
+          "price_raw": "$14.590",
+          "url": "https://powerenergy.cl/producto/proyector-polux-20w-con-sensor-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "PROYECTOR POLUX 20W LUZ CÁLIDA",
+          "price_clp": 6040,
+          "price_raw": "$6.040",
+          "url": "https://powerenergy.cl/producto/proyector-polux-20w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Portátil 60W",
+          "price_clp": 56490,
+          "price_raw": "$56.490",
+          "url": "https://powerenergy.cl/producto/proyector-solar-portatil-60w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Sirio 200W Luz Cálida Ds43",
+          "price_clp": 121940,
+          "price_raw": "$121.940",
+          "url": "https://powerenergy.cl/producto/proyector-sirio-200w-luz-calida-ds43/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Led Orión 250W",
+          "price_clp": 250090,
+          "price_raw": "$250.090",
+          "url": "https://powerenergy.cl/producto/proyector-led-orion-250w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "PROYECTOR GRIS 20W RGB",
+          "price_clp": 31840,
+          "price_raw": "$31.840",
+          "url": "https://powerenergy.cl/producto/proyector-gris-20w-rgb/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Rigel 200W 4000Lm Ds43",
+          "price_clp": 200190,
+          "price_raw": "$200.190",
+          "url": "https://powerenergy.cl/producto/proyector-solar-rigel-200w-4000lm-ds43/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Rigel 100W 2400Lm Ds43",
+          "price_clp": 129840,
+          "price_raw": "$129.840",
+          "url": "https://powerenergy.cl/producto/proyector-solar-rigel-100w-2400lm-ds43/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Rigel 60W 1400Lm Ds43",
+          "price_clp": 75340,
+          "price_raw": "$75.340",
+          "url": "https://powerenergy.cl/producto/proyector-solar-rigel-60w-1400lm-ds43/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Rigel 200W 4000Lm",
+          "price_clp": 214540,
+          "price_raw": "$214.540",
+          "url": "https://powerenergy.cl/producto/proyector-solar-rigel-200w-4000lm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Rigel 100W 2400Lm",
+          "price_clp": 132040,
+          "price_raw": "$132.040",
+          "url": "https://powerenergy.cl/producto/proyector-solar-rigel-100w-2400lm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Rigel 60W 1400Lm",
+          "price_clp": 77190,
+          "price_raw": "$77.190",
+          "url": "https://powerenergy.cl/producto/proyector-solar-rigel-60w-1400lm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Sensor 60W",
+          "price_clp": 87340,
+          "price_raw": "$87.340",
+          "url": "https://powerenergy.cl/producto/proyector-solar-sensor-60w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar Con Sensor 100W (F)",
+          "price_clp": 118840,
+          "price_raw": "$118.840",
+          "url": "https://powerenergy.cl/producto/proyector-solar-con-sensor-100w-f/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar 3 Módulos Con Sensor",
+          "price_clp": 26040,
+          "price_raw": "$26.040",
+          "url": "https://powerenergy.cl/producto/proyector-solar-3-modulos-con-sensor/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Solar 25W 600Lm",
+          "price_clp": 46190,
+          "price_raw": "$46.190",
+          "url": "https://powerenergy.cl/producto/proyector-solar-25w-600lm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Wall Wash 48W Luz Frío",
+          "price_clp": 86790,
+          "price_raw": "$86.790",
+          "url": "https://powerenergy.cl/producto/wall-wash-48w-luz-frio/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 100W Rgb",
+          "price_clp": 35190,
+          "price_raw": "$35.190",
+          "url": "https://powerenergy.cl/producto/proyector-100w-rgb/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Portátil 30W Con Panel Solar",
+          "price_clp": 50990,
+          "price_raw": "$50.990",
+          "url": "https://powerenergy.cl/producto/proyector-portatil-30w-con-panel-solar/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Led Orión 300W",
+          "price_clp": 367390,
+          "price_raw": "$367.390",
+          "url": "https://powerenergy.cl/producto/proyector-led-orion-300w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 20W Luz Fría",
+          "price_clp": 6390,
+          "price_raw": "$6.390",
+          "url": "https://powerenergy.cl/producto/proyector-polux-20w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Led Orión 150W",
+          "price_clp": 204740,
+          "price_raw": "$204.740",
+          "url": "https://powerenergy.cl/producto/proyector-led-orion-150w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 50W 12V A 24V Luz Fría",
+          "price_clp": 17740,
+          "price_raw": "$17.740",
+          "url": "https://powerenergy.cl/producto/proyector-50w-12v-a-24v-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 30W 12V A 24V Luz Fría",
+          "price_clp": 10490,
+          "price_raw": "$10.490",
+          "url": "https://powerenergy.cl/producto/proyector-30w-12v-a-24v-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 10W 12V A 24V Luz Fría",
+          "price_clp": 6640,
+          "price_raw": "$6.640",
+          "url": "https://powerenergy.cl/producto/proyector-10w-12v-a-24v-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 50W Rgb",
+          "price_clp": 24290,
+          "price_raw": "$24.290",
+          "url": "https://powerenergy.cl/producto/proyector-50w-rgb/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 30W Rgb",
+          "price_clp": 18840,
+          "price_raw": "$18.840",
+          "url": "https://powerenergy.cl/producto/proyector-30w-rgb/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector 10W Rgb",
+          "price_clp": 11290,
+          "price_raw": "$11.290",
+          "url": "https://powerenergy.cl/producto/proyector-10w-rgb/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "PROYECTOR SIRIO 30W FRÍO",
+          "price_clp": 3440,
+          "price_raw": "$3.440",
+          "url": "https://powerenergy.cl/producto/proyector-sirio-30w-frio/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Sirio 400W Luz Fría",
+          "price_clp": 265190,
+          "price_raw": "$265.190",
+          "url": "https://powerenergy.cl/producto/proyector-sirio-400w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Sirio 200W Luz Fría",
+          "price_clp": 141590,
+          "price_raw": "$141.590",
+          "url": "https://powerenergy.cl/producto/proyector-sirio-200w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Campana Led Torre Profesional 500W Ds1",
+          "price_clp": 665790,
+          "price_raw": "$665.790",
+          "url": "https://powerenergy.cl/producto/proyector-campana-para-torre-profesional-500w-ds1/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Campana Led Torre Profesional 1000W",
+          "price_clp": 1448540,
+          "price_raw": "$1.448.540",
+          "url": "https://powerenergy.cl/producto/proyector-campana-para-torre-profesional-1000w-ds1/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 50W Con Sensor Luz Fría",
+          "price_clp": 20040,
+          "price_raw": "$20.040",
+          "url": "https://powerenergy.cl/producto/proyector-polux-50w-con-sensor-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 30W Luz Cálida Ds43",
+          "price_clp": 13140,
+          "price_raw": "$13.140",
+          "url": "https://powerenergy.cl/producto/proyector-polux-30w-luz-calida-ds43/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 30W Luz Fría",
+          "price_clp": 8940,
+          "price_raw": "$8.940",
+          "url": "https://powerenergy.cl/producto/proyector-polux-30w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 30W Con Sensor Luz Fría",
+          "price_clp": 16690,
+          "price_raw": "$16.690",
+          "url": "https://powerenergy.cl/producto/proyector-polux-30w-con-sensor-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Proyector Polux 50W Luz Fría",
+          "price_clp": 11940,
+          "price_raw": "$11.940",
+          "url": "https://powerenergy.cl/producto/proyector-polux-50w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        }
+      ],
+      "Paneles LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel 603X603X30 48W Luz Neutra (R.P)",
+          "price_clp": 14190,
+          "price_raw": "$14.190",
+          "url": "https://powerenergy.cl/producto/panel-603x603x30-48w-neutro-r-p/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 153X1203X35 32W 4000K Philips",
+          "price_clp": 33090,
+          "price_raw": "$33.090",
+          "url": "https://powerenergy.cl/producto/panel-153x1203x35-32w-4000k-philips-2/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Kit De Piola Para Suspensión Lineal",
+          "price_clp": 2990,
+          "price_raw": "$2.990",
+          "url": "https://powerenergy.cl/producto/kit-de-piola-para-suspension-lineal/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Perfil Luminoso Para Panel Led 600X600Mm Luz Fría",
+          "price_clp": 13290,
+          "price_raw": "$13.290",
+          "url": "https://powerenergy.cl/producto/perfil-luminoso-para-panel-led-60x60mm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 600X600X13 48W Luz Fría",
+          "price_clp": 19540,
+          "price_raw": "$19.540",
+          "url": "https://powerenergy.cl/producto/led-panel-600x600x13-48w-luz-fria-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 60X120 Luz Cálida Lumex",
+          "price_clp": 42640,
+          "price_raw": "$42.640",
+          "url": "https://powerenergy.cl/producto/led-panel-60x120-luz-calida-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 300X1200X30 48W Luz Cálida",
+          "price_clp": 20540,
+          "price_raw": "$20.540",
+          "url": "https://powerenergy.cl/producto/led-panel-300x1200x30-48w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 600X600X30 48W Luz Cálida",
+          "price_clp": 15490,
+          "price_raw": "$15.490",
+          "url": "https://powerenergy.cl/producto/led-panel-600x600x30-48w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 60X120 84W 3000K Driver Philips",
+          "price_clp": 78590,
+          "price_raw": "$78.590",
+          "url": "https://powerenergy.cl/producto/panel-led-603x1203x35-84w-3000k-faretto-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 60X120 84W 4000K Driver Philips",
+          "price_clp": 78590,
+          "price_raw": "$78.590",
+          "url": "https://powerenergy.cl/producto/panel-led-603x1203x35-84w-4000k-faretto-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 60X120 84W 6000K Driver Philips",
+          "price_clp": 78590,
+          "price_raw": "$78.590",
+          "url": "https://powerenergy.cl/producto/panel-led-603x1203x35-84w-6000k-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 153X1203X35 32W 6000K Philips",
+          "price_clp": 33090,
+          "price_raw": "$33.090",
+          "url": "https://powerenergy.cl/producto/panel-153x1203x35-32w-6000k-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Panel 603X603X65 Pvc",
+          "price_clp": 9990,
+          "price_raw": "$9.990",
+          "url": "https://powerenergy.cl/producto/marco-panel-603x603x65-pvc/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Panel 1203X603X65 Aluminio",
+          "price_clp": 24390,
+          "price_raw": "$24.390",
+          "url": "https://powerenergy.cl/producto/marco-panel-1203x603x65-alum-f/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 303X1203X35 36W 4000K Driver Philips",
+          "price_clp": 41090,
+          "price_raw": "$41.090",
+          "url": "https://powerenergy.cl/producto/panel-led-303x1203x35mm-36w-4000k-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 303X1203X35 36W 6000K Driver Philips",
+          "price_clp": 41090,
+          "price_raw": "$41.090",
+          "url": "https://powerenergy.cl/producto/panel-led-303x1203x35-36w-6000k-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 603X603X35 42W 4000K Faretto Driver Philips",
+          "price_clp": 33840,
+          "price_raw": "$33.840",
+          "url": "https://powerenergy.cl/producto/panel-led-603x603x35-42w-4000k-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 603X603X35 42W 3000K Faretto Driver Philips",
+          "price_clp": 33840,
+          "price_raw": "$33.840",
+          "url": "https://powerenergy.cl/producto/panel-led-603x603x35-42w-3000k-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Panel Led 603X603X35 42W 6000K Faretto Driver Philips",
+          "price_clp": 33840,
+          "price_raw": "$33.840",
+          "url": "https://powerenergy.cl/producto/panel-led-603x603x35-42w-6000k-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Driver Dimeable 48W",
+          "price_clp": 34190,
+          "price_raw": "$34.190",
+          "url": "https://powerenergy.cl/producto/driver-dimeable-48w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Negro Para Panel 603X603X65Mm Pvc",
+          "price_clp": 9990,
+          "price_raw": "$9.990",
+          "url": "https://powerenergy.cl/producto/marco-negro-para-panel-603x603x65mm-pvc/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Negro Para Panel 603X1203X65Mm Pvc",
+          "price_clp": 16640,
+          "price_raw": "$16.640",
+          "url": "https://powerenergy.cl/producto/marco-negro-para-panel-603x1203x65mm-pvc/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Negro Para Panel 303X1203X65Mm Pvc",
+          "price_clp": 11740,
+          "price_raw": "$11.740",
+          "url": "https://powerenergy.cl/producto/marco-negro-para-panel-303x1203x65mm-pvc/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Triack Para Dimmer Led Panel",
+          "price_clp": 49640,
+          "price_raw": "$49.640",
+          "url": "https://powerenergy.cl/producto/triack-para-dimmer-led-panel/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Pestaña Para Embutir Led Panel",
+          "price_clp": 2290,
+          "price_raw": "$2.290",
+          "url": "https://powerenergy.cl/producto/pestana-para-embutir-led-panel/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Blanco Para Panel Led 153X1203X65Mm Aluminio",
+          "price_clp": 19990,
+          "price_raw": "$19.990",
+          "url": "https://powerenergy.cl/producto/marco-blanco-para-panel-led-153x1203x65mm-aluminio/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Blanco Para Panel Led 303X1203X65Mm PVC",
+          "price_clp": 11740,
+          "price_raw": "$11.740",
+          "url": "https://powerenergy.cl/producto/marco-blanco-para-panel-led-303x1203x65mm-pvc/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 300X1200X30 48W Luz Neutra Lumex",
+          "price_clp": 20540,
+          "price_raw": "$20.540",
+          "url": "https://powerenergy.cl/producto/led-panel-300x1200x30-48w-luz-neutra-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 300X1200X30 48W Luz Fría Lumex",
+          "price_clp": 20540,
+          "price_raw": "$20.540",
+          "url": "https://powerenergy.cl/producto/led-panel-300x1200x30-48w-luz-fria-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 600X600X30 48W Luz Neutra Lumex",
+          "price_clp": 15490,
+          "price_raw": "$15.490",
+          "url": "https://powerenergy.cl/producto/led-panel-600x600x30-48w-luz-neutra-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 153X1203X30 40W Luz Cálida Faretto",
+          "price_clp": 26440,
+          "price_raw": "$26.440",
+          "url": "https://powerenergy.cl/producto/led-panel-153x1203x30-40w-luz-calida-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "LED PANEL 153X1203X30 40W LUZ FRÍA FARETTO",
+          "price_clp": 25340,
+          "price_raw": "$25.340",
+          "url": "https://powerenergy.cl/producto/led-panel-153x1203x30-40w-luz-fria-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 600X600X30 48W Luz Fría Lumex",
+          "price_clp": 15490,
+          "price_raw": "$15.490",
+          "url": "https://powerenergy.cl/producto/led-panel-600x600x30-48w-luz-fria-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 303X1203X30 48W Luz Cálida Faretto",
+          "price_clp": 37290,
+          "price_raw": "$37.290",
+          "url": "https://powerenergy.cl/producto/led-panel-303x1203x30-48w-luz-calida-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 303X1203X30 48W Luz Neutra Faretto",
+          "price_clp": 31090,
+          "price_raw": "$31.090",
+          "url": "https://powerenergy.cl/producto/led-panel-303x1203x30-48w-luz-neutra-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 303X1203X30 48W Luz Fría Faretto",
+          "price_clp": 31090,
+          "price_raw": "$31.090",
+          "url": "https://powerenergy.cl/producto/led-panel-303x1203x30-48w-luz-fria-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 603X1203X30 72W Luz Cálida Faretto",
+          "price_clp": 51640,
+          "price_raw": "$51.640",
+          "url": "https://powerenergy.cl/producto/led-panel-603x1203x30-72w-luz-calida-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 603X1203X30 72W Luz Neutra Faretto",
+          "price_clp": 51640,
+          "price_raw": "$51.640",
+          "url": "https://powerenergy.cl/producto/led-panel-603x1203x30-72w-luz-neutra-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 603X1203X30 72W Luz Fría Faretto",
+          "price_clp": 51640,
+          "price_raw": "$51.640",
+          "url": "https://powerenergy.cl/producto/led-panel-603x1203x30-72w-luz-fria-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 603X603X30 48W Luz Neutra Faretto",
+          "price_clp": 22740,
+          "price_raw": "$22.740",
+          "url": "https://powerenergy.cl/producto/led-panel-603x603x30-48w-luz-neutra-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "LED PANEL 603X603X30 48W LUZ CÁLIDA FARETTO",
+          "price_clp": 25340,
+          "price_raw": "$25.340",
+          "url": "https://powerenergy.cl/producto/led-panel-603x603x30-48w-luz-calida-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 603X603X30 48W Luz Fría Faretto",
+          "price_clp": 22740,
+          "price_raw": "$22.740",
+          "url": "https://powerenergy.cl/producto/led-panel-603x603x30-48w-luz-fria-faretto/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Cable Para Colgar Led Panel",
+          "price_clp": 2840,
+          "price_raw": "$2.840",
+          "url": "https://powerenergy.cl/producto/cable-para-colgar-led-panel/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Panel Led 603X1203X65Mm Pvc",
+          "price_clp": 16640,
+          "price_raw": "$16.640",
+          "url": "https://powerenergy.cl/producto/marco-panel-led-603x1203x65mm-pvc/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Blanco Para Panel Led 303X1203X65Mm Aluminio",
+          "price_clp": 19740,
+          "price_raw": "$19.740",
+          "url": "https://powerenergy.cl/producto/marco-blanco-para-panel-led-303x1203x65mm-aluminio/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Marco Panel Led 603X603X65Mm Aluminio",
+          "price_clp": 13340,
+          "price_raw": "$13.340",
+          "url": "https://powerenergy.cl/producto/marco-blanco-para-panel-led-603x603x65mm-aluminio/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 600X1200X30 96W Luz Fría Lumex",
+          "price_clp": 42640,
+          "price_raw": "$42.640",
+          "url": "https://powerenergy.cl/producto/led-panel-600x1200x30-96w-luz-fria-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Led Panel 600X1200X30 96W Luz Neutra Lumex",
+          "price_clp": 42640,
+          "price_raw": "$42.640",
+          "url": "https://powerenergy.cl/producto/led-panel-600x1200x30-96w-luz-neutra-lumex/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        }
+      ],
+      "Campanas LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 200W Ip65 Luz Neutra Driver Philips",
+          "price_clp": 86640,
+          "price_raw": "$86.640",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-ip65-luz-neutra-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 150w IP65 Luz Neutra Driver Philips",
+          "price_clp": 63940,
+          "price_raw": "$63.940",
+          "url": "https://powerenergy.cl/producto/campana-ufo-150w-ip65-luz-neutra-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 100w IP65 Luz Neutra Driver Philips",
+          "price_clp": 46540,
+          "price_raw": "$46.540",
+          "url": "https://powerenergy.cl/producto/campana-ufo-100w-ip65-luz-neutra-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 150W Ip65 Luz Fría Driver Philips",
+          "price_clp": 63640,
+          "price_raw": "$63.640",
+          "url": "https://powerenergy.cl/producto/campana-led-ufo-150w-ip65-luz-fria-driver-philps/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Kit De Emergencia Para Campana Ufo Driver Philips",
+          "price_clp": 154390,
+          "price_raw": "$154.390",
+          "url": "https://powerenergy.cl/producto/kit-de-emergencia-para-campana-ufo-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 200W Driver Philips",
+          "price_clp": 81990,
+          "price_raw": "$81.990",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Control Para Campana Ufo",
+          "price_clp": 38290,
+          "price_raw": "$38.290",
+          "url": "https://powerenergy.cl/producto/control-para-campana-ufo/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Sensor De Movimiento Para Campana Ufo Modelo Taurus",
+          "price_clp": 12690,
+          "price_raw": "$12.690",
+          "url": "https://powerenergy.cl/producto/sensor-de-movimiento-para-campana-ufo-modelo-taurus/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 200W Luz Fría Driver Philips Modelo Taurus",
+          "price_clp": 110340,
+          "price_raw": "$110.340",
+          "url": "https://powerenergy.cl/producto/campana-led-ufo-200w-luz-fria-driver-philips-modelo-taurus/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 200W Económica",
+          "price_clp": 32990,
+          "price_raw": "$32.990",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-economica/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 150W Económica",
+          "price_clp": 24140,
+          "price_raw": "$24.140",
+          "url": "https://powerenergy.cl/producto/campana-led-ufo-150w-economica/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 100W Económica",
+          "price_clp": 16640,
+          "price_raw": "$16.640",
+          "url": "https://powerenergy.cl/producto/campana-led-ufo-100w-economica/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 200W Luz Fría Driver Philips",
+          "price_clp": 132190,
+          "price_raw": "$132.190",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-luz-fria-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 150W Luz Fría Driver Philips",
+          "price_clp": 99890,
+          "price_raw": "$99.890",
+          "url": "https://powerenergy.cl/producto/campana-ufo-150w-luz-fria-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 100W Luz Fría Driver Philips",
+          "price_clp": 86090,
+          "price_raw": "$86.090",
+          "url": "https://powerenergy.cl/producto/campana-ufo-100w-luz-fria-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Kit De Emergencia Para Campana Ufo 100W-150W-200W",
+          "price_clp": 154390,
+          "price_raw": "$154.390",
+          "url": "https://powerenergy.cl/producto/kit-de-emergencia-para-campana-ufo-100w-150w-200w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 200W Ip65 Luz Neutra",
+          "price_clp": 81990,
+          "price_raw": "$81.990",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-ip65-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "CAMPANA UFO 150W IP65 LUZ NEUTRA",
+          "price_clp": 59990,
+          "price_raw": "$59.990",
+          "url": "https://powerenergy.cl/producto/campana-ufo-150w-ip65-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "CAMPANA UFO 100W IP65 LUZ NEUTRA",
+          "price_clp": 45790,
+          "price_raw": "$45.790",
+          "url": "https://powerenergy.cl/producto/campana-ufo-100w-ip65-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 200W Lumex Ip65",
+          "price_clp": 61640,
+          "price_raw": "$61.640",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-lumex-ip65/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 150W Lumex Ip65",
+          "price_clp": 43540,
+          "price_raw": "$43.540",
+          "url": "https://powerenergy.cl/producto/campana-ufo-150w-lumex-ip65/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Ufo 100W Lumex Ip65",
+          "price_clp": 30190,
+          "price_raw": "$30.190",
+          "url": "https://powerenergy.cl/producto/campana-ufo-100w-lumex-ip65/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 250W Cree/Meanwell Ip66",
+          "price_clp": 238490,
+          "price_raw": "$238.490",
+          "url": "https://powerenergy.cl/producto/campana-ufo-250w-cree-meanwell-ip66/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 200W Cree/Meanwell Ip66",
+          "price_clp": 172690,
+          "price_raw": "$172.690",
+          "url": "https://powerenergy.cl/producto/campana-ufo-200w-cree-meanwell-ip66/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 150W Cree/Meanwell Ip66",
+          "price_clp": 152840,
+          "price_raw": "$152.840",
+          "url": "https://powerenergy.cl/producto/campana-ufo-150w-cree-meanwell-ip66/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 100W Cree/Meanwell Ip66",
+          "price_clp": 135040,
+          "price_raw": "$135.040",
+          "url": "https://powerenergy.cl/producto/campana-ufo-100w-cree-meanwell-ip66/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "CAMPANA INDUSTRIAL 100W CREE &#8211; MEANWELL",
+          "price_clp": 72790,
+          "price_raw": "$72.790",
+          "url": "https://powerenergy.cl/producto/campana-industrial-100w-cree-meanwell/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 200W Ip65 Luz Fría",
+          "price_clp": 51490,
+          "price_raw": "$51.490",
+          "url": "https://powerenergy.cl/producto/campana-led-ufo-200w-ip65-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 150W Ip65 Luz Fría",
+          "price_clp": 57040,
+          "price_raw": "$57.040",
+          "url": "https://powerenergy.cl/producto/campana-ufo-150w-ip65-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Campana Led Ufo 100W DRIVER PHILIPS",
+          "price_clp": 46640,
+          "price_raw": "$46.640",
+          "url": "https://powerenergy.cl/producto/campana-led-ufo-100w-driver-philips/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        }
+      ],
+      "Tubos LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Estanco 2X18W Con 2 Tubos Fríos Incluidos",
+          "price_clp": 12290,
+          "price_raw": "$12.290",
+          "url": "https://powerenergy.cl/producto/estanco-2x18w-con-2-tubos-frios-incluidos/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Empavonado Nano 120Cm 18W Luz Frio (Dl)",
+          "price_clp": 5190,
+          "price_raw": "$5.190",
+          "url": "https://powerenergy.cl/producto/t8-120cm-pav-nano-18w-frio-dl/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Vidrio 120Cm Modelo Mantis 18W Luz Cálida",
+          "price_clp": 2140,
+          "price_raw": "$2.140",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-vidrio-120cm-modelo-mantis-18w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 120Cm 18W Con Sensor Y Base",
+          "price_clp": 7740,
+          "price_raw": "$7.740",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-120cm-18w-con-sensor-y-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Flat 60Cm 18W Luz Fría",
+          "price_clp": 5290,
+          "price_raw": "$5.290",
+          "url": "https://powerenergy.cl/producto/equipo-flat-60cm-18w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Con Aleta Doble Para T5 120Cm",
+          "price_clp": 3790,
+          "price_raw": "$3.790",
+          "url": "https://powerenergy.cl/producto/equipo-con-aleta-doble-para-t5-120cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Con Aleta Doble Para T8 150Cm",
+          "price_clp": 5040,
+          "price_raw": "$5.040",
+          "url": "https://powerenergy.cl/producto/equipo-con-aleta-doble-para-t8-150cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "EQUIPO SIMPLE 150CM DELGADO",
+          "price_clp": 2040,
+          "price_raw": "$2.040",
+          "url": "https://powerenergy.cl/producto/equipo-simple-150cm-delgado/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Simple Para Tubo Led 90Cm",
+          "price_clp": 640,
+          "price_raw": "$640",
+          "url": "https://powerenergy.cl/producto/equipo-simple-para-tubo-led-90cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 ALUMINIO 150CM 25W LUZ CÁLIDA",
+          "price_clp": 7990,
+          "price_raw": "$7.990",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-150cm-25w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 ALUMINIO 150CM 25W LUZ FRÍA",
+          "price_clp": 7990,
+          "price_raw": "$7.990",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-150cm-25w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led Poli/Aluminio Transparente T8 120Cm 18W",
+          "price_clp": 6390,
+          "price_raw": "$6.390",
+          "url": "https://powerenergy.cl/producto/tubo-led-poli-aluminio-transparente-t8-120cm-18w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 60Cm 9W Luz Cálida",
+          "price_clp": 3140,
+          "price_raw": "$3.140",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-60cm-9w-luz-calida-2/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Vidrio 120Cm Frío Económico",
+          "price_clp": 1940,
+          "price_raw": "$1.940",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-vidrio-120cm-frio-economico/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Vidrio 120Cm 16W Luz Cálida",
+          "price_clp": 4190,
+          "price_raw": "$4.190",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-vidrio-120cm-16w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Vidrio 120Cm 16W Luz Neutra",
+          "price_clp": 4190,
+          "price_raw": "$4.190",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-vidrio-120cm-16w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Vidrio 120Cm 16W Luz Fría",
+          "price_clp": 4190,
+          "price_raw": "$4.190",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-vidrio-120cm-16w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 VIDRIO 120CM 22W LUZ NEUTRA",
+          "price_clp": 2090,
+          "price_raw": "$2.090",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-vidrio-120cm-22w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 VIDRIO 120CM 22W LUZ CÁLIDA",
+          "price_clp": 2090,
+          "price_raw": "$2.090",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-vidrio-120cm-22w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 60Cm Vidrio 10W Luz Cálida",
+          "price_clp": 1790,
+          "price_raw": "$1.790",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-60cm-vidrio-10w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo T5 30Cm Empavonado 5W Luz Fría C/E (T)",
+          "price_clp": 3240,
+          "price_raw": "$3.240",
+          "url": "https://powerenergy.cl/producto/tubo-t5-30cm-empavonado-5w-luz-fria-c-e-t/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio 30Cm 5W Luz Neutra Con Base",
+          "price_clp": 3240,
+          "price_raw": "$3.240",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-30cm-5w-luz-neutra-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T5 120CM TRANSPARENTE 18W LUZ FRÍA C/B",
+          "price_clp": 11740,
+          "price_raw": "$11.740",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-120cm-transparente-18w-luz-fria-c-b/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio 120Cm  16W Luz Cálida Con Base",
+          "price_clp": 5840,
+          "price_raw": "$5.840",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-120cm-16w-luz-calida-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio 120Cm 16W Luz Neutra Con Base",
+          "price_clp": 5840,
+          "price_raw": "$5.840",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-120cm-16w-luz-neutra-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio 120Cm 16W Luz Fría Con Base",
+          "price_clp": 5840,
+          "price_raw": "$5.840",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-120cm-16w-luz-fria-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio 60Cm 9W Luz Cálida Con Base",
+          "price_clp": 3890,
+          "price_raw": "$3.890",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-60cm-9w-luz-calida-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio  60Cm 9W Luz Neutra Con Base",
+          "price_clp": 3890,
+          "price_raw": "$3.890",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-60cm-9w-luz-neutra-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 Aluminio 60Cm 9W Luz Fría Con Base",
+          "price_clp": 3890,
+          "price_raw": "$3.890",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-aluminio-60cm-9w-luz-fria-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 60Cm  9W Luz Cálida Con Base",
+          "price_clp": 2890,
+          "price_raw": "$2.890",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-60cm-9w-luz-calida-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 120CM TRANSPARENTE 18W LUZ FRÍA CON BASE",
+          "price_clp": 6190,
+          "price_raw": "$6.190",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-120cm-transparente-18w-luz-fria-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 120CM EMPAVONADO 18W LUZ CÁLIDA CON BASE",
+          "price_clp": 5390,
+          "price_raw": "$5.390",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-120cm-empavonado-18w-luz-calida-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 ALUMINIO 120CM 18W LUZ FRÍA CON BASE",
+          "price_clp": 5390,
+          "price_raw": "$5.390",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-120cm-18w-luz-fria-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 60Cm 9W Luz Fría Con Base",
+          "price_clp": 4290,
+          "price_raw": "$4.290",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-60cm-9w-luz-fria-con-base/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Flat 120Cm 60W Luz Fría",
+          "price_clp": 10290,
+          "price_raw": "$10.290",
+          "url": "https://powerenergy.cl/producto/equipo-flat-120cm-60w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Flat 120Cm 36W Luz Fría",
+          "price_clp": 7890,
+          "price_raw": "$7.890",
+          "url": "https://powerenergy.cl/producto/equipo-flat-120cm-36w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Accesorio Para Colgar Tubo &#8211; Panel",
+          "price_clp": 1190,
+          "price_raw": "$1.190",
+          "url": "https://powerenergy.cl/producto/accesorio-para-colgar-tubo-panel/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "EQUIPO SIMPLE ANGOSTO PARA TUBO LED 2X40W",
+          "price_clp": 2340,
+          "price_raw": "$2.340",
+          "url": "https://powerenergy.cl/producto/equipo-simple-angosto-para-tubo-led-2x40w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Simple Para Tubo Led 2X40W",
+          "price_clp": 6490,
+          "price_raw": "$6.490",
+          "url": "https://powerenergy.cl/producto/equipo-simple-para-tubo-led-2x40w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "EQUIPO CON ALETA PARA TUBO LED 2X40W",
+          "price_clp": 6990,
+          "price_raw": "$6.990",
+          "url": "https://powerenergy.cl/producto/equipo-con-aleta-para-tubo-led-2x40w/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Simple Para Tubo Led 1X120Cm",
+          "price_clp": 1440,
+          "price_raw": "$1.440",
+          "url": "https://powerenergy.cl/producto/equipo-simple-para-tubo-led-1x120cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "EQUIPO SIMPLE PARA TUBO LED 60CM",
+          "price_clp": 1390,
+          "price_raw": "$1.390",
+          "url": "https://powerenergy.cl/producto/equipo-simple-para-tubo-led-60cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Equipo Estanco Led 2X18W 120Cm",
+          "price_clp": 13840,
+          "price_raw": "$13.840",
+          "url": "https://powerenergy.cl/producto/equipo-estanco-led-2x18w-120cm/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 ALUMINIO 120CM 18W LUZ NEUTRA",
+          "price_clp": 6690,
+          "price_raw": "$6.690",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-120cm-18w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 120Cm 18W Con Sensor Luz Fría",
+          "price_clp": 13440,
+          "price_raw": "$13.440",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-120cm-18w-con-sensor-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 120Cm 18W Luz Cálida",
+          "price_clp": 6690,
+          "price_raw": "$6.690",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-120cm-18w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 ALUMINIO 120CM 18W LUZ FRÍA",
+          "price_clp": 6690,
+          "price_raw": "$6.690",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-120cm-18w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Aluminio 60Cm 9W Luz Fría",
+          "price_clp": 3140,
+          "price_raw": "$3.140",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-60cm-9w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T5 120Cm Vidrio Empavonado 16W Luz Cálida",
+          "price_clp": 4490,
+          "price_raw": "$4.490",
+          "url": "https://powerenergy.cl/producto/tubo-led-t5-120cm-vidrio-empavonado-16w-luz-calida/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Vidrio 120Cm Modelo Mantis 18W Luz Fría",
+          "price_clp": 2140,
+          "price_raw": "$2.140",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-120cm-vidrio-18w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo De Vidrio T8 120Cm 20W Luz Neutra",
+          "price_clp": 2990,
+          "price_raw": "$2.990",
+          "url": "https://powerenergy.cl/producto/tubo-de-vidrio-t8-120cm-20w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 60Cm Vidrio 9W Luz Fría",
+          "price_clp": 1490,
+          "price_raw": "$1.490",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-60cm-vidrio-9w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 150Cm Vidrio Empavonado 24W Luz Fría",
+          "price_clp": 10990,
+          "price_raw": "$10.990",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-150cm-vidrio-empavonado-24w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 120Cm Vidrio 20W Luz Neutra",
+          "price_clp": 5190,
+          "price_raw": "$5.190",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-120cm-vidrio-20w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 120Cm Empavonado 20W Luz Fría Modelo Polis",
+          "price_clp": 4340,
+          "price_raw": "$4.340",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-120cm-vidrio-20w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 60CM VIDRIO TRANSPARENTE 9W LUZ FRÍA",
+          "price_clp": 2590,
+          "price_raw": "$2.590",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-60cm-vidrio-transparente-9w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 60Cm Vidrio 10W Luz Fría",
+          "price_clp": 1790,
+          "price_raw": "$1.790",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-60cm-vidrio-10w-luz-fria/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 60Cm Vidrio 10W Luz Neutra",
+          "price_clp": 1790,
+          "price_raw": "$1.790",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-60cm-vidrio-10w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Tubo Led T8 Vidrio 120Cm Modelo Mantis 18W Luz Neutra",
+          "price_clp": 2140,
+          "price_raw": "$2.140",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-vidrio-120cm-18w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        },
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "TUBO LED T8 ALUMINIO 150CM 25W LUZ NEUTRA",
+          "price_clp": 7990,
+          "price_raw": "$7.990",
+          "url": "https://powerenergy.cl/producto/tubo-led-t8-aluminio-150cm-25w-luz-neutra/",
+          "scraped_at": "2026-03-19T18:12:00.840048+00:00"
+        }
+      ]
+    }
+  },
   "errors": [
-    {
-      "competitor": "PowerEnergy",
-      "category": "Proyectores LED",
-      "error": "Sin resultados"
-    },
-    {
-      "competitor": "PowerEnergy",
-      "category": "Paneles LED",
-      "error": "Sin resultados"
-    },
-    {
-      "competitor": "PowerEnergy",
-      "category": "Campanas LED",
-      "error": "Sin resultados"
-    },
-    {
-      "competitor": "PowerEnergy",
-      "category": "Tubos LED",
-      "error": "Sin resultados"
-    },
     {
       "competitor": "Megabright",
       "category": "Proyectores LED",
