@@ -28,8 +28,24 @@ HEADERS = {
     "Connection": "keep-alive",
     "Upgrade-Insecure-Requests": "1",
     "Cache-Control": "max-age=0",
+    "sec-ch-ua": '"Google Chrome";v="123", "Not:A-Brand";v="8", "Chromium";v="123"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "none",
+    "sec-fetch-user": "?1",
 }
 TIMEOUT = 30
+
+# PowerEnergy WC Store API category IDs
+PE_CATEGORIES = {
+    "Proyectores LED": 2362,   # Proyectores de Area Led
+    "Paneles LED": 2357,        # Paneles LED profesionales
+    "Campanas LED": 2361,       # Campanas Led UFO
+    "Tubos LED": 2359,          # Tubos LED certificados
+}
+PE_API_BASE = "https://powerenergy.cl/wp-json/wc/store/v1/products"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", stream=sys.stdout)
 logger = logging.getLogger(__name__)
@@ -53,15 +69,7 @@ class CategoryConfig:
     name_selector: str
     price_selector: str
 
-CATEGORIES: List[CategoryConfig] = [
-    CategoryConfig("PowerEnergy", "Proyectores LED", "https://powerenergy.cl/seccion-producto/proyector/",
-                   ".jet-listing-grid__item", ".jet-listing-dynamic-link__label", ".woocommerce-Price-amount"),
-    CategoryConfig("PowerEnergy", "Paneles LED", "https://powerenergy.cl/seccion-producto/led-panel/",
-                   ".jet-listing-grid__item", ".jet-listing-dynamic-link__label", ".woocommerce-Price-amount"),
-    CategoryConfig("PowerEnergy", "Campanas LED", "https://powerenergy.cl/seccion-producto/campanas/",
-                   ".jet-listing-grid__item", ".jet-listing-dynamic-link__label", ".woocommerce-Price-amount"),
-    CategoryConfig("PowerEnergy", "Tubos LED", "https://powerenergy.cl/seccion-producto/tubo/",
-                   ".jet-listing-grid__item", ".jet-listing-dynamic-link__label", ".woocommerce-Price-amount"),
+HTML_CATEGORIES: List[CategoryConfig] = [
     CategoryConfig("Megabright", "Proyectores LED", "https://www.megabright.cl/categoria-producto/proyectores/",
                    ".jet-listing-grid__item", "h2.product_title, h2.elementor-heading-title", ".price"),
     CategoryConfig("Megabright", "Paneles LED", "https://www.megabright.cl/categoria-producto/panel-led/",
@@ -74,21 +82,72 @@ CATEGORIES: List[CategoryConfig] = [
 def ensure_data_dir() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-def fetch_html(url: str, referer: str = "") -> str:
-    logger.info("Solicitando URL: %s", url)
-    headers = dict(HEADERS)
-    if referer:
-        headers["Referer"] = referer
-    else:
-        headers["Referer"] = url
+
+# ── PowerEnergy via WC Store API ─────────────────────────────────────
+
+def scrape_powerenergy() -> Dict[str, List[ProductPrice]]:
+    """Use WooCommerce Store API (no HTML scraping needed)."""
+    grouped: Dict[str, List[ProductPrice]] = {}
+    scraped_at = datetime.now(timezone.utc).isoformat()
     session = requests.Session()
-    session.headers.update(headers)
+    session.headers.update({"Accept": "application/json", "User-Agent": HEADERS["User-Agent"]})
+
+    for category, cat_id in PE_CATEGORIES.items():
+        key = f"PowerEnergy::{category}"
+        products = []
+        page = 1
+        while True:
+            try:
+                url = f"{PE_API_BASE}?category={cat_id}&per_page=50&page={page}"
+                logger.info("PE API: %s page %s", category, page)
+                r = session.get(url, timeout=TIMEOUT)
+                r.raise_for_status()
+                data = r.json()
+                if not data:
+                    break
+                for item in data:
+                    name = item.get("name", "").strip()
+                    price_cents = int(item.get("prices", {}).get("price", 0) or 0)
+                    price_clp = price_cents if price_cents > 0 else None
+                    link = item.get("permalink", "")
+                    if not price_clp:
+                        continue
+                    products.append(ProductPrice(
+                        competitor="PowerEnergy",
+                        category=category,
+                        name=name or "Producto sin nombre",
+                        price_clp=price_clp,
+                        price_raw=f"${price_clp:,}".replace(",", "."),
+                        url=link,
+                        scraped_at=scraped_at,
+                    ))
+                if len(data) < 50:
+                    break
+                page += 1
+                time.sleep(0.5)
+            except Exception as exc:
+                logger.exception("Error PE API %s p%s: %s", category, page, exc)
+                break
+        grouped[key] = products
+        logger.info("PowerEnergy %s: %s productos", category, len(products))
+        time.sleep(0.5)
+    return grouped
+
+# ── HTML scraping (Megabright + TecnoIluminacion) ────────────────────
+
+def fetch_html(url: str) -> str:
+    logger.info("Solicitando URL: %s", url)
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    session.headers["Referer"] = url
     response = session.get(url, timeout=TIMEOUT)
     response.raise_for_status()
     return response.text
 
+
 def clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value or "").strip()
+
 
 def extract_price_clp(price_text: str) -> Optional[int]:
     if not price_text:
@@ -101,6 +160,7 @@ def extract_price_clp(price_text: str) -> Optional[int]:
     except ValueError:
         return None
 
+
 def find_name(tag: Tag, name_selector: str) -> str:
     if name_selector:
         for sel in name_selector.split(","):
@@ -109,8 +169,7 @@ def find_name(tag: Tag, name_selector: str) -> str:
                 text = clean_text(found.get_text(" ", strip=True))
                 if text:
                     return text
-    # Fallback: look for common title elements
-    for sel in ["h2", "h3", ".woocommerce-loop-product__title", ".product-title", ".product-name"]:
+    for sel in ["h2", "h3", ".product-title", ".woocommerce-loop-product__title"]:
         found = tag.select_one(sel)
         if found:
             text = clean_text(found.get_text(" ", strip=True))
@@ -118,25 +177,27 @@ def find_name(tag: Tag, name_selector: str) -> str:
                 return text
     return ""
 
+
 def find_price(tag: Tag, price_selector: str) -> str:
     price_el = tag.select_one(price_selector)
     if not price_el:
         return ""
-    # For elements with multiple prices (min/max), take the first one
     first_amount = price_el.select_one(".woocommerce-Price-amount")
     if first_amount:
         return clean_text(first_amount.get_text(" ", strip=True))
     return clean_text(price_el.get_text(" ", strip=True))
 
+
 def find_product_url(tag: Tag, base_url: str) -> str:
-    for selector in ["a.woocommerce-LoopProduct-link", "a.jet-listing-dynamic-link", "a[href*=producto]", "a[href*=product]", "a"]:
+    for selector in ["a[href*=producto]", "a[href*=product]", "a"]:
         found = tag.select_one(selector)
         if found and found.get("href"):
-            href = found["href"]
+            href = str(found["href"])
             if href.startswith("http"):
                 return href
             return urljoin(base_url, href)
     return base_url
+
 
 def infer_category_from_name(name: str) -> Optional[str]:
     lowered = (name or "").lower()
@@ -150,48 +211,51 @@ def infer_category_from_name(name: str) -> Optional[str]:
         if any(keyword in lowered for keyword in keywords):
             return category
     return None
-def parse_products(html: str, config: CategoryConfig) -> List[ProductPrice]:
+
+def parse_html_products(html: str, config: CategoryConfig) -> List[ProductPrice]:
     soup = BeautifulSoup(html, "lxml")
-    products = soup.select(config.product_selector)
-    if not products:
-        raise ValueError(f"No se encontraron productos con selector '{config.product_selector}' en {config.url}")
+    items = soup.select(config.product_selector)
+    if not items:
+        raise ValueError(f"No se encontraron elementos con selector '{config.product_selector}' en {config.url}")
     scraped_at = datetime.now(timezone.utc).isoformat()
     results = []
-    seen_names = set()
-    for product in products:
-        if not isinstance(product, Tag):
+    seen_names: set = set()
+    for item in items:
+        if not isinstance(item, Tag):
             continue
-        name = find_name(product, config.name_selector)
-        price_raw = find_price(product, config.price_selector)
+        name = find_name(item, config.name_selector)
+        price_raw = find_price(item, config.price_selector)
         price_clp = extract_price_clp(price_raw)
-        url = find_product_url(product, config.url)
+        url = find_product_url(item, config.url)
         category = config.category
         if config.competitor == "TecnoIluminacion":
             inferred = infer_category_from_name(name)
             if inferred is None:
                 continue
             category = inferred
-        # Skip if no price or duplicate name
-        if not price_clp:
-            continue
-        if name in seen_names:
+        if not price_clp or name in seen_names:
             continue
         seen_names.add(name)
         results.append(ProductPrice(
-            competitor=config.competitor, category=category,
-            name=name or "Producto sin nombre", price_clp=price_clp,
-            price_raw=price_raw, url=url, scraped_at=scraped_at,
+            competitor=config.competitor,
+            category=category,
+            name=name or "Producto sin nombre",
+            price_clp=price_clp,
+            price_raw=price_raw,
+            url=url,
+            scraped_at=scraped_at,
         ))
     return results
 
-def scrape_all() -> Dict[str, List[ProductPrice]]:
-    grouped = {}
-    for config in CATEGORIES:
+
+def scrape_html_sites() -> Dict[str, List[ProductPrice]]:
+    grouped: Dict[str, List[ProductPrice]] = {}
+    for config in HTML_CATEGORIES:
         key = f"{config.competitor}::{config.category}"
         try:
-            time.sleep(1)  # Be polite between requests
+            time.sleep(1)
             html = fetch_html(config.url)
-            products = parse_products(html, config)
+            products = parse_html_products(html, config)
             grouped[key] = products
             logger.info("Resultado %s - %s: %s productos", config.competitor, config.category, len(products))
         except Exception as exc:
@@ -199,9 +263,15 @@ def scrape_all() -> Dict[str, List[ProductPrice]]:
             grouped[key] = []
     return grouped
 
+
+def scrape_all() -> Dict[str, List[ProductPrice]]:
+    grouped = scrape_powerenergy()
+    grouped.update(scrape_html_sites())
+    return grouped
+
 def build_json_payload(grouped: Dict[str, List[ProductPrice]]) -> dict:
     generated_at = datetime.now(timezone.utc).isoformat()
-    competitors_summary = {}
+    competitors_summary: Dict = {}
     errors = []
     for key, products in grouped.items():
         if not products:
@@ -214,10 +284,13 @@ def build_json_payload(grouped: Dict[str, List[ProductPrice]]) -> dict:
             competitors_summary[item.competitor][item.category].append(asdict(item))
     return {"generated_at": generated_at, "currency": "CLP", "competitors": competitors_summary, "errors": errors}
 
+
 def format_clp(value: Optional[int]) -> str:
     if value is None:
         return "N/D"
     return f"${value:,}".replace(",", ".")
+
+
 def generate_markdown(payload: dict) -> str:
     generated_at = payload.get("generated_at", "")
     competitors_data = payload.get("competitors", {})
@@ -247,8 +320,7 @@ def generate_markdown(payload: dict) -> str:
         lines.append("| Categor\u00EDa | Producto | Precio |")
         lines.append("|---|---|---:|")
         for category in ordered_categories:
-            items = comp_data.get(category, [])
-            for item in items:
+            for item in comp_data.get(category, []):
                 lines.append(f"| {item['category']} | {item['name'][:60]} | {format_clp(item['price_clp'])} |")
         lines.append("")
     lines.append("\n## Incidencias\n")
@@ -258,6 +330,7 @@ def generate_markdown(payload: dict) -> str:
     else:
         lines.append("- Sin incidencias.")
     return "\n".join(lines)
+
 
 def main() -> None:
     ensure_data_dir()
@@ -270,6 +343,7 @@ def main() -> None:
         f.write(report)
     logger.info("JSON: %s", JSON_OUTPUT)
     logger.info("Markdown: %s", MD_OUTPUT)
+
 
 if __name__ == "__main__":
     main()
