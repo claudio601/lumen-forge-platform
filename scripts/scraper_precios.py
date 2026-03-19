@@ -11,7 +11,7 @@ import logging
 import re
 import sys
 import time
-from dataclasses import dataclass, asdicth
+from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from html import unescape
 from pathlib import Path
