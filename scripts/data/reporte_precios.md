@@ -1,6 +1,6 @@
 # Reporte comparativo de precios - Competencia
 
-Generado: 2026-03-19T18:51:14.832528+00:00
+Generado: 2026-03-19T19:11:06.781843+00:00
 
 ## Resumen
 
