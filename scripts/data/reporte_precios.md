@@ -1,10 +1,10 @@
 # Reporte comparativo de precios - Competencia
 
-Generado: 2026-03-19T18:36:19.621557+00:00
+Generado: 2026-03-19T18:51:14.832528+00:00
 
-## Rango de precios por categoria
+## Resumen
 
-| Categoria | Competidor | Minimo | Maximo | Productos |
+| Categoria | Competidor | Min | Max | Productos |
 |---|---|---:|---:|---:|
 | Proyectores LED | PowerEnergy | $3.440 | $1.448.540 | 48 |
 | Proyectores LED | Megabright | N/D | N/D | 0 |
@@ -19,7 +19,7 @@ Generado: 2026-03-19T18:36:19.621557+00:00
 | Tubos LED | Megabright | N/D | N/D | 0 |
 | Tubos LED | TecnoIluminacion | N/D | N/D | 0 |
 
-## Detalle de productos
+## Detalle
 
 ### PowerEnergy
 
@@ -215,11 +215,11 @@ Generado: 2026-03-19T18:36:19.621557+00:00
 
 ## Incidencias
 
-- Megabright / Proyectores LED: Sin resultados
-- Megabright / Paneles LED: Sin resultados
-- Megabright / Campanas LED: Sin resultados
-- Megabright / Tubos LED: Sin resultados
-- TecnoIluminacion / Proyectores LED: Sin resultados
-- TecnoIluminacion / Paneles LED: Sin resultados
-- TecnoIluminacion / Campanas LED: Sin resultados
-- TecnoIluminacion / Tubos LED: Sin resultados
+- **Megabright** / Proyectores LED: Sin resultados
+- **Megabright** / Paneles LED: Sin resultados
+- **Megabright** / Campanas LED: Sin resultados
+- **Megabright** / Tubos LED: Sin resultados
+- **TecnoIluminacion** / Proyectores LED: Sin resultados
+- **TecnoIluminacion** / Paneles LED: Sin resultados
+- **TecnoIluminacion** / Campanas LED: Sin resultados
+- **TecnoIluminacion** / Tubos LED: Sin resultados
