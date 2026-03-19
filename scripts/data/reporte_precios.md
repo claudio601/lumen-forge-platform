@@ -1,6 +1,18 @@
 # Reporte comparativo de precios - Competencia
 
-Generado: 2026-03-19T19:11:06.781843+00:00
+Generado: 2026-03-19T19:38:22.602498+00:00
+
+## Nota importante
+
+> **Megabright** y **TecnoIluminacion** bloquean conexiones desde IPs de data center
+> (Cloudflare WAF y bloqueo TCP respectivamente). Sus datos solo se actualizan
+> mediante ejecucion manual del scraper desde una IP residencial:
+> 
+> ```bash
+> SCRAPER_MODE=all python scripts/scraper_precios.py
+> ```
+> 
+> La ejecucion automatica quincenal (GitHub Actions) solo captura datos de **PowerEnergy**.
 
 ## Resumen
 
@@ -216,10 +228,10 @@ Generado: 2026-03-19T19:11:06.781843+00:00
 ## Incidencias
 
 - **Megabright** / Proyectores LED: Sin resultados
-- **Megabright** / Paneles LED: Sin resultados
-- **Megabright** / Campanas LED: Sin resultados
-- **Megabright** / Tubos LED: Sin resultados
 - **TecnoIluminacion** / Proyectores LED: Sin resultados
+- **Megabright** / Paneles LED: Sin resultados
 - **TecnoIluminacion** / Paneles LED: Sin resultados
+- **Megabright** / Campanas LED: Sin resultados
 - **TecnoIluminacion** / Campanas LED: Sin resultados
+- **Megabright** / Tubos LED: Sin resultados
 - **TecnoIluminacion** / Tubos LED: Sin resultados
