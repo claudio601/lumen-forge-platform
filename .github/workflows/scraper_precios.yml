@@ -2,14 +2,25 @@ name: Scraper de precios competencia
 
 on:
   schedule:
-    - cron: "0 9 1,15 * *"
+    - cron: "0 9 1,15 * *"   # Quincenal: dia 1 y 15 de cada mes a las 09:00 UTC
   workflow_dispatch:
+    inputs:
+      scraper_mode:
+        description: "Modo: auto (solo PowerEnergy) o all (todos)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - all
 
 jobs:
   scraper-precios:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      SCRAPER_MODE: ${{ github.event.inputs.scraper_mode || 'auto' }}
     steps:
       - name: Checkout repositorio
         uses: actions/checkout@v4
@@ -49,6 +60,11 @@ jobs:
             Hola,
 
             Se adjunta el reporte actualizado de precios de competidores.
+            Modo de ejecucion: ${{ github.event.inputs.scraper_mode || 'auto' }}
+
+            Nota: En modo "auto" solo se capturan datos de PowerEnergy.
+            Para datos de Megabright y TecnoIluminacion, ejecutar manualmente
+            con modo "all" desde una IP residencial.
 
             Saludos,
             Bot de monitoreo de precios eLights
