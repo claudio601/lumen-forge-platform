@@ -1,6 +1,6 @@
 # Reporte comparativo de precios - Competencia
 
-Generado: 2026-03-19T16:03:44.371684+00:00
+Generado: 2026-03-19T16:26:51.567798+00:00
 
 ## Rango de precios por categoría
 
