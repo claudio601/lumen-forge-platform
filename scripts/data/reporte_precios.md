@@ -1,10 +1,10 @@
 # Reporte comparativo de precios - Competencia
 
-Generado: 2026-03-19T18:12:16.605394+00:00
+Generado: 2026-03-19T18:36:19.621557+00:00
 
-## Rango de precios por categoría
+## Rango de precios por categoria
 
-| Categoría | Competidor | Mínimo | Máximo | Productos |
+| Categoria | Competidor | Minimo | Maximo | Productos |
 |---|---|---:|---:|---:|
 | Proyectores LED | PowerEnergy | $3.440 | $1.448.540 | 48 |
 | Proyectores LED | Megabright | N/D | N/D | 0 |
@@ -23,7 +23,7 @@ Generado: 2026-03-19T18:12:16.605394+00:00
 
 ### PowerEnergy
 
-| Categoría | Producto | Precio |
+| Categoria | Producto | Precio |
 |---|---|---:|
 | Proyectores LED | Proyector Antiexplosivo Led 150W | $331.890 |
 | Proyectores LED | Proyector Antiexplosivo Led 100W | $293.490 |
@@ -147,7 +147,7 @@ Generado: 2026-03-19T18:12:16.605394+00:00
 | Campanas LED | Campana Led Ufo 200W Cree/Meanwell Ip66 | $172.690 |
 | Campanas LED | Campana Led Ufo 150W Cree/Meanwell Ip66 | $152.840 |
 | Campanas LED | Campana Led Ufo 100W Cree/Meanwell Ip66 | $135.040 |
-| Campanas LED | CAMPANA INDUSTRIAL 100W CREE &#8211; MEANWELL | $72.790 |
+| Campanas LED | CAMPANA INDUSTRIAL 100W CREE – MEANWELL | $72.790 |
 | Campanas LED | Campana Led Ufo 200W Ip65 Luz Fría | $51.490 |
 | Campanas LED | Campana Led Ufo 150W Ip65 Luz Fría | $57.040 |
 | Campanas LED | Campana Led Ufo 100W DRIVER PHILIPS | $46.640 |
@@ -187,7 +187,7 @@ Generado: 2026-03-19T18:12:16.605394+00:00
 | Tubos LED | Tubo Led T8 Aluminio 60Cm 9W Luz Fría Con Base | $4.290 |
 | Tubos LED | Equipo Flat 120Cm 60W Luz Fría | $10.290 |
 | Tubos LED | Equipo Flat 120Cm 36W Luz Fría | $7.890 |
-| Tubos LED | Accesorio Para Colgar Tubo &#8211; Panel | $1.190 |
+| Tubos LED | Accesorio Para Colgar Tubo – Panel | $1.190 |
 | Tubos LED | EQUIPO SIMPLE ANGOSTO PARA TUBO LED 2X40W | $2.340 |
 | Tubos LED | Equipo Simple Para Tubo Led 2X40W | $6.490 |
 | Tubos LED | EQUIPO CON ALETA PARA TUBO LED 2X40W | $6.990 |
@@ -218,4 +218,8 @@ Generado: 2026-03-19T18:12:16.605394+00:00
 - Megabright / Proyectores LED: Sin resultados
 - Megabright / Paneles LED: Sin resultados
 - Megabright / Campanas LED: Sin resultados
-- TecnoIluminacion / Inicio / múltiples categorías: Sin resultados
+- Megabright / Tubos LED: Sin resultados
+- TecnoIluminacion / Proyectores LED: Sin resultados
+- TecnoIluminacion / Paneles LED: Sin resultados
+- TecnoIluminacion / Campanas LED: Sin resultados
+- TecnoIluminacion / Tubos LED: Sin resultados
