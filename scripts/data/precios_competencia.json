@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-03-19T16:03:44.371684+00:00",
+  "currency": "CLP",
+  "competitors": {
+    "PowerEnergy": {
+      "Proyectores LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Proyectores LED",
+          "name": "Inicio",
+          "price_clp": 15620,
+          "price_raw": "$ 15.620",
+          "url": "https://powerenergy.cl",
+          "scraped_at": "2026-03-19T16:03:39.797243+00:00"
+        }
+      ],
+      "Paneles LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Paneles LED",
+          "name": "Inicio",
+          "price_clp": 9470,
+          "price_raw": "$ 9.470",
+          "url": "https://powerenergy.cl",
+          "scraped_at": "2026-03-19T16:03:40.936831+00:00"
+        }
+      ],
+      "Campanas LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Campanas LED",
+          "name": "Inicio",
+          "price_clp": 46410,
+          "price_raw": "$ 46.410",
+          "url": "https://powerenergy.cl",
+          "scraped_at": "2026-03-19T16:03:41.996699+00:00"
+        }
+      ],
+      "Tubos LED": [
+        {
+          "competitor": "PowerEnergy",
+          "category": "Tubos LED",
+          "name": "Inicio",
+          "price_clp": 6590,
+          "price_raw": "$ 6.590",
+          "url": "https://powerenergy.cl",
+          "scraped_at": "2026-03-19T16:03:43.126619+00:00"
+        }
+      ]
+    },
+    "TecnoIluminacion": {
+      "Paneles LED": [
+        {
+          "competitor": "TecnoIluminacion",
+          "category": "Paneles LED",
+          "name": "Panel LED 60x60 CM Backlight 3 temperaturas de color en 1",
+          "price_clp": 16422,
+          "price_raw": "$16.422",
+          "url": "https://tecnoiluminacion.cl/productos/765-panel-led-60x60-cm-backlight-3-temperaturas-de-color-en-1.html",
+          "scraped_at": "2026-03-19T16:03:44.358047+00:00"
+        },
+        {
+          "competitor": "TecnoIluminacion",
+          "category": "Paneles LED",
+          "name": "Foco embutido panel redondo LED 18W IP20 6000K marco negro",
+          "price_clp": 4867,
+          "price_raw": "$4.867",
+          "url": "https://tecnoiluminacion.cl/productos/805-foco-embutido-panel-redondo-led-18w-ip20-6000k-marco-negro.html",
+          "scraped_at": "2026-03-19T16:03:44.358047+00:00"
+        },
+        {
+          "competitor": "TecnoIluminacion",
+          "category": "Paneles LED",
+          "name": "Panel LED 60x60 CM Backlight 4000K",
+          "price_clp": 16422,
+          "price_raw": "$16.422",
+          "url": "https://tecnoiluminacion.cl/productos/816-panel-led-60x60-cm-backlight-4000k.html",
+          "scraped_at": "2026-03-19T16:03:44.358047+00:00"
+        }
+      ],
+      "Campanas LED": [
+        {
+          "competitor": "TecnoIluminacion",
+          "category": "Campanas LED",
+          "name": "Campana industrial LED UFO 100W IP65 6500K PRO",
+          "price_clp": 47314,
+          "price_raw": "$47.314",
+          "url": "https://tecnoiluminacion.cl/productos/358-campana-industrial-led-ufo-100w-ip65-6500k-pro.html",
+          "scraped_at": "2026-03-19T16:03:44.358047+00:00"
+        }
+      ],
+      "Proyectores LED": [
+        {
+          "competitor": "TecnoIluminacion",
+          "category": "Proyectores LED",
+          "name": "Proyector LED SLIM 300W 3 temperaturas de color en 1 30000LM",
+          "price_clp": 77945,
+          "price_raw": "$77.945",
+          "url": "https://tecnoiluminacion.cl/proyector-led-slim-smd-halley-/757-proyector-led-slim-300w-3-temperaturas-de-color-en-1-30000lm.html",
+          "scraped_at": "2026-03-19T16:03:44.358047+00:00"
+        }
+      ]
+    }
+  },
+  "errors": [
+    {
+      "competitor": "Megabright",
+      "category": "Proyectores LED",
+      "error": "Sin resultados"
+    },
+    {
+      "competitor": "Megabright",
+      "category": "Paneles LED",
+      "error": "Sin resultados"
+    },
+    {
+      "competitor": "Megabright",
+      "category": "Campanas LED",
+      "error": "Sin resultados"
+    }
+  ]
+}
