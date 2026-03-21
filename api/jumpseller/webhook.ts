@@ -11,10 +11,10 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import type { QuotePayload, SourceSystem, LeadType } from '../../src/lib/crm/types';
-import { validateQuotePayload } from '../../src/lib/crm/validation';
-import { processQuoteToCrm } from '../../src/lib/crm/dedupe';
-import { initFieldOptions } from '../../src/lib/pipedrive/fieldOptions';
+import type { QuotePayload, SourceSystem, LeadType } from '../_lib/crm/types';
+import { validateQuotePayload } from '../_lib/crm/validation';
+import { processQuoteToCrm } from '../_lib/crm/dedupe';
+import { initFieldOptions } from '../_lib/pipedrive/fieldOptions';
 
 const LOG_PREFIX = '[jumpseller/webhook]';
 

@@ -3,9 +3,9 @@
 // Main endpoint: validate → map → dedupe → create CRM entities.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateQuotePayload } from '../../src/lib/crm/validation';
-import { processQuoteToCrm, buildSuccessResponse } from '../../src/lib/crm/dedupe';
-import type { QuotePayload, QuoteCreateResponse } from '../../src/lib/crm/types';
+import { validateQuotePayload } from '../_lib/crm/validation';
+import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe';
+import type { QuotePayload, QuoteCreateResponse } from '../_lib/crm/types';
 
 // --- Constants ---
 
