@@ -16,7 +16,10 @@ function getConfig() {
 
 function buildUrl(path: string, params?: Record<string, string>): string {
   const { token, baseUrl } = getConfig();
-  const url = new URL(path.replace(/^//, ''), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`);
+  const url = new URL(
+    path.startsWith('/') ? path.slice(1) : path,
+    baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+  );
   url.searchParams.set('api_token', token);
   if (params) {
     for (const [k, v] of Object.entries(params)) {
