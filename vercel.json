@@ -1,7 +1,20 @@
 {
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/jumpseller/webhook.ts": {
+      "includeFiles": "src/lib/**"
+    }
+  }
 }
