@@ -16,14 +16,6 @@ import { validateQuotePayload } from '../../src/lib/crm/validation';
 import { processQuoteToCrm } from '../../src/lib/crm/dedupe';
 import { initFieldOptions } from '../../src/lib/pipedrive/fieldOptions';
 
-// Disable Vercel's automatic body parsing so we can read the raw body
-// and compute the HMAC-SHA256 signature before parsing JSON.
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 const LOG_PREFIX = '[jumpseller/webhook]';
 
 // Jumpseller sends the event name in the Jumpseller-Event header.
