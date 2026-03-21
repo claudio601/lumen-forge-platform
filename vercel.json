@@ -11,10 +11,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/jumpseller/webhook.ts": {
-      "includeFiles": "src/lib/**"
-    }
-  }
+  ]
 }
