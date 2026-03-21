@@ -8,11 +8,11 @@ import type {
   LeadType,
   PriorityTier,
   SourceSystem,
-} from './types';
-import { computeLeadScore } from './scoring';
-import type { CreateDealParams } from '../pipedrive/deals';
-import type { CreateActivityParams } from '../pipedrive/activities';
-import { normalizePhone } from './validation';
+} from './types.js';
+import { computeLeadScore } from './scoring.js';
+import type { CreateDealParams } from '../pipedrive/deals.js';
+import type { CreateActivityParams } from '../pipedrive/activities.js';
+import { normalizePhone } from './validation.js';
 
 // --- Config ---
 

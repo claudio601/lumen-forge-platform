@@ -7,17 +7,17 @@ import type {
   FindOrCreateOrganizationResult,
   CreateDealResult,
   QuoteCreateSuccessResponse,
-} from './types';
-import { findOrCreatePerson } from '../pipedrive/persons';
-import { findOrCreateOrganization } from '../pipedrive/organizations';
-import { createDeal } from '../pipedrive/deals';
-import { initFieldOptions } from '../pipedrive/fieldOptions';
+} from './types.js';
+import { findOrCreatePerson } from '../pipedrive/persons.js';
+import { findOrCreateOrganization } from '../pipedrive/organizations.js';
+import { createDeal } from '../pipedrive/deals.js';
+import { initFieldOptions } from '../pipedrive/fieldOptions.js';
 import {
   mapPayloadToCustomer,
   mapPayloadToOrganization,
   mapPayloadToDealParams,
   computeScoring,
-} from './mapping';
+} from './mapping.js';
 
 // --- Types ---
 

@@ -2,8 +2,8 @@
 // Resolve and cache Pipedrive enum option IDs from field metadata.
 // NEVER hardcode option IDs — always resolve from the API at runtime.
 
-import { pipedriveGet } from './client';
-import type { PipedriveField, PipedriveFieldOption } from '../crm/types';
+import { pipedriveGet } from './client.js';
+import type { PipedriveField, PipedriveFieldOption } from '../crm/types.js';
 
 // --- Types ---
 

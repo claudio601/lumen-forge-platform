@@ -6,7 +6,7 @@ import type {
   PriorityTier,
   LeadScoreResult,
   QuotePayload,
-} from './types';
+} from './types.js';
 
 // --- Constants ---
 

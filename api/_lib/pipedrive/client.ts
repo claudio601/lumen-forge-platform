@@ -1,7 +1,7 @@
 // src/lib/pipedrive/client.ts
 // Base HTTP client for Pipedrive API
 
-import type { PipedriveApiResponse } from '../crm/types';
+import type { PipedriveApiResponse } from '../crm/types.js';
 
 const TIMEOUT_MS = 15_000;
 

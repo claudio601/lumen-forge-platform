@@ -1,7 +1,7 @@
 // src/lib/crm/validation.ts
 // Validate QuotePayload before CRM processing.
 
-import type { QuotePayload } from './types';
+import type { QuotePayload } from './types.js';
 
 // --- Types ---
 

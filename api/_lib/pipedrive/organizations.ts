@@ -1,13 +1,13 @@
 // src/lib/pipedrive/organizations.ts
 // Find or create a Pipedrive organization with deduplication by name.
 
-import { pipedriveGet, pipedrivePost } from './client';
-import { getOptionId, getBooleanOptionId } from './fieldOptions';
+import { pipedriveGet, pipedrivePost } from './client.js';
+import { getOptionId, getBooleanOptionId } from './fieldOptions.js';
 import type {
   QuoteOrganization,
   PipedriveOrganization,
   FindOrCreateOrganizationResult,
-} from '../crm/types';
+} from '../crm/types.js';
 
 // --- Constants ---
 

@@ -7,9 +7,9 @@
 // Auth: CRON_SECRET header must match env var.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client';
-import { createActivity } from '../_lib/pipedrive/activities';
-import { initFieldOptions } from '../_lib/pipedrive/fieldOptions';
+import { pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
+import { createActivity } from '../_lib/pipedrive/activities.js';
+import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 
 const LOG_PREFIX = '[cron/followups]';
 

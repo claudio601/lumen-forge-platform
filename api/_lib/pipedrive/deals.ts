@@ -1,15 +1,15 @@
 // src/lib/pipedrive/deals.ts
 // Create, update, and find Pipedrive deals with idempotency.
 
-import { pipedriveGet, pipedrivePost, pipedrivePut } from './client';
-import { getOptionId } from './fieldOptions';
+import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
+import { getOptionId } from './fieldOptions.js';
 import type {
   PipedriveDeal,
   CreateDealResult,
   LeadType,
   PriorityTier,
   SourceSystem,
-} from '../crm/types';
+} from '../crm/types.js';
 
 // --- Constants ---
 

@@ -1,13 +1,13 @@
 // src/lib/pipedrive/persons.ts
 // Find or create a Pipedrive person with deduplication by email/phone.
 
-import { pipedriveGet, pipedrivePost } from './client';
-import { getOptionId } from './fieldOptions';
+import { pipedriveGet, pipedrivePost } from './client.js';
+import { getOptionId } from './fieldOptions.js';
 import type {
   QuoteCustomer,
   PipedrivePerson,
   FindOrCreatePersonResult,
-} from '../crm/types';
+} from '../crm/types.js';
 
 // --- Constants ---
 

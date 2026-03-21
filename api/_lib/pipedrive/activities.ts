@@ -1,11 +1,11 @@
 // src/lib/pipedrive/activities.ts
 // Create Pipedrive activities for follow-up scheduling (24h / 72h).
 
-import { pipedrivePost } from './client';
+import { pipedrivePost } from './client.js';
 import type {
   PipedriveActivity,
   CreateActivityResult,
-} from '../crm/types';
+} from '../crm/types.js';
 
 // --- Constants ---
 
