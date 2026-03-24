@@ -31,10 +31,20 @@ interface JumpsellerProduct {
   sku?: string;
 }
 
+interface JumpsellerAddress {
+  name?: string;
+  surname?: string;
+  municipality?: string;
+  region?: string;
+  address?: string;
+}
+
 interface JumpsellerCustomer {
-  fullname: string;
-  email: string;
+  fullname?: string;
+  email?: string;
   phone?: string;
+  phone_prefix?: string;
+  ip?: string;
 }
 
 interface JumpsellerOrder {
@@ -42,13 +52,10 @@ interface JumpsellerOrder {
   status: string;
   total: number;
   customer: JumpsellerCustomer;
+  billing_address?: JumpsellerAddress;
+  shipping_address?: JumpsellerAddress;
   products: JumpsellerProduct[];
   created_at: string;
-  billing_address?: {
-    municipality?: string;
-    region?: string;
-    address?: string;
-  };
 }
 
 // Jumpseller payload: the JSON body is the resource directly, e.g. { order: {...} }
@@ -82,8 +89,30 @@ function verifyJumpsellerHmac(rawBody: Buffer, hmacHeader: string, token: string
 
 // --- Mapping ---
 
+function resolveJumpsellerCustomerName(order: JumpsellerOrder): string {
+  const fullname = order.customer?.fullname?.trim();
+  if (fullname) return fullname;
+
+  const billingName = [order.billing_address?.name, order.billing_address?.surname]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  if (billingName) return billingName;
+
+  const shippingName = [order.shipping_address?.name, order.shipping_address?.surname]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  if (shippingName) return shippingName;
+
+  const email = order.customer?.email?.trim();
+  if (email) return email;
+
+  return `Cliente Jumpseller ${order.id}`;
+}
+
 function mapToQuotePayload(order: JumpsellerOrder): QuotePayload {
-  const customer = order.customer;
+  const customerName = resolveJumpsellerCustomerName(order);
 
   return {
     sourceSystem: 'jumpseller' as SourceSystem,
@@ -92,14 +121,14 @@ function mapToQuotePayload(order: JumpsellerOrder): QuotePayload {
     leadType: 'B2C' as LeadType,
     quoteAmountClp: order.total,
     customer: {
-      name: customer.fullname ?? '',
-      email: customer.email,
-      phone: customer.phone || undefined,
+      name: customerName,
+      email: order.customer?.email,
+      phone: order.customer?.phone || undefined,
       billingCommune: order.billing_address?.municipality,
       billingRegion: order.billing_address?.region,
     },
     organization: undefined,
-    products: order.products.map((p) => ({
+    products: (order.products ?? []).map((p) => ({
       name: p.name,
       sku: p.sku || '',
       quantity: p.qty,

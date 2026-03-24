@@ -37,7 +37,13 @@ function getPipelineConfig() {
  * Format: "Cotización {quoteReference} - {customerName}"
  */
 export function buildDealTitle(payload: QuotePayload): string {
-  return `Cotización ${payload.quoteReference} - ${payload.customer.name}`;
+  const quoteRef = payload.quoteReference?.trim() || 'SIN-REF';
+  const customerName =
+    payload.customer?.name?.trim() ||
+    payload.customer?.email?.trim() ||
+    'Cliente sin nombre';
+
+  return `Cotización ${quoteRef} - ${customerName}`;
 }
 
 /**
@@ -100,11 +106,14 @@ export function mapToActivityParams(
  */
 export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
   return {
-    name: payload.customer.name.trim(),
-    email: payload.customer.email?.trim(),
-    phone: payload.customer.phone ? normalizePhone(payload.customer.phone) : undefined,
-    preferredChannel: payload.customer.preferredChannel,
-    commune: payload.customer.commune?.trim(),
+    name:
+      payload.customer?.name?.trim() ||
+      payload.customer?.email?.trim() ||
+      'Cliente sin nombre',
+    email: payload.customer?.email?.trim() || undefined,
+    phone: payload.customer?.phone ? normalizePhone(payload.customer.phone) : undefined,
+    preferredChannel: payload.customer?.preferredChannel,
+    commune: payload.customer?.billingCommune?.trim() || undefined,
   };
 }
 
