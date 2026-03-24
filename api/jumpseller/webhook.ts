@@ -32,15 +32,9 @@ interface JumpsellerProduct {
 }
 
 interface JumpsellerCustomer {
-  name: string;
-  surname: string;
+  fullname: string;
   email: string;
   phone?: string;
-  billing_address?: {
-    commune?: string;
-    region?: string;
-    address?: string;
-  };
 }
 
 interface JumpsellerOrder {
@@ -50,6 +44,11 @@ interface JumpsellerOrder {
   customer: JumpsellerCustomer;
   products: JumpsellerProduct[];
   created_at: string;
+  billing_address?: {
+    municipality?: string;
+    region?: string;
+    address?: string;
+  };
 }
 
 // Jumpseller payload: the JSON body is the resource directly, e.g. { order: {...} }
@@ -93,11 +92,11 @@ function mapToQuotePayload(order: JumpsellerOrder): QuotePayload {
     leadType: 'B2C' as LeadType,
     quoteAmountClp: order.total,
     customer: {
-      name: `${customer.name} ${customer.surname}`.trim(),
+      name: customer.fullname ?? '',
       email: customer.email,
       phone: customer.phone || undefined,
-      billingCommune: customer.billing_address?.commune,
-      billingRegion: customer.billing_address?.region,
+      billingCommune: order.billing_address?.municipality,
+      billingRegion: order.billing_address?.region,
     },
     organization: undefined,
     products: order.products.map((p) => ({
