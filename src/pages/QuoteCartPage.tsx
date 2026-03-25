@@ -70,7 +70,7 @@ const QuoteCartPage = () => {
         const djb2 = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
         const buildQuoteRef = () => { const skus = quoteCart.map(i => i.product.sku + 'x' + i.quantity).sort().join(','); const win = Math.floor(Date.now() / 3_600_000); return 'NE-' + djb2([form.email.toLowerCase(), isB2B ? 'B2B' : 'B2C', skus, totalDisplay, win].join('|')); };
         const quoteRef = buildQuoteRef();
-        await fetch('/api/quotes/create', {
+        const crmRes = await fetch('/api/quotes/create', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -99,6 +99,17 @@ const QuoteCartPage = () => {
             notes: form.comentarios || undefined,
           }),
         });
+        if (!crmRes.ok) {
+          let errBody = '';
+          try {
+            const ct = crmRes.headers.get('content-type') ?? '';
+            errBody = ct.includes('json')
+              ? JSON.stringify(await crmRes.json())
+              : await crmRes.text();
+          } catch { /* body read failed — ignore */ }
+          console.warn('[Pipedrive] HTTP error enviando cotización',
+            { status: crmRes.status, statusText: crmRes.statusText, quoteReference: quoteRef, body: errBody });
+        }
       } catch (err) {
         console.warn('[Pipedrive] Error enviando cotización:', err);
       }
