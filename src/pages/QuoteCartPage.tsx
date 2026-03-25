@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 const EMAILJS_SERVICE_ID  = 'service_elights';
 const EMAILJS_TEMPLATE_ID = 'template_6y0bq3l';
-const EMAILJS_PUBLIC_KEY  = '8StzB2ZV2J_JVa7DL';
+const EMAILJS_PUBLIC_KEY  = '8StzB2hhZV2J_JVa7DL';
 
 const ELIGHTS_EMAIL = 'ventas@elights.cl';
 
@@ -45,27 +45,62 @@ const QuoteCartPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const required = ['nombre','email','telefono','rutEmpresa','razonSocial','giro','direccion'] as const;
-    if (required.some(f => !form[f])) {
-      toast.error('Completa todos los campos requeridos');
-      return;
-    }
+    if (required.some(f => !form[f])) { toast.error('Completa todos los campos requeridos'); return; }
     setSending(true);
     try {
+      // Email de confirmación al cliente (flujo principal)
       await sendEmail({
-        to_email:      ELIGHTS_EMAIL,
-        reply_to:      form.email,
-        from_name:     form.nombre,
-        razon_social:  form.razonSocial,
-        rut_empresa:   form.rutEmpresa,
-        giro:          form.giro,
-        telefono:      form.telefono,
-        direccion:     form.direccion,
-        comentarios:   form.comentarios || '—',
-        items_lista:   itemsText,
-        total:         `${fmt(totalDisplay)} ${priceLabel}`,
-        modo_precio:   isB2B ? 'B2B (neto sin IVA)' : 'B2C (con IVA incluido)',
-        fecha:         new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
+        to_email: ELIGHTS_EMAIL,
+        reply_to: form.email,
+        from_name: form.nombre,
+        razon_social: form.razonSocial,
+        rut_empresa: form.rutEmpresa,
+        giro: form.giro,
+        telefono: form.telefono,
+        direccion: form.direccion,
+        comentarios: form.comentarios || '—',
+        items_lista: itemsText,
+        total: `${`${fmt(totalDisplay)} ${priceLabel}`}`,
+        modo_precio: isB2B ? 'B2B (neto sin IVA)' : 'B2C (con IVA incluido)',
+        fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
       });
+
+      // Pipedrive CRM (paralelo, no bloquea al usuario si falla)
+      try {
+        const quoteRef = `NE-${Date.now()}`;
+        await fetch('/api/quotes/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': import.meta.env.VITE_QUOTES_API_KEY ?? '',
+          },
+          body: JSON.stringify({
+            sourceSystem: 'nuevo_elights',
+            quoteReference: quoteRef,
+            leadType: isB2B ? 'B2B' : 'B2C',
+            customer: {
+              name: form.nombre,
+              email: form.email,
+              phone: form.telefono,
+              preferredChannel: 'Email',
+            },
+            organization: isB2B ? {
+              name: form.razonSocial,
+            } : undefined,
+            products: quoteCart.map(i => ({
+              sku: i.product.sku,
+              name: i.product.name,
+              quantity: i.quantity,
+              unitPriceClp: displayPrice(i.product.price),
+            })),
+            quoteAmountClp: totalDisplay,
+            notes: form.comentarios || undefined,
+          }),
+        });
+      } catch (err) {
+        console.warn('[Pipedrive] Error enviando cotización:', err);
+      }
+
       setSubmitted(true);
       clearQuote();
     } catch (err) {
