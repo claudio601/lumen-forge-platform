@@ -67,7 +67,9 @@ const QuoteCartPage = () => {
 
       // Pipedrive CRM (paralelo, no bloquea al usuario si falla)
       try {
-        const quoteRef = `NE-${Date.now()}`;
+        const djb2 = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
+        const buildQuoteRef = () => { const skus = quoteCart.map(i => i.product.sku + 'x' + i.quantity).sort().join(','); const win = Math.floor(Date.now() / 3_600_000); return 'NE-' + djb2([form.email.toLowerCase(), isB2B ? 'B2B' : 'B2C', skus, totalDisplay, win].join('|')); };
+        const quoteRef = buildQuoteRef();
         await fetch('/api/quotes/create', {
           method: 'POST',
           headers: {
