@@ -12,7 +12,7 @@ import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude, FALLBACK_REPLY } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
-import { notifyTeam } from '../_lib/whatsapp/notify.js';h
+import { notifyTeam } from '../_lib/whatsapp/notify.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
 
