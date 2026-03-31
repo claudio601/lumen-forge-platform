@@ -47,6 +47,24 @@ export const MSG4 = 'Gracias. Ya registre tu solicitud en eLIGHTS.cl y la derive
 export const MSG_MEDIA = 'Recibimos tu imagen/archivo, gracias. Por ahora atendemos mejor por texto: cuentanos que producto necesitas, para que proyecto y que cantidad aproximada, y te ayudamos de inmediato.';
 
 const GREET_ONLY = /^(hola|buenas|buenos dias|buenas tardes|buenas noches|saludos|hi|hey|buen dia)[.!?\s]*$/i;
+const NEW_REQ_INTENT_RE = /\b(necesito|busco|quiero|requiero|cotizar|cotizaci[oó]n|comprar|conseguir|tengo un proyecto)\b/i;
+const NEW_REQ_SOLO_LUZ_RE = /^(c[aá]lida|calida|neutra|fr[ií]a|fria|warm|cool|daylight|3000k|4000k|6500k|blanca|amarilla)[.!?\s]*$/i;
+const NEW_REQ_SOLO_PROYECTO_RE = /^(bodega|oficina|casa|local comercial|galp[oó]n|galpon|faena|tienda|exterior|interior|planta|fabrica|nave industrial|departamento|edificio)[.!?\s]*$/i;
+const NEW_REQ_SOLO_RUT_RE = /^\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK][.!?\s]*$/;
+const NEW_REQ_SOLO_EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}[.!?\s]*$/;
+function looksLikeNewRequest(body: string): boolean {
+  const b = body.trim();
+  if (NEW_REQ_SOLO_LUZ_RE.test(b)) return false;
+  if (NEW_REQ_SOLO_PROYECTO_RE.test(b)) return false;
+  if (NEW_REQ_SOLO_RUT_RE.test(b)) return false;
+  if (NEW_REQ_SOLO_EMAIL_RE.test(b)) return false;
+  if (/^[A-ZÀ-Ü][a-zà-ü]+ [A-ZÀ-Ü][a-zà-ü]+[.!?\s]*$/.test(b)) return false;
+  if (NEW_REQ_INTENT_RE.test(b) && PRODUCTO_RE.test(b)) return true;
+  if (NEW_REQ_INTENT_RE.test(b) && /\b\d{1,4}\b/.test(b)) return true;
+  if (/cotizar|cotizaci[oó]n|presupuesto/i.test(b) && b.length > 15) return true;
+  if (PRODUCTO_RE.test(b) && /\b\d{1,4}\b/.test(b)) return true;
+  return false;
+}
 const WANTS_HUMAN_RE = /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|asesor|contacten|contactar|quiero hablar|necesito hablar/i;
 const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
 const LUZ_RE = /calida|neutra|fria|warm|cool|daylight|3000k|4000k|6500k|blanca|amarilla/i;
@@ -133,15 +151,21 @@ export function processFlowStep(
         const state = getFlowState(phone);
 
   if (state.stage === 'closed') {
-            return {
-                        reply: MSG4,
-                        shouldCreateDeal: false,
-                        shouldNotify: false,
-                        captureStatus: state.captureStatus,
-                        captured: state.captured,
-                        wantsHuman: state.wantsHuman,
-                        closedFlow: true,
-            };
+    if (!looksLikeNewRequest(body)) {
+      return {
+        reply: MSG4,
+        shouldCreateDeal: false,
+        shouldNotify: false,
+        captureStatus: state.captureStatus,
+        captured: state.captured,
+        wantsHuman: state.wantsHuman,
+        closedFlow: true,
+      };
+    }
+    // Nuevo requerimiento detectado: reset y reprocesar desde stage1
+    console.log('[flowEngine] nuevo requerimiento, reset para: ' + body.substring(0, 60));
+    clearFlowState(phone);
+    return processFlowStep(phone, body, claudeParsed, signals);
   }
 
   const wantsHuman =
