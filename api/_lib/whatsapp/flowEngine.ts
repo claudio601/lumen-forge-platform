@@ -53,6 +53,7 @@ const LUZ_RE = /calida|neutra|fria|warm|cool|daylight|3000k|4000k|6500k|blanca|a
 const CANTIDAD_RE = /\b(\d+)\s*(unidades?|und\.?|u\b|lumin|panel|foco|reflector|tira|strip|downlight)?/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
 const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
+const PROYECTO_RE = /\b(bodega|oficina|casa|local\s+comercial|galp[oó]n|galpon|faena|tienda|exterior|interior|planta|f[aá]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala|comedor|cocina|ba[nñ]o|ba[nñ]os|jardin|patio|terraza)\b/i;
 const RUT_RE = /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/;
 const B2B_SIGNAL_RE = /empresa|factura|obra|proveedor|licitaci[oó]n|constructora|instalaci[oó]n|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
 const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s+led|plafon(?:es)?\s+led|ampolleta(?:s)?\s+led|ampolleta(?:s)?|foco(?:s)?\s+led|foco(?:s)?|dicroico(?:s)?|reflector(?:es)?\s+led|reflector(?:es)?|proyector(?:es)?\s+led|proyector(?:es)?|tira(?:s)?\s+led|cinta(?:s)?\s+led|downlight(?:s)?|empotrado(?:s)?\s+led|tubo(?:s)?\s+led|tubo(?:s)?\s+fluorescente(?:s)?|luminaria(?:s)?\s+led|luminaria(?:s)?)\b/i;
@@ -65,6 +66,10 @@ function extractEmail(text: string): string | undefined {
 function extractCiudad(text: string): string | undefined {
         const m = text.match(CIUDAD_RE);
         return m ? m[0] : undefined;
+}
+function extractProyecto(text: string): string | undefined {
+        const m = text.match(PROYECTO_RE);
+        return m ? m[0].trim() : undefined;
 }
 
 function extractProducto(text: string): string | undefined {
@@ -182,7 +187,12 @@ export function processFlowStep(
             merged.cantidad = m ? m[0].trim() : extractSnippet(body, 30);
   }
 
-  if (claudeParsed.proyecto_o_uso) merged.proyecto_o_uso = claudeParsed.proyecto_o_uso;
+  if (claudeParsed.proyecto_o_uso) {
+    merged.proyecto_o_uso = claudeParsed.proyecto_o_uso;
+  } else if (!merged.proyecto_o_uso) {
+    const proy = extractProyecto(body);
+    if (proy) merged.proyecto_o_uso = proy;
+  }
 
   if (claudeParsed.comuna_o_ciudad) {
             merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad;
