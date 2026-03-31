@@ -67,7 +67,7 @@ function looksLikeNewRequest(body: string): boolean {
 }
 const WANTS_HUMAN_RE = /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|asesor|contacten|contactar|quiero hablar|necesito hablar/i;
 const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
-const LUZ_RE = /calida|neutra|fria|warm|cool|daylight|3000k|4000k|6500k|blanca|amarilla/i;
+const LUZ_RE = /c[aá]lid[ao]s?|neutr[ao]s?|fr[ií][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[aá]lid[ao]s?|blancas?\s+fr[ií][ao]s?|luz\s+c[aá]lid[ao]?|luz\s+fr[ií][ao]?|blanco\s+fr[ií]o|blanco\s+c[aá]lido/i;
 const CANTIDAD_RE = /\b(\d+)\s*(unidades?|und\.?|u\b|lumin|panel|foco|reflector|tira|strip|downlight)?/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
 const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
@@ -97,6 +97,15 @@ function extractProducto(text: string): string | undefined {
 
 function hasLuzInfo(text: string): boolean {
         return LUZ_RE.test(text);
+}
+function normalizeLuz(raw: string): string {
+        const r = raw.toLowerCase().trim();
+        if (/c[aá]lid[ao]/.test(r) || /warm/i.test(r) || /3000/i.test(r)) return 'calida';
+        if (/neutr[ao]/.test(r) || /4000/i.test(r) || /5000/i.test(r)) return 'neutra';
+        if (/fr[ií][ao]/.test(r) || /cool/i.test(r) || /daylight/i.test(r) || /6500/i.test(r)) return 'fria';
+        if (/blanca/.test(r) && /c[aá]lid/.test(r)) return 'calida';
+        if (/blanca/.test(r) && /fr[ií]/.test(r)) return 'fria';
+        return r;
 }
 
 function hasCantidadInfo(text: string): boolean {
@@ -201,7 +210,7 @@ export function processFlowStep(
             merged.tipo_de_luz = claudeParsed.tipo_de_luz;
   } else if (hasLuzInfo(body)) {
             const luzMatch = body.match(LUZ_RE);
-            merged.tipo_de_luz = luzMatch ? luzMatch[0].toLowerCase() : extractSnippet(body, 40);
+            merged.tipo_de_luz = luzMatch ? normalizeLuz(luzMatch[0]) : extractSnippet(body, 40);
   }
 
   if (claudeParsed.cantidad) {
