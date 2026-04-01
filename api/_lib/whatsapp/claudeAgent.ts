@@ -50,7 +50,7 @@ export async function askClaude(
     { role: 'user' as const, content: profileName ? '[Cliente: ' + profileName + ']' + newMessage : newMessage },
   ];
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: process.env.ANTHROPIC_MODEL ?? 'claude-haiku-4-5',
     max_tokens: 400,
     system: SYSTEM_PROMPT,
     messages,
