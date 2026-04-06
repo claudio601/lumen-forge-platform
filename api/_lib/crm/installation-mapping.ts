@@ -84,6 +84,8 @@ export function buildInstallationDealTitle(payload: InstallationLeadPayload): st
  *   PIPEDRIVE_INSTALL_FIELD_NEEDS_VISIT  Boolean      true para leads web
  *   PIPEDRIVE_INSTALL_FIELD_CONTACT_PREF Enum         Preferencia de contacto
  *   PIPEDRIVE_INSTALL_FIELD_LEAD_REF     Text         Referencia interna
+   *   PIPEDRIVE_INSTALL_FIELD_LEAD_SCORE   Integer      Score del lead (0-100)
+   *   PIPEDRIVE_INSTALL_FIELD_PRIORITY_TIER Enum         Alta / Normal
  *
  * Como crearlos:
  *   Pipedrive > Settings > Data Fields > Deals > Add Field
@@ -91,7 +93,9 @@ export function buildInstallationDealTitle(payload: InstallationLeadPayload): st
  */
 function buildInstallationCustomFields(
   payload: InstallationLeadPayload,
-  leadRef: string
+  leadRef: string,
+  leadScore: number,
+  priorityTier: string
 ): Record<string, string | number | boolean> {
   const fields: Record<string, string | number | boolean> = {};
 
@@ -110,6 +114,8 @@ function buildInstallationCustomFields(
   setField('PIPEDRIVE_INSTALL_FIELD_NEEDS_VISIT', true);
   setField('PIPEDRIVE_INSTALL_FIELD_CONTACT_PREF', payload.preferenciaContacto || undefined);
   setField('PIPEDRIVE_INSTALL_FIELD_LEAD_REF', leadRef);
+  setField('PIPEDRIVE_INSTALL_FIELD_LEAD_SCORE', leadScore);
+  setField('PIPEDRIVE_INSTALL_FIELD_PRIORITY_TIER', priorityTier);
 
   return fields;
 }
@@ -166,6 +172,6 @@ export function mapInstallationPayloadToDealParams(
     title: buildInstallationDealTitle(payload),
     leadScore: score,
     priorityTier,
-    customFields: buildInstallationCustomFields(payload, leadRef),
+    customFields: buildInstallationCustomFields(payload, leadRef, score, priorityTier),
   };
 }
