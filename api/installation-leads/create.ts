@@ -7,7 +7,7 @@
 // Flujo:
 //  1. Auth (INSTALLATION_API_SECRET server-only, nunca expuesta al cliente)
 //  2. Rate limiting por IP (10 req / 15 min por IP)
-//  3. Validacion de Origin/Referer (solo nuevo.elights.cl en produccion)
+//  3. Validacion de Origin/Referer (solo nuevo.elights.cl en produccion)h
 //  4. Honeypot anti-bot (campo website debe estar vacio)
 //  5. Validacion del InstallationLeadPayload
 //  6. findOrCreatePerson
@@ -73,8 +73,10 @@ function isAuthorized(req: VercelRequest): boolean {
     if (quotesKey && provided === quotesKey) return true;
     return false;
   }
-  if (installSecret || quotesKey) return true;
-  console.warn(LOG_PREFIX + ' No API key configured — rejecting all requests');
+  // Sin header y sin env vars → modo dev/local sin configuración → permitir
+  // Sin header pero con env vars → producción sin credencial → rechazar (fix bug: era true)
+  if (!installSecret && !quotesKey) return true;
+  console.warn(LOG_PREFIX + ' Unauthorized: no API key provided (header required in production)');
   return false;
 }
 
