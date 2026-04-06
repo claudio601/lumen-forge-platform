@@ -54,7 +54,7 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
 const ALLOWED_ORIGINS = ['https://nuevo.elights.cl', 'https://elights.cl'];
 
 function isAllowedOrigin(req: VercelRequest): boolean {
-  if (process.env.NODE_ENV !== 'production') return true;
+  if (process.env.VERCEL_ENV !== 'production') return true;
   const origin = req.headers['origin'] ?? '';
   const referer = req.headers['referer'] ?? '';
   return ALLOWED_ORIGINS.some(o => origin.startsWith(o)) ||
