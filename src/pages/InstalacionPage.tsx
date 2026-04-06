@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Wrench, ChevronDown, Sun } from 'lucide-react';
+import { MapPin, Wrench, ChevronDown, Sun, ClipboardList } from 'lucide-react';
 import {
   waInstalacion,
   contactEmailInstalacion,
@@ -9,6 +9,45 @@ import {
 } from '@/config/business';
 import InstallationLeadForm from '@/components/instalacion/InstallationLeadForm';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HERO COPY — variante implementada (A) y alternativa (B) documentada
+//
+// VARIANTE A — implementada: foco en la accion concreta (evaluacion) y
+// audiencia explicita (hogares, empresas, proyectos en RM).
+//   Titulo:   "Instalacion electrica y LED profesional en Santiago"
+//   Subcopy:  "Evaluamos tu espacio, cotizamos sin compromiso e instalamos
+//              con tecnicos certificados SEC. Hogares, oficinas y proyectos
+//              en la Region Metropolitana."
+//   CTA 1:   "Solicitar evaluacion gratuita" -> scroll a #formulario (primario)
+//   CTA 2:   "Escribir por WhatsApp" (secundario, verde mas discreto)
+//
+// VARIANTE B — alternativa descartada: titulo con beneficio economico,
+// subcopy mas corto, CTA directo a formulario.
+//   Titulo:   "Tu proyecto iluminado, con instalacion incluida"
+//   Subcopy:  "Tecnico SEC en tu espacio en menos de 48 h. Cobertura en toda
+//              la Region Metropolitana."
+//   CTA 1:   "Pedir evaluacion sin costo" -> scroll a #formulario
+//   CTA 2:   "WhatsApp" (icono)
+//
+// Razon de eleccion A sobre B:
+//   - "Instalacion electrica y LED profesional en Santiago" es indexable
+//     (SEO local) y responde en 6 palabras a quien llega sin contexto:
+//     que servicio, que categoria, donde.
+//   - El subcopy de A resuelve las 3 fricciones tipicas del usuario:
+//     "cuanto cuesta / quien lo hace / llegan a mi zona".
+//   - CTA "Solicitar evaluacion gratuita" tiene friction mas baja que
+//     "Cotizar": evaluar es anterior a comprar; elimina la barrera del
+//     precio antes de entender el proyecto.
+//   - B es mas poetico pero "iluminado" y "incluida" generan ambiguedad
+//     (incluida en que?) y "48 h" es un compromiso operativo que puede
+//     fallar y dania la confianza.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const scrollToFormulario = (e: React.MouseEvent) => {
+  e.preventDefault();
+  document.getElementById('formulario')?.scrollIntoView({ behavior: 'smooth' });
+};
+
 const InstalacionPage = () => {
   const scrollToServicios = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -17,7 +56,7 @@ const InstalacionPage = () => {
 
   return (
     <div className="bg-[#FAFAF7]">
-      {/* Hero */}
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden"
         style={{ background: '#1A0A2E' }}
@@ -31,34 +70,51 @@ const InstalacionPage = () => {
           }}
         />
         <div className="relative container py-20 text-center text-white">
-          <h1 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
-            Iluminamos tu proyecto,{' '}
+          {/* Pill de cobertura */}
+          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 uppercase tracking-widest"
+            style={{ background: 'rgba(252,211,77,0.12)', color: '#FCD34D', border: '1px solid rgba(252,211,77,0.25)' }}
+          >
+            <MapPin className="h-3 w-3" />
+            Region Metropolitana
+          </div>
+
+          {/* Titulo — VARIANTE A */}
+          <h1 className="text-3xl md:text-5xl font-bold mb-5 leading-tight">
+            Instalacion electrica y LED{' '}
             <em className="not-italic italic" style={{ color: '#FCD34D' }}>
-              de principio a fin
+              profesional en Santiago
             </em>
           </h1>
-          <p className="text-gray-300 text-lg max-w-2xl mx-auto mb-8">
-            Diseno, suministro e instalacion de sistemas de iluminacion LED para hogares, oficinas
-            e industria. Tecnicos certificados SEC, materiales de primera calidad y garantia real.
+
+          {/* Subtitulo — VARIANTE A */}
+          <p className="text-gray-300 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
+            Evaluamos tu espacio, cotizamos sin compromiso e instalamos con tecnicos certificados
+            SEC. Hogares, oficinas y proyectos comerciales en la Region Metropolitana.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
+
+          {/* CTAs — primario: formulario / secundario: WhatsApp */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-14">
+            <a
+              href="#formulario"
+              onClick={scrollToFormulario}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
+              style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Solicitar evaluacion gratuita
+            </a>
             <a
               href={waInstalacion}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
-              style={{ background: '#25D366' }}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold border-2 text-white transition-all hover:bg-white/10"
+              style={{ borderColor: 'rgba(37,211,102,0.5)', color: '#4ADE80' }}
             >
-              Cotizar por WhatsApp
-            </a>
-            <a
-              href="#servicios"
-              onClick={scrollToServicios}
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold border-2 border-white/30 text-white hover:border-white/60 transition-all"
-            >
-              Ver servicios <ChevronDown className="h-4 w-4" />
+              Escribir por WhatsApp
             </a>
           </div>
+
+          {/* Stats */}
           <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
             {[
               { value: '100+', label: 'Proyectos' },
@@ -83,7 +139,7 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* Servicios */}
+      {/* ── Servicios ──────────────────────────────────────────────────── */}
       <section id="servicios" className="container py-16">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Nuestros servicios</h2>
         <p className="text-center text-muted-foreground mb-10">
@@ -163,7 +219,7 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* Como funciona */}
+      {/* ── Como funciona ──────────────────────────────────────────────── */}
       <section
         className="py-16"
         style={{ background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)' }}
@@ -210,7 +266,7 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* Tipos de proyecto */}
+      {/* ── Tipos de proyecto ──────────────────────────────────────────── */}
       <section className="container py-16">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Tipos de proyecto</h2>
         <p className="text-center text-muted-foreground mb-10">
@@ -242,7 +298,7 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* Formulario de solicitud de instalacion */}
+      {/* ── Formulario de solicitud ────────────────────────────────────── */}
       <section
         id="formulario"
         className="py-16"
@@ -257,7 +313,7 @@ const InstalacionPage = () => {
               Cotizacion gratuita
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              Solicita tu cotizacion
+              Solicita tu evaluacion
             </h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
               Completa el formulario y nuestro equipo te responde en menos de 24 horas habiles con
@@ -288,7 +344,7 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* Cobertura */}
+      {/* ── Cobertura ──────────────────────────────────────────────────── */}
       <section className="py-16 text-white text-center" style={{ background: '#1A0A2E' }}>
         <div className="container max-w-2xl">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">Region Metropolitana</h2>
@@ -296,27 +352,32 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* CTA Final */}
+      {/* ── CTA Final ──────────────────────────────────────────────────── */}
       <section className="container py-20 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold mb-3">Cotiza tu proyecto hoy</h2>
+        <h2 className="text-2xl md:text-3xl font-bold mb-3">
+          Agenda tu evaluacion sin compromiso
+        </h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Sin compromiso. Te respondemos en menos de 24 horas habiles.
+          Un tecnico certificado SEC visita tu espacio, evalua el proyecto y te entrega una
+          cotizacion detallada. Sin costo si contratas la instalacion.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href="#formulario"
+            onClick={scrollToFormulario}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
+            style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Solicitar evaluacion gratuita
+          </a>
           <a
             href={waInstalacion}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
-            style={{ background: '#25D366' }}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold border-2 border-[#25D366] text-[#16A34A] hover:bg-[#25D366] hover:text-white transition-all"
           >
             WhatsApp
-          </a>
-          <a
-            href={'mailto:' + contactEmailInstalacion}
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all"
-          >
-            Escribir un correo
           </a>
         </div>
       </section>
