@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Mail, Phone, MessageCircle } from 'lucide-react';
 import { categories } from '@/data/products';
 import Logo from '@/components/Logo';
+import { waBase, whatsappDisplayNumber, contactEmail } from '@/config/business';
 
 const Footer = () => {
   const topCats = [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, 6);
@@ -17,7 +18,13 @@ const Footer = () => {
             <p className="text-sm text-background/60 leading-relaxed mb-4">
               Iluminacion LED profesional para proyectos, empresas y hogar. Stock permanente y despacho a todo Chile.
             </p>
-            <a href="https://wa.me/56991273128" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors" style={{backgroundColor:'rgba(37,211,102,0.1)',color:'#25D366',border:'1px solid rgba(37,211,102,0.2)'}}>
+            <a
+              href={waBase}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs font-semibold rounded-full px-3 py-1.5 transition-colors"
+              style={{backgroundColor:'rgba(37,211,102,0.1)',color:'#25D366',border:'1px solid rgba(37,211,102,0.2)'}}
+            >
               <MessageCircle className="h-3.5 w-3.5" />
               WhatsApp directo
             </a>
@@ -51,15 +58,21 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Contacto</h4>
             <div className="space-y-3">
-              <a href="mailto:ventas@elights.cl" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
+              <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
                 <Mail className="h-4 w-4 shrink-0" />
-                ventas@elights.cl
+                {contactEmail}
               </a>
-              <a href="tel:+56991273128" className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
+              <a href={`tel:+${whatsappDisplayNumber.replace(/\s/g, '').replace('+', '')}`} className="flex items-center gap-2 text-sm text-background/60 hover:text-primary transition-colors">
                 <Phone className="h-4 w-4 shrink-0" />
-                +56 9 9127 3128
+                {whatsappDisplayNumber}
               </a>
-              <a href="https://wa.me/56991273128" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-background/60 transition-colors" style={{color:'rgba(255,255,255,0.6)'}}>
+              <a
+                href={waBase}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-background/60 transition-colors"
+                style={{color:'rgba(255,255,255,0.6)'}}
+              >
                 <MessageCircle className="h-4 w-4 shrink-0" />
                 WhatsApp
               </a>
