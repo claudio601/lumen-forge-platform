@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Wrench, ArrowRight, Shield, BarChart3, Download } from 'lucide-react';
+import { Wrench, ArrowRight, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const InstallerTeaser = () => (
@@ -9,28 +9,28 @@ const InstallerTeaser = () => (
       <div className="relative flex flex-col md:flex-row gap-8 items-start">
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 bg-accent text-accent-foreground text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-            <Wrench className="h-3.5 w-3.5" /> Área Instaladores
+            <Sun className="h-3.5 w-3.5" /> Nuevo Servicio
           </div>
-          <h2 className="text-2xl font-bold mb-3">Programa para profesionales e instaladores</h2>
+          <h2 className="text-2xl font-bold mb-3">Instalación profesional de iluminación y paneles solares</h2>
           <p className="text-muted-foreground mb-6">
-            Accede a precios especiales, historial de cotizaciones, material técnico descargable y soporte comercial dedicado.
+            Productos + instalación eléctrica en un solo lugar. Visita técnica, cotización y ejecución por electricistas certificados. Cobertura Región Metropolitana.
           </p>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { icon: Shield, text: 'Precios especiales' },
-              { icon: BarChart3, text: 'Historial de pedidos' },
-              { icon: Download, text: 'Fichas técnicas' },
-              { icon: Wrench, text: 'Soporte dedicado' },
-            ].map(({ icon: Icon, text }) => (
+              { emoji: '🔧', text: 'Visita técnica en tu proyecto' },
+              { emoji: '💡', text: 'Iluminación LED completa' },
+              { emoji: '☀️', text: 'Paneles solares (Net Billing)' },
+              { emoji: '📋', text: 'Cotización productos + mano de obra' },
+            ].map(({ emoji, text }) => (
               <div key={text} className="flex items-center gap-2 text-sm">
-                <Icon className="h-4 w-4 text-primary" />
+                <span className="text-base leading-none">{emoji}</span>
                 <span>{text}</span>
               </div>
             ))}
           </div>
           <Button asChild className="gradient-primary text-primary-foreground gap-2">
-            <Link to="/instaladores">
-              Registrarse como instalador <ArrowRight className="h-4 w-4" />
+            <Link to="/instalacion">
+              Conocer servicio <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
