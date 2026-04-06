@@ -1,16 +1,24 @@
 import { Zap, Shield, Truck, Phone, Award, Clock, Users, Lightbulb, Star } from 'lucide-react';
+import { trustClaims } from '@/config/business';
 
-const reasons = [
-  { icon: Zap,       title: 'Amplio stock disponible',   desc: 'Gran variedad de productos disponibles para despacho inmediato.' },
-  { icon: Shield,    title: 'Garantía 1 año',             desc: 'Todos nuestros productos incluyen garantía base de 1 año.' },
-  { icon: Truck,     title: 'Despacho a todo Chile',      desc: 'Enviamos por Starken, Cruz del Sur, PDQ, ECOEx y otros. También despachamos con el operador logístico que prefiera el cliente.' },
-  { icon: Phone,     title: 'Soporte técnico',            desc: 'Asesoría en selección, instalación y post-venta incluida.' },
-  { icon: Award,     title: 'Productos certificados',     desc: 'Certificación SEC, DS1, CE, IEC y normas eléctricas chilenas.' },
-  { icon: Clock,     title: 'Despacho en 48 hrs',         desc: 'Entrega directa con camiones propios en Provincia de Santiago. Envío a regiones en 48 hrs al operador logístico.' },
-  { icon: Users,     title: 'Precios B2B',                desc: 'Tarifas especiales para empresas, instaladores y proyectos.' },
-  { icon: Lightbulb, title: 'Asesoría de proyectos',      desc: 'Te ayudamos a elegir la solución correcta para tu proyecto.' },
-  { icon: Star,      title: '+8 años en el mercado',      desc: 'Experiencia y confianza en iluminación LED industrial.' },
+// Items que provienen de business.ts (fuente única de verdad)
+const reasonsFromConfig = [
+  { icon: Zap,       ...trustClaims.stock },
+  { icon: Shield,    ...trustClaims.warranty },
+  { icon: Truck,     ...trustClaims.dispatchChile },
+  { icon: Award,     ...trustClaims.certifications },
+  { icon: Clock,     ...trustClaims.dispatch },
+  { icon: Star,      ...trustClaims.experience },
+] as const;
+
+// Items complementarios (no comerciales, no requieren centralización)
+const reasonsLocal = [
+  { icon: Phone,     title: 'Soporte técnico',    desc: 'Asesoría en selección, instalación y post-venta incluida.' },
+  { icon: Users,     title: 'Precios B2B',         desc: 'Tarifas especiales para empresas, instaladores y proyectos.' },
+  { icon: Lightbulb, title: 'Asesoría de proyectos', desc: 'Te ayudamos a elegir la solución correcta para tu proyecto.' },
 ];
+
+const reasons = [...reasonsFromConfig, ...reasonsLocal];
 
 const WhyElights = () => (
   <section className="py-16 bg-surface">
