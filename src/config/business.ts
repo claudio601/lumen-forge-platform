@@ -5,7 +5,7 @@
  * Importar desde aquí — NO hardcodear estos valores en componentes.
  */
 
-// ── Contacto ──────────────────────────────────────────────────
+// ── Contacto ────────────────────────────────────────────────
 
 /** Número E.164 para construir URLs de WhatsApp (sin espacios ni +) */
 export const whatsappNumber = '56991273128';
@@ -13,13 +13,13 @@ export const whatsappNumber = '56991273128';
 /** Número formateado para mostrar al usuario */
 export const whatsappDisplayNumber = '+56 9 9127 3128';
 
-/** Email comercial */
+/** Email comercial principal (ventas, cotizaciones) */
 export const contactEmail = 'ventas@elights.cl';
 
 /** Email de contacto para instalaciones */
 export const contactEmailInstalacion = 'contacto@elights.cl';
 
-// ── Helpers de URL ────────────────────────────────────────────
+// ── Helpers de URL ───────────────────────────────────────────
 
 /** URL base de WhatsApp sin mensaje */
 export const waBase = `https://wa.me/${whatsappNumber}`;
@@ -30,7 +30,19 @@ export const waInstalacion = `${waBase}?text=Hola%2C%20me%20interesa%20el%20serv
 /** URL de WhatsApp genérica para consultas */
 export const waGeneral = waBase;
 
-// ── Cobertura de instalación ──────────────────────────────────
+/**
+ * Construye una URL de WhatsApp para consulta de un producto específico.
+ * @param productName  Nombre del producto
+ * @param sku          SKU del producto
+ */
+export function waProductUrl(productName: string, sku: string): string {
+  const text = encodeURIComponent(
+    `Hola, consulta por ${productName} (SKU: ${sku})`
+  );
+  return `${waBase}?text=${text}`;
+}
+
+// ── Cobertura de instalación ─────────────────────────────────
 
 /** Cobertura larga (para sección de mapa o descripción) */
 export const installationCoverage =
@@ -39,14 +51,13 @@ export const installationCoverage =
 /** Cobertura corta (para bullets o badges) */
 export const installationCoverageShort = 'Cobertura Región Metropolitana.';
 
-// ── Datos de la visita técnica ────────────────────────────────
+// ── Datos de la visita técnica ───────────────────────────────
 
 export const installationVisitLabel = 'Desde $20.000 · Descontable de tu compra';
-
 export const installationVisitDescription =
   'Un técnico certificado visita tu espacio, evalúa tus necesidades de iluminación y te entrega un informe detallado con recomendaciones y cotización personalizada.';
 
-// ── Trust claims (cards de confianza) ────────────────────────
+// ── Trust claims (cards de confianza) ───────────────────────
 
 export const trustClaims = {
   stock: {
