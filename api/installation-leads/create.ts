@@ -73,10 +73,12 @@ function isAuthorized(req: VercelRequest): boolean {
     if (quotesKey && provided === quotesKey) return true;
     return false;
   }
-  // Sin header y sin env vars → modo dev/local sin configuración → permitir
-  // Sin header pero con env vars → producción sin credencial → rechazar (fix bug: era true)
+  // Sin header + origin permitido → formulario web legítimo → permitir
+  // Sin header + origin no permitido + sin env vars → dev/local → permitir
+  // Sin header + origin no permitido + con env vars → atacante externo → rechazar
+  if (isAllowedOrigin(req)) return true;
   if (!installSecret && !quotesKey) return true;
-  console.warn(LOG_PREFIX + ' Unauthorized: no API key provided (header required in production)');
+  console.warn(LOG_PREFIX + ' Unauthorized: no header and untrusted origin');
   return false;
 }
 
