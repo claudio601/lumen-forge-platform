@@ -3,7 +3,15 @@ import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail } from '@/config/business';
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Payload tipado para integracion backend / CRM
+//
+// NOTA sobre 'origen':
+// - El formulario envia 'instalacion_web' para que coincida con el enum que
+//   define el backend en api/_lib/crm/installation-types.ts.
+// - El valor anterior 'instalacion_page' era inconsistente con el backend
+//   y causaria que el validator lo rechazara con un warning.
+// ─────────────────────────────────────────────────────────────────────────────
 export interface InstallationLeadPayload {
   nombre: string;
   telefono: string;
@@ -15,12 +23,15 @@ export interface InstallationLeadPayload {
   tipoCliente?: 'hogar' | 'empresa' | 'condominio' | '';
   preferenciaContacto?: 'whatsapp' | 'llamada' | 'email' | '';
   aceptaContacto: boolean;
-  // metadata
-  origen: 'instalacion_page';
+  // metadata — 'instalacion_web' coincide con InstallationLeadSource del backend
+  origen: 'instalacion_web';
   fecha: string;
 }
 
-// Google Apps Script relay - mismo patron que QuoteCartPage
+// ─────────────────────────────────────────────────────────────────────────────
+// Google Apps Script relay — mismo patron que QuoteCartPage
+// Relay actual: mantener siempre como respaldo operativo.
+// ─────────────────────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec';
 
 async function sendLeadEmail(payload: InstallationLeadPayload): Promise<void> {
@@ -74,7 +85,77 @@ async function sendLeadEmail(payload: InstallationLeadPayload): Promise<void> {
   if (result.status !== 'ok') throw new Error(result.message || 'Error enviando solicitud');
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pipedrive CRM — fire-and-forget (NO bloquea el formulario si falla)
+//
+// Patron identico a QuoteCartPage.tsx:
+// - Solo se ejecuta DESPUES de que sendLeadEmail() resolvio correctamente
+// - Si Pipedrive falla: console.warn + silencio hacia el usuario
+// - Si el email falla: comportamiento de error actual se mantiene sin cambio
+//
+// Requiere variable de entorno en Vercel:
+//   VITE_QUOTES_API_KEY = misma key que usa el backend QUOTES_API_KEY
+//
+// El endpoint /api/installation-leads/create ya existe y esta completo.
+// Para que cree deals reales en Pipedrive tambien requiere:
+//   PIPEDRIVE_INSTALL_PIPELINE_ID, PIPEDRIVE_INSTALL_STAGE_NEW_LEAD_ID
+//   y los PIPEDRIVE_INSTALL_FIELD_* del pipeline de instalacion.
+// Ver api/installation-leads/create.ts y .env.example para la lista completa.
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendToPipedrive(payload: InstallationLeadPayload): Promise<void> {
+  const apiKey = import.meta.env.VITE_QUOTES_API_KEY ?? '';
+
+  if (!apiKey) {
+    console.warn('[Pipedrive] VITE_QUOTES_API_KEY no configurada — saltando CRM');
+    return;
+  }
+
+  const res = await fetch('/api/installation-leads/create', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errBody = '';
+    try {
+      const ct = res.headers.get('content-type') ?? '';
+      errBody = ct.includes('json')
+        ? JSON.stringify(await res.json())
+        : await res.text();
+    } catch { /* body read failed */ }
+    console.warn('[Pipedrive] HTTP error creando lead de instalación', {
+      status: res.status,
+      statusText: res.statusText,
+      email: payload.email,
+      body: errBody,
+    });
+    return;
+  }
+
+  try {
+    const data = await res.json();
+    if (data.success) {
+      console.log('[Pipedrive] Lead creado/actualizado:', {
+        dealId: data.dealId,
+        dealAction: data.dealAction,
+        leadScore: data.leadScore,
+        priorityTier: data.priorityTier,
+      });
+    } else {
+      console.warn('[Pipedrive] Respuesta no exitosa:', data);
+    }
+  } catch {
+    console.warn('[Pipedrive] No se pudo parsear respuesta del endpoint');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Opciones
+// ─────────────────────────────────────────────────────────────────────────────
 const TIPOS_PROYECTO = [
   'Casa / departamento',
   'Oficina',
@@ -100,7 +181,9 @@ const PREFS_CONTACTO = [
   { value: 'email', label: 'Correo electrónico' },
 ] as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Estado del form
+// ─────────────────────────────────────────────────────────────────────────────
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
 const EMPTY_FORM = {
@@ -116,6 +199,9 @@ const EMPTY_FORM = {
 };
 type FormValues = typeof EMPTY_FORM;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Componente
+// ─────────────────────────────────────────────────────────────────────────────
 const InstallationLeadForm = () => {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [status, setStatus] = useState<FormState>('idle');
@@ -143,12 +229,15 @@ const InstallationLeadForm = () => {
     tipoCliente: form.tipoCliente,
     preferenciaContacto: form.preferenciaContacto,
     aceptaContacto: form.aceptaContacto,
-    origen: 'instalacion_page',
+    // 'instalacion_web' = valor correcto para el backend (installation-types.ts)
+    origen: 'instalacion_web',
     fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validacion frontend
     if (
       !form.nombre ||
       !form.telefono ||
@@ -164,13 +253,28 @@ const InstallationLeadForm = () => {
       setErrorMsg('Debes aceptar que te contactemos para continuar.');
       return;
     }
+
     setErrorMsg('');
     setStatus('sending');
+
     try {
-      await sendLeadEmail(buildPayload());
+      const payload = buildPayload();
+
+      // ── Paso 1: email via GAS relay (OBLIGATORIO — bloquea si falla) ────────
+      await sendLeadEmail(payload);
+
+      // ── Paso 2: CRM Pipedrive (fire-and-forget — NO bloquea el formulario) ──
+      // sendToPipedrive resuelve siempre (captura sus propios errores internamente).
+      // Si el endpoint no esta configurado o Pipedrive falla, el usuario NO lo ve.
+      sendToPipedrive(payload).catch(err => {
+        console.warn('[Pipedrive] Error inesperado (no bloqueante):', err);
+      });
+
+      // Exito: el email salio bien
       setStatus('success');
       setForm(EMPTY_FORM);
     } catch (err) {
+      // Solo llega aqui si sendLeadEmail() fallo
       console.error('[InstallationLeadForm]', err);
       setStatus('error');
       setErrorMsg(
