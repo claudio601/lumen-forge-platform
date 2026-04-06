@@ -37,12 +37,12 @@ function isStr(val: unknown): val is string {
 
 function isEmail(val: unknown): boolean {
   if (typeof val !== 'string') return false;
-  return /^[^s@]+@[^s@]+.[^s@]+$/.test(val.trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
 }
 
 function isPhone(val: unknown): boolean {
   if (typeof val !== 'string') return false;
-  const digits = val.replace(/D/g, '');
+  const digits = val.replace(/\D/g, '');
   return digits.length >= 8 && digits.length <= 12;
 }
 
