@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Wrench, ChevronDown } from 'lucide-react';
+import { MapPin, Wrench, ChevronDown, Sun } from 'lucide-react';
 
 const WA_URL =
   'https://wa.me/56991273128?text=Hola%2C%20me%20interesa%20el%20servicio%20de%20instalaci%C3%B3n';
@@ -34,9 +34,9 @@ const InstalacionPage = () => {
             </em>
           </h1>
           <p className="text-gray-300 text-lg max-w-2xl mx-auto mb-8">
-            Diseño, suministro e instalación de sistemas de iluminación LED
-            para hogares, oficinas e industria. Técnicos certificados SEC,
-            materiales de primera calidad y garantía real.
+            Diseño, suministro e instalación de sistemas de iluminación LED para hogares,
+            oficinas e industria. Técnicos certificados SEC, materiales de primera calidad y
+            garantía real.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <a
@@ -56,6 +56,7 @@ const InstalacionPage = () => {
               Ver servicios <ChevronDown className="h-4 w-4" />
             </a>
           </div>
+
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
             {[
@@ -66,7 +67,10 @@ const InstalacionPage = () => {
               <div
                 key={label}
                 className="rounded-2xl px-4 py-5"
-                style={{ background: 'rgba(124,58,237,0.25)', border: '1px solid rgba(124,58,237,0.4)' }}
+                style={{
+                  background: 'rgba(124,58,237,0.25)',
+                  border: '1px solid rgba(124,58,237,0.4)',
+                }}
               >
                 <p className="text-2xl font-extrabold" style={{ color: '#FCD34D' }}>
                   {value}
@@ -86,11 +90,10 @@ const InstalacionPage = () => {
         <p className="text-center text-muted-foreground mb-10">
           Elige el servicio que mejor se adapta a tu proyecto.
         </p>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Visita Técnica */}
           <div
-            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm
-              hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
+            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
           >
             <div
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"
@@ -104,9 +107,8 @@ const InstalacionPage = () => {
             </div>
             <h3 className="text-xl font-bold mb-2">Visita Técnica</h3>
             <p className="text-muted-foreground text-sm mb-5">
-              Un técnico certificado visita tu espacio, evalúa tus necesidades
-              de iluminación y te entrega un informe detallado con
-              recomendaciones y cotización personalizada.
+              Un técnico certificado visita tu espacio, evalúa tus necesidades de iluminación
+              y te entrega un informe detallado con recomendaciones y cotización personalizada.
             </p>
             <span
               className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full"
@@ -121,8 +123,7 @@ const InstalacionPage = () => {
 
           {/* Instalación Completa */}
           <div
-            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm
-              hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
+            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
           >
             <div
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"
@@ -136,9 +137,9 @@ const InstalacionPage = () => {
             </div>
             <h3 className="text-xl font-bold mb-2">Instalación Completa</h3>
             <p className="text-muted-foreground text-sm mb-5">
-              Nos encargamos de todo: provisión de luminarias, cableado,
-              fijaciones y puesta en marcha. Trabajo limpio, garantizado y
-              con certificación de instalación eléctrica cuando aplique.
+              Nos encargamos de todo: provisión de luminarias, cableado, fijaciones y puesta
+              en marcha. Trabajo limpio, garantizado y con certificación de instalación
+              eléctrica cuando aplique.
             </p>
             <span
               className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full"
@@ -148,6 +149,36 @@ const InstalacionPage = () => {
               }}
             >
               Producto + Mano de obra incluida
+            </span>
+          </div>
+
+          {/* Paneles Solares */}
+          <div
+            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
+          >
+            <div
+              className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }}
+            />
+            <div
+              className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5"
+              style={{ background: 'rgba(251,191,36,0.15)' }}
+            >
+              <Sun className="h-6 w-6" style={{ color: '#D97706' }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Paneles Solares</h3>
+            <p className="text-muted-foreground text-sm mb-5">
+              Instalación de sistemas fotovoltaicos para hogares y empresas. Evaluamos tu
+              consumo, diseñamos el sistema y lo instalamos con conexión a la red (Net Billing).
+            </p>
+            <span
+              className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full"
+              style={{
+                background: 'rgba(251,191,36,0.12)',
+                color: '#92400E',
+              }}
+            >
+              Ahorro desde el primer mes
             </span>
           </div>
         </div>
@@ -216,14 +247,15 @@ const InstalacionPage = () => {
             { emoji: '🏗️', label: 'Obra nueva' },
             { emoji: '🏬', label: 'Bodegas e industrial' },
             { emoji: '🔄', label: 'Recambio LED' },
-          ].map(({ emoji, label }) => (
+            { emoji: '☀️', label: 'Paneles Solares', desc: 'Sistemas fotovoltaicos residenciales y comerciales con Net Billing.' },
+          ].map(({ emoji, label, desc }) => (
             <div
               key={label}
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl p-6 bg-white border border-gray-100
-                shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-default"
+              className="flex flex-col items-center justify-center gap-3 rounded-2xl p-6 bg-white border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-default"
             >
               <span className="text-4xl">{emoji}</span>
               <span className="font-semibold text-sm text-center">{label}</span>
+              {desc && <span className="text-xs text-muted-foreground text-center">{desc}</span>}
             </div>
           ))}
         </div>
@@ -239,10 +271,9 @@ const InstalacionPage = () => {
             Región Metropolitana
           </h2>
           <p className="text-gray-300 text-base leading-relaxed">
-            Realizamos instalaciones en toda la Región Metropolitana.
-            Los productos también se despachan a regiones a través de
-            nuestros socios logísticos. Próximamente expandiendo cobertura
-            de instalación a Valparaíso y Biobío.
+            Realizamos instalaciones en toda la Región Metropolitana. Los productos también se
+            despachan a regiones a través de nuestros socios logísticos. Próximamente
+            expandiendo cobertura de instalación a Valparaíso y Biobío.
           </p>
         </div>
       </section>
