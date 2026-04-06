@@ -15,6 +15,7 @@ import CartPage from "./pages/CartPage";
 import QuoteCartPage from "./pages/QuoteCartPage";
 import SmartQuotePage from "./pages/SmartQuotePage";
 import InstallerAreaPage from "./pages/InstallerAreaPage";
+import InstalacionPage from "./pages/InstalacionPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
                 <Route path="/cotizacion" element={<QuoteCartPage />} />
                 <Route path="/cotizador" element={<SmartQuotePage />} />
                 <Route path="/instaladores" element={<InstallerAreaPage />} />
+                <Route path="/instalacion" element={<InstalacionPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
