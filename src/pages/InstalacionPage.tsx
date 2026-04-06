@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom';
 import { MapPin, Wrench, ChevronDown, Sun } from 'lucide-react';
-
-const WA_URL =
-  'https://wa.me/56991273128?text=Hola%2C%20me%20interesa%20el%20servicio%20de%20instalaci%C3%B3n';
+import {
+  waInstalacion,
+  contactEmailInstalacion,
+  installationCoverage,
+  installationVisitLabel,
+  installationVisitDescription,
+} from '@/config/business';
 
 const InstalacionPage = () => {
   const scrollToServicios = (e: React.MouseEvent) => {
@@ -40,7 +44,7 @@ const InstalacionPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-14">
             <a
-              href={WA_URL}
+              href={waInstalacion}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
@@ -92,9 +96,7 @@ const InstalacionPage = () => {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Visita Técnica */}
-          <div
-            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
-          >
+          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden">
             <div
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }}
@@ -106,25 +108,17 @@ const InstalacionPage = () => {
               <MapPin className="h-6 w-6" style={{ color: '#7C3AED' }} />
             </div>
             <h3 className="text-xl font-bold mb-2">Visita Técnica</h3>
-            <p className="text-muted-foreground text-sm mb-5">
-              Un técnico certificado visita tu espacio, evalúa tus necesidades de iluminación
-              y te entrega un informe detallado con recomendaciones y cotización personalizada.
-            </p>
+            <p className="text-muted-foreground text-sm mb-5">{installationVisitDescription}</p>
             <span
               className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full"
-              style={{
-                background: 'rgba(124,58,237,0.10)',
-                color: '#6B21A8',
-              }}
+              style={{ background: 'rgba(124,58,237,0.10)', color: '#6B21A8' }}
             >
-              Desde $20.000 · Descontable de tu compra
+              {installationVisitLabel}
             </span>
           </div>
 
           {/* Instalación Completa */}
-          <div
-            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
-          >
+          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden">
             <div
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }}
@@ -143,19 +137,14 @@ const InstalacionPage = () => {
             </p>
             <span
               className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full"
-              style={{
-                background: 'rgba(245,158,11,0.10)',
-                color: '#92400E',
-              }}
+              style={{ background: 'rgba(245,158,11,0.10)', color: '#92400E' }}
             >
               Producto + Mano de obra incluida
             </span>
           </div>
 
           {/* Paneles Solares */}
-          <div
-            className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden"
-          >
+          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden">
             <div
               className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }}
@@ -173,10 +162,7 @@ const InstalacionPage = () => {
             </p>
             <span
               className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full"
-              style={{
-                background: 'rgba(251,191,36,0.12)',
-                color: '#92400E',
-              }}
+              style={{ background: 'rgba(251,191,36,0.12)', color: '#92400E' }}
             >
               Ahorro desde el primer mes
             </span>
@@ -270,11 +256,7 @@ const InstalacionPage = () => {
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
             Región Metropolitana
           </h2>
-          <p className="text-gray-300 text-base leading-relaxed">
-            Realizamos instalaciones en toda la Región Metropolitana. Los productos también se
-            despachan a regiones a través de nuestros socios logísticos. Próximamente
-            expandiendo cobertura de instalación a Valparaíso y Biobío.
-          </p>
+          <p className="text-gray-300 text-base leading-relaxed">{installationCoverage}</p>
         </div>
       </section>
 
@@ -288,7 +270,7 @@ const InstalacionPage = () => {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
-            href={WA_URL}
+            href={waInstalacion}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
@@ -297,7 +279,7 @@ const InstalacionPage = () => {
             WhatsApp
           </a>
           <a
-            href="mailto:contacto@elights.cl"
+            href={`mailto:${contactEmailInstalacion}`}
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold border-2 border-primary text-primary hover:bg-primary hover:text-white transition-all"
           >
             Escribir un correo
