@@ -1,5 +1,6 @@
 import { MessageCircle, X } from 'lucide-react';
 import { useState } from 'react';
+import { waBase, whatsappDisplayNumber } from '@/config/business';
 
 const WhatsAppButton = () => {
   const [expanded, setExpanded] = useState(false);
@@ -13,10 +14,23 @@ const WhatsAppButton = () => {
             <button onClick={() => setExpanded(false)}><X className="h-4 w-4" /></button>
           </div>
           <p className="text-xs text-muted-foreground mb-3">Lunes a viernes 9:00-18:00 hrs.</p>
-          <a href="https://wa.me/56991273128" target="_blank" rel="noopener noreferrer" className="block w-full text-center text-white text-sm font-semibold py-2 rounded-lg" style={{backgroundColor:"#25D366"}}>Iniciar chat</a>
+          <a
+            href={waBase}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-center text-white text-sm font-semibold py-2 rounded-lg"
+            style={{ backgroundColor: '#25D366' }}
+          >
+            Iniciar chat
+          </a>
         </div>
       )}
-      <button onClick={() => setExpanded(!expanded)} className="text-white rounded-full shadow-lg flex items-center gap-2 px-4 py-3" style={{backgroundColor:"#25D366"}}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="text-white rounded-full shadow-lg flex items-center gap-2 px-4 py-3"
+        style={{ backgroundColor: '#25D366' }}
+        aria-label={`Contactar por WhatsApp ${whatsappDisplayNumber}`}
+      >
         <MessageCircle className="h-5 w-5" />
         <span className="text-sm font-semibold">WhatsApp</span>
       </button>
