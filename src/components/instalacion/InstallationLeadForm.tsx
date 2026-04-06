@@ -15,8 +15,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X7
 
 async function sendLeadEmail(payload: InstallationLeadPayload): Promise<void> {
   const asunto = 'Nueva solicitud de instalación — ' + payload.comuna + ' — ' + payload.tipoProyecto;
-  const cuerpo = ['===== NUEVA SOLICITUD DE INSTALACIÓN =====','','Nombre: ' + payload.nombre,'Teléfono: ' + payload.telefono,'Email: ' + payload.email,'Comuna: ' + payload.comuna,'Tipo de proyecto: ' + payload.tipoProyecto,'Tipo de cliente: ' + (payload.tipoCliente || '—'),'Pref. contacto: ' + (payload.preferenciaContacto || '—'),'','Descripción:',payload.descripcion,'','==========================================','Origen: Formulario /instalacion','Fecha: ' + payload.fecha].join('
-');
+  const cuerpo = ['===== NUEVA SOLICITUD DE INSTALACIÓN =====','','Nombre: ' + payload.nombre,'Teléfono: ' + payload.telefono,'Email: ' + payload.email,'Comuna: ' + payload.comuna,'Tipo de proyecto: ' + payload.tipoProyecto,'Tipo de cliente: ' + (payload.tipoCliente || '—'),'Pref. contacto: ' + (payload.preferenciaContacto || '—'),'','Descripción:',payload.descripcion,'','==========================================','Origen: Formulario /instalacion','Fecha: ' + payload.fecha].join('\n');
   const response = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ to_email: contactEmail, reply_to: payload.email, from_name: payload.nombre, subject_override: asunto, nombre: payload.nombre, telefono: payload.telefono, comuna: payload.comuna, tipo_proyecto: payload.tipoProyecto, tipo_cliente: payload.tipoCliente || '—', preferencia_contacto: payload.preferenciaContacto || '—', descripcion: payload.descripcion, items_lista: cuerpo, fecha: payload.fecha, total: '—' }) });
   const result = await response.json();
   if (result.status !== 'ok') throw new Error(result.message || 'Error enviando solicitud');
