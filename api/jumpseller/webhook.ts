@@ -124,8 +124,7 @@ function mapToQuotePayload(order: JumpsellerOrder, eventType?: string): QuotePay
       name: customerName,
       email: order.customer?.email,
       phone: order.customer?.phone || undefined,
-      billingCommune: order.billing_address?.municipality,
-      billingRegion: order.billing_address?.region,
+      commune: order.billing_address?.municipality,
     },
     organization: undefined,
     products: (order.products ?? []).map((p) => ({
@@ -224,14 +223,14 @@ export default async function handler(
     const result = await processQuoteToCrm(payload);
 
     console.log(
-      `${LOG_PREFIX} Order ${body.order.id} [${event}] -> deal ${result.deal.id} (${result.deal.action})`,
+      `${LOG_PREFIX} Order ${body.order.id} [${event}] -> deal ${result.deal.dealId} (${result.deal.action})`,
     );
 
     res.status(result.deal.action === 'created' ? 201 : 200).json({
       success: true,
       event,
       orderId: body.order.id,
-      dealId: result.deal.id,
+      dealId: result.deal.dealId,
       dealAction: result.deal.action,
     });
   } catch (err) {
