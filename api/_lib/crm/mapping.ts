@@ -1,4 +1,4 @@
-// src/lib/crm/mapping.ts
+// api/_lib/crm/mapping.ts
 // Transform QuotePayload into Pipedrive-ready parameters.
 
 import type {
@@ -15,18 +15,15 @@ import type { CreateActivityParams } from '../pipedrive/activities.js';
 import { normalizePhone } from './validation.js';
 
 // --- Config ---
-
 function getPipelineConfig() {
   const pipelineId = Number(process.env.PIPEDRIVE_PIPELINE_ID);
   const stageId = Number(process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID);
   const userId = Number(process.env.PIPEDRIVE_OWNER_USER_ID);
-
   if (!pipelineId || !stageId || !userId) {
     throw new Error(
       '[mapping] Missing required env vars: PIPEDRIVE_PIPELINE_ID, PIPEDRIVE_STAGE_NEW_LEAD_ID, PIPEDRIVE_OWNER_USER_ID'
     );
   }
-
   return { pipelineId, stageId, userId };
 }
 
@@ -34,7 +31,7 @@ function getPipelineConfig() {
 
 /**
  * Build a deal title from the payload.
- * Format: "Cotización {quoteReference} - {customerName}"
+ * Format: "Cotizacion {quoteReference} - {customerName}"
  */
 export function buildDealTitle(payload: QuotePayload): string {
   const quoteRef = payload.quoteReference?.trim() || 'SIN-REF';
@@ -42,15 +39,15 @@ export function buildDealTitle(payload: QuotePayload): string {
     payload.customer?.name?.trim() ||
     payload.customer?.email?.trim() ||
     'Cliente sin nombre';
-
-  return `Cotización ${quoteRef} - ${customerName}`;
+  return `Cotizacion ${quoteRef} - ${customerName}`;
 }
 
 /**
  * Map a QuotePayload to the parameters needed by createDeal().
  *
- * Computes the lead score and priority tier, then maps all fields
- * to the CreateDealParams interface expected by the deals module.
+ * For Jumpseller orders:
+ * - jumpsellerOrderId is always formatted as JS-{orderId}
+ * - jumpsellerEventType is passed through from the webhook event header
  */
 export function mapPayloadToDealParams(
   payload: QuotePayload,
@@ -59,6 +56,16 @@ export function mapPayloadToDealParams(
 ): CreateDealParams {
   const { pipelineId, stageId } = getPipelineConfig();
   const { score, leadType, priorityTier } = computeLeadScore(payload);
+  void score; // used in scoring only
+
+  // jumpsellerOrderId must always be JS-{id} format, never raw number
+  // For Jumpseller source, quoteReference is already JS-{id} (set in webhook.ts)
+  const jumpsellerOrderId =
+    payload.sourceSystem === 'jumpseller' && payload.quoteReference
+      ? payload.quoteReference.startsWith('JS-')
+        ? payload.quoteReference
+        : `JS-${payload.quoteReference}`
+      : undefined;
 
   return {
     personId,
@@ -71,9 +78,8 @@ export function mapPayloadToDealParams(
     leadType,
     priorityTier,
     quoteReference: payload.quoteReference,
-    jumpsellerOrderId: payload.sourceSystem === 'jumpseller'
-      ? payload.quoteReference
-      : undefined,
+    jumpsellerOrderId,
+    jumpsellerEventType: payload.jumpsellerEventType,
     notes: payload.notes,
   };
 }
@@ -89,7 +95,6 @@ export function mapToActivityParams(
   quoteReference: string
 ): CreateActivityParams {
   const { userId } = getPipelineConfig();
-
   return {
     dealId,
     personId,
@@ -102,7 +107,6 @@ export function mapToActivityParams(
 
 /**
  * Extract the customer object from the payload.
- * Trims whitespace from string fields.
  */
 export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
   return {
@@ -119,13 +123,11 @@ export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
 
 /**
  * Extract the organization from the payload, if present.
- * Returns undefined if no organization data is provided.
  */
 export function mapPayloadToOrganization(
   payload: QuotePayload
 ): QuoteOrganization | undefined {
   if (!payload.organization?.name) return undefined;
-
   return {
     name: payload.organization.name.trim(),
     segment: payload.organization.segment,
@@ -136,7 +138,6 @@ export function mapPayloadToOrganization(
 
 /**
  * Compute lead score and return scoring metadata.
- * Convenience re-export that wraps the scoring module.
  */
 export function computeScoring(payload: QuotePayload) {
   return computeLeadScore(payload);
