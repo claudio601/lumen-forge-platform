@@ -38,6 +38,7 @@ export interface QuotePayload {
   products: QuoteProduct[];
   quoteAmountClp: number;
   notes?: string;
+  jumpsellerEventType?: string; // Jumpseller webhook event type (e.g. "order_created", "order_paid")
 }
 
 // --- Jumpseller Webhook ---
