@@ -117,7 +117,7 @@ export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
     email: payload.customer?.email?.trim() || undefined,
     phone: payload.customer?.phone ? normalizePhone(payload.customer.phone) : undefined,
     preferredChannel: payload.customer?.preferredChannel,
-    commune: payload.customer?.billingCommune?.trim() || undefined,
+    commune: payload.customer?.commune?.trim() || undefined,
   };
 }
 
