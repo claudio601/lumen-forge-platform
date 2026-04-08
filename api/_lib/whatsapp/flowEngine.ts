@@ -1,6 +1,5 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui — la regla real vive en webhook.ts.
-
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
 export type CaptureStatus = 'complete' | 'partial' | 'incomplete';
 export type LeadType = 'B2B' | 'B2C' | 'Unknown';
@@ -46,64 +45,45 @@ export interface FlowResult {
   wantsHuman: boolean;
   closedFlow: boolean;
 }
+
 // [COPY-v3] Mensaje inicial
-export const MSG1 =
-  'Hola! Soy el asistente de eLIGHTS.cl \u{1F44B}\n\nEstoy ayudando a gestionar las solicitudes de iluminacion para responder mas rapido y dejar todo listo para cotizacion.\n\nCuentame:\n1) Que producto buscas\n2) Que tipo de luz prefieres\n3) Cuantas unidades necesitas aprox.';
-
-export const MSG2 =
-  'Excelente. Para recomendarte las mejores opciones, necesito saber un poco mas:\n1) Para que espacio o proyecto es la instalacion?\n2) En que comuna o ciudad seria?';
-
-export const MSG3 =
-  'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre y empresa (si aplica)\n2) Tu correo de contacto';
-
-export const MSG3_B2B =
-  'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) El RUT de la empresa\n2) Tu correo de contacto';
-
-export const MSG3_B2C =
-  'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre\n2) Tu correo de contacto';
+export const MSG1 = 'Hola! Soy el asistente de eLIGHTS.cl \u{1F44B}\n\nEstoy ayudando a gestionar las solicitudes de iluminacion para responder mas rapido y dejar todo listo para cotizacion.\n\nCuentame:\n1) Que producto buscas\n2) Que tipo de luz prefieres\n3) Cuantas unidades necesitas aprox.';
+export const MSG2 = 'Excelente. Para recomendarte las mejores opciones, necesito saber un poco mas:\n1) Para que espacio o proyecto es la instalacion?\n2) En que comuna o ciudad seria?';
+export const MSG3 = 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre y empresa (si aplica)\n2) Tu correo de contacto';
+export const MSG3_B2B = 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) El RUT de la empresa\n2) Tu correo de contacto';
+export const MSG3_B2C = 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre\n2) Tu correo de contacto';
 
 // [COPY-v2] Cierre mejorado
-export const MSG4 =
-  'Listo! Tu solicitud quedo registrada en eLIGHTS.cl y ya la derivamos para cotizacion.\n\nUn ejecutivo revisara tu requerimiento y te contactara por correo con los detalles.';
-
-export const MSG4_B2B =
-  'Listo! Tu requerimiento comercial quedo registrado en eLIGHTS.cl y ya lo derivamos a nuestro equipo de ventas.\n\nUn ejecutivo revisara tu proyecto y te enviara la cotizacion por correo.';
+export const MSG4 = 'Listo! Tu solicitud quedo registrada en eLIGHTS.cl y ya la derivamos para cotizacion.\n\nUn ejecutivo revisara tu requerimiento y te contactara por correo con los detalles.';
+export const MSG4_B2B = 'Listo! Tu requerimiento comercial quedo registrado en eLIGHTS.cl y ya lo derivamos a nuestro equipo de ventas.\n\nUn ejecutivo revisara tu proyecto y te enviara la cotizacion por correo.';
 
 // [INSTALL-FLOW] Mensaje de cierre para flujo de instalacion
-export const MSG4_INSTALL =
-  'Perfecto, tu solicitud de instalacion quedo registrada. Un ejecutivo de eLIGHTS te contactara a la brevedad para coordinar la visita y cotizacion.';
+export const MSG4_INSTALL = 'Perfecto, tu solicitud de instalacion quedo registrada. Un ejecutivo de eLIGHTS te contactara a la brevedad para coordinar la visita y cotizacion.';
 
-export const MSG_HUMAN =
-  'Perfecto, voy a derivar tu solicitud a un ejecutivo de eLIGHTS para que te ayude directamente.\n\nTe contactaremos a la brevedad por este mismo canal o por correo.';
+export const MSG_HUMAN = 'Perfecto, voy a derivar tu solicitud a un ejecutivo de eLIGHTS para que te ayude directamente.\n\nTe contactaremos a la brevedad por este mismo canal o por correo.';
+export const MSG_MEDIA = 'Recibimos tu imagen/archivo, gracias. Por ahora atendemos mejor por texto: cuentanos que producto necesitas, para que proyecto y que cantidad aproximada, y te ayudamos de inmediato.';
+export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambien puedo ayudarte a dejar tu solicitud lista para cotizacion por ac\u00e1.';
 
-export const MSG_MEDIA =
-  'Recibimos tu imagen/archivo, gracias. Por ahora atendemos mejor por texto: cuentanos que producto necesitas, para que proyecto y que cantidad aproximada, y te ayudamos de inmediato.';
-
-export const MSG_EXECUTIVE =
-  'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambien puedo ayudarte a dejar tu solicitud lista para cotizacion por ac\u00e1.';
+// [FIX-EMAIL-GATE] Mensaje para pedir correo antes de derivar
+// Se usa cuando el usuario quiere ejecutivo o cierre pero falta correo
+export const MSG_NEED_EMAIL = 'Perfecto! Para derivar tu solicitud a un ejecutivo necesito tu correo de contacto. \u00bfMe lo puedes indicar?';
+export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
 // [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio
 // Activa el flujo de captura de lead para instalacion antes de cualquier derivacion
-const INSTALL_INTENT_RE =
-  /\b(instalaci[o\u00f3]n|instalar|servicio\s+de\s+instal|quiero\s+instalar|necesito\s+instalar|cotizar\s+instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n|instalador|instaladores)\b/i;
+const INSTALL_INTENT_RE = /\b(instalaci[o\u00f3]n|instalar|servicio\s+de\s+instal|quiero\s+instalar|necesito\s+instalar|cotizar\s+instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n|instalador|instaladores)\b/i;
+const GREET_ONLY = /^(hola|buenas|buenos dias|buenas tardes|buenas noches|saludos|hi|hey|buen dia)[.!?\s]*$/i;
+const NEW_REQ_INTENT_RE = /\b(necesito|busco|quiero|requiero|cotizar|cotizaci[o\u00f3]n|comprar|conseguir|tengo un proyecto)\b/i;
 
-const GREET_ONLY =
-  /^(hola|buenas|buenos dias|buenas tardes|buenas noches|saludos|hi|hey|buen dia)[.!?\s]*$/i;
-const NEW_REQ_INTENT_RE =
-  /\b(necesito|busco|quiero|requiero|cotizar|cotizaci[o\u00f3]n|comprar|conseguir|tengo un proyecto)\b/i;
 // [FIX-CONTINUATION] Frases de continuidad
-const CONTINUATION_RE =
-  /\b(seguir|continuar|retomar|la cotizaci[o\u00f3]n|lo anterior|la misma|el mismo|anterior|misma solicitud)\b/i;
-const NEW_REQ_SOLO_LUZ_RE =
-  /^(c[a\u00e1]lida|calida|neutra|fr[i\u00ed]a|fria|warm|cool|daylight|3000k|4000k|6500k|blanca|amarilla)[.!?\s]*$/i;
-const NEW_REQ_SOLO_PROYECTO_RE =
-  /^(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|bodega|oficina|casa|local comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|fabrica|nave industrial|departamento|edificio)[.!?\s]*$/i;
+const CONTINUATION_RE = /\b(seguir|continuar|retomar|la cotizaci[o\u00f3]n|lo anterior|la misma|el mismo|anterior|misma solicitud)\b/i;
+const NEW_REQ_SOLO_LUZ_RE = /^(c[a\u00e1]lida|calida|neutra|fr[i\u00ed]a|fria|warm|cool|daylight|3000k|4000k|6500k|blanca|amarilla)[.!?\s]*$/i;
+const NEW_REQ_SOLO_PROYECTO_RE = /^(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|bodega|oficina|casa|local comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|fabrica|nave industrial|departamento|edificio)[.!?\s]*$/i;
 const NEW_REQ_SOLO_RUT_RE = /^\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK][.!?\s]*$/;
-const NEW_REQ_SOLO_EMAIL_RE =
-  /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}[.!?\s]*$/;
-const PRICE_INTENT_RE =
-  /\b(precio|precios|cu[a\u00e1]nto (cuesta|vale|sale|cuestan|valen|salen)|valor|valores|cuanto sale|cuanto cuesta|cuanto vale)\b/i;
+const NEW_REQ_SOLO_EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}[.!?\s]*$/;
+const PRICE_INTENT_RE = /\b(precio|precios|cu[a\u00e1]nto (cuesta|vale|sale|cuestan|valen|salen)|valor|valores|cuanto sale|cuanto cuesta|cuanto vale)\b/i;
 const COMMERCIAL_INTENT_RE = /\b(cotizar|cotizaci[o\u00f3]n|comprar|necesito|busco)\b/i;
 const EXECUTIVE_RE = /\b(claudio|constanza)\b/i;
+
 function looksLikeNewRequest(body: string): boolean {
   const b = body.trim();
   if (NEW_REQ_SOLO_LUZ_RE.test(b)) return false;
@@ -118,28 +98,21 @@ function looksLikeNewRequest(body: string): boolean {
   return false;
 }
 
-const WANTS_HUMAN_RE =
-  /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|asesor|contacten|contactar|quiero hablar|necesito hablar/i;
-const EXPLICIT_QUOTE =
-  /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
-const LUZ_RE =
-  /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
-const CANTIDAD_RE =
-  /\b(\d+)\s*(unidades?|und\.?|u\b|lumin|panel|foco|reflector|tira|strip|downlight)?/i;
+const WANTS_HUMAN_RE = /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|asesor|contacten|contactar|quiero hablar|necesito hablar/i;
+const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
+const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
+const CANTIDAD_RE = /\b(\d+)\s*(unidades?|und\.?|u\b|lumin|panel|foco|reflector|tira|strip|downlight)?/i;
 const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
-const CIUDAD_RE =
-  /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
-const PROYECTO_RE =
-  /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
+const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
+const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 const RUT_RE = /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/;
+
 // NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE — no es señal B2B por si sola
-const B2B_SIGNAL_RE =
-  /empresa|factura|obra|proveedor|licitaci[o\u00f3]n|constructora|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
-const PRODUCTO_RE =
-  /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s+led|plafon(?:es)?\s+led|ampolleta(?:s)?\s+led|ampolleta(?:s)?|foco(?:s)?\s+led|foco(?:s)?|dicroico(?:s)?|reflector(?:es)?\s+led|reflector(?:es)?|proyector(?:es)?\s+led|proyector(?:es)?|tira(?:s)?\s+led|cinta(?:s)?\s+led|downlight(?:s)?|empotrado(?:s)?\s+led|tubo(?:s)?\s+led|tubo(?:s)?\s+fluorescente(?:s)?|luminaria(?:s)?\s+led|luminaria(?:s)?)\b/i;
+const B2B_SIGNAL_RE = /empresa|factura|obra|proveedor|licitaci[o\u00f3]n|constructora|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
+const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s+led|plafon(?:es)?\s+led|ampolleta(?:s)?\s+led|ampolleta(?:s)?|foco(?:s)?\s+led|foco(?:s)?|dicroico(?:s)?|reflector(?:es)?\s+led|reflector(?:es)?|proyector(?:es)?\s+led|proyector(?:es)?|tira(?:s)?\s+led|cinta(?:s)?\s+led|downlight(?:s)?|empotrado(?:s)?\s+led|tubo(?:s)?\s+led|tubo(?:s)?\s+fluorescente(?:s)?|luminaria(?:s)?\s+led|luminaria(?:s)?)\b/i;
+
 // [INSTALL-FLOW] Tipo de proyecto para instalacion
-const INSTALL_TIPO_PROYECTO_RE =
-  /\b(casa|departamento|depto|oficina|local comercial|local|bodega|galpon|quincho|terraza|patio|jardin|exterior|edificio|condominio|empresa|industria|nave|faena|planta|colegio|hospital|estacionamiento)\b/i;
+const INSTALL_TIPO_PROYECTO_RE = /\b(casa|departamento|depto|oficina|local comercial|local|bodega|galpon|quincho|terraza|patio|jardin|exterior|edificio|condominio|empresa|industria|nave|faena|planta|colegio|hospital|estacionamiento)\b/i;
 function extractEmail(text: string): string | undefined {
   const m = text.match(EMAIL_RE);
   return m ? m[0] : undefined;
@@ -168,8 +141,7 @@ function normalizeLuz(raw: string): string {
   const r = raw.toLowerCase().trim();
   if (/c[a\u00e1]lid[ao]/.test(r) || /warm/i.test(r) || /3000/i.test(r)) return 'calida';
   if (/neutr[ao]/.test(r) || /4000/i.test(r) || /5000/i.test(r)) return 'neutra';
-  if (/fr[i\u00ed][ao]/.test(r) || /cool/i.test(r) || /daylight/i.test(r) || /6500/i.test(r))
-    return 'fria';
+  if (/fr[i\u00ed][ao]/.test(r) || /cool/i.test(r) || /daylight/i.test(r) || /6500/i.test(r)) return 'fria';
   if (/blanca/.test(r) && /c[a\u00e1]lid/.test(r)) return 'calida';
   if (/blanca/.test(r) && /fr[i\u00ed]/.test(r)) return 'fria';
   return r;
@@ -200,6 +172,7 @@ function extractInstallTipoProyecto(text: string): string | undefined {
   const m = text.match(INSTALL_TIPO_PROYECTO_RE);
   return m ? m[0].trim() : undefined;
 }
+
 const flowStates = new Map<string, FlowState>();
 
 export function getFlowState(phone: string): FlowState {
@@ -227,7 +200,6 @@ export function saveFlowState(phone: string, state: FlowState): void {
 export function clearFlowState(phone: string): void {
   flowStates.delete(phone);
 }
-
 // [INSTALL-FLOW] Campos minimos requeridos para instalacion
 interface InstallMissingResult {
   missingRequired: string[];
@@ -250,8 +222,7 @@ function getMissingInstallFields(captured: CapturedFields): InstallMissingResult
 function buildInstallCaptureMsg(captured: CapturedFields): string {
   const { missingRequired } = getMissingInstallFields(captured);
   if (missingRequired.length === 0) return '';
-  const hasNone = !captured.install_nombre && !captured.install_correo &&
-                  !captured.install_comuna && !captured.install_tipo_proyecto;
+  const hasNone = !captured.install_nombre && !captured.install_correo && !captured.install_comuna && !captured.install_tipo_proyecto;
   if (hasNone) {
     return 'Perfecto. Para derivar tu solicitud de instalacion y poder cotizarte, necesito estos datos: nombre completo, correo, comuna y tipo de proyecto.';
   }
@@ -261,17 +232,12 @@ function buildInstallCaptureMsg(captured: CapturedFields): string {
   const items = missingRequired.map((x, i) => (i + 1) + ') ' + capitalize(x)).join('\n');
   return 'Gracias. Para completar tu solicitud de instalacion, necesito que me indiques:\n' + items;
 }
+
 // [INSTALL-FLOW] Registra campos de instalacion desde el mensaje del usuario
 function mergeInstallFields(
   captured: CapturedFields,
   body: string,
-  claudeParsed: {
-    nombre?: string;
-    empresa?: string;
-    correo?: string;
-    comuna_o_ciudad?: string;
-    proyecto_o_uso?: string;
-  },
+  claudeParsed: { nombre?: string; empresa?: string; correo?: string; comuna_o_ciudad?: string; proyecto_o_uso?: string; },
 ): CapturedFields {
   const updated = { ...captured };
   if (!updated.install_nombre) {
@@ -296,6 +262,14 @@ function mergeInstallFields(
   }
   return updated;
 }
+// [FIX-EMAIL-GATE] Verifica si hay contexto comercial minimo para crear deal
+// Regla: correo obligatorio + al menos producto O proyecto_o_uso
+function hasMinCommercial(captured: CapturedFields): boolean {
+  if (!captured.correo) return false;
+  const hasContext = Boolean(captured.producto) || Boolean(captured.proyecto_o_uso);
+  return hasContext;
+}
+
 export function processFlowStep(
   phone: string,
   body: string,
@@ -318,13 +292,7 @@ export function processFlowStep(
   if (state.stage === 'closed') {
     if (!looksLikeNewRequest(body) && !INSTALL_INTENT_RE.test(body)) {
       return {
-        reply: state.wantsHuman
-          ? MSG_HUMAN
-          : state.isInstallFlow
-          ? MSG4_INSTALL
-          : state.leadType === 'B2B'
-          ? MSG4_B2B
-          : MSG4,
+        reply: state.wantsHuman ? MSG_HUMAN : state.isInstallFlow ? MSG4_INSTALL : state.leadType === 'B2B' ? MSG4_B2B : MSG4,
         shouldCreateDeal: false,
         shouldNotify: false,
         captureStatus: state.captureStatus,
@@ -351,11 +319,11 @@ export function processFlowStep(
       closedFlow: false,
     };
   }
-  // ─────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────
   // [INSTALL-FLOW] Deteccion de intencion de instalacion
   // Regla de negocio: sin correo no podemos cotizar.
   // No derivar hasta tener nombre + correo + comuna + tipoProyecto.
-  // ─────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────
   const isInstallIntent = INSTALL_INTENT_RE.test(body);
   const isAlreadyInstallFlow = state.isInstallFlow || state.stage === 'install_capture';
 
@@ -364,131 +332,48 @@ export function processFlowStep(
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
-      saveFlowState(phone, {
-        ...state,
-        stage: 'closed',
-        captured: updatedCaptured,
-        captureStatus,
-        isInstallFlow: true,
-        leadType: 'B2C',
-      });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType: 'B2C' });
       console.log('[flowEngine] install_capture completo en primer mensaje');
-      return {
-        reply: MSG4_INSTALL,
-        shouldCreateDeal: true,
-        shouldNotify: false,
-        captureStatus,
-        captured: updatedCaptured,
-        wantsHuman: false,
-        closedFlow: true,
-      };
+      return { reply: MSG4_INSTALL, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
-    saveFlowState(phone, {
-      ...state,
-      stage: 'install_capture',
-      captured: updatedCaptured,
-      repreguntasInstall: 1,
-      isInstallFlow: true,
-      leadType: 'B2C',
-    });
+    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: 1, isInstallFlow: true, leadType: 'B2C' });
     console.log('[flowEngine] install_capture iniciado, missing: ' + missingRequired.join(', '));
-    return {
-      reply,
-      shouldCreateDeal: false,
-      shouldNotify: false,
-      captureStatus: 'incomplete',
-      captured: updatedCaptured,
-      wantsHuman: false,
-      closedFlow: false,
-    };
+    return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }
+
   if (state.stage === 'install_capture') {
     const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed);
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
-      saveFlowState(phone, {
-        ...state,
-        stage: 'closed',
-        captured: updatedCaptured,
-        captureStatus,
-        isInstallFlow: true,
-      });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true });
       console.log('[flowEngine] install_capture completo — derivando');
-      return {
-        reply: MSG4_INSTALL,
-        shouldCreateDeal: true,
-        shouldNotify: false,
-        captureStatus,
-        captured: updatedCaptured,
-        wantsHuman: false,
-        closedFlow: true,
-      };
+      return { reply: MSG4_INSTALL, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const repreg = state.repreguntasInstall + 1;
     if (repreg > 3) {
       const captureStatus: CaptureStatus = updatedCaptured.install_correo ? 'partial' : 'incomplete';
-      saveFlowState(phone, {
-        ...state,
-        stage: 'closed',
-        captured: updatedCaptured,
-        captureStatus,
-        repreguntasInstall: repreg,
-        isInstallFlow: true,
-      });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true });
       console.log('[flowEngine] install_capture timeout — cerrando con status=' + captureStatus);
-      return {
-        reply: MSG4_INSTALL,
-        shouldCreateDeal: updatedCaptured.install_correo ? true : false,
-        shouldNotify: false,
-        captureStatus,
-        captured: updatedCaptured,
-        wantsHuman: false,
-        closedFlow: true,
-      };
+      return { reply: MSG4_INSTALL, shouldCreateDeal: updatedCaptured.install_correo ? true : false, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
-    saveFlowState(phone, {
-      ...state,
-      stage: 'install_capture',
-      captured: updatedCaptured,
-      repreguntasInstall: repreg,
-      isInstallFlow: true,
-    });
+    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: repreg, isInstallFlow: true });
     console.log('[flowEngine] install_capture en curso, missing: ' + missingRequired.join(', '));
-    return {
-      reply,
-      shouldCreateDeal: false,
-      shouldNotify: false,
-      captureStatus: 'incomplete',
-      captured: updatedCaptured,
-      wantsHuman: false,
-      closedFlow: false,
-    };
+    return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }
-  // ─────────────────────────────────────────────────────────────────────────
+
+  // ───────────────────────────────────────────────────────────────────────────
   // FIN INSTALL-FLOW — flujo normal de productos LED
-  // ─────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────
   // [FIX-WANTSHUMAN] NO activar wantsHuman si el mensaje contiene intencion comercial
   const hasCommercialIntent = COMMERCIAL_INTENT_RE.test(body);
-  const wantsHuman =
-    state.wantsHuman ||
-    (!hasCommercialIntent &&
-      (signals.wantsHuman || Boolean(claudeParsed.wantsHuman))) ||
-    WANTS_HUMAN_RE.test(body);
+  const wantsHuman = state.wantsHuman || (!hasCommercialIntent && (signals.wantsHuman || Boolean(claudeParsed.wantsHuman))) || WANTS_HUMAN_RE.test(body);
 
   if (state.stage === 'stage1' && GREET_ONLY.test(body.trim())) {
     saveFlowState(phone, { ...state, wantsHuman });
-    return {
-      reply: MSG1,
-      shouldCreateDeal: false,
-      shouldNotify: false,
-      captureStatus: 'incomplete',
-      captured: state.captured,
-      wantsHuman,
-      closedFlow: false,
-    };
+    return { reply: MSG1, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: state.captured, wantsHuman, closedFlow: false };
   }
 
   // [FIX-2] Intencion de precio sin producto
@@ -512,54 +397,38 @@ export function processFlowStep(
 
   // PASO 1: MERGE
   const merged: CapturedFields = { ...state.captured };
-  if (claudeParsed.producto) {
-    merged.producto = claudeParsed.producto;
-  } else if (!merged.producto) {
-    const prod = extractProducto(body);
-    if (prod) merged.producto = prod;
-  }
-  if (claudeParsed.tipo_de_luz) {
-    merged.tipo_de_luz = claudeParsed.tipo_de_luz;
-  } else if (hasLuzInfo(body)) {
-    const luzMatch = body.match(LUZ_RE);
-    merged.tipo_de_luz = luzMatch ? normalizeLuz(luzMatch[0]) : extractSnippet(body, 40);
-  }
-  if (claudeParsed.cantidad) {
-    merged.cantidad = claudeParsed.cantidad;
-  } else if (hasCantidadInfo(body)) {
-    const m = body.match(CANTIDAD_RE);
-    merged.cantidad = m ? m[0].trim() : extractSnippet(body, 30);
-  }
-  if (claudeParsed.proyecto_o_uso) {
-    merged.proyecto_o_uso = claudeParsed.proyecto_o_uso;
-  } else if (!merged.proyecto_o_uso) {
-    const proy = extractProyecto(body);
-    if (proy) merged.proyecto_o_uso = proy;
-  }
-  if (claudeParsed.comuna_o_ciudad) {
-    merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad;
-  } else if (!merged.comuna_o_ciudad) {
-    const ciudad = extractCiudad(body);
-    if (ciudad) merged.comuna_o_ciudad = ciudad;
-  }
+  if (claudeParsed.producto) { merged.producto = claudeParsed.producto; } else if (!merged.producto) { const prod = extractProducto(body); if (prod) merged.producto = prod; }
+  if (claudeParsed.tipo_de_luz) { merged.tipo_de_luz = claudeParsed.tipo_de_luz; } else if (hasLuzInfo(body)) { const luzMatch = body.match(LUZ_RE); merged.tipo_de_luz = luzMatch ? normalizeLuz(luzMatch[0]) : extractSnippet(body, 40); }
+  if (claudeParsed.cantidad) { merged.cantidad = claudeParsed.cantidad; } else if (hasCantidadInfo(body)) { const m = body.match(CANTIDAD_RE); merged.cantidad = m ? m[0].trim() : extractSnippet(body, 30); }
+  if (claudeParsed.proyecto_o_uso) { merged.proyecto_o_uso = claudeParsed.proyecto_o_uso; } else if (!merged.proyecto_o_uso) { const proy = extractProyecto(body); if (proy) merged.proyecto_o_uso = proy; }
+  if (claudeParsed.comuna_o_ciudad) { merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad; } else if (!merged.comuna_o_ciudad) { const ciudad = extractCiudad(body); if (ciudad) merged.comuna_o_ciudad = ciudad; }
   const nombreClaud = claudeParsed.nombre ?? claudeParsed.empresa;
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
   const correoFound = claudeParsed.correo ?? extractEmail(body);
   if (correoFound) merged.correo = correoFound;
   const rutMatch = body.match(RUT_RE);
   if (rutMatch) merged.rut_empresa = rutMatch[0];
+
   // Calcular leadType — instalacion NO es señal B2B
   let currentLeadType: LeadType = state.leadType;
   if (currentLeadType !== 'B2B') {
-    const isB2BSignal =
-      B2B_SIGNAL_RE.test(body) ||
-      Boolean(rutMatch) ||
-      (claudeParsed.empresa && claudeParsed.empresa.length > 0);
+    const isB2BSignal = B2B_SIGNAL_RE.test(body) || Boolean(rutMatch) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
     if (isB2BSignal) { currentLeadType = 'B2B'; }
     else if (currentLeadType === 'Unknown' && body.trim().length > 10) { currentLeadType = 'B2C'; }
   }
-  // [FIX-PRIORITY] PASO 2: wantsHuman solo cierra si no hay intencion comercial
+
+  // [FIX-PRIORITY] PASO 2: wantsHuman path — REQUIERE correo antes de derivar
+  // [FIX-EMAIL-GATE] Si el usuario quiere ejecutivo pero no tiene correo, pedirlo primero
   if (wantsHuman && !hasCommercialIntent) {
+    if (!merged.correo) {
+      // Sin correo: no podemos derivar ni crear deal — pedir correo
+      const hasAnyContext = Boolean(merged.producto) || Boolean(merged.proyecto_o_uso);
+      const reply = hasAnyContext ? MSG_NEED_EMAIL : MSG_NEED_EMAIL_AND_CONTEXT;
+      saveFlowState(phone, { ...state, stage: 'stage3', captured: merged, wantsHuman: true, leadType: currentLeadType });
+      console.log('[flowEngine] wantsHuman sin correo — pidiendo correo antes de derivar');
+      return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: merged, wantsHuman: true, closedFlow: false };
+    }
+    // Con correo: puede derivar
     const captureStatus = computeCaptureStatus(merged, currentLeadType);
     saveFlowState(phone, { ...state, stage: 'closed', captured: merged, wantsHuman: true, captureStatus, leadType: currentLeadType });
     return { reply: MSG_HUMAN, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: merged, wantsHuman: true, closedFlow: true };
@@ -570,6 +439,7 @@ export function processFlowStep(
   let repreg3 = state.repreguntasStage3;
   let currentStage: FlowStage = state.stage;
   const baseShouldCreate = signals.qualifiesForDeal || EXPLICIT_QUOTE.test(body);
+
   while (currentStage !== 'closed' && currentStage !== 'install_capture') {
     if (currentStage === 'stage1') {
       const missing = missingStage1(merged);
@@ -578,24 +448,29 @@ export function processFlowStep(
       if (repreg1 >= 1 && missingCritical.length >= 2) {
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'incomplete';
+        // [FIX-EMAIL-GATE] Solo crear deal si hay correo
+        const canCreateDeal = hasMinCommercial(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial desde stage1, status=' + finalStatus);
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ?? 'none'));
+        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg1 >= 1 && missingCritical.length < 2) { currentStage = 'stage2'; continue; }
       repreg1 += 1;
       saveFlowState(phone, { ...state, stage: 'stage1', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
       return { reply: buildRepregunta1(missing, merged), shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: merged, wantsHuman, closedFlow: false };
     }
+
     if (currentStage === 'stage2') {
       const missing = missingStage2(merged);
       if (missing.length === 0) { currentStage = 'stage3'; continue; }
       if (repreg2 >= 1) {
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
+        // [FIX-EMAIL-GATE] Solo crear deal si hay correo
+        const canCreateDeal = hasMinCommercial(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial desde stage2, status=' + finalStatus);
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ?? 'none'));
+        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg2 += 1;
       saveFlowState(phone, { ...state, stage: 'stage2', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
@@ -613,7 +488,7 @@ export function processFlowStep(
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial desde stage3, status=' + finalStatus);
+        console.log('[flowEngine] closePartial stage3, status=' + finalStatus);
         return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg3 += 1;
@@ -623,8 +498,10 @@ export function processFlowStep(
     }
     break;
   }
+
   return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: merged, wantsHuman, closedFlow: true };
 }
+
 function missingStage1(f: CapturedFields): string[] {
   const m: string[] = [];
   if (!f.producto) m.push('producto');
@@ -632,12 +509,14 @@ function missingStage1(f: CapturedFields): string[] {
   if (!f.cantidad) m.push('cantidad de unidades');
   return m;
 }
+
 function missingStage2(f: CapturedFields): string[] {
   const m: string[] = [];
   if (!f.proyecto_o_uso) m.push('espacio o proyecto de uso');
   if (!f.comuna_o_ciudad) m.push('comuna o ciudad de instalacion');
   return m;
 }
+
 function missingStage3(f: CapturedFields, leadType: LeadType): string[] {
   const m: string[] = [];
   if (leadType === 'B2B') {
@@ -657,6 +536,7 @@ function articleFor(proyecto: string): string {
   if (femeninos.test(p)) return 'la';
   return 'el';
 }
+
 function buildRepregunta1(missing: string[], captured: CapturedFields = {}): string {
   const hints: string[] = [];
   if (captured.proyecto_o_uso) { const art = articleFor(captured.proyecto_o_uso); hints.push(art + ' ' + captured.proyecto_o_uso); }
@@ -666,10 +546,12 @@ function buildRepregunta1(missing: string[], captured: CapturedFields = {}): str
   const items = missing.map((x, i) => i + 1 + ') ' + capitalize(x));
   return intro + ' Para recomendarte las opciones adecuadas, necesito:\n' + items.join('\n') + '\n\nMe los puedes indicar?';
 }
+
 function buildRepregunta2(missing: string[]): string {
   if (missing.length === 1) return 'Casi listo. Solo me falta saber: ' + missing[0] + '. Me lo puedes indicar?';
   return 'Casi listo. Solo me falta saber:\n' + missing.map((x) => '- ' + x).join('\n') + '\n\nMe los puedes indicar?';
 }
+
 function buildRepregunta3(missing: string[], leadType: LeadType): string {
   if (missing.length === 1) {
     const campo = missing[0];
@@ -680,7 +562,11 @@ function buildRepregunta3(missing: string[], leadType: LeadType): string {
   }
   return 'Para registrar tu solicitud necesito:\n' + missing.map((x) => '- ' + x).join('\n') + '\n\nMe los puedes indicar?';
 }
-function capitalize(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 // [INSTALL-FLOW] CaptureStatus para flujo de instalacion
 function computeInstallCaptureStatus(f: CapturedFields): CaptureStatus {
   const requiredOk = Boolean(f.install_nombre) && Boolean(f.install_correo) && Boolean(f.install_comuna) && Boolean(f.install_tipo_proyecto);
@@ -688,6 +574,7 @@ function computeInstallCaptureStatus(f: CapturedFields): CaptureStatus {
   if (f.install_correo) return 'partial';
   return 'incomplete';
 }
+
 function computeCaptureStatus(f: CapturedFields, leadType: LeadType = 'Unknown'): CaptureStatus {
   const contactOk = leadType === 'B2B' ? Boolean(f.rut_empresa && f.correo) : Boolean(f.nombre_o_empresa && f.correo);
   const baseFields = [f.producto, f.tipo_de_luz, f.cantidad, f.proyecto_o_uso, f.comuna_o_ciudad];
