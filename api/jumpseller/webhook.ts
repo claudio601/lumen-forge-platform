@@ -111,7 +111,7 @@ function resolveJumpsellerCustomerName(order: JumpsellerOrder): string {
   return `Cliente Jumpseller ${order.id}`;
 }
 
-function mapToQuotePayload(order: JumpsellerOrder): QuotePayload {
+function mapToQuotePayload(order: JumpsellerOrder, eventType?: string): QuotePayload {
   const customerName = resolveJumpsellerCustomerName(order);
 
   return {
@@ -134,7 +134,8 @@ function mapToQuotePayload(order: JumpsellerOrder): QuotePayload {
       quantity: p.qty,
       unitPriceClp: p.price,
     })),
-  };
+    jumpsellerEventType: eventType,
+};
 }
 
 // --- Handler ---
@@ -210,7 +211,7 @@ export default async function handler(
 
   // 5. Map and process through CRM
   try {
-    const payload = mapToQuotePayload(body.order);
+    const payload = mapToQuotePayload(body.order, event);
 
     const validation = validateQuotePayload(payload);
     if (!validation.valid) {
