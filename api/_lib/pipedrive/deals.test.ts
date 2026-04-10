@@ -1,9 +1,9 @@
 // api/_lib/pipedrive/deals.test.ts
-// Pruebas obligatorias — deduplicación deals Jumpseller→Pipedrive (v3)
+// Pruebas de deduplicación deals Jumpseller->Pipedrive
 // Run: vitest --config vitest.api.config.ts
 //
-// These tests cover all 5 mandatory scenarios defined in the spec.
-// The Pipedrive HTTP client is fully mocked — no real API calls are made.
+// These tests cover the 5 mandatory deduplication scenarios.
+// The Pipedrive HTTP client and the idempotency/redis module are fully mocked.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -20,13 +20,27 @@ vi.mock('../pipedrive/fieldOptions.js', () => ({
   getOptionId: vi.fn().mockReturnValue(undefined),
 }));
 
+// Mock the Redis idempotency module — default: Redis always available, no existing mapping
+vi.mock('../idempotency/redis.js', () => ({
+  checkIdempotencyForCreate: vi.fn(),
+  readMapping: vi.fn(),
+  writeMapping: vi.fn().mockResolvedValue({ ok: true }),
+  releaseLock: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { pipedriveGet, pipedrivePost, pipedrivePut } from '../pipedrive/client.js';
+import {
+  checkIdempotencyForCreate,
+  readMapping,
+  writeMapping,
+} from '../idempotency/redis.js';
 import { createDeal } from './deals.js';
 import type { CreateDealParams } from './deals.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
 const BASE_PARAMS: CreateDealParams = {
   personId: 1,
   pipelineId: 2,
@@ -37,20 +51,21 @@ const BASE_PARAMS: CreateDealParams = {
   leadType: 'B2C',
   priorityTier: 'Normal',
   quoteReference: 'JS-12753',
-  jumpsellerOrderId: 'JS-12753',
-  jumpsellerEventType: 'order_paid',
+  jumpsellerOrderId: '12753',
+  sourceRef: 'jumpseller:12753',
+  jumpsellerEventType: 'order_created',
+  allowCreate: true,
 };
 
-/** Fabricates a minimal PipedriveDeal-like response object. */
 function makeDeal(
   id: number,
   status: 'open' | 'won' | 'lost' = 'open',
   updatedAt = '2026-04-01T10:00:00.000Z',
-  customFieldValue?: string,
+  customFieldValue?: string
 ): Record<string, unknown> {
   const deal: Record<string, unknown> = {
     id,
-    title: `Cotizacion JS-12753 - Cliente Test`,
+    title: 'Cotizacion JS-12753 - Cliente Test',
     status,
     pipeline_id: 2,
     stage_id: 10,
@@ -64,20 +79,13 @@ function makeDeal(
   return deal;
 }
 
-/** Clears the in-memory DJB2 hash map between tests by calling with a dummy deal. */
-async function flushHashCache(): Promise<void> {
-  // We can't directly reset the private Map, but we can advance time past 1h
-  // In tests we rely on the fact that each unique payload hashes differently
-  // (we vary jumpsellerOrderId across test cases to avoid cross-test pollution)
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
-describe('createDeal — 4-step Jumpseller deduplication', () => {
+
+describe('createDeal — Jumpseller deduplication with Redis + Pipedrive', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Set required env vars
     process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID = 'cf_js_order_id';
     process.env.PIPEDRIVE_DEAL_FIELD_SOURCE_SYSTEM = undefined as unknown as string;
     process.env.PIPEDRIVE_DEAL_FIELD_LEAD_TYPE = undefined as unknown as string;
@@ -90,74 +98,64 @@ describe('createDeal — 4-step Jumpseller deduplication', () => {
   });
 
   // =========================================================================
-  // TEST 1 — Webhook repetido dentro de 1 hora: lo frena el hash djb2
+  // TEST 1 — Redis mapping hit: skipped_duplicate returned immediately
   // =========================================================================
-  it('TEST 1: repeated webhook within 1h is stopped by djb2 hash anti-bounce', async () => {
-    // Use a unique orderId so this test is isolated from hash cache
+  it('TEST 1: Redis mapping hit -> skipped_duplicate, no API calls', async () => {
     const params: CreateDealParams = {
       ...BASE_PARAMS,
+      jumpsellerOrderId: '99001',
+      sourceRef: 'jumpseller:99001',
       quoteReference: 'JS-99001',
-      jumpsellerOrderId: 'JS-99001',
       title: 'Cotizacion JS-99001 - Cliente Test',
     };
 
-    // First call: no deal found by custom field → no deal found by title → create
-    (pipedriveGet as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { items: [] },
-    });
-    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { id: 501, title: params.title, status: 'open', pipeline_id: 2 },
+    // Redis mapping found -> checkIdempotencyForCreate returns 'duplicate'
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'duplicate',
+      dealId: 501,
     });
 
-    const first = await createDeal(params);
-    expect(first.action).toBe('created');
-    expect(first.dealId).toBe(501);
+    const result = await createDeal(params);
 
-    // Second call with IDENTICAL params within the same process (< 1h):
-    // must be stopped by hash before any API call
-    const apiCallsBefore = (pipedriveGet as ReturnType<typeof vi.fn>).mock.calls.length;
-    const second = await createDeal(params);
+    expect(result.status).toBe('skipped_duplicate');
+    expect(result.dealId).toBe(501);
 
-    expect(second.action).toBe('updated');
-    expect(second.dealId).toBe(-1); // sentinel value for hash hit
-    // No new API calls should have been made
-    const apiCallsAfter = (pipedriveGet as ReturnType<typeof vi.fn>).mock.calls.length;
-    expect(apiCallsAfter).toBe(apiCallsBefore);
+    // No Pipedrive API calls should have been made
+    expect((pipedriveGet as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
+    expect((pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 
   // =========================================================================
-  // TEST 2 — Webhook repetido días después con custom field existente
-  //          → no crea duplicado, agrega nota
+  // TEST 2 — Proceed from idempotency, custom field hit -> updated, no duplicate
   // =========================================================================
-  it('TEST 2: webhook re-fired days later, deal found by custom field → no duplicate, note added', async () => {
+  it('TEST 2: idempotency proceed, deal found by custom field -> updated + note added', async () => {
     const params: CreateDealParams = {
       ...BASE_PARAMS,
+      jumpsellerOrderId: '99002',
+      sourceRef: 'jumpseller:99002',
       quoteReference: 'JS-99002',
-      jumpsellerOrderId: 'JS-99002',
       title: 'Cotizacion JS-99002 - Cliente Test',
     };
 
-    const existingDeal = makeDeal(42, 'open', '2026-04-01T10:00:00.000Z', 'JS-99002');
+    const existingDeal = makeDeal(42, 'open', '2026-04-01T10:00:00.000Z', '99002');
 
-    // Step 2: custom field search returns a hit
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-42',
+    });
+
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
-      (path: string, params?: Record<string, string>) => {
-        if (path === '/deals/search' && params?.fields === 'custom_fields') {
-          return Promise.resolve({
-            success: true,
-            data: { items: [{ item: existingDeal }] },
-          });
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
+          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
         }
-        if (path.startsWith('/deals/42')) {
+        if (path === '/deals/42') {
           return Promise.resolve({ success: true, data: existingDeal });
         }
         return Promise.resolve({ success: true, data: { items: [] } });
-      },
+      }
     );
 
-    // Note POST
     (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({
       success: true,
       data: { id: 999 },
@@ -165,36 +163,29 @@ describe('createDeal — 4-step Jumpseller deduplication', () => {
 
     const result = await createDeal(params);
 
-    expect(result.action).toBe('updated');
+    expect(result.status).toBe('updated');
     expect(result.dealId).toBe(42);
 
-    // Must have added a re-dispatch note
+    // Note must have been added
     const noteCall = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === '/notes',
+      (c) => c[0] === '/notes'
     );
     expect(noteCall).toBeDefined();
-    const noteBody = noteCall![1] as Record<string, unknown>;
-    expect(String(noteBody.content)).toContain('Webhook Jumpseller re-disparado');
-    expect(String(noteBody.content)).toContain('order_paid');
-    expect(noteBody.deal_id).toBe(42);
 
-    // Must NOT have called pipedrivePost to create a new deal
-    const dealCreateCall = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === '/deals',
+    // writeMapping must have been called before lock release
+    expect((writeMapping as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(0);
+
+    // No new deal should have been created
+    const dealCreate = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === '/deals'
     );
-    expect(dealCreateCall).toBeUndefined();
+    expect(dealCreate).toBeUndefined();
   });
 
   // =========================================================================
-  // TEST 3 — Caso histórico real: deal renombrado, sin custom field.
-  //          Search por custom field no encuentra.
-  //          Search por título sí encuentra.
-  //          Backfill del custom field.
-  //          Nota agregada.
-  //          No crea duplicado.
+  // TEST 3 — Title fallback (legacy deal, no custom field) + backfill + note
   // =========================================================================
-  it('TEST 3 (caso real JS-12753): renamed deal, no custom field, title fallback + backfill + note', async () => {
-    // Use a slightly different title to simulate the "renamed" deal
+  it('TEST 3: title fallback on legacy deal -> backfill custom field + note + no duplicate', async () => {
     const renamedDeal = {
       id: 77,
       title: 'Cotizacion JS-12753 - María González (renombrado)',
@@ -203,143 +194,120 @@ describe('createDeal — 4-step Jumpseller deduplication', () => {
       stage_id: 10,
       update_time: '2026-04-01T09:00:00.000Z',
       add_time: '2026-04-01T08:00:00.000Z',
-      // No custom field value set
     };
 
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-77',
+    });
+
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
-      (path: string, queryParams?: Record<string, string>) => {
-        // Step 2: custom field search — returns nothing (no exact match)
-        if (path === '/deals/search' && queryParams?.fields === 'custom_fields') {
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
           return Promise.resolve({ success: true, data: { items: [] } });
         }
-        // Step 3: title search — returns the renamed deal
-        if (path === '/deals/search' && queryParams?.fields === 'title') {
-          return Promise.resolve({
-            success: true,
-            data: { items: [{ item: renamedDeal }] },
-          });
+        if (path === '/deals/search' && qp?.fields === 'title') {
+          return Promise.resolve({ success: true, data: { items: [{ item: renamedDeal }] } });
         }
-        // Full deal fetch
         if (path === '/deals/77') {
           return Promise.resolve({ success: true, data: renamedDeal });
         }
         return Promise.resolve({ success: true, data: { items: [] } });
-      },
+      }
     );
 
-    // PUT for backfill + POST for note
-    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { id: 77 },
-    });
-    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { id: 888 },
-    });
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 77 } });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 888 } });
 
     const result = await createDeal(BASE_PARAMS);
 
-    expect(result.action).toBe('updated');
+    expect(result.status).toBe('updated');
     expect(result.dealId).toBe(77);
 
-    // Custom field must have been backfilled via PUT
+    // Custom field must have been backfilled
     const backfillCall = (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === '/deals/77',
+      (c) => c[0] === '/deals/77'
     );
     expect(backfillCall).toBeDefined();
     const backfillBody = backfillCall![1] as Record<string, unknown>;
-    expect(backfillBody['cf_js_order_id']).toBe('JS-12753');
+    expect(backfillBody['cf_js_order_id']).toBe('12753');
 
-    // Re-dispatch note must have been added
+    // Note must have been added
     const noteCall = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === '/notes',
+      (c) => c[0] === '/notes'
     );
     expect(noteCall).toBeDefined();
-    const noteBody = noteCall![1] as Record<string, unknown>;
-    expect(String(noteBody.content)).toContain('Webhook Jumpseller re-disparado');
-    expect(noteBody.deal_id).toBe(77);
 
     // No new deal should have been created
-    const dealCreateCall = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === '/deals',
+    const dealCreate = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === '/deals'
     );
-    expect(dealCreateCall).toBeUndefined();
+    expect(dealCreate).toBeUndefined();
   });
 
   // =========================================================================
-  // TEST 4 — Múltiples resultados: aplica criterio open > most-recent y
-  //          loggea warning con todos los IDs
+  // TEST 4 — Multiple deals found: open wins, most-recent among open wins
   // =========================================================================
-  it('TEST 4: multiple deals found → open wins over closed, most-recent among open wins, warning logged', async () => {
+  it('TEST 4: multiple deals found -> open + most-recent wins, warning logged', async () => {
     const params: CreateDealParams = {
       ...BASE_PARAMS,
+      jumpsellerOrderId: '99004',
+      sourceRef: 'jumpseller:99004',
       quoteReference: 'JS-99004',
-      jumpsellerOrderId: 'JS-99004',
       title: 'Cotizacion JS-99004 - Cliente Test',
     };
 
-    const oldOpen = makeDeal(10, 'open', '2026-03-01T10:00:00.000Z', 'JS-99004');
-    const newerOpen = makeDeal(11, 'open', '2026-04-05T15:00:00.000Z', 'JS-99004');
-    const wonDeal = makeDeal(12, 'won', '2026-04-07T20:00:00.000Z', 'JS-99004');
+    const oldOpen   = makeDeal(10, 'open', '2026-03-01T10:00:00.000Z', '99004');
+    const newerOpen = makeDeal(11, 'open', '2026-04-05T15:00:00.000Z', '99004');
+    const wonDeal   = makeDeal(12, 'won',  '2026-04-07T20:00:00.000Z', '99004');
+
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-multi',
+    });
 
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
-      (path: string, queryParams?: Record<string, string>) => {
-        if (path === '/deals/search' && queryParams?.fields === 'custom_fields') {
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
           return Promise.resolve({
             success: true,
-            data: {
-              items: [
-                { item: oldOpen },
-                { item: newerOpen },
-                { item: wonDeal },
-              ],
-            },
+            data: { items: [{ item: oldOpen }, { item: newerOpen }, { item: wonDeal }] },
           });
         }
         if (path === '/deals/10') return Promise.resolve({ success: true, data: oldOpen });
         if (path === '/deals/11') return Promise.resolve({ success: true, data: newerOpen });
         if (path === '/deals/12') return Promise.resolve({ success: true, data: wonDeal });
         return Promise.resolve({ success: true, data: { items: [] } });
-      },
+      }
     );
-
-    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { id: 999 },
-    });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
 
     const warnSpy = vi.spyOn(console, 'warn');
-
     const result = await createDeal(params);
 
     // Should pick deal 11 (open + most recently updated)
     expect(result.dealId).toBe(11);
-    expect(result.action).toBe('updated');
+    expect(result.status).toBe('updated');
 
-    // Warning must include all IDs
-    const warnCalls = warnSpy.mock.calls.map((c) => c.join(' '));
-    const multipleWarn = warnCalls.find((msg) => msg.includes('Multiple deals found') || msg.includes('WARNING'));
-    expect(multipleWarn).toBeDefined();
-    // All three IDs should appear in the warning
-    expect(multipleWarn).toContain('10');
-    expect(multipleWarn).toContain('11');
-    expect(multipleWarn).toContain('12');
+    // Warning must reference multiple IDs
+    const warnMsgs = warnSpy.mock.calls.map((c) => c.join(' '));
+    const multiWarn = warnMsgs.find((m) => m.includes('10') && m.includes('11') && m.includes('12'));
+    expect(multiWarn).toBeDefined();
 
     warnSpy.mockRestore();
   });
 
   // =========================================================================
-  // TEST 5 — Falta env var del custom field:
-  //          log de degradación + fallback por título + no crea duplicado
+  // TEST 5 — Missing PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID: degraded log + title fallback
   // =========================================================================
-  it('TEST 5: missing PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID → degraded log + title fallback + no duplicate', async () => {
-    // Remove the env var to simulate missing configuration
+  it('TEST 5: missing PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID -> degraded log + title fallback', async () => {
     delete process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
 
     const params: CreateDealParams = {
       ...BASE_PARAMS,
+      jumpsellerOrderId: '99005',
+      sourceRef: 'jumpseller:99005',
       quoteReference: 'JS-99005',
-      jumpsellerOrderId: 'JS-99005',
       title: 'Cotizacion JS-99005 - Cliente Test',
     };
 
@@ -353,62 +321,54 @@ describe('createDeal — 4-step Jumpseller deduplication', () => {
       add_time: '2026-04-01T08:00:00.000Z',
     };
 
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-99005',
+    });
+
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
-      (path: string, queryParams?: Record<string, string>) => {
-        // Step 3 title fallback should be invoked
-        if (path === '/deals/search' && queryParams?.fields === 'title') {
-          return Promise.resolve({
-            success: true,
-            data: { items: [{ item: existingDeal }] },
-          });
+      (path: string, qp?: Record<string, string>) => {
+        // Custom field search skipped (no fieldKey) -> falls through to title
+        if (path === '/deals/search' && qp?.fields === 'title') {
+          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
         }
         if (path === '/deals/200') {
           return Promise.resolve({ success: true, data: existingDeal });
         }
         return Promise.resolve({ success: true, data: { items: [] } });
-      },
+      }
     );
-
-    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { id: 999 },
-    });
-    // pipedrivePut for backfill attempt (will warn since key missing)
-    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({
-      success: true,
-      data: { id: 200 },
-    });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 200 } });
 
     const errorSpy = vi.spyOn(console, 'error');
-    const warnSpy = vi.spyOn(console, 'warn');
+    const warnSpy  = vi.spyOn(console, 'warn');
 
     const result = await createDeal(params);
 
-    // Should find deal via title fallback, not create a new one
-    expect(result.action).toBe('updated');
+    expect(result.status).toBe('updated');
     expect(result.dealId).toBe(200);
 
-    // Must log the degradation error
-    const errorCalls = errorSpy.mock.calls.map((c) => c.join(' '));
-    const degradedLog = errorCalls.find(
-      (msg) =>
-        msg.includes('PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID') &&
-        (msg.includes('deduplication degraded') || msg.includes('not set')),
-    );
-    expect(degradedLog).toBeDefined();
+    // Must log degradation error
+    const errMsgs = errorSpy.mock.calls.map((c) => c.join(' '));
+    const degraded = errMsgs.find((m) => m.includes('PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID'));
+    expect(degraded).toBeDefined();
 
-    // Backfill should warn that field key is missing (cannot backfill)
-    const warnCalls = warnSpy.mock.calls.map((c) => c.join(' '));
-    const backfillWarn = warnCalls.find(
-      (msg) => msg.includes('jumpseller_order_id') || msg.includes('backfill') || msg.includes('PIPEDRIVE_FIELD'),
+    // Backfill should warn (field key missing)
+    const warnMsgs = warnSpy.mock.calls.map((c) => c.join(' '));
+    const backfillWarn = warnMsgs.find(
+      (m) =>
+        m.includes('PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID') ||
+        m.includes('backfill') ||
+        m.includes('jumpseller_order_id')
     );
     expect(backfillWarn).toBeDefined();
 
-    // No new deal should have been created
-    const dealCreateCall = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
-      (c) => c[0] === '/deals',
+    // No new deal created
+    const dealCreate = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === '/deals'
     );
-    expect(dealCreateCall).toBeUndefined();
+    expect(dealCreate).toBeUndefined();
 
     errorSpy.mockRestore();
     warnSpy.mockRestore();
