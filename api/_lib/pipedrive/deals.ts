@@ -1,13 +1,26 @@
 // api/_lib/pipedrive/deals.ts
-// Create, update, and find Pipedrive deals with idempotency.
-// Implements 4-step deduplication for Jumpseller->Pipedrive to prevent
-// duplicate deals when Jumpseller re-fires webhooks days after the original.
+// Create, update, and find Pipedrive deals with full idempotency.
+//
+// Deduplication order for Jumpseller events:
+//   1. Redis mapping check (idempotency:jumpseller:{orderId} -> dealId)
+//   2. Distributed lock (lock:jumpseller:{orderId} SET NX PX 30000)
+//   3. Redis re-check post-lock (race guard)
+//   4. Pipedrive custom field search (exact match by PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID)
+//   5. Pipedrive title fallback (legacy deals without custom field)
+//   6. Create only if: allowCreate=true AND lock held AND no duplicate found
 
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { getOptionId } from './fieldOptions.js';
+import {
+  checkIdempotencyForCreate,
+  writeMapping,
+  releaseLock,
+  readMapping,
+} from '../idempotency/redis.js';
 import type {
   PipedriveDeal,
   CreateDealResult,
+  DealResultStatus,
   LeadType,
   PriorityTier,
   SourceSystem,
@@ -16,45 +29,8 @@ import type {
 // --- Constants ---
 const LOG_PREFIX = '[deals]';
 
-// --- DJB2 in-memory anti-bounce (Step 1) ---
-// Maps hash -> expiry timestamp (ms). Prevents duplicate processing within 1h.
-const _recentHashes = new Map<string, number>();
-const HASH_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-function djb2(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
-    hash = hash >>> 0; // keep unsigned 32-bit
-  }
-  return hash;
-}
-
-function makePayloadHash(params: CreateDealParams): string {
-  const key = [
-    params.jumpsellerOrderId ?? '',
-    params.quoteReference,
-    String(params.quoteAmountClp),
-    params.sourceSystem,
-  ].join('|');
-  return String(djb2(key));
-}
-
-/** Returns true if this payload was already seen within the last hour. */
-function checkAndSetHash(params: CreateDealParams): boolean {
-  const now = Date.now();
-  for (const [h, exp] of _recentHashes) {
-    if (exp < now) _recentHashes.delete(h);
-  }
-  const hash = makePayloadHash(params);
-  if (_recentHashes.has(hash)) {
-    console.log(`${LOG_PREFIX} [step1-hash] Anti-bounce hit -- payload already processed within 1h (hash=${hash})`);
-    return true;
-  }
-  _recentHashes.set(hash, now + HASH_WINDOW_MS);
-  return false;
-}
 // --- Types ---
+
 export interface CreateDealParams {
   personId: number;
   orgId?: number;
@@ -66,8 +42,22 @@ export interface CreateDealParams {
   leadType: LeadType;
   priorityTier: PriorityTier;
   quoteReference: string;
-  jumpsellerOrderId?: string; // Always "JS-{id}" format, never raw number
-  jumpsellerEventType?: string; // e.g. "order_created", "order_paid"
+  /**
+   * Raw Jumpseller order ID string, e.g. "12765".
+   * Never "JS-12765" — that belongs in quoteReference.
+   */
+  jumpsellerOrderId?: string;
+  /**
+   * Canonical idempotency key, e.g. "jumpseller:12765".
+   * Built from raw jumpsellerOrderId.
+   */
+  sourceRef?: string;
+  jumpsellerEventType?: string;
+  /**
+   * If false, this event may not create a new deal — only update existing ones.
+   * Driven by getEventPolicy(eventType).canCreate.
+   */
+  allowCreate?: boolean;
   notes?: string;
 }
 
@@ -80,24 +70,28 @@ export interface DealUpdateFields {
 }
 
 // --- Helpers ---
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 function extractId(field: { value: number } | number | null | undefined): number | null {
   if (field === null || field === undefined) return null;
   if (typeof field === 'number') return field;
   return field.value ?? null;
 }
+void extractId; // used externally
 
 /** Pick the best deal from a list: open wins, then most-recently-updated. */
 function pickBestDeal(deals: PipedriveDeal[]): PipedriveDeal {
   const open = deals.filter((d) => d.status === 'open');
   const pool = open.length > 0 ? open : deals;
   return pool.sort(
-    (a, b) => new Date(b.update_time).getTime() - new Date(a.update_time).getTime()
+    (a, b) =>
+      new Date(b.update_time).getTime() - new Date(a.update_time).getTime()
   )[0];
 }
-// --- Step 2: Search by custom field jumpseller_order_id ---
+
+// --- Step A: Search by custom field jumpseller_order_id (exact match) ---
+
 async function findDealsByJumpsellerCustomField(
-  jsOrderId: string,
+  rawOrderId: string,
   pipelineId: number
 ): Promise<PipedriveDeal[]> {
   const fieldKey = process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
@@ -105,7 +99,7 @@ async function findDealsByJumpsellerCustomField(
 
   const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>(
     '/deals/search',
-    { term: jsOrderId, fields: 'custom_fields', exact_match: 'true', limit: '10' }
+    { term: rawOrderId, fields: 'custom_fields', exact_match: 'true', limit: '10' }
   );
   if (!res.success || !res.data?.items) return [];
 
@@ -113,21 +107,28 @@ async function findDealsByJumpsellerCustomField(
   for (const { item } of res.data.items) {
     if (item.pipeline_id !== pipelineId) continue;
     const full = await pipedriveGet<PipedriveDeal>(`/deals/${item.id}`);
-    if (full.success && full.data && String(full.data[fieldKey]) === jsOrderId) {
+    if (
+      full.success &&
+      full.data &&
+      String(full.data[fieldKey]) === rawOrderId
+    ) {
       matched.push(full.data);
     }
   }
   return matched;
 }
 
-// --- Step 3: Fallback search by title ---
+// --- Step B: Fallback search by title (legacy deals, pre-custom-field) ---
+
 async function findDealsByTitle(
-  jsOrderId: string,
+  rawOrderId: string,
   pipelineId: number
 ): Promise<PipedriveDeal[]> {
+  // Search by the reference format used in titles: JS-{rawOrderId}
+  const searchTerm = `JS-${rawOrderId}`;
   const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>(
     '/deals/search',
-    { term: jsOrderId, fields: 'title', exact_match: 'false', limit: '10' }
+    { term: searchTerm, fields: 'title', exact_match: 'false', limit: '10' }
   );
   if (!res.success || !res.data?.items) return [];
 
@@ -139,22 +140,26 @@ async function findDealsByTitle(
       full.success &&
       full.data &&
       typeof full.data.title === 'string' &&
-      full.data.title.includes(jsOrderId)
+      full.data.title.includes(searchTerm)
     ) {
       matched.push(full.data);
     }
   }
   return matched;
 }
-// --- Post a note on a deal ---
+
+// --- Add a note to a deal ---
+
 async function addDealNote(dealId: number, content: string): Promise<void> {
   try {
-    const res = await pipedrivePost<{ id: number }>(
-      '/notes',
-      { content, deal_id: dealId }
-    );
+    const res = await pipedrivePost<{ id: number }>('/notes', {
+      content,
+      deal_id: dealId,
+    });
     if (!res.success) {
-      console.warn(`${LOG_PREFIX} Failed to add note to deal ${dealId}: ${res.error ?? 'unknown'}`);
+      console.warn(
+        `${LOG_PREFIX} Failed to add note to deal ${dealId}: ${res.error ?? 'unknown'}`
+      );
     } else {
       console.log(`${LOG_PREFIX} Added re-dispatch note to deal ${dealId}`);
     }
@@ -163,19 +168,38 @@ async function addDealNote(dealId: number, content: string): Promise<void> {
   }
 }
 
-// --- Backfill custom field on existing deal ---
-async function backfillJumpsellerOrderId(dealId: number, jsOrderId: string): Promise<void> {
+// --- Backfill custom field on legacy deal ---
+
+async function backfillJumpsellerOrderId(
+  dealId: number,
+  rawOrderId: string
+): Promise<void> {
   const fieldKey = process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
   if (!fieldKey) {
-    console.warn(`${LOG_PREFIX} Cannot backfill jumpseller_order_id: PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not set`);
+    console.warn(JSON.stringify({
+      level: 'warn',
+      event: 'backfill_skipped',
+      reason: 'PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not set',
+      dealId,
+    }));
     return;
   }
   try {
-    const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, { [fieldKey]: jsOrderId });
+    const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, {
+      [fieldKey]: rawOrderId,
+    });
     if (!res.success) {
-      console.warn(`${LOG_PREFIX} Failed to backfill jumpseller_order_id on deal ${dealId}: ${res.error ?? 'unknown'}`);
+      console.warn(
+        `${LOG_PREFIX} Failed to backfill jumpseller_order_id on deal ${dealId}: ${res.error ?? 'unknown'}`
+      );
     } else {
-      console.log(`${LOG_PREFIX} [step3-backfill] Set ${fieldKey}=${jsOrderId} on deal ${dealId}`);
+      console.log(JSON.stringify({
+        level: 'info',
+        event: 'title_fallback_hit_backfill',
+        dealId,
+        rawOrderId,
+        fieldKey,
+      }));
     }
   } catch (err) {
     console.warn(`${LOG_PREFIX} Error backfilling deal ${dealId}:`, err);
@@ -183,89 +207,262 @@ async function backfillJumpsellerOrderId(dealId: number, jsOrderId: string): Pro
 }
 
 // --- Update deal ---
-export async function updateDeal(dealId: number, updates: DealUpdateFields): Promise<void> {
+
+export async function updateDeal(
+  dealId: number,
+  updates: DealUpdateFields
+): Promise<void> {
   const body: Record<string, unknown> = {};
   if (updates.stageId !== undefined) body.stage_id = updates.stageId;
   if (updates.value !== undefined) body.value = updates.value;
   if (updates.title !== undefined) body.title = updates.title;
   if (updates.status !== undefined) body.status = updates.status;
-
   for (const [key, value] of Object.entries(updates)) {
-    if (!['stageId', 'value', 'title', 'status'].includes(key) && value !== undefined && value !== null && value !== '') {
+    if (
+      !['stageId', 'value', 'title', 'status'].includes(key) &&
+      value !== undefined &&
+      value !== null &&
+      value !== ''
+    ) {
       body[key] = value;
     }
   }
-
   if (Object.keys(body).length === 0) {
     console.log(`${LOG_PREFIX} No fields to update for deal ${dealId}, skipping`);
     return;
   }
-
   const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, body);
   if (!res.success) {
-    throw new Error(`${LOG_PREFIX} Failed to update deal ${dealId}: ${res.error ?? 'unknown error'}`);
+    throw new Error(
+      `${LOG_PREFIX} Failed to update deal ${dealId}: ${res.error ?? 'unknown error'}`
+    );
   }
   console.log(`${LOG_PREFIX} Updated deal: ${dealId}`);
 }
-// --- Main entry: createDeal with 4-step Jumpseller deduplication ---
+
+// --- Main entry: createDeal with full idempotency ---
+
 export async function createDeal(params: CreateDealParams): Promise<CreateDealResult> {
-  const jsOrderId = params.jumpsellerOrderId; // Always "JS-{id}" or undefined
-  const isJumpseller = params.sourceSystem === 'jumpseller' && !!jsOrderId;
+  const rawOrderId = params.jumpsellerOrderId; // e.g. "12765"
+  const sourceRef = params.sourceRef;           // e.g. "jumpseller:12765"
+  const isJumpseller = params.sourceSystem === 'jumpseller' && !!rawOrderId;
   const eventType = params.jumpsellerEventType ?? 'unknown_event';
+  const allowCreate = params.allowCreate !== false; // default true for non-Jumpseller paths
   const fieldKeyConfigured = !!process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
 
-  // STEP 1: DJB2 hash anti-bounce (immediate duplicate within 1h)
-  if (isJumpseller) {
-    const isDuplicate = checkAndSetHash(params);
-    if (isDuplicate) {
-      console.log(`${LOG_PREFIX} [step1-hash] Returning early -- anti-bounce within 1h`);
-      return { dealId: -1, action: 'updated' };
-    }
+  if (!fieldKeyConfigured && isJumpseller) {
+    console.error(JSON.stringify({
+      level: 'error',
+      event: 'custom_field_missing',
+      sourceRef,
+      message: 'PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not set — deduplication degraded, falling back to title search',
+    }));
   }
 
-  // STEP 2: Search by custom field jumpseller_order_id (exact match)
+  // =========================================================================
+  // JUMPSELLER PATH: Full Redis + Distributed Lock + Pipedrive dedup
+  // =========================================================================
   if (isJumpseller) {
-    if (!fieldKeyConfigured) {
-      console.error(
-        `${LOG_PREFIX} [step2-custom-field] PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not set -- deduplication degraded, falling back to title search`
-      );
-    } else {
-      const deals = await findDealsByJumpsellerCustomField(jsOrderId!, params.pipelineId);
-      if (deals.length > 0) {
-        if (deals.length > 1) {
-          const ids = deals.map((d) => d.id).join(', ');
-          console.warn(
-            `${LOG_PREFIX} [step2-custom-field] WARNING: Multiple deals found for ${jsOrderId} -- IDs: [${ids}]. Applying priority: open > most recent.`
-          );
+    // --- Non-creator events: skip Redis lock flow entirely ---
+    if (!allowCreate) {
+      // order_paid / order_updated: only update existing, never create
+      // Try to find deal for update (no lock needed)
+      let existingDeal: PipedriveDeal | null = null;
+
+      // Check Redis mapping first (fast path)
+      const mapping = await readMapping(rawOrderId!);
+      if ('unavailable' in mapping) {
+        // Redis down on update-only event: degrade gracefully (warn + skip update)
+        console.warn(JSON.stringify({
+          level: 'warn',
+          event: 'redis_unavailable_on_update_event',
+          sourceRef,
+          eventType,
+          message: 'Redis unavailable on update-only event — skipping update to avoid unsafe state',
+        }));
+        return { dealId: null, status: 'skipped_update_without_existing' };
+      }
+      if (mapping.found) {
+        const dealId = Number(mapping.dealId);
+        const noteContent = `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`;
+        await addDealNote(dealId, noteContent);
+        console.log(JSON.stringify({
+          level: 'info',
+          event: 'updated',
+          sourceRef,
+          dealId,
+          eventType,
+        }));
+        return { dealId, status: 'updated' };
+      }
+
+      // Not in Redis: search Pipedrive
+      if (fieldKeyConfigured) {
+        const deals = await findDealsByJumpsellerCustomField(rawOrderId!, params.pipelineId);
+        if (deals.length > 0) existingDeal = pickBestDeal(deals);
+      }
+      if (!existingDeal) {
+        const titleDeals = await findDealsByTitle(rawOrderId!, params.pipelineId);
+        if (titleDeals.length > 0) {
+          existingDeal = pickBestDeal(titleDeals);
+          await backfillJumpsellerOrderId(existingDeal.id, rawOrderId!);
         }
-        const best = pickBestDeal(deals);
-        console.log(`${LOG_PREFIX} [step2-custom-field] Found existing deal ${best.id} by jumpseller_order_id=${jsOrderId}`);
+      }
+
+      if (!existingDeal) {
+        console.log(JSON.stringify({
+          level: 'info',
+          event: 'skipped_update_without_existing',
+          sourceRef,
+          eventType,
+          message: 'Update-only event arrived but no existing deal found — not creating',
+        }));
+        return { dealId: null, status: 'skipped_update_without_existing' };
+      }
+
+      const noteContent = `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`;
+      await addDealNote(existingDeal.id, noteContent);
+      // Backfill mapping for next time
+      await writeMapping(rawOrderId!, existingDeal.id);
+      console.log(JSON.stringify({
+        level: 'info',
+        event: 'updated',
+        sourceRef,
+        dealId: existingDeal.id,
+        eventType,
+      }));
+      return { dealId: existingDeal.id, status: 'updated' };
+    }
+
+    // --- Creator event (order_created): Full idempotency flow ---
+    const idemResult = await checkIdempotencyForCreate(rawOrderId!);
+
+    switch (idemResult.status) {
+      case 'duplicate':
+      case 'contention_resolved_duplicate':
+        console.log(JSON.stringify({
+          level: 'info',
+          event: 'duplicate_skipped',
+          sourceRef,
+          dealId: idemResult.dealId,
+          reason: idemResult.status,
+        }));
+        return { dealId: idemResult.dealId!, status: 'skipped_duplicate' };
+
+      case 'contention_unresolved':
+        console.log(JSON.stringify({
+          level: 'info',
+          event: 'skipped_lock_contention',
+          sourceRef,
+        }));
+        return { dealId: null, status: 'skipped_lock_contention' };
+
+      case 'blocked':
+        console.error(JSON.stringify({
+          level: 'error',
+          event: 'blocked_idempotency_unavailable',
+          sourceRef,
+          error: idemResult.error,
+        }));
+        return { dealId: null, status: 'blocked_idempotency_unavailable' };
+
+      case 'proceed':
+        // Lock held — fall through to Pipedrive search + create
+        break;
+    }
+
+    const lockValue = idemResult.lockValue!;
+
+    try {
+      // Step A: Search Pipedrive by custom field (exact)
+      if (fieldKeyConfigured) {
+        const deals = await findDealsByJumpsellerCustomField(rawOrderId!, params.pipelineId);
+        if (deals.length > 0) {
+          if (deals.length > 1) {
+            const ids = deals.map((d) => d.id).join(', ');
+            console.warn(JSON.stringify({
+              level: 'warn',
+              event: 'multiple_deals_found',
+              sourceRef,
+              ids: `[${ids}]`,
+              strategy: 'open > most recent',
+            }));
+          }
+          const best = pickBestDeal(deals);
+          console.log(JSON.stringify({
+            level: 'info',
+            event: 'custom_field_hit',
+            sourceRef,
+            dealId: best.id,
+          }));
+          const noteContent = `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`;
+          await addDealNote(best.id, noteContent);
+          // Persist mapping before releasing lock
+          await writeMapping(rawOrderId!, best.id);
+          return { dealId: best.id, status: 'updated' };
+        }
+      }
+
+      // Step B: Fallback by title (legacy deals)
+      const titleDeals = await findDealsByTitle(rawOrderId!, params.pipelineId);
+      if (titleDeals.length > 0) {
+        if (titleDeals.length > 1) {
+          const ids = titleDeals.map((d) => d.id).join(', ');
+          console.warn(JSON.stringify({
+            level: 'warn',
+            event: 'multiple_deals_found_title',
+            sourceRef,
+            ids: `[${ids}]`,
+          }));
+        }
+        const best = pickBestDeal(titleDeals);
+        console.log(JSON.stringify({
+          level: 'info',
+          event: 'title_fallback_hit',
+          sourceRef,
+          dealId: best.id,
+        }));
+        await backfillJumpsellerOrderId(best.id, rawOrderId!);
         const noteContent = `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`;
         await addDealNote(best.id, noteContent);
-        return { dealId: best.id, action: 'updated' };
+        // Persist mapping before releasing lock
+        await writeMapping(rawOrderId!, best.id);
+        return { dealId: best.id, status: 'updated' };
       }
+
+      // Step C: No existing deal — create new
+      const dealId = await createDealInPipedrive(params, rawOrderId!, sourceRef!);
+      // CRITICAL: persist mapping BEFORE releasing lock
+      await writeMapping(rawOrderId!, dealId);
+      console.log(JSON.stringify({
+        level: 'info',
+        event: 'deal_created',
+        sourceRef,
+        dealId,
+        eventType,
+      }));
+      return { dealId, status: 'created' };
+    } finally {
+      // Always release lock, even on error
+      await releaseLock(rawOrderId!, lockValue);
     }
   }
 
-  // STEP 3: Fallback by title (transitional -- deals before custom field existed)
-  if (isJumpseller) {
-    const deals = await findDealsByTitle(jsOrderId!, params.pipelineId);
-    if (deals.length > 0) {
-      if (deals.length > 1) {
-        const ids = deals.map((d) => d.id).join(', ');
-        console.warn(
-          `${LOG_PREFIX} [step3-title-fallback] WARNING: Multiple deals found for ${jsOrderId} in title -- IDs: [${ids}]. Applying priority: open > most recent.`
-        );
-      }
-      const best = pickBestDeal(deals);
-      console.log(`${LOG_PREFIX} [step3-title-fallback] Found existing deal ${best.id} by title containing ${jsOrderId}`);
-      await backfillJumpsellerOrderId(best.id, jsOrderId!);
-      const noteContent = `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`;
-      await addDealNote(best.id, noteContent);
-      return { dealId: best.id, action: 'updated' };
-    }
-  }
-  // STEP 4: No existing deal found -- create new deal
+  // =========================================================================
+  // NON-JUMPSELLER PATH: Simple create (no idempotency layer needed)
+  // =========================================================================
+  const dealId = await createDealInPipedrive(params, undefined, undefined);
+  console.log(`${LOG_PREFIX} Created deal: ${dealId} (${params.quoteReference})`);
+  return { dealId, status: 'created' };
+}
+
+// --- Internal: create a deal in Pipedrive (shared by both paths) ---
+
+async function createDealInPipedrive(
+  params: CreateDealParams,
+  rawOrderId: string | undefined,
+  sourceRef: string | undefined
+): Promise<number> {
   const body: Record<string, unknown> = {
     title: params.title,
     person_id: params.personId,
@@ -300,36 +497,55 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
     body[quoteRefKey] = params.quoteReference;
   }
 
-  // jumpseller_order_id custom field -- always JS-{id} format
+  // Custom field: raw order ID (e.g. "12765")
   const orderIdKey = process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
-  if (isJumpseller && jsOrderId) {
+  if (rawOrderId) {
     if (orderIdKey) {
-      body[orderIdKey] = jsOrderId;
-      console.log(`${LOG_PREFIX} [step4-create] Setting ${orderIdKey}=${jsOrderId} on new deal`);
+      body[orderIdKey] = rawOrderId;
+      console.log(JSON.stringify({
+        level: 'info',
+        event: 'create_with_custom_field',
+        sourceRef,
+        rawOrderId,
+        fieldKey: orderIdKey,
+      }));
     } else {
-      console.error(
-        `${LOG_PREFIX} [step4-create] PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not set -- creating deal without jumpseller_order_id field (deduplication degraded)`
-      );
+      console.error(JSON.stringify({
+        level: 'error',
+        event: 'custom_field_missing_on_create',
+        sourceRef,
+        message: 'PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not set — creating deal without custom field',
+      }));
     }
   }
 
   const res = await pipedrivePost<PipedriveDeal>('/deals', body);
   if (!res.success || !res.data) {
-    throw new Error(`${LOG_PREFIX} Failed to create deal: ${res.error ?? 'unknown error'}`);
+    throw new Error(
+      `${LOG_PREFIX} Failed to create deal: ${res.error ?? 'unknown error'}`
+    );
   }
-
-  console.log(`${LOG_PREFIX} [step4-create] Created deal: ${res.data.id} (${jsOrderId ?? params.quoteReference})`);
-  return { dealId: res.data.id, action: 'created' };
+  return res.data.id;
 }
 
-// --- Legacy exports for compatibility ---
+// --- Legacy export for compatibility ---
+
 export async function findExistingDeal(
-  params: Pick<CreateDealParams, 'quoteReference' | 'jumpsellerOrderId' | 'personId' | 'pipelineId'>
+  params: Pick<
+    CreateDealParams,
+    'quoteReference' | 'jumpsellerOrderId' | 'personId' | 'pipelineId'
+  >
 ): Promise<PipedriveDeal | null> {
   if (params.jumpsellerOrderId) {
-    const deals = await findDealsByJumpsellerCustomField(params.jumpsellerOrderId, params.pipelineId);
+    const deals = await findDealsByJumpsellerCustomField(
+      params.jumpsellerOrderId,
+      params.pipelineId
+    );
     if (deals.length > 0) return pickBestDeal(deals);
-    const titleDeals = await findDealsByTitle(params.jumpsellerOrderId, params.pipelineId);
+    const titleDeals = await findDealsByTitle(
+      params.jumpsellerOrderId,
+      params.pipelineId
+    );
     if (titleDeals.length > 0) return pickBestDeal(titleDeals);
   }
   return null;
