@@ -1,4 +1,4 @@
-// src/lib/crm/dedupe.ts
+// api/_lib/crm/dedupe.ts
 // Centralized deduplication orchestration across person, org, and deal.
 
 import type {
@@ -7,6 +7,7 @@ import type {
   FindOrCreateOrganizationResult,
   CreateDealResult,
   QuoteCreateSuccessResponse,
+  DealResultStatus,
 } from './types.js';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
 import { findOrCreateOrganization } from '../pipedrive/organizations.js';
@@ -21,6 +22,14 @@ import {
 
 // --- Types ---
 
+export interface ProcessOptions {
+  /**
+   * Whether the current event is allowed to create a new deal.
+   * Defaults to true. Set to false for order_paid / order_updated.
+   */
+  allowCreate?: boolean;
+}
+
 export interface CrmProcessingResult {
   person: FindOrCreatePersonResult;
   organization: FindOrCreateOrganizationResult | null;
@@ -34,21 +43,20 @@ export interface CrmProcessingResult {
 const LOG_PREFIX = '[dedupe]';
 
 /**
- * Orchestrate the full CRM deduplication flow for a quote:
+ * Orchestrate the full CRM deduplication flow for a quote.
  *
- *  1. Initialize field options cache (if cold start)
- *  2. Find or create the person (dedupe by email/phone)
- *  3. Find or create the organization (dedupe by name), if provided
- *  4. Create or update the deal (idempotent by quoteRef > orderId > person+pipeline)
- *  5. Return all IDs and scoring metadata
- *
- * This is the main entry point called by the /api/quotes/create endpoint.
- * It does NOT create follow-up activities — that responsibility lives
- * in the cron job (cron/followups.ts).
+ * 1. Initialize field options cache (cold start)
+ * 2. Find or create person (dedupe by email/phone)
+ * 3. Find or create organization (dedupe by name), if provided
+ * 4. Create or update the deal (idempotent via Redis + Pipedrive search)
+ * 5. Return all IDs and scoring metadata
  */
 export async function processQuoteToCrm(
-  payload: QuotePayload
+  payload: QuotePayload,
+  options: ProcessOptions = {}
 ): Promise<CrmProcessingResult> {
+  const allowCreate = options.allowCreate !== false;
+
   // 1. Ensure field options are loaded
   await initFieldOptions();
 
@@ -60,7 +68,6 @@ export async function processQuoteToCrm(
   // 3. Find or create organization (if present in payload)
   let organization: FindOrCreateOrganizationResult | null = null;
   const orgData = mapPayloadToOrganization(payload);
-
   if (orgData) {
     console.log(`${LOG_PREFIX} Processing organization: ${orgData.name}`);
     organization = await findOrCreateOrganization(orgData);
@@ -72,7 +79,11 @@ export async function processQuoteToCrm(
     person.personId,
     organization?.organizationId
   );
-  console.log(`${LOG_PREFIX} Processing deal: ${payload.quoteReference}`);
+
+  // Propagate allowCreate to the deals layer
+  dealParams.allowCreate = allowCreate;
+
+  console.log(`${LOG_PREFIX} Processing deal: ${payload.quoteReference} (allowCreate=${allowCreate})`);
   const deal = await createDeal(dealParams);
 
   // 5. Compute scoring
@@ -82,17 +93,11 @@ export async function processQuoteToCrm(
     `${LOG_PREFIX} CRM processing complete — ` +
     `person: ${person.personId} (${person.action}), ` +
     `org: ${organization?.organizationId ?? 'none'} (${organization?.action ?? 'n/a'}), ` +
-    `deal: ${deal.dealId} (${deal.action}), ` +
+    `deal: ${deal.dealId} (${deal.status}), ` +
     `score: ${score}, tier: ${priorityTier}`
   );
 
-  return {
-    person,
-    organization,
-    deal,
-    leadScore: score,
-    priorityTier,
-  };
+  return { person, organization, deal, leadScore: score, priorityTier };
 }
 
 /**
@@ -106,7 +111,7 @@ export function buildSuccessResponse(
     personId: result.person.personId,
     organizationId: result.organization?.organizationId ?? null,
     dealId: result.deal.dealId,
-    dealAction: result.deal.action,
+    dealStatus: result.deal.status,
     leadScore: result.leadScore,
     priorityTier: result.priorityTier,
   };
