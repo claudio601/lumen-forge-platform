@@ -104,9 +104,9 @@ async function findDealByJumpsellerOrderId(
   orderId: string,
   pipelineId: number
 ): Promise<PipedriveDeal | null> {
-  const orderIdKey = process.env.PIPEDRIVE_DEAL_FIELD_JUMPSELLER_ORDER_ID;
+  const orderIdKey = process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
   if (!orderIdKey) {
-    console.warn(`${LOG_PREFIX} PIPEDRIVE_DEAL_FIELD_JUMPSELLER_ORDER_ID not configured, skipping orderId search`);
+    console.warn(`${LOG_PREFIX} PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID not configured, skipping orderId search`);
     return null;
   }
 
@@ -304,7 +304,7 @@ export async function createDeal(
     body[quoteRefKey] = params.quoteReference;
   }
 
-  const orderIdKey = process.env.PIPEDRIVE_DEAL_FIELD_JUMPSELLER_ORDER_ID;
+  const orderIdKey = process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
   if (orderIdKey && params.jumpsellerOrderId) {
     body[orderIdKey] = params.jumpsellerOrderId;
   }
