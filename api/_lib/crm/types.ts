@@ -1,7 +1,5 @@
-// src/lib/crm/types.ts
+// api/_lib/crm/types.ts
 // Shared TypeScript types for eLights CRM integration
-
-// --- Quote Payload (incoming from nuevo.elights.cl) ---
 
 export interface QuoteProduct {
   sku?: string;
@@ -14,7 +12,7 @@ export interface QuoteCustomer {
   name: string;
   email?: string;
   phone?: string;
-  preferredChannel?: 'Email' | 'WhatsApp' | 'Teléfono';
+  preferredChannel?: 'Email' | 'WhatsApp' | 'Telefono';
   commune?: string;
 }
 
@@ -31,17 +29,29 @@ export type PriorityTier = 'Alta' | 'Normal';
 
 export interface QuotePayload {
   sourceSystem: SourceSystem;
+  /**
+   * Human-readable quote reference.
+   * For Jumpseller: always "JS-{orderId}" e.g. "JS-12765".
+   */
   quoteReference: string;
+  /**
+   * Raw Jumpseller order ID string, e.g. "12765".
+   * Present only when sourceSystem === 'jumpseller'.
+   * Never reconstructed from quoteReference.
+   */
+  jumpsellerOrderId?: string;
   leadType?: LeadType;
   customer: QuoteCustomer;
   organization?: QuoteOrganization;
   products: QuoteProduct[];
   quoteAmountClp: number;
   notes?: string;
-  jumpsellerEventType?: string; // Jumpseller webhook event type (e.g. "order_created", "order_paid")
+  /**
+   * Jumpseller webhook event type, e.g. "order_created", "order_paid".
+   * Drives the event policy (canCreate / canUpdate).
+   */
+  jumpsellerEventType?: string;
 }
-
-// --- Jumpseller Webhook ---
 
 export interface JumpsellerWebhookPayload {
   event: string;
@@ -52,22 +62,12 @@ export interface JumpsellerWebhookPayload {
       name?: string;
       email?: string;
       phone?: string;
-      billing_address?: {
-        commune?: string;
-        company?: string;
-      };
+      billing_address?: { commune?: string; company?: string; };
     };
-    products?: Array<{
-      sku?: string;
-      name: string;
-      qty: number;
-      price: number;
-    }>;
+    products?: Array<{ sku?: string; name: string; qty: number; price: number; }>;
     total?: number;
   };
 }
-
-// --- Pipedrive Webhook ---
 
 export interface PipedriveWebhookPayload {
   v: number;
@@ -92,15 +92,11 @@ export interface PipedriveWebhookPayload {
   event: string;
 }
 
-// --- Lead Scoring ---
-
 export interface LeadScoreResult {
   score: number;
   leadType: LeadType;
   priorityTier: PriorityTier;
 }
-
-// --- Pipedrive Operation Results ---
 
 export interface FindOrCreatePersonResult {
   personId: number;
@@ -114,9 +110,27 @@ export interface FindOrCreateOrganizationResult {
   conflictDetected?: boolean;
 }
 
+/**
+ * Explicit result states for deal operations.
+ * - created: new deal created in Pipedrive
+ * - updated: existing deal updated
+ * - skipped_duplicate: Redis mapping confirmed deal already exists
+ * - skipped_lock_contention: lock contested, no mapping appeared after wait
+ * - skipped_update_without_existing: update-only event, no existing deal found
+ * - blocked_idempotency_unavailable: Redis down on creator event — return 503
+ */
+export type DealResultStatus =
+  | 'created'
+  | 'updated'
+  | 'skipped_duplicate'
+  | 'skipped_lock_contention'
+  | 'skipped_update_without_existing'
+  | 'blocked_idempotency_unavailable';
+
 export interface CreateDealResult {
-  dealId: number;
-  action: 'created' | 'updated';
+  /** Pipedrive deal ID, or null for skipped/blocked statuses. */
+  dealId: number | null;
+  status: DealResultStatus;
 }
 
 export interface CreateActivityResult {
@@ -124,14 +138,12 @@ export interface CreateActivityResult {
   type: 'followup_24h' | 'followup_72h';
 }
 
-// --- API Responses ---
-
 export interface QuoteCreateSuccessResponse {
   success: true;
   personId: number;
   organizationId: number | null;
-  dealId: number;
-  dealAction: 'created' | 'updated';
+  dealId: number | null;
+  dealStatus: DealResultStatus;
   leadScore: number;
   priorityTier: PriorityTier;
 }
@@ -151,8 +163,6 @@ export interface FollowupCronResponse {
   created72h: number;
   skipped: number;
 }
-
-// --- Pipedrive API types (minimal wrappers) ---
 
 export interface PipedriveApiResponse<T> {
   success: boolean;
