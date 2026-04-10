@@ -3,24 +3,26 @@
 // Transforms incoming Jumpseller payload into a QuotePayload
 // and processes it through the CRM pipeline.
 //
-// Auth: validates Jumpseller-Hmac-Sha256 header using HMAC-SHA256
-// with JUMPSELLER_HOOKS_TOKEN and raw body (bodyParser disabled).
+// Auth: validates Jumpseller-Hmac-Sha256 header (HMAC-SHA256 with JUMPSELLER_HOOKS_TOKEN).
+// Event routing: reads Jumpseller-Event header, NOT body.event.
 //
-// Event routing: reads Jumpseller-Event header (e.g. "order_created"),
-// NOT body.event. The JSON payload contains only the resource object.
+// HTTP status mapping:
+//   created                       -> 201
+//   updated                       -> 200
+//   skipped_duplicate             -> 200
+//   skipped_lock_contention       -> 200
+//   skipped_update_without_existing -> 200
+//   blocked_idempotency_unavailable -> 503  (triggers Jumpseller retry)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
-import type { QuotePayload, SourceSystem, LeadType } from '../_lib/crm/types.js';
+import type { QuotePayload, SourceSystem, LeadType, DealResultStatus } from '../_lib/crm/types.js';
 import { validateQuotePayload } from '../_lib/crm/validation.js';
 import { processQuoteToCrm } from '../_lib/crm/dedupe.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
+import { getEventPolicy, HANDLED_EVENTS } from '../_lib/jumpseller/eventPolicy.js';
 
 const LOG_PREFIX = '[jumpseller/webhook]';
-
-// Jumpseller sends the event name in the Jumpseller-Event header.
-// Values match the format: order_created, order_paid, order_updated, etc.
-const ALLOWED_EVENTS = ['order_created', 'order_paid', 'order_updated'];
 
 // --- Jumpseller types (subset) ---
 
@@ -58,9 +60,29 @@ interface JumpsellerOrder {
   created_at: string;
 }
 
-// Jumpseller payload: the JSON body is the resource directly, e.g. { order: {...} }
 interface JumpsellerWebhookPayload {
   order: JumpsellerOrder;
+}
+
+// --- HTTP status code mapping ---
+
+function httpStatusForResult(status: DealResultStatus): number {
+  switch (status) {
+    case 'created':
+      return 201;
+    case 'updated':
+    case 'skipped_duplicate':
+    case 'skipped_lock_contention':
+    case 'skipped_update_without_existing':
+      return 200;
+    case 'blocked_idempotency_unavailable':
+      return 503;
+    default: {
+      const _exhaustive: never = status;
+      void _exhaustive;
+      return 200;
+    }
+  }
 }
 
 // --- Raw body reader ---
@@ -76,7 +98,11 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
 
 // --- HMAC verifier ---
 
-function verifyJumpsellerHmac(rawBody: Buffer, hmacHeader: string, token: string): boolean {
+function verifyJumpsellerHmac(
+  rawBody: Buffer,
+  hmacHeader: string,
+  token: string
+): boolean {
   const digest = crypto
     .createHmac('sha256', token)
     .update(rawBody)
@@ -87,36 +113,42 @@ function verifyJumpsellerHmac(rawBody: Buffer, hmacHeader: string, token: string
   return crypto.timingSafeEqual(digestBuf, headerBuf);
 }
 
-// --- Mapping ---
+// --- Customer name resolution ---
 
 function resolveJumpsellerCustomerName(order: JumpsellerOrder): string {
   const fullname = order.customer?.fullname?.trim();
   if (fullname) return fullname;
-
-  const billingName = [order.billing_address?.name, order.billing_address?.surname]
+  const billingName = [
+    order.billing_address?.name,
+    order.billing_address?.surname,
+  ]
     .filter(Boolean)
     .join(' ')
     .trim();
   if (billingName) return billingName;
-
-  const shippingName = [order.shipping_address?.name, order.shipping_address?.surname]
+  const shippingName = [
+    order.shipping_address?.name,
+    order.shipping_address?.surname,
+  ]
     .filter(Boolean)
     .join(' ')
     .trim();
   if (shippingName) return shippingName;
-
   const email = order.customer?.email?.trim();
   if (email) return email;
-
   return `Cliente Jumpseller ${order.id}`;
 }
 
-function mapToQuotePayload(order: JumpsellerOrder, eventType?: string): QuotePayload {
-  const customerName = resolveJumpsellerCustomerName(order);
+// --- Mapping ---
 
+function mapToQuotePayload(order: JumpsellerOrder, eventType: string): QuotePayload {
+  const customerName = resolveJumpsellerCustomerName(order);
   return {
     sourceSystem: 'jumpseller' as SourceSystem,
+    // quoteReference is always "JS-{id}"
     quoteReference: `JS-${order.id}`,
+    // jumpsellerOrderId is ALWAYS the raw id string, e.g. "12765"
+    // Never reconstructed from quoteReference — read directly from order.id
     jumpsellerOrderId: String(order.id),
     leadType: 'B2C' as LeadType,
     quoteAmountClp: order.total,
@@ -134,21 +166,21 @@ function mapToQuotePayload(order: JumpsellerOrder, eventType?: string): QuotePay
       unitPriceClp: p.price,
     })),
     jumpsellerEventType: eventType,
-};
+  };
 }
 
 // --- Handler ---
 
 export default async function handler(
   req: VercelRequest,
-  res: VercelResponse,
+  res: VercelResponse
 ): Promise<void> {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
-  // 1. Read raw body first (bodyParser is disabled)
+  // 1. Read raw body (bodyParser disabled for HMAC verification)
   let rawBody: Buffer;
   try {
     rawBody = await readRawBody(req);
@@ -166,13 +198,11 @@ export default async function handler(
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-
   if (!hooksToken) {
     console.error(`${LOG_PREFIX} JUMPSELLER_HOOKS_TOKEN is not configured`);
     res.status(500).json({ error: 'Internal server error' });
     return;
   }
-
   if (!verifyJumpsellerHmac(rawBody, hmacHeader, hooksToken)) {
     console.warn(`${LOG_PREFIX} Invalid HMAC signature`);
     res.status(401).json({ error: 'Unauthorized' });
@@ -181,20 +211,26 @@ export default async function handler(
 
   // 3. Read event from header (Jumpseller-Event), not from body
   const event = (req.headers['jumpseller-event'] as string | undefined)?.trim();
-
   if (!event) {
     console.warn(`${LOG_PREFIX} Missing Jumpseller-Event header`);
     res.status(400).json({ error: 'Missing Jumpseller-Event header' });
     return;
   }
 
-  if (!ALLOWED_EVENTS.includes(event)) {
-    console.log(`${LOG_PREFIX} Ignoring event: ${event}`);
-    res.status(200).json({ success: true, action: 'ignored', reason: `Event ${event} not handled` });
+  // 4. Event policy check
+  if (!HANDLED_EVENTS.includes(event)) {
+    console.log(`${LOG_PREFIX} Ignoring unhandled event: ${event}`);
+    res.status(200).json({
+      success: true,
+      action: 'ignored',
+      reason: `Event ${event} not handled`,
+    });
     return;
   }
 
-  // 4. Parse JSON body (resource object: { order: {...} })
+  const policy = getEventPolicy(event);
+
+  // 5. Parse JSON body
   let body: JumpsellerWebhookPayload;
   try {
     body = JSON.parse(rawBody.toString('utf-8')) as JumpsellerWebhookPayload;
@@ -208,10 +244,21 @@ export default async function handler(
     return;
   }
 
-  // 5. Map and process through CRM
+  const orderId = String(body.order.id);
+  const sourceRef = `jumpseller:${orderId}`;
+
+  console.log(JSON.stringify({
+    level: 'info',
+    event: 'webhook_received',
+    sourceRef,
+    orderId,
+    jumpsellerEvent: event,
+    policy: { canCreate: policy.canCreate, canUpdate: policy.canUpdate },
+  }));
+
+  // 6. Map to QuotePayload and process
   try {
     const payload = mapToQuotePayload(body.order, event);
-
     const validation = validateQuotePayload(payload);
     if (!validation.valid) {
       console.warn(`${LOG_PREFIX} Validation failed:`, validation.errors);
@@ -220,18 +267,31 @@ export default async function handler(
     }
 
     await initFieldOptions();
-    const result = await processQuoteToCrm(payload);
 
-    console.log(
-      `${LOG_PREFIX} Order ${body.order.id} [${event}] -> deal ${result.deal.dealId} (${result.deal.action})`,
-    );
+    // Pass event policy canCreate down through the processing chain
+    // dedupe.ts reads this from payload.jumpsellerEventType + the policy
+    const result = await processQuoteToCrm(payload, { allowCreate: policy.canCreate });
 
-    res.status(result.deal.action === 'created' ? 201 : 200).json({
+    const dealResult = result.deal;
+    const httpStatus = httpStatusForResult(dealResult.status);
+
+    console.log(JSON.stringify({
+      level: 'info',
+      event: 'webhook_processed',
+      sourceRef,
+      orderId,
+      jumpsellerEvent: event,
+      dealStatus: dealResult.status,
+      dealId: dealResult.dealId,
+      httpStatus,
+    }));
+
+    res.status(httpStatus).json({
       success: true,
       event,
-      orderId: body.order.id,
-      dealId: result.deal.dealId,
-      dealAction: result.deal.action,
+      orderId,
+      dealId: dealResult.dealId,
+      dealStatus: dealResult.status,
     });
   } catch (err) {
     console.error(`${LOG_PREFIX} Error processing webhook:`, err);
