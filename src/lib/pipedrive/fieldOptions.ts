@@ -42,7 +42,7 @@ const TRACKED_FIELDS: Record<EntityType, Record<string, string | undefined>> = {
     followup24Created: process.env.PIPEDRIVE_DEAL_FIELD_FOLLOWUP_24,
     followup72Created: process.env.PIPEDRIVE_DEAL_FIELD_FOLLOWUP_72,
     quoteReference: process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE,
-    jumpsellerOrderId: process.env.PIPEDRIVE_DEAL_FIELD_JUMPSELLER_ORDER_ID,
+    jumpsellerOrderId: process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID,
   },
   person: {
     customerType: process.env.PIPEDRIVE_PERSON_FIELD_CUSTOMER_TYPE,
