@@ -1,6 +1,6 @@
 // api/quotes/create.ts
 // POST /api/quotes/create
-// Main endpoint: validate → map → dedupe → create CRM entities.
+// Main endpoint: validate -> map -> dedupe -> create CRM entities.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateQuotePayload } from '../_lib/crm/validation.js';
@@ -8,7 +8,6 @@ import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import type { QuotePayload, QuoteCreateResponse } from '../_lib/crm/types.js';
 
 // --- Constants ---
-
 const LOG_PREFIX = '[api/quotes/create]';
 const ALLOWED_METHODS = ['POST'];
 
@@ -16,7 +15,6 @@ const ALLOWED_METHODS = ['POST'];
 
 /**
  * Validate the request carries a valid API key.
- * The key is compared against QUOTES_API_KEY env var.
  * Accepts both `x-api-key` header and `Authorization: Bearer <key>`.
  */
 function isAuthorized(req: VercelRequest): boolean {
@@ -25,17 +23,12 @@ function isAuthorized(req: VercelRequest): boolean {
     console.warn(`${LOG_PREFIX} QUOTES_API_KEY not set — all requests will be rejected`);
     return false;
   }
-
-  // Check x-api-key header
   const apiKey = req.headers['x-api-key'];
   if (apiKey === expectedKey) return true;
-
-  // Check Authorization: Bearer <key>
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ') && authHeader.slice(7) === expectedKey) {
     return true;
   }
-
   return false;
 }
 
@@ -45,23 +38,18 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ): Promise<void> {
-  // Method check
   if (!ALLOWED_METHODS.includes(req.method ?? '')) {
     res.setHeader('Allow', ALLOWED_METHODS.join(', '));
     res.status(405).json({ success: false, error: 'Method not allowed' });
     return;
   }
 
-  // Auth check
   if (!isAuthorized(req)) {
     res.status(401).json({ success: false, error: 'Unauthorized' });
     return;
   }
 
-  // Parse body
   const body = req.body;
-
-  // Validate payload
   const validation = validateQuotePayload(body);
   if (!validation.valid) {
     console.warn(`${LOG_PREFIX} Validation failed:`, validation.errors);
@@ -73,7 +61,6 @@ export default async function handler(
     return;
   }
 
-  // At this point the payload is validated
   const payload = body as QuotePayload;
 
   try {
@@ -82,21 +69,19 @@ export default async function handler(
       `(source: ${payload.sourceSystem}, customer: ${payload.customer.name})`
     );
 
-    // Run the full CRM pipeline: person → org → deal
     const result = await processQuoteToCrm(payload);
-
-    // Build and send success response
     const response = buildSuccessResponse(result);
 
     console.log(
       `${LOG_PREFIX} Quote processed successfully — ` +
-      `deal: ${response.dealId} (${response.dealAction}), score: ${response.leadScore}`
+      `deal: ${response.dealId} (${response.dealStatus}), score: ${response.leadScore}`
     );
 
-    res.status(result.deal.action === 'created' ? 201 : 200).json(response);
+    // 201 for new deals, 200 for all other outcomes
+    const httpStatus = result.deal.status === 'created' ? 201 : 200;
+    res.status(httpStatus).json(response);
   } catch (err) {
     console.error(`${LOG_PREFIX} Error processing quote:`, err);
-
     res.status(500).json({
       success: false,
       error: 'Internal server error',
