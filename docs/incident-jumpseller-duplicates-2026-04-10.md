@@ -19,7 +19,7 @@ ejecuciones concurrentes entre invocaciones serverless paralelas.
 - Política de eventos: `order_paid` / `order_updated` nunca crean deals nuevos
 - Fallback legacy por título con backfill automático del campo custom
 - Fail-closed: si Redis no está disponible en evento creador → HTTP 503 (Jumpseller reintenta)
-- 12 archivos modificados en `api/_lib/` + `api/jumpseller/webhook.ts`
+- 13 archivos modificados en `api/` (incluyendo `api/jumpseller/webhook.ts`)
 
 ## Validación real (2026-04-10, nuevo.elights.cl)
 | Prueba | HTTP | dealStatus |
@@ -36,4 +36,4 @@ WEBHOOK OPERATIVO EN PRODUCCIÓN
 
 ## Pendientes menores (no bloqueantes)
 - `bun.lockb` y `package-lock.json` desactualizados (lockfile de texto `bun.lock` sí está sync)
-- 50+ deals legacy con campo custom vacío (backfill automático al próximo evento de cada pedido)
+- 50+ deals legacy con campo custom vacío (backfill automático al próximo webhook de Jumpseller para cada pedido)
