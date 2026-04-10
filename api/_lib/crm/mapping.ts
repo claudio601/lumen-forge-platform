@@ -15,6 +15,7 @@ import type { CreateActivityParams } from '../pipedrive/activities.js';
 import { normalizePhone } from './validation.js';
 
 // --- Config ---
+
 function getPipelineConfig() {
   const pipelineId = Number(process.env.PIPEDRIVE_PIPELINE_ID);
   const stageId = Number(process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID);
@@ -46,8 +47,11 @@ export function buildDealTitle(payload: QuotePayload): string {
  * Map a QuotePayload to the parameters needed by createDeal().
  *
  * For Jumpseller orders:
- * - jumpsellerOrderId is always formatted as JS-{orderId}
- * - jumpsellerEventType is passed through from the webhook event header
+ * - jumpsellerOrderId is the raw order id string, e.g. "12765"
+ *   Read directly from payload.jumpsellerOrderId — never reconstructed from quoteReference.
+ * - quoteReference is always "JS-{orderId}", e.g. "JS-12765"
+ * - sourceRef is always "jumpseller:{orderId}", e.g. "jumpseller:12765"
+ * - allowCreate reflects the event policy (set by the webhook handler)
  */
 export function mapPayloadToDealParams(
   payload: QuotePayload,
@@ -56,15 +60,19 @@ export function mapPayloadToDealParams(
 ): CreateDealParams {
   const { pipelineId, stageId } = getPipelineConfig();
   const { score, leadType, priorityTier } = computeLeadScore(payload);
-  void score; // used in scoring only
+  void score;
 
-  // jumpsellerOrderId must always be JS-{id} format, never raw number
-  // For Jumpseller source, quoteReference is already JS-{id} (set in webhook.ts)
+  // Raw order id string — e.g. "12765" — never "JS-12765"
+  // Always comes from payload.jumpsellerOrderId (set in webhook.ts from order.id)
   const jumpsellerOrderId =
-    payload.sourceSystem === 'jumpseller' && payload.quoteReference
-      ? payload.quoteReference.startsWith('JS-')
-        ? payload.quoteReference
-        : `JS-${payload.quoteReference}`
+    payload.sourceSystem === 'jumpseller' && payload.jumpsellerOrderId
+      ? payload.jumpsellerOrderId
+      : undefined;
+
+  // Canonical idempotency key: "jumpseller:{rawOrderId}"
+  const sourceRef =
+    payload.sourceSystem === 'jumpseller' && jumpsellerOrderId
+      ? `jumpseller:${jumpsellerOrderId}`
       : undefined;
 
   return {
@@ -79,6 +87,7 @@ export function mapPayloadToDealParams(
     priorityTier,
     quoteReference: payload.quoteReference,
     jumpsellerOrderId,
+    sourceRef,
     jumpsellerEventType: payload.jumpsellerEventType,
     notes: payload.notes,
   };
@@ -115,7 +124,9 @@ export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
       payload.customer?.email?.trim() ||
       'Cliente sin nombre',
     email: payload.customer?.email?.trim() || undefined,
-    phone: payload.customer?.phone ? normalizePhone(payload.customer.phone) : undefined,
+    phone: payload.customer?.phone
+      ? normalizePhone(payload.customer.phone)
+      : undefined,
     preferredChannel: payload.customer?.preferredChannel,
     commune: payload.customer?.commune?.trim() || undefined,
   };
