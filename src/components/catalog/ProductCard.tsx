@@ -19,7 +19,6 @@ interface Props {
 
 const ProductCard = ({ product }: Props) => {
   const { addToQuote, formatDisplayPrice, priceLabel, isB2B, displayPrice } = useApp();
-  const { } = useRequestCart(); // Asegura que el provider este activo
   const [imgError, setImgError] = useState(false);
 
   const firstImage = product.images?.[0];
