@@ -1,4 +1,4 @@
-// src/components/catalog/ProductCard.tsx
+—·// src/components/catalog/ProductCard.tsx
 // Tarjeta de producto en listados y catalogo.
 // FASE 1: CTA principal reemplazado por "Solicitar pedido" (Request Order).
 // El boton "Comprar" (Jumpseller) esta temporalmente deshabilitado.
