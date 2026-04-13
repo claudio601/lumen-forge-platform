@@ -1,19 +1,26 @@
+// src/pages/ProductDetail.tsx
+// Pagina de detalle de producto (PDP).
+// FASE 1: CTA principal reemplazado por "Solicitar pedido".
+// El boton "Comprar" (Jumpseller) esta temporalmente deshabilitado.
+
 import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, FileText, Minus, Plus, Download, MessageCircle, Zap, ArrowLeft, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import {
+  FileText, Minus, Plus, Download, MessageCircle, Zap,
+  ArrowLeft, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { waProductUrl } from '@/config/business';
-
-const JUMPSELLER_BASE = 'https://elights.cl';
+import RequestOrderButton from '@/components/request-order/RequestOrderButton';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const product = products.find(p => p.id === id);
-  const { addToCart, addToQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
+  const { addToQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
   const [qty, setQty] = useState(1);
   const [activeImg, setActiveImg] = useState(0);
   const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
@@ -22,14 +29,18 @@ const ProductDetail = () => {
     return (
       <div className="container py-16 text-center">
         <p className="text-muted-foreground">Producto no encontrado</p>
-        <Link to="/catalogo" className="text-primary text-sm mt-4 inline-block">Volver al catalogo</Link>
+        <Link to="/catalogo" className="text-primary text-sm mt-4 inline-block">
+          Volver al catalogo
+        </Link>
       </div>
     );
   }
 
   const images = product.images?.filter((_, i) => !imgErrors[i]) ?? [];
   const hasImages = images.length > 0;
-  const related = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const related = products
+    .filter(p => p.category === product.category && p.id !== product.id)
+    .slice(0, 4);
 
   const specs = [
     { label: 'Potencia', value: product.watts ? product.watts + 'W' : null },
@@ -44,13 +55,33 @@ const ProductDetail = () => {
     { label: 'Instalacion', value: product.installationType ?? null },
   ].filter(s => s.value);
 
+  // Precio congelado al momento de agregar al Request Cart
+  const frozenUnitPrice = displayPrice(product.price);
+
+  const requestItem = {
+    productId: product.id,
+    sku: product.sku,
+    name: product.name,
+    unitPrice: frozenUnitPrice,
+    image: images[0],
+    url: `/producto/${product.id}`,
+    attributes: {
+      potencia: product.watts > 0 ? `${product.watts}W` : undefined,
+    },
+  };
+
   return (
     <div className="container py-8">
-      <Link to="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
+      <Link
+        to="/catalogo"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
+      >
         <ArrowLeft className="h-4 w-4" />
         Volver al catalogo
       </Link>
+
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        {/* ── Galeria ─────────────────────────────────────────── */}
         <div className="space-y-3">
           <div className="bg-surface rounded-xl flex items-center justify-center aspect-square overflow-hidden relative group">
             {hasImages ? (
@@ -111,21 +142,27 @@ const ProductDetail = () => {
           )}
         </div>
 
+        {/* ── Info + CTAs ─────────────────────────────────────── */}
         <div>
           <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>
           <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
+
           {(product.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
               {(product.tags ?? []).map(t => (
-                <span key={t} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">{t}</span>
+                <span key={t} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
+                  {t}
+                </span>
               ))}
             </div>
           )}
+
           <div className="flex items-center gap-3 mb-4">
             <span className={'text-xs font-semibold px-2 py-0.5 rounded-full ' + (product.stock === true ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
-              {product.stock === true ? 'En stock' : 'Disponible — consultar stock'}
+              {product.stock === true ? 'En stock' : 'Disponible - consultar stock'}
             </span>
           </div>
+
           <div className="flex items-baseline gap-2 mb-2">
             <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>
             <span className={'text-xs font-medium px-2 py-0.5 rounded-full ' + (isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
@@ -137,6 +174,7 @@ const ProductDetail = () => {
               </span>
             )}
           </div>
+
           {PROJECT_CATEGORIES.includes(product.category) ? (
             <p className="text-xs text-muted-foreground mb-6">
               Precio referencial - Contactanos para descuentos por volumen y proyecto
@@ -144,46 +182,51 @@ const ProductDetail = () => {
           ) : (
             <div className="mb-4" />
           )}
+
+          {/* Selector de cantidad */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center border rounded-lg">
-              <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}><Minus className="h-4 w-4" /></button>
+              <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}>
+                <Minus className="h-4 w-4" />
+              </button>
               <span className="px-4 text-sm font-semibold min-w-[3rem] text-center">{qty}</span>
-              <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(qty + 1)}><Plus className="h-4 w-4" /></button>
+              <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(qty + 1)}>
+                <Plus className="h-4 w-4" />
+              </button>
             </div>
             <span className="text-sm text-muted-foreground">
-              Subtotal: {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(displayPrice(product.price) * qty)} {priceLabel}
+              Subtotal:{' '}
+              {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(frozenUnitPrice * qty)}{' '}
+              {priceLabel}
             </span>
           </div>
+
+          {/* ── CTAs principales ── */}
           <div className="flex gap-3 mb-6">
-            <Button
-              size="lg"
-              className="flex-1 gradient-primary text-primary-foreground gap-2 h-12"
-              onClick={() => window.open(JUMPSELLER_BASE + '/' + product.permalink, '_blank')}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              Comprar
-              <ExternalLink className="h-3 w-3 opacity-60" />
-            </Button>
+            {/* FASE 1: CTA principal = Solicitar pedido */}
+            <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" />
+            {/* Cotizar (QuoteCart) se mantiene como accion secundaria */}
             <Button
               size="lg"
               variant="outline"
               className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
-              onClick={() => { addToQuote(product, qty); toast.success('Agregado a cotizacion'); }}
+              onClick={() => {
+                addToQuote(product, qty);
+                toast.success('Agregado a cotizacion');
+              }}
             >
               <FileText className="h-4 w-4" />
               Cotizar
             </Button>
           </div>
+
+          {/* Acciones secundarias */}
           <div className="flex gap-3">
             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
               <Download className="h-3.5 w-3.5" />
               Ficha tecnica
             </Button>
-            <a
-              href={waProductUrl(product.name, product.sku)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={waProductUrl(product.name, product.sku)} target="_blank" rel="noopener noreferrer">
               <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                 <MessageCircle className="h-3.5 w-3.5" />
                 Consultar por WhatsApp
@@ -193,6 +236,7 @@ const ProductDetail = () => {
         </div>
       </div>
 
+      {/* ── Especificaciones ──────────────────────────────────── */}
       {specs.length > 0 && (
         <div className="grid lg:grid-cols-2 gap-8 mb-12">
           <div>
@@ -222,6 +266,7 @@ const ProductDetail = () => {
         </div>
       )}
 
+      {/* ── Relacionados ──────────────────────────────────────── */}
       {related.length > 0 && (
         <div>
           <h2 className="text-lg font-bold mb-4">Productos relacionados</h2>
