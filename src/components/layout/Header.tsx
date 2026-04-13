@@ -11,6 +11,7 @@ import { useApp } from '@/context/AppContext';
 import { categories } from '@/data/products';
 import TopInfoBar from './TopInfoBar';
 import Logo from '../Logo';
+import RequestCartDrawer from '@/components/request-order/RequestCartDrawer';
 
 const iconMap: Record<string, React.ElementType> = {
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
@@ -150,6 +151,7 @@ const Header = () => {
                                 </span>
                             )}
                         </Link>
+                        <RequestCartDrawer />
                         <Link to="/carro" className="relative p-2 hover:bg-accent rounded-lg transition-colors" title="Carro">
                             <ShoppingCart className="h-5 w-5" />
                             {cartCount > 0 && (
