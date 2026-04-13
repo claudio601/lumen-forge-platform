@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
+import { RequestCartProvider } from "@/context/RequestCartContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -17,6 +18,7 @@ import QuoteCartPage from "./pages/QuoteCartPage";
 import SmartQuotePage from "./pages/SmartQuotePage";
 import InstallerAreaPage from "./pages/InstallerAreaPage";
 import InstalacionPage from "./pages/InstalacionPage";
+import RequestOrderPage from "./pages/RequestOrderPage";
 import NotFound from "./pages/NotFound";
 import { sendPageView } from "@/lib/analytics";
 
@@ -36,32 +38,35 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AppProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <RouteTracker />
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/catalogo" element={<CatalogPage />} />
-                <Route path="/catalogo/:categorySlug" element={<CatalogPage />} />
-                <Route path="/catalogo/:categorySlug/:subSlug" element={<CatalogPage />} />
-                <Route path="/producto/:id" element={<ProductDetail />} />
-                <Route path="/buscar" element={<SearchPage />} />
-                <Route path="/carro" element={<CartPage />} />
-                <Route path="/cotizacion" element={<QuoteCartPage />} />
-                <Route path="/cotizador" element={<SmartQuotePage />} />
-                <Route path="/instaladores" element={<InstallerAreaPage />} />
-                <Route path="/instalacion" element={<InstalacionPage />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
-            <Footer />
-            <WhatsAppButton />
-          </div>
-        </BrowserRouter>
+        <RequestCartProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <RouteTracker />
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/catalogo" element={<CatalogPage />} />
+                  <Route path="/catalogo/:categorySlug" element={<CatalogPage />} />
+                  <Route path="/catalogo/:categorySlug/:subSlug" element={<CatalogPage />} />
+                  <Route path="/producto/:id" element={<ProductDetail />} />
+                  <Route path="/buscar" element={<SearchPage />} />
+                  <Route path="/carro" element={<CartPage />} />
+                  <Route path="/cotizacion" element={<QuoteCartPage />} />
+                  <Route path="/cotizador" element={<SmartQuotePage />} />
+                  <Route path="/instaladores" element={<InstallerAreaPage />} />
+                  <Route path="/instalacion" element={<InstalacionPage />} />
+                  <Route path="/solicitar-pedido" element={<RequestOrderPage />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+              <Footer />
+              <WhatsAppButton />
+            </div>
+          </BrowserRouter>
+        </RequestCartProvider>
       </AppProvider>
     </TooltipProvider>
   </QueryClientProvider>
