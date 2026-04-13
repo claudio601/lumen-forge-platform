@@ -59,17 +59,17 @@ function ConfirmationScreen({ requestRef }: { requestRef: string }) {
       return (
               <div className="flex flex-col items-center justify-center gap-5 py-20 text-center max-w-md mx-auto">
                     <CheckCircle2 className="h-16 w-16 text-green-500" />
-                    <h1 className="text-2xl font-bold text-gray-900">Solicitud enviada</h1>h1>
+                    <h1 className="text-2xl font-bold text-gray-900">Solicitud enviada</h1>
                     <p className="text-gray-500 text-sm leading-relaxed">
                             Tu solicitud fue enviada. Nuestro equipo revisara stock y te contactara para habilitar el pago.
-                    </p>p>
+                    </p>
                     <p className="text-xs font-mono bg-muted px-3 py-1.5 rounded-lg text-muted-foreground">
-                            Referencia: <span className="font-bold text-foreground">{requestRef}</span>span>
-                    </p>p>
+                            Referencia: <span className="font-bold text-foreground">{requestRef}</span>
+                    </p>
                     <Button asChild className="gradient-primary text-primary-foreground mt-2">
-                            <Link to="/catalogo">Seguir explorando</Link>Link>
-                    </Button>Button>
-              </div>div>
+                            <Link to="/catalogo">Seguir explorando</Link>
+                    </Button>
+              </div>
             );
 }
 
@@ -97,14 +97,14 @@ const RequestOrderPage = () => {
               return (
                         <div className="container py-16 text-center">
                                 <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                                <h1 className="text-2xl font-bold mb-2">Tu solicitud esta vacia</h1>h1>
+                                <h1 className="text-2xl font-bold mb-2">Tu solicitud esta vacia</h1>
                                 <p className="text-muted-foreground mb-6">
                                           Agrega productos desde el catalogo para solicitar un pedido
-                                </p>p>
+                                </p>
                                 <Button asChild className="gradient-primary text-primary-foreground">
-                                          <Link to="/catalogo">Ver catalogo</Link>Link>
-                                </Button>Button>
-                        </div>div>
+                                          <Link to="/catalogo">Ver catalogo</Link>
+                                </Button>
+                        </div>
                       );
       }
     
@@ -214,21 +214,21 @@ const RequestOrderPage = () => {
                               >
                             <ArrowLeft className="h-4 w-4" />
                             Seguir explorando
-                    </Link>Link>
+                    </Link>
               
-                    <h1 className="text-2xl font-bold mb-1">Solicitud de pedido</h1>h1>
+                    <h1 className="text-2xl font-bold mb-1">Solicitud de pedido</h1>
                     <p className="text-muted-foreground text-sm mb-6">
                             Completa tus datos y nuestro equipo revisara stock y disponibilidad para habilitarte el pago.
-                    </p>p>
+                    </p>
               
                   {/* ── Tabla de productos ──────────────────────────────────────── */}
                     <div className="border rounded-xl overflow-hidden mb-8">
                             <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto_auto] gap-4">
-                                      <span>Producto</span>span>
-                                      <span>Precio unit.</span>span>
-                                      <span>Cantidad</span>span>
+                                      <span>Producto</span>
+                                      <span>Precio unit.</span>
+                                      <span>Cantidad</span>
                                       <span />
-                            </div>div>
+                            </div>
                     
                         {items.map((item) => {
                             // Fix 1: label derivado de item.priceMode persistido al agregar — no del formulario
@@ -252,63 +252,63 @@ const RequestOrderPage = () => {
                                                                                                         />
                                                                                 )}
                                                                           <div>
-                                                                                            <p className="font-semibold text-sm line-clamp-1">{item.name}</p>p>
-                                                                                            <p className="text-[10px] text-muted-foreground font-mono">{item.sku}</p>p>
-                                                                          </div>div>
-                                                          </div>div>
+                                                                                            <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
+                                                                                            <p className="text-[10px] text-muted-foreground font-mono">{item.sku}</p>
+                                                                          </div>
+                                                          </div>
                                                           <div className="text-right">
-                                                                          <p className="text-sm font-medium">{formatCLP(item.unitPrice)}</p>p>
-                                                                          <p className="text-[10px] text-muted-foreground normal-case">{priceModeLabel}</p>p>
-                                                          </div>div>
+                                                                          <p className="text-sm font-medium">{formatCLP(item.unitPrice)}</p>
+                                                                          <p className="text-[10px] text-muted-foreground normal-case">{priceModeLabel}</p>
+                                                          </div>
                                                           <div className="flex items-center border rounded-lg">
                                                                           <button
                                                                                                 className="p-1.5 hover:bg-accent transition-colors"
                                                                                                 onClick={() => updateQty(item.productId, item.quantity - 1)}
                                                                                               >
                                                                                             <Minus className="h-3 w-3" />
-                                                                          </button>button>
-                                                                          <span className="px-3 text-sm font-semibold">{item.quantity}</span>span>
+                                                                          </button>
+                                                                          <span className="px-3 text-sm font-semibold">{item.quantity}</span>
                                                                           <button
                                                                                                 className="p-1.5 hover:bg-accent transition-colors"
                                                                                                 onClick={() => updateQty(item.productId, item.quantity + 1)}
                                                                                               >
                                                                                             <Plus className="h-3 w-3" />
-                                                                          </button>button>
-                                                          </div>div>
+                                                                          </button>
+                                                          </div>
                                                           <button
                                                                               onClick={() => removeItem(item.productId)}
                                                                               className="text-muted-foreground hover:text-destructive transition-colors"
                                                                             >
                                                                           <Trash2 className="h-4 w-4" />
-                                                          </button>button>
-                                            </div>div>
+                                                          </button>
+                                            </div>
                                           );
               })}
                     
                             <div className="px-4 py-3 border-t bg-surface flex justify-end items-center gap-2">
-                                      <span className="text-sm text-muted-foreground">Total referencial:</span>span>
-                                      <span className="font-bold">{formatCLP(subtotal)}</span>span>
-                                      <span className="text-xs text-muted-foreground">CLP</span>span>
-                            </div>div>
-                    </div>div>
+                                      <span className="text-sm text-muted-foreground">Total referencial:</span>
+                                      <span className="font-bold">{formatCLP(subtotal)}</span>
+                                      <span className="text-xs text-muted-foreground">CLP</span>
+                            </div>
+                    </div>
               
                   {/* ── Formulario de contacto ──────────────────────────────────── */}
                     <form onSubmit={handleSubmit} noValidate>
-                            <h2 className="text-lg font-bold mb-4">Datos de contacto</h2>h2>
+                            <h2 className="text-lg font-bold mb-4">Datos de contacto</h2>
                     
                         {errorMsg && (
                             <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-5 text-sm text-red-700">
                                         <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                                 {errorMsg}
-                            </div>div>
+                            </div>
                             )}
                     
                             <div className="grid sm:grid-cols-2 gap-5 mb-6">
                                 {/* Nombre */}
                                       <div className="sm:col-span-2">
                                                   <label htmlFor="ro-fullName" className={labelClass}>
-                                                                Nombre completo <span className="text-red-500">*</span>span>
-                                                  </label>label>
+                                                                Nombre completo <span className="text-red-500">*</span>
+                                                  </label>
                                                   <input
                                                                     id="ro-fullName"
                                                                     name="fullName"
@@ -319,13 +319,13 @@ const RequestOrderPage = () => {
                                                                     className={inputClass}
                                                                     autoComplete="name"
                                                                   />
-                                      </div>div>
+                                      </div>
                             
                                 {/* Email */}
                                       <div>
                                                   <label htmlFor="ro-email" className={labelClass}>
-                                                                Correo electronico <span className="text-red-500">*</span>span>
-                                                  </label>label>
+                                                                Correo electronico <span className="text-red-500">*</span>
+                                                  </label>
                                                   <input
                                                                     id="ro-email"
                                                                     name="email"
@@ -336,13 +336,13 @@ const RequestOrderPage = () => {
                                                                     className={inputClass}
                                                                     autoComplete="email"
                                                                   />
-                                      </div>div>
+                                      </div>
                             
                                 {/* Telefono */}
                                       <div>
                                                   <label htmlFor="ro-phone" className={labelClass}>
-                                                                Telefono <span className="text-red-500">*</span>span>
-                                                  </label>label>
+                                                                Telefono <span className="text-red-500">*</span>
+                                                  </label>
                                                   <input
                                                                     id="ro-phone"
                                                                     name="phone"
@@ -353,13 +353,13 @@ const RequestOrderPage = () => {
                                                                     className={inputClass}
                                                                     autoComplete="tel"
                                                                   />
-                                      </div>div>
+                                      </div>
                             
                                 {/* Tipo de cliente */}
                                       <div>
                                                   <label htmlFor="ro-customerType" className={labelClass}>
-                                                                Tipo de cliente <span className="text-red-500">*</span>span>
-                                                  </label>label>
+                                                                Tipo de cliente <span className="text-red-500">*</span>
+                                                  </label>
                                                   <select
                                                                     id="ro-customerType"
                                                                     name="customerType"
@@ -367,17 +367,17 @@ const RequestOrderPage = () => {
                                                                     onChange={handleChange}
                                                                     className={inputClass}
                                                                   >
-                                                                <option value="persona">Persona natural</option>option>
-                                                                <option value="empresa">Empresa</option>option>
-                                                  </select>select>
-                                      </div>div>
+                                                                <option value="persona">Persona natural</option>
+                                                                <option value="empresa">Empresa</option>
+                                                  </select>
+                                      </div>
                             
                                 {/* Empresa (condicional) */}
                                 {form.customerType === 'empresa' && (
                               <div>
                                             <label htmlFor="ro-companyName" className={labelClass}>
-                                                            Nombre de empresa <span className="text-red-500">*</span>span>
-                                            </label>label>
+                                                            Nombre de empresa <span className="text-red-500">*</span>
+                                            </label>
                                             <input
                 id="ro-companyName"
                                                                 name="companyName"
@@ -388,7 +388,7 @@ const RequestOrderPage = () => {
                                                                 className={inputClass}
                                                                 autoComplete="organization"
                                                               />
-                              </div>div>
+                              </div>
                                       )}
                             
                                 {/* RUT (condicional empresa) */}
@@ -396,8 +396,8 @@ const RequestOrderPage = () => {
                               <div>
                                             <label htmlFor="ro-rut" className={labelClass}>
                                                             RUT empresa{' '}
-                                                            <span className="text-xs font-normal text-gray-400">(opcional)</span>span>
-                                            </label>label>
+                                                            <span className="text-xs font-normal text-gray-400">(opcional)</span>
+                                            </label>
                                             <input
                                                                 id="ro-rut"
                                                                 name="rut"
@@ -407,14 +407,14 @@ const RequestOrderPage = () => {
                                                                 placeholder="12.345.678-9"
                                                                 className={inputClass}
                                                               />
-                              </div>div>
+                              </div>
                                       )}
                             
                                 {/* Comuna */}
                                       <div>
                                                   <label htmlFor="ro-commune" className={labelClass}>
-                                                                Comuna <span className="text-red-500">*</span>span>
-                                                  </label>label>
+                                                                Comuna <span className="text-red-500">*</span>
+                                                  </label>
                                                   <input
                                                                     id="ro-commune"
                                                                     name="commune"
@@ -424,13 +424,13 @@ const RequestOrderPage = () => {
                                                                     placeholder="Ej: Las Condes, Maipu..."
                                                                     className={inputClass}
                                                                   />
-                                      </div>div>
+                                      </div>
                             
                                 {/* Region */}
                                       <div>
                                                   <label htmlFor="ro-region" className={labelClass}>
-                                                                Region <span className="text-red-500">*</span>span>
-                                                  </label>label>
+                                                                Region <span className="text-red-500">*</span>
+                                                  </label>
                                                   <select
                                                                     id="ro-region"
                                                                     name="region"
@@ -441,17 +441,17 @@ const RequestOrderPage = () => {
                                                       {REGIONS.map((r) => (
                                                                                       <option key={r} value={r}>
                                                                                           {r}
-                                                                                          </option>option>
+                                                                                          </option>
                                                                                     ))}
-                                                  </select>select>
-                                      </div>div>
+                                                  </select>
+                                      </div>
                             
                                 {/* Notas */}
                                       <div className="sm:col-span-2">
                                                   <label htmlFor="ro-notes" className={labelClass}>
                                                                 Notas adicionales{' '}
-                                                                <span className="text-xs font-normal text-gray-400">(opcional)</span>span>
-                                                  </label>label>
+                                                                <span className="text-xs font-normal text-gray-400">(opcional)</span>
+                                                  </label>
                                                   <textarea
                                                                     id="ro-notes"
                                                                     name="notes"
@@ -461,8 +461,8 @@ const RequestOrderPage = () => {
                                                                     placeholder="Instrucciones especiales, despacho, proyecto..."
                                                                     className={inputClass + ' resize-none'}
                                                                   />
-                                      </div>div>
-                            </div>div>
+                                      </div>
+                            </div>
                     
                             <Button
                                           type="submit"
@@ -482,13 +482,13 @@ const RequestOrderPage = () => {
                                                                       ENVIAR SOLICITUD DE PEDIDO
                                                         </>>
                                                       )}
-                            </Button>Button>
+                            </Button>
                     
                             <p className="text-center text-xs text-gray-400 mt-3">
                                       Nuestro equipo revisara stock y te contactara para habilitar el pago. Sin cobro automatico.
-                            </p>p>
-                    </form>form>
-              </div>div>
+                            </p>
+                    </form>
+              </div>
             );
 };
 
