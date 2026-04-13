@@ -1,4 +1,4 @@
-// api/_lib/pipedrive/deals.ts
+—————————// api/_lib/pipedrive/deals.ts
 // Create, update, and find Pipedrive deals with full idempotency.
 //
 // Deduplication order for Jumpseller events:
