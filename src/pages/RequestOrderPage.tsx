@@ -54,7 +54,7 @@ async function sendGasEmail(payload: RequestOrderPayload, ref: string): Promise<
 // ── Formulario ────────────────────────────────────────────────────────────────
 const REGIONS = [
   'Arica y Parinacota','Tarapaca','Antofagasta','Atacama','Coquimbo',
-  'Valparaiso','Region Metropolitana','O'Higgins','Maule','Nuble',
+  'Valparaiso','Region Metropolitana',"O'Higgins",'Maule','Nuble',
   'Biobio','La Araucania','Los Rios','Los Lagos','Aysen','Magallanes',
 ];
 
