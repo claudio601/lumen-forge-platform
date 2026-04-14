@@ -49,7 +49,7 @@ const OBJETIVOS = [
   { value: 'competencia', label: 'Competencia / Partido oficial' },
   { value: 'operacion_industrial', label: 'Operacion industrial' },
   { value: 'seguridad', label: 'Seguridad / Vigilancia' },
-  { value: 'licitacion', label: 'Licitacion / Ingenieria' },
+  { value: 'licitacion', label: 'Licitación / Ingenieria' },
   { value: 'no_definido', label: 'No lo tengo claro' },
 ] as const;
 
@@ -67,7 +67,7 @@ const URGENCIAS = [
   { value: 'urgente', label: 'Urgente (menos de 1 semana)' },
   { value: 'este_mes', label: 'Este mes' },
   { value: 'evaluando', label: 'Evaluando opciones' },
-  { value: 'futura_licitacion', label: 'Licitacion futura' },
+  { value: 'futura_licitacion', label: 'Licitación futura' },
 ] as const;
 
 // ── Estado vacio del formulario ───────────────────────────────────────────────
@@ -167,7 +167,7 @@ const EstudioLuminicoLeadForm = () => {
     if (!form.nombreCompleto.trim()) return 'El nombre completo es requerido.';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       return 'Ingresa un correo electronico valido.';
-    if (!form.telefono.trim()) return 'El telefono es requerido.';
+    if (!form.telefono.trim()) return 'El teléfono es requerido.';
     if (!form.tipoProyecto) return 'Selecciona el tipo de proyecto.';
     if (!form.comunaCiudad.trim()) return 'La comuna o ciudad es requerida.';
     if (!form.tienePlanos) return 'Indica si tienes planos disponibles.';
@@ -241,8 +241,8 @@ const EstudioLuminicoLeadForm = () => {
         <CheckCircle2 className="h-14 w-14 text-cyan-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
         <p className="text-gray-500 max-w-sm text-sm leading-relaxed">
-          Revisaremos tu proyecto y te enviaremos la cotizacion del estudio con propuesta de
-          luminarias eLIGHTS. Entrega en 48 horas desde la recepcion de todos los
+          Revisaremos tu proyecto y te enviaremos la cotización del estudio con propuesta de
+          luminarias eLIGHTS. Entrega en 48 horas desde la recepción de todos los
           antecedentes.
         </p>
         <button
@@ -315,7 +315,7 @@ const EstudioLuminicoLeadForm = () => {
         {/* Telefono */}
         <div>
           <label htmlFor="elf-telefono" className={labelClass}>
-            Telefono {reqStar}
+            Teléfono {reqStar}
           </label>
           <input
             id="elf-telefono"
@@ -490,7 +490,7 @@ const EstudioLuminicoLeadForm = () => {
         {/* Descripcion (opcional) */}
         <div className="sm:col-span-2">
           <label htmlFor="elf-desc" className={labelClass}>
-            Descripcion del proyecto {optLabel}
+            Descripción del proyecto {optLabel}
           </label>
           <textarea
             id="elf-desc"
@@ -524,7 +524,7 @@ const EstudioLuminicoLeadForm = () => {
           )}
         </Button>
         <p className="text-center text-xs text-gray-400 mt-3">
-          Entrega en 48 horas desde la recepcion de todos los antecedentes
+          Entrega en 48 horas desde la recepción de todos los antecedentes
         </p>
       </div>
     </form>

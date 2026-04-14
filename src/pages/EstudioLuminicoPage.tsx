@@ -22,12 +22,12 @@ const APLICACIONES = [
   {
     icon: <Globe className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Estadios y canchas deportivas',
-    desc: 'Canchas de futbol, rugby, tenis, atletismo y recintos multideporte. Simulacion orientada a criterios FIFA aplicables y normas internacionales de iluminacion deportiva.',
+    desc: 'Canchas de futbol, rugby, tenis, atletismo y recintos multideporte. Simulación orientada a criterios FIFA aplicables y normas internacionales de iluminación deportiva.',
   },
   {
     icon: <Building2 className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Industria y bodegas',
-    desc: 'Naves industriales, plantas de produccion y centros de distribucion. Verificacion segun EN 12464-1/2 y criterios SEC/RIC aplicables al tipo de tarea.',
+    desc: 'Naves industriales, plantas de produccion y centros de distribucion. Verificación segun EN 12464-1/2 y criterios SEC/RIC aplicables al tipo de tarea.',
   },
   {
     icon: <Truck className="h-7 w-7" style={{ color: '#06B6D4' }} />,
@@ -37,12 +37,12 @@ const APLICACIONES = [
   {
     icon: <Lightbulb className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Edificios comerciales',
-    desc: 'Oficinas, retail, centros comerciales y locales. Calculo de planos de trabajo, uniformidades y eficiencia energetica.',
+    desc: 'Oficinas, retail, centros comerciales y locales. Cálculo de planos de trabajo, uniformidades y eficiencia energetica.',
   },
   {
     icon: <MapPin className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Vialidad y exteriores',
-    desc: 'Calles, avenidas, plazas y circuitos peatonales. Verificacion segun EN 13201 y requisitos SEC de producto e instalacion.',
+    desc: 'Calles, avenidas, plazas y circuitos peatonales. Verificación segun EN 13201 y requisitos SEC de producto e instalación.',
   },
   {
     icon: <GraduationCap className="h-7 w-7" style={{ color: '#06B6D4' }} />,
@@ -65,7 +65,7 @@ const ENTREGABLES = [
   {
     num: '03',
     title: 'Renders 3D y colores falsos',
-    desc: 'Visualizacion fotorrealista del recinto con representacion de niveles de iluminancia.',
+    desc: 'Visualizacion fotorrealista del recinto con representación de niveles de iluminancia.',
   },
   {
     num: '04',
@@ -75,7 +75,7 @@ const ENTREGABLES = [
   {
     num: '05',
     title: 'Tabla punto a punto',
-    desc: 'Valores en lux para cada punto de la trama de calculo definida en el recinto.',
+    desc: 'Valores en lux para cada punto de la trama de cálculo definida en el recinto.',
   },
   {
     num: '06',
@@ -88,22 +88,22 @@ const PROCESO = [
   {
     num: '1',
     title: 'Solicita tu estudio',
-    desc: 'Completa el formulario con los datos del proyecto. Mientras mas informacion, mas precisa la cotizacion.',
+    desc: 'Completa el formulario con los datos del proyecto. Mientras mas información, mas precisa la cotización.',
   },
   {
     num: '2',
-    title: 'Cotizacion del estudio',
-    desc: 'Te enviamos la cotizacion del estudio junto con la propuesta de luminarias eLIGHTS recomendadas.',
+    title: 'Cotización del estudio',
+    desc: 'Te enviamos la cotización del estudio junto con la propuesta de luminarias eLIGHTS recomendadas.',
   },
   {
     num: '3',
-    title: 'Simulacion DIALux',
+    title: 'Simulación DIALux',
     desc: 'Nuestro ingeniero modela el recinto con archivos .IES reales de las luminarias propuestas.',
   },
   {
     num: '4',
     title: 'Informe final PDF',
-    desc: 'Recibes el informe completo con renders, tablas, isolineas y verificacion normativa.',
+    desc: 'Recibes el informe completo con renders, tablas, isolineas y verificación normativa.',
   },
 ];
 
@@ -112,8 +112,8 @@ const NORMATIVAS = [
     categoria: 'Deportes',
     items: [
       'Criterios FIFA aplicables al proyecto',
-      'EN 12193 — Iluminacion de instalaciones deportivas',
-      'Guias CIE de iluminacion deportiva',
+      'EN 12193 — Iluminación de instalaciones deportivas',
+      'Guias CIE de iluminación deportiva',
     ],
     color: '#06B6D4',
   },
@@ -129,7 +129,7 @@ const NORMATIVAS = [
   {
     categoria: 'Vialidad y exterior',
     items: [
-      'EN 13201 — Iluminacion de carreteras',
+      'EN 13201 — Iluminación de carreteras',
       'SEC — Requisitos de producto e instalacion',
     ],
     color: '#F59E0B',
@@ -139,19 +139,19 @@ const NORMATIVAS = [
 const FAQ = [
   {
     q: 'Sirve para licitaciones?',
-    a: 'Si. El informe PDF incluye la verificacion normativa, tablas de resultados y memorias de calculo que pueden adjuntarse como respaldo tecnico en una licitacion o ingenieria.',
+    a: 'Si. El informe PDF incluye la verificación normativa, tablas de resultados y memorias de cálculo que pueden adjuntarse como respaldo técnico en una licitación o ingeniería.',
   },
   {
     q: 'Puedo solicitar el estudio sin planos DWG?',
-    a: 'Si. Con medidas aproximadas del recinto y fotos del lugar podemos realizar la simulacion. Los resultados seran orientativos; un plano DWG permite mayor precision.',
+    a: 'Si. Con medidas aproximadas del recinto y fotos del lugar podemos realizar la simulación. Los resultados seran orientativos; un plano DWG permite mayor precision.',
   },
   {
     q: 'El estudio incluye propuesta de luminarias?',
-    a: 'Si. El estudio siempre incluye la propuesta de luminarias eLIGHTS que se usaron en la simulacion, con ficha tecnica y cotizacion. El valor del estudio no se descuenta de la compra.',
+    a: 'Si. El estudio siempre incluye la propuesta de luminarias eLIGHTS que se usaron en la simulación, con ficha técnica y cotización. El valor del estudio no se descuenta de la compra.',
   },
   {
     q: 'Cuanto demora la entrega?',
-    a: 'El informe se entrega en 48 horas desde la recepcion de todos los antecedentes del proyecto (planos o medidas, altura de montaje, normativa objetivo).',
+    a: 'El informe se entrega en 48 horas desde la recepción de todos los antecedentes del proyecto (planos o medidas, altura de montaje, normativa objetivo).',
   },
   {
     q: 'En que formato se entrega el informe?',
@@ -223,10 +223,10 @@ const EstudioLuminicoPage = () => {
   // SEO: actualizar document.title y meta description
   useEffect(() => {
     document.title =
-      'Estudio Luminico DIALux en Chile | Simulacion y Calculo de Iluminacion | eLIGHTS';
+      'Estudio Lumínico DIALux en Chile | Simulación y Cálculo de Iluminación | eLIGHTS';
     const meta = document.querySelector('meta[name="description"]');
     const desc =
-      'Solicita un estudio luminico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe tecnico con simulacion 3D, verificacion normativa y propuesta de luminarias LED. Entrega en 48 horas desde la recepcion de todos los antecedentes.';
+      'Solicita un estudio lumínico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe técnico con simulación 3D, verificación normativa y propuesta de luminarias LED. Entrega en 48 horas desde la recepción de todos los antecedentes.';
     if (meta) {
       meta.setAttribute('content', desc);
     } else {
@@ -274,7 +274,7 @@ const EstudioLuminicoPage = () => {
 
           {/* H1 */}
           <h1 className="text-3xl md:text-5xl font-bold mb-5 leading-tight max-w-4xl mx-auto">
-            Estudio Luminico DIALux para proyectos{' '}
+            Estudio Lumínico DIALux para proyectos{' '}
             <em
               className="not-italic italic"
               style={{ color: '#06B6D4' }}
@@ -285,8 +285,8 @@ const EstudioLuminicoPage = () => {
 
           {/* Subtitulo */}
           <p className="text-gray-300 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-            Simulacion profesional que permite verificar cumplimiento normativo, optimizar
-            la seleccion de luminarias y reducir el riesgo tecnico antes de comprar o
+            Simulación profesional que permite verificar cumplimiento normativo, optimizar
+            la selección de luminarias y reducir el riesgo técnico antes de comprar o
             instalar. Incluye propuesta de luminarias eLIGHTS.
           </p>
 
@@ -345,33 +345,33 @@ const EstudioLuminicoPage = () => {
       <section className="container py-16">
         <div className="max-w-3xl mx-auto text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Que resuelve este estudio
+            Qué resuelve este estudio
           </h2>
           <p className="text-muted-foreground">
             Antes de comprar o instalar, necesitas saber que el sistema va a funcionar.
-            Eso es exactamente lo que entrega el estudio luminico.
+            Eso es exactamente lo que entrega el estudio lumínico.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
           {[
             {
               icon: <Shield className="h-5 w-5" style={{ color: '#06B6D4' }} />,
-              title: 'Evita subiluminacion y sobredimensionamiento',
+              title: 'Evita subiluminación y sobredimensionamiento',
               desc: 'Detecta si el sistema propuesto entrega la iluminancia real que necesitas o si estas pagando de mas por potencia innecesaria.',
             },
             {
               icon: <CheckCircle className="h-5 w-5" style={{ color: '#06B6D4' }} />,
               title: 'Valida cumplimiento antes de comprar',
-              desc: 'Verifica si el nivel de iluminacion, la uniformidad y las relaciones Emin/Em cumplen con la normativa objetivo del proyecto.',
+              desc: 'Verifica si el nivel de iluminación, la uniformidad y las relaciones Emin/Em cumplen con la normativa objetivo del proyecto.',
             },
             {
               icon: <FileText className="h-5 w-5" style={{ color: '#06B6D4' }} />,
-              title: 'Respalda licitaciones e ingenieria',
-              desc: 'El informe PDF sirve como memoria de calculo en procesos de licitacion, ingenieria o revision de obra.',
+              title: 'Respalda licitaciones e ingeniería',
+              desc: 'El informe PDF sirve como memoria de cálculo en procesos de licitación, ingeniería o revisión de obra.',
             },
             {
               icon: <BarChart3 className="h-5 w-5" style={{ color: '#06B6D4' }} />,
-              title: 'Define la propuesta tecnica optima',
+              title: 'Define la propuesta técnica optima',
               desc: 'Determina cantidad, potencia, optica y disposicion de luminarias especificamente para tu recinto y uso.',
             },
           ].map(({ icon, title, desc }) => (
@@ -406,7 +406,7 @@ const EstudioLuminicoPage = () => {
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
               El informe PDF incluye representaciones graficas y tablas numericas
-              que permiten verificar el desempeno del sistema antes de la instalacion.
+              que permiten verificar el desempeno del sistema antes de la instalación.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -470,7 +470,7 @@ const EstudioLuminicoPage = () => {
             Contenido del informe
           </h2>
           <p className="text-center text-muted-foreground mb-10">
-            Seis componentes que forman el informe tecnico de aproximadamente 20 paginas.
+            Seis componentes que forman el informe técnico de aproximadamente 20 paginas.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
             {ENTREGABLES.map(({ num, title, desc }) => (
@@ -505,17 +505,17 @@ const EstudioLuminicoPage = () => {
       >
         <div className="container max-w-3xl">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-3">
-            Que necesitamos para cotizar
+            Qué necesitamos para cotizar
           </h2>
           <p className="text-center text-muted-foreground mb-8">
-            Con esta informacion podemos preparar la cotizacion del estudio. Si no tienes
+            Con esta información podemos preparar la cotización del estudio. Si no tienes
             todo, no hay problema: el formulario te pregunta exactamente por esto.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               'Planos DWG/PDF o medidas aproximadas del recinto',
               'Altura de montaje disponible (postes, estructura o cielo)',
-              'Uso del recinto y nivel de iluminacion esperado',
+              'Uso del recinto y nivel de iluminación esperado',
               'Fotos del lugar si no hay planos disponibles',
             ].map((item) => (
               <div key={item} className="flex items-start gap-3">
@@ -530,7 +530,7 @@ const EstudioLuminicoPage = () => {
           >
             <Clock className="h-4 w-4 inline mr-2" />
             El informe se entrega en{' '}
-            <strong>48 horas desde la recepcion de todos los antecedentes</strong>.
+            <strong>48 horas desde la recepción de todos los antecedentes</strong>.
           </div>
         </div>
       </section>
@@ -542,7 +542,7 @@ const EstudioLuminicoPage = () => {
       >
         <div className="container">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-white mb-12">
-            Como funciona
+            Cómo funciona
           </h2>
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-center gap-0 max-w-4xl mx-auto">
             {/* Linea conectora */}
@@ -577,7 +577,7 @@ const EstudioLuminicoPage = () => {
         <p className="text-center text-muted-foreground mb-10 max-w-xl mx-auto">
           El estudio verifica segun la normativa objetivo del proyecto. No hacemos
           promesas absolutas de cumplimiento; aplicamos criterios tecnicos rigurosos
-          de verificacion.
+          de verificación.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {NORMATIVAS.map(({ categoria, items, color }) => (
@@ -637,13 +637,13 @@ const EstudioLuminicoPage = () => {
               className="inline-block text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4"
               style={{ background: 'rgba(6,182,212,0.15)', color: '#67E8F9' }}
             >
-              Solicita tu cotizacion
+              Solicita tu cotización
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
               Cuantame tu proyecto
             </h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
-              Completa el formulario con los datos del recinto. Te enviamos la cotizacion
+              Completa el formulario con los datos del recinto. Te enviamos la cotización
               del estudio junto con la propuesta de luminarias eLIGHTS.
             </p>
           </div>
