@@ -475,12 +475,12 @@ const RequestOrderPage = () => {
                                                         <>
                                                                       <Loader2 className="h-5 w-5 animate-spin" />
                                                                       Enviando solicitud...
-                                                        </>>
+                                                        </>
                                                       ) : (
                                                         <>
                                                                       <Send className="h-5 w-5" />
                                                                       ENVIAR SOLICITUD DE PEDIDO
-                                                        </>>
+                                                        </>
                                                       )}
                             </Button>
                     
