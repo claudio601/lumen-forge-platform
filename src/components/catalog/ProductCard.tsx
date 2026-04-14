@@ -59,47 +59,47 @@ const ProductCard = ({ product }: Props) => {
                           {product.stock === true && (
                         <span className="absolute top-2 left-2 bg-success/10 text-success text-[10px] font-semibold px-2 py-0.5 rounded-full">
                                       En stock
-                        </span>span>
+                        </span>
                                   )}
                           {product.stock === false && (
                         <span className="absolute top-2 left-2 bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
                                       Sin stock
-                        </span>span>
+                        </span>
                                   )}
                           {product.ip && (
                         <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
                           {product.ip}
-                        </span>span>
+                        </span>
                                   )}
-                        </div>div>
-                </Link>Link>
+                        </div>
+                </Link>
                 <div className="p-4 space-y-2">
-                        <p className="text-[10px] text-muted-foreground font-mono">{product.sku}</p>p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{product.sku}</p>
                         <Link to={`/producto/${product.id}`}>
                                   <h3 className="font-semibold text-sm leading-tight line-clamp-2 hover:text-primary transition-colors">
                                     {product.name}
-                                  </h3>h3>
-                        </Link>Link>
+                                  </h3>
+                        </Link>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                          {product.watts > 0 && <span>{product.watts}W</span>span>}
-                          {product.lumens > 0 && <span>{product.lumens.toLocaleString('es-CL')}lm</span>span>}
-                          {product.kelvin > 0 && <span>{product.kelvin}K</span>span>}
-                          {product.beamAngle && <span>{product.beamAngle}deg</span>span>}
-                        </div>div>
+                          {product.watts > 0 && <span>{product.watts}W</span>}
+                          {product.lumens > 0 && <span>{product.lumens.toLocaleString('es-CL')}lm</span>}
+                          {product.kelvin > 0 && <span>{product.kelvin}K</span>}
+                          {product.beamAngle && <span>{product.beamAngle}deg</span>}
+                        </div>
                         <div className="flex items-baseline gap-1.5">
-                                  <p className="text-lg font-bold text-foreground">{formatDisplayPrice(product.price)}</p>p>
+                                  <p className="text-lg font-bold text-foreground">{formatDisplayPrice(product.price)}</p>
                                   <span
                                                 className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                                                                 isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                                                 }`}
                                               >
                                     {priceLabel}
-                                  </span>span>
-                        </div>div>
+                                  </span>
+                        </div>
                   {PROJECT_CATEGORIES.includes(product.category) && (
                       <p className="text-[10px] text-muted-foreground">
                                   Precio referencial · Descuentos por proyecto
-                      </p>p>
+                      </p>
                         )}
                         <div className="flex gap-2 pt-1">
                           {/* FASE 1: CTA principal = Solicitar pedido */}
@@ -116,10 +116,10 @@ const ProductCard = ({ product }: Props) => {
                                               >
                                               <FileText className="h-3.5 w-3.5" />
                                               Cotizar
-                                  </Button>Button>
-                        </div>div>
-                </div>div>
-          </div>div>
+                                  </Button>
+                        </div>
+                </div>
+          </div>
         );
 };
 
