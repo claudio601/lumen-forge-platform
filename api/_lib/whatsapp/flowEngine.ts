@@ -407,7 +407,9 @@ export function processFlowStep(
   if (claudeParsed.comuna_o_ciudad) { merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad; } else if (!merged.comuna_o_ciudad) { const ciudad = extractCiudad(body); if (ciudad) merged.comuna_o_ciudad = ciudad; }
   const nombreClaud = claudeParsed.nombre ?? claudeParsed.empresa;
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
-  const correoFound = claudeParsed.correo ?? extractEmail(body);
+  const correoRaw = claudeParsed.correo ?? extractEmail(body);
+  // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
+  const correoFound = correoRaw ? correoRaw.trim().replace(/[.,;:!]+$/, '').toLowerCase() : undefined;
   if (correoFound) merged.correo = correoFound;
   const rutMatch = body.match(RUT_RE);
   if (rutMatch) merged.rut_empresa = rutMatch[0];
