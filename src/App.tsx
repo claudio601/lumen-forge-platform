@@ -59,7 +59,7 @@ const App = () => (
                   <Route path="/cotizador" element={<SmartQuotePage />} />
                   <Route path="/instaladores" element={<InstallerAreaPage />} />
                   <Route path="/instalacion" element={<InstalacionPage />} />
-              <Route path="/estudio-luminico" element={<EstudioLuminicoPage />} />
+                  <Route path="/estudio-luminico" element={<EstudioLuminicoPage />} />
                   <Route path="/solicitar-pedido" element={<RequestOrderPage />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

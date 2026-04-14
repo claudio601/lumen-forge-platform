@@ -5,6 +5,7 @@ import CategoryGrid from '@/components/home/CategoryGrid';
 import FeaturedProducts from '@/components/home/FeaturedProducts';
 import SolutionsSection from '@/components/home/SolutionsSection';
 import InstallerTeaser from '@/components/home/InstallerTeaser';
+import EstudioLuminicoTeaser from '@/components/home/EstudioLuminicoTeaser';
 import WhyElights from '@/components/home/WhyElights';
 
 const Index = () => (
@@ -16,6 +17,7 @@ const Index = () => (
     <FeaturedProducts />
     <SolutionsSection />
     <InstallerTeaser />
+    <EstudioLuminicoTeaser />
     <WhyElights />
   </>
 );
