@@ -28,11 +28,11 @@ const ProductDetail = () => {
     if (!product) {
           return (
                   <div className="container py-16 text-center">
-                          <p className="text-muted-foreground">Producto no encontrado</p>p>
+                          <p className="text-muted-foreground">Producto no encontrado</p>
                           <Link to="/catalogo" className="text-primary text-sm mt-4 inline-block">
                                     Volver al catalogo
-                          </Link>Link>
-                  </div>div>
+                          </Link>
+                  </div>
                 );
     }
   
@@ -80,7 +80,7 @@ const ProductDetail = () => {
                         >
                         <ArrowLeft className="h-4 w-4" />
                         Volver al catalogo
-                </Link>Link>
+                </Link>
           
                 <div className="grid lg:grid-cols-2 gap-8 mb-12">
                   {/* ── Galeria ─────────────────────────────────────────── */}
@@ -101,13 +101,13 @@ const ProductDetail = () => {
                                                                                           className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow"
                                                                                         >
                                                                                         <ChevronLeft className="h-4 w-4" />
-                                                                  </button>button>
+                                                                  </button>
                                                                   <button
                                                                                           onClick={() => setActiveImg(i => (i + 1) % images.length)}
                                                                                           className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow"
                                                                                         >
                                                                                         <ChevronRight className="h-4 w-4" />
-                                                                  </button>button>
+                                                                  </button>
                                                                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
                                                                     {images.map((_, i) => (
                                                                         <button
@@ -116,14 +116,14 @@ const ProductDetail = () => {
                                                                                                     className={'h-1.5 rounded-full transition-all ' + (i === activeImg ? 'w-4 bg-primary' : 'w-1.5 bg-primary/30')}
                                                                                                   />
                                                                       ))}
-                                                                  </div>div>
+                                                                  </div>
                                               </>>
                                             )}
                           </>>
                         ) : (
                           <Zap className="h-32 w-32 text-primary/15" />
                         )}
-                                  </div>div>
+                                  </div>
                           {images.length > 1 && (
                         <div className="flex gap-2 overflow-x-auto pb-1">
                           {images.map((img, i) => (
@@ -138,49 +138,49 @@ const ProductDetail = () => {
                                                                                   className="w-full h-full object-contain p-1"
                                                                                   loading="lazy"
                                                                                 />
-                                          </button>button>
+                                          </button>
                                         ))}
-                        </div>div>
+                        </div>
                                   )}
-                        </div>div>
+                        </div>
                 
                   {/* ── Info + CTAs ─────────────────────────────────────── */}
                         <div>
-                                  <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>p>
-                                  <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>h1>
+                                  <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>
+                                  <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
                         
                           {(product.tags ?? []).length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {(product.tags ?? []).map(t => (
                                           <span key={t} className="text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
                                             {t}
-                                          </span>span>
+                                          </span>
                                         ))}
-                        </div>div>
+                        </div>
                                   )}
                         
                                   <div className="flex items-center gap-3 mb-4">
                                               <span className={'text-xs font-semibold px-2 py-0.5 rounded-full ' + (product.stock === true ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
                                                 {product.stock === true ? 'En stock' : 'Disponible - consultar stock'}
-                                              </span>span>
-                                  </div>div>
+                                              </span>
+                                  </div>
                         
                                   <div className="flex items-baseline gap-2 mb-2">
-                                              <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>p>
+                                              <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>
                                               <span className={'text-xs font-medium px-2 py-0.5 rounded-full ' + (isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
                                                 {priceLabel}
-                                              </span>span>
+                                              </span>
                                     {isB2B && (
                           <span className="text-sm text-muted-foreground">
                                           ({new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(product.price)} c/IVA)
-                          </span>span>
+                          </span>
                                               )}
-                                  </div>div>
+                                  </div>
                         
                           {PROJECT_CATEGORIES.includes(product.category) ? (
                         <p className="text-xs text-muted-foreground mb-6">
                                       Precio referencial - Contactanos para descuentos por volumen y proyecto
-                        </p>p>
+                        </p>
                       ) : (
                         <div className="mb-4" />
                       )}
@@ -190,18 +190,18 @@ const ProductDetail = () => {
                                               <div className="flex items-center border rounded-lg">
                                                             <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}>
                                                                             <Minus className="h-4 w-4" />
-                                                            </button>button>
-                                                            <span className="px-4 text-sm font-semibold min-w-[3rem] text-center">{qty}</span>span>
+                                                            </button>
+                                                            <span className="px-4 text-sm font-semibold min-w-[3rem] text-center">{qty}</span>
                                                             <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(qty + 1)}>
                                                                             <Plus className="h-4 w-4" />
-                                                            </button>button>
-                                              </div>div>
+                                                            </button>
+                                              </div>
                                               <span className="text-sm text-muted-foreground">
                                                             Subtotal:{' '}
                                                 {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(frozenUnitPrice * qty)}{' '}
                                                 {priceLabel}
-                                              </span>span>
-                                  </div>div>
+                                              </span>
+                                  </div>
                         
                           {/* ── CTAs principales ── */}
                                   <div className="flex gap-3 mb-6">
@@ -219,65 +219,65 @@ const ProductDetail = () => {
                                                             >
                                                             <FileText className="h-4 w-4" />
                                                             Cotizar
-                                              </Button>Button>
-                                  </div>div>
+                                              </Button>
+                                  </div>
                         
                           {/* Acciones secundarias */}
                                   <div className="flex gap-3">
                                               <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
                                                             <Download className="h-3.5 w-3.5" />
                                                             Ficha tecnica
-                                              </Button>Button>
+                                              </Button>
                                               <a href={waProductUrl(product.name, product.sku)} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
                                                                             Consultar por WhatsApp
-                                                            </Button>Button>
-                                              </a>a>
-                                  </div>div>
-                        </div>div>
-                </div>div>
+                                                            </Button>
+                                              </a>
+                                  </div>
+                        </div>
+                </div>
           
             {/* ── Especificaciones ──────────────────────────────────── */}
             {specs.length > 0 && (
                     <div className="grid lg:grid-cols-2 gap-8 mb-12">
                               <div>
-                                          <h2 className="text-lg font-bold mb-4">Especificaciones tecnicas</h2>h2>
+                                          <h2 className="text-lg font-bold mb-4">Especificaciones tecnicas</h2>
                                           <div className="border rounded-xl overflow-hidden">
                                             {specs.map((s, i) => (
                                       <div key={s.label} className={'flex justify-between px-4 py-3 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
-                                                        <span className="text-muted-foreground">{s.label}</span>span>
-                                                        <span className="font-medium">{s.value}</span>span>
-                                      </div>div>
+                                                        <span className="text-muted-foreground">{s.label}</span>
+                                                        <span className="font-medium">{s.value}</span>
+                                      </div>
                                     ))}
-                                          </div>div>
-                              </div>div>
+                                          </div>
+                              </div>
                       {(product.applications ?? []).length > 0 && (
                                   <div>
-                                                <h2 className="text-lg font-bold mb-4">Aplicaciones</h2>h2>
+                                                <h2 className="text-lg font-bold mb-4">Aplicaciones</h2>
                                                 <div className="grid grid-cols-2 gap-2">
                                                   {(product.applications ?? []).map(a => (
                                                       <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
                                                                           <span className="h-2 w-2 bg-primary rounded-full" />
                                                         {a}
-                                                      </div>div>
+                                                      </div>
                                                     ))}
-                                                </div>div>
-                                  </div>div>
+                                                </div>
+                                  </div>
                               )}
-                    </div>div>
+                    </div>
                 )}
           
             {/* ── Relacionados ──────────────────────────────────────── */}
             {related.length > 0 && (
                     <div>
-                              <h2 className="text-lg font-bold mb-4">Productos relacionados</h2>h2>
+                              <h2 className="text-lg font-bold mb-4">Productos relacionados</h2>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {related.map(p => <ProductCard key={p.id} product={p} />)}
-                              </div>div>
-                    </div>div>
+                              </div>
+                    </div>
                 )}
-          </div>div>
+          </div>
         );
 };
 
