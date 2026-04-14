@@ -18,6 +18,7 @@ import QuoteCartPage from "./pages/QuoteCartPage";
 import SmartQuotePage from "./pages/SmartQuotePage";
 import InstallerAreaPage from "./pages/InstallerAreaPage";
 import InstalacionPage from "./pages/InstalacionPage";
+import EstudioLuminicoPage from './pages/EstudioLuminicoPage';
 import RequestOrderPage from "./pages/RequestOrderPage";
 import NotFound from "./pages/NotFound";
 import { sendPageView } from "@/lib/analytics";
