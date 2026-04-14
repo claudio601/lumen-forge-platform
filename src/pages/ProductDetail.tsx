@@ -117,9 +117,9 @@ const ProductDetail = () => {
                                                                                                   />
                                                                       ))}
                                                                   </div>
-                                              </>>
+                                              </>
                                             )}
-                          </>>
+                          </>
                         ) : (
                           <Zap className="h-32 w-32 text-primary/15" />
                         )}
