@@ -27,6 +27,9 @@ export const waBase = `https://wa.me/${whatsappNumber}`;
 /** URL de WhatsApp para el servicio de instalación */
 export const waInstalacion = `${waBase}?text=Hola%2C%20me%20interesa%20el%20servicio%20de%20instalaci%C3%B3n`;
 
+/** URL de WhatsApp para el servicio de Estudio Luminico DIALux */
+export const waEstudioLuminico = `${waBase}?text=Hola%2C%20me%20interesa%20el%20Estudio%20Luminico%20DIALux.%20Mi%20proyecto%20es...`;
+
 /** URL de WhatsApp genérica para consultas */
 export const waGeneral = waBase;
 
