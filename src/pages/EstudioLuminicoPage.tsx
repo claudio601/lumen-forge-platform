@@ -27,7 +27,7 @@ const APLICACIONES = [
   {
     icon: <Building2 className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Industria y bodegas',
-    desc: 'Naves industriales, plantas de produccion y centros de distribucion. Verificación segun EN 12464-1/2 y criterios SEC/RIC aplicables al tipo de tarea.',
+    desc: 'Naves industriales, plantas de producción y centros de distribución. Verificación segun EN 12464-1/2 y criterios SEC/RIC aplicables al tipo de tarea.',
   },
   {
     icon: <Truck className="h-7 w-7" style={{ color: '#06B6D4' }} />,
@@ -60,7 +60,7 @@ const ENTREGABLES = [
   {
     num: '02',
     title: 'Coordenadas de luminarias',
-    desc: 'Posicion X/Y/Z de cada luminaria, angulos de apunte y datos de montaje.',
+    desc: 'Posicion X/Y/Z de cada luminaria, ángulos de apunte y datos de montaje.',
   },
   {
     num: '03',
@@ -103,7 +103,7 @@ const PROCESO = [
   {
     num: '4',
     title: 'Informe final PDF',
-    desc: 'Recibes el informe completo con renders, tablas, isolineas y verificación normativa.',
+    desc: 'Recibes el informe completo con renders, tablas, isolíneas y verificación normativa.',
   },
 ];
 
@@ -155,11 +155,11 @@ const FAQ = [
   },
   {
     q: 'En que formato se entrega el informe?',
-    a: 'El informe se entrega en formato PDF con renders 3D, mapas de isolineas, tablas punto a punto y resumen de cumplimiento normativo. Aproximadamente 20 paginas.',
+    a: 'El informe se entrega en formato PDF con renders 3D, mapas de isolíneas, tablas punto a punto y resumen de cumplimiento normativo. Aproximadamente 20 páginas.',
   },
   {
     q: 'Que normativas se pueden verificar?',
-    a: 'Verificamos segun EN 12193, EN 12464-1/2, EN 13201, criterios FIFA aplicables y criterios SEC/RIC. Si tienes una normativa especifica, indicalaa en el formulario.',
+    a: 'Verificamos segun EN 12193, EN 12464-1/2, EN 13201, criterios FIFA aplicables y criterios SEC/RIC. Si tienes una normativa específica, indicalaa en el formulario.',
   },
 ];
 
@@ -372,7 +372,7 @@ const EstudioLuminicoPage = () => {
             {
               icon: <BarChart3 className="h-5 w-5" style={{ color: '#06B6D4' }} />,
               title: 'Define la propuesta técnica optima',
-              desc: 'Determina cantidad, potencia, optica y disposicion de luminarias especificamente para tu recinto y uso.',
+              desc: 'Determina cantidad, potencia, óptica y disposición de luminarias especificamente para tu recinto y uso.',
             },
           ].map(({ icon, title, desc }) => (
             <div
@@ -402,21 +402,21 @@ const EstudioLuminicoPage = () => {
         <div className="container">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-bold mb-3">
-              Que recibe el cliente
+              ¿Qué recibe el cliente?
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              El informe PDF incluye representaciones graficas y tablas numericas
-              que permiten verificar el desempeno del sistema antes de la instalación.
+              El informe PDF incluye representaciones gráficas y tablas numéricas
+              que permiten verificar el desempeño del sistema antes de la instalación.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <ReportPreview
               title="Rendering de colores falsos"
-              subtitle="Distribucion de iluminancia sobre el recinto"
+              subtitle="Distribución de iluminancia sobre el recinto"
               icon={<BarChart3 className="h-8 w-8" style={{ color: '#06B6D4' }} />}
             />
             <ReportPreview
-              title="Mapa de isolineas"
+              title="Mapa de isolíneas"
               subtitle="Curvas de igual iluminancia sobre el plano de trabajo"
               icon={<Globe className="h-8 w-8" style={{ color: '#06B6D4' }} />}
             />
@@ -470,7 +470,7 @@ const EstudioLuminicoPage = () => {
             Contenido del informe
           </h2>
           <p className="text-center text-muted-foreground mb-10">
-            Seis componentes que forman el informe técnico de aproximadamente 20 paginas.
+            Seis componentes que forman el informe técnico de aproximadamente 20 páginas.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
             {ENTREGABLES.map(({ num, title, desc }) => (
