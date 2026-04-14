@@ -123,4 +123,4 @@ const ProductCard = ({ product }: Props) => {
         );
 };
 
-export default ProductCard;</div>
+export default ProductCard;
