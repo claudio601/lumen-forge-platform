@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Wrench, ArrowRight, Sun } from 'lucide-react';
+import { ArrowRight, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { waInstalacion, installationCoverageShort } from '@/config/business';
+import { installationCoverageShort } from '@/config/business';
 
 const InstallerTeaser = () => (
   <section className="container py-12">

@@ -20,11 +20,12 @@ import { useRequestCart } from '@/context/RequestCartContext';
 import { buildRequestRef, cartItemToOrderItem, formatCLP } from '@/lib/requestOrder';
 import { sendEvent } from '@/lib/analytics';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
+import { Helmet } from 'react-helmet-async';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 const REGIONS = [
       'Arica y Parinacota','Tarapaca','Antofagasta','Atacama','Coquimbo',
-      'Valparaiso','Region Metropolitana',"O'Higgins",'Maule','Nuble',
+      'Valparaiso','Región Metropolitana',"O'Higgins",'Maule','Nuble',
       'Biobio','La Araucania','Los Rios','Los Lagos','Aysen','Magallanes',
     ];
 
@@ -38,7 +39,7 @@ interface FormValues {
       companyName: string;
       rut: string;
       commune: string;
-      region: string;
+      región: string;
       notes: string;
 }
 
@@ -50,7 +51,7 @@ const EMPTY_FORM: FormValues = {
       companyName: '',
       rut: '',
       commune: '',
-      region: 'Region Metropolitana',
+      región: 'Región Metropolitana',
       notes: '',
 };
 
@@ -58,10 +59,15 @@ const EMPTY_FORM: FormValues = {
 function ConfirmationScreen({ requestRef }: { requestRef: string }) {
       return (
               <div className="flex flex-col items-center justify-center gap-5 py-20 text-center max-w-md mx-auto">
+    <Helmet>
+      <title>Solicitud de Pedido | eLIGHTS Chile</title>
+      <meta name="description" content="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." />
+    </Helmet>
+
                     <CheckCircle2 className="h-16 w-16 text-green-500" />
                     <h1 className="text-2xl font-bold text-gray-900">Solicitud enviada</h1>
                     <p className="text-gray-500 text-sm leading-relaxed">
-                            Tu solicitud fue enviada. Nuestro equipo revisara stock y te contactara para habilitar el pago.
+                            Tu solicitud fue enviada. Nuestro equipo revisará stock y te contactará para habilitar el pago.
                     </p>
                     <p className="text-xs font-mono bg-muted px-3 py-1.5 rounded-lg text-muted-foreground">
                             Referencia: <span className="font-bold text-foreground">{requestRef}</span>
@@ -97,7 +103,7 @@ const RequestOrderPage = () => {
               return (
                         <div className="container py-16 text-center">
                                 <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-                                <h1 className="text-2xl font-bold mb-2">Tu solicitud esta vacia</h1>
+                                <h1 className="text-2xl font-bold mb-2">Tu solicitud está vacía</h1>
                                 <p className="text-muted-foreground mb-6">
                                           Agrega productos desde el catalogo para solicitar un pedido
                                 </p>
@@ -135,9 +141,9 @@ const RequestOrderPage = () => {
               if (missing.length > 0 || phoneInvalid) {
                         // Fix 3: mensaje especifico segun el tipo de error de telefono
                         if (phoneInvalid && missing.length === 0) {
-                                    setErrorMsg('Ingresa un telefono valido con al menos 8 digitos.');
+                                    setErrorMsg('Ingresa un teléfono valido con al menos 8 digitos.');
                         } else if (phoneInvalid) {
-                                    setErrorMsg('Por favor completa todos los campos requeridos (*) e ingresa un telefono valido.');
+                                    setErrorMsg('Por favor completa todos los campos requeridos (*) e ingresa un teléfono valido.');
                         } else {
                                     setErrorMsg('Por favor completa todos los campos requeridos (*).');
                         }
@@ -218,7 +224,7 @@ const RequestOrderPage = () => {
               
                     <h1 className="text-2xl font-bold mb-1">Solicitud de pedido</h1>
                     <p className="text-muted-foreground text-sm mb-6">
-                            Completa tus datos y nuestro equipo revisara stock y disponibilidad para habilitarte el pago.
+                            Completa tus datos y nuestro equipo revisará stock y disponibilidad para habilitarte el pago.
                     </p>
               
                   {/* ── Tabla de productos ──────────────────────────────────────── */}
@@ -338,10 +344,10 @@ const RequestOrderPage = () => {
                                                                   />
                                       </div>
                             
-                                {/* Telefono */}
+                                {/* Teléfono */}
                                       <div>
                                                   <label htmlFor="ro-phone" className={labelClass}>
-                                                                Telefono <span className="text-red-500">*</span>
+                                                                Teléfono <span className="text-red-500">*</span>
                                                   </label>
                                                   <input
                                                                     id="ro-phone"
@@ -426,14 +432,14 @@ const RequestOrderPage = () => {
                                                                   />
                                       </div>
                             
-                                {/* Region */}
+                                {/* Región */}
                                       <div>
-                                                  <label htmlFor="ro-region" className={labelClass}>
-                                                                Region <span className="text-red-500">*</span>
+                                                  <label htmlFor="ro-región" className={labelClass}>
+                                                                Región <span className="text-red-500">*</span>
                                                   </label>
                                                   <select
-                                                                    id="ro-region"
-                                                                    name="region"
+                                                                    id="ro-región"
+                                                                    name="región"
                                                                     value={form.region}
                                                                     onChange={handleChange}
                                                                     className={inputClass}
@@ -485,7 +491,7 @@ const RequestOrderPage = () => {
                             </Button>
                     
                             <p className="text-center text-xs text-gray-400 mt-3">
-                                      Nuestro equipo revisara stock y te contactara para habilitar el pago. Sin cobro automatico.
+                                      Nuestro equipo revisará stock y te contactará para habilitar el pago. Sin cobro automatico.
                             </p>
                     </form>
               </div>

@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { waProductUrl } from '@/config/business';
 import RequestOrderButton from '@/components/request-order/RequestOrderButton';
+import { Helmet } from 'react-helmet-async';
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -28,6 +29,11 @@ const ProductDetail = () => {
     if (!product) {
           return (
                   <div className="container py-16 text-center">
+    <Helmet>
+      <title>{product ? `${product.name} | eLIGHTS Chile` : 'Producto | eLIGHTS Chile'}</title>
+      <meta name="description" content={product ? `${product.name} — Iluminación LED profesional. Ficha técnica, especificaciones y cotización.` : 'Producto de iluminación LED profesional.'} />
+    </Helmet>
+
                           <p className="text-muted-foreground">Producto no encontrado</p>
                           <Link to="/catalogo" className="text-primary text-sm mt-4 inline-block">
                                     Volver al catalogo
@@ -214,7 +220,7 @@ const ProductDetail = () => {
                                                               className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
                                                               onClick={() => {
                                                                                 addToQuote(product, qty);
-                                                                                toast.success('Agregado a cotizacion');
+                                                                                toast.success('Agregado a cotización');
                                                               }}
                                                             >
                                                             <FileText className="h-4 w-4" />

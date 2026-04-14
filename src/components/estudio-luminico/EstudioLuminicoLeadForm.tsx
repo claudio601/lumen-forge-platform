@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { waEstudioLuminico, contactEmail } from '@/config/business';
+import { contactEmail } from '@/config/business';
 import { sendEvent } from '@/lib/analytics';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────

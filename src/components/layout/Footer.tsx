@@ -38,7 +38,7 @@ const Footer = () => {
                   <span className="text-[10px] text-background/30">{cat.productCount}</span>
                 </Link>
               ))}
-              <Link to="/catalogo" className="block text-sm text-primary hover:underline mt-2">Ver todas las categorias</Link>
+              <Link to="/catalogo" className="block text-sm text-primary hover:underline mt-2">Ver todas las categorías</Link>
             </nav>
           </div>
           <div>

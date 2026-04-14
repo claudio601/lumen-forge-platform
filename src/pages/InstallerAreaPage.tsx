@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wrench, Shield, BarChart3, Download, Heart, HeadphonesIcon, ArrowRight, User, FileText, Package, Star } from 'lucide-react';
+import { Wrench, Shield, Download, Heart, HeadphonesIcon, ArrowRight, User, FileText, Package, Star } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const features = [
   { icon: Shield, title: 'Precios especiales', desc: 'Descuentos exclusivos para instaladores registrados y verificados.' },
@@ -18,6 +18,11 @@ const tiers = [
 ];
 
 const InstallerAreaPage = () => (
+  <>
+  <Helmet>
+    <title>Área de Instaladores | eLIGHTS Chile</title>
+    <meta name="description" content="Regístrate como instalador certificado de eLIGHTS. Accede a precios especiales y proyectos de iluminación LED." />
+  </Helmet>
   <div className="container py-8">
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -77,6 +82,7 @@ const InstallerAreaPage = () => (
       </div>
     </div>
   </div>
+  </>
 );
 
 export default InstallerAreaPage;

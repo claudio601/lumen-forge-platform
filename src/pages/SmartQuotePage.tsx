@@ -4,6 +4,7 @@ import { Send, CheckCircle2, Upload, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { waBase, contactEmail, whatsappDisplayNumber } from '@/config/business';
+import { Helmet } from 'react-helmet-async';
 
 const EMAILJS_SERVICE_ID = 'service_elights';
 const EMAILJS_TEMPLATE_ID = 'template_6y0bq3l';
@@ -33,18 +34,18 @@ const SmartQuotePage = () => {
     tipoProyecto: '',
     m2: '',
     altura: '',
-    aplicacion: '',
+    aplicación: '',
     nivelIluminacion: '',
     ciudad: '',
     plazo: '',
     comentarios: '',
     nombre: '',
     email: '',
-    telefono: '',
+    teléfono: '',
     rutEmpresa: '',
     razonSocial: '',
     giro: '',
-    direccion: '',
+    dirección: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -92,13 +93,18 @@ const SmartQuotePage = () => {
   if (submitted) {
     return (
       <div className="container py-16 text-center max-w-md mx-auto">
+    <Helmet>
+      <title>Cotizar Iluminación LED | eLIGHTS Chile</title>
+      <meta name="description" content="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." />
+    </Helmet>
+
         <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Propuesta solicitada!</h1>
         <p className="text-muted-foreground mb-2">
-          Nuestro equipo tecnico preparara una propuesta personalizada y te contactara en menos de 24 horas habiles.
+          Nuestro equipo técnico preparara una propuesta personalizada y te contactará en menos de 24 horas hábiles.
         </p>
         <p className="text-sm text-muted-foreground mb-8">
-          Tambien puedes escribirnos a{' '}
+          También puedes escribirnos a{' '}
           <a href={'mailto:' + contactEmail} className="text-primary underline">{contactEmail}</a>
           {' '}o al{' '}
           <a href={waBase} className="text-primary underline">{whatsappDisplayNumber}</a>.
@@ -125,7 +131,7 @@ const SmartQuotePage = () => {
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="border rounded-xl p-6 space-y-4">
-            <h2 className="font-bold">Informacion del proyecto</h2>
+            <h2 className="font-bold">Información del proyecto</h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Tipo de proyecto <span className="text-destructive">*</span></label>
@@ -143,18 +149,18 @@ const SmartQuotePage = () => {
                 <input name="altura" type="number" step="0.1" value={form.altura} onChange={handleChange} className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Tipo de aplicacion</label>
+                <label className="text-sm font-medium mb-1 block">Tipo de aplicación</label>
                 <input name="aplicacion" value={form.aplicacion} onChange={handleChange} placeholder="Ej: iluminacion general, acento..." className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Nivel de iluminacion</label>
+                <label className="text-sm font-medium mb-1 block">Nivel de iluminación</label>
                 <select name="nivelIluminacion" value={form.nivelIluminacion} onChange={handleChange} className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="">Seleccionar...</option>
                   {illuminationLevels.map(l => <option key={l} value={l}>{l}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Ciudad / Region</label>
+                <label className="text-sm font-medium mb-1 block">Ciudad / Región</label>
                 <input name="ciudad" value={form.ciudad} onChange={handleChange} className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
               <div>
@@ -177,7 +183,7 @@ const SmartQuotePage = () => {
               {[
                 { name: 'nombre', label: 'Nombre y Apellido', required: true },
                 { name: 'email', label: 'Email', type: 'email', required: true },
-                { name: 'telefono', label: 'Telefono', type: 'tel', required: true },
+                { name: 'teléfono', label: 'Teléfono', type: 'tel', required: true },
                 { name: 'rutEmpresa', label: 'RUT Empresa' },
                 { name: 'razonSocial', label: 'Razon Social' },
                 { name: 'giro', label: 'Giro' },
@@ -197,7 +203,7 @@ const SmartQuotePage = () => {
                 </div>
               ))}
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium mb-1 block">Direccion</label>
+                <label className="text-sm font-medium mb-1 block">Dirección</label>
                 <input name="direccion" value={form.direccion} onChange={handleChange} className="w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
               </div>
             </div>

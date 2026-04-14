@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { products, popularSearches, categories } from '@/data/products';
 import ProductCard from '@/components/catalog/ProductCard';
 import { Search, X, TrendingUp } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const SearchPage = () => {
   const [params] = useSearchParams();
@@ -25,6 +26,11 @@ const SearchPage = () => {
 
   return (
     <div className="container py-8">
+    <Helmet>
+      <title>Buscar Productos | eLIGHTS Chile</title>
+      <meta name="description" content="Busca en el catálogo de iluminación LED profesional de eLIGHTS." />
+    </Helmet>
+
       <div className="max-w-2xl mx-auto mb-8">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />

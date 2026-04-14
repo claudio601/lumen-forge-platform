@@ -9,6 +9,7 @@ import {
 } from '@/config/business';
 import InstallationLeadForm from '@/components/instalacion/InstallationLeadForm';
 import { sendEvent } from '@/lib/analytics';
+import { Helmet } from 'react-helmet-async';
 
 // Hero copy: Variante A implementada, Variante B documentada.
 // Variante A: titulo con cobertura RM explicita, subcopy orientado a propuesta
@@ -28,6 +29,11 @@ const InstalacionPage = () => {
 
   return (
     <div className="bg-[#FAFAF7]">
+    <Helmet>
+      <title>Instalación Profesional de Iluminación LED y Paneles Solares | eLIGHTS</title>
+      <meta name="description" content="Servicio de instalación eléctrica profesional de iluminación LED y paneles solares en la Región Metropolitana. Visita técnica, cotización y ejecución por técnicos certificados SEC." />
+    </Helmet>
+
       {/* Hero */}
       <section
         className="relative overflow-hidden"
@@ -51,16 +57,16 @@ const InstalacionPage = () => {
             }}
           >
             <MapPin className="h-3 w-3" />
-            Region Metropolitana
+            Región Metropolitana
           </div>
           <h1 className="text-3xl md:text-5xl font-bold mb-5 leading-tight">
-            Instalacion electrica e iluminacion LED{' '}
+            Instalación eléctrica e iluminación LED{' '}
             <em className="not-italic italic" style={{ color: '#FCD34D' }}>
-              profesional en la Region Metropolitana
+              profesional en la Región Metropolitana
             </em>
           </h1>
           <p className="text-gray-300 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            Evaluamos tu espacio, te enviamos una propuesta clara y coordinamos la instalacion con tecnicos certificados SEC. Atendemos hogares, oficinas, locales y proyectos comerciales.
+            Evaluamos tu espacio, te enviamos una propuesta clara y coordinamos la instalación con técnicos certificados SEC. Atendemos hogares, oficinas, locales y proyectos comerciales.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-14">
             <a
@@ -73,7 +79,7 @@ const InstalacionPage = () => {
               style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
             >
               <ClipboardList className="h-4 w-4" />
-              Solicitar evaluacion
+              Solicitar evaluación
             </a>
             <a
               href={waInstalacion}
@@ -122,7 +128,7 @@ const InstalacionPage = () => {
             <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5" style={{ background: 'rgba(124,58,237,0.12)' }}>
               <MapPin className="h-6 w-6" style={{ color: '#7C3AED' }} />
             </div>
-            <h3 className="text-xl font-bold mb-2">Visita Tecnica</h3>
+            <h3 className="text-xl font-bold mb-2">Visita Técnica</h3>
             <p className="text-muted-foreground text-sm mb-5">{installationVisitDescription}</p>
             <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(124,58,237,0.10)', color: '#6B21A8' }}>
               {installationVisitLabel}
@@ -133,9 +139,9 @@ const InstalacionPage = () => {
             <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5" style={{ background: 'rgba(245,158,11,0.12)' }}>
               <Wrench className="h-6 w-6" style={{ color: '#F59E0B' }} />
             </div>
-            <h3 className="text-xl font-bold mb-2">Instalacion Completa</h3>
+            <h3 className="text-xl font-bold mb-2">Instalación Completa</h3>
             <p className="text-muted-foreground text-sm mb-5">
-              Nos encargamos de todo: provision de luminarias, cableado, fijaciones y puesta en marcha. Trabajo limpio, garantizado y con certificacion de instalacion electrica cuando aplique.
+              Nos encargamos de todo: provisión de luminarias, cableado, fijaciones y puesta en marcha. Trabajo limpio, garantizado y con certificación de instalación eléctrica cuando aplique.
             </p>
             <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(245,158,11,0.10)', color: '#92400E' }}>
               Producto + Mano de obra incluida
@@ -148,7 +154,7 @@ const InstalacionPage = () => {
             </div>
             <h3 className="text-xl font-bold mb-2">Paneles Solares</h3>
             <p className="text-muted-foreground text-sm mb-5">
-              Instalacion de sistemas fotovoltaicos para hogares y empresas. Evaluamos tu consumo, disenamos el sistema y lo instalamos con conexion a la red (Net Billing).
+              Instalación de sistemas fotovoltaicos para hogares y empresas. Evaluamos tu consumo, diseñamos el sistema y lo instalamos con conexión a la red (Net Billing).
             </p>
             <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(251,191,36,0.12)', color: '#92400E' }}>
               Ahorro desde el primer mes
@@ -157,16 +163,16 @@ const InstalacionPage = () => {
         </div>
       </section>
 
-      {/* Como funciona */}
+      {/* Cómo funciona */}
       <section className="py-16" style={{ background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)' }}>
         <div className="container">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Como funciona?</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Cómo funciona?</h2>
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-center gap-0">
             <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5" style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }} />
             {[
-              { num: '1', title: 'Cuentanos tu proyecto', desc: 'Escribenos por WhatsApp, correo o usa el formulario de esta pagina.' },
-              { num: '2', title: 'Recibe tu propuesta', desc: 'En 24 horas habiles recibiras una propuesta detallada con productos, mano de obra y plazos.' },
-              { num: '3', title: 'Instalamos todo', desc: 'Nuestro equipo se encarga de la instalacion profesional y te entrega el proyecto terminado.' },
+              { num: '1', title: 'Cuentanos tu proyecto', desc: 'Escribenos por WhatsApp, correo o usa el formulario de esta página.' },
+              { num: '2', title: 'Recibe tu propuesta', desc: 'En 24 horas hábiles recibirás una propuesta detallada con productos, mano de obra y plazos.' },
+              { num: '3', title: 'Instalamos todo', desc: 'Nuestro equipo se encarga de la instalación profesional y te entrega el proyecto terminado.' },
             ].map(({ num, title, desc }) => (
               <div key={num} className="relative flex flex-col items-center text-center flex-1 px-6 mb-8 md:mb-0">
                 <div className="z-10 flex items-center justify-center h-16 w-16 rounded-full text-white font-extrabold text-xl mb-4 shadow-lg" style={{ background: 'linear-gradient(135deg, #7C3AED, #F59E0B)' }}>
@@ -209,9 +215,9 @@ const InstalacionPage = () => {
             <span className="inline-block text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4" style={{ background: 'rgba(252,211,77,0.15)', color: '#FCD34D' }}>
               Sin compromiso
             </span>
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Solicita tu evaluacion</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Solicita tu evaluación</h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
-              Completa el formulario y te contactaremos en menos de 24 horas habiles para revisar tu proyecto y definir la mejor propuesta.
+              Completa el formulario y te contactaremos en menos de 24 horas hábiles para revisar tu proyecto y definir la mejor propuesta.
             </p>
           </div>
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl">
@@ -243,16 +249,16 @@ const InstalacionPage = () => {
       {/* Cobertura */}
       <section className="py-16 text-white text-center" style={{ background: '#1A0A2E' }}>
         <div className="container max-w-2xl">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Cobertura: Region Metropolitana</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">Cobertura: Región Metropolitana</h2>
           <p className="text-gray-300 text-base leading-relaxed">{installationCoverage}</p>
         </div>
       </section>
 
       {/* CTA Final */}
       <section className="container py-20 text-center">
-        <h2 className="text-2xl md:text-3xl font-bold mb-3">Agenda una visita tecnica</h2>
+        <h2 className="text-2xl md:text-3xl font-bold mb-3">Agenda una visita técnica</h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Visita tecnica desde $20.000, monto descontable si contratas la instalacion. Tecnicos certificados SEC, propuesta detallada y sin letra chica.
+          Visita técnica desde $20.000, monto descontable si contratas la instalación. Técnicos certificados SEC, propuesta detallada y sin letra chica.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
@@ -265,7 +271,7 @@ const InstalacionPage = () => {
             style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
           >
             <ClipboardList className="h-4 w-4" />
-            Solicitar evaluacion
+            Solicitar evaluación
           </a>
           <a
             href={waInstalacion}
