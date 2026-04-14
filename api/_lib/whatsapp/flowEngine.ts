@@ -102,7 +102,7 @@ const WANTS_HUMAN_RE = /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|ase
 const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
 const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
 const CANTIDAD_RE = /\b(\d+)\s*(unidades?|und\.?|u\b|lumin|panel|foco|reflector|tira|strip|downlight)?/i;
-const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
+const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
 const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
 const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 const RUT_RE = /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/;
@@ -114,10 +114,13 @@ const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s
 // [INSTALL-FLOW] Tipo de proyecto para instalacion
 const INSTALL_TIPO_PROYECTO_RE = /\b(casa|departamento|depto|oficina|local comercial|local|bodega|galpon|quincho|terraza|patio|jardin|exterior|edificio|condominio|empresa|industria|nave|faena|planta|colegio|hospital|estacionamiento)\b/i;
 function extractEmail(text: string): string | undefined {
-  const m = text.match(EMAIL_RE);
-  return m ? m[0] : undefined;
+  // [FIX-EMAIL-PARSER] Normalizar texto: quitar espacios, limpiar prefijos
+  const normalized = text.trim();
+  const m = normalized.match(EMAIL_RE);
+  if (!m) return undefined;
+  // Limpiar puntuacion al final (. , ; : !) y devolver en minuscula
+  return m[0].replace(/[.,;:!]+$/, '').toLowerCase();
 }
-
 function extractCiudad(text: string): string | undefined {
   const m = text.match(CIUDAD_RE);
   return m ? m[0] : undefined;
@@ -475,7 +478,7 @@ export function processFlowStep(
       repreg2 += 1;
       saveFlowState(phone, { ...state, stage: 'stage2', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
       const replyS2 = missing.length === 2 ? MSG2 : buildRepregunta2(missing);
-      return { reply: replyS2, shouldCreateDeal: baseShouldCreate, shouldNotify: false, captureStatus: 'partial', captured: merged, wantsHuman, closedFlow: false };
+      return { reply: replyS2, shouldCreateDeal: false  /* [FIX-EMAIL-GATE] no crear deal sin correo */, shouldNotify: false, captureStatus: 'partial', captured: merged, wantsHuman, closedFlow: false };
     }
     if (currentStage === 'stage3') {
       const missing = missingStage3(merged, currentLeadType);
@@ -488,13 +491,14 @@ export function processFlowStep(
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage3, status=' + finalStatus);
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ?? 'none'));
+        const canCreate3 = hasMinCommercial(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
+        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg3 += 1;
       saveFlowState(phone, { ...state, stage: 'stage3', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
       const replyS3 = missing.length === 2 ? (currentLeadType === 'B2B' ? MSG3_B2B : MSG3_B2C) : buildRepregunta3(missing, currentLeadType);
-      return { reply: replyS3, shouldCreateDeal: true, shouldNotify: false, captureStatus: 'partial', captured: merged, wantsHuman, closedFlow: false };
+      return { reply: replyS3, shouldCreateDeal: false  /* [FIX-EMAIL-GATE] no crear deal sin correo en stage3 */, shouldNotify: false, captureStatus: 'partial', captured: merged, wantsHuman, closedFlow: false };
     }
     break;
   }
@@ -580,6 +584,6 @@ function computeCaptureStatus(f: CapturedFields, leadType: LeadType = 'Unknown')
   const baseFields = [f.producto, f.tipo_de_luz, f.cantidad, f.proyecto_o_uso, f.comuna_o_ciudad];
   const baseFilled = baseFields.filter(Boolean).length;
   if (baseFilled >= 5 && contactOk) return 'complete';
-  if (baseFilled >= 2 || f.correo) return 'partial';
+  if (baseFilled >= 2 && f.correo) return 'partial';  // [FIX-EMAIL-GATE] requiere correo para partial
   return 'incomplete';
 }
