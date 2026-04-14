@@ -281,4 +281,4 @@ const ProductDetail = () => {
         );
 };
 
-export default ProductDetail;</></></div>
+export default ProductDetail;
