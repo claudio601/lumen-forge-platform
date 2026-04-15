@@ -1,6 +1,6 @@
 # Reporte comparativo de precios - Competencia
 
-Generado: 2026-04-01T11:40:29.579322+00:00
+Generado: 2026-04-15T12:05:17.371760+00:00
 
 ## Nota importante
 
@@ -18,7 +18,7 @@ Generado: 2026-04-01T11:40:29.579322+00:00
 
 | Categoria | Competidor | Min | Max | Productos |
 |---|---|---:|---:|---:|
-| Proyectores LED | PowerEnergy | $3.440 | $1.448.540 | 48 |
+| Proyectores LED | PowerEnergy | $3.440 | $1.448.540 | 51 |
 | Proyectores LED | Megabright | N/D | N/D | 0 |
 | Proyectores LED | TecnoIluminacion | N/D | N/D | 0 |
 | Paneles LED | PowerEnergy | $2.290 | $78.590 | 48 |
@@ -37,6 +37,9 @@ Generado: 2026-04-01T11:40:29.579322+00:00
 
 | Categoria | Producto | Precio |
 |---|---|---:|
+| Proyectores LED | Proyector Antiexplosivo Led 200W DS1 | $399.990 |
+| Proyectores LED | Proyector Antiexplosivo Led 150W DS1 | $338.790 |
+| Proyectores LED | Proyector Antiexplosivo Led 100W DS1 | $300.390 |
 | Proyectores LED | Proyector Antiexplosivo Led 150W | $331.890 |
 | Proyectores LED | Proyector Antiexplosivo Led 100W | $293.490 |
 | Proyectores LED | Base Soporte Atril 150Cm | $23.390 |
