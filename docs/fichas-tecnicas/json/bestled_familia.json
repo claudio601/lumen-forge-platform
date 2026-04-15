@@ -6,83 +6,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 40,
-      "potencia_medida_w": 40.04,
-      "flujo_luminoso_lm": 6031,
-      "eficacia_lm_w": 150.6,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 0.194,
+      "potencia_W": 40.0,
+      "flujo_lm": 6031.0,
+      "eficacia_lmW": 150.8,
+      "voltaje_nominal_V": 219.8,
+      "corriente_A": 0.194,
       "factor_potencia": 0.938,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "460 x 200 x 72",
       "peso_kg": 2.8,
-      "diametro_anclaje_mm": 53,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 5456
+      "diametro_anclaje_mm": 53
     },
     "variantes_cct": [
       {
-        "sku": "APB40C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB40-2200_2700K",
+        "flujo_lm": 6031.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB40N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB40-4000K",
+        "flujo_lm": 6031.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB40F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB40-5000K",
+        "flujo_lm": 6031.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 2,
-      "dimensiones_caja_mm": "540 x 230 x 230",
-      "peso_caja_kg": 6.5
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
-      "fecha_ensayo": "2024-03-05",
+      "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled40.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 92.4,
+      "clasificacion_ies": "Semi-Direct",
+      "intensidad_max_cd": 2895.0,
+      "flujo_descendente_pct": 98.9,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled40.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled40.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "B",
       "estado_editorial": "BORRADOR",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+      "nota": "Dimensiones y peso pendientes de validación con proveedor."
     }
   },
   {
@@ -92,83 +90,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 60,
-      "potencia_medida_w": 60.04,
-      "flujo_luminoso_lm": 9167,
-      "eficacia_lm_w": 152.7,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 0.228,
+      "potencia_W": 60.0,
+      "flujo_lm": 9167.0,
+      "eficacia_lmW": 152.8,
+      "voltaje_nominal_V": 219.8,
+      "corriente_A": 0.228,
       "factor_potencia": 0.938,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "500 x 210 x 75",
       "peso_kg": 3.6,
-      "diametro_anclaje_mm": 53,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 12605
+      "diametro_anclaje_mm": 53
     },
     "variantes_cct": [
       {
-        "sku": "APB60C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB60-2200_2700K",
+        "flujo_lm": 9167.0,
+        "eficacia_lmW": 152.8,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB60N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB60-4000K",
+        "flujo_lm": 9167.0,
+        "eficacia_lmW": 152.8,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB60F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB60-5000K",
+        "flujo_lm": 9167.0,
+        "eficacia_lmW": 152.8,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 2,
-      "dimensiones_caja_mm": "570 x 250 x 245",
-      "peso_caja_kg": 7.23
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
       "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled60.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 119.3,
+      "clasificacion_ies": "Type I / Short / Cutoff",
+      "intensidad_max_cd": 4400.0,
+      "flujo_descendente_pct": 99.24,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled60.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled60.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "A",
       "estado_editorial": "READY",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Datos confirmados con ficha de agencia"
+      "nota": ""
     }
   },
   {
@@ -178,83 +174,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 90,
-      "potencia_medida_w": 90.9,
-      "flujo_luminoso_lm": 13595,
-      "eficacia_lm_w": 149.6,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 0.434,
+      "potencia_W": 90.9,
+      "flujo_lm": 13595.0,
+      "eficacia_lmW": 149.6,
+      "voltaje_nominal_V": 219.8,
+      "corriente_A": 0.434,
       "factor_potencia": 0.954,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "540 x 230 x 78",
       "peso_kg": 4.2,
-      "diametro_anclaje_mm": 60,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 27725
+      "diametro_anclaje_mm": 60
     },
     "variantes_cct": [
       {
-        "sku": "APB90C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB90-2200_2700K",
+        "flujo_lm": 13595.0,
+        "eficacia_lmW": 149.6,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB90N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB90-4000K",
+        "flujo_lm": 13595.0,
+        "eficacia_lmW": 149.6,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB90F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB90-5000K",
+        "flujo_lm": 13595.0,
+        "eficacia_lmW": 149.6,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 2,
-      "dimensiones_caja_mm": "620 x 270 x 260",
-      "peso_caja_kg": 9.5
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
-      "fecha_ensayo": "2024-03-10",
+      "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled90.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 130.0,
+      "clasificacion_ies": "Type I / Short / Cutoff",
+      "intensidad_max_cd": 6526.0,
+      "flujo_descendente_pct": 99.1,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled90.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled90.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "B",
       "estado_editorial": "BORRADOR",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+      "nota": "Dimensiones y peso pendientes de validación con proveedor."
     }
   },
   {
@@ -264,83 +258,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 120,
-      "potencia_medida_w": 119.5,
-      "flujo_luminoso_lm": 18023,
-      "eficacia_lm_w": 150.8,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 0.527,
+      "potencia_W": 119.5,
+      "flujo_lm": 18023.0,
+      "eficacia_lmW": 150.8,
+      "voltaje_nominal_V": 229.6,
+      "corriente_A": 0.527,
       "factor_potencia": 0.986,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "580 x 250 x 82",
       "peso_kg": 5.8,
-      "diametro_anclaje_mm": 60,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 48724
+      "diametro_anclaje_mm": 60
     },
     "variantes_cct": [
       {
-        "sku": "APB120C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB120-2200_2700K",
+        "flujo_lm": 18023.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB120N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB120-4000K",
+        "flujo_lm": 18023.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB120F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB120-5000K",
+        "flujo_lm": 18023.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 1,
-      "dimensiones_caja_mm": "650 x 290 x 280",
-      "peso_caja_kg": 7.0
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
-      "fecha_ensayo": "2024-03-12",
+      "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled120.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 135.0,
+      "clasificacion_ies": "Type I / Short / Cutoff",
+      "intensidad_max_cd": 8651.0,
+      "flujo_descendente_pct": 99.15,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled120.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled120.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "B",
       "estado_editorial": "BORRADOR",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+      "nota": "Dimensiones y peso pendientes de validación con proveedor."
     }
   },
   {
@@ -350,83 +342,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 150,
-      "potencia_medida_w": 149.4,
-      "flujo_luminoso_lm": 22567,
-      "eficacia_lm_w": 151.1,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 0.677,
+      "potencia_W": 149.4,
+      "flujo_lm": 22567.0,
+      "eficacia_lmW": 151.1,
+      "voltaje_nominal_V": 229.7,
+      "corriente_A": 0.677,
       "factor_potencia": 0.962,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "620 x 270 x 85",
       "peso_kg": 6.5,
-      "diametro_anclaje_mm": 60,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 76389
+      "diametro_anclaje_mm": 60
     },
     "variantes_cct": [
       {
-        "sku": "APB150C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB150-2200_2700K",
+        "flujo_lm": 22567.0,
+        "eficacia_lmW": 151.1,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB150N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB150-4000K",
+        "flujo_lm": 22567.0,
+        "eficacia_lmW": 151.1,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB150F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB150-5000K",
+        "flujo_lm": 22567.0,
+        "eficacia_lmW": 151.1,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 1,
-      "dimensiones_caja_mm": "700 x 310 x 290",
-      "peso_caja_kg": 8.0
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
-      "fecha_ensayo": "2024-03-14",
+      "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled150.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 141.0,
+      "clasificacion_ies": "Type I / Short / Cutoff",
+      "intensidad_max_cd": 10832.0,
+      "flujo_descendente_pct": 99.17,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled150.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled150.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "B",
       "estado_editorial": "BORRADOR",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+      "nota": "Dimensiones y peso pendientes de validación con proveedor."
     }
   },
   {
@@ -436,83 +426,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 200,
-      "potencia_medida_w": 198.9,
-      "flujo_luminoso_lm": 30005,
-      "eficacia_lm_w": 150.9,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 0.901,
+      "potencia_W": 198.9,
+      "flujo_lm": 30005.0,
+      "eficacia_lmW": 150.9,
+      "voltaje_nominal_V": 229.7,
+      "corriente_A": 0.901,
       "factor_potencia": 0.962,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "660 x 290 x 90",
       "peso_kg": 8.2,
-      "diametro_anclaje_mm": 60,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 135042
+      "diametro_anclaje_mm": 60
     },
     "variantes_cct": [
       {
-        "sku": "APB200C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB200-2200_2700K",
+        "flujo_lm": 30005.0,
+        "eficacia_lmW": 150.9,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB200N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB200-4000K",
+        "flujo_lm": 30005.0,
+        "eficacia_lmW": 150.9,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB200F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB200-5000K",
+        "flujo_lm": 30005.0,
+        "eficacia_lmW": 150.9,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 1,
-      "dimensiones_caja_mm": "740 x 330 x 300",
-      "peso_caja_kg": 10.0
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
-      "fecha_ensayo": "2024-03-16",
+      "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled200.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 143.0,
+      "clasificacion_ies": "Type I / Short / Cutoff",
+      "intensidad_max_cd": 14402.0,
+      "flujo_descendente_pct": 99.2,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled200.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled200.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "B",
       "estado_editorial": "BORRADOR",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+      "nota": "Dimensiones y peso pendientes de validación con proveedor."
     }
   },
   {
@@ -522,83 +510,81 @@
     "categoria": "Alumbrado Público / Vial",
     "familia_plantilla": "industrial",
     "specs": {
-      "potencia_nominal_w": 250,
-      "potencia_medida_w": 249.4,
-      "flujo_luminoso_lm": 37600,
-      "eficacia_lm_w": 150.8,
-      "cct_opciones": [
-        "2200-2700K",
-        "4000K",
-        "5000K"
-      ],
-      "cri": ">=80",
-      "tipo_led": "Bridgelux",
-      "voltaje_entrada": "AC 100-277V 50-60Hz",
-      "amperaje_a": 1.129,
+      "potencia_W": 249.4,
+      "flujo_lm": 37600.0,
+      "eficacia_lmW": 150.8,
+      "voltaje_nominal_V": 229.7,
+      "corriente_A": 1.129,
       "factor_potencia": 0.962,
+      "cri": ">=80",
       "ip": "IP66",
       "ik": "IK08",
+      "tipo_led": "Bridgelux",
       "material": "Aluminio / Vidrio / Policarbonato",
-      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "garantia_anos": 5,
       "dimensiones_mm": "720 x 320 x 95",
       "peso_kg": 10.5,
-      "diametro_anclaje_mm": 60,
-      "montaje": "Brazo poste / Parte alta poste",
-      "altura_montaje": "5 a 12 metros",
-      "vida_util_h": 100000,
-      "clasificacion_ies": "Type I / Short / Cutoff",
-      "angulo_haz_50_deg": 104.7,
-      "flujo_descendente_pct": 100.0,
-      "intensidad_max_cd": 212064
+      "diametro_anclaje_mm": 60
     },
     "variantes_cct": [
       {
-        "sku": "APB250C",
-        "cct": "2200-2700K",
-        "descripcion": "Luz cálida"
+        "cct_K": "2200-2700K",
+        "sku": "APB250-2200_2700K",
+        "flujo_lm": 37600.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Ambiental"
       },
       {
-        "sku": "APB250N",
-        "cct": "4000K",
-        "descripcion": "Luz neutra"
+        "cct_K": "4000K",
+        "sku": "APB250-4000K",
+        "flujo_lm": 37600.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Urbano/Vial"
       },
       {
-        "sku": "APB250F",
-        "cct": "5000K",
-        "descripcion": "Luz fría"
+        "cct_K": "5000K",
+        "sku": "APB250-5000K",
+        "flujo_lm": 37600.0,
+        "eficacia_lmW": 150.8,
+        "aplicacion": "Industrial"
       }
     ],
     "driver": {
       "marca": "Mean Well",
-      "dimming": "Programable (0-10V / 1-10V)",
-      "compartimiento": "Independiente, apertura sin herramientas"
+      "tipo": "Regulable 0-10V",
+      "rango_voltaje": "AC 100-277V 50-60Hz",
+      "factor_potencia": ">0.95",
+      "proteccion": "OCP, OVP, OTP, SCP"
     },
     "certificaciones": {
-      "certificacion": "SEC - PE N°5/07 y DS1",
-      "garantia_anos": 5,
-      "temp_operacion": "-20°C a +50°C"
+      "sec": "SEC - PE N°5/07 y DS1",
+      "normas": [
+        "IEC 60598-1",
+        "IEC 60598-2-3",
+        "IEC 62471",
+        "IESNA LM-63-2002"
+      ]
     },
-    "packaging": {
-      "cantidad_por_caja": 1,
-      "dimensiones_caja_mm": "800 x 360 x 320",
-      "peso_caja_kg": 12.5
-    },
+    "packaging": {},
     "fotometria": {
       "laboratorio": "VOLNIC",
       "equipo": "GON-2000",
-      "fecha_ensayo": "2024-03-18",
+      "fecha_ensayo": "2024-03-08",
       "archivo_ies": "bestled250.IES",
-      "temperatura_ensayo_c": 25,
-      "humedad_ensayo_pct": 68
+      "angulo_haz_50_deg": 145.0,
+      "clasificacion_ies": "Type I / Short / Cutoff",
+      "intensidad_max_cd": 18048.0,
+      "flujo_descendente_pct": 99.22,
+      "polar_svg": "docs/fotometrias/bestled/polar/polar_bestled250.svg",
+      "polar_png": "docs/fotometrias/bestled/polar/polar_bestled250.png"
     },
     "metadata": {
-      "version_ficha": 1,
-      "fecha_generacion": "2026-04-15",
+      "version_ficha": 2,
       "quality_score": "B",
       "estado_editorial": "BORRADOR",
-      "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
-      "clasificacion_datos": "FC",
-      "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+      "nota": "Dimensiones y peso pendientes de validación con proveedor."
     }
   }
 ]
