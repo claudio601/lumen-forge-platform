@@ -1,0 +1,86 @@
+{
+  "sku_base": "APB90",
+  "modelo": "BESTLED 90W",
+  "marca": "eLIGHTS",
+  "categoria": "Alumbrado Público / Vial",
+  "familia_plantilla": "industrial",
+  "specs": {
+    "potencia_nominal_w": 90,
+    "potencia_medida_w": 90.9,
+    "flujo_luminoso_lm": 13595,
+    "eficacia_lm_w": 149.6,
+    "cct_opciones": [
+      "2200-2700K",
+      "4000K",
+      "5000K"
+    ],
+    "cri": ">=80",
+    "tipo_led": "Bridgelux",
+    "voltaje_entrada": "AC 100-277V 50-60Hz",
+    "amperaje_a": 0.434,
+    "factor_potencia": 0.954,
+    "ip": "IP66",
+    "ik": "IK08",
+    "material": "Aluminio / Vidrio / Policarbonato",
+    "color_cuerpo": "Gris oscuro",
+    "dimensiones_mm": "540 x 230 x 78",
+    "peso_kg": 4.2,
+    "diametro_anclaje_mm": 60,
+    "montaje": "Brazo poste / Parte alta poste",
+    "altura_montaje": "5 a 12 metros",
+    "vida_util_h": 100000,
+    "clasificacion_ies": "Type I / Short / Cutoff",
+    "angulo_haz_50_deg": 104.7,
+    "flujo_descendente_pct": 100.0,
+    "intensidad_max_cd": 27725
+  },
+  "variantes_cct": [
+    {
+      "sku": "APB90C",
+      "cct": "2200-2700K",
+      "descripcion": "Luz cálida"
+    },
+    {
+      "sku": "APB90N",
+      "cct": "4000K",
+      "descripcion": "Luz neutra"
+    },
+    {
+      "sku": "APB90F",
+      "cct": "5000K",
+      "descripcion": "Luz fría"
+    }
+  ],
+  "driver": {
+    "marca": "Mean Well",
+    "dimming": "Programable (0-10V / 1-10V)",
+    "compartimiento": "Independiente, apertura sin herramientas"
+  },
+  "certificaciones": {
+    "certificacion": "SEC - PE N°5/07 y DS1",
+    "garantia_anos": 5,
+    "temp_operacion": "-20°C a +50°C"
+  },
+  "packaging": {
+    "cantidad_por_caja": 2,
+    "dimensiones_caja_mm": "620 x 270 x 260",
+    "peso_caja_kg": 9.5
+  },
+  "fotometria": {
+    "laboratorio": "VOLNIC",
+    "equipo": "GON-2000",
+    "fecha_ensayo": "2024-03-10",
+    "archivo_ies": "bestled90.IES",
+    "temperatura_ensayo_c": 25,
+    "humedad_ensayo_pct": 68
+  },
+  "metadata": {
+    "version_ficha": 1,
+    "fecha_generacion": "2026-04-15",
+    "quality_score": "B",
+    "estado_editorial": "BORRADOR",
+    "fuente_datos": "IES VOLNIC + datos base eLIGHTS",
+    "clasificacion_datos": "FC",
+    "nota_calidad": "Dimensiones estimadas - validar con proveedor"
+  }
+}

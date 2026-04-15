@@ -1,0 +1,103 @@
+{
+  "bestled_common": {
+    "marca": "eLIGHTS",
+    "categoria": "Alumbrado P\u00fablico / Vial",
+    "familia_plantilla": "industrial",
+    "tipo_led": "Bridgelux",
+    "cri": ">=80",
+    "ip": "IP66",
+    "ik": "IK08",
+    "material": "Aluminio / Vidrio / Policarbonato",
+    "color_cuerpo": "Gris oscuro",
+    "voltaje_entrada": "AC 100-277V 50-60Hz",
+    "montaje": "Brazo poste / Parte alta poste",
+    "altura_montaje": "5 a 12 metros",
+    "vida_util_h": 100000,
+    "driver_marca": "Mean Well",
+    "driver_dimming": "Programable (0-10V / 1-10V)",
+    "driver_compartimiento": "Independiente, apertura sin herramientas",
+    "certificacion": "SEC - PE N\u00b05/07 y DS1",
+    "garantia_anos": 5,
+    "temp_operacion": "-20\u00b0C a +50\u00b0C",
+    "cct_opciones": ["2200-2700K", "4000K", "5000K"]
+  },
+  "bestled_by_model": {
+    "40": {
+      "sku_base": "APB40",
+      "dimensiones_mm": "460 x 200 x 72",
+      "peso_kg": 2.8,
+      "diametro_anclaje_mm": 53,
+      "packaging_cantidad": 2,
+      "packaging_dimensiones_mm": "540 x 230 x 230",
+      "packaging_peso_kg": 6.5,
+      "quality_score": "B",
+      "nota": "Dimensiones estimadas - validar con proveedor"
+    },
+    "60": {
+      "sku_base": "APB60",
+      "dimensiones_mm": "500 x 210 x 75",
+      "peso_kg": 3.6,
+      "diametro_anclaje_mm": 53,
+      "packaging_cantidad": 2,
+      "packaging_dimensiones_mm": "570 x 250 x 245",
+      "packaging_peso_kg": 7.23,
+      "quality_score": "A",
+      "nota": "Datos confirmados con ficha de agencia"
+    },
+    "90": {
+      "sku_base": "APB90",
+      "dimensiones_mm": "540 x 230 x 78",
+      "peso_kg": 4.2,
+      "diametro_anclaje_mm": 60,
+      "packaging_cantidad": 2,
+      "packaging_dimensiones_mm": "620 x 270 x 260",
+      "packaging_peso_kg": 9.5,
+      "quality_score": "B",
+      "nota": "Dimensiones estimadas - validar con proveedor"
+    },
+    "120": {
+      "sku_base": "APB120",
+      "dimensiones_mm": "580 x 250 x 82",
+      "peso_kg": 5.8,
+      "diametro_anclaje_mm": 60,
+      "packaging_cantidad": 1,
+      "packaging_dimensiones_mm": "650 x 290 x 280",
+      "packaging_peso_kg": 7.0,
+      "quality_score": "B",
+      "nota": "Dimensiones estimadas - validar con proveedor"
+    },
+    "150": {
+      "sku_base": "APB150",
+      "dimensiones_mm": "620 x 270 x 85",
+      "peso_kg": 6.5,
+      "diametro_anclaje_mm": 60,
+      "packaging_cantidad": 1,
+      "packaging_dimensiones_mm": "700 x 310 x 290",
+      "packaging_peso_kg": 8.0,
+      "quality_score": "B",
+      "nota": "Dimensiones estimadas - validar con proveedor"
+    },
+    "200": {
+      "sku_base": "APB200",
+      "dimensiones_mm": "660 x 290 x 90",
+      "peso_kg": 8.2,
+      "diametro_anclaje_mm": 60,
+      "packaging_cantidad": 1,
+      "packaging_dimensiones_mm": "740 x 330 x 300",
+      "packaging_peso_kg": 10.0,
+      "quality_score": "B",
+      "nota": "Dimensiones estimadas - validar con proveedor"
+    },
+    "250": {
+      "sku_base": "APB250",
+      "dimensiones_mm": "720 x 320 x 95",
+      "peso_kg": 10.5,
+      "diametro_anclaje_mm": 60,
+      "packaging_cantidad": 1,
+      "packaging_dimensiones_mm": "800 x 360 x 320",
+      "packaging_peso_kg": 12.5,
+      "quality_score": "B",
+      "nota": "Dimensiones estimadas - validar con proveedor"
+    }
+  }
+}

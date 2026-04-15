@@ -1,0 +1,2634 @@
+[
+  {
+    "id": "proyector-led-cob-20w-gris-ip65",
+    "sku": "CHIPX50N",
+    "name": "PROYECTOR LED COB 20W GRIS IP65",
+    "price": 5800,
+    "category": "proyectores-led",
+    "watts": 20
+  },
+  {
+    "id": "proyector-led-de-emergencia-recargable-smd-50w-ip66",
+    "sku": "PLER50F",
+    "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 50W IP66",
+    "price": 57000,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "alumbrado-publico-bestled-120w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08",
+    "price": 141000,
+    "category": "alumbrado-publico",
+    "watts": 120
+  },
+  {
+    "id": "luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w",
+    "sku": "LLTPATPAX40",
+    "name": "LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 40W",
+    "price": 534700,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "panel-led-60x60-slim-40w-dimerizable",
+    "sku": "PANEL-LED-60X60-SLIM",
+    "name": "Panel LED 60x60 Slim 40W Dimerizable | Extra Plano eLIGHTS",
+    "price": 39490,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "lineal-led-flat-54w-120-cm-ip44",
+    "sku": "LINEAL-LED-FLAT-54W-",
+    "name": "LINEAL LED FLAT 54W 120 CM. IP44",
+    "price": 10520,
+    "category": "paneles-led",
+    "watts": 54
+  },
+  {
+    "id": "fuente-de-poder-switching-400w-12v-33a-interior-perforada",
+    "sku": "FU400I",
+    "name": "FUENTE DE PODER SWITCHING 400W 12V 33A  INTERIOR PERFORADA",
+    "price": 37400,
+    "category": "accesorios",
+    "watts": 400
+  },
+  {
+    "id": "proyector-led-antivandalico-70w-ip66",
+    "sku": "CHIPX70NF​",
+    "name": "PROYECTOR LED ANTIVANDÁLICO 70W IP66",
+    "price": 20150,
+    "category": "proyectores-led",
+    "watts": 70
+  },
+  {
+    "id": "fuente-de-poder-switching-150w-12v-125a-interior-perforada",
+    "sku": "FU150I",
+    "name": "FUENTE DE PODER SWITCHING 150W 12V 12.5A INTERIOR PERFORADA",
+    "price": 20700,
+    "category": "accesorios",
+    "watts": 150
+  },
+  {
+    "id": "tubo-led-t8-opal-vidrio-9w-60cm-220v",
+    "sku": "TUBO-LED-T8-OPAL-VID",
+    "name": "TUBO LED T8 OPAL VIDRIO 9W 60CM 220V",
+    "price": 1390,
+    "category": "tubos-led",
+    "watts": 9
+  },
+  {
+    "id": "tubo-led-vidrio-transparente-9w-60cm-220v",
+    "sku": "TLVT9W60220V",
+    "name": "TUBO LED VIDRIO TRANSPARENTE 9W 60CM. 220V LUZ CÁLIDA",
+    "price": 1990,
+    "category": "tubos-led",
+    "watts": 9
+  },
+  {
+    "id": "riel-monofasico-2-mt",
+    "sku": "​RM1MT",
+    "name": "RIEL MONOFÁSICO 2 MT.",
+    "price": 8500,
+    "category": "focos-a-riel",
+    "watts": 0
+  },
+  {
+    "id": "campana-led-ufo-300w-ip65-light-negra",
+    "sku": "UFOL300NF",
+    "name": "CAMPANA LED UFO 300W IP65 LIGHT NEGRA",
+    "price": 131300,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "tripode-para-proyector-led",
+    "sku": "﻿TEPPL",
+    "name": "TRIPODE PARA PROYECTOR LED 10W / 20W/ 30W/ 50W/ 100W/ 150W/ 200W",
+    "price": 18000,
+    "category": "proyectores-led",
+    "watts": 10
+  },
+  {
+    "id": "panel-led-backlight-60x60-cm-48w-para-cielo-americano",
+    "sku": "PANEL-LED-BACKLIGHT-",
+    "name": "PANEL LED BACKLIGHT 60X60 CM. 48W PARA CIELO AMERICANO",
+    "price": 12990,
+    "category": "paneles-led",
+    "watts": 48
+  },
+  {
+    "id": "alumbrado-publico-mini-cross-60w-ip66-ik08",
+    "sku": "APMC60F",
+    "name": "ALUMBRADO PÚBLICO MINI CROSS 60W IP66 IK08",
+    "price": 98800,
+    "category": "alumbrado-publico",
+    "watts": 60
+  },
+  {
+    "id": "fuente-de-poder-switching-100w-12v-8a-interior-perforada",
+    "sku": "FU100I",
+    "name": "FUENTE DE PODER SWITCHING 100W 12V 8A INTERIOR PERFORADA",
+    "price": 11560,
+    "category": "accesorios",
+    "watts": 100
+  },
+  {
+    "id": "panel-led-60-30-cm-36w-para-cielo-americano",
+    "sku": "PANEL-LED-60-30-CM-3",
+    "name": "PANEL LED 60X30 CM. 36W PARA CIELO AMERICANO",
+    "price": 14900,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "proyector-led-ultra-thin-smd-10w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA THIN SMD 10W IP66 NEGRO",
+    "price": 3190,
+    "category": "proyectores-led",
+    "watts": 10
+  },
+  {
+    "id": "tubo-led-opal-aluminio-9w-60cm-24v-6500k-1",
+    "sku": "​TLOV9W",
+    "name": "TUBO LED OPAL ALUMINIO 9W 60CM. 24V 6500K",
+    "price": 8330,
+    "category": "tubos-led",
+    "watts": 9
+  },
+  {
+    "id": "alumbrado-publico-bestled-40w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
+    "price": 91200,
+    "category": "alumbrado-publico",
+    "watts": 40
+  },
+  {
+    "id": "alumbrado-publico-bestled-90w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 90W IP66 IK08",
+    "price": 117600,
+    "category": "alumbrado-publico",
+    "watts": 90
+  },
+  {
+    "id": "riel-monofasico-1-mt",
+    "sku": "​RM1MT",
+    "name": "RIEL MONOFÁSICO 1 MT.",
+    "price": 4300,
+    "category": "focos-a-riel",
+    "watts": 0
+  },
+  {
+    "id": "campana-led-ufo-150w-ip65-light-negra",
+    "sku": "CLUFO150LN",
+    "name": "CAMPANA LED UFO 150W IP65 LIGHT NEGRA",
+    "price": 49400,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "proyector-led-antivandalico-50w-ip66",
+    "sku": "PROYECTOR-LED-ANTIVA",
+    "name": "PROYECTOR LED ANTIVANDÁLICO 50W IP66",
+    "price": 11570,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "fuente-de-poder-switching-200w-12v-165a-exterior-ip67",
+    "sku": "FU200E",
+    "name": "FUENTE DE PODER SWITCHING 200W 12V 16.5A EXTERIOR IP67",
+    "price": 25740,
+    "category": "accesorios",
+    "watts": 200
+  },
+  {
+    "id": "lineal-led-flat-40w-120-cm-ip20-6500k",
+    "sku": "LLF40120F",
+    "name": "LINEAL LED FLAT 40W 120 CM. IP20",
+    "price": 6900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "regleta-led-t8-9w-60-cm-ip44",
+    "sku": "​LLLF40120CA",
+    "name": "REGLETA LED T8 9W 60 CM. IP44",
+    "price": 3790,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "estanca-led-40w-120cm-ip65",
+    "sku": "ESTANCA-LED-40W-120C",
+    "name": "ESTANCA LED 40W 120 CM. IP65",
+    "price": 16390,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "campana-led-ufo-nf3-100w",
+    "sku": "CAMPANA-LED-UFO-NF3-",
+    "name": "CAMPANA LED UFO NF3 100W 150LM/W IP66",
+    "price": 33600,
+    "category": "campanas-industriales",
+    "watts": 100
+  },
+  {
+    "id": "regleta-led-t5-9w-60-cm-ip44",
+    "sku": "REGLETA-LED-T5-9W-60",
+    "name": "REGLETA LED T5 9W 60 CM. IP44",
+    "price": 3640,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "proyector-led-slim-smd-50w-ip66-luz-fria",
+    "sku": "PLSSMD10",
+    "name": "PROYECTOR LED SLIM SMD 50W IP66 LUZ FRÍA",
+    "price": 11570,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "tortuga-led-16w-opal-blanca-lisa",
+    "sku": "​TL16PBL",
+    "name": "TORTUGA LED 16W OPAL BLANCA LISA",
+    "price": 9350,
+    "category": "paneles-led",
+    "watts": 16
+  },
+  {
+    "id": "campana-led-ufo-nf3-150w-150-lm/w-ip66",
+    "sku": "CAMPANA-LED-UFO-NF3-",
+    "name": "CAMPANA LED UFO NF3 150W 150 LM/W  IP66",
+    "price": 51600,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-9w-ip44",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 9W IP44",
+    "price": 2890,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "panel-led-redondo-embutido-9w-ip20",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 9W IP20",
+    "price": 2200,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "campana-led-ufo-ip65-premium-gris-150w",
+    "sku": "UFOP150F",
+    "name": "CAMPANA LED UFO IP65 PREMIUM GRIS 150W",
+    "price": 94800,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "panel-led-120x60-cm-80w-embutido-o-suspendido",
+    "sku": "PANEL-LED-120X60-CM-",
+    "name": "PANEL LED 120X60 CM. 80W PARA CIELO AMERICANO MARCO BLANCO",
+    "price": 43100,
+    "category": "paneles-led",
+    "watts": 80
+  },
+  {
+    "id": "ampolleta-led-dicroico-4w-gu10",
+    "sku": "AMPOLLETA-LED-DICROI",
+    "name": "AMPOLLETA LED DICROICO 4W GU10",
+    "price": 990,
+    "category": "ampolletas-led",
+    "watts": 4
+  },
+  {
+    "id": "proyector-led-antivandalico-100w-ip66",
+    "sku": "PROYECTOR-LED-ANTIVA",
+    "name": "PROYECTOR LED ANTIVANDÁLICO 100W IP66",
+    "price": 32500,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "panel-led-cuadrado-embutido-12w-ip20",
+    "sku": "PANEL-LED-CUADRADO-E",
+    "name": "PANEL LED CUADRADO EMBUTIDO 12W IP20",
+    "price": 3497,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "panel-led-120x60-cm-80w-embutido-o-suspendido-regulable-1",
+    "sku": "PANEL-LED-120X60-CM-",
+    "name": "PANEL LED 120X60 CM. 80W PARA CIELO AMERICANO MARCO BLANCO REGULABLE",
+    "price": 79000,
+    "category": "paneles-led",
+    "watts": 80
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-9w-blanco",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "Foco Dicroico LED Embutido SMD 9W Blanco",
+    "price": 4600,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "panel-led-concentrico-opal-25w-ip33-3",
+    "sku": "PANEL-LED-CONCENTRIC",
+    "name": "PANEL LED CONCENTRICO OPAL 25W IP33",
+    "price": 12900,
+    "category": "paneles-led",
+    "watts": 25
+  },
+  {
+    "id": "proyector-led-de-estadio-300w-ip66-ik09",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO 300W IP66 IK09",
+    "price": 428990,
+    "category": "proyectores-led",
+    "watts": 300
+  },
+  {
+    "id": "campana-led-ufo-nf3-200w-150lmw-ip66",
+    "sku": "CAMPANA-LED-UFO-NF3-",
+    "name": "CAMPANA LED UFO NF3 200W 150LM/W IP66",
+    "price": 69600,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "marco-para-sobreponer-panel-led-cielo-americano",
+    "sku": "MSPL120X30",
+    "name": "120x30 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
+    "price": 10900,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "ampolleta-led-bola-9w-e27",
+    "sku": "AMPOLLETA-LED-BOLA-9",
+    "name": "AMPOLLETA LED BOLA 9W E27",
+    "price": 1200,
+    "category": "ampolletas-led",
+    "watts": 9
+  },
+  {
+    "id": "proyector-led-slim-smd-150w-ip66",
+    "sku": "PROYECTOR-LED-SLIM-S",
+    "name": "PROYECTOR LED SLIM SMD 150W IP66",
+    "price": 41600,
+    "category": "proyectores-led",
+    "watts": 150
+  },
+  {
+    "id": "foco-led-embutido-en-piso-9w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 9W IP67",
+    "price": 17900,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "fuente-de-poder-para-foco-piscina-60w-12v-ip20",
+    "sku": "FPFP6012V",
+    "name": "FUENTE DE PODER PARA FOCO PISCINA 60W 12V IP20",
+    "price": 16660,
+    "category": "accesorios",
+    "watts": 60
+  },
+  {
+    "id": "proyector-led-ultra-thin-smd-30w-ip66-luz-fria-c-sensor-movimiento",
+    "sku": "PLUTSMD30SMF",
+    "name": "PROYECTOR LED ULTRA THIN SMD 30W IP66 LUZ FRÍA C/ SENSOR DE MOVIMIENTO",
+    "price": 11570,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "foco-led-a-riel-monofasico-negro-40w",
+    "sku": "FOCO-LED-A-RIEL-MONO",
+    "name": "FOCO LED A RIEL MONOFÁSICO NEGRO 40W",
+    "price": 16250,
+    "category": "focos-a-riel",
+    "watts": 40
+  },
+  {
+    "id": "fuente-de-poder-switching-30w-12v-25a-interior-perforada",
+    "sku": "FU30I​",
+    "name": "FUENTE DE PODER SWITCHING 30W 12V 2.5A INTERIOR PERFORADA",
+    "price": 5990,
+    "category": "accesorios",
+    "watts": 30
+  },
+  {
+    "id": "fuente-de-poder-switching-60w-12v-5a-interior-perforada",
+    "sku": "FU60I",
+    "name": "FUENTE DE PODER SWITCHING 60W 12V 5A INTERIOR PERFORADA",
+    "price": 8160,
+    "category": "accesorios",
+    "watts": 60
+  },
+  {
+    "id": "fuente-de-poder-switching-360w-12v-30a-interior-perforada",
+    "sku": "FU360I",
+    "name": "FUENTE DE PODER SWITCHING 360W 12V 30A INTERIOR PERFORADA",
+    "price": 37400,
+    "category": "accesorios",
+    "watts": 360
+  },
+  {
+    "id": "proyector-led-cob-50w-gris-ip65-con-sensor-movimiento",
+    "sku": "PLC50GC",
+    "name": "PROYECTOR LED COB 50W GRIS IP65 CON SENSOR DE MOVIMIENTO",
+    "price": 13000,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "proyector-led-slim-smd-100w-ip66",
+    "sku": "PLSSMD10",
+    "name": "PROYECTOR LED SLIM SMD 100W IP66",
+    "price": 31429,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "foco-sumergible-piscina-sobrepuesto-18w-ip68-12v",
+    "sku": "FOCO-SUMERGIBLE-PISC",
+    "name": "FOCO SUMERGIBLE PISCINA SOBREPUESTO 18W IP68 12V",
+    "price": 55200,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "proyector-led-ultra-thin-smd-10w-ip66-luz-fria-c-sensor-movimiento",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA THIN SMD 10W IP66 LUZ FRÍA C/ SENSOR DE MOVIMIENTO",
+    "price": 7485,
+    "category": "proyectores-led",
+    "watts": 10
+  },
+  {
+    "id": "senaletica-de-emergencia-led-salida-3w-4-hrs-autonomia",
+    "sku": "SEL3S",
+    "name": "SEÑALETICA DE EMERGENCIA LED SALIDA 3W 4 HRS AUTONOMÍA",
+    "price": 11990,
+    "category": "paneles-led",
+    "watts": 3
+  },
+  {
+    "id": "60x60-marco-para-sobreponer-panel-led-cielo-americano",
+    "sku": "MSPL60X60",
+    "name": "60x60 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
+    "price": 9390,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "120x60-marco-para-sobreponer-panel-led-cielo-americano",
+    "sku": "MSPL120X60",
+    "name": "120x60 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
+    "price": 11800,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "fuente-de-poder-switching-200w-12v-166a-interior-perforada",
+    "sku": "FU200I",
+    "name": "FUENTE DE PODER SWITCHING 200W 12V 16.6A INTERIOR PERFORADA",
+    "price": 19500,
+    "category": "accesorios",
+    "watts": 200
+  },
+  {
+    "id": "panel-led-redondo-embutido-12w-ip44",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 12W IP44",
+    "price": 2600,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "panel-led-120x30-cm-40w-embutido-o-suspendido-regulable",
+    "sku": "PANEL-LED-120X30-CM-",
+    "name": "PANEL LED 120X30 CM. 40W PARA CIELO AMERICANO MARCO BLANCO REGULABLE",
+    "price": 41400,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "proyector-led-ultra-thin-smd-20w-ip66-luz-fria-c-sensor-movimiento",
+    "sku": "PLUTSMD20SMF",
+    "name": "PROYECTOR LED ULTRA THIN SMD 20W IP66 LUZ FRÍA C/ SENSOR DE MOVIMIENTO",
+    "price": 9000,
+    "category": "proyectores-led",
+    "watts": 20
+  },
+  {
+    "id": "foco-led-embutido-en-piso-12w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 12W IP67",
+    "price": 19900,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "panel-led-120x60-cm-96w-backlight-para-cielo-americano",
+    "sku": "PANEL-LED-120X60-CM-",
+    "name": "PANEL LED BACKLIGHT 120X60 CM. 96W PARA CIELO AMERICANO",
+    "price": 31100,
+    "category": "paneles-led",
+    "watts": 96
+  },
+  {
+    "id": "proyector-led-de-estadio-600w-ip66-ik09",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO 600W IP66 IK09",
+    "price": 556990,
+    "category": "proyectores-led",
+    "watts": 600
+  },
+  {
+    "id": "estaca-led-cob-2w-jardin-ip65",
+    "sku": "ESTACA-LED-COB-2W-JA",
+    "name": "ESTACA LED SOLAR 2W JARDÍN IP65",
+    "price": 10800,
+    "category": "proyectores-led",
+    "watts": 2
+  },
+  {
+    "id": "luminaria-ornamental-island-90w-ip66-ik08",
+    "sku": "LUMINARIA-ORNAMENTAL",
+    "name": "LUMINARIA ORNAMENTAL ISLAND 90W IP66 IK08",
+    "price": 203900,
+    "category": "paneles-led",
+    "watts": 90
+  },
+  {
+    "id": "fuente-de-poder-switching-100w-12v-85a-exterior-ip67",
+    "sku": "FU100E",
+    "name": "FUENTE DE PODER SWITCHING 100W 12V 8.5A EXTERIOR IP67",
+    "price": 22950,
+    "category": "accesorios",
+    "watts": 100
+  },
+  {
+    "id": "panel-led-cuadrado-sobrepuesto-12w-ip44",
+    "sku": "PANEL-LED-CUADRADO-S",
+    "name": "PANEL LED CUADRADO SOBREPUESTO 12W IP44",
+    "price": 2900,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-12w-blanco",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "FOCO DICROICO LED EMBUTIDO SMD 12W BLANCO",
+    "price": 6000,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "luminaria-ornamental-island-60w-ip66-ik08",
+    "sku": "LUMINARIA-ORNAMENTAL",
+    "name": "LUMINARIA ORNAMENTAL ISLAND 60W IP66 IK08",
+    "price": 167900,
+    "category": "paneles-led",
+    "watts": 60
+  },
+  {
+    "id": "campana-industrial-led-smd-bridgelux-200w-6500k-ip44",
+    "sku": "CILSMDP200F",
+    "name": "CAMPANA INDUSTRIAL LED SMD BRIDGELUX 200W 6500K IP44",
+    "price": 79990,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-12w-niquel",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "FOCO DICROICO LED EMBUTIDO SMD 12W NIQUEL",
+    "price": 6000,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-5730-72-leds/mt-ip67-100mt-220v",
+    "sku": "CINTA-LED-EXTERIOR-1",
+    "name": "CINTA LED EXTERIOR 14.4W 5730 72 LEDs/Mt. 10MM IP67 100MT 220V",
+    "price": 159900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "alumbrado-publico-bestled-150w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 150W IP66 IK08",
+    "price": 152400,
+    "category": "alumbrado-publico",
+    "watts": 150
+  },
+  {
+    "id": "panel-led-concentrico-opal-15w-ip33",
+    "sku": "PANEL-LED-CONCENTRIC",
+    "name": "PANEL LED CONCENTRICO OPAL 15W IP33",
+    "price": 10900,
+    "category": "paneles-led",
+    "watts": 15
+  },
+  {
+    "id": "proyector-led-de-emergencia-recargable-smd-20w-ip66",
+    "sku": "PLER20F",
+    "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 20W IP66",
+    "price": 31200,
+    "category": "proyectores-led",
+    "watts": 20
+  },
+  {
+    "id": "tubo-led-opal-aluminio-9w-60cm-12v",
+    "sku": "TLOA9W6012V",
+    "name": "TUBO LED OPAL ALUMINIO 9W 60CM. 12V",
+    "price": 8330,
+    "category": "tubos-led",
+    "watts": 9
+  },
+  {
+    "id": "campana-led-ufo-a-prueba-de-explosion-100w",
+    "sku": "PLAPE100F",
+    "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 100W",
+    "price": 201600,
+    "category": "campanas-industriales",
+    "watts": 100
+  },
+  {
+    "id": "fuente-de-poder-switching-120w-12v-10a-interior-perforada",
+    "sku": "FU120I",
+    "name": "FUENTE DE PODER SWITCHING 120W 12V 10A INTERIOR PERFORADA",
+    "price": 14960,
+    "category": "accesorios",
+    "watts": 120
+  },
+  {
+    "id": "proyector-led-de-emergencia-recargable-smd-30w-ip66",
+    "sku": "PLER30F",
+    "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 30W IP66",
+    "price": 46680,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "proyector-led-slim-smd-400w-ip66",
+    "sku": "PLSSMD400F",
+    "name": "PROYECTOR LED SLIM SMD 400W IP66",
+    "price": 165600,
+    "category": "proyectores-led",
+    "watts": 400
+  },
+  {
+    "id": "proyector-led-slim-smd-200w-ip66",
+    "sku": "PROYECTOR-LED-SLIM-S",
+    "name": "PROYECTOR LED SLIM SMD 200W IP66",
+    "price": 61750,
+    "category": "proyectores-led",
+    "watts": 200
+  },
+  {
+    "id": "canoa-led-hermetica-2x18w-ip65-ik07-1200-mm-pmma-4",
+    "sku": "CLH2X18",
+    "name": "CANOA LED HERMÉTICA 2X18W IP65 IK07 1200 MM. PMMA",
+    "price": 10140,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "proyector-led-de-estadio-500w-ip66-ik09",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO 500W IP66 IK09",
+    "price": 384000,
+    "category": "proyectores-led",
+    "watts": 500
+  },
+  {
+    "id": "proyector-led-cob-120w-gris-ip65",
+    "sku": "PROYECTOR-LED-COB-12",
+    "name": "PROYECTOR LED COB 120W GRIS IP65",
+    "price": 22500,
+    "category": "proyectores-led",
+    "watts": 120
+  },
+  {
+    "id": "luminaria-led-tri-proof-a-prueba-de-explosion-atex-60w",
+    "sku": "LLTPATPAX60",
+    "name": "LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 60W",
+    "price": 551700,
+    "category": "paneles-led",
+    "watts": 60
+  },
+  {
+    "id": "aplique-led-solar-10w-luz-fria-500-lm-ip65",
+    "sku": "ALS10F",
+    "name": "APLIQUE LED SOLAR 10W LUZ FRÍA 500 LM IP65",
+    "price": 14190,
+    "category": "proyectores-led",
+    "watts": 10
+  },
+  {
+    "id": "canoa-led-hermetica-1x18w-ip65-ik07-1200-mm-pmma",
+    "sku": "CLH1X18",
+    "name": "CANOA LED HERMÉTICA 1X18W IP65 IK07 1200 MM. PMMA",
+    "price": 7990,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "ampolleta-led-ar111-12-120w-opal-concentrica-40-1100-lm-ip44",
+    "sku": "AMPOLLETA-LED-AR111-",
+    "name": "AMPOLLETA LED AR111 12-120W OPAL CONCÉNTRICA",
+    "price": 100000,
+    "category": "ampolletas-led",
+    "watts": 120
+  },
+  {
+    "id": "campana-led-ufo-a-prueba-de-explosion-150w",
+    "sku": "PLAPE150F",
+    "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 150W",
+    "price": 251900,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "downlight-led-sobrepuesto-7w-lavadora-slim-ip20",
+    "sku": "​DLS7LVB",
+    "name": "DOWNLIGHT LED SOBREPUESTO 7W LAVADORA SLIM IP20",
+    "price": 7650,
+    "category": "paneles-led",
+    "watts": 7
+  },
+  {
+    "id": "aplique-led-solar-5w-luz-fria-500-lm-ip65",
+    "sku": "ALS5F",
+    "name": "APLIQUE LED SOLAR 5W LUZ FRÍA 500 LM IP65",
+    "price": 6190,
+    "category": "proyectores-led",
+    "watts": 5
+  },
+  {
+    "id": "canoa-led-hermetica-2x9w-ip65-ik07-600-mm-pmma",
+    "sku": "CLH2X9",
+    "name": "CANOA LED HERMÉTICA 2X9W IP65 IK07 600 MM. PMMA",
+    "price": 8990,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "equipo-led-de-emergencia-2x12",
+    "sku": "EQUIPO-LED-DE-EMERGE",
+    "name": "EQUIPO LED DE EMERGENCIA 2*1.2W",
+    "price": 8900,
+    "category": "paneles-led",
+    "watts": 2
+  },
+  {
+    "id": "ampolleta-led-dicroica-6w-gu10-opal",
+    "sku": "AMPOLLETA-LED-DICROI",
+    "name": "AMPOLLETA LED DICROICA 6W GU10 OPAL",
+    "price": 1990,
+    "category": "ampolletas-led",
+    "watts": 6
+  },
+  {
+    "id": "fuente-de-poder-switching-30w-12v-25a-exterior-ip67",
+    "sku": "FU30E",
+    "name": "FUENTE DE PODER SWITCHING 30W 12V 2.5A EXTERIOR IP67",
+    "price": 9860,
+    "category": "accesorios",
+    "watts": 30
+  },
+  {
+    "id": "kit-de-emergencia-led-50w-90-120-minutos-de-autonomia",
+    "sku": "SS50W",
+    "name": "KIT DE EMERGENCIA LED 50W 120 MINUTOS DE AUTONOMIA",
+    "price": 17400,
+    "category": "paneles-led",
+    "watts": 50
+  },
+  {
+    "id": "canoa-led-hermetica-1x9w-ip65-ik07-60-cm-pmma",
+    "sku": "CANOA-LED-HERMETICA-",
+    "name": "CANOA LED HERMÉTICA 1X9W IP65 IK07 60 CM. PMMA",
+    "price": 6500,
+    "category": "paneles-led",
+    "watts": 9
+  },
+  {
+    "id": "wall-washer-36w-ip65",
+    "sku": "WALL-WASHER-36W-IP65",
+    "name": "WALL WASHER 36W IP65",
+    "price": 48990,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "alumbrado-publico-bestled-200w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 200W IP66 IK08",
+    "price": 177600,
+    "category": "alumbrado-publico",
+    "watts": 200
+  },
+  {
+    "id": "lineal-led-multifuncion-40w-120-cm-ip44",
+    "sku": "LINEAL-LED-MULTIFUNC",
+    "name": "LINEAL LED MULTIFUNCIÓN 40W 120 CM. IP44",
+    "price": 23700,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "proyector-led-slim-smd-300w-ip66",
+    "sku": "PROYECTOR-LED-SLIM-S",
+    "name": "PROYECTOR LED SLIM SMD 300W IP66",
+    "price": 88400,
+    "category": "proyectores-led",
+    "watts": 300
+  },
+  {
+    "id": "kit-de-emergencia-led-20w-90-minutos-autonomia-2",
+    "sku": "SS20W",
+    "name": "KIT DE EMERGENCIA LED 20W 90 MINUTOS AUTONOMIA",
+    "price": 11760,
+    "category": "paneles-led",
+    "watts": 20
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-12w-ip44",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 12W IP44",
+    "price": 3000,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "proyector-led-cob-30w-gris-ip65",
+    "sku": "CHIPX50N",
+    "name": "PROYECTOR LED COB 30W GRIS IP65",
+    "price": 8800,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-amarillo",
+    "sku": "CLI50506012VAM",
+    "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AMARILLO",
+    "price": 8900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "aplique-decorativo-bidireccional-semi-curculo-2x5w-ip65-negro",
+    "sku": "APLIQUE-DECORATIVO-B",
+    "name": "APLIQUE DECORATIVO BIDIRECCIONAL SEMI CIRCULO 2x5W IP65 NEGRO",
+    "price": 17900,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "panel-led-120x30-cm-40w-para-cielo-americano",
+    "sku": "PANEL-LED-120X30-CM-",
+    "name": "PANEL LED 120X30 CM. 40W PARA CIELO AMERICANO",
+    "price": 21900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "canoa-simple-para-tubo-led-1200-mm",
+    "sku": "CANOA-SIMPLE-PARA-TU",
+    "name": "CANOA SIMPLE PARA TUBO LED 1200 MM.",
+    "price": 2690,
+    "category": "tubos-led",
+    "watts": 0
+  },
+  {
+    "id": "cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-azul",
+    "sku": "CLI50506012VA",
+    "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AZUL",
+    "price": 8900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-verde",
+    "sku": "CLE50506012VV",
+    "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. VERDE",
+    "price": 10990,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "panel-led-backlight-120x30-cm-48w-para-cielo-americano",
+    "sku": "PANEL-LED-BACKLIGHT-",
+    "name": "PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO",
+    "price": 15900,
+    "category": "paneles-led",
+    "watts": 48
+  },
+  {
+    "id": "proyector-led-cob-rgb-20w-ip66",
+    "sku": "PLCRGB20N",
+    "name": "PROYECTOR LED RGB 20W IP66 NEGRO",
+    "price": 16560,
+    "category": "proyectores-led",
+    "watts": 20
+  },
+  {
+    "id": "cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-verde",
+    "sku": "CLI50506012VV",
+    "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. VERDE",
+    "price": 10900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-rojo",
+    "sku": "CLE50506012VR",
+    "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. ROJO",
+    "price": 10990,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "tortuga-aluminio-oval-c/rejilla-e27-ip54-blanca",
+    "sku": "TAOCRE27",
+    "name": "TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 BLANCA",
+    "price": 2210,
+    "category": "paneles-led",
+    "watts": 60
+  },
+  {
+    "id": "fuente-de-poder-switching-150w-12v-125a-exterior-ip67",
+    "sku": "FU150E",
+    "name": "FUENTE DE PODER SWITCHING 150W 12V 12.5A EXTERIOR IP67",
+    "price": 23400,
+    "category": "accesorios",
+    "watts": 150
+  },
+  {
+    "id": "proyector-led-cob-70w-gris-ip65",
+    "sku": "CHIPX50N",
+    "name": "PROYECTOR LED COB 70W GRIS IP65",
+    "price": 18000,
+    "category": "proyectores-led",
+    "watts": 70
+  },
+  {
+    "id": "cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-rojo",
+    "sku": "CLI50506012VR",
+    "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. ROJO",
+    "price": 8900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-luz-calida",
+    "sku": "CLE505012VC",
+    "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ CÁLIDA",
+    "price": 12300,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "kit-de-emergencia-led-ss36w-90-minutos-de-autonomia-1",
+    "sku": "SS36W",
+    "name": "KIT DE EMERGENCIA LED SS36W 90 MINUTOS DE AUTONOMIA",
+    "price": 17400,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "panel-led-slim-60x60-cm-40w-para-cielo-americano",
+    "sku": "PANEL-LED-SLIM-60X60",
+    "name": "PANEL LED SLIM 60X60 CM. 40W PARA CIELO AMERICANO",
+    "price": 19800,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "proyector-led-antivandalico-150w-ip66",
+    "sku": "CHIPX150",
+    "name": "PROYECTOR LED ANTIVANDÁLICO 150W IP66",
+    "price": 49400,
+    "category": "proyectores-led",
+    "watts": 150
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-6w-ip44",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 6W IP44",
+    "price": 2100,
+    "category": "paneles-led",
+    "watts": 6
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-luz-fria",
+    "sku": "CLE505012VF",
+    "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ FRÍA",
+    "price": 10990,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-amarillo",
+    "sku": "CLE50506012VAM",
+    "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AMARILLO",
+    "price": 10990,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "puzzle-led-simple-embutido-12w-integrado-blanco-ip33",
+    "sku": "PUZZLE-LED-SIMPLE-EM",
+    "name": "PUZZLE LED SIMPLE EMBUTIDO 12W INTEGRADO BLANCO IP33",
+    "price": 13260,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "cinta-led-led-verde-14,4w/m-72-leds/m-ip67-100-mt-220v",
+    "sku": "MLE165220V",
+    "name": "CINTA LED LED EXTERIOR VERDE 14,4W/m 72 LEDs/m IP67 100 mt. 220V",
+    "price": 140400,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "tubo-led-opal-aluminio-9w-60cm-220v",
+    "sku": "TUBO-LED-OPAL-ALUMIN",
+    "name": "TUBO LED OPAL ALUMINIO 9W 60CM. 220V.",
+    "price": 3250,
+    "category": "tubos-led",
+    "watts": 9
+  },
+  {
+    "id": "tubo-led-opal-aluminio-24w-150cm-220v",
+    "sku": "TUBO-LED-OPAL-ALUMIN",
+    "name": "TUBO LED OPAL ALUMINIO 24W 150CM. 220V",
+    "price": 7990,
+    "category": "tubos-led",
+    "watts": 24
+  },
+  {
+    "id": "cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-azul",
+    "sku": "CLE50506012VA",
+    "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AZUL",
+    "price": 10990,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "proyector-led-de-estadio-redondo-1000w-ip66-ik09",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK09",
+    "price": 958800,
+    "category": "proyectores-led",
+    "watts": 1000
+  },
+  {
+    "id": "fuente-de-poder-switching-60w-12v-5a-exterior-ip67",
+    "sku": "FU60E",
+    "name": "FUENTE DE PODER SWITCHING 60W 12V 5A EXTERIOR IP67",
+    "price": 14160,
+    "category": "accesorios",
+    "watts": 60
+  },
+  {
+    "id": "alumbrado-publico-bestled-60w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 60W IP66 IK08",
+    "price": 99900,
+    "category": "alumbrado-publico",
+    "watts": 60
+  },
+  {
+    "id": "cinta-led-exterior-144w-smd-5050-60ledsm-5mt-12v-luz-fria",
+    "sku": "CLI505012VF",
+    "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ FRÍA",
+    "price": 11044,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "amp-led-ar111-15-150w",
+    "sku": "AMP-LED-AR111-15-150",
+    "name": "AMPOLLETA LED AR111 15-150W 24° 1200 Lm. IP44",
+    "price": 16200,
+    "category": "ampolletas-led",
+    "watts": 150
+  },
+  {
+    "id": "proyector-led-slim-smd-500w-ip66",
+    "sku": "PROYECTOR-LED-SLIM-S",
+    "name": "PROYECTOR LED SLIM SMD 500W IP66",
+    "price": 213600,
+    "category": "proyectores-led",
+    "watts": 500
+  },
+  {
+    "id": "foco-led-cob-basculante-codo-30w-ip33",
+    "sku": "FLCBC30F",
+    "name": "FOCO LED COB BASCULANTE CODO 30W IP33",
+    "price": 25740,
+    "category": "paneles-led",
+    "watts": 30
+  },
+  {
+    "id": "panel-led-concentrico-opal-30w-ip33",
+    "sku": "PANEL-LED-CONCENTRIC",
+    "name": "PANEL LED CONCENTRICO OPAL 30W IP33",
+    "price": 15990,
+    "category": "paneles-led",
+    "watts": 30
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-18w-ip44",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 18W IP44",
+    "price": 3480,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-cuadrado-sobrepuesto-18w-ip44",
+    "sku": "PANEL-LED-CUADRADO-S",
+    "name": "PANEL LED CUADRADO SOBREPUESTO 18W IP44",
+    "price": 3500,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-24w-ip44",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 24W IP44",
+    "price": 5900,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "panel-led-cuadrado-sobrepuesto-24w-ip44",
+    "sku": "PANEL-LED-CUADRADO-S",
+    "name": "PANEL LED CUADRADO SOBREPUESTO 24W IP44",
+    "price": 7500,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-luz-calida",
+    "sku": "CLI505012VC",
+    "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ CÁLIDA",
+    "price": 8900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-18w-con-sensor-movimiento-ip44",
+    "sku": "PLRS18SB",
+    "name": "PANEL LED REDONDO SOBREPUESTO 18W CON SENSOR MOVIMIENTO  IP40",
+    "price": 9800,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-18w-ip44-regulable",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 18W IP44 REGULABLE",
+    "price": 15000,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "aplique-muro-exterior-led-5w-s/rejilla-ip65-grande",
+    "sku": "AMEL3G",
+    "name": "APLIQUE MURO EXTERIOR LED 5W S/ REJILLA IP65 GRANDE",
+    "price": 7800,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "proyector-led-slim-smd-30w-ip66",
+    "sku": "PLSSMD10",
+    "name": "PROYECTOR LED SLIM SMD 30W IP66",
+    "price": 8840,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "panel-led-concentrico-opal-10w-ip20-1",
+    "sku": "PANEL-LED-CONCENTRIC",
+    "name": "PANEL LED CONCENTRICO OPAL 10W IP20",
+    "price": 7900,
+    "category": "paneles-led",
+    "watts": 10
+  },
+  {
+    "id": "foco-led-cob-basculante-5w-ip44-marco-blanco",
+    "sku": "M160-32",
+    "name": "FOCO LED COB BASCULANTE 5W IP44 MARCO BLANCO",
+    "price": 5320,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "proyector-led-empotrado-a-muro-35w-muro-ip44",
+    "sku": "PROYECTOR-LED-EMPOTR",
+    "name": "PROYECTOR LED EMPOTRADO A MURO BASCULANTE 35W IP44",
+    "price": 25740,
+    "category": "proyectores-led",
+    "watts": 35
+  },
+  {
+    "id": "kit-de-instalacion-cables-suspendidos-1mt-para-paneles",
+    "sku": "KPX4",
+    "name": "KIT DE INSTALACIÓN CABLES SUSPENDIDOS 1 MT. PARA PANELES",
+    "price": 3770,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "regleta-led-t5-18w-120-cm-ip44",
+    "sku": "REGLETA-LED-T5-18W-1",
+    "name": "REGLETA LED T5 18W 120 CM. IP44",
+    "price": 4550,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "regleta-led-t8-18w-120-cm-ip44",
+    "sku": "​LLLF40120CA",
+    "name": "REGLETA LED T8 18W 120 CM. IP44",
+    "price": 4990,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-cuadrado-embutido-3w-ip20",
+    "sku": "PANEL-LED-CUADRADO-E",
+    "name": "PANEL LED CUADRADO EMBUTIDO 3W IP20",
+    "price": 1990,
+    "category": "paneles-led",
+    "watts": 3
+  },
+  {
+    "id": "panel-led-cuadrado-embutido-4w-ip20",
+    "sku": "PANEL-LED-CUADRADO-E",
+    "name": "PANEL LED CUADRADO EMBUTIDO 4W IP20",
+    "price": 2200,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "panel-led-cuadrado-embutido-18w-ip44",
+    "sku": "PANEL-LED-CUADRADO-E",
+    "name": "PANEL LED CUADRADO EMBUTIDO 18W IP44",
+    "price": 3600,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-cuadrado-embutido-24w-ip44",
+    "sku": "PANEL-LED-CUADRADO-E",
+    "name": "PANEL LED CUADRADO EMBUTIDO 24W IP44",
+    "price": 6300,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "panel-led-cuadrado-sobrepuesto-6w-ip44",
+    "sku": "PANEL-LED-CUADRADO-S",
+    "name": "PANEL LED CUADRADO SOBREPUESTO 6W IP44",
+    "price": 1800,
+    "category": "paneles-led",
+    "watts": 6
+  },
+  {
+    "id": "estaca-mini-led-cob-5w-jardin-ip65",
+    "sku": "ESTACA-MINI-LED-COB-",
+    "name": "ESTACA MINI LED COB  5W JARDÍN IP65",
+    "price": 7200,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "tubo-led-opal-aluminio-18w-120-cm-220v",
+    "sku": "TUBO-LED-OPAL-ALUMIN",
+    "name": "TUBO LED OPAL ALUMINIO 18W 120 CM. 220V",
+    "price": 2990,
+    "category": "tubos-led",
+    "watts": 18
+  },
+  {
+    "id": "downlight-led-redondo-embutido-16w-luz-fria-niquel",
+    "sku": "DOWNLIGHT-LED-REDOND",
+    "name": "DOWNLIGHT LED REDONDO EMBUTIDO 16W LUZ FRÍA NIQUEL",
+    "price": 11900,
+    "category": "paneles-led",
+    "watts": 16
+  },
+  {
+    "id": "panel-led-120x15-cm-36w-para-cielo-americano",
+    "sku": "PANEL-LED-120X15-CM-",
+    "name": "PANEL LED 120X15 CM 36W. PARA CIELO AMERICANO",
+    "price": 17100,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "tubo-led-opal-vidrio-18w-120cm.-220v.-c/sensor-6500k",
+    "sku": "TLOV18W120220VS",
+    "name": "TUBO LED OPAL VIDRIO 18W 120CM. 220V. C/ SENSOR 6500K",
+    "price": 8160,
+    "category": "tubos-led",
+    "watts": 18
+  },
+  {
+    "id": "downlight-led-sobrepuesto-cilindro-7w-ip20",
+    "sku": "​DLS7LVB",
+    "name": "DOWNLIGHT LED SOBREPUESTO CILINDRO 7W IP20",
+    "price": 7800,
+    "category": "paneles-led",
+    "watts": 7
+  },
+  {
+    "id": "tubo-led-opal-aluminio-18w-120cm-12v",
+    "sku": "TLOA18W12012V",
+    "name": "TUBO LED OPAL ALUMINIO 18W 120CM. 12V",
+    "price": 9190,
+    "category": "tubos-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-redondo-embutido-3w-ip44",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 3W IP44",
+    "price": 1390,
+    "category": "paneles-led",
+    "watts": 3
+  },
+  {
+    "id": "perfil-de-aluminio-sobrepuesto-para-cinta-led",
+    "sku": "PERFIL-DE-ALUMINIO-S",
+    "name": "Perfil de Aluminio Sobrepuesto para Cinta LED 3MT",
+    "price": 6890,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "panel-led-redondo-embutido-24w-ip44",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 24W IP44",
+    "price": 5400,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "kit-de-emergencia-led-300w-120-minutos-autonomia",
+    "sku": "SS300W",
+    "name": "KIT DE EMERGENCIA LED 300W 120 MINUTOS AUTONOMIA",
+    "price": 35760,
+    "category": "paneles-led",
+    "watts": 300
+  },
+  {
+    "id": "foco-led-embutido-en-piso-1w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 1W IP67",
+    "price": 10900,
+    "category": "paneles-led",
+    "watts": 1
+  },
+  {
+    "id": "tubo-led-t8-opal-vidrio-18w-120cm-220v",
+    "sku": "TUBO-LED-T8-OPAL-VID",
+    "name": "TUBO LED T8 OPAL VIDRIO 18W 120CM. 220V",
+    "price": 1500,
+    "category": "tubos-led",
+    "watts": 18
+  },
+  {
+    "id": "foco-led-embutido-en-piso-3w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 3W IP67",
+    "price": 11900,
+    "category": "paneles-led",
+    "watts": 3
+  },
+  {
+    "id": "foco-led-embutido-en-piso-5w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 5W IP67",
+    "price": 14200,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "panel-led-redondo-embutido-6w-ip44",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 6W IP44",
+    "price": 1900,
+    "category": "paneles-led",
+    "watts": 6
+  },
+  {
+    "id": "panel-led-redondo-embutido-15w-ip44",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 15W IP44",
+    "price": 3000,
+    "category": "paneles-led",
+    "watts": 15
+  },
+  {
+    "id": "panel-led-redondo-embutido-18w-con-sensor-movimiento-ip33-blanco",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 18W CON SENSOR MOVIMIENTO IP33 BLANCO",
+    "price": 10900,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-redondo-embutido-18w-ip44",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 18W IP44",
+    "price": 3000,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-redondo-embutido-18w-ip44-regulable",
+    "sku": "PANEL-LED-REDONDO-EM",
+    "name": "PANEL LED REDONDO EMBUTIDO 18W IP44 REGULABLE",
+    "price": 14500,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "lineal-led-embutida-40w-120-cm",
+    "sku": "LLE40120N",
+    "name": "LINEAL LED EMBUTIDA 40W 120 CM.",
+    "price": 33670,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "farol-ornamental-freya-10w-ip65-60-cm",
+    "sku": "FAROL-ORNAMENTAL-FRE",
+    "name": "FAROL ORNAMENTAL FREYA 10W IP65 60CM.",
+    "price": 31500,
+    "category": "paneles-led",
+    "watts": 10
+  },
+  {
+    "id": "aplique-decorativo-ovalado-muro-10w-ip65-negro",
+    "sku": "ADOEXM10N",
+    "name": "APLIQUE DECORATIVO OVALADO MURO 10W IP65 NEGRO",
+    "price": 25160,
+    "category": "paneles-led",
+    "watts": 10
+  },
+  {
+    "id": "panel-led-retraido-concentrico-opal-40w-ip40",
+    "sku": "PANEL-LED-RETRAIDO-C",
+    "name": "PANEL LED RETRAÍDO OPAL 40W IP40",
+    "price": 21900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "riel-trifasico-1-mt",
+    "sku": "​RT1MT",
+    "name": "RIEL TRIFÁSICO 1 MT.",
+    "price": 16660,
+    "category": "focos-a-riel",
+    "watts": 0
+  },
+  {
+    "id": "riel-trifasico-2-mt",
+    "sku": "​RT2MT",
+    "name": "RIEL TRIFÁSICO 2 MT.",
+    "price": 25500,
+    "category": "focos-a-riel",
+    "watts": 0
+  },
+  {
+    "id": "aplique-led-muro-5w-ip65-gris",
+    "sku": "AMEL3G",
+    "name": "APLIQUE LED MURO 5W IP65 GRIS",
+    "price": 7540,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "foco-led-embutido-en-piso-18w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 18W IP67",
+    "price": 26500,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-18w-niquel",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "Foco Dicroico LED Embutido SMD 18W Niquel",
+    "price": 16200,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-concentrico-opal-40w-ip33",
+    "sku": "PANEL-LED-CONCENTRIC",
+    "name": "PANEL LED CONCENTRICO OPAL 40W IP33",
+    "price": 22900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "lineal-led-office-40w-120-cm-ip20-negro",
+    "sku": "LLL40120CA",
+    "name": "LINEAL LED OFFICE 40W 120 CM. IP20 NEGRO",
+    "price": 25900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "lineal-led-office-40w-120-cm-ip20-blanco",
+    "sku": "LINEAL-LED-OFFICE-40",
+    "name": "LINEAL LED OFFICE 40W 120 CM. IP20 BLANCO",
+    "price": 25900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "aplique-muro-exterior-led-5w-ip65-negro",
+    "sku": "APLIQUE-MURO-EXTERIO",
+    "name": "APLIQUE MURO EXTERIOR LED 5W IP65 NEGRO",
+    "price": 13900,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "120x15-marco-para-sobreponer-panel-led-cielo-americano",
+    "sku": "MSPL120X15",
+    "name": "120x15 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
+    "price": 9500,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "alumbrado-publico-led-solar-flyhawk-40-80w",
+    "sku": "APSB80N",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR FLYHAWK 40-80W",
+    "price": 442800,
+    "category": "alumbrado-publico",
+    "watts": 80
+  },
+  {
+    "id": "proyector-led-portatil-a-prueba-de-explosion-30w",
+    "sku": "PLP30APEX",
+    "name": "PROYECTOR LED PORTÁTIL A PRUEBA DE EXPLOSIÓN 30W",
+    "price": 359990,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste",
+    "sku": "APS300PB",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W CON PANEL SOLAR  CON BRAZO PARA MONTAR EN MURO O POSTE",
+    "price": 159900,
+    "category": "paneles-led",
+    "watts": 300
+  },
+  {
+    "id": "lampara-de-emergencia-led-antiexplosiva-2x3w-ip65-ik10",
+    "sku": "LEATEX2X8",
+    "name": "LÁMPARA DE EMERGENCIA LED ANTIEXPLOSIVA 2X3W IP65 IK10",
+    "price": 117900,
+    "category": "paneles-led",
+    "watts": 3
+  },
+  {
+    "id": "alumbrado-publico-bestled-250w-ip66-ik08",
+    "sku": "ALUMBRADO-PUBLICO-BE",
+    "name": "ALUMBRADO PÚBLICO BESTLED 250W IP66 IK08",
+    "price": 226800,
+    "category": "alumbrado-publico",
+    "watts": 250
+  },
+  {
+    "id": "estaca-led-cob-5w-jardin-ip65",
+    "sku": "ESTACA-LED-COB-5W-JA",
+    "name": "ESTACA LED COB 5W JARDÍN IP65",
+    "price": 11000,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "campana-led-ufo-a-prueba-de-explosion-200w",
+    "sku": "PLAPEX200F",
+    "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 200W",
+    "price": 321600,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "aplique-led-20w-de-pared-moderna-3000k",
+    "sku": "APLIQUE-LED-20W-DE-P",
+    "name": "APLIQUE LED 20W DE PARED MODERNA IP65 3000K",
+    "price": 18900,
+    "category": "paneles-led",
+    "watts": 20
+  },
+  {
+    "id": "lineal-led-suspendida-supermarket-40w-120-cm-blanca",
+    "sku": "LINEAL-LED-SUSPENDID",
+    "name": "LINEAL LED SUSPENDIDA SUPERMARKET 40W 120 CM. BLANCA",
+    "price": 29900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "lineal-led-suspendida-supermarket-40w-120-cm-gris",
+    "sku": "LINEAL-LED-SUSPENDID",
+    "name": "LINEAL LED SUSPENDIDA SUPERMARKET 40W 120 CM. GRIS",
+    "price": 29900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "lineal-led-suspendida-supermarket-40w-120-cm-negra",
+    "sku": "LINEAL-LED-SUSPENDID",
+    "name": "LINEAL LED SUSPENDIDA SUPERMARKET 40W 120 CM. NEGRA",
+    "price": 29900,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "barra-de-emergencia-60-leds-recargable-autonomia-3-6-hrs",
+    "sku": "BELR60SMD",
+    "name": "BARRA DE EMERGENCIA 60 LEDs RECARGABLE AUTONOMÍA 3-6 HRS.",
+    "price": 25870,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "campana-led-ufo-nf6-150w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF6-",
+    "name": "CAMPANA LED UFO NF6 150W 110LM/W IP65",
+    "price": 33600,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "campana-led-ufo-nf6-200w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF6-",
+    "name": "CAMPANA LED UFO NF6 200W 110LM/W IP65",
+    "price": 45600,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "foco-led-a-riel-monofasico-blanco-40w",
+    "sku": "FOCO-LED-A-RIEL-MONO",
+    "name": "FOCO LED A RIEL MONOFÁSICO BLANCO 40W",
+    "price": 16250,
+    "category": "focos-a-riel",
+    "watts": 40
+  },
+  {
+    "id": "foco-led-a-riel-trifasico-40w-blanco-2",
+    "sku": "FOCO-LED-A-RIEL-TRIF",
+    "name": "FOCO LED A RIEL TRIFÁSICO 40W BLANCO",
+    "price": 33660,
+    "category": "focos-a-riel",
+    "watts": 40
+  },
+  {
+    "id": "campana-led-ufo-a-prueba-de-explosion-50w",
+    "sku": "PLAPEX50F",
+    "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 50W",
+    "price": 189900,
+    "category": "campanas-industriales",
+    "watts": 50
+  },
+  {
+    "id": "campana-led-ufo-nf6-100w-110lmw-ip65",
+    "sku": "CAMPANA-LED-UFO-NF6-",
+    "name": "CAMPANA LED UFO NF6 100W 110LM/W IP65",
+    "price": 25900,
+    "category": "campanas-industriales",
+    "watts": 100
+  },
+  {
+    "id": "aplique-led-30w-de-pared-moderna-ip65",
+    "sku": "APLIQUE-LED-30W-DE-P",
+    "name": "APLIQUE LED 30W DE PARED MODERNA IP65",
+    "price": 18900,
+    "category": "paneles-led",
+    "watts": 30
+  },
+  {
+    "id": "tortuga-aluminio-oval-c-rejilla-e27-ip54-negra",
+    "sku": "TAOCRE27",
+    "name": "TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 NEGRA",
+    "price": 2210,
+    "category": "paneles-led",
+    "watts": 60
+  },
+  {
+    "id": "proyector-led-rgb-30w-ip66-negro",
+    "sku": "PLCRGB30N",
+    "name": "PROYECTOR LED RGB 30W IP66 NEGRO",
+    "price": 20160,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "proyector-led-rgb-50w-ip66-negro",
+    "sku": "PLCRGB50N",
+    "name": "PROYECTOR LED RGB 50W IP66 NEGRO",
+    "price": 30000,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "aplique-muro-vertical-led-5w-ip65-negro",
+    "sku": "APLIQUE-MURO-VERTICA",
+    "name": "APLIQUE MURO VERTICAL LED 5W IP65 NEGRO",
+    "price": 13900,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "kit-de-emergencia-led-ss30w-90-minutos-de-autonomia",
+    "sku": "SS30W",
+    "name": "KIT DE EMERGENCIA LED SS30W 90 MINUTOS DE AUTONOMIA",
+    "price": 11760,
+    "category": "paneles-led",
+    "watts": 30
+  },
+  {
+    "id": "foco-led-embutido-en-piso-gu10-ip67",
+    "sku": "FLEPGU10﻿",
+    "name": "FOCO LED EMBUTIDO EN PISO GU10 IP67",
+    "price": 10900,
+    "category": "focos-a-riel",
+    "watts": 0
+  },
+  {
+    "id": "aplique-muro-bidireccional-16w-ip54-negro",
+    "sku": "AMB16W",
+    "name": "APLIQUE MURO BIDIRECCIONAL 16W IP54 NEGRO",
+    "price": 15990,
+    "category": "paneles-led",
+    "watts": 16
+  },
+  {
+    "id": "foco-led-a-riel-trifasico-40w-negro",
+    "sku": "FOCO-LED-A-RIEL-TRIF",
+    "name": "FOCO LED A RIEL TRIFÁSICO 40W NEGRO",
+    "price": 33660,
+    "category": "focos-a-riel",
+    "watts": 40
+  },
+  {
+    "id": "campana-led-ufo-nf3-250w-150lmw-ip66",
+    "sku": "CAMPANA-LED-UFO-NF3-",
+    "name": "CAMPANA LED UFO NF3 250W 150LM/W IP66",
+    "price": 117600,
+    "category": "campanas-industriales",
+    "watts": 250
+  },
+  {
+    "id": "campana-led-ufo-nf3-300w-150lmw-ip66",
+    "sku": "CAMPANA-LED-UFO-NF3-",
+    "name": "CAMPANA LED UFO NF3 300W 150LM/W IP66",
+    "price": 117900,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "canoa-doble-para-tubo-led-1200-mm",
+    "sku": "CANOA-DOBLE-PARA-TUB",
+    "name": "CANOA DOBLE PARA TUBO LED 1200 MM.",
+    "price": 2690,
+    "category": "tubos-led",
+    "watts": 0
+  },
+  {
+    "id": "tubo-led-t8-opal-vidrio-24w-150cm-220v",
+    "sku": "TUBO-LED-T8-OPAL-VID",
+    "name": "TUBO LED T8 OPAL VIDRIO 24W 150CM 220V",
+    "price": 4560,
+    "category": "tubos-led",
+    "watts": 24
+  },
+  {
+    "id": "alumbrado-publico-led-solar-90w-all-in-one",
+    "sku": "APSALL90",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 90W ALL IN ONE",
+    "price": 101400,
+    "category": "alumbrado-publico",
+    "watts": 90
+  },
+  {
+    "id": "senaletica-de-emergencia-salida-a-prueba-de-explosion",
+    "sku": "﻿SDESAPEX",
+    "name": "SEÑALÉTICA DE EMERGENCIA SALIDA A PRUEBA DE EXPLOSIÓN",
+    "price": 127400,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "proyector-led-de-emergencia-recargable-smd-100w-ip66",
+    "sku": "PLER100F",
+    "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 100W IP66",
+    "price": 81600,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "campana-led-ufo-nf6-300w-110lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF6-",
+    "name": "CAMPANA LED UFO NF6 300W 110LM/W IP65",
+    "price": 81600,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "proyector-led-ultra-slim-10w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 10W IP66 NEGRO",
+    "price": 1800,
+    "category": "proyectores-led",
+    "watts": 10
+  },
+  {
+    "id": "proyector-led-ultra-slim-20w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 20W IP66 NEGRO",
+    "price": 2640,
+    "category": "proyectores-led",
+    "watts": 20
+  },
+  {
+    "id": "proyector-led-ultra-slim-30w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 30W IP66 NEGRO",
+    "price": 3120,
+    "category": "proyectores-led",
+    "watts": 30
+  },
+  {
+    "id": "proyector-led-ultra-slim-50w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 50W IP66 NEGRO",
+    "price": 3960,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "proyector-led-ultra-slim-100w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 100W IP66 NEGRO",
+    "price": 9000,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "proyector-led-ultra-slim-150w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 150W IP66 NEGRO",
+    "price": 13920,
+    "category": "proyectores-led",
+    "watts": 150
+  },
+  {
+    "id": "proyector-led-ultra-slim-200w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 200W IP66 NEGRO",
+    "price": 18480,
+    "category": "proyectores-led",
+    "watts": 200
+  },
+  {
+    "id": "proyector-led-ultra-slim-300w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 300W IP66 NEGRO",
+    "price": 58200,
+    "category": "proyectores-led",
+    "watts": 300
+  },
+  {
+    "id": "proyector-led-ultra-slim-400w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 400W IP66 NEGRO",
+    "price": 118800,
+    "category": "proyectores-led",
+    "watts": 400
+  },
+  {
+    "id": "proyector-led-ultra-slim-500w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 500W IP66 NEGRO",
+    "price": 148800,
+    "category": "proyectores-led",
+    "watts": 500
+  },
+  {
+    "id": "kit-de-emergencia-led-3-48w-120-minutos-de-autonomia",
+    "sku": "SS48W",
+    "name": "KIT DE EMERGENCIA LED 3-48W 120 MINUTOS DE AUTONOMIA",
+    "price": 13080,
+    "category": "paneles-led",
+    "watts": 48
+  },
+  {
+    "id": "panel-led-concentrico-opal-5w-ip20",
+    "sku": "PANEL-LED-CONCENTRIC",
+    "name": "PANEL LED CONCENTRICO OPAL 5W IP20",
+    "price": 5900,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "tubo-led-t5-opal-vidrio-9w-220v",
+    "sku": "TUBO-LED-T5-OPAL-VID",
+    "name": "TUBO LED T5 OPAL VIDRIO 9W 220V",
+    "price": 2800,
+    "category": "tubos-led",
+    "watts": 9
+  },
+  {
+    "id": "tubo-led-t5-opal-vidrio-18w-220v",
+    "sku": "TUBO-LED-T5-OPAL-VID",
+    "name": "TUBO LED T5 OPAL VIDRIO 18W 220V",
+    "price": 3000,
+    "category": "tubos-led",
+    "watts": 18
+  },
+  {
+    "id": "foco-led-embutido-en-piso-36w-ip67",
+    "sku": "FOCO-LED-EMBUTIDO-EN",
+    "name": "FOCO LED EMBUTIDO EN PISO 36W IP67",
+    "price": 81600,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "poste-tubular-galvanizado-4mts",
+    "sku": "PTG4M",
+    "name": "POSTE TUBULAR GALVANIZADO 4MTS",
+    "price": 115900,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "poste-tubular-galvanizado-5mts",
+    "sku": "PTG5M",
+    "name": "POSTE TUBULAR GALVANIZADO 5MTS",
+    "price": 130900,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "poste-tubular-galvanizado-6mts",
+    "sku": "PTG6M",
+    "name": "POSTE TUBULAR GALVANIZADO 6MTS",
+    "price": 135900,
+    "category": "paneles-led",
+    "watts": 0
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-15w-niquel",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "FOCO DICROICO LED EMBUTIDO SMD 15W NIQUEL",
+    "price": 13000,
+    "category": "paneles-led",
+    "watts": 15
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-24w-niquel",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "Foco Dicroico LED Embutido SMD 24W Niquel",
+    "price": 24000,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "foco-dicroico-led-embutido-smd-30w-niquel",
+    "sku": "FOCO-DICROICO-LED-EM",
+    "name": "Foco Dicroico LED Embutido SMD 30W Niquel",
+    "price": 26200,
+    "category": "paneles-led",
+    "watts": 30
+  },
+  {
+    "id": "panel-led-backlight-60x30-cm-40w-para-cielo-americano",
+    "sku": "PANEL-LED-BACKLIGHT-",
+    "name": "PANEL LED BACKLIGHT 60X30 CM. 40W PARA CIELO AMERICANO",
+    "price": 14200,
+    "category": "paneles-led",
+    "watts": 40
+  },
+  {
+    "id": "lampara-de-emergencia-led-2x4w-ip67",
+    "sku": "LEATEX2X4",
+    "name": "LÁMPARA DE EMERGENCIA LED 2X4W IP67",
+    "price": 35900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "ampolleta-led-bola-15w-e27",
+    "sku": "AMPOLLETA-LED-BOLA-1",
+    "name": "AMPOLLETA LED BOLA 15W E27",
+    "price": 1690,
+    "category": "ampolletas-led",
+    "watts": 15
+  },
+  {
+    "id": "kit-de-emergencia-led-50w-universal-90-minutos-de-autonomia",
+    "sku": "SS50W",
+    "name": "KIT DE EMERGENCIA LED 50W UNIVERSAL 90 MINUTOS DE AUTONOMIA",
+    "price": 16900,
+    "category": "paneles-led",
+    "watts": 50
+  },
+  {
+    "id": "panel-led-120x15-cm-36w-luz-calida-para-cielo-americano",
+    "sku": "PANEL-LED-120X15-CM-",
+    "name": "PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO",
+    "price": 17100,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "cinta-led-exterior-6,5w-smd-2835-48leds/m-100mt-220v-rgb",
+    "sku": "CLE283548220VRGB",
+    "name": "CINTA LED EXTERIOR 6,5W SMD 2835 48LEDs/m 100mt. 220V. RGB",
+    "price": 191890,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "cinta-led-exterior-14,4w-smd-5730-72leds/m-100mt-220v-amarillo",
+    "sku": "CLE573072220VAM",
+    "name": "CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AMARILLO",
+    "price": 139900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "cinta-led-exterior-14,4w-smd-5730-72leds/m-100mt-220v-azul",
+    "sku": "CLE573072220VA",
+    "name": "CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AZUL",
+    "price": 139900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "cinta-led-exterior-14,4w-smd-5730-72leds/m-100mt-220v-rojo",
+    "sku": "CLE573072220VR",
+    "name": "CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. ROJO",
+    "price": 139900,
+    "category": "paneles-led",
+    "watts": 4
+  },
+  {
+    "id": "proyector-led-ultra-slim-1000w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 1000W IP66 NEGRO",
+    "price": 297900,
+    "category": "proyectores-led",
+    "watts": 1000
+  },
+  {
+    "id": "proyector-led-ultra-slim-600w-ip66-negro",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 600W IP66 NEGRO",
+    "price": 177900,
+    "category": "proyectores-led",
+    "watts": 600
+  },
+  {
+    "id": "campana-led-ufo-nf8-100w-110lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF8-",
+    "name": "CAMPANA LED UFO NF8 100W 110LM/W IP65",
+    "price": 17900,
+    "category": "campanas-industriales",
+    "watts": 100
+  },
+  {
+    "id": "campana-led-ufo-nf8-150w-110lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF8-",
+    "name": "CAMPANA LED UFO NF8 150W 110LM/W IP65",
+    "price": 26500,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "campana-led-ufo-nf8-200w-110lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF8-",
+    "name": "CAMPANA LED UFO NF8 200W 110LM/W IP65",
+    "price": 33600,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "campana-led-ufo-nf8-300w-110lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF8-",
+    "name": "CAMPANA LED UFO NF8 300W 110LM/W IP65",
+    "price": 82900,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "campana-led-ufo-nf8-pro-300w-150lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF8-",
+    "name": "CAMPANA LED UFO NF8 PRO 300W 150LM/W IP65",
+    "price": 97200,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "proyector-led-ultra-slim-50w-ip66-negro-c/sensor-de-movimiento",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 50W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
+    "price": 15490,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "proyector-led-ultra-slim-100w-ip66-negro-c/sensor-de-movimiento",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 100W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
+    "price": 20290,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "proyector-led-ultra-slim-150w-ip66-negro-c/sensor-de-movimiento",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 150W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
+    "price": 22690,
+    "category": "proyectores-led",
+    "watts": 150
+  },
+  {
+    "id": "proyector-led-ultra-slim-200w-ip66-negro-c/sensor-de-movimiento",
+    "sku": "PROYECTOR-LED-ULTRA-",
+    "name": "PROYECTOR LED ULTRA SLIM 200W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
+    "price": 27490,
+    "category": "proyectores-led",
+    "watts": 200
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-12w-ip44-negro",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 12W IP44 NEGRO",
+    "price": 3000,
+    "category": "paneles-led",
+    "watts": 12
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-18w-ip44-negro",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 18W IP44 NEGRO",
+    "price": 5600,
+    "category": "paneles-led",
+    "watts": 18
+  },
+  {
+    "id": "panel-led-redondo-sobrepuesto-24w-ip44-negro",
+    "sku": "PANEL-LED-REDONDO-SO",
+    "name": "PANEL LED REDONDO SOBREPUESTO 24W IP44 NEGRO",
+    "price": 7590,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-100w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 100W IP66 IK10",
+    "price": 101760,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-200w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 200W IP66 IK10",
+    "price": 114000,
+    "category": "proyectores-led",
+    "watts": 200
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-300w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 300W IP66 IK10",
+    "price": 179990,
+    "category": "proyectores-led",
+    "watts": 300
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-400w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 400W IP66 IK10",
+    "price": 323900,
+    "category": "proyectores-led",
+    "watts": 400
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-600w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 600W IP66 IK10",
+    "price": 429900,
+    "category": "proyectores-led",
+    "watts": 600
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-1000w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 1000W IP66 IK10",
+    "price": 689900,
+    "category": "proyectores-led",
+    "watts": 1000
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-500w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 500W IP66 IK10",
+    "price": 359900,
+    "category": "proyectores-led",
+    "watts": 500
+  },
+  {
+    "id": "panel-led-retraido-concentrico-opal-24w-ip40",
+    "sku": "PANEL-LED-RETRAIDO-C",
+    "name": "PANEL LED RETRAÍDO OPAL 24W IP40",
+    "price": 9440,
+    "category": "paneles-led",
+    "watts": 24
+  },
+  {
+    "id": "panel-led-retraido-concentrico-opal-6w-ip40",
+    "sku": "PANEL-LED-RETRAIDO-C",
+    "name": "PANEL LED RETRAÍDO OPAL 6W IP40",
+    "price": 4640,
+    "category": "paneles-led",
+    "watts": 6
+  },
+  {
+    "id": "alumbrado-p%C3%BAblico-led-solar-200w-all-in-one-c/control-remoto-1",
+    "sku": "ALUMBRADO-P%C3%BABLI",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE C/CONTROL REMOTO",
+    "price": 106800,
+    "category": "alumbrado-publico",
+    "watts": 200
+  },
+  {
+    "id": "alumbrado-p%C3%BAblico-led-solar-100w-all-in-one-c/control-remoto-1",
+    "sku": "ALUMBRADO-P%C3%BABLI",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 100W ALL IN ONE C/CONTROL REMOTO",
+    "price": 96000,
+    "category": "alumbrado-publico",
+    "watts": 100
+  },
+  {
+    "id": "alumbrado-p%C3%BAblico-led-solar-150w-all-in-one-c/control-remoto",
+    "sku": "ALUMBRADO-P%C3%BABLI",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 150W ALL IN ONE C/CONTROL REMOTO",
+    "price": 102000,
+    "category": "alumbrado-publico",
+    "watts": 150
+  },
+  {
+    "id": "alumbrado-p%C3%BAblico-led-solar-60w-all-in-one-c/control-remoto-1",
+    "sku": "ALUMBRADO-P%C3%BABLI",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 60W ALL IN ONE C/CONTROL REMOTO",
+    "price": 81600,
+    "category": "alumbrado-publico",
+    "watts": 60
+  },
+  {
+    "id": "proyector-led-solar-100w-ip65-c/panel-solar-c/control-remoto",
+    "sku": "PLS100",
+    "name": "PROYECTOR LED SOLAR 100W IP65 C/PANEL SOLAR C/CONTROL REMOTO",
+    "price": 59900,
+    "category": "paneles-led",
+    "watts": 100
+  },
+  {
+    "id": "proyector-led-solar-150w-ip65-c/panel-solar-c/control-remoto",
+    "sku": "PLS150",
+    "name": "PROYECTOR LED SOLAR 150W IP65 C/PANEL SOLAR C/CONTROL REMOTO",
+    "price": 69900,
+    "category": "paneles-led",
+    "watts": 150
+  },
+  {
+    "id": "proyector-led-solar-200w-ip65-c/panel-solar-c/control-remoto",
+    "sku": "PLS200",
+    "name": "PROYECTOR LED SOLAR 200W IP65 C/PANEL SOLAR C/CONTROL REMOTO",
+    "price": 89900,
+    "category": "paneles-led",
+    "watts": 200
+  },
+  {
+    "id": "lineal-led-suspendida-36w-120-cm-negra",
+    "sku": "LINEAL-LED-SUSPENDID",
+    "name": "LINEAL LED SUSPENDIDA 36W 120 CM NEGRA",
+    "price": 30960,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "lineal-led-suspendida-36w-120-cm-blanca",
+    "sku": "LINEAL-LED-SUSPENDID",
+    "name": "LINEAL LED SUSPENDIDA 36W 120 CM BLANCA",
+    "price": 30960,
+    "category": "paneles-led",
+    "watts": 36
+  },
+  {
+    "id": "alumbrado-publico-led-solar-300w-all-in-one-industrial",
+    "sku": "APS300PF",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "price": 238800,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "pagoda-led-solar-ufo-300w-all-in-one",
+    "sku": "PAGODA-LED-SOLAR-UFO",
+    "name": "PAGODA LED SOLAR UFO 300W ALL IN ONE",
+    "price": 190800,
+    "category": "campanas-industriales",
+    "watts": 300
+  },
+  {
+    "id": "foco-led-a-riel-monofasico-30w-negro-todos-los-colores",
+    "sku": "FOCO-LED-A-RIEL-MONO",
+    "name": "FOCO LED A RIEL MONOFÁSICO 30W NEGRO TODOS LOS COLORES",
+    "price": 21501,
+    "category": "focos-a-riel",
+    "watts": 30
+  },
+  {
+    "id": "foco-led-a-riel-monofasico-10w",
+    "sku": "FOCO-LED-A-RIEL-MONO",
+    "name": "FOCO LED A RIEL MONOFÁSICO 10W",
+    "price": 8900,
+    "category": "focos-a-riel",
+    "watts": 10
+  },
+  {
+    "id": "aplique-led-de-muro-2x6w-ip65",
+    "sku": "APLIQUE-LED-DE-MURO-",
+    "name": "APLIQUE LED DE MURO 2X6W IP65",
+    "price": 18900,
+    "category": "paneles-led",
+    "watts": 6
+  },
+  {
+    "id": "aplique-decorativo-bazuca-mini-bidireccional-2x5w-ip65-negro",
+    "sku": "APLIQUE-DECORATIVO-B",
+    "name": "APLIQUE DECORATIVO BAZUCA BIDIRECCIONAL MINI 2x5W IP65 NEGRO",
+    "price": 14190,
+    "category": "paneles-led",
+    "watts": 5
+  },
+  {
+    "id": "aplique-decorativo-bazuca-bidireccional-2x10w-ip65-negro",
+    "sku": "APLIQUE-DECORATIVO-B",
+    "name": "APLIQUE DECORATIVO BAZUCA BIDIRECCIONAL 2x10W IP65 NEGRO",
+    "price": 20200,
+    "category": "paneles-led",
+    "watts": 10
+  },
+  {
+    "id": "proyector-led-solar-200w-ip66-c/panel-solar-c/control-remoto-gris",
+    "sku": "PLSG200F",
+    "name": "PROYECTOR LED SOLAR 200W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
+    "price": 69900,
+    "category": "paneles-led",
+    "watts": 200
+  },
+  {
+    "id": "proyector-led-solar-100w-ip66-c/panel-solar-c/control-remoto",
+    "sku": "PLSG100F",
+    "name": "PROYECTOR LED SOLAR 100W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
+    "price": 45600,
+    "category": "paneles-led",
+    "watts": 100
+  },
+  {
+    "id": "proyector-led-solar-300w-ip66-c/panel-solar-c/control-remoto",
+    "sku": "PLSG200F",
+    "name": "PROYECTOR LED SOLAR 300W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
+    "price": 69900,
+    "category": "paneles-led",
+    "watts": 300
+  },
+  {
+    "id": "proyector-led-solar-150w-ip66-c/panel-solar-c/control-remoto",
+    "sku": "PLSG150F",
+    "name": "PROYECTOR LED SOLAR 150W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
+    "price": 57600,
+    "category": "paneles-led",
+    "watts": 150
+  },
+  {
+    "id": "panel-led-colgante-redondo-48w-ip44-negro",
+    "sku": "PANEL-LED-COLGANTE-R",
+    "name": "PANEL LED COLGANTE REDONDO 48W IP44 NEGRO",
+    "price": 35790,
+    "category": "paneles-led",
+    "watts": 48
+  },
+  {
+    "id": "aro-de-luz-led-colgante-48w-ip44-negro",
+    "sku": "ARO-DE-LUZ-LED-COLGA",
+    "name": "ARO DE LUZ LED COLGANTE 48W IP44 NEGRO",
+    "price": 35790,
+    "category": "paneles-led",
+    "watts": 48
+  },
+  {
+    "id": "alumbrado-publico-led-solar-600w-all-in-one-industrial",
+    "sku": "APS400PF",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "price": 599990,
+    "category": "campanas-industriales",
+    "watts": 600
+  },
+  {
+    "id": "alumbrado-publico-led-solar-400w-all-in-one-industrial",
+    "sku": "APS600PF",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 400W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "price": 359900,
+    "category": "campanas-industriales",
+    "watts": 400
+  },
+  {
+    "id": "alumbrado-publico-led-solar-200w-all-in-one-industrial",
+    "sku": "APS300PF",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "price": 153600,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "campana-led-ufo-regulable-200w-150lm/w-ip66-ik10",
+    "sku": "CAMPANA-LED-UFO-REGU",
+    "name": "CAMPANA LED UFO REGULABLE 200W 150LM/W IP66 IK10",
+    "price": 63600,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "proyector-led-canopy-200w-ip66-ik10",
+    "sku": "PLAPEX200F",
+    "name": "PROYECTOR LED CANOPY 200W IP66 IK10",
+    "price": 321600,
+    "category": "proyectores-led",
+    "watts": 200
+  },
+  {
+    "id": "lineal-led-embutido-en-piso-28w",
+    "sku": "LINEAL-LED-EMBUTIDO-",
+    "name": "LINEAL LED EMBUTIDO EN PISO 28W",
+    "price": 47880,
+    "category": "paneles-led",
+    "watts": 28
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-800w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 800W IP66 IK10",
+    "price": 561600,
+    "category": "proyectores-led",
+    "watts": 800
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-150w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 150W IP66 IK10",
+    "price": 129600,
+    "category": "proyectores-led",
+    "watts": 150
+  },
+  {
+    "id": "campana-led-ufo-nf9-400w-110-lm/ip65-44000-lm",
+    "sku": "UFOP400F",
+    "name": "CAMPANA LED UFO NF9 400W 110 Lm/ IP65 44.000 Lm.",
+    "price": 159900,
+    "category": "campanas-industriales",
+    "watts": 400
+  },
+  {
+    "id": "proyector-led-a-prueba-de-explosion-square-50w",
+    "sku": "PLAPEXS50",
+    "name": "PROYECTOR LED A PRUEBA DE EXPLOSIÓN SQUARE 50W",
+    "price": 189900,
+    "category": "proyectores-led",
+    "watts": 50
+  },
+  {
+    "id": "proyector-led-a-prueba-de-explosion-square-100w",
+    "sku": "PLAPEXS100",
+    "name": "PROYECTOR LED A PRUEBA DE EXPLOSIÓN SQUARE 100W",
+    "price": 201600,
+    "category": "proyectores-led",
+    "watts": 100
+  },
+  {
+    "id": "proyector-led-a-prueba-de-explosion-square-200w",
+    "sku": "PLAPEXS100",
+    "name": "PROYECTOR LED A PRUEBA DE EXPLOSIÓN SQUARE 200W",
+    "price": 189900,
+    "category": "proyectores-led",
+    "watts": 200
+  },
+  {
+    "id": "campana-led-ufo-nf7-100w-120lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF7-",
+    "name": "CAMPANA LED UFO NF7 100W 120LM/W IP65",
+    "price": 14900,
+    "category": "campanas-industriales",
+    "watts": 100
+  },
+  {
+    "id": "campana-led-ufo-nf7-150w-120lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF7-",
+    "name": "CAMPANA LED UFO NF7 150W 120LM/W IP65",
+    "price": 21900,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "campana-led-ufo-nf7-200w-120lm/w-ip65",
+    "sku": "CAMPANA-LED-UFO-NF7-",
+    "name": "CAMPANA LED UFO NF7 200W 120LM/W IP65",
+    "price": 28900,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "campana-led-ufo-nf9-100w-110lm/w-ip65-11000-lm",
+    "sku": "CAMPANA-LED-UFO-NF9-",
+    "name": "CAMPANA LED UFO NF9 100W 110LM/W IP65 11.000 Lm.",
+    "price": 14900,
+    "category": "campanas-industriales",
+    "watts": 100
+  },
+  {
+    "id": "campana-led-ufo-nf9-150w-110lm/w-ip65-16500-lm",
+    "sku": "CAMPANA-LED-UFO-NF9-",
+    "name": "CAMPANA LED UFO NF9 150W 110LM/W IP65 16.500 Lm.",
+    "price": 20900,
+    "category": "campanas-industriales",
+    "watts": 150
+  },
+  {
+    "id": "campana-led-ufo-nf9-200w-110lm/w-ip65-22000-lm",
+    "sku": "CAMPANA-LED-UFO-NF9-",
+    "name": "CAMPANA LED UFO NF9 200W 110LM/W IP65 22.000 Lm.",
+    "price": 28900,
+    "category": "campanas-industriales",
+    "watts": 200
+  },
+  {
+    "id": "proyector-led-solar-500w-ip65-c/panel-solar-c/control-remoto",
+    "sku": "PLS200",
+    "name": "PROYECTOR LED SOLAR 500W IP65 C/PANEL SOLAR C/CONTROL REMOTO",
+    "price": 117600,
+    "category": "paneles-led",
+    "watts": 500
+  },
+  {
+    "id": "proyector-led-de-estadio-modular-50w-ip66-ik10",
+    "sku": "PROYECTOR-LED-DE-EST",
+    "name": "PROYECTOR LED DE ESTADIO MODULAR 50W IP66 IK10",
+    "price": 101760,
+    "category": "proyectores-led",
+    "watts": 50
+  }
+]
