@@ -138,12 +138,12 @@ const Header = () => {
                         <Link
                             to="/instalacion"
                             className="hidden sm:flex items-center gap-1 px-2 py-2 hover:bg-accent rounded-lg transition-colors text-sm font-medium"
-                            title="Instalacion Profesional"
+                            title="Instalación Profesional"
                         >
                             <Wrench className="h-4 w-4 text-primary" />
-                            <span className="hidden lg:inline text-xs">Instalacion</span>
+                            <span className="hidden lg:inline text-xs">Instalación</span>
                         </Link>
-                        <Link to="/cotizacion" className="relative p-2 hover:bg-accent rounded-lg transition-colors" title="Cotizacion">
+                        <Link to="/cotizacion" className="relative p-2 hover:bg-accent rounded-lg transition-colors" title="Cotización">
                             <FileText className="h-5 w-5" />
                             {quoteCount > 0 && (
                                 <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
@@ -217,21 +217,21 @@ const Header = () => {
                             onClick={() => setMenuOpen(false)}
                         >
                             <Wrench className="h-4 w-4" />
-                            Instalacion Profesional
+                            Instalación Profesional
                         </Link>
                         <Link
                             to="/cotizacion"
                             className="block py-2 px-3 text-sm font-medium text-primary hover:bg-accent rounded-md"
                             onClick={() => setMenuOpen(false)}
                         >
-                            Solicitar cotizacion
+                            Solicitar cotización
                         </Link>
                         <Link
                             to="/instaladores"
                             className="block py-2 px-3 text-sm font-medium hover:bg-accent rounded-md"
                             onClick={() => setMenuOpen(false)}
                         >
-                            Area Instaladores
+                            Área Instaladores
                         </Link>
                     </div>
                 </div>

@@ -64,8 +64,8 @@ export const installationVisitDescription =
 
 export const trustClaims = {
   stock: {
-    title: 'Amplio stock disponible',
-    desc: 'Gran variedad de productos disponibles para despacho inmediato.',
+    title: 'Catálogo técnico amplio',
+    desc: 'Amplia variedad de productos técnicos con reposición continua. Consulta disponibilidad antes de grandes proyectos.',
   },
   dispatch: {
     title: 'Despacho en 48 hrs',

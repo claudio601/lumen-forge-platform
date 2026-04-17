@@ -111,7 +111,7 @@ const ProductCard = ({ product }: Props) => {
                                                 className="gap-1 text-xs border-primary/30 text-primary hover:bg-accent h-8"
                                                 onClick={() => {
                                                                 addToQuote(product);
-                                                                toast.success('Agregado a cotizacion');
+                                                                toast.success('Agregado a cotización');
                                                 }}
                                               >
                                               <FileText className="h-3.5 w-3.5" />
