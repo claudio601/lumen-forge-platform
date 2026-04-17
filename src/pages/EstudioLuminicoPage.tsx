@@ -125,7 +125,7 @@ const NORMATIVAS = [
       'EN 12464-2 — Lugares de trabajo exteriores',
       'Criterios SEC / RIC aplicables',
     ],
-    color: '#7C3AED',
+    color: '#0891B2',
   },
   {
     categoria: 'Vialidad y exterior',
@@ -133,7 +133,7 @@ const NORMATIVAS = [
       'EN 13201 — Iluminación de carreteras',
       'SEC — Requisitos de producto e instalacion',
     ],
-    color: '#F59E0B',
+    color: '#0E7490',
   },
 ];
 

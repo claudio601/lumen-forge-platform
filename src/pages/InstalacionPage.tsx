@@ -43,25 +43,18 @@ const InstalacionPage = () => {
           className="absolute inset-0 opacity-10 animate-pulse"
           style={{
             backgroundImage:
-              'linear-gradient(#7C3AED 1px, transparent 1px), linear-gradient(90deg, #7C3AED 1px, transparent 1px)',
+              'linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)',
             backgroundSize: '40px 40px',
           }}
         />
         <div className="relative container py-20 text-center text-white">
-          <div
-            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 uppercase tracking-widest"
-            style={{
-              background: 'rgba(252,211,77,0.12)',
-              color: '#FCD34D',
-              border: '1px solid rgba(252,211,77,0.25)',
-            }}
-          >
+          <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 uppercase tracking-widest bg-primary/15 text-primary-foreground border border-primary/30">
             <MapPin className="h-3 w-3" />
             Región Metropolitana
           </div>
           <h1 className="text-3xl md:text-5xl font-bold mb-5 leading-tight">
             Instalación eléctrica e iluminación LED{' '}
-            <em className="not-italic italic" style={{ color: '#FCD34D' }}>
+            <em className="not-italic italic text-gradient-primary">
               profesional en la Región Metropolitana
             </em>
           </h1>
@@ -75,8 +68,7 @@ const InstalacionPage = () => {
                 scrollToFormulario(e);
                 sendEvent('instalacion_cta_hero_click');
               }}
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
-              style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:brightness-110 hover:scale-105"
             >
               <ClipboardList className="h-4 w-4" />
               Solicitar evaluación
@@ -100,13 +92,9 @@ const InstalacionPage = () => {
             ].map(({ value, label }) => (
               <div
                 key={label}
-                className="rounded-2xl px-4 py-5"
-                style={{
-                  background: 'rgba(124,58,237,0.25)',
-                  border: '1px solid rgba(124,58,237,0.4)',
-                }}
+                className="rounded-2xl px-4 py-5 bg-primary/20 border border-primary/40"
               >
-                <p className="text-2xl font-extrabold" style={{ color: '#FCD34D' }}>
+                <p className="text-2xl font-extrabold text-white">
                   {value}
                 </p>
                 <p className="text-xs text-gray-300 mt-0.5">{label}</p>
@@ -123,40 +111,40 @@ const InstalacionPage = () => {
           Elige el servicio que mejor se adapta a tu proyecto.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }} />
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5" style={{ background: 'rgba(124,58,237,0.12)' }}>
-              <MapPin className="h-6 w-6" style={{ color: '#7C3AED' }} />
+          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-primary hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity bg-primary" />
+            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5 bg-primary/10">
+              <MapPin className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-xl font-bold mb-2">Visita Técnica</h3>
             <p className="text-muted-foreground text-sm mb-5">{installationVisitDescription}</p>
-            <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(124,58,237,0.10)', color: '#6B21A8' }}>
+            <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary">
               {installationVisitLabel}
             </span>
           </div>
-          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }} />
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5" style={{ background: 'rgba(245,158,11,0.12)' }}>
-              <Wrench className="h-6 w-6" style={{ color: '#F59E0B' }} />
+          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-primary hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity bg-primary" />
+            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5 bg-primary/10">
+              <Wrench className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-xl font-bold mb-2">Instalación Completa</h3>
             <p className="text-muted-foreground text-sm mb-5">
               Nos encargamos de todo: provisión de luminarias, cableado, fijaciones y puesta en marcha. Trabajo limpio, garantizado y con certificación de instalación eléctrica cuando aplique.
             </p>
-            <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(245,158,11,0.10)', color: '#92400E' }}>
+            <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary">
               Producto + Mano de obra incluida
             </span>
           </div>
-          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-purple-600 hover:shadow-lg transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }} />
-            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5" style={{ background: 'rgba(251,191,36,0.15)' }}>
-              <Sun className="h-6 w-6" style={{ color: '#D97706' }} />
+          <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-primary hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity bg-primary" />
+            <div className="inline-flex items-center justify-center h-12 w-12 rounded-xl mb-5 bg-primary/10">
+              <Sun className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-xl font-bold mb-2">Paneles Solares</h3>
             <p className="text-muted-foreground text-sm mb-5">
               Instalación de sistemas fotovoltaicos para hogares y empresas. Evaluamos tu consumo, diseñamos el sistema y lo instalamos con conexión a la red (Net Billing).
             </p>
-            <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full" style={{ background: 'rgba(251,191,36,0.12)', color: '#92400E' }}>
+            <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary">
               Ahorro desde el primer mes
             </span>
           </div>
@@ -168,14 +156,14 @@ const InstalacionPage = () => {
         <div className="container">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Cómo funciona?</h2>
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-center gap-0">
-            <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5" style={{ background: 'linear-gradient(90deg, #7C3AED, #F59E0B)' }} />
+            <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5 bg-primary/60" />
             {[
               { num: '1', title: 'Cuentanos tu proyecto', desc: 'Escribenos por WhatsApp, correo o usa el formulario de esta página.' },
               { num: '2', title: 'Recibe tu propuesta', desc: 'En 24 horas hábiles recibirás una propuesta detallada con productos, mano de obra y plazos.' },
               { num: '3', title: 'Instalamos todo', desc: 'Nuestro equipo se encarga de la instalación profesional y te entrega el proyecto terminado.' },
             ].map(({ num, title, desc }) => (
               <div key={num} className="relative flex flex-col items-center text-center flex-1 px-6 mb-8 md:mb-0">
-                <div className="z-10 flex items-center justify-center h-16 w-16 rounded-full text-white font-extrabold text-xl mb-4 shadow-lg" style={{ background: 'linear-gradient(135deg, #7C3AED, #F59E0B)' }}>
+                <div className="z-10 flex items-center justify-center h-16 w-16 rounded-full bg-primary text-primary-foreground font-extrabold text-xl mb-4 shadow-lg">
                   {num}
                 </div>
                 <h3 className="font-bold text-lg mb-2">{title}</h3>
@@ -212,7 +200,7 @@ const InstalacionPage = () => {
       <section id="formulario" className="py-16" style={{ background: 'linear-gradient(135deg, #1A0A2E 0%, #2D1560 100%)' }}>
         <div className="container max-w-2xl">
           <div className="text-center mb-10">
-            <span className="inline-block text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4" style={{ background: 'rgba(252,211,77,0.15)', color: '#FCD34D' }}>
+            <span className="inline-block text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4 bg-primary/15 text-primary-foreground border border-primary/30">
               Sin compromiso
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Solicita tu evaluación</h2>
@@ -230,7 +218,7 @@ const InstalacionPage = () => {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => sendEvent('instalacion_fallback_contact_click', { channel: 'whatsapp' })}
-              className="text-[#FCD34D] hover:underline"
+              className="text-primary-foreground hover:underline"
             >
               WhatsApp
             </a>{' '}
@@ -238,7 +226,7 @@ const InstalacionPage = () => {
             <a
               href={'mailto:' + contactEmailInstalacion}
               onClick={() => sendEvent('instalacion_fallback_contact_click', { channel: 'email' })}
-              className="text-[#FCD34D] hover:underline"
+              className="text-primary-foreground hover:underline"
             >
               correo
             </a>
@@ -258,7 +246,11 @@ const InstalacionPage = () => {
       <section className="container py-20 text-center">
         <h2 className="text-2xl md:text-3xl font-bold mb-3">Agenda una visita técnica</h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Visita técnica desde $20.000, monto descontable si contratas la instalación. Técnicos certificados SEC, propuesta detallada y sin letra chica.
+          Visita técnica desde{' '}
+          <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+            $20.000 descontables
+          </span>{' '}
+          si contratas la instalación. Técnicos certificados SEC, propuesta detallada y sin letra chica.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
@@ -267,8 +259,7 @@ const InstalacionPage = () => {
               scrollToFormulario(e);
               sendEvent('instalacion_cta_final_click');
             }}
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold text-white transition-all hover:brightness-110 hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #7C3AED, #6D28D9)' }}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:brightness-110 hover:scale-105"
           >
             <ClipboardList className="h-4 w-4" />
             Solicitar evaluación

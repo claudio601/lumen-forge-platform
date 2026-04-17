@@ -88,7 +88,7 @@ const RequestOrderPage = () => {
       const [confirmedRef, setConfirmedRef] = useState('');
     
       const inputClass =
-              'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-500 transition-all placeholder:text-gray-400';
+              'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-gray-400';
       const labelClass = 'block text-sm font-semibold text-gray-700 mb-1.5';
     
       const handleChange = (
@@ -474,8 +474,7 @@ const RequestOrderPage = () => {
                                           type="submit"
                                           size="lg"
                                           disabled={status === 'sending'}
-                                          className="w-full h-14 text-base font-bold gap-2 rounded-xl text-white transition-all"
-                                          style={{ background: 'linear-gradient(135deg, #7C3AED, #F59E0B)' }}
+                                          className="w-full h-14 text-base font-bold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all"
                                         >
                                 {status === 'sending' ? (
                                                         <>

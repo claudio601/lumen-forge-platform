@@ -44,10 +44,9 @@ const RequestOrderButton = ({
     return (
       <Button
         size="lg"
-        className={['flex-1 gap-2 h-12', className].filter(Boolean).join(' ')}
+        className={['flex-1 gap-2 h-12 bg-primary hover:bg-primary/90 text-primary-foreground', className].filter(Boolean).join(' ')}
         onClick={handleClick}
         {...rest}
-        style={{ background: 'linear-gradient(135deg, #7C3AED, #F59E0B)', ...rest.style }}
       >
         {added ? (
           <>
@@ -67,10 +66,9 @@ const RequestOrderButton = ({
   return (
     <Button
       size="sm"
-      className={['flex-1 gap-1 text-xs h-8', className].filter(Boolean).join(' ')}
+      className={['flex-1 gap-1 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground', className].filter(Boolean).join(' ')}
       onClick={handleClick}
       {...rest}
-      style={{ background: 'linear-gradient(135deg, #7C3AED, #F59E0B)', ...rest.style }}
     >
       {added ? (
         <>

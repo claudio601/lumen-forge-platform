@@ -133,7 +133,7 @@ const InstallationLeadForm = () => {
     }
   };
 
-  const inputClass = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-purple-400/40 focus:border-purple-500 transition-all placeholder:text-gray-400';
+  const inputClass = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-gray-400';
   const labelClass = 'block text-sm font-semibold text-gray-700 mb-1.5';
 
   if (status === 'success') {
@@ -142,7 +142,7 @@ const InstallationLeadForm = () => {
         <CheckCircle2 className="h-14 w-14 text-green-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
         <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisara tu solicitud y te contactara en menos de 24 horas habiles con una propuesta personalizada.</p>
-        <button onClick={() => setStatus('idle')} className="mt-2 text-sm text-purple-600 underline underline-offset-2 hover:text-purple-800 transition-colors">Enviar otra solicitud</button>
+        <button onClick={() => setStatus('idle')} className="mt-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">Enviar otra solicitud</button>
       </div>
     );
   }
@@ -160,10 +160,10 @@ const InstallationLeadForm = () => {
         <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripcion breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} placeholder="Cuentanos el espacio..." className={inputClass + ' resize-none'} /></div>
         <div><label htmlFor="ilf-tipoCliente" className={labelClass}>Tipo de cliente <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-tipoCliente" name="tipoCliente" value={form.tipoCliente} onChange={handleChange} className={inputClass}>{TIPOS_CLIENTE.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
         <div><label htmlFor="ilf-preferenciaContacto" className={labelClass}>Preferencia de contacto <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-preferenciaContacto" name="preferenciaContacto" value={form.preferenciaContacto} onChange={handleChange} className={inputClass}>{PREFS_CONTACTO.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
-        <div className="sm:col-span-2"><label className="flex items-start gap-3 cursor-pointer select-none"><input type="checkbox" name="aceptaContacto" checked={form.aceptaContacto} onChange={handleChange} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-purple-600 cursor-pointer" /><span className="text-sm text-gray-600 leading-snug">Acepto que eLIGHTS me contacte para responder a esta solicitud. No compartiremos tus datos con terceros. <span className="text-red-500">*</span></span></label></div>
+        <div className="sm:col-span-2"><label className="flex items-start gap-3 cursor-pointer select-none"><input type="checkbox" name="aceptaContacto" checked={form.aceptaContacto} onChange={handleChange} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-primary cursor-pointer" /><span className="text-sm text-gray-600 leading-snug">Acepto que eLIGHTS me contacte para responder a esta solicitud. No compartiremos tus datos con terceros. <span className="text-red-500">*</span></span></label></div>
       </div>
       <div className="mt-8">
-        <Button type="submit" size="lg" disabled={status === 'sending'} className="w-full h-14 text-base font-bold gap-2 rounded-xl text-white transition-all" style={{ background: 'linear-gradient(135deg, #7C3AED, #F59E0B)' }}>
+        <Button type="submit" size="lg" disabled={status === 'sending'} className="w-full h-14 text-base font-bold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all">
           {status === 'sending' ? (<><Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...</>) : (<><Send className="h-5 w-5" /> SOLICITAR EVALUACION</>)}
         </Button>
         <p className="text-center text-xs text-gray-400 mt-3">Te respondemos en menos de 24 horas habiles - Sin compromiso</p>

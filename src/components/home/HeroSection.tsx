@@ -14,9 +14,9 @@ const HeroSection = () => (
     <div className="absolute inset-0" style={{
       background: 'linear-gradient(90deg, rgba(5,2,20,0.92) 0%, rgba(10,5,30,0.80) 40%, rgba(10,5,30,0.30) 70%, rgba(10,5,30,0.10) 100%)'
     }} />
-    {/* Subtle purple tint overlay */}
+    {/* Subtle primary tint overlay */}
     <div className="absolute inset-0" style={{
-      background: 'linear-gradient(135deg, rgba(88,28,220,0.25) 0%, transparent 60%)'
+      background: 'linear-gradient(135deg, hsl(var(--primary) / 0.25) 0%, transparent 60%)'
     }} />
 
     <div className="container relative h-full">
@@ -27,14 +27,14 @@ const HeroSection = () => (
           transition={{ duration: 0.7 }}
           className="max-w-xl z-10"
         >
-          <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-            <span className="h-1.5 w-1.5 bg-purple-400 rounded-full animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary-foreground/90 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+            <span className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
             Catálogo técnico con stock disponible
           </div>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-white">
             Iluminación LED profesional para{' '}
-            <span style={{ background: 'linear-gradient(135deg, #c084fc, #a855f7, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <span className="text-gradient-primary">
               proyectos, empresas y hogar
             </span>
           </h1>
@@ -44,12 +44,12 @@ const HeroSection = () => (
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
-            <Button asChild size="lg" className="gap-2 text-base px-8 h-12 text-white font-semibold" style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)' }}>
+            <Button asChild size="lg" className="gap-2 text-base px-8 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
               <Link to="/catalogo">
                 Explorar catálogo <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" className="gap-2 text-base h-12 text-white font-semibold" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(168,85,247,0.4)', backdropFilter: 'blur(8px)' }}>
+            <Button asChild size="lg" className="gap-2 text-base h-12 text-white font-semibold border border-primary/40 bg-white/10 hover:bg-white/20 backdrop-blur-md">
               <Link to="/cotizador">
                 <FileText className="h-4 w-4" /> Cotizar proyecto
               </Link>
@@ -63,7 +63,7 @@ const HeroSection = () => (
               { icon: Zap, text: 'Despacho 48-72 hrs' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-gray-300 text-sm">
-                <Icon className="h-3.5 w-3.5 text-purple-400" />
+                <Icon className="h-3.5 w-3.5 text-primary" />
                 {text}
               </div>
             ))}
