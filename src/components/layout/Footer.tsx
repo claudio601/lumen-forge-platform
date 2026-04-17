@@ -16,7 +16,7 @@ const Footer = () => {
               <Logo />
             </div>
             <p className="text-sm text-background/60 leading-relaxed mb-4">
-              Iluminacion LED profesional para proyectos, empresas y hogar. Stock permanente y despacho a todo Chile.
+              Iluminación LED profesional para proyectos, empresas y hogar. Catálogo técnico actualizado y despacho a todo Chile.
             </p>
             <a
               href={waBase}
@@ -30,7 +30,7 @@ const Footer = () => {
             </a>
           </div>
           <div>
-            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Catalogo</h4>
+            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Catálogo</h4>
             <nav className="space-y-1.5">
               {topCats.map(cat => (
                 <Link key={cat.id} to={`/catalogo/${cat.slug}`} className="flex items-center justify-between text-sm text-background/60 hover:text-primary transition-colors">
@@ -45,11 +45,11 @@ const Footer = () => {
             <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Empresa</h4>
             <nav className="space-y-1.5">
               {[
-                { label: 'Solicitar cotizacion', to: '/cotizacion' },
-                { label: 'Area Instaladores', to: '/instaladores' },
+                { label: 'Solicitar cotización', to: '/cotizacion' },
+                { label: 'Área Instaladores', to: '/instaladores' },
                 { label: 'Cotizador inteligente', to: '/cotizador' },
-                { label: 'Terminos y condiciones', to: '/' },
-                { label: 'Politica de privacidad', to: '/' },
+                { label: 'Términos y condiciones', to: '/' },
+                { label: 'Política de privacidad', to: '/' },
               ].map(({ label, to }) => (
                 <Link key={label} to={to} className="block text-sm text-background/60 hover:text-primary transition-colors">{label}</Link>
               ))}
@@ -84,7 +84,7 @@ const Footer = () => {
         </div>
         <div className="border-t border-background/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40">
           <span>© {new Date().getFullYear()} eLIGHTS - Todos los derechos reservados</span>
-          <span>Iluminacion al alcance de tus proyectos.</span>
+          <span>Iluminación al alcance de tus proyectos.</span>
         </div>
       </div>
     </footer>

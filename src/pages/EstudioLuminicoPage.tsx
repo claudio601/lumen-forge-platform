@@ -237,7 +237,7 @@ const EstudioLuminicoPage = () => {
       document.head.appendChild(newMeta);
     }
     return () => {
-      document.title = 'eLIGHTS — Iluminacion LED Profesional Chile';
+      document.title = 'eLIGHTS — Iluminación LED Profesional Chile';
     };
   }, []);
 

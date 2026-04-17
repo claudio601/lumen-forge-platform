@@ -6,7 +6,7 @@ const benefits = [
   { icon: Shield, text: 'Garantía de fábrica' },
   { icon: Phone, text: 'Soporte técnico incluido' },
   { icon: Award, text: 'Productos certificados CE/IEC' },
-  { icon: Zap, text: 'Stock permanente Chile' },
+  { icon: Zap, text: 'Despacho desde Santiago' },
 ];
 
 const TrustBar = () => (

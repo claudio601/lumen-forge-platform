@@ -29,7 +29,7 @@ const HeroSection = () => (
         >
           <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary-foreground/90 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
             <span className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
-            Catálogo técnico con stock disponible
+            Catálogo técnico con stock actualizado
           </div>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-white">
@@ -40,7 +40,7 @@ const HeroSection = () => (
           </h1>
 
           <p className="text-base md:text-lg text-gray-300 mb-8 leading-relaxed">
-            Catálogo técnico completo, stock permanente, despacho a todo Chile y asesoría especializada para tu proyecto de iluminación.
+            Catálogo técnico completo, despacho a todo Chile y asesoría especializada para tu proyecto de iluminación.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
