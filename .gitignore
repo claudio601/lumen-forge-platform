@@ -25,3 +25,8 @@ dist-ssr
 *.bak
 *.bak
 *.bak_fix2
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
