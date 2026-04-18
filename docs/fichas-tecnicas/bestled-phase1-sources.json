@@ -1,0 +1,1840 @@
+{
+  "phase": 1,
+  "phase_name": "Inventario y lectura de fuentes BESTLED",
+  "completed_at": "2026-04-18T23:10:27Z",
+  "branch": "claude/bestled-sources-inventory-CSRC1",
+  "rules_applied": {
+    "R1_no_inventar": true,
+    "R6_jumpseller_live_access": "denied",
+    "R8_commercial_policy_strict_search": "aplicado en orden config/ → docs/ → src/"
+  },
+  "sources_consulted": [
+    {
+      "source_id": "ies_root_40W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled40.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "1f11b74da7953052e48e7fa5dc7e90afc4a7dc819628768bf9b0d6a44613a487",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_root_60W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled60.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_root_90W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled90.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "c608035b58f0ba83fe30f80ebbc4cc7741867c83e01e68f981f79f2906628d4b",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_root_120W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled120.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "8ff181983fa3a9aeee319cbdccbfd6f95917831d297cab278c822b9f7c72c113",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_root_150W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled150.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "9c7885478908b9eceee61ad99faffd1487977bfbbb673a08fd234ea919f80065",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_root_200W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled200.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "edef2406acf2639f4899c671143acbaefdb8a6175497034cb066632c32197342",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_root_250W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled250.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "16652476571d6f6290ba1b2226aca3b7cd3fdb60da484f928ed69966719e1cdf",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución."
+    },
+    {
+      "source_id": "ies_docs_40W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled40.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "5e6eb3a69d2339bb90fb53b35529b6ae22a783521f220f3aa48a047fcb07f8ce",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "ies_docs_60W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled60.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "90b079247cf5935863e36c1268ce4536958fa419654f8131a5064371b9a7144d",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "ies_docs_90W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled90.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "91da2ca2b7a689adef0b75e2ccd9b222f9a4ec035249a02e48a1b3caa09bcc55",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "ies_docs_120W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled120.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "4d604d03bbd47b27c247a78b862b1cc075ace314d71909fd699bf27d4cc65f29",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "ies_docs_150W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled150.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "c723cab592c6b39f14eda930d248b167b97238d448d4bf94798e098682b10e2e",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "ies_docs_200W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled200.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "fae4074d4bafc84e468478df7e517eda861f007419286d91f169347e8aa4cd6e",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "ies_docs_250W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled250.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "d0b18a0cbc242b216167a295567cb15ebd972ee7e699f976cc88b8940689db23",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente."
+    },
+    {
+      "source_id": "pipeline_base_data",
+      "source_type": "json_pipeline_base",
+      "source_path": "scripts/fichas-tecnicas/bestled_base_data.json",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "ba8afb212865404eb1b1b4f858c689ffd437a9e0a3a9ba2aa49e7dc10284fc41",
+      "notes": "Datos comunes (marca, IP, IK, certificación, garantía 5 años, CCT) + por modelo (sku_base, dimensiones, peso, packaging, quality_score, notas). Modelos: 40,60,90,120,150,200,250."
+    },
+    {
+      "source_id": "pdf_v4_60w_strict",
+      "source_type": "pdf_ficha_tecnica_v4",
+      "source_path": "docs/fichas-tecnicas/FT-eLIGHTS-BESTLED-60W-v4.pdf",
+      "source_status": "not_available",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Archivo con sufijo \"-v4\" en nombre NO existe. PERO existen FT-eLIGHTS-BESTLED-{40..250}W.pdf en docs/fichas-tecnicas/pdf/ cuyo cuerpo declara internamente \"v4.0\" — capturados por separado como pdf_ficha_unversioned_*."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-120w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-120W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "35be4f1d85101715dcbe907f0b8fbe4298feda1af1322c7305f2eeaa3e4e5691",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4190 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-150w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-150W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "f498bffd7ed32bbdafeabb37b327f690e74037ed3336264170046933f8b1c499",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4192 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-200w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-200W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "50d8d3a49fa4c02407b32a6f7a11013f5dbe4d7bd88b2610d191006cdfe4533b",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4191 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-250w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-250W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "6cfdf898a39afef796d71a35716a5a81d373bc775df9a8f3c1e9c2f52570c606",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4195 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-40w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-40W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "ccf61c5b8b07334382eeb03a2af0d1dfdbd070b64e3e9d73ef2afe7bb2893ce3",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4143 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-60w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-60W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "ccfc05ac7e3db9e388ab601af2164c814199d0b8984416966100c49a56a39a57",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4169 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-90w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-90W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "48929a8c7a25dfd6503859e5657bbe3743357166068a54036ef78ed827322a77",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4174 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3."
+    },
+    {
+      "source_id": "web_elights_cl",
+      "source_type": "web_scrape",
+      "source_path": "https://elights.cl/",
+      "source_status": "not_consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "HTTP bloqueado por sandbox: HTTP 403 con header x-deny-reason: host_not_allowed. No fue posible scrapear."
+    },
+    {
+      "source_id": "commercial_policy_config_json",
+      "source_type": "commercial_policy_repo",
+      "source_path": "config/commercial-policy.json",
+      "source_status": "not_available",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Candidato R8.1 NO existe."
+    },
+    {
+      "source_id": "commercial_policy_md",
+      "source_type": "commercial_policy_repo",
+      "source_path": "docs/politica-comercial.md",
+      "source_status": "not_available",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Candidato R8.2 NO existe."
+    },
+    {
+      "source_id": "business_ts_constants",
+      "source_type": "commercial_policy_repo",
+      "source_path": "src/config/business.ts",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "86830e10a3ce122fc1a9013ecc8bc3d7f286b7d50ac44f4663b1fe79e66e1f0c",
+      "notes": "Candidato R8.3 EXISTE pero contiene SOLO contacto (WhatsApp, email), cobertura, trust claims y label de visita técnica. NO contiene política de descuentos, márgenes, ni segmentación B2B/B2C. CONFLICTO: trustClaims.warranty.title=\"Garantía 1 año\" vs. base_data.garantia_anos=5 vs. PDF v4=\"5 años\"."
+    },
+    {
+      "source_id": "pdf_mockup_v5",
+      "source_type": "pdf_ficha_tecnica_v5_mockup",
+      "source_path": "docs/fichas-tecnicas/v5-mockup/FT-eLIGHTS-BESTLED-60W-v5-MOCKUP.pdf",
+      "source_status": "not_consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Directorio v5-mockup/ no existe. Para Fase 3: diff_con_v5_mockup.status = \"not_consulted\"."
+    }
+  ],
+  "inventory_summary": {
+    "ies_files_found": 14,
+    "ies_files_parsed": 14,
+    "ies_factory_raw_count": 7,
+    "ies_curated_branded_count": 7,
+    "pipeline_json_found": true,
+    "pdf_v4_strict_filename_found": false,
+    "pdf_unversioned_internally_v4_count": 7,
+    "commercial_policy_found": false,
+    "commercial_policy_proxy_business_ts_found": true,
+    "mockup_v5_found": false,
+    "web_scrape_performed": false,
+    "web_scrape_status": "failed_blocked_by_sandbox",
+    "pdftotext_available": false,
+    "pdf_extraction_method": "pypdf python library"
+  },
+  "models_covered": {
+    "40W": true,
+    "60W": true,
+    "90W": true,
+    "120W": true,
+    "150W": true,
+    "200W": true,
+    "250W": true,
+    "cct_variants_in_ies_files": "no_per_cct_files — 1 .IES por modelo. Variantes CCT (2200-2700K, 4000K, 5000K) declaradas en bestled_base_data.json y en PDFs (variantes_cct), pero NO hay .ies por CCT individual."
+  },
+  "notable_findings_for_phase_2_3": [
+    "F1: Existen DOS sets de archivos .IES con la misma nomenclatura — root (factory raw, 22KB c/u, manufac=\"Comercial el tejie ltda\", grilla 181x13) vs docs/fotometrias/bestled/ (rebrand eLIGHTS, 1.2KB c/u, manufac=\"eLIGHTS\", grilla 19x5). Lúmenes y watts coinciden, pero la candela máxima reportada en el set rebrandado es 2-15× mayor que en el factory raw. Esto sugiere que los archivos en docs/fotometrias/bestled/ NO son una medición independiente sino una reconstrucción/rebrand basada en otra distribución fotométrica.",
+    "F2: Ningún PDF en el repo tiene \"v4\" en el nombre, pero los 7 PDFs en docs/fichas-tecnicas/pdf/ declaran \"v4.0\" en el cuerpo. Decidir en Fase 3 si estos califican como \"PDF v4 histórico\" o si el v4 verdadero está fuera del repo.",
+    "F3: HTTP a elights.cl bloqueado por sandbox (host_not_allowed, 403). Imposible scrapear desde esta sesión.",
+    "F4: commercial_policy_repo NO existe en su forma canónica (config/commercial-policy.json ni docs/politica-comercial.md). El único proxy (src/config/business.ts) contiene contactos/cobertura/trust claims pero NO descuentos ni segmentación.",
+    "F5: CONFLICTO de garantía: business.ts dice \"Garantía 1 año\" (trustClaims.warranty.title) vs base_data.garantia_anos=5 vs PDFs declaran \"5 años\". Resolver en Fase 3.",
+    "F6: PDF mockup v5 NO existe (directorio v5-mockup/ ausente). Marcar diff_con_v5_mockup.status=not_consulted en Fase 3.",
+    "F7: Los .IES factory raw tienen TESTLAB inconsistente: \"VOLNIC\" en 40/60/90W, pero \"Volnic IES\" en 120/150/200/250W. Posible discrepancia de plantilla del laboratorio.",
+    "F8: Los .IES no contienen información de CCT. Las variantes 2200-2700K / 4000K / 5000K vienen exclusivamente de bestled_base_data.json (campo cct_opciones).",
+    "F9: bestled_base_data.json marca quality_score=\"A\" sólo para BESTLED 60W (con nota \"Datos confirmados con ficha de agencia\"). Los otros 6 modelos tienen score \"B\" con nota \"Dimensiones estimadas - validar con proveedor\". Esto afecta confiabilidad de dimensiones/peso/packaging para 40, 90, 120, 150, 200, 250W.",
+    "F10: Los JSON ya generados en docs/fichas-tecnicas/json/ (bestled_40w.json ... bestled_250w.json + bestled_familia.json) no estaban en la lista de fuentes del prompt — pueden ser outputs previos del pipeline. Capturarlos como referencia en Fase 2 sería prudente."
+  ],
+  "raw_pipeline_json": {
+    "bestled_common": {
+      "marca": "eLIGHTS",
+      "categoria": "Alumbrado Público / Vial",
+      "familia_plantilla": "industrial",
+      "tipo_led": "Bridgelux",
+      "cri": ">=80",
+      "ip": "IP66",
+      "ik": "IK08",
+      "material": "Aluminio / Vidrio / Policarbonato",
+      "color_cuerpo": "Gris oscuro",
+      "voltaje_entrada": "AC 100-277V 50-60Hz",
+      "montaje": "Brazo poste / Parte alta poste",
+      "altura_montaje": "5 a 12 metros",
+      "vida_util_h": 100000,
+      "driver_marca": "Mean Well",
+      "driver_dimming": "Programable (0-10V / 1-10V)",
+      "driver_compartimiento": "Independiente, apertura sin herramientas",
+      "certificacion": "SEC - PE N°5/07 y DS1",
+      "garantia_anos": 5,
+      "temp_operacion": "-20°C a +50°C",
+      "cct_opciones": [
+        "2200-2700K",
+        "4000K",
+        "5000K"
+      ]
+    },
+    "bestled_by_model": {
+      "40": {
+        "sku_base": "APB40",
+        "dimensiones_mm": "460 x 200 x 72",
+        "peso_kg": 2.8,
+        "diametro_anclaje_mm": 53,
+        "packaging_cantidad": 2,
+        "packaging_dimensiones_mm": "540 x 230 x 230",
+        "packaging_peso_kg": 6.5,
+        "quality_score": "B",
+        "nota": "Dimensiones estimadas - validar con proveedor"
+      },
+      "60": {
+        "sku_base": "APB60",
+        "dimensiones_mm": "500 x 210 x 75",
+        "peso_kg": 3.6,
+        "diametro_anclaje_mm": 53,
+        "packaging_cantidad": 2,
+        "packaging_dimensiones_mm": "570 x 250 x 245",
+        "packaging_peso_kg": 7.23,
+        "quality_score": "A",
+        "nota": "Datos confirmados con ficha de agencia"
+      },
+      "90": {
+        "sku_base": "APB90",
+        "dimensiones_mm": "540 x 230 x 78",
+        "peso_kg": 4.2,
+        "diametro_anclaje_mm": 60,
+        "packaging_cantidad": 2,
+        "packaging_dimensiones_mm": "620 x 270 x 260",
+        "packaging_peso_kg": 9.5,
+        "quality_score": "B",
+        "nota": "Dimensiones estimadas - validar con proveedor"
+      },
+      "120": {
+        "sku_base": "APB120",
+        "dimensiones_mm": "580 x 250 x 82",
+        "peso_kg": 5.8,
+        "diametro_anclaje_mm": 60,
+        "packaging_cantidad": 1,
+        "packaging_dimensiones_mm": "650 x 290 x 280",
+        "packaging_peso_kg": 7.0,
+        "quality_score": "B",
+        "nota": "Dimensiones estimadas - validar con proveedor"
+      },
+      "150": {
+        "sku_base": "APB150",
+        "dimensiones_mm": "620 x 270 x 85",
+        "peso_kg": 6.5,
+        "diametro_anclaje_mm": 60,
+        "packaging_cantidad": 1,
+        "packaging_dimensiones_mm": "700 x 310 x 290",
+        "packaging_peso_kg": 8.0,
+        "quality_score": "B",
+        "nota": "Dimensiones estimadas - validar con proveedor"
+      },
+      "200": {
+        "sku_base": "APB200",
+        "dimensiones_mm": "660 x 290 x 90",
+        "peso_kg": 8.2,
+        "diametro_anclaje_mm": 60,
+        "packaging_cantidad": 1,
+        "packaging_dimensiones_mm": "740 x 330 x 300",
+        "packaging_peso_kg": 10.0,
+        "quality_score": "B",
+        "nota": "Dimensiones estimadas - validar con proveedor"
+      },
+      "250": {
+        "sku_base": "APB250",
+        "dimensiones_mm": "720 x 320 x 95",
+        "peso_kg": 10.5,
+        "diametro_anclaje_mm": 60,
+        "packaging_cantidad": 1,
+        "packaging_dimensiones_mm": "800 x 360 x 320",
+        "packaging_peso_kg": 12.5,
+        "quality_score": "B",
+        "nota": "Dimensiones estimadas - validar con proveedor"
+      }
+    }
+  },
+  "raw_ies_data": [
+    {
+      "filename": "bestled40.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled40.IES",
+      "sha256": "1f11b74da7953052e48e7fa5dc7e90afc4a7dc819628768bf9b0d6a44613a487",
+      "model": "40W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "VOLNIC",
+        "issuedate": "2024/03/08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "",
+        "luminaire": "luminaria publico led",
+        "lampcat": "",
+        "lamp": "bestled 40",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "EP: 219.8 0.228 47.0 0.938",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 6031.17,
+        "lumens_per_lamp": 6031.17,
+        "intensidad_max_cd": 2517.2,
+        "input_watts": 40.04,
+        "n_lamps": 1,
+        "cd_multiplier": 1.0,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.15,
+        "length_m": 0.11,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          2514.56,
+          2508.19,
+          2502.25,
+          2494.07,
+          2483.6
+        ],
+        "C0_last_5_cd": [
+          19.03,
+          19.29,
+          19.47,
+          19.39,
+          19.5
+        ],
+        "C90_first_5_cd": [
+          2471.57,
+          2469.17,
+          2465.78,
+          2461.34,
+          2455.37
+        ],
+        "C90_last_5_cd": [
+          18.77,
+          18.93,
+          18.83,
+          18.88,
+          19.01
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled60.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled60.IES",
+      "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+      "model": "60W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "VOLNIC",
+        "issuedate": "2024/03/08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "luminaria publico led",
+        "luminaire": "luminaria publico led",
+        "lampcat": "",
+        "lamp": "bestled60",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "EP: 219.8 0.228 47.0 0.938",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 9167.09,
+        "lumens_per_lamp": 9167.09,
+        "intensidad_max_cd": 4405.7,
+        "input_watts": 60.04,
+        "n_lamps": 1,
+        "cd_multiplier": 1.0,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.16,
+        "length_m": 0.21,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          3275.94,
+          3277.41,
+          3281.11,
+          3285.76,
+          3292.97
+        ],
+        "C0_last_5_cd": [
+          29.44,
+          29.44,
+          29.47,
+          29.43,
+          29.32
+        ],
+        "C90_first_5_cd": [
+          3290.31,
+          3329.66,
+          3369.0,
+          3408.72,
+          3450.09
+        ],
+        "C90_last_5_cd": [
+          28.1,
+          28.38,
+          28.53,
+          28.83,
+          29.02
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled90.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled90.IES",
+      "sha256": "c608035b58f0ba83fe30f80ebbc4cc7741867c83e01e68f981f79f2906628d4b",
+      "model": "90W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "VOLNIC",
+        "issuedate": "2024/03/08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "lum",
+        "luminaire": "luminaria publico  LED",
+        "lampcat": "",
+        "lamp": "bestled90",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "EP: 219.8 0.452 94.9 0.954",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 13594.91,
+        "lumens_per_lamp": 13594.91,
+        "intensidad_max_cd": 5638.7,
+        "input_watts": 90.89,
+        "n_lamps": 1,
+        "cd_multiplier": 1.05,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.18,
+        "length_m": 0.23,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          4052.23,
+          4054.22,
+          4055.82,
+          4057.53,
+          4059.75
+        ],
+        "C0_last_5_cd": [
+          37.91,
+          37.86,
+          37.86,
+          37.88,
+          37.95
+        ],
+        "C90_first_5_cd": [
+          3983.1,
+          4019.96,
+          4053.14,
+          4083.8,
+          4112.89
+        ],
+        "C90_last_5_cd": [
+          36.05,
+          36.38,
+          36.87,
+          37.12,
+          37.28
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled120.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled120.IES",
+      "sha256": "8ff181983fa3a9aeee319cbdccbfd6f95917831d297cab278c822b9f7c72c113",
+      "model": "120W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "Volnic IES",
+        "issuedate": "2024/03/08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "lu",
+        "luminaire": "luminaria publico led",
+        "lampcat": "",
+        "lamp": "bestled120",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "Frequency:50.0 Voltage:229.6 Current:0.614 Power:119.51 PF:0.986",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 18022.95,
+        "lumens_per_lamp": 18022.95,
+        "intensidad_max_cd": 8577.9,
+        "input_watts": 119.51,
+        "n_lamps": 1,
+        "cd_multiplier": 1.0,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.2,
+        "length_m": 0.3,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          8577.94,
+          8577.74,
+          8575.49,
+          8571.24,
+          8563.5
+        ],
+        "C0_last_5_cd": [
+          69.64,
+          69.67,
+          69.96,
+          70.21,
+          70.03
+        ],
+        "C90_first_5_cd": [
+          8201.67,
+          8207.32,
+          8212.27,
+          8215.09,
+          8214.87
+        ],
+        "C90_last_5_cd": [
+          67.25,
+          67.45,
+          67.8,
+          67.88,
+          67.91
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled150.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled150.IES",
+      "sha256": "9c7885478908b9eceee61ad99faffd1487977bfbbb673a08fd234ea919f80065",
+      "model": "150W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "Volnic IES",
+        "issuedate": "2024/03/08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "",
+        "luminaire": "luminaria publico led",
+        "lampcat": "",
+        "lamp": "bestled150",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "Frequency:50.0 Voltage:229.7 Current:0.644 Power:149.4 PF:0.962",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 22566.92,
+        "lumens_per_lamp": 22566.92,
+        "intensidad_max_cd": 8779.7,
+        "input_watts": 149.4,
+        "n_lamps": 1,
+        "cd_multiplier": 1.0,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.2,
+        "length_m": 0.3,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          7957.74,
+          7941.13,
+          7924.57,
+          7911.37,
+          7896.46
+        ],
+        "C0_last_5_cd": [
+          66.64,
+          66.72,
+          66.55,
+          66.46,
+          66.44
+        ],
+        "C90_first_5_cd": [
+          7824.64,
+          7816.51,
+          7806.52,
+          7791.88,
+          7775.43
+        ],
+        "C90_last_5_cd": [
+          64.43,
+          64.61,
+          64.8,
+          64.78,
+          64.92
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled200.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled200.IES",
+      "sha256": "edef2406acf2639f4899c671143acbaefdb8a6175497034cb066632c32197342",
+      "model": "200W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "Volnic IES",
+        "issuedate": "2024-03-08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "",
+        "luminaire": "luminaria publico led",
+        "lampcat": "",
+        "lamp": "bestled200",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "Frequency:50.0 Voltage:229.7 Current:0.644 Power:198.9 PF:0.962",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 30005.03,
+        "lumens_per_lamp": 30005.03,
+        "intensidad_max_cd": 11673.5,
+        "input_watts": 198.9,
+        "n_lamps": 1,
+        "cd_multiplier": 2.055,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.2,
+        "length_m": 0.4,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          10580.64,
+          10558.54,
+          10536.53,
+          10518.97,
+          10499.16
+        ],
+        "C0_last_5_cd": [
+          88.61,
+          88.71,
+          88.49,
+          88.37,
+          88.34
+        ],
+        "C90_first_5_cd": [
+          10403.66,
+          10392.86,
+          10379.56,
+          10360.1,
+          10338.24
+        ],
+        "C90_last_5_cd": [
+          85.67,
+          85.91,
+          86.15,
+          86.13,
+          86.31
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled250.IES",
+      "source_set": "root_factory_raw",
+      "absolute_path_relative": "bestled250.IES",
+      "sha256": "16652476571d6f6290ba1b2226aca3b7cd3fdb60da484f928ed69966719e1cdf",
+      "model": "250W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "001",
+        "testlab": "Volnic IES",
+        "issuedate": "2024-03-08",
+        "manufac": "Comercial el tejie ltda",
+        "lumcat": "",
+        "luminaire": "luminaria publico led",
+        "lampcat": "",
+        "lamp": "bestled250",
+        "ballast": null,
+        "ballastcat": null,
+        "maintcat": null,
+        "other": "Data Type=CIE",
+        "more_excerpt": "Frequency:50.0 Voltage:229.7 Current:0.644 Power:249.4 PF:0.962",
+        "voltaje_v": null,
+        "corriente_a": null,
+        "factor_potencia": null
+      },
+      "photometric_data": {
+        "flujo_lumenes": 37600.29,
+        "lumens_per_lamp": 37600.29,
+        "intensidad_max_cd": 14628.4,
+        "input_watts": 249.4,
+        "n_lamps": 1,
+        "cd_multiplier": 2.055,
+        "n_vert_angles": 181,
+        "n_horiz_angles": 13,
+        "photometric_type": 1,
+        "units_type": 2,
+        "width_m": 0.3,
+        "length_m": 0.7,
+        "height_m": 0.0,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          "... truncated ...",
+          176.0,
+          177.0,
+          178.0,
+          179.0,
+          180.0
+        ],
+        "h_angles": [
+          0.0,
+          30.0,
+          60.0,
+          90.0,
+          120.0,
+          150.0,
+          180.0,
+          210.0,
+          240.0,
+          270.0,
+          300.0,
+          330.0,
+          360.0
+        ],
+        "C0_first_5_cd": [
+          13258.94,
+          13231.26,
+          13203.68,
+          13181.67,
+          13156.84
+        ],
+        "C0_last_5_cd": [
+          111.03,
+          111.16,
+          110.89,
+          110.74,
+          110.7
+        ],
+        "C90_first_5_cd": [
+          13037.17,
+          13023.63,
+          13006.97,
+          12982.58,
+          12955.18
+        ],
+        "C90_last_5_cd": [
+          107.35,
+          107.66,
+          107.96,
+          107.93,
+          108.16
+        ]
+      },
+      "note": "IES factory crudo (181×13)"
+    },
+    {
+      "filename": "bestled40.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled40.IES",
+      "sha256": "5e6eb3a69d2339bb90fb53b35529b6ae22a783521f220f3aa48a047fcb07f8ce",
+      "model": "40W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 40W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-05",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-40W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 40W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 40W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 219.8V | Corriente: 0.194A | FP: 0.938",
+        "voltaje_v": 219.8,
+        "corriente_a": 0.194,
+        "factor_potencia": 0.938
+      },
+      "photometric_data": {
+        "flujo_lumenes": 6031.0,
+        "lumens_per_lamp": 6031.0,
+        "intensidad_max_cd": 5456.2,
+        "input_watts": 40.04,
+        "n_lamps": 1,
+        "cd_multiplier": 1.8847,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          5456.21,
+          5445.28,
+          5407.02,
+          5336.15,
+          5227.03
+        ],
+        "C0_last_5_cd": [
+          534.69,
+          207.32,
+          54.47,
+          10.93,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          5456.21,
+          5428.88,
+          5358.01,
+          5248.89,
+          5096.04
+        ],
+        "C90_last_5_cd": [
+          829.27,
+          447.43,
+          174.52,
+          43.73,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    },
+    {
+      "filename": "bestled60.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled60.IES",
+      "sha256": "90b079247cf5935863e36c1268ce4536958fa419654f8131a5064371b9a7144d",
+      "model": "60W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 60W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-08",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-60W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 60W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 60W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 219.8V | Corriente: 0.228A | FP: 0.938",
+        "voltaje_v": 219.8,
+        "corriente_a": 0.228,
+        "factor_potencia": 0.938
+      },
+      "photometric_data": {
+        "flujo_lumenes": 9167.0,
+        "lumens_per_lamp": 9167.0,
+        "intensidad_max_cd": 12604.7,
+        "input_watts": 60.04,
+        "n_lamps": 1,
+        "cd_multiplier": 2.8647,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          12604.68,
+          12579.47,
+          12491.24,
+          12327.38,
+          12075.28
+        ],
+        "C0_last_5_cd": [
+          1235.26,
+          478.98,
+          126.05,
+          25.21,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          12604.68,
+          12541.66,
+          12377.8,
+          12125.7,
+          11772.77
+        ],
+        "C90_last_5_cd": [
+          1915.91,
+          1033.58,
+          403.35,
+          100.84,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    },
+    {
+      "filename": "bestled90.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled90.IES",
+      "sha256": "91da2ca2b7a689adef0b75e2ccd9b222f9a4ec035249a02e48a1b3caa09bcc55",
+      "model": "90W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 90W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-10",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-90W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 90W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 90W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 219.8V | Corriente: 0.434A | FP: 0.954",
+        "voltaje_v": 219.8,
+        "corriente_a": 0.434,
+        "factor_potencia": 0.954
+      },
+      "photometric_data": {
+        "flujo_lumenes": 13595.0,
+        "lumens_per_lamp": 13595.0,
+        "intensidad_max_cd": 27725.1,
+        "input_watts": 90.9,
+        "n_lamps": 1,
+        "cd_multiplier": 4.2484,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          27725.06,
+          27669.4,
+          27475.68,
+          27114.99,
+          26560.57
+        ],
+        "C0_last_5_cd": [
+          2716.85,
+          1053.6,
+          277.42,
+          55.65,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          27725.06,
+          27586.56,
+          27225.87,
+          26671.46,
+          25895.27
+        ],
+        "C90_last_5_cd": [
+          4214.41,
+          2273.32,
+          887.07,
+          221.77,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    },
+    {
+      "filename": "bestled120.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled120.IES",
+      "sha256": "4d604d03bbd47b27c247a78b862b1cc075ace314d71909fd699bf27d4cc65f29",
+      "model": "120W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 120W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-12",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-120W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 120W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 120W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 229.6V | Corriente: 0.527A | FP: 0.986",
+        "voltaje_v": 229.6,
+        "corriente_a": 0.527,
+        "factor_potencia": 0.986
+      },
+      "photometric_data": {
+        "flujo_lumenes": 18023.0,
+        "lumens_per_lamp": 18023.0,
+        "intensidad_max_cd": 48724.2,
+        "input_watts": 119.5,
+        "n_lamps": 1,
+        "cd_multiplier": 5.6322,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          48724.16,
+          48626.73,
+          48285.41,
+          47652.35,
+          46677.98
+        ],
+        "C0_last_5_cd": [
+          4774.98,
+          1851.3,
+          487.19,
+          97.44,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          48724.16,
+          48480.29,
+          47847.23,
+          46872.86,
+          45508.18
+        ],
+        "C90_last_5_cd": [
+          7406.34,
+          3995.48,
+          1558.99,
+          389.75,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    },
+    {
+      "filename": "bestled150.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled150.IES",
+      "sha256": "c723cab592c6b39f14eda930d248b167b97238d448d4bf94798e098682b10e2e",
+      "model": "150W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 150W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-14",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-150W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 150W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 150W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 229.7V | Corriente: 0.677A | FP: 0.962",
+        "voltaje_v": 229.7,
+        "corriente_a": 0.677,
+        "factor_potencia": 0.962
+      },
+      "photometric_data": {
+        "flujo_lumenes": 22567.0,
+        "lumens_per_lamp": 22567.0,
+        "intensidad_max_cd": 76389.4,
+        "input_watts": 149.4,
+        "n_lamps": 1,
+        "cd_multiplier": 7.0522,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          76389.43,
+          76236.4,
+          75701.84,
+          74708.89,
+          73181.38
+        ],
+        "C0_last_5_cd": [
+          7485.91,
+          2902.69,
+          763.75,
+          153.03,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          76389.43,
+          76007.2,
+          75014.25,
+          73486.74,
+          71347.81
+        ],
+        "C90_last_5_cd": [
+          11611.45,
+          6263.76,
+          2444.29,
+          611.43,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    },
+    {
+      "filename": "bestled200.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled200.IES",
+      "sha256": "fae4074d4bafc84e468478df7e517eda861f007419286d91f169347e8aa4cd6e",
+      "model": "200W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 200W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-16",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-200W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 200W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 200W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 229.7V | Corriente: 0.901A | FP: 0.962",
+        "voltaje_v": 229.7,
+        "corriente_a": 0.901,
+        "factor_potencia": 0.962
+      },
+      "photometric_data": {
+        "flujo_lumenes": 30005.0,
+        "lumens_per_lamp": 30005.0,
+        "intensidad_max_cd": 135041.8,
+        "input_watts": 198.9,
+        "n_lamps": 1,
+        "cd_multiplier": 9.3766,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          135041.79,
+          134771.75,
+          133826.59,
+          132071.29,
+          129369.89
+        ],
+        "C0_last_5_cd": [
+          13234.13,
+          5131.81,
+          1350.23,
+          270.05,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          135041.79,
+          134366.68,
+          132611.38,
+          129909.98,
+          126129.33
+        ],
+        "C90_last_5_cd": [
+          20526.32,
+          11073.76,
+          4321.67,
+          1080.18,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    },
+    {
+      "filename": "bestled250.IES",
+      "source_set": "docs_curated",
+      "absolute_path_relative": "docs/fotometrias/bestled/bestled250.IES",
+      "sha256": "d0b18a0cbc242b216167a295567cb15ebd972ee7e699f976cc88b8940689db23",
+      "model": "250W",
+      "cct_in_file": null,
+      "headers": {
+        "test": "BESTLED 250W - Luminaria LED Vial",
+        "testlab": "VOLNIC - Laboratorio de Fotometria",
+        "issuedate": "2024-03-18",
+        "manufac": "eLIGHTS",
+        "lumcat": "BESTLED-250W",
+        "luminaire": "Luminaria LED para Alumbrado Publico 250W",
+        "lampcat": "LED COB Bridgelux",
+        "lamp": "Modulo LED integrado 250W",
+        "ballast": "Driver Mean Well programable",
+        "ballastcat": "DALI/0-10V dimming",
+        "maintcat": "5",
+        "other": "Equipo: GON-2000 | Temperatura: 25C | Humedad: 68%",
+        "more_excerpt": "Voltaje medido: 229.7V | Corriente: 1.129A | FP: 0.962",
+        "voltaje_v": 229.7,
+        "corriente_a": 1.129,
+        "factor_potencia": 0.962
+      },
+      "photometric_data": {
+        "flujo_lumenes": 37600.0,
+        "lumens_per_lamp": 37600.0,
+        "intensidad_max_cd": 212064.0,
+        "input_watts": 249.4,
+        "n_lamps": 1,
+        "cd_multiplier": 11.75,
+        "n_vert_angles": 19,
+        "n_horiz_angles": 5,
+        "photometric_type": 1,
+        "units_type": 1,
+        "width_m": 0.62,
+        "length_m": 0.21,
+        "height_m": 0.075,
+        "ballast_factor": 1.0
+      },
+      "angles_measured": {
+        "v_angles": [
+          0.0,
+          5.0,
+          10.0,
+          15.0,
+          20.0,
+          "... truncated ...",
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ],
+        "h_angles": [
+          0.0,
+          45.0,
+          90.0,
+          135.0,
+          180.0
+        ],
+        "C0_first_5_cd": [
+          212064.0,
+          211639.83,
+          210155.8,
+          207398.08,
+          203157.5
+        ],
+        "C0_last_5_cd": [
+          20782.23,
+          8058.15,
+          2120.88,
+          424.18,
+          0.0
+        ],
+        "C90_first_5_cd": [
+          212064.0,
+          211004.15,
+          208246.42,
+          204005.85,
+          198067.4
+        ],
+        "C90_last_5_cd": [
+          32233.78,
+          17388.83,
+          6785.62,
+          1696.7,
+          0.0
+        ]
+      },
+      "note": "IES rebrand eLIGHTS (19×5, lúmenes coinciden con factory; cd máx difiere mucho)"
+    }
+  ],
+  "raw_pdf_v4_text": {
+    "strict_path_v4_60w": {
+      "path": "docs/fichas-tecnicas/FT-eLIGHTS-BESTLED-60W-v4.pdf",
+      "status": "not_available",
+      "extracted_text": null
+    },
+    "unversioned_pdfs_internal_v4": {
+      "note": "Los PDFs en docs/fichas-tecnicas/pdf/ declaran \"v4.0\" en su cuerpo. Posible identidad funcional con el v4 histórico solicitado, pendiente confirmar en Fase 3.",
+      "pdfs": {
+        "FT-eLIGHTS-BESTLED-120W.pdf": {
+          "page_count": 3,
+          "char_count": 4190
+        },
+        "FT-eLIGHTS-BESTLED-150W.pdf": {
+          "page_count": 3,
+          "char_count": 4192
+        },
+        "FT-eLIGHTS-BESTLED-200W.pdf": {
+          "page_count": 3,
+          "char_count": 4191
+        },
+        "FT-eLIGHTS-BESTLED-250W.pdf": {
+          "page_count": 3,
+          "char_count": 4195
+        },
+        "FT-eLIGHTS-BESTLED-40W.pdf": {
+          "page_count": 3,
+          "char_count": 4143
+        },
+        "FT-eLIGHTS-BESTLED-60W.pdf": {
+          "page_count": 3,
+          "char_count": 4169
+        },
+        "FT-eLIGHTS-BESTLED-90W.pdf": {
+          "page_count": 3,
+          "char_count": 4174
+        }
+      },
+      "sample_full_text_60w": "eLIGHTS\nFICHA TÉCNICA\nwww.elights.cl\nv4.0\nALUMBRADO PÚBLICO / VIAL\nBESTLED 60W\n60.0W  |  9167.0 lm  |  152.8 lm/W  |  CRI >=80  |  IP66  |  IK08\nSKU: APB60   Marca: eLIGHTS   Garantía: 5 años\n[Foto no disponible]\nLuminaria LED de alumbrado público y vial de alta eficiencia. Homologada\nSEC para el mercado chileno. Datos fotométricos medidos por laboratorio\nVOLNIC con gonioradómetro GON-2000. Chip Bridgelux, driver Mean Well\nregulable 0-10V, cuerpo Aluminio / Vidrio / Policarbonato.\n9.167.0 lm\nFlujo Luminoso\n152.8 lm/W\nEficacia\n50.000 h\nVida Útil L70\n5 años\nGarantía\nDESEMPEÑO\nPotencia nominal\n60.0 W\nFlujo luminoso\n9167.0 lm\nEficacia\n152.8 lm/W\nVoltaje entrada\nAC 100-277V 50-60Hz\nFactor potencia\n0.938\nClasificación IES\nType I / Short / Cutoff\nTemp. color (CCT)\n2200-2700K / 4000K / 5\nCRI\n>=80\nTipo LED\nBridgelux\nProtección IP\nIP66\nResistencia IK\nIK08\nMaterial cuerpo\nAluminio / Vidrio / Polic\nCONSTRUCCIÓN\nDimensiones (mm)\n500 x 210 x 75\nPeso\n3.6 kg\nAnclaje (mm)\n53\nMontaje\nBrazo poste / Parte alta\nAltura montaje\nN/D\nVida útil\n>50.000 h L70\nColor cuerpo\nGris RAL 7035\nDRIVER\nMarca:\nMean Well\nTipo:\nRegulable 0-10V\nVoltaje:\nAC 100-277V 50-60Hz\nPF:\n>0.95\nProtección:\nOCP, OVP, OTP, SCP\nCERTIFICACIONES\n✓ SEC - PE N°5/07 y DS1\n IEC 60598-1\n IEC 60598-2-3\n IEC 62471\n IESNA LM-63-2002\neLIGHTS.cl — www.elights.cl — ventas@elights.cl\nPágina 1 de 3\n\n\nBESTLED 60W\nAPB60-2200_2700K  |  APB60-4000K  |  APB60-5000K\nPágina 2\nVARIANTES DE TEMPERATURA DE COLOR\nSKU\nCCT (K)\nDescripción\nFlujo (lm)\nAPB60-2200_2700K\n2200-2700K\nBlanco cálido - Ambientes residenciales\n9167.0 lm\nAPB60-4000K\n4000K\nBlanco neutro - Vial y urbano\n9167.0 lm\nAPB60-5000K\n5000K\nBlanco frío - Industrial\n9167.0 lm\nDatos medidos por laboratorio VOLNIC — Equipo GON-2000 — 2024-03-08\nLÍNEA COMPLETA BESTLED\nModelo\nPotencia\nFlujo (lm)\nEficacia\nFP\nAnclaje\nBESTLED 40W\n40.0 W\n6031.0 lm\n150.8 lm/W\n0.938\nø53\nBESTLED 60W\n60.0 W\n9167.0 lm\n152.8 lm/W\n0.938\nø53\nBESTLED 90W\n90.9 W\n13595.0 lm\n149.6 lm/W\n0.954\nø60\nBESTLED 120W\n119.5 W\n18023.0 lm\n150.8 lm/W\n0.986\nø60\nBESTLED 150W\n149.4 W\n22567.0 lm\n151.1 lm/W\n0.962\nø60\nBESTLED 200W\n198.9 W\n30005.0 lm\n150.9 lm/W\n0.962\nø60\nBESTLED 250W\n249.4 W\n37600.0 lm\n150.8 lm/W\n0.962\nø60\nNota: datos marcados  son estimaciones pendientes de validación con proveedor.\nAPLICACIONES RECOMENDADAS\nAlumbrado público vial (vías urbanas y avenidas principales)\nParques, plazas y espacios públicos\nEstacionamientos y pérgolas\nPerimetrales industriales y comerciales\nZonas residenciales y condominios\nDIMENSIONES Y PACKAGING\n[Diagrama dimensional]\n500 x 210 x 75\nPeso: 3.6 kg\nDimensiones (mm)\n500 x 210 x 75\nPeso luminaria\n3.6 kg\nAnclaje\nø53 mm\nMontaje\nBrazo poste / Parte alta poste\neLIGHTS.cl — www.elights.cl — ventas@elights.cl\nPágina 2 de 3\n\n\nBESTLED 60W\nAPB60-2200_2700K  |  APB60-4000K  |  APB60-5000K\nPágina 3\nDISTRIBUCIÓN LUMINOSA — DIAGRAMA POLAR\nDistribución de intensidad luminosa (cd) — Planos C0/C180 y C90/C270\nC0-C180 (Longitudinal)\nC90-C270 (Transversal)\nIntensidad máx: 4400.0 cd  |  Laboratorio VOLNIC  |  2024-03-08\nDATOS FOTOMÉTRICOS (VOLNIC)\nLaboratorio\nVOLNIC\nEquipo\nGON-2000\nFecha ensayo\n2024-03-08\nÁngulo haz 50%\n119.3°\nClasif. IES\nType I / Short / Cutoff\nIntensidad máx\n4400.0 cd\nFlujo desc.\n99.24%\nCOMPONENTES PRINCIPALES\n1\nCarcasa / Disipador:\nAluminio fundido A380, antioxidante\n2\nLED:\nBridgelux BXEM, >50.000h L70\n3\nDriver:\nMean Well, regulable 0-10V, PF>0.95\n4\nÓptica:\nPC premium, transmitancia >92%\n5\nJunta:\nSilicona doble sello, IP66\n6\nConector:\nGlands PG, conector rápido 2P+T\nNOTAS DE INSTALACIÓN\nInstalar por personal eléctrico calificado con puesta a tierra correcta.\nRespetar rango de voltaje de entrada (AC 100-277V). No invertir polaridad.\nSellado IP66 requiere ajuste correcto de junta antes de energizar.\nMontaje en poste: usar abrazadera incluida ø26-60mm. Apretar a 8 Nm.\nLos datos fotométricos son resultados de mediciones de laboratorio y pueden variar ±5% en producción serie.\nDimensiones y pesos marcados como estimación deben validarse con proveedor antes de publicar.\nCertificación SEC vigente. Verificar número de resolución en www.sec.cl.\neLIGHTS\nwww.elights.cl\nnuevo.elights.cl\nventas@elights.cl\n+56 9 9127 3128\nPágina 3 de 3\n"
+    }
+  },
+  "raw_web_scrape_data": {
+    "attempted_url": "https://elights.cl/alumbrado-publico/",
+    "status_code": 403,
+    "reject_reason_header": "x-deny-reason: host_not_allowed",
+    "data": null
+  },
+  "commercial_policy_data": {
+    "canonical_file_status": "not_available",
+    "proxy_file": "src/config/business.ts",
+    "proxy_file_sha256": "86830e10a3ce122fc1a9013ecc8bc3d7f286b7d50ac44f4663b1fe79e66e1f0c",
+    "proxy_file_full_text": "/**\n * src/config/business.ts\n * ─────────────────────────────────────────────────────────────\n * Fuente única de verdad para datos comerciales de eLIGHTS.\n * Importar desde aquí — NO hardcodear estos valores en componentes.\n */\n\n// ── Contacto ────────────────────────────────────────────────\n\n/** Número E.164 para construir URLs de WhatsApp (sin espacios ni +) */\nexport const whatsappNumber = '56991273128';\n\n/** Número formateado para mostrar al usuario */\nexport const whatsappDisplayNumber = '+56 9 9127 3128';\n\n/** Email comercial principal (ventas, cotizaciones) */\nexport const contactEmail = 'ventas@elights.cl';\n\n/** Email de contacto para instalaciones */\nexport const contactEmailInstalacion = 'contacto@elights.cl';\n\n// ── Helpers de URL ───────────────────────────────────────────\n\n/** URL base de WhatsApp sin mensaje */\nexport const waBase = `https://wa.me/${whatsappNumber}`;\n\n/** URL de WhatsApp para el servicio de instalación */\nexport const waInstalacion = `${waBase}?text=Hola%2C%20me%20interesa%20el%20servicio%20de%20instalaci%C3%B3n`;\n\n/** URL de WhatsApp para el servicio de Estudio Luminico DIALux */\nexport const waEstudioLuminico = `${waBase}?text=Hola%2C%20me%20interesa%20el%20Estudio%20Luminico%20DIALux.%20Mi%20proyecto%20es...`;\n\n/** URL de WhatsApp genérica para consultas */\nexport const waGeneral = waBase;\n\n/**\n * Construye una URL de WhatsApp para consulta de un producto específico.\n * @param productName  Nombre del producto\n * @param sku          SKU del producto\n */\nexport function waProductUrl(productName: string, sku: string): string {\n  const text = encodeURIComponent(\n    `Hola, consulta por ${productName} (SKU: ${sku})`\n  );\n  return `${waBase}?text=${text}`;\n}\n\n// ── Cobertura de instalación ─────────────────────────────────\n\n/** Cobertura larga (para sección de mapa o descripción) */\nexport const installationCoverage =\n  'Realizamos instalaciones en toda la Región Metropolitana. Los productos también se despachan a regiones a través de nuestros socios logísticos. Próximamente expandiendo cobertura de instalación a Valparaíso y Biobío.';\n\n/** Cobertura corta (para bullets o badges) */\nexport const installationCoverageShort = 'Cobertura Región Metropolitana.';\n\n// ── Datos de la visita técnica ───────────────────────────────\n\nexport const installationVisitLabel = 'Desde $20.000 · Descontable de tu compra';\nexport const installationVisitDescription =\n  'Un técnico certificado visita tu espacio, evalúa tus necesidades de iluminación y te entrega un informe detallado con recomendaciones y cotización personalizada.';\n\n// ── Trust claims (cards de confianza) ───────────────────────\n\nexport const trustClaims = {\n  stock: {\n    title: 'Catálogo técnico amplio',\n    desc: 'Amplia variedad de productos técnicos con reposición continua. Consulta disponibilidad antes de grandes proyectos.',\n  },\n  dispatch: {\n    title: 'Despacho en 48 hrs',\n    desc: 'Entrega directa con camiones propios en Provincia de Santiago. Envío a regiones en 48 hrs al operador logístico.',\n  },\n  certifications: {\n    title: 'Productos certificados',\n    desc: 'Certificación SEC, DS1, CE, IEC y normas eléctricas chilenas.',\n  },\n  experience: {\n    title: '+8 años en el mercado',\n    desc: 'Experiencia y confianza en iluminación LED industrial.',\n  },\n  warranty: {\n    title: 'Garantía 1 año',\n    desc: 'Todos nuestros productos incluyen garantía base de 1 año.',\n  },\n  dispatchChile: {\n    title: 'Despacho a todo Chile',\n    desc: 'Enviamos por Starken, Cruz del Sur, PDQ, ECOEx y otros. También despachamos con el operador logístico que prefiera el cliente.',\n  },\n} as const;\n",
+    "proxy_extracted_constants": {
+      "whatsappNumber": "56991273128",
+      "whatsappDisplayNumber": "+56 9 9127 3128",
+      "contactEmail": "ventas@elights.cl",
+      "contactEmailInstalacion": "contacto@elights.cl",
+      "installationCoverageShort": "Cobertura Región Metropolitana.",
+      "installationVisitLabel": "Desde $20.000 · Descontable de tu compra",
+      "trustClaims.warranty.title": "Garantía 1 año",
+      "trustClaims.warranty.desc": "Todos nuestros productos incluyen garantía base de 1 año.",
+      "trustClaims.certifications.desc": "Certificación SEC, DS1, CE, IEC y normas eléctricas chilenas."
+    },
+    "note": "business.ts NO contiene política comercial real (descuentos, márgenes, segmentación B2B/B2C). Solo contacto y trust claims. Conflicto detectado de garantía: 1 año en business.ts vs 5 años en base_data y PDFs."
+  },
+  "phase_2_handoff": {
+    "next_phase": 2,
+    "next_phase_action": "Construir el JSON canonical mergeando las fuentes consultadas, respetando precedencia que defina el prompt maestro.",
+    "open_questions_to_resolve_phase_2_3": [
+      "Q1: ¿Qué set de .IES es la fuente de verdad fotométrica — root factory raw o docs rebrand?",
+      "Q2: ¿Los PDFs unversioned con \"v4.0\" interno son el \"PDF v4 histórico\" oficial?",
+      "Q3: ¿Garantía es 1 o 5 años?",
+      "Q4: ¿Hay forma de obtener commercial_policy_repo verdadero fuera del sandbox?"
+    ]
+  }
+}
