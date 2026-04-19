@@ -5,7 +5,7 @@
   "familia_slug": "bestled",
   "categoria": "Alumbrado Publico · Vial",
   "metadata": {
-    "consolidated_at": "2026-04-19T00:42:38Z",
+    "consolidated_at": "2026-04-19T00:52:21Z",
     "consolidated_by": "Claude Code",
     "git_commit": "8139472d134190195e6afabec1eb120b9cf48f4f",
     "review_status": "draft",
@@ -13,7 +13,7 @@
     "review_date": null,
     "approval_status": "unapproved",
     "approved_for_templates": false,
-    "micro_phase": "2a_skeleton",
+    "micro_phase": "2b_model_60w",
     "phase1_source_file": "docs/fichas-tecnicas/bestled-phase1-sources.json"
   },
   "template_readiness_global": {
@@ -613,7 +613,826 @@
       }
     }
   },
-  "modelos": {},
+  "modelos": {
+    "60": {
+      "codigo_modelo": {
+        "valor_canonical": "BESTLED-060",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "Convencion familia BESTLED + potencia 060 (3 digitos, padding).",
+        "authority_rule_applied": "sku_construccion",
+        "winning_source_id": "derived_from_family_convention",
+        "confidence": "high",
+        "fuentes": []
+      },
+      "nombre_comercial": {
+        "valor_canonical": "BESTLED 60W",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "Marca BESTLED + potencia. Coincide con header IES rebrand y pipeline sku_base APB60.",
+        "authority_rule_applied": "nombre_comercial_construccion",
+        "winning_source_id": "derived_from_family_convention",
+        "confidence": "high",
+        "fuentes": []
+      },
+      "slug": {
+        "valor_canonical": "bestled-60w",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "Slug kebab-case derivado de nombre_comercial.",
+        "authority_rule_applied": "slug_construccion",
+        "winning_source_id": "derived_from_family_convention",
+        "confidence": "high",
+        "fuentes": []
+      },
+      "potencia_W": 60,
+      "estado_comercial": {
+        "valor_canonical": "activo",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "Modelo de referencia de la familia BESTLED, vigente en catalogo.",
+        "authority_rule_applied": "manual_default",
+        "winning_source_id": "family_reference_model",
+        "confidence": "medium",
+        "fuentes": []
+      },
+      "publicable": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": "Se determina en Fase 3 segun template_readiness (aprobacion humana).",
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "visible_en_web": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": "Se determina en Fase 3 segun estado de assets y aprobacion.",
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "sku_base_proveedor": {
+        "valor_canonical": "APB60",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "sku_base desde bestled_base_data.json (APB60).",
+        "authority_rule_applied": "especificaciones_mecanicas",
+        "winning_source_id": "pipeline_base_data",
+        "confidence": "high",
+        "fuentes": [
+          {
+            "source_id": "pipeline_base_data",
+            "valor_bruto": {
+              "sku_base": "APB60"
+            },
+            "extracted_at": "2026-04-18T23:10:27Z"
+          }
+        ]
+      },
+      "dimensiones_mm": {
+        "largo": {
+          "valor_canonical": 500,
+          "estado_resolucion": "resolved",
+          "criterio_resolucion": "bestled_base_data.json quality_score=A para 60W (D6). Datos confirmados con ficha de agencia segun nota en pipeline; unico modelo con confidence high en dimensiones.",
+          "authority_rule_applied": "especificaciones_mecanicas",
+          "winning_source_id": "pipeline_base_data",
+          "confidence": "high",
+          "fuentes": [
+            {
+              "source_id": "pipeline_base_data",
+              "valor_bruto": {
+                "dimensiones_mm": "500 x 210 x 75",
+                "quality_score": "A"
+              },
+              "extracted_at": "2026-04-18T23:10:27Z",
+              "notes": "bestled_base_data.json, datos confirmados con ficha de agencia."
+            }
+          ]
+        },
+        "ancho": {
+          "valor_canonical": 210,
+          "estado_resolucion": "resolved",
+          "criterio_resolucion": "bestled_base_data.json quality_score=A para 60W (D6). Datos confirmados con ficha de agencia segun nota en pipeline; unico modelo con confidence high en dimensiones.",
+          "authority_rule_applied": "especificaciones_mecanicas",
+          "winning_source_id": "pipeline_base_data",
+          "confidence": "high",
+          "fuentes": [
+            {
+              "source_id": "pipeline_base_data",
+              "valor_bruto": {
+                "dimensiones_mm": "500 x 210 x 75",
+                "quality_score": "A"
+              },
+              "extracted_at": "2026-04-18T23:10:27Z",
+              "notes": "bestled_base_data.json, datos confirmados con ficha de agencia."
+            }
+          ]
+        },
+        "alto": {
+          "valor_canonical": 75,
+          "estado_resolucion": "resolved",
+          "criterio_resolucion": "bestled_base_data.json quality_score=A para 60W (D6). Datos confirmados con ficha de agencia segun nota en pipeline; unico modelo con confidence high en dimensiones.",
+          "authority_rule_applied": "especificaciones_mecanicas",
+          "winning_source_id": "pipeline_base_data",
+          "confidence": "high",
+          "fuentes": [
+            {
+              "source_id": "pipeline_base_data",
+              "valor_bruto": {
+                "dimensiones_mm": "500 x 210 x 75",
+                "quality_score": "A"
+              },
+              "extracted_at": "2026-04-18T23:10:27Z",
+              "notes": "bestled_base_data.json, datos confirmados con ficha de agencia."
+            }
+          ]
+        }
+      },
+      "diametro_anclaje_mm": {
+        "valor_canonical": 53,
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "diametro_anclaje_mm desde bestled_base_data.json para 60W.",
+        "authority_rule_applied": "especificaciones_mecanicas",
+        "winning_source_id": "pipeline_base_data",
+        "confidence": "high",
+        "fuentes": [
+          {
+            "source_id": "pipeline_base_data",
+            "valor_bruto": {
+              "diametro_anclaje_mm": 53
+            },
+            "extracted_at": "2026-04-18T23:10:27Z"
+          }
+        ]
+      },
+      "peso_kg": {
+        "valor_canonical": 3.6,
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": "bestled_base_data.json quality_score=A para 60W (D6).",
+        "authority_rule_applied": "especificaciones_mecanicas",
+        "winning_source_id": "pipeline_base_data",
+        "confidence": "high",
+        "fuentes": [
+          {
+            "source_id": "pipeline_base_data",
+            "valor_bruto": {
+              "peso_kg": 3.6,
+              "quality_score": "A"
+            },
+            "extracted_at": "2026-04-18T23:10:27Z"
+          }
+        ]
+      },
+      "embalaje": {
+        "unidades_por_caja": {
+          "valor_canonical": 2,
+          "estado_resolucion": "resolved",
+          "criterio_resolucion": "packaging_cantidad desde bestled_base_data.json.",
+          "authority_rule_applied": "especificaciones_mecanicas",
+          "winning_source_id": "pipeline_base_data",
+          "confidence": "high",
+          "fuentes": [
+            {
+              "source_id": "pipeline_base_data",
+              "valor_bruto": {
+                "packaging_cantidad": 2
+              },
+              "extracted_at": "2026-04-18T23:10:27Z"
+            }
+          ]
+        },
+        "dimensiones_caja_mm": {
+          "largo": {
+            "valor_canonical": 570,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "packaging_dimensiones_mm desde bestled_base_data.json.",
+            "authority_rule_applied": "especificaciones_mecanicas",
+            "winning_source_id": "pipeline_base_data",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "pipeline_base_data",
+                "valor_bruto": {
+                  "packaging_dimensiones_mm": "570 x 250 x 245"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z"
+              }
+            ]
+          },
+          "ancho": {
+            "valor_canonical": 250,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "packaging_dimensiones_mm desde bestled_base_data.json.",
+            "authority_rule_applied": "especificaciones_mecanicas",
+            "winning_source_id": "pipeline_base_data",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "pipeline_base_data",
+                "valor_bruto": {
+                  "packaging_dimensiones_mm": "570 x 250 x 245"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z"
+              }
+            ]
+          },
+          "alto": {
+            "valor_canonical": 245,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "packaging_dimensiones_mm desde bestled_base_data.json.",
+            "authority_rule_applied": "especificaciones_mecanicas",
+            "winning_source_id": "pipeline_base_data",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "pipeline_base_data",
+                "valor_bruto": {
+                  "packaging_dimensiones_mm": "570 x 250 x 245"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z"
+              }
+            ]
+          }
+        },
+        "peso_bruto_kg": {
+          "valor_canonical": 7.23,
+          "estado_resolucion": "resolved",
+          "criterio_resolucion": "packaging_peso_kg desde bestled_base_data.json.",
+          "authority_rule_applied": "especificaciones_mecanicas",
+          "winning_source_id": "pipeline_base_data",
+          "confidence": "high",
+          "fuentes": [
+            {
+              "source_id": "pipeline_base_data",
+              "valor_bruto": {
+                "packaging_peso_kg": 7.23
+              },
+              "extracted_at": "2026-04-18T23:10:27Z"
+            }
+          ]
+        }
+      },
+      "garantia_override_anos": {
+        "valor_canonical": null,
+        "nota": "Hereda commercial_policy.garantia_anos=5 (R11). No override especifico para el modelo 60W."
+      },
+      "variantes_cct": {
+        "2700": {
+          "variant_id": "BESTLED-060-2700K",
+          "cct_nominal_K": 2700,
+          "cct_label": "Calido",
+          "sku": {
+            "valor_canonical": "BESTLED-060-2700K",
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Construido como BESTLED-060-{CCT}K siguiendo convencion familia.",
+            "authority_rule_applied": "sku_construccion",
+            "winning_source_id": "derived_from_family_convention",
+            "confidence": "high",
+            "fuentes": []
+          },
+          "ies_file": "bestled60.IES",
+          "ies_filename_exacto": "bestled60.IES",
+          "ies_hash_sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+          "ies_fecha_medicion": "2024/03/08",
+          "laboratorio": {
+            "valor_canonical": "VOLNIC",
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Normalizacion casing D4: 'VOLNIC' del header testlab.",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": "VOLNIC",
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c"
+              }
+            ]
+          },
+          "lab_test_id": "001",
+          "measurement_context": {
+            "valor_canonical": "compartida_modelo",
+            "nota": "Los .IES VOLNIC del 60W no diferencian CCT. Una misma medicion fotometrica aplica a las 3 variantes 2700/4000/6000K (D5)."
+          },
+          "flujo_lumenes": {
+            "valor_canonical": 9167.09,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Valor extraido del .IES VOLNIC raw del 60W. Misma medicion aplica a las 3 variantes CCT (D5 fotometria_origen=compartida_modelo).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "eficacia_lm_W": {
+            "valor_canonical": 152.68,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Derivado flujo_lumenes / input_watts del .IES VOLNIC raw (9167.09 / 60.04).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "intensidad_max_cd": {
+            "valor_canonical": 4405.7,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Valor extraido del .IES VOLNIC raw del 60W. Misma medicion aplica a las 3 variantes CCT (D5 fotometria_origen=compartida_modelo).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "distribucion": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "Clasificacion IES (Type I/II/III/short/medium/long) no extraida en Fase 1. Pendiente analisis de angulos en Fase 3.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "angulo_apertura_50pct": {
+            "longitudinal_grados": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "Calculo de FWHM longitudinal requiere procesar curva C0. Pendiente para Fase 3.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "transversal_grados": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "Calculo de FWHM transversal requiere procesar curva C90. Pendiente para Fase 3.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            }
+          },
+          "cri_medido": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "El .IES no reporta CRI medido. bestled_common declara cri>=80 como especificacion (no medicion por CCT). R1: no se asume valor.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "sdcm": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "SDCM no reportado en fuentes autoritativas consultadas.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "bug_rating": {
+            "B": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "U": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "G": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            }
+          },
+          "fotometria_origen": "compartida_modelo",
+          "nota_fotometrica": "Los datos fotometricos aplican a todas las CCT del modelo. No hay medicion diferenciada por temperatura de color en los .IES VOLNIC del 60W."
+        },
+        "4000": {
+          "variant_id": "BESTLED-060-4000K",
+          "cct_nominal_K": 4000,
+          "cct_label": "Neutro",
+          "sku": {
+            "valor_canonical": "BESTLED-060-4000K",
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Construido como BESTLED-060-{CCT}K siguiendo convencion familia.",
+            "authority_rule_applied": "sku_construccion",
+            "winning_source_id": "derived_from_family_convention",
+            "confidence": "high",
+            "fuentes": []
+          },
+          "ies_file": "bestled60.IES",
+          "ies_filename_exacto": "bestled60.IES",
+          "ies_hash_sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+          "ies_fecha_medicion": "2024/03/08",
+          "laboratorio": {
+            "valor_canonical": "VOLNIC",
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Normalizacion casing D4: 'VOLNIC' del header testlab.",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": "VOLNIC",
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c"
+              }
+            ]
+          },
+          "lab_test_id": "001",
+          "measurement_context": {
+            "valor_canonical": "compartida_modelo",
+            "nota": "Los .IES VOLNIC del 60W no diferencian CCT. Una misma medicion fotometrica aplica a las 3 variantes 2700/4000/6000K (D5)."
+          },
+          "flujo_lumenes": {
+            "valor_canonical": 9167.09,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Valor extraido del .IES VOLNIC raw del 60W. Misma medicion aplica a las 3 variantes CCT (D5 fotometria_origen=compartida_modelo).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "eficacia_lm_W": {
+            "valor_canonical": 152.68,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Derivado flujo_lumenes / input_watts del .IES VOLNIC raw (9167.09 / 60.04).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "intensidad_max_cd": {
+            "valor_canonical": 4405.7,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Valor extraido del .IES VOLNIC raw del 60W. Misma medicion aplica a las 3 variantes CCT (D5 fotometria_origen=compartida_modelo).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "distribucion": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "Clasificacion IES (Type I/II/III/short/medium/long) no extraida en Fase 1. Pendiente analisis de angulos en Fase 3.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "angulo_apertura_50pct": {
+            "longitudinal_grados": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "Calculo de FWHM longitudinal requiere procesar curva C0. Pendiente para Fase 3.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "transversal_grados": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "Calculo de FWHM transversal requiere procesar curva C90. Pendiente para Fase 3.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            }
+          },
+          "cri_medido": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "El .IES no reporta CRI medido. bestled_common declara cri>=80 como especificacion (no medicion por CCT). R1: no se asume valor.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "sdcm": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "SDCM no reportado en fuentes autoritativas consultadas.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "bug_rating": {
+            "B": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "U": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "G": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            }
+          },
+          "fotometria_origen": "compartida_modelo",
+          "nota_fotometrica": "Los datos fotometricos aplican a todas las CCT del modelo. No hay medicion diferenciada por temperatura de color en los .IES VOLNIC del 60W."
+        },
+        "6000": {
+          "variant_id": "BESTLED-060-6000K",
+          "cct_nominal_K": 6000,
+          "cct_label": "Frio",
+          "sku": {
+            "valor_canonical": "BESTLED-060-6000K",
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Construido como BESTLED-060-{CCT}K siguiendo convencion familia.",
+            "authority_rule_applied": "sku_construccion",
+            "winning_source_id": "derived_from_family_convention",
+            "confidence": "high",
+            "fuentes": []
+          },
+          "ies_file": "bestled60.IES",
+          "ies_filename_exacto": "bestled60.IES",
+          "ies_hash_sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+          "ies_fecha_medicion": "2024/03/08",
+          "laboratorio": {
+            "valor_canonical": "VOLNIC",
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Normalizacion casing D4: 'VOLNIC' del header testlab.",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": "VOLNIC",
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c"
+              }
+            ]
+          },
+          "lab_test_id": "001",
+          "measurement_context": {
+            "valor_canonical": "compartida_modelo",
+            "nota": "Los .IES VOLNIC del 60W no diferencian CCT. Una misma medicion fotometrica aplica a las 3 variantes 2700/4000/6000K (D5)."
+          },
+          "flujo_lumenes": {
+            "valor_canonical": 9167.09,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Valor extraido del .IES VOLNIC raw del 60W. Misma medicion aplica a las 3 variantes CCT (D5 fotometria_origen=compartida_modelo).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "eficacia_lm_W": {
+            "valor_canonical": 152.68,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Derivado flujo_lumenes / input_watts del .IES VOLNIC raw (9167.09 / 60.04).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "intensidad_max_cd": {
+            "valor_canonical": 4405.7,
+            "estado_resolucion": "resolved",
+            "criterio_resolucion": "Valor extraido del .IES VOLNIC raw del 60W. Misma medicion aplica a las 3 variantes CCT (D5 fotometria_origen=compartida_modelo).",
+            "authority_rule_applied": "fotometria",
+            "winning_source_id": "ies_root_60W",
+            "confidence": "high",
+            "fuentes": [
+              {
+                "source_id": "ies_root_60W",
+                "valor_bruto": {
+                  "filename": "bestled60.IES",
+                  "path": "bestled60.IES"
+                },
+                "extracted_at": "2026-04-18T23:10:27Z",
+                "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+                "notes": "IES VOLNIC raw, autoritativo D1. Fotometria compartida por las 3 CCTs (D5)."
+              }
+            ]
+          },
+          "distribucion": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "Clasificacion IES (Type I/II/III/short/medium/long) no extraida en Fase 1. Pendiente analisis de angulos en Fase 3.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "angulo_apertura_50pct": {
+            "longitudinal_grados": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "Calculo de FWHM longitudinal requiere procesar curva C0. Pendiente para Fase 3.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "transversal_grados": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "Calculo de FWHM transversal requiere procesar curva C90. Pendiente para Fase 3.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            }
+          },
+          "cri_medido": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "El .IES no reporta CRI medido. bestled_common declara cri>=80 como especificacion (no medicion por CCT). R1: no se asume valor.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "sdcm": {
+            "valor_canonical": null,
+            "estado_resolucion": "missing",
+            "criterio_resolucion": "SDCM no reportado en fuentes autoritativas consultadas.",
+            "authority_rule_applied": null,
+            "winning_source_id": null,
+            "confidence": "low",
+            "fuentes": []
+          },
+          "bug_rating": {
+            "B": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "U": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            },
+            "G": {
+              "valor_canonical": null,
+              "estado_resolucion": "missing",
+              "criterio_resolucion": "B-U-G no computado en Fase 1.",
+              "authority_rule_applied": null,
+              "winning_source_id": null,
+              "confidence": "low",
+              "fuentes": []
+            }
+          },
+          "fotometria_origen": "compartida_modelo",
+          "nota_fotometrica": "Los datos fotometricos aplican a todas las CCT del modelo. No hay medicion diferenciada por temperatura de color en los .IES VOLNIC del 60W."
+        }
+      },
+      "assets": {
+        "product_photos": [],
+        "hero_image": null,
+        "dimension_drawing": null,
+        "polar_diagram_svg": null,
+        "polar_diagram_png": null,
+        "component_callout_image": null,
+        "datasheet_pdf": null,
+        "certificates_files": []
+      },
+      "template_readiness": {
+        "v4_tecnica": {
+          "status": null,
+          "motivos": []
+        },
+        "v5_premium": {
+          "status": null,
+          "motivos": []
+        },
+        "publicacion_web": {
+          "status": null,
+          "motivos": []
+        }
+      }
+    }
+  },
   "claims_publicables": {
     "_comentario_regla_d": "Estructura editorial simplificada segun Regla D. Solo migrar a estructura completa si se detecta conflicto real entre fuentes.",
     "headline_producto": {
