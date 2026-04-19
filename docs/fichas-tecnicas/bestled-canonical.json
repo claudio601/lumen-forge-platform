@@ -1,0 +1,904 @@
+{
+  "$schema": "https://elights.cl/schemas/ficha-tecnica-v2_1_2.json",
+  "schema_version": "2.1.2",
+  "familia": "BESTLED",
+  "familia_slug": "bestled",
+  "categoria": "Alumbrado Publico · Vial",
+  "metadata": {
+    "consolidated_at": "2026-04-19T00:42:38Z",
+    "consolidated_by": "Claude Code",
+    "git_commit": "8139472d134190195e6afabec1eb120b9cf48f4f",
+    "review_status": "draft",
+    "reviewed_by": null,
+    "review_date": null,
+    "approval_status": "unapproved",
+    "approved_for_templates": false,
+    "micro_phase": "2a_skeleton",
+    "phase1_source_file": "docs/fichas-tecnicas/bestled-phase1-sources.json"
+  },
+  "template_readiness_global": {
+    "v4_tecnica": {
+      "status": null,
+      "motivos": []
+    },
+    "v5_premium": {
+      "status": null,
+      "motivos": []
+    },
+    "publicacion_web": {
+      "status": null,
+      "motivos": []
+    },
+    "_comentario": "Readiness a nivel familia. Micro-fase 2a solo esqueleto; status se recalcula al poblar modelos 2b-2e."
+  },
+  "sources_consulted": [
+    {
+      "source_id": "ies_root_40W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled40.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "1f11b74da7953052e48e7fa5dc7e90afc4a7dc819628768bf9b0d6a44613a487",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_root_60W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled60.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "e31498256614e102c68d5237cfef868acf428ae433656dede0cd110bdd861a5c",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_root_90W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled90.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "c608035b58f0ba83fe30f80ebbc4cc7741867c83e01e68f981f79f2906628d4b",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_root_120W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled120.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "8ff181983fa3a9aeee319cbdccbfd6f95917831d297cab278c822b9f7c72c113",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_root_150W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled150.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "9c7885478908b9eceee61ad99faffd1487977bfbbb673a08fd234ea919f80065",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_root_200W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled200.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "edef2406acf2639f4899c671143acbaefdb8a6175497034cb066632c32197342",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_root_250W",
+      "source_type": "ies_factory_raw",
+      "source_path": "bestled250.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "16652476571d6f6290ba1b2226aca3b7cd3fdb60da484f928ed69966719e1cdf",
+      "notes": "IES crudo de fábrica (manufac=Comercial el tejie ltda, lab=VOLNIC). 181 ángulos verticales, 13 horizontales — alta resolución.",
+      "authority_level": "authoritative_max_fotometria"
+    },
+    {
+      "source_id": "ies_docs_40W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled40.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "5e6eb3a69d2339bb90fb53b35529b6ae22a783521f220f3aa48a047fcb07f8ce",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "ies_docs_60W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled60.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "90b079247cf5935863e36c1268ce4536958fa419654f8131a5064371b9a7144d",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "ies_docs_90W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled90.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "91da2ca2b7a689adef0b75e2ccd9b222f9a4ec035249a02e48a1b3caa09bcc55",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "ies_docs_120W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled120.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "4d604d03bbd47b27c247a78b862b1cc075ace314d71909fd699bf27d4cc65f29",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "ies_docs_150W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled150.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "c723cab592c6b39f14eda930d248b167b97238d448d4bf94798e098682b10e2e",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "ies_docs_200W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled200.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "fae4074d4bafc84e468478df7e517eda861f007419286d91f169347e8aa4cd6e",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "ies_docs_250W",
+      "source_type": "ies_curated_branded",
+      "source_path": "docs/fotometrias/bestled/bestled250.IES",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "d0b18a0cbc242b216167a295567cb15ebd972ee7e699f976cc88b8940689db23",
+      "notes": "IES rebrandado eLIGHTS con BALLAST/BALLASTCAT añadidos. 19 ángulos verticales, 5 horizontales — grilla muy reducida vs. raw factory. Lúmenes coinciden (~mismos), pero candela máxima reportada es 2-15× mayor que raw — distribución reconstruida, no medición independiente.",
+      "authority_level": "reconstruction_v3_rebrand"
+    },
+    {
+      "source_id": "pipeline_base_data",
+      "source_type": "json_pipeline_base",
+      "source_path": "scripts/fichas-tecnicas/bestled_base_data.json",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "ba8afb212865404eb1b1b4f858c689ffd437a9e0a3a9ba2aa49e7dc10284fc41",
+      "notes": "Datos comunes (marca, IP, IK, certificación, garantía 5 años, CCT) + por modelo (sku_base, dimensiones, peso, packaging, quality_score, notas). Modelos: 40,60,90,120,150,200,250.",
+      "authority_level": "cross_check_only"
+    },
+    {
+      "source_id": "pdf_v4_60w_strict",
+      "source_type": "pdf_ficha_tecnica_v4",
+      "source_path": "docs/fichas-tecnicas/FT-eLIGHTS-BESTLED-60W-v4.pdf",
+      "source_status": "not_available",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Archivo con sufijo \"-v4\" en nombre NO existe. PERO existen FT-eLIGHTS-BESTLED-{40..250}W.pdf en docs/fichas-tecnicas/pdf/ cuyo cuerpo declara internamente \"v4.0\" — capturados por separado como pdf_ficha_unversioned_*.",
+      "authority_level": "not_available"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-120w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-120W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "35be4f1d85101715dcbe907f0b8fbe4298feda1af1322c7305f2eeaa3e4e5691",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4190 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-150w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-150W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "f498bffd7ed32bbdafeabb37b327f690e74037ed3336264170046933f8b1c499",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4192 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-200w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-200W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "50d8d3a49fa4c02407b32a6f7a11013f5dbe4d7bd88b2610d191006cdfe4533b",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4191 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-250w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-250W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "6cfdf898a39afef796d71a35716a5a81d373bc775df9a8f3c1e9c2f52570c606",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4195 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-40w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-40W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "ccf61c5b8b07334382eeb03a2af0d1dfdbd070b64e3e9d73ef2afe7bb2893ce3",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4143 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-60w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-60W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "ccfc05ac7e3db9e388ab601af2164c814199d0b8984416966100c49a56a39a57",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4169 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "pdf_unversioned_ft-elights-bestled-90w",
+      "source_type": "pdf_ficha_unversioned",
+      "source_path": "docs/fichas-tecnicas/pdf/FT-eLIGHTS-BESTLED-90W.pdf",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "48929a8c7a25dfd6503859e5657bbe3743357166068a54036ef78ed827322a77",
+      "notes": "PDF sin sufijo v4 en nombre, pero el cuerpo dice \"v4.0\". 3 páginas, 4174 chars. Posible candidato a ser el \"PDF v4 histórico\" — confirmar en Fase 3.",
+      "authority_level": "pdf_historical_v4"
+    },
+    {
+      "source_id": "web_elights_cl",
+      "source_type": "web_scrape",
+      "source_path": "https://elights.cl/",
+      "source_status": "not_consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "HTTP bloqueado por sandbox: HTTP 403 con header x-deny-reason: host_not_allowed. No fue posible scrapear.",
+      "authority_level": "not_consulted"
+    },
+    {
+      "source_id": "commercial_policy_config_json",
+      "source_type": "commercial_policy_repo",
+      "source_path": "config/commercial-policy.json",
+      "source_status": "not_available",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Candidato R8.1 NO existe.",
+      "authority_level": "not_available"
+    },
+    {
+      "source_id": "commercial_policy_md",
+      "source_type": "commercial_policy_repo",
+      "source_path": "docs/politica-comercial.md",
+      "source_status": "not_available",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Candidato R8.2 NO existe.",
+      "authority_level": "not_available"
+    },
+    {
+      "source_id": "business_ts_constants",
+      "source_type": "commercial_policy_repo",
+      "source_path": "src/config/business.ts",
+      "source_status": "consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "sha256": "86830e10a3ce122fc1a9013ecc8bc3d7f286b7d50ac44f4663b1fe79e66e1f0c",
+      "notes": "Candidato R8.3 EXISTE pero contiene SOLO contacto (WhatsApp, email), cobertura, trust claims y label de visita técnica. NO contiene política de descuentos, márgenes, ni segmentación B2B/B2C. CONFLICTO: trustClaims.warranty.title=\"Garantía 1 año\" vs. base_data.garantia_anos=5 vs. PDF v4=\"5 años\".",
+      "authority_level": "commercial_proxy_placeholder"
+    },
+    {
+      "source_id": "pdf_mockup_v5",
+      "source_type": "pdf_ficha_tecnica_v5_mockup",
+      "source_path": "docs/fichas-tecnicas/v5-mockup/FT-eLIGHTS-BESTLED-60W-v5-MOCKUP.pdf",
+      "source_status": "not_consulted",
+      "extracted_at": "2026-04-18T23:10:27Z",
+      "notes": "Directorio v5-mockup/ no existe. Para Fase 3: diff_con_v5_mockup.status = \"not_consulted\".",
+      "authority_level": "not_consulted"
+    }
+  ],
+  "brand_info": {
+    "nombre": {
+      "valor_canonical": "eLIGHTS",
+      "estado_resolucion": "resolved",
+      "criterio_resolucion": null,
+      "authority_rule_applied": "datos_corporativos",
+      "winning_source_id": null,
+      "confidence": "high",
+      "fuentes": []
+    },
+    "pais": "Chile",
+    "trayectoria_anos": {
+      "valor_canonical": 8,
+      "estado_resolucion": "resolved",
+      "criterio_resolucion": "Decision humana md_001_trayectoria_8_anos reemplaza claim historico de 10 anos.",
+      "authority_rule_applied": "manual_override",
+      "winning_source_id": "md_001_trayectoria_8_anos",
+      "confidence": "high",
+      "fuentes": []
+    },
+    "contacto": {
+      "email": {
+        "valor_canonical": "ventas@elights.cl",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": null,
+        "authority_rule_applied": "datos_corporativos",
+        "winning_source_id": null,
+        "confidence": "high",
+        "fuentes": []
+      },
+      "whatsapp": {
+        "valor_canonical": "+56 9 9127 3128",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": null,
+        "authority_rule_applied": "datos_corporativos",
+        "winning_source_id": null,
+        "confidence": "high",
+        "fuentes": []
+      },
+      "web": {
+        "valor_canonical": "www.elights.cl",
+        "estado_resolucion": "resolved",
+        "criterio_resolucion": null,
+        "authority_rule_applied": "datos_corporativos",
+        "winning_source_id": null,
+        "confidence": "high",
+        "fuentes": []
+      }
+    }
+  },
+  "commercial_policy": {
+    "garantia_anos": {
+      "valor_canonical": 5,
+      "estado_resolucion": "resolved",
+      "criterio_resolucion": "Decision humana md_F5_garantia_bestled. Fuentes tecnicas (base_data + PDFs v4) coinciden; business.ts placeholder descartado.",
+      "authority_rule_applied": "manual_override",
+      "winning_source_id": "md_F5_garantia_bestled",
+      "confidence": "high",
+      "fuentes": []
+    },
+    "aplicable_a_toda_la_familia": {
+      "valor_canonical": null,
+      "nota": "La garantia es transversal a toda la familia o puede variar por modelo? Decision pendiente."
+    },
+    "despacho_propio_horas_rm": 48,
+    "despacho_carrier_horas": 48,
+    "zona_cobertura": "Region Metropolitana (propio) · todo Chile (carrier)"
+  },
+  "product_family": {
+    "descripcion_corta": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "aplicaciones": {
+      "valor_canonical": [],
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "rango_potencias_W": [
+      40,
+      60,
+      90,
+      120,
+      150,
+      200,
+      250
+    ],
+    "cct_disponibles_K": [
+      2700,
+      4000,
+      6000
+    ],
+    "fotometria_diferenciada_por_cct": false,
+    "cri_min_publicable": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    }
+  },
+  "construction": {
+    "cuerpo_material": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "difusor_material": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "chip_led": {
+      "marca": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "modelo": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      }
+    },
+    "driver": {
+      "marcas_compatibles": {
+        "valor_canonical": [],
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "control": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "proteccion_sobretension_kV": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "factor_potencia_min": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "thd_max_pct": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      }
+    },
+    "ip_rating": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "ik_rating": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "rango_temp_operacion_C": {
+      "valor_canonical": [
+        null,
+        null
+      ],
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "montaje": {
+      "tipo": {
+        "valor_canonical": [],
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "diametro_mm": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "inclinacion_grados": {
+        "valor_canonical": [
+          null,
+          null
+        ],
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      }
+    },
+    "acabado": {
+      "valor_canonical": null,
+      "estado_resolucion": "missing",
+      "criterio_resolucion": null,
+      "authority_rule_applied": null,
+      "winning_source_id": null,
+      "confidence": "low",
+      "fuentes": []
+    },
+    "vida_util": {
+      "horas": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      },
+      "criterio": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": [],
+        "enum_esperado": [
+          "L50",
+          "L70",
+          "L80",
+          "L90"
+        ]
+      },
+      "temperatura_ref_C": {
+        "valor_canonical": null,
+        "estado_resolucion": "missing",
+        "criterio_resolucion": null,
+        "authority_rule_applied": null,
+        "winning_source_id": null,
+        "confidence": "low",
+        "fuentes": []
+      }
+    }
+  },
+  "modelos": {},
+  "claims_publicables": {
+    "_comentario_regla_d": "Estructura editorial simplificada segun Regla D. Solo migrar a estructura completa si se detecta conflicto real entre fuentes.",
+    "headline_producto": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "Luminaria vial LED de alta eficacia",
+      "nota": "Titulo principal de ficha premium"
+    },
+    "subheadline_producto": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": null,
+      "nota": "Bajada editorial 1-2 lineas"
+    },
+    "beneficios_clave": {
+      "valor_canonical": [],
+      "ejemplo_render_permitido": "['IP66 sellado', 'Driver dimeable 0-10V', '50.000 h L70', 'SEC · DS-1']",
+      "nota": "Array de 4-6 claims cortos para pagina de beneficios"
+    },
+    "claim_vida_util_principal": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "50.000 h · L70 a 25 °C",
+      "nota": "Que vida util mostrar en fichas. Si existen dos versiones historicas (50.000 h L70 y 100.000 h L50), elegir una."
+    },
+    "claim_vida_util_secundaria": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": null,
+      "nota": "Solo si se decide mostrar ambas vidas utiles"
+    },
+    "claim_certificacion_principal": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "SEC · DS-1",
+      "nota": null
+    },
+    "claim_montaje_principal": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "Poste o gancho 60 mm",
+      "nota": null
+    },
+    "claim_distribucion_principal": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "Vial Tipo II · ANSI/IES",
+      "nota": null
+    },
+    "claim_aplicacion_principal": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "Alumbrado publico vial y peatonal",
+      "nota": null
+    },
+    "claim_driver": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "Driver dimeable 0-10 V · FP > 0,93",
+      "nota": null
+    },
+    "claim_fotometria": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": null,
+      "nota": "Claim sintetico de fotometria"
+    },
+    "garantia_display": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": "5 anos",
+      "nota": "Formato publicable de garantia. Debe coincidir con commercial_policy.garantia_anos."
+    },
+    "mensaje_familia": {
+      "valor_canonical": null,
+      "ejemplo_render_permitido": null,
+      "nota": null
+    }
+  },
+  "aliases": {
+    "familia": [
+      "BESTLED",
+      "Bestled",
+      "BEST-LED"
+    ],
+    "modelos": {
+      "40": [],
+      "60": [],
+      "90": [],
+      "120": [],
+      "150": [],
+      "200": [],
+      "250": []
+    },
+    "skus": {}
+  },
+  "unidades": {
+    "_comentario": "Diccionario de unidades por campo numerico. Aplicar en render, nunca en canonical.",
+    "flujo_lumenes": "lm",
+    "eficacia_lm_W": "lm/W",
+    "intensidad_max_cd": "cd",
+    "potencia_W": "W",
+    "peso_kg": "kg",
+    "dimensiones_mm": "mm",
+    "horas": "h",
+    "temperatura_C": "C",
+    "proteccion_sobretension_kV": "kV",
+    "thd_max_pct": "%",
+    "factor_potencia_min": "ratio (0-1)",
+    "cri_medido": "Ra (adimensional)",
+    "sdcm": "adimensional (entero)",
+    "cct_nominal_K": "K"
+  },
+  "conflictos_detectados": [
+    {
+      "conflict_id": "conf_D1_ies_authority_split",
+      "campo_path": "fotometria.set_autoritativo",
+      "severity": "critical",
+      "bloquea_publicacion": false,
+      "bloquea_render_premium": false,
+      "valores_encontrados": [
+        {
+          "source_id": "ies_root_*",
+          "valor": "VOLNIC_raw_root (factory measured)",
+          "fecha_fuente": null
+        },
+        {
+          "source_id": "ies_docs_*",
+          "valor": "rebrand_reconstructed_v3",
+          "fecha_fuente": null
+        }
+      ],
+      "authority_rule_applied": "fotometria",
+      "resolucion_propuesta": "VOLNIC_raw_root",
+      "requiere_decision_humana": false,
+      "estado_resolucion": "resolved",
+      "resolved_by": "md_F1_ies_authority",
+      "criterio_recomendado": "Mediciones de laboratorio (VOLNIC GON-2000) prevalecen sobre reconstrucciones de pipeline."
+    },
+    {
+      "conflict_id": "conf_D3_garantia_anos",
+      "campo_path": "commercial_policy.garantia_anos",
+      "severity": "critical",
+      "bloquea_publicacion": false,
+      "bloquea_render_premium": false,
+      "valores_encontrados": [
+        {
+          "source_id": "business_ts_constants",
+          "valor": 1,
+          "fecha_fuente": null,
+          "estado": "placeholder_obsoleto"
+        },
+        {
+          "source_id": "pipeline_base_data",
+          "valor": 5,
+          "fecha_fuente": null
+        },
+        {
+          "source_id": "pdf_unversioned_*",
+          "valor": 5,
+          "fecha_fuente": null
+        }
+      ],
+      "authority_rule_applied": "claims_comerciales",
+      "resolucion_propuesta": 5,
+      "requiere_decision_humana": false,
+      "estado_resolucion": "resolved",
+      "resolved_by": "md_F5_garantia_bestled",
+      "criterio_recomendado": "business.ts contenia placeholder 1 ano; fuentes tecnicas y PDFs v4 coinciden en 5 anos."
+    },
+    {
+      "conflict_id": "conf_D4_volnic_casing",
+      "campo_path": "sources.ies_root_*.laboratorio",
+      "severity": "minor",
+      "bloquea_publicacion": false,
+      "bloquea_render_premium": false,
+      "valores_encontrados": [
+        {
+          "source_id": "ies_root_variant_A",
+          "valor": "VOLNIC",
+          "fecha_fuente": null
+        },
+        {
+          "source_id": "ies_root_variant_B",
+          "valor": "Volnic IES",
+          "fecha_fuente": null
+        }
+      ],
+      "authority_rule_applied": "fotometria",
+      "resolucion_propuesta": "VOLNIC",
+      "requiere_decision_humana": false,
+      "estado_resolucion": "resolved",
+      "resolved_by": "md_F7_volnic_casing",
+      "criterio_recomendado": "Normalizar casing uppercase."
+    },
+    {
+      "conflict_id": "conf_D7_pipeline_json_authority",
+      "campo_path": "sources.pipeline_base_data.authority_level",
+      "severity": "major",
+      "bloquea_publicacion": false,
+      "bloquea_render_premium": false,
+      "valores_encontrados": [
+        {
+          "source_id": "pipeline_base_data",
+          "valor": "output_derivado_v3",
+          "fecha_fuente": null
+        }
+      ],
+      "authority_rule_applied": "fotometria",
+      "resolucion_propuesta": "cross_check_only",
+      "requiere_decision_humana": false,
+      "estado_resolucion": "resolved",
+      "resolved_by": "md_F10_output_derivado",
+      "criterio_recomendado": "JSONs del pipeline son output derivado, no fuente primaria."
+    }
+  ],
+  "brechas": [],
+  "manual_decisions": [
+    {
+      "decision_id": "md_F1_ies_authority",
+      "campo_path": "fotometria.set_autoritativo",
+      "decision_valor": "VOLNIC_raw_root",
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "Los .IES oficiales medidos en laboratorio son los VOLNIC raw del root. El set rebrand es reconstruccion del pipeline v3, no medicion.",
+      "override_type": "technical_clarification"
+    },
+    {
+      "decision_id": "md_F2_pdfs_v4",
+      "campo_path": "sources.pdf_historical_classification",
+      "decision_valor": "tratar_como_v4",
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "PDFs en docs/fichas-tecnicas/pdf/ sin sufijo v4 en filename declaran v4.0 en cuerpo. Tratar como pdf_historical v4.",
+      "override_type": "technical_clarification"
+    },
+    {
+      "decision_id": "md_F5_garantia_bestled",
+      "campo_path": "commercial_policy.garantia_anos",
+      "decision_valor": 5,
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "Garantia oficial categoria BESTLED alumbrado publico. business.ts contenia placeholder obsoleto de 1 ano; fuentes tecnicas (base_data + PDFs v4) coinciden en 5 anos.",
+      "override_type": "commercial_decision"
+    },
+    {
+      "decision_id": "md_F7_volnic_casing",
+      "campo_path": "modelos.*.variantes_cct.*.laboratorio",
+      "decision_valor": "VOLNIC",
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "Inconsistencia de casing VOLNIC vs Volnic IES en factory raw. Normalizar a VOLNIC (uppercase).",
+      "override_type": "technical_clarification"
+    },
+    {
+      "decision_id": "md_F8_cct_compartida",
+      "campo_path": "product_family.fotometria_diferenciada_por_cct",
+      "decision_valor": false,
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "Archivos .IES VOLNIC no contienen CCT. Las 3 variantes (2700/4000/6000K) comparten misma medicion fotometrica del modelo.",
+      "override_type": "technical_clarification"
+    },
+    {
+      "decision_id": "md_F9_dimensiones_confidence",
+      "campo_path": "modelos.*.dimensiones_mm",
+      "decision_valor": "60W=high, 40/90/120/150/200/250=low",
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "bestled_base_data.json reporta quality_score=A solo para 60W. Otros 6 modelos con score B nota 'Dimensiones estimadas - validar con proveedor'.",
+      "override_type": "technical_clarification"
+    },
+    {
+      "decision_id": "md_F10_output_derivado",
+      "campo_path": "sources.pipeline_json_derived_authority",
+      "decision_valor": "cross_check_only",
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "JSONs en docs/fichas-tecnicas/json/ son output del pipeline v3. Usar solo para cross-check, no como fuente primaria.",
+      "override_type": "technical_clarification"
+    },
+    {
+      "decision_id": "md_001_trayectoria_8_anos",
+      "campo_path": "brand_info.trayectoria_anos",
+      "decision_valor": 8,
+      "decidido_por": "Claudio Quero",
+      "fecha": "2026-04-17",
+      "motivo": "Correccion historica registrada en memoria del proyecto. Reemplaza claim anterior de 10 anos que era inexacto.",
+      "override_type": "corporate_fact"
+    }
+  ],
+  "diff_con_v5_mockup": {
+    "status": "not_consulted",
+    "mockup_source": null,
+    "mockup_date": null,
+    "generated_by": null,
+    "campos_inventados_por_claude_web": []
+  }
+}
