@@ -36,45 +36,15 @@ import type {
   EstudioLuminicoResponse,
   CreateEstudioDealParams,
 } from '../_lib/crm/estudio-luminico-types.js';
+import {
+  isAllowedOrigin,
+  checkRateLimit,
+  isHoneypotTriggered,
+  getClientIp,
+} from '../_lib/auth.js';
 import { validateEstudioPayload } from './validation.js';
 
 const LOG = '[api/estudio-luminico/create]';
-
-// ── Rate limiting (in-memory, igual que installation-leads) ───────────────────
-
-const RATE_WINDOW_MS = 15 * 60 * 1000;
-const RATE_MAX_REQUESTS = 10;
-const ipHits = new Map<string, { count: number; windowStart: number }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const entry = ipHits.get(ip);
-  if (!entry || now - entry.windowStart > RATE_WINDOW_MS) {
-    ipHits.set(ip, { count: 1, windowStart: now });
-    return { allowed: true, remaining: RATE_MAX_REQUESTS - 1 };
-  }
-  if (entry.count >= RATE_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 };
-  }
-  entry.count += 1;
-  return { allowed: true, remaining: RATE_MAX_REQUESTS - entry.count };
-  // TODO (V2): implementar rate limit distribuido con Upstash Redis
-  // cuando el volumen lo justifique. Ya configurado en el proyecto para request-orders.
-}
-
-// ── Origin check (usa VERCEL_ENV, no NODE_ENV — fix historico) ────────────────
-
-const ALLOWED_ORIGINS = ['https://nuevo.elights.cl', 'https://elights.cl'];
-
-function isAllowedOrigin(req: VercelRequest): boolean {
-  if (process.env.VERCEL_ENV !== 'production') return true;
-  const origin = req.headers['origin'] ?? '';
-  const referer = req.headers['referer'] ?? '';
-  return (
-    ALLOWED_ORIGINS.some((o) => origin.startsWith(o)) ||
-    ALLOWED_ORIGINS.some((o) => referer.startsWith(o))
-  );
-}
 
 // ── Auth (sin header + origin permitido = formulario web legitimo) ────────────
 
@@ -84,16 +54,14 @@ function isAuthorized(req: VercelRequest): boolean {
 
   if (apiKey || authHeader) {
     const installSecret = process.env.INSTALLATION_API_SECRET;
-    const quotesKey = process.env.QUOTES_API_KEY;
     const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
     const provided = apiKey ?? bearer;
     if (installSecret && provided === installSecret) return true;
-    if (quotesKey && provided === quotesKey) return true;
     return false;
   }
 
   if (isAllowedOrigin(req)) return true;
-  if (!process.env.INSTALLATION_API_SECRET && !process.env.QUOTES_API_KEY) return true;
+  if (!process.env.INSTALLATION_API_SECRET) return true;
   console.warn(LOG + ' Unauthorized: no header and untrusted origin');
   return false;
 }
@@ -243,10 +211,7 @@ export default async function handler(
   }
 
   // Rate limiting
-  const ip =
-    (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
-    req.socket?.remoteAddress ??
-    'unknown';
+  const ip = getClientIp(req);
 
   const rate = checkRateLimit(ip);
   if (!rate.allowed) {
@@ -271,7 +236,7 @@ export default async function handler(
   const body = req.body ?? {};
 
   // Honeypot
-  if (body.website) {
+  if (isHoneypotTriggered(body)) {
     console.warn(LOG + ' Honeypot triggered from IP: ' + ip);
     res.status(200).json({ success: true });
     return;
