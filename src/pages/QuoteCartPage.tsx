@@ -74,7 +74,6 @@ const QuoteCartPage = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': import.meta.env.VITE_QUOTES_API_KEY ?? '',
           },
           body: JSON.stringify({
             sourceSystem: 'nuevo_elights',
