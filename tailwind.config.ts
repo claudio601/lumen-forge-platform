@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
 
 export default {
   darkMode: ["class"],
@@ -14,8 +15,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Space Grotesk"', "system-ui", "sans-serif"],
-        mono: ['"IBM Plex Mono"', "ui-monospace", "monospace"],
+        sans: ['"Space Grotesk"', ...defaultTheme.fontFamily.sans],
+        mono: ['"IBM Plex Mono"', ...defaultTheme.fontFamily.mono],
       },
       colors: {
         border: "hsl(var(--border))",
