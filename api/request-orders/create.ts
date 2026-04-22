@@ -18,6 +18,7 @@ import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
 import { createDeal } from '../_lib/pipedrive/deals.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { computeLeadScore } from '../_lib/crm/scoring.js';
+import { TIPO_SERVICIO } from '../_lib/crm/tipo-servicio.js';
 import type { QuotePayload, SourceSystem } from '../_lib/crm/types.js';
 
 const LOG = '[RequestOrder]';
@@ -256,6 +257,7 @@ export default async function handler(
       priorityTier,
       quoteReference: requestReference,
       notes: buildNotes(payload),
+      tipoServicio: TIPO_SERVICIO.COTIZACION_WEB,
     });
 
     if (!dealResult.dealId) {

@@ -49,6 +49,7 @@ export interface CreateDealParams {
     jumpsellerEventType?: string;
     allowCreate?: boolean;
     notes?: string;
+    tipoServicio?: number;
 }
 
 export interface DealUpdateFields {
@@ -368,6 +369,10 @@ async function createDealInPipedrive(
           } else {
                   console.error(JSON.stringify({ level: 'error', event: 'custom_field_missing_on_create', sourceRef }));
           }
+    }
+    const tipoServicioKey = process.env.PIPEDRIVE_FIELD_TIPO_SERVICIO;
+    if (tipoServicioKey && params.tipoServicio !== undefined) {
+          body[tipoServicioKey] = params.tipoServicio;
     }
     const res = await pipedrivePost<PipedriveDeal>('/deals', body);
     if (!res.success || !res.data) {
