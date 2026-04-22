@@ -16,6 +16,7 @@ import type {
   EstudioLuminicoPayload,
   CreateEstudioDealParams,
 } from './estudio-luminico-types.js';
+import { TIPO_SERVICIO } from './tipo-servicio.js';
 
 const LOG_PREFIX = '[estudio-luminico-mapping]';
 
@@ -160,6 +161,9 @@ function buildEstudioCustomFields(
   // TODO: crear custom field "Tipo de Servicio" (Enum) en Pipedrive y configurar
   // PIPEDRIVE_ESTUDIO_FIELD_SERVICE_TYPE con su key. Valores: Estudio Luminico.
   setField('PIPEDRIVE_ESTUDIO_FIELD_SERVICE_TYPE', 'Estudio Luminico');
+
+  // Campo global "Tipo de Servicio" (enum, option ID numerico) compartido con el resto de endpoints.
+  setField('PIPEDRIVE_FIELD_TIPO_SERVICIO', TIPO_SERVICIO.ESTUDIO_LUMINICO);
 
   setField('PIPEDRIVE_ESTUDIO_FIELD_SOURCE', payload.origen);
   setField('PIPEDRIVE_ESTUDIO_FIELD_PROJECT_TYPE', label(TIPO_PROYECTO_LABELS, payload.tipoProyecto));

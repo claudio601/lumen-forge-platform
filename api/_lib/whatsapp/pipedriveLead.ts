@@ -7,6 +7,7 @@ import { findExistingDeal, createDeal, updateDeal } from '../pipedrive/deals.js'
 import { initFieldOptions } from '../pipedrive/fieldOptions.js';
 import { pipedrivePost } from '../pipedrive/client.js';
 import type { QuoteCustomer } from '../crm/types.js';
+import { TIPO_SERVICIO } from '../crm/tipo-servicio.js';
 import type { CapturedFields, CaptureStatus } from './flowEngine.js';
 
 const LOG_PREFIX = '[pipedriveLead]';
@@ -147,6 +148,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
               priorityTier: resolvedPriority,
               quoteReference,
               notes: summary,
+              tipoServicio: TIPO_SERVICIO.WHATSAPP,
       });
         dealId = result.dealId;
         dealAction = result.action === 'created' ? 'created' : 'found';

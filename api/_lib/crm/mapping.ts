@@ -13,6 +13,7 @@ import { computeLeadScore } from './scoring.js';
 import type { CreateDealParams } from '../pipedrive/deals.js';
 import type { CreateActivityParams } from '../pipedrive/activities.js';
 import { normalizePhone } from './validation.js';
+import { TIPO_SERVICIO } from './tipo-servicio.js';
 
 // --- Config ---
 
@@ -75,6 +76,11 @@ export function mapPayloadToDealParams(
       ? `jumpseller:${jumpsellerOrderId}`
       : undefined;
 
+  const tipoServicio =
+    payload.sourceSystem === 'jumpseller'
+      ? TIPO_SERVICIO.JUMPSELLER
+      : TIPO_SERVICIO.COTIZACION_WEB;
+
   return {
     personId,
     orgId,
@@ -90,6 +96,7 @@ export function mapPayloadToDealParams(
     sourceRef,
     jumpsellerEventType: payload.jumpsellerEventType,
     notes: payload.notes,
+    tipoServicio,
   };
 }
 

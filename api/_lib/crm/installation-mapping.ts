@@ -12,6 +12,7 @@ import type {
   CreateInstallationDealParams,
 } from './installation-types.js';
 import { scoreInstallationLead } from './installation-scoring.js';
+import { TIPO_SERVICIO } from './tipo-servicio.js';
 
 const LOG_PREFIX = '[installation-mapping]';
 
@@ -116,6 +117,9 @@ function buildInstallationCustomFields(
   setField('PIPEDRIVE_INSTALL_FIELD_LEAD_REF', leadRef);
   setField('PIPEDRIVE_INSTALL_FIELD_LEAD_SCORE', leadScore);
   setField('PIPEDRIVE_INSTALL_FIELD_PRIORITY_TIER', priorityTier);
+
+  // Campo global "Tipo de Servicio" (enum, option ID numerico) compartido con el resto de endpoints.
+  setField('PIPEDRIVE_FIELD_TIPO_SERVICIO', TIPO_SERVICIO.INSTALACION);
 
   return fields;
 }
