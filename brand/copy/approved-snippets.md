@@ -18,7 +18,7 @@ Catálogo técnico de iluminación LED profesional. Despacho a todo Chile, preci
 
 - Envío gratis Santiago +$250k
 - Despacho 48-72 hrs hábiles
-- Garantía de fábrica
+- Garantía 1 año
 - Soporte técnico incluido
 - Productos certificados SEC
 - Catálogo técnico actualizado
@@ -29,7 +29,7 @@ Catálogo técnico de iluminación LED profesional. Despacho a todo Chile, preci
 - **Garantía 1 año:** Todos nuestros productos incluyen garantía base de 1 año.
 - **Despacho a todo Chile:** Enviamos por Starken, Cruz del Sur, PDQ, ECOEx y otros. También despachamos con el operador logístico que prefiera el cliente.
 - **Productos certificados:** Certificación SEC, DS1, CE, IEC y normas eléctricas chilenas.
-- **Despacho en 48 hrs:** Entrega directa con camiones propios en Provincia de Santiago. Envío a regiones en 48 hrs al operador logístico.
+- **Despacho 48-72 hrs hábiles:** Entrega directa con camiones propios en Provincia de Santiago. Envío a regiones en 48-72 hrs hábiles al operador logístico.
 - **+8 años en el mercado:** Experiencia y confianza en iluminación LED industrial.
 
 ## Footer descripción
