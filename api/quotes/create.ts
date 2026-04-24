@@ -1,11 +1,25 @@
 // api/quotes/create.ts
 // POST /api/quotes/create
 // Main endpoint: validate -> map -> dedupe -> create CRM entities.
+//
+// Auth model (alineado con installation-leads y estudio-luminico):
+//   1. Rate limit in-memory por IP (shared bucket en _lib/auth.ts)
+//   2. Origin / Referer allow-list
+//   3. Header x-api-key / Authorization: Bearer con QUOTES_API_KEY
+//      se acepta para llamadas server-to-server (cron, integraciones futuras).
+//      El frontend NO manda header — se valida por Origin.
+//   4. Honeypot anti-bot (campo `website`)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateQuotePayload } from '../_lib/crm/validation.js';
 import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import type { QuotePayload, QuoteCreateResponse } from '../_lib/crm/types.js';
+import {
+  isAllowedOrigin,
+  checkRateLimit,
+  isHoneypotTriggered,
+  getClientIp,
+} from '../_lib/auth.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
@@ -14,21 +28,28 @@ const ALLOWED_METHODS = ['POST'];
 // --- Auth ---
 
 /**
- * Validate the request carries a valid API key.
- * Accepts both `x-api-key` header and `Authorization: Bearer <key>`.
+ * Autoriza cuando:
+ *  - Origin/Referer está en la allow-list (flujo web legítimo), o
+ *  - Header `x-api-key` / `Authorization: Bearer` coincide con QUOTES_API_KEY
+ *    (server-to-server — cron, integraciones programáticas).
+ *
+ * Si no hay header y no hay QUOTES_API_KEY configurada, se permite (dev/local).
  */
 function isAuthorized(req: VercelRequest): boolean {
-  const expectedKey = process.env.QUOTES_API_KEY;
-  if (!expectedKey) {
-    console.warn(`${LOG_PREFIX} QUOTES_API_KEY not set — all requests will be rejected`);
+  const quotesKey = process.env.QUOTES_API_KEY;
+  const apiKey = req.headers['x-api-key'];
+  const authHeader = req.headers['authorization'];
+
+  if (apiKey || authHeader) {
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const provided = apiKey ?? bearer;
+    if (quotesKey && provided === quotesKey) return true;
     return false;
   }
-  const apiKey = req.headers['x-api-key'];
-  if (apiKey === expectedKey) return true;
-  const authHeader = req.headers.authorization;
-  if (authHeader?.startsWith('Bearer ') && authHeader.slice(7) === expectedKey) {
-    return true;
-  }
+
+  if (isAllowedOrigin(req)) return true;
+  if (!quotesKey) return true;
+  console.warn(`${LOG_PREFIX} Unauthorized: no header and untrusted origin`);
   return false;
 }
 
@@ -44,12 +65,33 @@ export default async function handler(
     return;
   }
 
+  const ip = getClientIp(req);
+  const rate = checkRateLimit(ip);
+  if (!rate.allowed) {
+    console.warn(`${LOG_PREFIX} Rate limit exceeded for IP: ${ip}`);
+    res.status(429).json({ success: false, error: 'Too many requests. Try again later.' });
+    return;
+  }
+
+  if (!isAllowedOrigin(req)) {
+    console.warn(`${LOG_PREFIX} Blocked origin:`, req.headers['origin']);
+    res.status(403).json({ success: false, error: 'Forbidden' });
+    return;
+  }
+
   if (!isAuthorized(req)) {
     res.status(401).json({ success: false, error: 'Unauthorized' });
     return;
   }
 
   const body = req.body;
+
+  if (isHoneypotTriggered(body)) {
+    console.warn(`${LOG_PREFIX} Honeypot triggered from IP: ${ip}`);
+    res.status(200).json({ success: true });
+    return;
+  }
+
   const validation = validateQuotePayload(body);
   if (!validation.valid) {
     console.warn(`${LOG_PREFIX} Validation failed:`, validation.errors);

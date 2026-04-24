@@ -29,55 +29,31 @@ import type {
   CreateInstallationDealParams,
   InstallationCrmResult,
 } from '../_lib/crm/installation-types.js';
+import {
+  isAllowedOrigin,
+  checkRateLimit,
+  isHoneypotTriggered,
+  getClientIp,
+} from '../_lib/auth.js';
 import { validateInstallationPayload } from './validation.js';
 
 const LOG_PREFIX = '[api/installation-leads/create]';
 
-const RATE_WINDOW_MS = 15 * 60 * 1000;
-const RATE_MAX_REQUESTS = 10;
-const ipHits = new Map<string, { count: number; windowStart: number }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number } {
-  const now = Date.now();
-  const entry = ipHits.get(ip);
-  if (!entry || now - entry.windowStart > RATE_WINDOW_MS) {
-    ipHits.set(ip, { count: 1, windowStart: now });
-    return { allowed: true, remaining: RATE_MAX_REQUESTS - 1 };
-  }
-  if (entry.count >= RATE_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0 };
-  }
-  entry.count += 1;
-  return { allowed: true, remaining: RATE_MAX_REQUESTS - entry.count };
-}
-
-const ALLOWED_ORIGINS = ['https://nuevo.elights.cl', 'https://elights.cl'];
-
-function isAllowedOrigin(req: VercelRequest): boolean {
-  if (process.env.VERCEL_ENV !== 'production') return true;
-  const origin = req.headers['origin'] ?? '';
-  const referer = req.headers['referer'] ?? '';
-  return ALLOWED_ORIGINS.some(o => origin.startsWith(o)) ||
-         ALLOWED_ORIGINS.some(o => referer.startsWith(o));
-}
-
 function isAuthorized(req: VercelRequest): boolean {
   const installSecret = process.env.INSTALLATION_API_SECRET;
-  const quotesKey = process.env.QUOTES_API_KEY;
   const apiKey = req.headers['x-api-key'];
   const authHeader = req.headers['authorization'];
   if (apiKey || authHeader) {
     const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
     const provided = apiKey ?? bearer;
     if (installSecret && provided === installSecret) return true;
-    if (quotesKey && provided === quotesKey) return true;
     return false;
   }
   // Sin header + origin permitido → formulario web legítimo → permitir
-  // Sin header + origin no permitido + sin env vars → dev/local → permitir
-  // Sin header + origin no permitido + con env vars → atacante externo → rechazar
+  // Sin header + origin no permitido + sin env var → dev/local → permitir
+  // Sin header + origin no permitido + con env var → atacante externo → rechazar
   if (isAllowedOrigin(req)) return true;
-  if (!installSecret && !quotesKey) return true;
+  if (!installSecret) return true;
   console.warn(LOG_PREFIX + ' Unauthorized: no header and untrusted origin');
   return false;
 }
@@ -121,7 +97,7 @@ async function processInstallationLead(payload: InstallationLeadPayload): Promis
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (req.method !== 'POST') { res.status(405).json({ success: false, error: 'Method not allowed' }); return; }
 
-  const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? req.socket?.remoteAddress ?? 'unknown';
+  const ip = getClientIp(req);
   const rate = checkRateLimit(ip);
   if (!rate.allowed) { console.warn(LOG_PREFIX + ' Rate limit exceeded for IP: ' + ip); res.status(429).json({ success: false, error: 'Too many requests. Try again later.' }); return; }
 
@@ -130,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (!isAuthorized(req)) { res.status(401).json({ success: false, error: 'Unauthorized' }); return; }
 
   const body = req.body ?? {};
-  if (body.website) { console.warn(LOG_PREFIX + ' Honeypot triggered'); res.status(200).json({ success: true }); return; }
+  if (isHoneypotTriggered(body)) { console.warn(LOG_PREFIX + ' Honeypot triggered'); res.status(200).json({ success: true }); return; }
 
   const validation = validateInstallationPayload(body);
   if (!validation.valid) { console.warn(LOG_PREFIX + ' Validation failed:', validation.errors); res.status(400).json({ success: false, error: 'Validation failed', details: { errors: validation.errors } } satisfies InstallationLeadResponse); return; }
