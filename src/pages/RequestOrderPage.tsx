@@ -39,7 +39,7 @@ interface FormValues {
       companyName: string;
       rut: string;
       commune: string;
-      región: string;
+      region: string;
       notes: string;
 }
 
@@ -51,7 +51,7 @@ const EMPTY_FORM: FormValues = {
       companyName: '',
       rut: '',
       commune: '',
-      región: 'Región Metropolitana',
+      region: 'Región Metropolitana',
       notes: '',
 };
 
@@ -434,12 +434,12 @@ const RequestOrderPage = () => {
                             
                                 {/* Región */}
                                       <div>
-                                                  <label htmlFor="ro-región" className={labelClass}>
+                                                  <label htmlFor="ro-region" className={labelClass}>
                                                                 Región <span className="text-red-500">*</span>
                                                   </label>
                                                   <select
-                                                                    id="ro-región"
-                                                                    name="región"
+                                                                    id="ro-region"
+                                                                    name="region"
                                                                     value={form.region}
                                                                     onChange={handleChange}
                                                                     className={inputClass}
