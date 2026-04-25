@@ -123,7 +123,7 @@ const RequestOrderPage = () => {
               e.preventDefault();
           
               // Validacion basica de campos requeridos (sin phone — se valida aparte)
-              const required: (keyof FormValues)[] = ['fullName', 'email', 'commune', 'region'];
+              const required: (keyof FormValues)[] = ['fullName', 'email', 'commune', 'región'];
               const missing = required.filter((f) => !form[f].trim());
               if (form.customerType === 'empresa' && !form.companyName.trim()) {
                         missing.push('companyName');
