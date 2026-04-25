@@ -13,6 +13,7 @@
 // Si solo llega el email sin deal, la solicitud se pierde operativamente.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { waitUntil } from '@vercel/functions';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
 import { createDeal } from '../_lib/pipedrive/deals.js';
@@ -277,15 +278,17 @@ export default async function handler(
     return;
   }
 
-  // ── Paso 3: Enviar email GAS (FIRE-AND-FORGET) ─────────────────
+  // ── Paso 3: Enviar email GAS (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ─────────────────
   console.log(`${LOG} GAS relay iniciado`);
-  sendGasEmail(payload, requestReference)
-    .then(() => {
-      console.log(`${LOG} GAS relay OK`);
-    })
-    .catch((err: unknown) => {
-      console.warn(`${LOG} GAS relay FAIL (non-blocking) | error:`, err);
-    });
+  waitUntil(
+    sendGasEmail(payload, requestReference)
+      .then(() => {
+        console.log(`${LOG} GAS relay OK`);
+      })
+      .catch((err: unknown) => {
+        console.warn(`${LOG} GAS relay FAIL | error:`, err);
+      })
+  );
 
   // ── Paso 4: Respuesta 201 ──────────────────────────────────────
   console.log(`${LOG} Respuesta 201 | ref: ${requestReference} | dealId: ${dealId}`);
@@ -304,6 +307,7 @@ async function sendGasEmail(
   payload: RequestOrderPayload,
   ref: string
 ): Promise<void> {
+  console.log(`${LOG} GAS email starting for ${payload.email} | ref: ${ref}`);
   const itemsText = payload.items
     .map(
       (i) =>
