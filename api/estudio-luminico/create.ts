@@ -23,6 +23,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { waitUntil } from '@vercel/functions';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
@@ -157,6 +158,7 @@ const GAS_URL =
   'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec';
 
 async function sendGasEmail(payload: EstudioLuminicoPayload): Promise<void> {
+  console.log(`${LOG} GAS email starting for ${payload.email}`);
   const ventas = process.env.SALES_EMAIL ?? 'ventas@elights.cl';
 
   const response = await fetch(GAS_URL, {
@@ -302,14 +304,16 @@ export default async function handler(
     return;
   }
 
-  // ── PASO 2: GAS email (FIRE-AND-FORGET) ──────────────────────────────────
-  sendGasEmail(payload)
-    .then(() => {
-      console.log(LOG + ' GAS email OK');
-    })
-    .catch((err: unknown) => {
-      console.warn(LOG + ' GAS email FAIL (non-blocking):', err);
-    });
+  // ── PASO 2: GAS email (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ──
+  waitUntil(
+    sendGasEmail(payload)
+      .then(() => {
+        console.log(LOG + ' GAS email OK');
+      })
+      .catch((err: unknown) => {
+        console.warn(LOG + ' GAS email FAIL:', err);
+      })
+  );
 
   // ── PASO 3: Respuesta exitosa ─────────────────────────────────────────────
   res.status(dealAction === 'created' ? 201 : 200).json({
