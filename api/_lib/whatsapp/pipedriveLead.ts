@@ -151,7 +151,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
               tipoServicio: TIPO_SERVICIO.WHATSAPP,
       });
         dealId = result.dealId;
-        dealAction = result.action === 'created' ? 'created' : 'found';
+        dealAction = result.status === 'created' ? 'created' : 'found';
 
       // Aplicar WA custom fields en updateDeal separado (tipado seguro)
       if (Object.keys(waCustomFields).length > 0) {
