@@ -35,7 +35,7 @@ export interface Category {
   slug: string;
   icon: string;
   productCount: number;
-  subcategories: string[];
+  subcategories: { slug: string; name: string }[];
 }
 export const PROJECT_CATEGORIES = [
     'alumbrado-publico',
