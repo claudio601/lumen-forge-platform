@@ -14,10 +14,15 @@
               ignore: boolean;
               }
 
+              // eLIGHTS Jumpseller is a quote-request flow, not a payment flow.
+              // `order_updated` is the operational "new lead" event — it fires when a
+              // customer submits the order for quotation. `order_paid` is also create-
+              // capable defensively (in case payment is enabled later). Redis idempotency
+              // (SET NX PX 30s + 30d mapping) absorbs duplicate events per order.
               const POLICIES: Record<string, JumpsellerEventPolicy> = {
                 order_created: { canCreate: true,  canUpdate: true,  ignore: false },
-                  order_paid:    { canCreate: false, canUpdate: true,  ignore: false },
-                    order_updated: { canCreate: false, canUpdate: true,  ignore: false },
+                  order_paid:    { canCreate: true,  canUpdate: true,  ignore: false },
+                    order_updated: { canCreate: true,  canUpdate: true,  ignore: false },
                     };
 
                     /** Default policy for unknown or unregistered events: do nothing. */
