@@ -10,7 +10,7 @@ import { useRequestCart } from '@/context/RequestCartContext';
 import type { RequestCartItem } from '@/types/request-order';
 import type { ButtonProps } from '@/components/ui/button';
 
-interface RequestOrderButtonProps extends Omit<ButtonProps, 'onClick'> {
+interface RequestOrderButtonProps extends Omit<ButtonProps, 'onClick' | 'variant'> {
   item: Omit<RequestCartItem, 'quantity'>;
   quantity?: number;
   /** Variante visual: 'card' (compacto) | 'pdp' (grande) */

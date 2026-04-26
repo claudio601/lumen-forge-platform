@@ -11,7 +11,7 @@ const CartPage = () => {
   const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.product.price) * i.quantity, 0);
   const ivaAmount = isB2B ? 0 : Math.round(displayTotal - displayTotal / 1.19);
   const neto = isB2B ? displayTotal : Math.round(displayTotal / 1.19);
-  const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currenhcy: 'CLP', minimumFractionDigits: 0 }).format(n);
+  const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
 
   if (cart.length === 0) {
     return (

@@ -34,18 +34,18 @@ const SmartQuotePage = () => {
     tipoProyecto: '',
     m2: '',
     altura: '',
-    aplicación: '',
+    aplicacion: '',
     nivelIluminacion: '',
     ciudad: '',
     plazo: '',
     comentarios: '',
     nombre: '',
     email: '',
-    teléfono: '',
+    telefono: '',
     rutEmpresa: '',
     razonSocial: '',
     giro: '',
-    dirección: '',
+    direccion: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -183,7 +183,7 @@ const SmartQuotePage = () => {
               {[
                 { name: 'nombre', label: 'Nombre y Apellido', required: true },
                 { name: 'email', label: 'Email', type: 'email', required: true },
-                { name: 'teléfono', label: 'Teléfono', type: 'tel', required: true },
+                { name: 'telefono', label: 'Teléfono', type: 'tel', required: true },
                 { name: 'rutEmpresa', label: 'RUT Empresa' },
                 { name: 'razonSocial', label: 'Razon Social' },
                 { name: 'giro', label: 'Giro' },

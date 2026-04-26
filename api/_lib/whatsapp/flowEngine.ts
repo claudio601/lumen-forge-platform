@@ -445,7 +445,7 @@ export function processFlowStep(
   let currentStage: FlowStage = state.stage;
   const baseShouldCreate = signals.qualifiesForDeal || EXPLICIT_QUOTE.test(body);
 
-  while (currentStage !== 'closed' && currentStage !== 'install_capture') {
+  while (currentStage === 'stage1' || currentStage === 'stage2' || currentStage === 'stage3') {
     if (currentStage === 'stage1') {
       const missing = missingStage1(merged);
       if (missing.length === 0) { currentStage = 'stage2'; continue; }

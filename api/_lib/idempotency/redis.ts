@@ -79,7 +79,7 @@ export async function readMapping(
 ): Promise<{ found: true; dealId: string } | { found: false } | { unavailable: true; error: string }> {
   const key = mappingKey(orderId);
   const res = await redisCommand<string>('GET', key);
-  if (!res.ok) {
+  if (res.ok === false) {
     if (res.unavailable) {
       console.error(JSON.stringify({
         level: 'error',
@@ -123,7 +123,7 @@ export async function writeMapping(
   const key = mappingKey(orderId);
   // SET key value EX ttl
   const res = await redisCommand<string>('SET', key, String(dealId), 'EX', MAPPING_TTL_S);
-  if (!res.ok) {
+  if (res.ok === false) {
     console.error(JSON.stringify({
       level: 'error',
       event: 'redis_write_mapping_failed',
@@ -158,7 +158,7 @@ export async function acquireLock(
   const key = lockKey(orderId);
   // SET key value NX PX ttlMs
   const res = await redisCommand<string | null>('SET', key, lockValue, 'NX', 'PX', LOCK_TTL_MS);
-  if (!res.ok) {
+  if (res.ok === false) {
     if (res.unavailable) {
       console.error(JSON.stringify({
         level: 'error',
@@ -207,7 +207,7 @@ export async function releaseLock(orderId: string, lockValue: string): Promise<v
   // Lua: if GET key == lockValue then DEL key end
   const script = `if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end`;
   const res = await redisCommand<number>('EVAL', script, '1', key, lockValue);
-  if (!res.ok) {
+  if (res.ok === false) {
     console.warn(JSON.stringify({
       level: 'warn',
       event: 'lock_release_failed',
