@@ -19,6 +19,14 @@ export interface Product {
   brand: string;
   jumpseller_id: number;
   jumpseller_variant_id?: number;
+  cri?: number;
+  voltage?: string;
+  beamAngle?: number;
+  lifetime?: number;
+  warranty?: string;
+  installationType?: string;
+  tags?: string[];
+  applications?: string[];
 }
 
 export interface Category {
