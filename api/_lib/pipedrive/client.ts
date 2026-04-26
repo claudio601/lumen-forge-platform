@@ -71,7 +71,7 @@ async function request<T>(
       };
     }
 
-    const json: PipedriveApiResponse<T> = await res.json();
+    const json = (await res.json()) as PipedriveApiResponse<T>;
 
     if (!json.success) {
       console.error(`[Pipedrive] ${method} ${path} -> API error:`, json.error);
