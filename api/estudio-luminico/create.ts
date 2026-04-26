@@ -273,6 +273,7 @@ export default async function handler(
   // ── PASO 1: Pipedrive (BLOQUEANTE) ────────────────────────────────────────
   let dealId: number;
   let dealAction: 'created' | 'updated';
+  let personId: number;
 
   try {
     await initFieldOptions();
@@ -289,6 +290,7 @@ export default async function handler(
     const result = await createEstudioDeal(dealParams);
     dealId = result.dealId;
     dealAction = result.dealAction;
+    personId = person.personId;
 
     // Adjuntar nota estructurada (datos completos, incluso los sin custom field)
     await addNoteToDeal(dealId, dealParams.noteContent);
@@ -318,6 +320,7 @@ export default async function handler(
   // ── PASO 3: Respuesta exitosa ─────────────────────────────────────────────
   res.status(dealAction === 'created' ? 201 : 200).json({
     success: true,
+    personId,
     dealId,
     dealAction,
   } satisfies EstudioLuminicoResponse);
