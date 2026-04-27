@@ -10,12 +10,6 @@ jobs:
   typecheck:
     name: Run tsc --noEmit
     runs-on: ubuntu-latest
-    # NOTE: continue-on-error allows merging even when type errors are
-    # reported. This is intentional during the rollout phase: a follow-up
-    # PR will fix the remaining latent errors (currently 18 in
-    # ProductDetail.tsx, Header.tsx, ProductCard.tsx) and remove this flag
-    # to make the check blocking.
-    continue-on-error: true
 
     steps:
       - name: Checkout
