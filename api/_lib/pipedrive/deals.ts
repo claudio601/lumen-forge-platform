@@ -244,6 +244,13 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                           if (deals.length > 0) existingDeal = pickBestDeal(deals);
                 }
                 if (!existingDeal) {
+                          const refDeal = await findDealByQuoteReference(params.quoteReference, params.pipelineId);
+                          if (refDeal) {
+                                      existingDeal = refDeal;
+                                      await backfillJumpsellerOrderId(existingDeal.id, rawOrderId!);
+                          }
+                }
+                if (!existingDeal) {
                           const titleDeals = await findDealsByTitle(rawOrderId!, params.pipelineId);
                           if (titleDeals.length > 0) {
                                       existingDeal = pickBestDeal(titleDeals);
@@ -287,6 +294,14 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                                       await writeMapping(rawOrderId!, best.id);
                                       return { dealId: best.id, status: 'updated' };
                           }
+                }
+                const refDeal = await findDealByQuoteReference(params.quoteReference, params.pipelineId);
+                if (refDeal) {
+                          console.log(JSON.stringify({ level: 'info', event: 'quote_ref_hit', sourceRef, dealId: refDeal.id }));
+                          await backfillJumpsellerOrderId(refDeal.id, rawOrderId!);
+                          await addDealNote(refDeal.id, `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`);
+                          await writeMapping(rawOrderId!, refDeal.id);
+                          return { dealId: refDeal.id, status: 'updated' };
                 }
                 const titleDeals = await findDealsByTitle(rawOrderId!, params.pipelineId);
                 if (titleDeals.length > 0) {
