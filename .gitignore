@@ -26,3 +26,6 @@ dist-ssr
 *.bak
 *.bak
 *.bak_fix2
+
+# Local report output from one-off admin scripts
+reports/
