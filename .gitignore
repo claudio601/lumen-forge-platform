@@ -29,3 +29,7 @@ dist-ssr
 
 # Local report output from one-off admin scripts
 reports/
+
+# Local environment overrides
+.env.local
+.env.*.local
