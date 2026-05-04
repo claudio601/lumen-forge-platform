@@ -323,6 +323,12 @@ async function listEligibleDeals(): Promise<EligibleDeal[]> {
     pipedriveGetAll<PipedriveDeal>('/deals', {
       pipeline_id: pipelineId,
       status: 'open',
+      // Sort newest activity first so --limit N samples recent deals,
+      // where bridge patterns and orderId references are most likely
+      // present. Pipedrive v1 API uses single `sort` param with format
+      // `field DIRECTION`. Full runs (no --limit) process all deals
+      // regardless of order — only sampling order changes.
+      sort: 'update_time DESC',
     }),
   );
 
