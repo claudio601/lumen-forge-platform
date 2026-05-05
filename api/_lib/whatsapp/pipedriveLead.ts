@@ -3,7 +3,7 @@
 // v1: agrega custom fields WA + note estructurada.
 
 import { findOrCreatePerson } from '../pipedrive/persons.js';
-import { findExistingDeal, createDeal, updateDeal } from '../pipedrive/deals.js';
+import { createDeal, updateDeal } from '../pipedrive/deals.js';
 import { initFieldOptions } from '../pipedrive/fieldOptions.js';
 import { pipedrivePost } from '../pipedrive/client.js';
 import type { QuoteCustomer } from '../crm/types.js';
@@ -117,46 +117,35 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
     console.log(LOG_PREFIX + ' Person ' + personId + ' (' + personAction + ')');
 
   const quoteReference = 'WA-' + phone.replace(/\D/g, '');
-    const existing = await findExistingDeal({ quoteReference, personId, pipelineId });
 
   const resolvedLeadType = params.leadType ?? detectLeadType(params.body, captured);
     const resolvedPriority: 'Alta' | 'Normal' = wantsHuman ? 'Alta' : (params.priorityTier ?? 'Normal');
 
   const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body, resolvedLeadType);
 
-  let dealId: number;
-    let dealAction: 'created' | 'found';
+  const result = await createDeal({
+        personId,
+        pipelineId,
+        stageId,
+        title: 'WhatsApp Lead — ' + (name || phone),
+        quoteAmountClp: 0,
+        sourceSystem: 'whatsapp',
+        leadType: resolvedLeadType === 'Unknown' ? 'B2C' : resolvedLeadType,
+        priorityTier: resolvedPriority,
+        quoteReference,
+        notes: summary,
+        tipoServicio: TIPO_SERVICIO.WHATSAPP,
+  });
 
-  if (existing) {
-        // Path FOUND: solo actualizar WA fields si los hay
-      console.log(LOG_PREFIX + ' Deal already exists: ' + existing.id + ' — actualizando WA fields');
-        if (Object.keys(waCustomFields).length > 0) {
-                await updateDeal(existing.id, waCustomFields);
-        }
-        dealId = existing.id;
-        dealAction = 'found';
-  } else {
-        // Path CREATE: primero crear deal con params tipados, luego update WA fields separado
-      const result = await createDeal({
-              personId,
-              pipelineId,
-              stageId,
-              title: 'WhatsApp Lead — ' + (name || phone),
-              quoteAmountClp: 0,
-              sourceSystem: 'whatsapp',
-              leadType: resolvedLeadType === 'Unknown' ? 'B2C' : resolvedLeadType,
-              priorityTier: resolvedPriority,
-              quoteReference,
-              notes: summary,
-              tipoServicio: TIPO_SERVICIO.WHATSAPP,
-      });
-        dealId = result.dealId;
-        dealAction = result.status === 'created' ? 'created' : 'found';
+  const dealId: number = result.dealId;
+    const dealAction: 'created' | 'found' = result.status === 'created' ? 'created' : 'found';
 
-      // Aplicar WA custom fields en updateDeal separado (tipado seguro)
-      if (Object.keys(waCustomFields).length > 0) {
-              await updateDeal(dealId, waCustomFields);
-      }
+  if (result.status !== 'created') {
+        console.log(LOG_PREFIX + ' dedup_quote_reference_hit dealId=' + dealId);
+  }
+
+  if (Object.keys(waCustomFields).length > 0) {
+        await updateDeal(dealId, waCustomFields);
   }
 
   // Nota estructurada al deal (siempre, para historial)

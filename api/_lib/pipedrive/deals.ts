@@ -395,16 +395,3 @@ async function createDealInPipedrive(
     }
     return res.data.id;
 }
-
-// --- Legacy export for compatibility ---
-export async function findExistingDeal(
-    params: Pick<CreateDealParams, 'quoteReference' | 'jumpsellerOrderId' | 'personId' | 'pipelineId'>
-  ): Promise<PipedriveDeal | null> {
-    if (params.jumpsellerOrderId) {
-          const deals = await findDealsByJumpsellerCustomField(params.jumpsellerOrderId, params.pipelineId);
-          if (deals.length > 0) return pickBestDeal(deals);
-          const titleDeals = await findDealsByTitle(params.jumpsellerOrderId, params.pipelineId);
-          if (titleDeals.length > 0) return pickBestDeal(titleDeals);
-    }
-    return null;
-}
