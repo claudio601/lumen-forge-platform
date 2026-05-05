@@ -374,3 +374,352 @@ describe('createDeal — Jumpseller deduplication with Redis + Pipedrive', () =>
     warnSpy.mockRestore();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Defensive quote_reference backfill (Ticket H — Fix C)
+// ---------------------------------------------------------------------------
+
+describe('createDeal — defensive quote_reference backfill', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID = 'cf_js_order_id';
+    process.env.PIPEDRIVE_DEAL_FIELD_SOURCE_SYSTEM = undefined as unknown as string;
+    process.env.PIPEDRIVE_DEAL_FIELD_LEAD_TYPE = undefined as unknown as string;
+    process.env.PIPEDRIVE_DEAL_FIELD_PRIORITY_TIER = undefined as unknown as string;
+    process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE = 'cf_quote_ref';
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  // =========================================================================
+  // TEST 6 — Custom field HIT, deal has empty quoteReference -> backfill PUT
+  // =========================================================================
+  it('TEST 6: custom field hit on deal with empty quoteReference -> quote_ref_backfill PUT', async () => {
+    const params: CreateDealParams = {
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '99006',
+      sourceRef: 'jumpseller:99006',
+      quoteReference: 'JS-99006',
+      title: 'Cotizacion JS-99006 - Cliente Test',
+    };
+
+    const existingDeal = {
+      id: 600,
+      title: '1301-2026',
+      status: 'open',
+      pipeline_id: 2,
+      stage_id: 10,
+      update_time: '2026-04-01T10:00:00.000Z',
+      add_time: '2026-04-01T08:00:00.000Z',
+      cf_js_order_id: '99006',
+      // cf_quote_ref intentionally absent (the bug scenario)
+    };
+
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-600',
+    });
+
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
+          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+        }
+        if (path === '/deals/600') {
+          return Promise.resolve({ success: true, data: existingDeal });
+        }
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 600 } });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const logSpy = vi.spyOn(console, 'log');
+    const result = await createDeal(params);
+
+    expect(result.status).toBe('updated');
+    expect(result.dealId).toBe(600);
+
+    // Backfill PUT must have happened with the quote_reference field
+    const backfillCalls = (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (c) => c[0] === '/deals/600'
+    );
+    const quoteRefBackfill = backfillCalls.find(
+      (c) => (c[1] as Record<string, unknown>)['cf_quote_ref'] === 'JS-99006'
+    );
+    expect(quoteRefBackfill).toBeDefined();
+
+    // Success log must be emitted
+    const logMsgs = logSpy.mock.calls.map((c) => c.join(' '));
+    const backfillLog = logMsgs.find((m) => m.includes('quote_ref_backfill') && m.includes('600'));
+    expect(backfillLog).toBeDefined();
+
+    logSpy.mockRestore();
+  });
+
+  // =========================================================================
+  // TEST 7 — Custom field HIT, deal already has matching quoteReference -> no PUT
+  // =========================================================================
+  it('TEST 7: custom field hit, deal already has matching quoteReference -> no backfill PUT', async () => {
+    const params: CreateDealParams = {
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '99007',
+      sourceRef: 'jumpseller:99007',
+      quoteReference: 'JS-99007',
+      title: 'Cotizacion JS-99007 - Cliente Test',
+    };
+
+    const existingDeal = {
+      id: 700,
+      title: 'Cotizacion JS-99007 - Cliente Test',
+      status: 'open',
+      pipeline_id: 2,
+      stage_id: 10,
+      update_time: '2026-04-01T10:00:00.000Z',
+      add_time: '2026-04-01T08:00:00.000Z',
+      cf_js_order_id: '99007',
+      cf_quote_ref: 'JS-99007', // already matches
+    };
+
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-700',
+    });
+
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
+          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+        }
+        if (path === '/deals/700') {
+          return Promise.resolve({ success: true, data: existingDeal });
+        }
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 700 } });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const result = await createDeal(params);
+
+    expect(result.status).toBe('updated');
+    expect(result.dealId).toBe(700);
+
+    // No PUT should target /deals/700 with cf_quote_ref (already matches → no-op)
+    const quoteRefBackfill = (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) =>
+        c[0] === '/deals/700' &&
+        Object.prototype.hasOwnProperty.call(c[1] as Record<string, unknown>, 'cf_quote_ref')
+    );
+    expect(quoteRefBackfill).toBeUndefined();
+  });
+
+  // =========================================================================
+  // TEST 8 — Custom field HIT, deal has DIFFERENT quoteReference -> warn + no PUT
+  // =========================================================================
+  it('TEST 8: custom field hit, existing quote_ref differs -> mismatch warn, no overwrite', async () => {
+    const params: CreateDealParams = {
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '99008',
+      sourceRef: 'jumpseller:99008',
+      quoteReference: 'JS-99008',
+      title: 'Cotizacion JS-99008 - Cliente Test',
+    };
+
+    const existingDeal = {
+      id: 800,
+      title: 'manually edited',
+      status: 'open',
+      pipeline_id: 2,
+      stage_id: 10,
+      update_time: '2026-04-01T10:00:00.000Z',
+      add_time: '2026-04-01T08:00:00.000Z',
+      cf_js_order_id: '99008',
+      cf_quote_ref: 'WSP-555', // human-edited to a different ref
+    };
+
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-800',
+    });
+
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
+          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+        }
+        if (path === '/deals/800') {
+          return Promise.resolve({ success: true, data: existingDeal });
+        }
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 800 } });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const warnSpy = vi.spyOn(console, 'warn');
+    const result = await createDeal(params);
+
+    expect(result.status).toBe('updated');
+    expect(result.dealId).toBe(800);
+
+    // No PUT should overwrite the cf_quote_ref field
+    const quoteRefBackfill = (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) =>
+        c[0] === '/deals/800' &&
+        Object.prototype.hasOwnProperty.call(c[1] as Record<string, unknown>, 'cf_quote_ref')
+    );
+    expect(quoteRefBackfill).toBeUndefined();
+
+    // Mismatch warn must be logged with both values
+    const warnMsgs = warnSpy.mock.calls.map((c) => c.join(' '));
+    const mismatchWarn = warnMsgs.find(
+      (m) => m.includes('quote_ref_mismatch') && m.includes('WSP-555') && m.includes('JS-99008')
+    );
+    expect(mismatchWarn).toBeDefined();
+
+    warnSpy.mockRestore();
+  });
+
+  // =========================================================================
+  // TEST 9 — Title fallback HIT -> both backfills (jumpsellerOrderId + quote_ref)
+  // =========================================================================
+  it('TEST 9: title fallback hit -> backfills both jumpsellerOrderId AND quote_reference', async () => {
+    const params: CreateDealParams = {
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '99009',
+      sourceRef: 'jumpseller:99009',
+      quoteReference: 'JS-99009',
+      title: 'Cotizacion JS-99009 - Cliente Test',
+    };
+
+    const renamedDeal = {
+      id: 900,
+      title: 'Cotizacion JS-99009 - María González (renombrado)',
+      status: 'open',
+      pipeline_id: 2,
+      stage_id: 10,
+      update_time: '2026-04-01T09:00:00.000Z',
+      add_time: '2026-04-01T08:00:00.000Z',
+      // no cf_js_order_id, no cf_quote_ref — pure legacy
+    };
+
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-900',
+    });
+
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
+          return Promise.resolve({ success: true, data: { items: [] } });
+        }
+        if (path === '/deals/search' && qp?.fields === 'title') {
+          return Promise.resolve({ success: true, data: { items: [{ item: renamedDeal }] } });
+        }
+        if (path === '/deals/900') {
+          return Promise.resolve({ success: true, data: renamedDeal });
+        }
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 900 } });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const result = await createDeal(params);
+
+    expect(result.status).toBe('updated');
+    expect(result.dealId).toBe(900);
+
+    const putsTo900 = (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.filter(
+      (c) => c[0] === '/deals/900'
+    );
+
+    // jumpsellerOrderId backfill PUT
+    const orderIdBackfill = putsTo900.find(
+      (c) => (c[1] as Record<string, unknown>)['cf_js_order_id'] === '99009'
+    );
+    expect(orderIdBackfill).toBeDefined();
+
+    // quote_reference backfill PUT
+    const quoteRefBackfill = putsTo900.find(
+      (c) => (c[1] as Record<string, unknown>)['cf_quote_ref'] === 'JS-99009'
+    );
+    expect(quoteRefBackfill).toBeDefined();
+  });
+
+  // =========================================================================
+  // TEST 10 — PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE not set -> skip + warn
+  // =========================================================================
+  it('TEST 10: missing PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE -> backfill skipped + warn', async () => {
+    delete process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE;
+
+    const params: CreateDealParams = {
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '99010',
+      sourceRef: 'jumpseller:99010',
+      quoteReference: 'JS-99010',
+      title: 'Cotizacion JS-99010 - Cliente Test',
+    };
+
+    const existingDeal = {
+      id: 1000,
+      title: 'Cotizacion JS-99010 - Cliente Test',
+      status: 'open',
+      pipeline_id: 2,
+      stage_id: 10,
+      update_time: '2026-04-01T10:00:00.000Z',
+      add_time: '2026-04-01T08:00:00.000Z',
+      cf_js_order_id: '99010',
+    };
+
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-1000',
+    });
+
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'custom_fields') {
+          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+        }
+        if (path === '/deals/1000') {
+          return Promise.resolve({ success: true, data: existingDeal });
+        }
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 1000 } });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const warnSpy = vi.spyOn(console, 'warn');
+    const result = await createDeal(params);
+
+    expect(result.status).toBe('updated');
+    expect(result.dealId).toBe(1000);
+
+    // No PUT should have written cf_quote_ref (env was missing)
+    const quoteRefBackfill = (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) =>
+        c[0] === '/deals/1000' &&
+        Object.prototype.hasOwnProperty.call(c[1] as Record<string, unknown>, 'cf_quote_ref')
+    );
+    expect(quoteRefBackfill).toBeUndefined();
+
+    // Warn must include missing_field_key reason
+    const warnMsgs = warnSpy.mock.calls.map((c) => c.join(' '));
+    const skipWarn = warnMsgs.find(
+      (m) => m.includes('quote_ref_backfill_skipped') && m.includes('missing_field_key')
+    );
+    expect(skipWarn).toBeDefined();
+
+    warnSpy.mockRestore();
+  });
+});
