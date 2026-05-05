@@ -10,7 +10,11 @@
 //
 // No se agrega Resend ni ningun proveedor externo nuevo.
 
-import { createActivity } from '../pipedrive/activities.js';
+import {
+    createActivity,
+    hasFollowup24Created,
+    markFollowup24Created,
+} from '../pipedrive/activities.js';
 
 const LOG_PREFIX = '[notify]';
 
@@ -48,6 +52,17 @@ export async function notifyTeam(params: NotifyParams): Promise<void> {
   // quoteReference estable para el subject de la actividad
   const quoteReference = `WA-${phone.replace(/\D/g, '')}`;
 
+  // Idempotency: check the deal's followup24Created flag before creating.
+  // Skips on hit (already created in a previous webhook). On fail-open
+  // (missing env var or option), proceeds to create — better an eventual
+  // duplicate than a silent no-op.
+  if (await hasFollowup24Created(dealId)) {
+        console.log(
+                `${LOG_PREFIX} dedup_followup_24h_skipped dealId=${dealId} phone=${phone}`
+        );
+        return;
+  }
+
   try {
         const activity = await createActivity({
                 dealId,
@@ -57,6 +72,8 @@ export async function notifyTeam(params: NotifyParams): Promise<void> {
                 quoteReference,
         });
         console.log(`${LOG_PREFIX} Actividad Pipedrive creada: ${activity.activityId}`);
+        // Mark flag only after successful creation — rollback semantics on failure.
+        await markFollowup24Created(dealId);
   } catch (err) {
         // No es fatal — el bot ya respondio al cliente
       console.error(`${LOG_PREFIX} Error creando actividad Pipedrive:`, err);
