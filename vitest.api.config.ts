@@ -1,5 +1,5 @@
 // vitest.api.config.ts
-// Separate vitest config for API server-side tests (api/**/*.test.ts).
+// Separate vitest config for server-side tests under api/ and scripts/.
 // These run in Node environment, NOT jsdom (server modules use Node APIs).
 //
 // Run with:  npx vitest run --config vitest.api.config.ts
@@ -12,8 +12,11 @@ export default defineConfig({
     // Node environment: required for server modules (fetch, process.env, etc.)
     environment: 'node',
     globals: true,
-    // Only include api test files -- never overlap with src/
-    include: ['api/**/*.{test,spec}.{ts,js}'],
+    // Include api/ AND scripts/ test files -- never overlap with src/
+    include: [
+      'api/**/*.{test,spec}.{ts,js}',
+      'scripts/**/*.{test,spec}.{ts,js}',
+    ],
     // Exclude front-end source
     exclude: ['src/**', 'node_modules/**'],
   },
