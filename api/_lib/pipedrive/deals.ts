@@ -186,6 +186,55 @@ async function backfillJumpsellerOrderId(dealId: number, rawOrderId: string): Pr
     }
 }
 
+// --- Defensive backfill: quote_reference on canonical deal located via non-quoteRef lookup ---
+// Invoked when createDeal locates an existing canonical deal via either
+// jumpseller_order_id custom field OR title fallback, AND that deal currently
+// has an empty quoteReference. Never overwrites a non-empty existing value
+// (preserves audit trail). Logs warning on mismatch instead of overwriting.
+async function backfillQuoteReference(
+    dealId: number,
+    quoteReference: string,
+    existingDeal: PipedriveDeal
+): Promise<void> {
+    const fieldKey = process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE;
+    if (!fieldKey) {
+          console.warn(`${LOG_PREFIX} quote_ref_backfill_skipped reason=missing_field_key dealId=${dealId}`);
+          return;
+    }
+    if (!quoteReference) {
+          console.warn(`${LOG_PREFIX} quote_ref_backfill_skipped reason=empty_quote_reference dealId=${dealId}`);
+          return;
+    }
+    const existingRaw = (existingDeal as Record<string, unknown>)[fieldKey];
+    const existingStr =
+          existingRaw === null || existingRaw === undefined ? '' : String(existingRaw).trim();
+    if (existingStr === quoteReference) {
+          return;
+    }
+    if (existingStr !== '') {
+          console.warn(
+                  `${LOG_PREFIX} quote_ref_mismatch dealId=${dealId} existing=${existingStr} new=${quoteReference}`
+          );
+          return;
+    }
+    try {
+          const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, {
+                  [fieldKey]: quoteReference,
+          });
+          if (!res.success) {
+                  console.warn(
+                          `${LOG_PREFIX} Failed to backfill quote_reference on deal ${dealId}: ${res.error ?? 'unknown'}`
+                  );
+          } else {
+                  console.log(
+                          `${LOG_PREFIX} quote_ref_backfill dealId=${dealId} quoteReference=${quoteReference}`
+                  );
+          }
+    } catch (err) {
+          console.warn(`${LOG_PREFIX} Error backfilling quote_reference on deal ${dealId}:`, err);
+    }
+}
+
 // --- Update deal ---
 export async function updateDeal(dealId: number, updates: DealUpdateFields): Promise<void> {
     const body: Record<string, unknown> = {};
@@ -241,7 +290,10 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                 }
                 if (fieldKeyConfigured) {
                           const deals = await findDealsByJumpsellerCustomField(rawOrderId!, params.pipelineId);
-                          if (deals.length > 0) existingDeal = pickBestDeal(deals);
+                          if (deals.length > 0) {
+                                      existingDeal = pickBestDeal(deals);
+                                      await backfillQuoteReference(existingDeal.id, params.quoteReference, existingDeal);
+                          }
                 }
                 if (!existingDeal) {
                           const refDeal = await findDealByQuoteReference(params.quoteReference, params.pipelineId);
@@ -255,6 +307,7 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                           if (titleDeals.length > 0) {
                                       existingDeal = pickBestDeal(titleDeals);
                                       await backfillJumpsellerOrderId(existingDeal.id, rawOrderId!);
+                                      await backfillQuoteReference(existingDeal.id, params.quoteReference, existingDeal);
                           }
                 }
                 if (!existingDeal) {
@@ -290,6 +343,7 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                           if (deals.length > 0) {
                                       const best = pickBestDeal(deals);
                                       console.log(JSON.stringify({ level: 'info', event: 'custom_field_hit', sourceRef, dealId: best.id }));
+                                      await backfillQuoteReference(best.id, params.quoteReference, best);
                                       await addDealNote(best.id, `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`);
                                       await writeMapping(rawOrderId!, best.id);
                                       return { dealId: best.id, status: 'updated' };
@@ -308,6 +362,7 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                           const best = pickBestDeal(titleDeals);
                           console.log(JSON.stringify({ level: 'info', event: 'title_fallback_hit', sourceRef, dealId: best.id }));
                           await backfillJumpsellerOrderId(best.id, rawOrderId!);
+                          await backfillQuoteReference(best.id, params.quoteReference, best);
                           await addDealNote(best.id, `Webhook Jumpseller re-disparado: ${new Date().toISOString()}, evento: ${eventType}`);
                           await writeMapping(rawOrderId!, best.id);
                           return { dealId: best.id, status: 'updated' };
