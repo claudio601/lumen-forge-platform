@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail } from '@/config/business';
@@ -93,6 +93,10 @@ const InstallationLeadForm = () => {
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
+  useEffect(() => {
+    sendEvent('instalacion_form_view');
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
@@ -109,6 +113,9 @@ const InstallationLeadForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const tipoProyecto = form.tipoProyecto;
+    const comuna = form.comuna.trim();
+    sendEvent('instalacion_form_submit_attempt', { tipoProyecto, comuna });
     if (!form.nombre || !form.telefono || !form.email || !form.comuna || !form.tipoProyecto || !form.descripcion) {
       setErrorMsg('Por favor completa todos los campos requeridos (*).');
       return;
@@ -122,12 +129,18 @@ const InstallationLeadForm = () => {
     try {
       const payload = buildPayload();
       await sendLeadEmail(payload);
+      sendEvent('instalacion_form_submit_success', { tipoProyecto, comuna });
       sendToPipedrive(payload).catch(err => { console.warn('[Pipedrive] Error inesperado:', err); });
-      sendEvent('instalacion_form_submit_success', { tipoProyecto: form.tipoProyecto, comuna: form.comuna.trim() });
       setStatus('success');
       setForm(EMPTY_FORM);
     } catch (err) {
       console.error('[InstallationLeadForm]', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      sendEvent('instalacion_form_submit_failure', {
+        tipoProyecto,
+        comuna,
+        error_message: errorMessage.slice(0, 100),
+      });
       setStatus('error');
       setErrorMsg('No pudimos enviar tu solicitud. Por favor escribenos por WhatsApp o intentalo de nuevo.');
     }
