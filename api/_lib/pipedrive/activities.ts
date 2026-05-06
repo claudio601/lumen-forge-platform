@@ -1,9 +1,11 @@
 // src/lib/pipedrive/activities.ts
 // Create Pipedrive activities for follow-up scheduling (24h / 72h).
 
-import { pipedrivePost } from './client.js';
+import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
+import { getBooleanOptionId } from './fieldOptions.js';
 import type {
   PipedriveActivity,
+  PipedriveDeal,
   CreateActivityResult,
 } from '../crm/types.js';
 
@@ -141,4 +143,80 @@ export async function createActivity(
     activityId: res.data.id,
     type: params.type,
   };
+}
+
+// --- Idempotency helpers (Ticket A — H1 fix) ---
+
+/**
+ * Check whether the followup_24h activity has already been created for a deal,
+ * by reading the deal's followup24Created custom field flag.
+ *
+ * Fail-open semantics: if the env var is missing, the option ID cannot be
+ * resolved, or the deal fetch fails, returns false. Better to risk an
+ * eventual duplicate than to never create the activity.
+ *
+ * Returns true only when the field's current value matches the resolved
+ * "Sí" option ID for that field.
+ */
+export async function hasFollowup24Created(dealId: number): Promise<boolean> {
+  const fieldKey = process.env.PIPEDRIVE_DEAL_FIELD_FOLLOWUP_24;
+  if (!fieldKey) {
+    console.warn(
+      `${LOG_PREFIX} hasFollowup24Created fail-open reason=missing_env_var dealId=${dealId}`
+    );
+    return false;
+  }
+  const yesId = getBooleanOptionId('deal', fieldKey, true);
+  if (yesId === undefined) {
+    console.warn(
+      `${LOG_PREFIX} hasFollowup24Created fail-open reason=option_unresolved dealId=${dealId}`
+    );
+    return false;
+  }
+  const res = await pipedriveGet<PipedriveDeal>(`/deals/${dealId}`);
+  if (!res.success || !res.data) {
+    console.warn(
+      `${LOG_PREFIX} hasFollowup24Created fail-open reason=fetch_failed dealId=${dealId}`
+    );
+    return false;
+  }
+  const value = (res.data as Record<string, unknown>)[fieldKey];
+  if (value === null || value === undefined || value === '') return false;
+  return String(value) === String(yesId);
+}
+
+/**
+ * Mark the followup_24h flag on a deal as "Sí". Best-effort: any failure
+ * is logged but never thrown, so a successfully-created activity does not
+ * cascade into a webhook 500.
+ */
+export async function markFollowup24Created(dealId: number): Promise<void> {
+  const fieldKey = process.env.PIPEDRIVE_DEAL_FIELD_FOLLOWUP_24;
+  if (!fieldKey) {
+    console.warn(
+      `${LOG_PREFIX} markFollowup24Created skipped reason=missing_env_var dealId=${dealId}`
+    );
+    return;
+  }
+  const yesId = getBooleanOptionId('deal', fieldKey, true);
+  if (yesId === undefined) {
+    console.warn(
+      `${LOG_PREFIX} markFollowup24Created skipped reason=option_unresolved dealId=${dealId}`
+    );
+    return;
+  }
+  try {
+    const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, {
+      [fieldKey]: yesId,
+    });
+    if (!res.success) {
+      console.warn(
+        `${LOG_PREFIX} markFollowup24Created failed dealId=${dealId} error=${res.error ?? 'unknown'}`
+      );
+    } else {
+      console.log(`${LOG_PREFIX} followup24Created marked dealId=${dealId}`);
+    }
+  } catch (err) {
+    console.warn(`${LOG_PREFIX} markFollowup24Created error dealId=${dealId}:`, err);
+  }
 }
