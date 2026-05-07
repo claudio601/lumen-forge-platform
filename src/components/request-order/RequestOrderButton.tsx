@@ -44,7 +44,7 @@ const RequestOrderButton = ({
     return (
       <Button
         size="lg"
-        className={['flex-1 gap-2 h-12 bg-primary hover:bg-primary/90 text-primary-foreground', className].filter(Boolean).join(' ')}
+        className={['flex-1 gap-2 h-12 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary', className].filter(Boolean).join(' ')}
         onClick={handleClick}
         {...rest}
       >
@@ -66,7 +66,7 @@ const RequestOrderButton = ({
   return (
     <Button
       size="sm"
-      className={['flex-1 gap-1 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground', className].filter(Boolean).join(' ')}
+      className={['flex-1 gap-1 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary', className].filter(Boolean).join(' ')}
       onClick={handleClick}
       {...rest}
     >
