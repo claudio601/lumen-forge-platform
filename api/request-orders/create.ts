@@ -166,8 +166,9 @@ function buildNotes(p: RequestOrderPayload): string {
   if (p.notes) lines.push(`Notas del cliente: ${p.notes}`);
   lines.push('--- Items solicitados ---');
   p.items.forEach((i) => {
+    const cct = i.attributes?.colorLuz ? ` — ${i.attributes.colorLuz}` : '';
     lines.push(
-      `  [${i.sku}] ${i.name} x${i.quantity} @ ${i.unitPrice} CLP = ${i.lineTotal} CLP`
+      `  [${i.sku}] ${i.name}${cct} x${i.quantity} @ ${i.unitPrice} CLP = ${i.lineTotal} CLP`
     );
   });
   lines.push(`TOTAL: ${p.subtotal} CLP`);

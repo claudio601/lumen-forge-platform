@@ -7,6 +7,8 @@ import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import {
     FileText, Minus, Plus, Download, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
@@ -18,6 +20,22 @@ import { waProductUrl } from '@/config/business';
 import RequestOrderButton from '@/components/request-order/RequestOrderButton';
 import { Helmet } from 'react-helmet-async';
 
+// Mapping CCT -> etiqueta visible en UI / Pipedrive
+const CCT_LABELS: Record<number, string> = {
+  2200: '2200K Ámbar',
+  2700: '2700K Cálida',
+  4000: '4000K Neutra',
+  5000: '5000K Fría',
+};
+
+// Mapping CCT -> sufijo de SKU para variantes BESTLED
+const CCT_SKU_SUFFIX: Record<number, string> = {
+  2200: 'A',
+  2700: 'C',
+  4000: 'N',
+  5000: 'F',
+};
+
 const ProductDetail = () => {
     const { id } = useParams();
     const product = products.find(p => p.id === id);
@@ -25,6 +43,7 @@ const ProductDetail = () => {
     const [qty, setQty] = useState(1);
     const [activeImg, setActiveImg] = useState(0);
     const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
+    const [selectedCCT, setSelectedCCT] = useState<number | null>(null);
 
     if (!product) {
           return (
@@ -114,10 +133,21 @@ const ProductDetail = () => {
   
     // Precio congelado al momento de agregar al Request Cart
     const frozenUnitPrice = displayPrice(product.price);
-  
+
+    // CCT: si el producto define availableCCT[], el cliente debe elegir antes de
+    // poder solicitar pedido o cotizar. La selección define el SKU final
+    // despachable (ej. APB120 + 'A' -> APB120A) y la etiqueta visible.
+    const hasCCTSelector = !!(product.availableCCT && product.availableCCT.length > 0);
+    const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
+    const skuFinal = selectedCCT != null && CCT_SKU_SUFFIX[selectedCCT]
+      ? `${product.sku}${CCT_SKU_SUFFIX[selectedCCT]}`
+      : product.sku;
+
+    const ctaDisabled = hasCCTSelector && selectedCCT === null;
+
     const requestItem = {
           productId: product.id,
-          sku: product.sku,
+          sku: skuFinal,
           name: product.name,
           unitPrice: frozenUnitPrice,
           // Fix 1: persistir el modo de precio al momento de agregar al carrito
@@ -126,6 +156,7 @@ const ProductDetail = () => {
           url: `/producto/${product.id}`,
           attributes: {
                   potencia: product.watts > 0 ? `${product.watts}W` : undefined,
+                  colorLuz: cctLabel,
           },
     };
   
@@ -265,6 +296,37 @@ const ProductDetail = () => {
                         <div className="mb-4" />
                       )}
                         
+                          {/* Selector de temperatura de color (solo si product.availableCCT existe) */}
+                          {hasCCTSelector && (
+                                  <div className="mb-4 p-4 border rounded-xl bg-surface">
+                                              <Label className="text-sm font-semibold mb-3 block">
+                                                Temperatura de color <span className="text-destructive">*</span>
+                                              </Label>
+                                              <RadioGroup
+                                                value={selectedCCT != null ? String(selectedCCT) : ''}
+                                                onValueChange={(v) => setSelectedCCT(Number(v))}
+                                                className="grid grid-cols-2 gap-2"
+                                              >
+                                                {(product.availableCCT ?? []).map(cct => (
+                                                  <div key={cct} className="flex items-center gap-2">
+                                                    <RadioGroupItem value={String(cct)} id={`cct-${cct}`} />
+                                                    <Label htmlFor={`cct-${cct}`} className="text-sm cursor-pointer">
+                                                      {CCT_LABELS[cct] ?? `${cct}K`}
+                                                    </Label>
+                                                  </div>
+                                                ))}
+                                              </RadioGroup>
+                                              <p className="text-xs text-muted-foreground mt-3">
+                                                Selecciona la temperatura de color. La elección afecta el SKU final del despacho.
+                                              </p>
+                                              {ctaDisabled && (
+                                                <p className="text-xs text-destructive mt-2">
+                                                  Selecciona temperatura de color para continuar
+                                                </p>
+                                              )}
+                                  </div>
+                                )}
+
                           {/* Selector de cantidad */}
                                   <div className="flex items-center gap-3 mb-4">
                                               <div className="flex items-center border rounded-lg">
@@ -282,15 +344,18 @@ const ProductDetail = () => {
                                                 {priceLabel}
                                               </span>
                                   </div>
-                        
+
                           {/* ── CTAs principales ── */}
                                   <div className="flex gap-3 mb-6">
                                     {/* FASE 1: CTA principal = Solicitar pedido */}
-                                              <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" />
-                                    {/* Cotizar (QuoteCart) se mantiene como accion secundaria */}
+                                              <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" disabled={ctaDisabled} />
+                                    {/* Cotizar (QuoteCart) se mantiene como accion secundaria.
+                                        TODO: pasar selectedCCT a QuoteCart cuando se actualice AppContext.addToQuote
+                                        para aceptar atributos por línea (hoy solo recibe Product + quantity). */}
                                               <Button
                                                               size="lg"
                                                               variant="outline"
+                                                              disabled={ctaDisabled}
                                                               className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
                                                               onClick={() => {
                                                                                 addToQuote(product, qty);
