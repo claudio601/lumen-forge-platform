@@ -46,6 +46,9 @@ export interface Product {
   }>;
   installationInfo?: string;
   useCases?: string[];
+
+  // Variantes CCT disponibles para selección al momento de cotizar/pedir
+  availableCCT?: number[];
 }
 
 export interface Category {
@@ -87,7 +90,158 @@ export const products: Product[] = [
   { id: 'proyector-led-antivandalico-200w-ip66', sku: 'CHIPX200', name: 'PROYECTOR LED ANTIVANDÁLICO 200W IP66', permalink: 'proyector-led-antivandalico-200w-ip66', price: 62400, category: 'proyectores-led', watts: 200, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2254290/Antivandalico-200W.png?1573055827,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-eLIGHTS.cl.png?1582292405,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-BLANCO-eLIGHTS.cl.png?1582292761', images: ['https://images.jumpseller.com/store/elights-cl/2254290/Antivandalico-200W.png?1573055827,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-eLIGHTS.cl.png?1582292405,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-BLANCO-eLIGHTS.cl.png?1582292761'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2254290 },
   { id: 'proyector-led-cob-20w-gris-ip65', sku: 'CHIPX50N', name: 'PROYECTOR LED COB 20W GRIS IP65', permalink: 'proyector-led-cob-20w-gris-ip65', price: 5800, category: 'proyectores-led', watts: 20, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/2292318/LED-COB-PLC20GF.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/LED-COB-20W-eLIGHTS.cl.png?1582230840,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris_5.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris_2.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris_4.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris.png?1582811881', images: ['https://images.jumpseller.com/store/elights-cl/2292318/LED-COB-PLC20GF.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/LED-COB-20W-eLIGHTS.cl.png?1582230840,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris_5.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris_2.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris_4.png?1582811881,https://images.jumpseller.com/store/elights-cl/2292318/Proyector_de_Área_LED_COB_30W_Gris.png?1582811881'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2292318 },
   { id: 'proyector-led-de-emergencia-recargable-smd-50w-ip66', sku: 'PLER50F', name: 'PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 50W IP66', permalink: 'proyector-led-de-emergencia-recargable-smd-50w-ip66', price: 57000, category: 'proyectores-led', watts: 50, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2293849/PROYECTOR-LED-DE-EMERGENCIA-RECARGABLE-50W.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_7.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_5.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_4.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_2.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_3.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_6.png?1656681893', images: ['https://images.jumpseller.com/store/elights-cl/2293849/PROYECTOR-LED-DE-EMERGENCIA-RECARGABLE-50W.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_7.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_5.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_4.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_2.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_3.png?1656681893,https://images.jumpseller.com/store/elights-cl/2293849/Proyector_LED_Emergencia_50W_6.png?1656681893'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2293849 },
-  { id: 'alumbrado-publico-bestled-120w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08', permalink: 'alumbrado-publico-bestled-120w-ip66-ik08', price: 162000, category: 'alumbrado-publico', watts: 120, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2301110/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255,https://images.jumpseller.com/store/elights-cl/2301110/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255', images: ['https://images.jumpseller.com/store/elights-cl/2301110/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255,https://images.jumpseller.com/store/elights-cl/2301110/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2301110 },
+  {
+    id: 'alumbrado-publico-bestled-120w-ip66-ik08',
+    sku: 'APB120',
+    name: 'ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-120w-ip66-ik08',
+    price: 162000,
+    category: 'alumbrado-publico',
+    watts: 120,
+    kelvin: 0,
+    lumens: 18000,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/2301110/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255,https://images.jumpseller.com/store/elights-cl/2301110/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255',
+    images: ['https://images.jumpseller.com/store/elights-cl/2301110/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255,https://images.jumpseller.com/store/elights-cl/2301110/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255'],
+    featured: false,
+    stock: false,
+    brand: 'JIE',
+    jumpseller_id: 2301110,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 120W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 120W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 120W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 120W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 120W 2200K (APB120A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 120W 2700K (APB120C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB120N)** y **5000K Fría (APB120F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 150,8 lm/W y flujo total de 18.000 lm en la versión 120W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '150,8 lm/W con flujo total 18.000 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 120W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB120A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB120C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB120N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB120F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB120A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB120C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB120A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 120W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB120A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB120C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 120W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 120W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 120W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 120W?',
+        answer: 'La luminaria BESTLED 120W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 120W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 120W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 120W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+  },
   { id: 'luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w', sku: 'LLTPATPAX40', name: 'LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 40W', permalink: 'luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w', price: 534700, category: 'iluminacion-antiexplosiva', watts: 40, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W.jpg?1628104564,https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W__1_.jpg?1628104564', images: ['https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W.jpg?1628104564,https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W__1_.jpg?1628104564'], featured: false, stock: true, brand: 'WAROM', jumpseller_id: 2352646 },
   { id: 'panel-led-60x60-slim-40w-dimerizable', sku: '', name: 'Panel LED 60x60 Slim 40W Dimerizable | Extra Plano eLIGHTS', permalink: 'panel-led-60x60-slim-40w-dimerizable', price: 39490, category: 'paneles-led', watts: 40, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2501112/panel-led-600x600-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1636464775', images: ['https://images.jumpseller.com/store/elights-cl/2501112/panel-led-600x600-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1636464775'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2501112 },
   { id: 'lineal-led-flat-54w-120-cm-ip44', sku: '', name: 'LINEAL LED FLAT 54W 120 CM. IP44', permalink: 'lineal-led-flat-54w-120-cm-ip44', price: 10520, category: 'lineales-led', watts: 54, kelvin: 0, lumens: 0, ip: 'IP44', image: 'https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_02.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_01.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_06.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_03.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_04.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_05.png?1579295814', images: ['https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_02.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_01.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_06.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_03.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_04.png?1579295814,https://images.jumpseller.com/store/elights-cl/3921249/Lineal_LED_Suspendida_05.png?1579295814'], featured: true, stock: false, brand: 'JIE', jumpseller_id: 3921249 },
