@@ -27,6 +27,25 @@ export interface Product {
   installationType?: string;
   tags?: string[];
   applications?: string[];
+
+  // SEO content (optional, populated per-product over time)
+  metaTitle?: string;
+  metaDescription?: string;
+  description?: string;
+  shortDescription?: string;
+  faq?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  keyBenefits?: string[];
+  technicalDetails?: string;
+  certifications?: Array<{
+    name: string;
+    description: string;
+    issuer?: string;
+  }>;
+  installationInfo?: string;
+  useCases?: string[];
 }
 
 export interface Category {
