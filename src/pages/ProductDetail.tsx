@@ -30,8 +30,9 @@ const ProductDetail = () => {
           return (
                   <div className="container py-16 text-center">
     <Helmet>
-      <title>{product ? `${product.name} | eLIGHTS Chile` : 'Producto | eLIGHTS Chile'}</title>
-      <meta name="description" content={product ? `${product.name} — Iluminación LED profesional. Ficha técnica, especificaciones y cotización.` : 'Producto de iluminación LED profesional.'} />
+      <title>Producto no encontrado | eLIGHTS.cl</title>
+      <meta name="description" content="El producto solicitado no existe o fue removido del catálogo de eLIGHTS.cl." />
+      <meta name="robots" content="noindex, follow" />
     </Helmet>
 
                           <p className="text-muted-foreground">Producto no encontrado</p>
@@ -41,6 +42,56 @@ const ProductDetail = () => {
                   </div>
                 );
     }
+
+    const canonicalUrl = `https://nuevo.elights.cl/producto/${product.id}`;
+    const fallbackImage = 'https://nuevo.elights.cl/logo.svg';
+    const ogImage = (product.images && product.images[0]) || product.image || fallbackImage;
+    const seoTitle = product.metaTitle || `${product.name} | eLIGHTS.cl`;
+    const seoDescription =
+      product.metaDescription ||
+      `${product.name}${product.watts ? ` ${product.watts}W` : ''}${product.ip ? ` ${product.ip}` : ''}. Iluminación LED profesional con ficha técnica, especificaciones y cotización en eLIGHTS.cl.`;
+    const productDescription = product.description || seoDescription;
+    const productBrand = product.brand || 'BESTLED';
+
+    const productJsonLd = {
+      '@context': 'https://schema.org/',
+      '@type': 'Product',
+      name: product.name,
+      image: (product.images && product.images.length > 0) ? product.images : [product.image].filter(Boolean),
+      description: productDescription,
+      sku: product.sku || product.id,
+      mpn: product.sku || product.id,
+      brand: {
+        '@type': 'Brand',
+        name: productBrand,
+      },
+      offers: {
+        '@type': 'Offer',
+        url: canonicalUrl,
+        priceCurrency: 'CLP',
+        price: product.price,
+        availability: product.stock === true
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/PreOrder',
+        seller: {
+          '@type': 'Organization',
+          name: 'eLIGHTS.cl',
+        },
+      },
+    };
+
+    const faqJsonLd = (product.faq && product.faq.length > 0) ? {
+      '@context': 'https://schema.org/',
+      '@type': 'FAQPage',
+      mainEntity: product.faq.map(item => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    } : null;
   
     const images = product.images?.filter((_, i) => !imgErrors[i]) ?? [];
     const hasImages = images.length > 0;
@@ -80,6 +131,29 @@ const ProductDetail = () => {
   
     return (
           <div className="container py-8">
+                <Helmet>
+                  <title>{seoTitle}</title>
+                  <meta name="description" content={seoDescription} />
+                  <link rel="canonical" href={canonicalUrl} />
+                  <meta property="og:title" content={seoTitle} />
+                  <meta property="og:description" content={seoDescription} />
+                  <meta property="og:type" content="product" />
+                  <meta property="og:url" content={canonicalUrl} />
+                  <meta property="og:image" content={ogImage} />
+                  <meta property="og:site_name" content="eLIGHTS.cl" />
+                  <meta name="twitter:card" content="summary_large_image" />
+                  <meta name="twitter:title" content={seoTitle} />
+                  <meta name="twitter:description" content={seoDescription} />
+                  <meta name="twitter:image" content={ogImage} />
+                  <script type="application/ld+json">
+                    {JSON.stringify(productJsonLd)}
+                  </script>
+                  {faqJsonLd && (
+                    <script type="application/ld+json">
+                      {JSON.stringify(faqJsonLd)}
+                    </script>
+                  )}
+                </Helmet>
                 <Link
                           to="/catalogo"
                           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
