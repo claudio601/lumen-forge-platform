@@ -10,10 +10,13 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import {
+    Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
     FileText, Minus, Plus, Download, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { waProductUrl } from '@/config/business';
@@ -35,6 +38,53 @@ const CCT_SKU_SUFFIX: Record<number, string> = {
   4000: 'N',
   5000: 'F',
 };
+
+// Renderiza inline **bold** -> <strong>
+function renderInlineMd(text: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const regex = /\*\*([^*]+)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
+    parts.push(<strong key={`b-${key++}`}>{match[1]}</strong>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts;
+}
+
+// Renderiza la descripción larga en bloques: párrafos, headings (línea sola con **bold**),
+// y listas con bullets ("- texto"). Mantiene el bundle pequeño sin librerías externas.
+function renderDescriptionBlocks(text: string): ReactNode {
+  const blocks = text.trim().split(/\n\n+/);
+  return blocks.map((block, i) => {
+    const lines = block.split('\n');
+    if (lines.length > 1 && lines.every(l => l.trim().startsWith('- '))) {
+      return (
+        <ul key={i} className="list-disc pl-5 space-y-1 my-2">
+          {lines.map((l, j) => (
+            <li key={j} className="leading-relaxed">{renderInlineMd(l.replace(/^- /, ''))}</li>
+          ))}
+        </ul>
+      );
+    }
+    const headingMatch = /^\*\*(.+)\*\*$/.exec(block.trim());
+    if (headingMatch) {
+      return (
+        <h3 key={i} className="text-base font-semibold mt-5 mb-2">
+          {headingMatch[1]}
+        </h3>
+      );
+    }
+    return (
+      <p key={i} className="leading-relaxed mb-3">
+        {renderInlineMd(block)}
+      </p>
+    );
+  });
+}
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -413,6 +463,103 @@ const ProductDetail = () => {
                     </div>
                 )}
           
+            {/* ── Descripción larga ────────────────────────────────── */}
+            {product.description && (
+                    <section className="prose-content max-w-3xl mb-12">
+                              <h2 className="text-xl font-bold mb-4">Descripción</h2>
+                              <div className="text-sm text-foreground/90">
+                                {renderDescriptionBlocks(product.description)}
+                              </div>
+                    </section>
+                )}
+
+            {/* ── Beneficios clave ─────────────────────────────────── */}
+            {product.keyBenefits && product.keyBenefits.length > 0 && (
+                    <section className="mb-12">
+                              <h2 className="text-xl font-bold mb-4">Beneficios clave</h2>
+                              <ul className="grid md:grid-cols-2 gap-3 max-w-3xl">
+                                {product.keyBenefits.map((b, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-sm bg-surface rounded-lg p-3">
+                                              <span className="h-2 w-2 mt-1.5 bg-primary rounded-full shrink-0" />
+                                      <span className="leading-relaxed">{b}</span>
+                                    </li>
+                                  ))}
+                              </ul>
+                    </section>
+                )}
+
+            {/* ── Detalles técnicos extendidos ─────────────────────── */}
+            {product.technicalDetails && (
+                    <section className="mb-12 max-w-3xl">
+                              <h2 className="text-xl font-bold mb-4">Detalles técnicos</h2>
+                              <p className="text-sm leading-relaxed text-foreground/90">
+                                {product.technicalDetails}
+                              </p>
+                    </section>
+                )}
+
+            {/* ── Certificaciones y ensayos ────────────────────────── */}
+            {product.certifications && product.certifications.length > 0 && (
+                    <section className="mb-12">
+                              <h2 className="text-xl font-bold mb-4">Certificaciones y ensayos</h2>
+                              <div className="grid md:grid-cols-2 gap-3 max-w-4xl">
+                                {product.certifications.map((c, i) => (
+                                    <div key={i} className="border rounded-xl p-4 bg-surface">
+                                              <h3 className="text-sm font-semibold mb-1">{c.name}</h3>
+                                      {c.issuer && (
+                                  <p className="text-xs text-muted-foreground mb-2">{c.issuer}</p>
+                                            )}
+                                              <p className="text-xs leading-relaxed text-foreground/80">{c.description}</p>
+                                    </div>
+                                  ))}
+                              </div>
+                    </section>
+                )}
+
+            {/* ── Información de instalación ───────────────────────── */}
+            {product.installationInfo && (
+                    <section className="mb-12 max-w-3xl">
+                              <h2 className="text-xl font-bold mb-4">Información de instalación</h2>
+                              <div className="text-sm text-foreground/90">
+                                {renderDescriptionBlocks(product.installationInfo)}
+                              </div>
+                    </section>
+                )}
+
+            {/* ── Casos de uso ─────────────────────────────────────── */}
+            {product.useCases && product.useCases.length > 0 && (
+                    <section className="mb-12">
+                              <h2 className="text-xl font-bold mb-4">Casos de uso</h2>
+                              <ul className="grid md:grid-cols-2 gap-2 max-w-3xl">
+                                {product.useCases.map((u, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-sm">
+                                              <span className="h-1.5 w-1.5 mt-2 bg-primary rounded-full shrink-0" />
+                                      <span className="leading-relaxed">{u}</span>
+                                    </li>
+                                  ))}
+                              </ul>
+                    </section>
+                )}
+
+            {/* ── Preguntas frecuentes (FAQ) ───────────────────────── */}
+            {product.faq && product.faq.length > 0 && (
+                    <section className="mb-12 max-w-3xl">
+                              <h2 className="text-xl font-bold mb-4">Preguntas frecuentes</h2>
+                              <Accordion type="single" collapsible className="w-full">
+                                {product.faq.map((q, i) => (
+                                    <AccordionItem key={i} value={`faq-${i}`}>
+                                              <AccordionTrigger className="text-sm font-medium text-left">
+                                                {q.question}
+                                              </AccordionTrigger>
+                                              <AccordionContent className="text-sm text-foreground/85 leading-relaxed">
+                                                {q.answer}
+                                              </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                              </Accordion>
+                    </section>
+                )}
+
             {/* ── Relacionados ──────────────────────────────────────── */}
             {related.length > 0 && (
                     <div>
