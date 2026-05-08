@@ -188,6 +188,11 @@ const ProductDetail = () => {
     // poder solicitar pedido o cotizar. La selección define el SKU final
     // despachable (ej. APB120 + 'A' -> APB120A) y la etiqueta visible.
     const hasCCTSelector = !!(product.availableCCT && product.availableCCT.length > 0);
+    const hasGroupedSpecs = !!(
+      (product.specsElectricos && product.specsElectricos.length > 0) ||
+      (product.specsConstruccion && product.specsConstruccion.length > 0) ||
+      (product.specsComponentes && product.specsComponentes.length > 0)
+    );
     const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
     const skuFinal = selectedCCT != null && CCT_SKU_SUFFIX[selectedCCT]
       ? `${product.sku}${CCT_SKU_SUFFIX[selectedCCT]}`
@@ -433,8 +438,74 @@ const ProductDetail = () => {
                         </div>
                 </div>
           
-            {/* ── Especificaciones ──────────────────────────────────── */}
-            {specs.length > 0 && (
+            {/* ── Especificaciones técnicas ──────────────────────────── */}
+            {hasGroupedSpecs ? (
+                    <section className="mb-12">
+                              <h2 className="text-xl font-bold mb-6">Especificaciones técnicas</h2>
+                              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl">
+                                {product.specsElectricos && product.specsElectricos.length > 0 && (
+                                    <div>
+                                              <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                                                Eléctrico y fotométrico
+                                              </h3>
+                                              <div className="border rounded-xl overflow-hidden">
+                                                {product.specsElectricos.map((s, i) => (
+                                                    <div key={s.label} className={'flex justify-between gap-3 px-4 py-2.5 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
+                                                              <span className="text-muted-foreground">{s.label}</span>
+                                                              <span className="font-medium text-right">{s.value}</span>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                    </div>
+                                  )}
+                                {product.specsConstruccion && product.specsConstruccion.length > 0 && (
+                                    <div>
+                                              <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                                                Construcción y operación
+                                              </h3>
+                                              <div className="border rounded-xl overflow-hidden">
+                                                {product.specsConstruccion.map((s, i) => (
+                                                    <div key={s.label} className={'flex justify-between gap-3 px-4 py-2.5 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
+                                                              <span className="text-muted-foreground">{s.label}</span>
+                                                              <span className="font-medium text-right">{s.value}</span>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                    </div>
+                                  )}
+                                {product.specsComponentes && product.specsComponentes.length > 0 && (
+                                    <div>
+                                              <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                                                Componentes y control
+                                              </h3>
+                                              <div className="border rounded-xl overflow-hidden">
+                                                {product.specsComponentes.map((s, i) => (
+                                                    <div key={s.label} className={'flex justify-between gap-3 px-4 py-2.5 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
+                                                              <span className="text-muted-foreground">{s.label}</span>
+                                                              <span className="font-medium text-right">{s.value}</span>
+                                                    </div>
+                                                  ))}
+                                              </div>
+                                    </div>
+                                  )}
+                              </div>
+                      {(product.applications ?? []).length > 0 && (
+                                  <div className="mt-8 max-w-3xl">
+                                                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                                                  Aplicaciones
+                                                </h3>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                                  {(product.applications ?? []).map(a => (
+                                                      <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
+                                                                          <span className="h-2 w-2 bg-primary rounded-full" />
+                                                        {a}
+                                                      </div>
+                                                    ))}
+                                                </div>
+                                  </div>
+                              )}
+                    </section>
+                ) : specs.length > 0 && (
                     <div className="grid lg:grid-cols-2 gap-8 mb-12">
                               <div>
                                           <h2 className="text-lg font-bold mb-4">Especificaciones tecnicas</h2>
@@ -461,6 +532,79 @@ const ProductDetail = () => {
                                   </div>
                               )}
                     </div>
+                )}
+
+            {/* ── Variantes de temperatura de color (preview visual) ── */}
+            {product.cctVariants && product.cctVariants.length > 0 && (
+                    <section className="mb-12 max-w-4xl">
+                              <h2 className="text-xl font-bold mb-4">Variantes de temperatura de color</h2>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Aspecto aproximado de la luz emitida por cada variante. Selecciona la temperatura óptima según el tipo de instalación y normativa aplicable.
+                              </p>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {product.cctVariants.map(v => (
+                                    <div key={v.kelvin} className="border rounded-lg p-3 bg-surface">
+                                              <div
+                                                className="w-full h-9 rounded-md border border-border mb-3"
+                                                style={{ backgroundColor: v.colorHex }}
+                                                aria-label={`Color aproximado ${v.kelvin}K`}
+                                              />
+                                              <p className="text-sm font-semibold">{v.kelvin}K</p>
+                                              <p className="text-xs text-muted-foreground">{v.name}</p>
+                                              <p className="text-xs font-mono text-muted-foreground mt-1">{v.sku}</p>
+                                    </div>
+                                  ))}
+                              </div>
+                    </section>
+                )}
+
+            {/* ── Familia de potencias (cross-sell) ─────────────────── */}
+            {product.productFamily && product.productFamily.items.length > 0 && (
+                    <section className="mb-12 max-w-4xl">
+                              <h2 className="text-xl font-bold mb-4">{product.productFamily.title}</h2>
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Esta luminaria forma parte de una familia disponible en distintas potencias. Selecciona la versión apropiada para tu proyecto.
+                              </p>
+                              <div className="border rounded-xl overflow-hidden">
+                                <div className="grid grid-cols-[1fr_1fr_1fr_1fr] gap-3 px-4 py-2.5 text-xs uppercase tracking-wide text-muted-foreground font-semibold bg-surface border-b">
+                                  <span>Potencia</span>
+                                  <span>Flujo</span>
+                                  <span>Eficacia</span>
+                                  <span>Código</span>
+                                </div>
+                                {product.productFamily.items.map(row => {
+                                      const isCurrent = row.watts === product.watts;
+                                      const canLink = !!row.productId && row.productId !== product.id;
+                                      const baseClass = 'grid grid-cols-[1fr_1fr_1fr_1fr] gap-3 px-4 py-3 text-sm border-b last:border-b-0 ';
+                                      const stateClass = isCurrent
+                                        ? 'bg-primary/5 font-medium'
+                                        : canLink
+                                        ? 'hover:bg-secondary cursor-pointer transition-colors'
+                                        : '';
+                                      const content = (
+                                          <>
+                                              <span>{row.watts}W</span>
+                                              <span>{row.lumens.toLocaleString('es-CL')} lm</span>
+                                              <span>{row.eficacia}</span>
+                                              <span className="font-mono text-xs">{row.sku}{isCurrent ? ' · actual' : ''}</span>
+                                          </>
+                                      );
+                                      return canLink ? (
+                                          <Link
+                                              key={row.sku}
+                                              to={`/producto/${row.productId}`}
+                                              className={baseClass + stateClass}
+                                          >
+                                              {content}
+                                          </Link>
+                                      ) : (
+                                          <div key={row.sku} className={baseClass + stateClass}>
+                                              {content}
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                    </section>
                 )}
           
             {/* ── Descripción larga ────────────────────────────────── */}
