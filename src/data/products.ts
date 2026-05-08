@@ -49,6 +49,31 @@ export interface Product {
 
   // Variantes CCT disponibles para selección al momento de cotizar/pedir
   availableCCT?: number[];
+
+  // Specs agrupadas por categoría (cada array es una sub-tabla en el PDP)
+  specsElectricos?: Array<{ label: string; value: string }>;
+  specsConstruccion?: Array<{ label: string; value: string }>;
+  specsComponentes?: Array<{ label: string; value: string }>;
+
+  // Variantes CCT con visualización de color (preview block en el PDP)
+  cctVariants?: Array<{
+    kelvin: number;
+    name: string;
+    sku: string;
+    colorHex: string;
+  }>;
+
+  // Familia de potencias para cross-sell (tabla con highlight del actual)
+  productFamily?: {
+    title: string;
+    items: Array<{
+      watts: number;
+      lumens: number;
+      eficacia: string;
+      sku: string;
+      productId?: string;
+    }>;
+  };
 }
 
 export interface Category {
@@ -241,6 +266,49 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 120W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
       },
     ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '120W' },
+      { label: 'Flujo luminoso', value: '18.000 lm' },
+      { label: 'Eficacia luminosa', value: '150,8 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB120A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB120C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB120N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB120F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
   },
   { id: 'luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w', sku: 'LLTPATPAX40', name: 'LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 40W', permalink: 'luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w', price: 534700, category: 'iluminacion-antiexplosiva', watts: 40, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W.jpg?1628104564,https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W__1_.jpg?1628104564', images: ['https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W.jpg?1628104564,https://images.jumpseller.com/store/elights-cl/2352646/ATEX-explosion-proof-LED-linear-lighting-20W__1_.jpg?1628104564'], featured: false, stock: true, brand: 'WAROM', jumpseller_id: 2352646 },
   { id: 'panel-led-60x60-slim-40w-dimerizable', sku: '', name: 'Panel LED 60x60 Slim 40W Dimerizable | Extra Plano eLIGHTS', permalink: 'panel-led-60x60-slim-40w-dimerizable', price: 39490, category: 'paneles-led', watts: 40, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2501112/panel-led-600x600-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1636464775', images: ['https://images.jumpseller.com/store/elights-cl/2501112/panel-led-600x600-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1636464775'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2501112 },
