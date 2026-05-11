@@ -327,8 +327,396 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
   { id: 'panel-led-60-30-cm-36w-para-cielo-americano', sku: '', name: 'PANEL LED 60X30 CM. 36W PARA CIELO AMERICANO', permalink: 'panel-led-60-30-cm-36w-para-cielo-americano', price: 14900, category: 'paneles-led', watts: 36, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2294706/01-backlight-600x300-mm.png?1640613635,https://images.jumpseller.com/store/elights-cl/2294706/02-backlight-600x300-mm.png?1640613635', images: ['https://images.jumpseller.com/store/elights-cl/2294706/01-backlight-600x300-mm.png?1640613635,https://images.jumpseller.com/store/elights-cl/2294706/02-backlight-600x300-mm.png?1640613635'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2294706 },
   { id: 'proyector-led-ultra-thin-smd-10w-ip66-negro', sku: '', name: 'PROYECTOR LED ULTRA THIN SMD 10W IP66 NEGRO', permalink: 'proyector-led-ultra-thin-smd-10w-ip66-negro', price: 3190, category: 'proyectores-led', watts: 10, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2295723/PROYECTOR-LED-ULTRA-THIN-10W-IP66-NEGRO_eLIGHTS.CL.png?1629989632,https://images.jumpseller.com/store/elights-cl/2295723/PROYECTOR-LED-ULTRA-10W.png?1629989632', images: ['https://images.jumpseller.com/store/elights-cl/2295723/PROYECTOR-LED-ULTRA-THIN-10W-IP66-NEGRO_eLIGHTS.CL.png?1629989632,https://images.jumpseller.com/store/elights-cl/2295723/PROYECTOR-LED-ULTRA-10W.png?1629989632'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2295723 },
   { id: 'tubo-led-opal-aluminio-9w-60cm-24v-6500k-1', sku: '​TLOV9W', name: 'TUBO LED OPAL ALUMINIO 9W 60CM. 24V 6500K', permalink: 'tubo-led-opal-aluminio-9w-60cm-24v-6500k-1', price: 8330, category: 'tubos-led', watts: 9, kelvin: 6500, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2300850/TUBO_LED_OPAL_ALUMINIO_eLIGHTS.cl.png?1666185390,https://images.jumpseller.com/store/elights-cl/2300850/TUBO_LED_OPAL_ALUMINIO_eLIGHTS.cl_02.png?1666185390', images: ['https://images.jumpseller.com/store/elights-cl/2300850/TUBO_LED_OPAL_ALUMINIO_eLIGHTS.cl.png?1666185390,https://images.jumpseller.com/store/elights-cl/2300850/TUBO_LED_OPAL_ALUMINIO_eLIGHTS.cl_02.png?1666185390'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2300850 },
-  { id: 'alumbrado-publico-bestled-40w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08', permalink: 'alumbrado-publico-bestled-40w-ip66-ik08', price: 105000, category: 'alumbrado-publico', watts: 40, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2301098/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159,https://images.jumpseller.com/store/elights-cl/2301098/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159', images: ['https://images.jumpseller.com/store/elights-cl/2301098/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159,https://images.jumpseller.com/store/elights-cl/2301098/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2301098 },
-  { id: 'alumbrado-publico-bestled-90w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 90W IP66 IK08', permalink: 'alumbrado-publico-bestled-90w-ip66-ik08', price: 117600, category: 'alumbrado-publico', watts: 90, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2301105/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222,https://images.jumpseller.com/store/elights-cl/2301105/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222', images: ['https://images.jumpseller.com/store/elights-cl/2301105/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222,https://images.jumpseller.com/store/elights-cl/2301105/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2301105 },
+  {
+    id: 'alumbrado-publico-bestled-40w-ip66-ik08',
+    sku: 'APB40',
+    name: 'ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-40w-ip66-ik08',
+    price: 105000,
+    category: 'alumbrado-publico',
+    watts: 40,
+    kelvin: 0,
+    lumens: 6000,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/2301098/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159,https://images.jumpseller.com/store/elights-cl/2301098/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159',
+    images: ['https://images.jumpseller.com/store/elights-cl/2301098/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159,https://images.jumpseller.com/store/elights-cl/2301098/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159'],
+    featured: false,
+    stock: false,
+    brand: 'JIE',
+    jumpseller_id: 2301098,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 40W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 40W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 40W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 40W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 40W 2200K (APB40A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 40W 2700K (APB40C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB40N)** y **5000K Fría (APB40F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 150,6 lm/W y flujo total de 6.000 lm en la versión 40W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '150,6 lm/W con flujo total 6.000 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 40W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB40A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB40C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB40N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB40F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB40A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB40C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB40A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 40W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB40A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB40C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 40W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 40W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 40W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 40W?',
+        answer: 'La luminaria BESTLED 40W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 40W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 40W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 40W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '40W' },
+      { label: 'Flujo luminoso', value: '6.000 lm' },
+      { label: 'Eficacia luminosa', value: '150,6 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB40A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB40C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB40N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB40F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
+  },
+  {
+    id: 'alumbrado-publico-bestled-90w-ip66-ik08',
+    sku: 'APB90',
+    name: 'ALUMBRADO PÚBLICO BESTLED 90W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-90w-ip66-ik08',
+    price: 117600,
+    category: 'alumbrado-publico',
+    watts: 90,
+    kelvin: 0,
+    lumens: 13600,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/2301105/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222,https://images.jumpseller.com/store/elights-cl/2301105/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222',
+    images: ['https://images.jumpseller.com/store/elights-cl/2301105/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222,https://images.jumpseller.com/store/elights-cl/2301105/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224222'],
+    featured: false,
+    stock: false,
+    brand: 'JIE',
+    jumpseller_id: 2301105,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 90W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 90W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 90W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 90W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 90W 2200K (APB90A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 90W 2700K (APB90C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB90N)** y **5000K Fría (APB90F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 149,6 lm/W y flujo total de 13.600 lm en la versión 90W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '149,6 lm/W con flujo total 13.600 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 90W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB90A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB90C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB90N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB90F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB90A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB90C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB90A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 90W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB90A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB90C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 90W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 90W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 90W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 90W?',
+        answer: 'La luminaria BESTLED 90W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 90W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 90W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 90W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '90W' },
+      { label: 'Flujo luminoso', value: '13.600 lm' },
+      { label: 'Eficacia luminosa', value: '149,6 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB90A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB90C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB90N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB90F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
+  },
   { id: 'riel-monofasico-1-mt', sku: '​RM1MT', name: 'RIEL MONOFÁSICO 1 MT.', permalink: 'riel-monofasico-1-mt', price: 4300, category: 'focos-a-riel', watts: 0, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2345134/carril-para-focos-de-leds-1m-negro-con-enchufe.jpg?1585066594', images: ['https://images.jumpseller.com/store/elights-cl/2345134/carril-para-focos-de-leds-1m-negro-con-enchufe.jpg?1585066594'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2345134 },
   { id: 'campana-led-ufo-150w-ip65-light-negra', sku: 'CLUFO150LN', name: 'CAMPANA LED UFO 150W IP65 LIGHT NEGRA', permalink: 'campana-led-ufo-150w-ip65-light-negra', price: 49400, category: 'campanas-led', watts: 150, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_1.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_5.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_3.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_2.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_4.png?1575900746', images: ['https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_1.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_5.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_3.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_2.png?1575900746,https://images.jumpseller.com/store/elights-cl/2787870/UFO_Light_4.png?1575900746'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2787870 },
   { id: 'proyector-led-antivandalico-50w-ip66', sku: '', name: 'PROYECTOR LED ANTIVANDÁLICO 50W IP66', permalink: 'proyector-led-antivandalico-50w-ip66', price: 11570, category: 'proyectores-led', watts: 50, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2252771/Antivandalico-50W.png?1573055017,https://images.jumpseller.com/store/elights-cl/2252771/PROYECTOR-LED-ANTIVAND_LICO-50W-eLIGHTS.cl.png?1582291667', images: ['https://images.jumpseller.com/store/elights-cl/2252771/Antivandalico-50W.png?1573055017,https://images.jumpseller.com/store/elights-cl/2252771/PROYECTOR-LED-ANTIVAND_LICO-50W-eLIGHTS.cl.png?1582291667'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2252771 },
@@ -386,7 +774,201 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
   { id: 'campana-industrial-led-smd-bridgelux-200w-6500k-ip44', sku: 'CILSMDP200F', name: 'CAMPANA INDUSTRIAL LED SMD BRIDGELUX 200W 6500K IP44', permalink: 'campana-industrial-led-smd-bridgelux-200w-6500k-ip44', price: 79990, category: 'campanas-led', watts: 200, kelvin: 6500, lumens: 0, ip: 'IP44', image: 'https://images.jumpseller.com/store/elights-cl/2442586/Industrial_SMD_Campana_200W.jpg?1662064422', images: ['https://images.jumpseller.com/store/elights-cl/2442586/Industrial_SMD_Campana_200W.jpg?1662064422'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2442586 },
   { id: 'foco-dicroico-led-embutido-smd-12w-niquel', sku: '', name: 'FOCO DICROICO LED EMBUTIDO SMD 12W NIQUEL', permalink: 'foco-dicroico-led-embutido-smd-12w-niquel', price: 6000, category: 'paneles-led', watts: 12, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2502411/12_Niquel_Poroso_Perfil.png?1625765541', images: ['https://images.jumpseller.com/store/elights-cl/2502411/12_Niquel_Poroso_Perfil.png?1625765541'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2502411 },
   { id: 'mt-ip67-100mt-220v', sku: '', name: 'CINTA LED EXTERIOR 14.4W 5730 72 LEDs/Mt. 10MM IP67 100MT 220V', permalink: 'cinta-led-exterior-14.4w-5730-72-leds/mt-ip67-100mt-220v', price: 159900, category: 'cinta-led', watts: 14.4, kelvin: 0, lumens: 0, ip: 'IP67', image: 'https://images.jumpseller.com/store/elights-cl/3952758/cinta-led-exterior-15w-luz-fria-calida-elights.cl-min.jpg?1575664333,https://images.jumpseller.com/store/elights-cl/3952758/220v-smd-5730-1m-Led-Strip-Light.jpg?1586283636,https://images.jumpseller.com/store/elights-cl/3952758/220v-smd-5730-1m-Led-Strip-Light-02.jpg?1586283636,https://images.jumpseller.com/store/elights-cl/3952758/CINTA_LED_FOTO_CALIDA_eLIGHTS.cl.png?1586283636', images: ['https://images.jumpseller.com/store/elights-cl/3952758/cinta-led-exterior-15w-luz-fria-calida-elights.cl-min.jpg?1575664333,https://images.jumpseller.com/store/elights-cl/3952758/220v-smd-5730-1m-Led-Strip-Light.jpg?1586283636,https://images.jumpseller.com/store/elights-cl/3952758/220v-smd-5730-1m-Led-Strip-Light-02.jpg?1586283636,https://images.jumpseller.com/store/elights-cl/3952758/CINTA_LED_FOTO_CALIDA_eLIGHTS.cl.png?1586283636'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 3952758 },
-  { id: 'alumbrado-publico-bestled-150w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 150W IP66 IK08', permalink: 'alumbrado-publico-bestled-150w-ip66-ik08', price: 152400, category: 'alumbrado-publico', watts: 150, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/4156930/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282,https://images.jumpseller.com/store/elights-cl/4156930/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282', images: ['https://images.jumpseller.com/store/elights-cl/4156930/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282,https://images.jumpseller.com/store/elights-cl/4156930/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 4156930 },
+  {
+    id: 'alumbrado-publico-bestled-150w-ip66-ik08',
+    sku: 'APB150',
+    name: 'ALUMBRADO PÚBLICO BESTLED 150W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-150w-ip66-ik08',
+    price: 152400,
+    category: 'alumbrado-publico',
+    watts: 150,
+    kelvin: 0,
+    lumens: 22600,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/4156930/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282,https://images.jumpseller.com/store/elights-cl/4156930/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282',
+    images: ['https://images.jumpseller.com/store/elights-cl/4156930/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282,https://images.jumpseller.com/store/elights-cl/4156930/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224282'],
+    featured: false,
+    stock: false,
+    brand: 'JIE',
+    jumpseller_id: 4156930,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 150W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 150W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 150W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 150W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 150W 2200K (APB150A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 150W 2700K (APB150C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB150N)** y **5000K Fría (APB150F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 151,1 lm/W y flujo total de 22.600 lm en la versión 150W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '151,1 lm/W con flujo total 22.600 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 150W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB150A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB150C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB150N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB150F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB150A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB150C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB150A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 150W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB150A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB150C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 150W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 150W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 150W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 150W?',
+        answer: 'La luminaria BESTLED 150W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 150W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 150W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 150W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '150W' },
+      { label: 'Flujo luminoso', value: '22.600 lm' },
+      { label: 'Eficacia luminosa', value: '151,1 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB150A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB150C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB150N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB150F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
+  },
   { id: 'panel-led-concentrico-opal-15w-ip33', sku: '', name: 'PANEL LED CONCENTRICO OPAL 15W IP33', permalink: 'panel-led-concentrico-opal-15w-ip33', price: 10900, category: 'paneles-led', watts: 15, kelvin: 0, lumens: 0, ip: 'IP33', image: 'https://images.jumpseller.com/store/elights-cl/2283811/zhongshan-led-lighting-CE-ROHS-SAA-recessed.png?1586879871,https://images.jumpseller.com/store/elights-cl/2283811/Panel_LED_Concéntrico_Opal_15W.png?1586879871', images: ['https://images.jumpseller.com/store/elights-cl/2283811/zhongshan-led-lighting-CE-ROHS-SAA-recessed.png?1586879871,https://images.jumpseller.com/store/elights-cl/2283811/Panel_LED_Concéntrico_Opal_15W.png?1586879871'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2283811 },
   { id: 'proyector-led-de-emergencia-recargable-smd-20w-ip66', sku: 'PLER20F', name: 'PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 20W IP66', permalink: 'proyector-led-de-emergencia-recargable-smd-20w-ip66', price: 31200, category: 'proyectores-led', watts: 20, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2293796/LED-EMERGENCIA-RECARGABLE-CHIP20EF_1.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_6.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_2.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_5.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_1.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_3.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_4.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/PROYECTOR-LED-DE-EMERGENCIA-RECARGABLE-20W.png?1642598055', images: ['https://images.jumpseller.com/store/elights-cl/2293796/LED-EMERGENCIA-RECARGABLE-CHIP20EF_1.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_6.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_2.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_5.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_1.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_3.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/Proyector_Emergencia_20W_SMD_4.png?1642598055,https://images.jumpseller.com/store/elights-cl/2293796/PROYECTOR-LED-DE-EMERGENCIA-RECARGABLE-20W.png?1642598055'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2293796 },
   { id: 'tubo-led-opal-aluminio-9w-60cm-12v', sku: 'TLOA9W6012V', name: 'TUBO LED OPAL ALUMINIO 9W 60CM. 12V', permalink: 'tubo-led-opal-aluminio-9w-60cm-12v', price: 8330, category: 'tubos-led', watts: 9, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2300869/TUBO_LED_OPAL_ALUMINIO_eLIGHTS.cl.png?1666185925', images: ['https://images.jumpseller.com/store/elights-cl/2300869/TUBO_LED_OPAL_ALUMINIO_eLIGHTS.cl.png?1666185925'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2300869 },
@@ -412,7 +994,201 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
   { id: 'kit-de-emergencia-led-50w-90-120-minutos-de-autonomia', sku: 'SS50W', name: 'KIT DE EMERGENCIA LED 50W 120 MINUTOS DE AUTONOMIA', permalink: 'kit-de-emergencia-led-50w-90-120-minutos-de-autonomia', price: 17400, category: 'emergencia-led', watts: 50, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2401982/KIT_DE_EMERGENCIA_50W-E-lights.png?1692282423', images: ['https://images.jumpseller.com/store/elights-cl/2401982/KIT_DE_EMERGENCIA_50W-E-lights.png?1692282423'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2401982 },
   { id: 'canoa-led-hermetica-1x9w-ip65-ik07-60-cm-pmma', sku: '', name: 'CANOA LED HERMÉTICA 1X9W IP65 IK07 60 CM. PMMA', permalink: 'canoa-led-hermetica-1x9w-ip65-ik07-60-cm-pmma', price: 6500, category: 'iluminacion-exterior', watts: 9, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/2506808/Canoa_LED_Hermética_1x18W_1_1.jpg?1667484773,https://images.jumpseller.com/store/elights-cl/2506808/Canoa_LED_Hermética_1x18W_3_1.jpg?1667484773,https://images.jumpseller.com/store/elights-cl/2506808/Canoa_LED_Hermética_1x18W_2_1.jpg?1667484773', images: ['https://images.jumpseller.com/store/elights-cl/2506808/Canoa_LED_Hermética_1x18W_1_1.jpg?1667484773,https://images.jumpseller.com/store/elights-cl/2506808/Canoa_LED_Hermética_1x18W_3_1.jpg?1667484773,https://images.jumpseller.com/store/elights-cl/2506808/Canoa_LED_Hermética_1x18W_2_1.jpg?1667484773'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2506808 },
   { id: 'wall-washer-36w-ip65', sku: '', name: 'WALL WASHER 36W IP65', permalink: 'wall-washer-36w-ip65', price: 48990, category: 'lineales-led', watts: 36, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w_eLIGHTS.cl.jpg?1556212302,https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w-4_eLIGHTS.cl.jpg?1556217349,https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w-2_eLIGHTS.cl.jpg?1556217349,https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w-3_eLIGHTS.cl.jpg?1556217349', images: ['https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w_eLIGHTS.cl.jpg?1556212302,https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w-4_eLIGHTS.cl.jpg?1556217349,https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w-2_eLIGHTS.cl.jpg?1556217349,https://images.jumpseller.com/store/elights-cl/3099262/Luminaria-Lineal-LED-Wall-Washer-36w-3_eLIGHTS.cl.jpg?1556217349'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 3099262 },
-  { id: 'alumbrado-publico-bestled-200w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 200W IP66 IK08', permalink: 'alumbrado-publico-bestled-200w-ip66-ik08', price: 177600, category: 'alumbrado-publico', watts: 200, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2301114/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218,https://images.jumpseller.com/store/elights-cl/2301114/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218', images: ['https://images.jumpseller.com/store/elights-cl/2301114/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218,https://images.jumpseller.com/store/elights-cl/2301114/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2301114 },
+  {
+    id: 'alumbrado-publico-bestled-200w-ip66-ik08',
+    sku: 'APB200',
+    name: 'ALUMBRADO PÚBLICO BESTLED 200W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-200w-ip66-ik08',
+    price: 177600,
+    category: 'alumbrado-publico',
+    watts: 200,
+    kelvin: 0,
+    lumens: 30000,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/2301114/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218,https://images.jumpseller.com/store/elights-cl/2301114/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218',
+    images: ['https://images.jumpseller.com/store/elights-cl/2301114/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218,https://images.jumpseller.com/store/elights-cl/2301114/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1582230218'],
+    featured: false,
+    stock: false,
+    brand: 'JIE',
+    jumpseller_id: 2301114,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 200W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 200W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 200W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 200W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 200W 2200K (APB200A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 200W 2700K (APB200C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB200N)** y **5000K Fría (APB200F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 150,9 lm/W y flujo total de 30.000 lm en la versión 200W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '150,9 lm/W con flujo total 30.000 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 200W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB200A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB200C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB200N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB200F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB200A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB200C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB200A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 200W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB200A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB200C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 200W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 200W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 200W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 200W?',
+        answer: 'La luminaria BESTLED 200W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 200W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 200W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 200W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '200W' },
+      { label: 'Flujo luminoso', value: '30.000 lm' },
+      { label: 'Eficacia luminosa', value: '150,9 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB200A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB200C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB200N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB200F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
+  },
   { id: 'lineal-led-multifuncion-40w-120-cm-ip44', sku: '', name: 'LINEAL LED MULTIFUNCIÓN 40W 120 CM. IP44', permalink: 'lineal-led-multifuncion-40w-120-cm-ip44', price: 23700, category: 'lineales-led', watts: 40, kelvin: 0, lumens: 0, ip: 'IP44', image: 'https://images.jumpseller.com/store/elights-cl/2326098/LINEAL_LED_MULTIFUNCIÓN_40W_120_CM._IP44_05_eLIGHTS.cl.png?1666358854,https://images.jumpseller.com/store/elights-cl/2326098/LINEAL_LED_MULTIFUNCIÓN_40W_120_CM._IP44_03_eLIGHTS.cl.png?1666358854,https://images.jumpseller.com/store/elights-cl/2326098/Hot-sale-PC-housing-parking-lot-lighting__2_.png?1666358854,https://images.jumpseller.com/store/elights-cl/2326098/supermarket-light-plano-portada.jpg?1666358854', images: ['https://images.jumpseller.com/store/elights-cl/2326098/LINEAL_LED_MULTIFUNCIÓN_40W_120_CM._IP44_05_eLIGHTS.cl.png?1666358854,https://images.jumpseller.com/store/elights-cl/2326098/LINEAL_LED_MULTIFUNCIÓN_40W_120_CM._IP44_03_eLIGHTS.cl.png?1666358854,https://images.jumpseller.com/store/elights-cl/2326098/Hot-sale-PC-housing-parking-lot-lighting__2_.png?1666358854,https://images.jumpseller.com/store/elights-cl/2326098/supermarket-light-plano-portada.jpg?1666358854'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2326098 },
   { id: 'proyector-led-slim-smd-300w-ip66', sku: '', name: 'PROYECTOR LED SLIM SMD 300W IP66', permalink: 'proyector-led-slim-smd-300w-ip66', price: 88400, category: 'proyectores-led', watts: 300, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2340383/LED-SLIM-SMD-PLSSMD300F.png?1627913430,https://images.jumpseller.com/store/elights-cl/2340383/LED-SLIM-300W-eLIGHTS.cl.png?1627913430', images: ['https://images.jumpseller.com/store/elights-cl/2340383/LED-SLIM-SMD-PLSSMD300F.png?1627913430,https://images.jumpseller.com/store/elights-cl/2340383/LED-SLIM-300W-eLIGHTS.cl.png?1627913430'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2340383 },
   { id: 'kit-de-emergencia-led-20w-90-minutos-autonomia-2', sku: 'SS20W', name: 'KIT DE EMERGENCIA LED 20W 90 MINUTOS AUTONOMIA', permalink: 'kit-de-emergencia-led-20w-90-minutos-autonomia-2', price: 18500, category: 'emergencia-led', watts: 20, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/3381394/Dise_o_sin_t_tulo__33_.png?1692628857', images: ['https://images.jumpseller.com/store/elights-cl/3381394/Dise_o_sin_t_tulo__33_.png?1692628857'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 3381394 },
@@ -444,7 +1220,201 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
   { id: 'm-5mt-12v-azul-2313842', sku: 'CLE50506012VA', name: 'CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AZUL', permalink: 'cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-azul', price: 10990, category: 'cinta-led', watts: 14.4, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2313842/cinta-led-azul-elights.cl-min.jpg?1575665610,https://images.jumpseller.com/store/elights-cl/2313842/Cinta_LED_5050_60_LEDs_Blue_2.png?1576249061', images: ['https://images.jumpseller.com/store/elights-cl/2313842/cinta-led-azul-elights.cl-min.jpg?1575665610,https://images.jumpseller.com/store/elights-cl/2313842/Cinta_LED_5050_60_LEDs_Blue_2.png?1576249061'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2313842 },
   { id: 'proyector-led-de-estadio-redondo-1000w-ip66-ik09', sku: '', name: 'PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK09', permalink: 'proyector-led-de-estadio-redondo-1000w-ip66-ik09', price: 958800, category: 'proyectores-led', watts: 1000, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/3309140/proyector_01.jpg?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-01.png?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-02.png?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-03.png?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-04.png?1653223560', images: ['https://images.jumpseller.com/store/elights-cl/3309140/proyector_01.jpg?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-01.png?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-02.png?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-03.png?1653223560,https://images.jumpseller.com/store/elights-cl/3309140/proyector-led-estadio-04.png?1653223560'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 3309140 },
   { id: 'fuente-de-poder-switching-60w-12v-5a-exterior-ip67', sku: 'FU60E', name: 'FUENTE DE PODER SWITCHING 60W 12V 5A EXTERIOR IP67', permalink: 'fuente-de-poder-switching-60w-12v-5a-exterior-ip67', price: 14160, category: 'fuentes-de-poder', watts: 60, kelvin: 0, lumens: 0, ip: 'IP67', image: 'https://images.jumpseller.com/store/elights-cl/2255526/Fuente_de_poder_60W_IP67_2.png?1625761605', images: ['https://images.jumpseller.com/store/elights-cl/2255526/Fuente_de_poder_60W_IP67_2.png?1625761605'], featured: false, stock: true, brand: 'CHUHAN', jumpseller_id: 2255526 },
-  { id: 'alumbrado-publico-bestled-60w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 60W IP66 IK08', permalink: 'alumbrado-publico-bestled-60w-ip66-ik08', price: 99900, category: 'alumbrado-publico', watts: 60, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2301101/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188,https://images.jumpseller.com/store/elights-cl/2301101/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188', images: ['https://images.jumpseller.com/store/elights-cl/2301101/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188,https://images.jumpseller.com/store/elights-cl/2301101/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2301101 },
+  {
+    id: 'alumbrado-publico-bestled-60w-ip66-ik08',
+    sku: 'APB60',
+    name: 'ALUMBRADO PÚBLICO BESTLED 60W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-60w-ip66-ik08',
+    price: 99900,
+    category: 'alumbrado-publico',
+    watts: 60,
+    kelvin: 0,
+    lumens: 9200,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/2301101/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188,https://images.jumpseller.com/store/elights-cl/2301101/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188',
+    images: ['https://images.jumpseller.com/store/elights-cl/2301101/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188,https://images.jumpseller.com/store/elights-cl/2301101/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224188'],
+    featured: false,
+    stock: false,
+    brand: 'JIE',
+    jumpseller_id: 2301101,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 60W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 60W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 60W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 60W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 60W 2200K (APB60A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 60W 2700K (APB60C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB60N)** y **5000K Fría (APB60F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 152,7 lm/W y flujo total de 9.200 lm en la versión 60W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '152,7 lm/W con flujo total 9.200 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 60W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB60A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB60C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB60N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB60F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB60A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB60C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB60A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 60W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB60A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB60C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 60W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 60W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 60W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 60W?',
+        answer: 'La luminaria BESTLED 60W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 60W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 60W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 60W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '60W' },
+      { label: 'Flujo luminoso', value: '9.200 lm' },
+      { label: 'Eficacia luminosa', value: '152,7 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB60A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB60C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB60N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB60F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
+  },
   { id: 'cinta-led-exterior-144w-smd-5050-60ledsm-5mt-12v-luz-fria', sku: 'CLI505012VF', name: 'CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ FRÍA', permalink: 'cinta-led-exterior-144w-smd-5050-60ledsm-5mt-12v-luz-fria', price: 11044, category: 'cinta-led', watts: 14.4, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/2313797/Cinta_LED_5050_6500K.png?1641817156,https://images.jumpseller.com/store/elights-cl/2313797/Cinta_LED_5050_6500K_2.png?1641817156', images: ['https://images.jumpseller.com/store/elights-cl/2313797/Cinta_LED_5050_6500K.png?1641817156,https://images.jumpseller.com/store/elights-cl/2313797/Cinta_LED_5050_6500K_2.png?1641817156'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2313797 },
   { id: 'amp-led-ar111-15-150w', sku: '', name: 'AMPOLLETA LED AR111 15-150W 24° 1200 Lm. IP44', permalink: 'amp-led-ar111-15-150w', price: 16200, category: 'ampolletas-led', watts: 150, kelvin: 0, lumens: 0, ip: 'IP44', image: 'https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w.jpg?1631116065,https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w-2.jpg?1631116065,https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w-3.jpg?1631116065,https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w-4.jpg?1631116065', images: ['https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w.jpg?1631116065,https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w-2.jpg?1631116065,https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w-3.jpg?1631116065,https://images.jumpseller.com/store/elights-cl/2339101/amp-led-ar111-15-150w-4.jpg?1631116065'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2339101 },
   { id: 'proyector-led-slim-smd-500w-ip66', sku: '', name: 'PROYECTOR LED SLIM SMD 500W IP66', permalink: 'proyector-led-slim-smd-500w-ip66', price: 213600, category: 'proyectores-led', watts: 500, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2993067/LED-SLIM-SMD-PLSSMD500F.png?1570721334,https://images.jumpseller.com/store/elights-cl/2993067/LED-SLIM-500W-eLIGHTS.cl.png?1582232339', images: ['https://images.jumpseller.com/store/elights-cl/2993067/LED-SLIM-SMD-PLSSMD500F.png?1570721334,https://images.jumpseller.com/store/elights-cl/2993067/LED-SLIM-500W-eLIGHTS.cl.png?1582232339'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 2993067 },
@@ -505,7 +1475,201 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
   { id: 'proyector-led-portatil-a-prueba-de-explosion-30w', sku: 'PLP30APEX', name: 'PROYECTOR LED PORTÁTIL A PRUEBA DE EXPLOSIÓN 30W', permalink: 'proyector-led-portatil-a-prueba-de-explosion-30w', price: 359990, category: 'iluminacion-antiexplosiva', watts: 30, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/13193689/PROYECTOR_LED_PORT_TIL_A_PRUEBA_DE_EXPLOSI_N_30W_eLIGHTS.cl_03.jpg?1647372997,https://images.jumpseller.com/store/elights-cl/13193689/PROYECTOR_LED_PORT_TIL_A_PRUEBA_DE_EXPLOSI_N_30W_eLIGHTS.cl.jpg?1647372997,https://images.jumpseller.com/store/elights-cl/13193689/PROYECTOR_LED_PORT_TIL_A_PRUEBA_DE_EXPLOSI_N_30W_eLIGHTS.cl_02.jpg?1647372997', images: ['https://images.jumpseller.com/store/elights-cl/13193689/PROYECTOR_LED_PORT_TIL_A_PRUEBA_DE_EXPLOSI_N_30W_eLIGHTS.cl_03.jpg?1647372997,https://images.jumpseller.com/store/elights-cl/13193689/PROYECTOR_LED_PORT_TIL_A_PRUEBA_DE_EXPLOSI_N_30W_eLIGHTS.cl.jpg?1647372997,https://images.jumpseller.com/store/elights-cl/13193689/PROYECTOR_LED_PORT_TIL_A_PRUEBA_DE_EXPLOSI_N_30W_eLIGHTS.cl_02.jpg?1647372997'], featured: false, stock: true, brand: 'eLIGHTS', jumpseller_id: 13193689 },
   { id: 'alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste', sku: 'APS300PB', name: 'ALUMBRADO PÚBLICO LED SOLAR 300W CON PANEL SOLAR  CON BRAZO PARA MONTAR EN MURO O POSTE', permalink: 'alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste', price: 159900, category: 'solar', watts: 300, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/14582065/Image_20250212101915.png?1739373584,https://images.jumpseller.com/store/elights-cl/14582065/Image_20250212101932.png?1739373584,https://images.jumpseller.com/store/elights-cl/14582065/AP_SOLAR_300W_SOLAR_CURVA_FOTOM_TRICA_.jpg?1739373583', images: ['https://images.jumpseller.com/store/elights-cl/14582065/Image_20250212101915.png?1739373584,https://images.jumpseller.com/store/elights-cl/14582065/Image_20250212101932.png?1739373584,https://images.jumpseller.com/store/elights-cl/14582065/AP_SOLAR_300W_SOLAR_CURVA_FOTOM_TRICA_.jpg?1739373583'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 14582065 },
   { id: 'lampara-de-emergencia-led-antiexplosiva-2x3w-ip65-ik10', sku: 'LEATEX2X8', name: 'LÁMPARA DE EMERGENCIA LED ANTIEXPLOSIVA 2X3W IP65 IK10', permalink: 'lampara-de-emergencia-led-antiexplosiva-2x3w-ip65-ik10', price: 117900, category: 'iluminacion-antiexplosiva', watts: 3, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/15014164/500__3_-removebg-preview.png?1772463113,https://images.jumpseller.com/store/elights-cl/15014164/LUMINARIA_20DE_20EMERGENCIA_202X3W_20BACK_20ELIGHTS.jpg?1772463112,https://images.jumpseller.com/store/elights-cl/15014164/LEAPEX2X3.jpg?1772463112', images: ['https://images.jumpseller.com/store/elights-cl/15014164/500__3_-removebg-preview.png?1772463113,https://images.jumpseller.com/store/elights-cl/15014164/LUMINARIA_20DE_20EMERGENCIA_202X3W_20BACK_20ELIGHTS.jpg?1772463112,https://images.jumpseller.com/store/elights-cl/15014164/LEAPEX2X3.jpg?1772463112'], featured: false, stock: true, brand: 'eLIGHTS', jumpseller_id: 15014164 },
-  { id: 'alumbrado-publico-bestled-250w-ip66-ik08', sku: '', name: 'ALUMBRADO PÚBLICO BESTLED 250W IP66 IK08', permalink: 'alumbrado-publico-bestled-250w-ip66-ik08', price: 245000, category: 'alumbrado-publico', watts: 250, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/15021313/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682,https://images.jumpseller.com/store/elights-cl/15021313/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682', images: ['https://images.jumpseller.com/store/elights-cl/15021313/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682,https://images.jumpseller.com/store/elights-cl/15021313/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 15021313 },
+  {
+    id: 'alumbrado-publico-bestled-250w-ip66-ik08',
+    sku: 'APB250',
+    name: 'ALUMBRADO PÚBLICO BESTLED 250W IP66 IK08',
+    permalink: 'alumbrado-publico-bestled-250w-ip66-ik08',
+    price: 245000,
+    category: 'alumbrado-publico',
+    watts: 250,
+    kelvin: 0,
+    lumens: 37600,
+    ip: 'IP66',
+    cri: 80,
+    voltage: '100-277V',
+    lifetime: 100000,
+    warranty: '5 años',
+    image: 'https://images.jumpseller.com/store/elights-cl/15021313/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682,https://images.jumpseller.com/store/elights-cl/15021313/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682',
+    images: ['https://images.jumpseller.com/store/elights-cl/15021313/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682,https://images.jumpseller.com/store/elights-cl/15021313/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1662064682'],
+    featured: false,
+    stock: true,
+    brand: 'JIE',
+    jumpseller_id: 15021313,
+    availableCCT: [2200, 2700, 4000, 5000],
+    metaTitle: 'Luminaria LED Alumbrado Público BESTLED 250W IP66 | eLIGHTS',
+    metaDescription: 'Luminaria LED 250W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
+    shortDescription: 'Luminaria LED de alumbrado público 250W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    description: `La luminaria LED BESTLED 250W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
+
+**Certificación DS1 MMA y zonas de instalación**
+
+La nueva norma DS1/2022 del MMA, vigente desde octubre de 2024, regula el porcentaje de luz azul emitida por luminarias de alumbrado exterior con el objetivo de proteger la biodiversidad, la observación astronómica y la salud humana. La norma define dos categorías de cumplimiento según luz azul:
+
+- **Clasificación para Áreas de Protección Especial (1% luz azul):** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad
+- **Clasificación para territorio nacional general (7% luz azul):** apto para todo el territorio excepto zonas de protección especial
+
+La variante **BESTLED 250W 2200K (APB250A)** opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial (1% luz azul)**, siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.
+
+La variante **BESTLED 250W 2700K (APB250C)** opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general (7% luz azul)**, apta para proyectos de alumbrado público en el resto del territorio chileno.
+
+Las variantes **4000K Neutra (APB250N)** y **5000K Fría (APB250F)** son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.
+
+**Construcción robusta para uso exterior vial**
+
+Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV. El ensayo de niebla salina (48 horas, norma ASTM D-610 9S, laboratorio SIMET-USACH) valida la resistencia a corrosión necesaria para zonas costeras y ambientes agresivos del territorio chileno. Difusor de vidrio templado con resistencia IK08 que soporta impactos mecánicos de hasta 5 julios sin comprometer hermeticidad ni exponer partes energizadas. Grado IP66 con protección total contra polvo y chorros potentes de agua desde cualquier dirección.
+
+**Componentes electrónicos de grado industrial**
+
+Chip LED Bridgelux con eficacia luminosa de 150,8 lm/W y flujo total de 37.600 lm en la versión 250W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+
+**Servicio técnico y comercial eLIGHTS.cl**
+
+eLIGHTS.cl ofrece despacho a todo Chile desde Santiago, asesoría técnica gratuita para selección de variante CCT según zona de instalación y tipo de proyecto, y servicio opcional de estudio fotométrico DIALux para validar cantidad y disposición óptima de luminarias. Cotización rápida para empresas, instaladores eléctricos, constructoras, municipios y proyectos de licitación pública. El archivo fotométrico .IES, certificado SEC vigente y certificación DS1 MMA se entregan bajo solicitud junto con cada cotización formal.
+
+Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la fecha de emisión de factura.`,
+    keyBenefits: [
+      'Certificada SEC vigente — apta para licitación municipal y obras públicas',
+      'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
+      'IP66 + IK08 — uso exterior con resistencia a vandalismo',
+      '150,8 lm/W con flujo total 37.600 lm — alta eficacia luminosa',
+      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      'Vida útil 100.000 horas en rango -15°C a +55°C',
+      '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
+      'Garantía oficial 5 años contra defectos de fabricación',
+      'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
+      'Despacho a todo Chile desde Santiago',
+    ],
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 250W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB250A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB250C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB250N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB250F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    certifications: [
+      {
+        name: 'Certificación SEC vigente',
+        description: 'Cumplimiento de normativa chilena de seguridad eléctrica y eficiencia energética para luminarias de alumbrado público. Aplica a las cuatro variantes CCT (2200K, 2700K, 4000K, 5000K). Certificado oficial disponible bajo solicitud.',
+        issuer: 'Superintendencia de Electricidad y Combustibles (SEC)',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para Áreas de Protección Especial (1% luz azul)',
+        description: 'Variante 2200K Ámbar (APB250A) certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'DS1/2022 MMA — Clasificación para territorio nacional general (7% luz azul)',
+        description: 'Variante 2700K Cálida (APB250C) certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+        issuer: 'Ministerio del Medio Ambiente (MMA) - SMA',
+      },
+      {
+        name: 'IEC 60598-1 — Luminarias',
+        description: 'Cumplimiento de la norma internacional de requisitos generales y ensayos para luminarias.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'IEC 60529 — Grado de protección IP66',
+        description: 'Validación de protección total contra polvo fino y chorros potentes de agua desde cualquier dirección.',
+        issuer: 'Norma IEC',
+      },
+      {
+        name: 'Ensayo IK08 — resistencia a impactos',
+        description: 'Validación de resistencia a impactos mecánicos de 5 julios mediante ensayo certificado, equivalente al impacto de un objeto de 1,7 kg cayendo desde 30 cm de altura. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio CESMEC',
+      },
+      {
+        name: 'Ensayo niebla salina 48h',
+        description: 'Resistencia a corrosión validada bajo norma ASTM D-610 9S por exposición prolongada a niebla salina, certificando durabilidad en ambientes costeros y zonas con alta humedad. Certificado disponible bajo solicitud.',
+        issuer: 'Laboratorio SIMET-USACH',
+      },
+    ],
+    installationInfo: `Aplicaciones por tipo de zona de instalación:
+
+**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+
+**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+
+**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+
+**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB250A).
+
+**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+    useCases: [
+      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
+      'Avenidas urbanas de ancho medio',
+      'Iluminación perimetral industrial, bodegas y estacionamientos',
+      'Parques, plazas y espacios públicos urbanos',
+      'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+      'Estacionamientos comerciales y privados',
+      'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+      'Áreas de protección de biodiversidad (variante 2200K)',
+      'Caminos rurales y vialidades municipales',
+    ],
+    faq: [
+      {
+        question: '¿La luminaria BESTLED 250W cumple la nueva norma DS1 de cielos oscuros?',
+        answer: 'Sí, en sus variantes 2200K (Ámbar) y 2700K (Cálida). La variante 2200K APB250A cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. La variante 2700K APB250C cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial. Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+      },
+      {
+        question: '¿Cuál variante de la BESTLED 250W debo elegir para mi proyecto?',
+        answer: 'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad. eLIGHTS.cl ofrece asesoría técnica gratuita y estudio fotométrico DIALux para definir la variante óptima del proyecto.',
+      },
+      {
+        question: '¿La BESTLED 250W es apta para licitación municipal?',
+        answer: 'Sí. La luminaria BESTLED 250W cuenta con certificación SEC vigente para alumbrado público en sus cuatro variantes CCT. Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA. eLIGHTS.cl entrega los certificados oficiales bajo solicitud junto con cada cotización formal, documentación necesaria para el proceso de licitación pública.',
+      },
+      {
+        question: '¿Qué garantía ofrece la luminaria BESTLED 250W?',
+        answer: 'La luminaria BESTLED 250W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+      },
+      {
+        question: '¿Es compatible la BESTLED 250W con sistemas de control y dimming?',
+        answer: 'Sí. La luminaria BESTLED 250W incorpora driver Mean Well con entrada análoga 0-10V estándar industrial, lo que permite regulación del flujo luminoso mediante controlador externo compatible. Adicionalmente cuenta con receptáculo NEMA C136.10 para instalación opcional de fotocelda crepuscular (activación automática día/noche, 220 VAC, 1.800 VA). El controlador externo y la fotocelda son accesorios opcionales no incluidos.',
+      },
+      {
+        question: '¿Qué diferencia hay entre las certificaciones SEC y DS1 MMA?',
+        answer: 'Son dos certificaciones complementarias con propósitos distintos. La certificación SEC, otorgada por la Superintendencia de Electricidad y Combustibles, valida la seguridad eléctrica y eficiencia energética de la luminaria — es obligatoria para todo alumbrado público en Chile. La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas. La BESTLED 250W cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+      },
+    ],
+    specsElectricos: [
+      { label: 'Potencia nominal', value: '250W' },
+      { label: 'Flujo luminoso', value: '37.600 lm' },
+      { label: 'Eficacia luminosa', value: '150,8 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
+      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Distorsión armónica (THD)', value: '< 15%' },
+      { label: 'Tensión soportada', value: '100 - 277V' },
+      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+    ],
+    specsConstruccion: [
+      { label: 'Cuerpo', value: 'Aluminio fundido' },
+      { label: 'Difusor', value: 'Vidrio templado' },
+      { label: 'Grado de protección', value: 'IP66 · IK08' },
+      { label: 'Temperatura operación', value: '-15°C a +55°C' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Garantía', value: '5 años' },
+    ],
+    specsComponentes: [
+      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Driver', value: 'Mean Well · 0-10V' },
+      { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
+      { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
+    ],
+    cctVariants: [
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB250A', colorHex: '#FFB45A' },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB250C', colorHex: '#FFD89B' },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB250N', colorHex: '#FAF4E8' },
+      { kelvin: 5000, name: 'Fría', sku: 'APB250F', colorHex: '#DCE9F5' },
+    ],
+    productFamily: {
+      title: 'Familia BESTLED',
+      items: [
+        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
+        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
+        { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
+        { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
+      ],
+    },
+  },
   { id: 'estaca-led-cob-5w-jardin-ip65', sku: '', name: 'ESTACA LED COB 5W JARDÍN IP65', permalink: 'estaca-led-cob-5w-jardin-ip65', price: 11000, category: 'iluminacion-exterior', watts: 5, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/15145687/Estaca_Grande_eLIGHTS.cl.png?1663014846', images: ['https://images.jumpseller.com/store/elights-cl/15145687/Estaca_Grande_eLIGHTS.cl.png?1663014846'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 15145687 },
   { id: 'campana-led-ufo-a-prueba-de-explosion-200w', sku: 'PLAPEX200F', name: 'CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 200W', permalink: 'campana-led-ufo-a-prueba-de-explosion-200w', price: 321600, category: 'iluminacion-antiexplosiva', watts: 200, kelvin: 0, lumens: 0, ip: undefined, image: 'https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_eLIGHTS.cl.png?1663074390,https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_3_eLIGHTS.cl.png?1663074390,https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_4_eLIGHTS.cl.png?1663074390,https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_2_eLIGHTS.cl.png?1663074390', images: ['https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_eLIGHTS.cl.png?1663074390,https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_3_eLIGHTS.cl.png?1663074390,https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_4_eLIGHTS.cl.png?1663074390,https://images.jumpseller.com/store/elights-cl/15164777/CAMPANA_LED_ANTIEXPLOSIVA_200W_2_eLIGHTS.cl.png?1663074390'], featured: false, stock: false, brand: 'eLIGHTS', jumpseller_id: 15164777 },
   { id: 'aplique-led-20w-de-pared-moderna-3000k', sku: '', name: 'APLIQUE LED 20W DE PARED MODERNA IP65 3000K', permalink: 'aplique-led-20w-de-pared-moderna-3000k', price: 18900, category: 'iluminacion-exterior', watts: 20, kelvin: 3000, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/15714107/Aplique_LED_20W_de_Pared_Moderna_IP65_3000K_eLIGHTS.cl.png?1664369263,https://images.jumpseller.com/store/elights-cl/15714107/Aplique_LED_20W_de_Pared_Moderna_IP65_3000K_02_eLIGHTS.cl.png?1664369263,https://images.jumpseller.com/store/elights-cl/15714107/Aplique_LED_20W_de_Pared_Moderna_IP65_3000K_03_eLIGHTS.cl.png?1664369263', images: ['https://images.jumpseller.com/store/elights-cl/15714107/Aplique_LED_20W_de_Pared_Moderna_IP65_3000K_eLIGHTS.cl.png?1664369263,https://images.jumpseller.com/store/elights-cl/15714107/Aplique_LED_20W_de_Pared_Moderna_IP65_3000K_02_eLIGHTS.cl.png?1664369263,https://images.jumpseller.com/store/elights-cl/15714107/Aplique_LED_20W_de_Pared_Moderna_IP65_3000K_03_eLIGHTS.cl.png?1664369263'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 15714107 },
