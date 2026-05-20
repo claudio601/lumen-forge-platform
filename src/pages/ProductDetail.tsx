@@ -13,6 +13,9 @@ import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
+    Tooltip, TooltipContent, TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     FileText, Minus, Plus, Download, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
@@ -424,10 +427,36 @@ const ProductDetail = () => {
                         
                           {/* Acciones secundarias */}
                                   <div className="flex gap-3">
-                                              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
-                                                            <Download className="h-3.5 w-3.5" />
-                                                            Ficha tecnica
-                                              </Button>
+                                              {product.datasheetUrl ? (
+                                                            <a
+                                                              href={product.datasheetUrl}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              download
+                                                            >
+                                                              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
+                                                                <Download className="h-3.5 w-3.5" />
+                                                                Ficha técnica
+                                                              </Button>
+                                                            </a>
+                                              ) : (
+                                                            <Tooltip>
+                                                              <TooltipTrigger asChild>
+                                                                <span tabIndex={0}>
+                                                                  <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    disabled
+                                                                    className="gap-1.5 text-xs text-muted-foreground"
+                                                                  >
+                                                                    <Download className="h-3.5 w-3.5" />
+                                                                    Ficha técnica
+                                                                  </Button>
+                                                                </span>
+                                                              </TooltipTrigger>
+                                                              <TooltipContent>Ficha técnica próximamente</TooltipContent>
+                                                            </Tooltip>
+                                              )}
                                               <a href={waProductUrl(product.name, product.sku)} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
