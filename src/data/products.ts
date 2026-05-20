@@ -1247,6 +1247,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     brand: 'JIE',
     jumpseller_id: 2301101,
     availableCCT: [2200, 2700, 4000, 5000],
+    datasheetUrl: 'https://nuevo.elights.cl/fichas/APB60.pdf',
     metaTitle: 'Luminaria LED Alumbrado Público BESTLED 60W IP66 | eLIGHTS',
     metaDescription: 'Luminaria LED 60W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
     shortDescription: 'Luminaria LED de alumbrado público 60W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
