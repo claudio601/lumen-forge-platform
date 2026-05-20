@@ -304,8 +304,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
@@ -340,9 +340,9 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     category: 'alumbrado-publico',
     watts: 40,
     kelvin: 0,
-    lumens: 6000,
+    lumens: 6031,
     ip: 'IP66',
-    cri: 80,
+    cri: 70,
     voltage: '100-277V',
     lifetime: 100000,
     warranty: '5 años',
@@ -356,7 +356,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     datasheetUrl: 'https://nuevo.elights.cl/fichas/APB40.pdf',
     metaTitle: 'Luminaria LED Alumbrado Público BESTLED 40W IP66 | eLIGHTS',
     metaDescription: 'Luminaria LED 40W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
-    shortDescription: 'Luminaria LED de alumbrado público 40W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    shortDescription: 'Luminaria LED de alumbrado público 40W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.',
     description: `La luminaria LED BESTLED 40W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
 
 **Certificación DS1 MMA y zonas de instalación**
@@ -378,7 +378,7 @@ Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV.
 
 **Componentes electrónicos de grado industrial**
 
-Chip LED Bridgelux con eficacia luminosa de 150,6 lm/W y flujo total de 6.000 lm en la versión 40W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+Chip LED Philips Lumileds 2835 con eficacia luminosa de 150,6 lm/W y flujo total de 6.031 lm en la versión 40W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia >0,96 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
 
 **Servicio técnico y comercial eLIGHTS.cl**
 
@@ -389,15 +389,15 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       'Certificada SEC vigente — apta para licitación municipal y obras públicas',
       'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
       'IP66 + IK08 — uso exterior con resistencia a vandalismo',
-      '150,6 lm/W con flujo total 6.000 lm — alta eficacia luminosa',
-      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      '150,6 lm/W con flujo total 6.031 lm — alta eficacia luminosa',
+      'Chip Philips Lumileds 2835 + driver Mean Well — componentes de grado industrial',
       'Vida útil 100.000 horas en rango -15°C a +55°C',
       '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
       'Garantía oficial 5 años contra defectos de fabricación',
       'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
       'Despacho a todo Chile desde Santiago',
     ],
-    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 40W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB40A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB40C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB40N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB40F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 40W, tensión soportada 100-277V AC (50Hz), factor de potencia >0,96, distorsión armónica THD <15%, índice cromático CRI Ra ≥70, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB40A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB40C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB40N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB40F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
     certifications: [
       {
         name: 'Certificación SEC vigente',
@@ -435,27 +435,24 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         issuer: 'Laboratorio SIMET-USACH',
       },
     ],
-    installationInfo: `Aplicaciones por tipo de zona de instalación:
+    installationInfo: `Aplicaciones por tipo de zona de instalación (altura de montaje 4 a 6 m):
 
-**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+**Senderos municipales y pasajes peatonales:** altura baja con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual a escala peatonal. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
 
-**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+**Plazas residenciales y plazoletas comunales:** cobertura amplia a baja altura, prioriza ambiente cálido y reconocimiento facial. Variantes recomendadas: 2700K Cálida para zonas residenciales, 4000K Neutra para plazas con uso nocturno intensivo.
 
-**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+**Accesos peatonales, paseos y bandejones:** iluminación de circulación peatonal con énfasis en seguridad. Variantes recomendadas: 2700K o 4000K según contexto urbano.
 
 **Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB40A).
 
-**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+**Para definir altura y espaciado específicos del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho del sendero y la normativa local aplicable.`,
     useCases: [
-      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
-      'Avenidas urbanas de ancho medio',
-      'Iluminación perimetral industrial, bodegas y estacionamientos',
-      'Parques, plazas y espacios públicos urbanos',
+      'Senderos municipales y pasajes peatonales',
+      'Plazas residenciales y plazoletas comunales',
+      'Accesos peatonales, paseos y bandejones',
       'Proyectos de recambio municipal con cumplimiento DS1 MMA',
-      'Estacionamientos comerciales y privados',
       'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
       'Áreas de protección de biodiversidad (variante 2200K)',
-      'Caminos rurales y vialidades municipales',
     ],
     faq: [
       {
@@ -485,10 +482,11 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     ],
     specsElectricos: [
       { label: 'Potencia nominal', value: '40W' },
-      { label: 'Flujo luminoso', value: '6.000 lm' },
+      { label: 'Amperaje', value: '0,228 A' },
+      { label: 'Flujo luminoso', value: '6.031 lm' },
       { label: 'Eficacia luminosa', value: '150,6 lm/W' },
-      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
-      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 70' },
+      { label: 'Factor de potencia', value: '> 0,96' },
       { label: 'Distorsión armónica (THD)', value: '< 15%' },
       { label: 'Tensión soportada', value: '100 - 277V' },
       { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
@@ -498,12 +496,15 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Difusor', value: 'Vidrio templado' },
       { label: 'Grado de protección', value: 'IP66 · IK08' },
       { label: 'Temperatura operación', value: '-15°C a +55°C' },
-      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
-      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Montaje', value: '4 a 6 m' },
+      { label: 'Fijación', value: 'Brazo poste / Parte alta de poste · Ø 53 mm' },
+      { label: 'Dimensiones luminaria', value: '54 × 22 × 11 cm · 3,1 kg' },
+      { label: 'Packaging', value: '2 u/caja · 57 × 25 × 24,5 cm · 6,2 kg neto / 6,7 kg bruto' },
+      { label: 'Vida útil', value: '100.000 horas (L70B10)' },
       { label: 'Garantía', value: '5 años' },
     ],
     specsComponentes: [
-      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Chip LED', value: 'Philips Lumileds 2835' },
       { label: 'Driver', value: 'Mean Well · 0-10V' },
       { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
@@ -517,8 +518,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
@@ -712,8 +713,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
@@ -964,8 +965,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
@@ -1184,8 +1185,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
@@ -1234,9 +1235,9 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     category: 'alumbrado-publico',
     watts: 60,
     kelvin: 0,
-    lumens: 9200,
+    lumens: 9167,
     ip: 'IP66',
-    cri: 80,
+    cri: 70,
     voltage: '100-277V',
     lifetime: 100000,
     warranty: '5 años',
@@ -1250,7 +1251,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     datasheetUrl: 'https://nuevo.elights.cl/fichas/APB60.pdf',
     metaTitle: 'Luminaria LED Alumbrado Público BESTLED 60W IP66 | eLIGHTS',
     metaDescription: 'Luminaria LED 60W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
-    shortDescription: 'Luminaria LED de alumbrado público 60W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    shortDescription: 'Luminaria LED de alumbrado público 60W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.',
     description: `La luminaria LED BESTLED 60W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
 
 **Certificación DS1 MMA y zonas de instalación**
@@ -1272,7 +1273,7 @@ Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV.
 
 **Componentes electrónicos de grado industrial**
 
-Chip LED Bridgelux con eficacia luminosa de 152,7 lm/W y flujo total de 9.200 lm en la versión 60W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+Chip LED Philips Lumileds 2835 con eficacia luminosa de 152,8 lm/W y flujo total de 9.167 lm en la versión 60W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia >0,96 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
 
 **Servicio técnico y comercial eLIGHTS.cl**
 
@@ -1283,15 +1284,15 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       'Certificada SEC vigente — apta para licitación municipal y obras públicas',
       'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
       'IP66 + IK08 — uso exterior con resistencia a vandalismo',
-      '152,7 lm/W con flujo total 9.200 lm — alta eficacia luminosa',
-      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      '152,8 lm/W con flujo total 9.167 lm — alta eficacia luminosa',
+      'Chip Philips Lumileds 2835 + driver Mean Well — componentes de grado industrial',
       'Vida útil 100.000 horas en rango -15°C a +55°C',
       '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
       'Garantía oficial 5 años contra defectos de fabricación',
       'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
       'Despacho a todo Chile desde Santiago',
     ],
-    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 60W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB60A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB60C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB60N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB60F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 60W, tensión soportada 100-277V AC (50Hz), factor de potencia >0,96, distorsión armónica THD <15%, índice cromático CRI Ra ≥70, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB60A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB60C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB60N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB60F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
     certifications: [
       {
         name: 'Certificación SEC vigente',
@@ -1329,27 +1330,27 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         issuer: 'Laboratorio SIMET-USACH',
       },
     ],
-    installationInfo: `Aplicaciones por tipo de zona de instalación:
+    installationInfo: `Aplicaciones por tipo de zona de instalación (altura de montaje 5 a 8 m):
 
-**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+**Pasajes peatonales y vehiculares:** vías de circulación mixta de baja velocidad, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
 
-**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+**Calles locales y residenciales de baja jerarquía:** vialidad urbana secundaria con tránsito vehicular reducido. Variantes recomendadas: 2700K Cálida para zonas residenciales con regulación DS1 MMA, 4000K Neutra para resto del territorio.
 
-**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+**Ciclovías y senderos peatonales en parques:** circulación mixta no motorizada con énfasis en seguridad nocturna. Variantes recomendadas: 2700K o 4000K según contexto.
+
+**Accesos a condominios y caminos rurales de tránsito reducido:** iluminación de acceso controlado y vías rurales. Variantes recomendadas: 2700K para condominios, 4000K para caminos rurales.
 
 **Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB60A).
 
-**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+**Para definir altura y espaciado específicos del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
     useCases: [
-      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
-      'Avenidas urbanas de ancho medio',
-      'Iluminación perimetral industrial, bodegas y estacionamientos',
-      'Parques, plazas y espacios públicos urbanos',
+      'Pasajes peatonales y vehiculares',
+      'Calles locales y residenciales de baja jerarquía',
+      'Ciclovías y senderos peatonales en parques',
+      'Accesos a condominios y caminos rurales de tránsito reducido',
       'Proyectos de recambio municipal con cumplimiento DS1 MMA',
-      'Estacionamientos comerciales y privados',
       'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
       'Áreas de protección de biodiversidad (variante 2200K)',
-      'Caminos rurales y vialidades municipales',
     ],
     faq: [
       {
@@ -1379,10 +1380,11 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     ],
     specsElectricos: [
       { label: 'Potencia nominal', value: '60W' },
-      { label: 'Flujo luminoso', value: '9.200 lm' },
-      { label: 'Eficacia luminosa', value: '152,7 lm/W' },
-      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
-      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Amperaje', value: '0,228 A' },
+      { label: 'Flujo luminoso', value: '9.167 lm' },
+      { label: 'Eficacia luminosa', value: '152,8 lm/W' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 70' },
+      { label: 'Factor de potencia', value: '> 0,96' },
       { label: 'Distorsión armónica (THD)', value: '< 15%' },
       { label: 'Tensión soportada', value: '100 - 277V' },
       { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
@@ -1392,12 +1394,15 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Difusor', value: 'Vidrio templado' },
       { label: 'Grado de protección', value: 'IP66 · IK08' },
       { label: 'Temperatura operación', value: '-15°C a +55°C' },
-      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
+      { label: 'Montaje', value: '5 a 8 m' },
+      { label: 'Fijación', value: 'Brazo poste / Parte alta de poste · Ø 53 mm' },
+      { label: 'Dimensiones luminaria', value: '54 × 22 × 11 cm · 3,1 kg' },
+      { label: 'Packaging', value: '2 u/caja · 57 × 25 × 24,5 cm · 6,2 kg neto / 6,7 kg bruto' },
       { label: 'Vida útil', value: '100.000 horas' },
       { label: 'Garantía', value: '5 años' },
     ],
     specsComponentes: [
-      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Chip LED', value: 'Philips Lumileds 2835' },
       { label: 'Driver', value: 'Mean Well · 0-10V' },
       { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
@@ -1411,8 +1416,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
@@ -1666,8 +1671,8 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     productFamily: {
       title: 'Familia BESTLED',
       items: [
-        { watts: 40, lumens: 6000, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
-        { watts: 60, lumens: 9200, eficacia: '152,7 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
+        { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
+        { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13600, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
         { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
