@@ -47,6 +47,10 @@ export interface Product {
   installationInfo?: string;
   useCases?: string[];
 
+  // URL pública absoluta del PDF de ficha técnica. Debe ser servible desde
+  // otros dominios (Jumpseller legacy enlaza al mismo archivo).
+  datasheetUrl?: string;
+
   // Variantes CCT disponibles para selección al momento de cotizar/pedir
   availableCCT?: number[];
 
@@ -349,6 +353,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     brand: 'JIE',
     jumpseller_id: 2301098,
     availableCCT: [2200, 2700, 4000, 5000],
+    datasheetUrl: 'https://nuevo.elights.cl/fichas/APB40.pdf',
     metaTitle: 'Luminaria LED Alumbrado Público BESTLED 40W IP66 | eLIGHTS',
     metaDescription: 'Luminaria LED 40W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
     shortDescription: 'Luminaria LED de alumbrado público 40W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
