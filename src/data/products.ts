@@ -128,10 +128,10 @@ export const products: Product[] = [
     category: 'alumbrado-publico',
     watts: 120,
     kelvin: 0,
-    lumens: 18000,
+    lumens: 18023,
     ip: 'IP66',
-    cri: 80,
-    voltage: '100-277V',
+    cri: 70,
+    voltage: 'AC 220V 50Hz',
     lifetime: 100000,
     warranty: '5 años',
     image: 'https://images.jumpseller.com/store/elights-cl/2301110/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255,https://images.jumpseller.com/store/elights-cl/2301110/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224255',
@@ -141,9 +141,10 @@ export const products: Product[] = [
     brand: 'JIE',
     jumpseller_id: 2301110,
     availableCCT: [2200, 2700, 4000, 5000],
+    datasheetUrl: 'https://nuevo.elights.cl/fichas/APB120.pdf',
     metaTitle: 'Luminaria LED Alumbrado Público BESTLED 120W IP66 | eLIGHTS',
     metaDescription: 'Luminaria LED 120W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.',
-    shortDescription: 'Luminaria LED de alumbrado público 120W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Bridgelux, driver Mean Well. Garantía 5 años.',
+    shortDescription: 'Luminaria LED de alumbrado público 120W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.',
     description: `La luminaria LED BESTLED 120W es una solución certificada para alumbrado público chileno, diseñada para vialidad urbana, calles secundarias, avenidas, estacionamientos comerciales y áreas industriales. Cumple la regulación SEC vigente para alumbrado público y, en sus variantes 2200K (Ámbar) y 2700K (Cálida), cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.
 
 **Certificación DS1 MMA y zonas de instalación**
@@ -165,7 +166,7 @@ Carcasa de aluminio fundido a presión con acabado epoxi gris antracita anti-UV.
 
 **Componentes electrónicos de grado industrial**
 
-Chip LED Bridgelux con eficacia luminosa de 150,8 lm/W y flujo total de 18.000 lm en la versión 120W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,99 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
+Chip LED Philips Lumileds 2835 con eficacia luminosa de 150,8 lm/W (medición VOLNIC) y flujo total de 18.023 lm en la versión 120W. Driver Mean Well, referente mundial en electrónica de iluminación, con tensión soportada de 100 a 277V AC, factor de potencia ≥0,96 y distorsión armónica THD <15%. Entrada de control 0-10V para regulación analógica del flujo luminoso mediante controlador externo compatible. Compatible con receptáculo NEMA C136.10 para fotocelda crepuscular opcional.
 
 **Servicio técnico y comercial eLIGHTS.cl**
 
@@ -176,15 +177,15 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       'Certificada SEC vigente — apta para licitación municipal y obras públicas',
       'DS1/2022 MMA: variante 2200K para Áreas de Protección Especial (1% luz azul) y 2700K para territorio nacional general (7% luz azul)',
       'IP66 + IK08 — uso exterior con resistencia a vandalismo',
-      '150,8 lm/W con flujo total 18.000 lm — alta eficacia luminosa',
-      'Chip Bridgelux + driver Mean Well — componentes de grado industrial',
+      '150,8 lm/W con flujo total 18.023 lm — alta eficacia luminosa (medición VOLNIC)',
+      'Chip Philips Lumileds 2835 + driver Mean Well — componentes de grado industrial',
       'Vida útil 100.000 horas en rango -15°C a +55°C',
       '4 temperaturas de color disponibles: 2200K, 2700K, 4000K, 5000K',
       'Garantía oficial 5 años contra defectos de fabricación',
       'Compatible con dimming 0-10V y fotocelda NEMA C136.10',
       'Despacho a todo Chile desde Santiago',
     ],
-    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 120W, tensión soportada 100-277V AC (50Hz), factor de potencia ≥0,99, distorsión armónica THD <15%, índice cromático CRI Ra ≥80, distribución fotométrica vial Tipo II. Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB120A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB120C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB120N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB120F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 53mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
+    technicalDetails: 'Especificaciones eléctricas y fotométricas: potencia nominal 120W, corriente 0,614 A, tensión nominal AC 220V 50Hz (driver soporta 100-277V AC), factor de potencia ≥0,96, distorsión armónica THD <15%, índice cromático CRI Ra ≥70, distribución fotométrica Tipo II Batwing (medición VOLNIC). Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU APB120A), Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU APB120C), Neutra 4000K (30% luz azul, alumbrado público SEC, SKU APB120N) y Fría 5000K (45% luz azul, alumbrado público SEC, SKU APB120F). Material del cuerpo: aleación de aluminio fundido a presión con acabado epoxi anti-UV. Difusor: vidrio templado. Lentes secundarias en policarbonato con celdas por LED. Clase de aislamiento eléctrico: Clase I. Temperatura ambiente de operación: -15°C a +55°C. Driver Mean Well con entrada de control análoga 0-10V y protección integrada contra sobretensiones, cortocircuitos y sobretemperatura. Acople estándar Ø 60 mm. Receptáculo NEMA C136.10 para fotocelda crepuscular opcional (220 VAC, 1.800 VA).',
     certifications: [
       {
         name: 'Certificación SEC vigente',
@@ -222,27 +223,24 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         issuer: 'Laboratorio SIMET-USACH',
       },
     ],
-    installationInfo: `Aplicaciones por tipo de zona de instalación:
+    installationInfo: `Aplicaciones por tipo de zona de instalación (altura de montaje 7 a 10 m):
 
-**Calles residenciales y vías de tránsito menor:** altura típica menor con espaciado denso entre postes, prioriza uniformidad lumínica y confort visual. Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).
+**Avenidas urbanas:** vialidad primaria con tránsito vehicular regular, espaciado amplio entre postes y prioridad en visibilidad a velocidad de circulación. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
 
-**Avenidas y vías de tránsito mayor:** altura mayor con espaciado más amplio, prioriza visibilidad a velocidad de circulación vehicular. Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.
+**Estacionamientos institucionales:** cobertura amplia para estacionamientos de hospitales, universidades, centros cívicos y campus corporativos, prioriza identificación de personas/vehículos y sensación de seguridad. Variantes recomendadas: 4000K o 5000K.
 
-**Estacionamientos e iluminación perimetral:** altura intermedia con cobertura amplia, prioriza identificación de personas y vehículos. Variantes recomendadas: 4000K o 5000K para mayor sensación de seguridad por contraste.
+**Patios de bodega y centros logísticos:** iluminación industrial de patios de operación, áreas de carga/descarga y circulación de equipos pesados. Variantes recomendadas: 4000K Neutra o 5000K Fría para máxima visibilidad operativa.
 
 **Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para Áreas de Protección Especial (luz azul ≤1%). Variante única apta: 2200K Ámbar (APB120A).
 
-**Para definir altura específica del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
+**Para definir altura y espaciado específicos del proyecto:** eLIGHTS.cl ofrece estudio fotométrico DIALux gratuito que valida cantidad de luminarias, espaciado entre postes, altura óptima de montaje y nivel de iluminancia según el ancho de la vía y la normativa local aplicable.`,
     useCases: [
-      'Vialidad urbana secundaria, calles residenciales y vías colectoras',
-      'Avenidas urbanas de ancho medio',
-      'Iluminación perimetral industrial, bodegas y estacionamientos',
-      'Parques, plazas y espacios públicos urbanos',
+      'Avenidas urbanas',
+      'Estacionamientos institucionales',
+      'Patios de bodega y centros logísticos',
       'Proyectos de recambio municipal con cumplimiento DS1 MMA',
-      'Estacionamientos comerciales y privados',
       'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
       'Áreas de protección de biodiversidad (variante 2200K)',
-      'Caminos rurales y vialidades municipales',
     ],
     faq: [
       {
@@ -259,7 +257,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       },
       {
         question: '¿Qué garantía ofrece la luminaria BESTLED 120W?',
-        answer: 'La luminaria BESTLED 120W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión 100-277V y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
+        answer: 'La luminaria BESTLED 120W incluye 5 años de garantía oficial contra defectos de fabricación, aplicable desde la fecha de emisión de factura. La garantía es válida cuando la luminaria opera dentro de las condiciones declaradas: temperatura ambiente entre -15°C y +55°C, tensión nominal AC 220V 50Hz (driver soporta 100-277V AC) y montaje conforme a la normativa SEC. Reposición o reparación a criterio del fabricante. Para reclamos, contactar ventas@elights.cl con número de factura y descripción de la falla.',
       },
       {
         question: '¿Es compatible la BESTLED 120W con sistemas de control y dimming?',
@@ -272,25 +270,31 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     ],
     specsElectricos: [
       { label: 'Potencia nominal', value: '120W' },
-      { label: 'Flujo luminoso', value: '18.000 lm' },
+      { label: 'Corriente', value: '0,614 A' },
+      { label: 'Flujo luminoso', value: '18.023 lm' },
       { label: 'Eficacia luminosa', value: '150,8 lm/W' },
-      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 80' },
-      { label: 'Factor de potencia', value: '≥ 0,99' },
+      { label: 'Índice cromático (CRI)', value: 'Ra ≥ 70' },
+      { label: 'Factor de potencia', value: '≥ 0,96' },
       { label: 'Distorsión armónica (THD)', value: '< 15%' },
-      { label: 'Tensión soportada', value: '100 - 277V' },
-      { label: 'Distribución fotométrica', value: 'Vial Tipo II' },
+      { label: 'Tensión nominal', value: 'AC 220V 50Hz' },
+      { label: 'Clase eléctrica', value: 'Clase I' },
+      { label: 'Distribución fotométrica', value: 'Tipo II Batwing (medición VOLNIC)' },
     ],
     specsConstruccion: [
       { label: 'Cuerpo', value: 'Aluminio fundido' },
       { label: 'Difusor', value: 'Vidrio templado' },
       { label: 'Grado de protección', value: 'IP66 · IK08' },
       { label: 'Temperatura operación', value: '-15°C a +55°C' },
-      { label: 'Fijación', value: 'Poste / gancho · Ø 53mm' },
-      { label: 'Vida útil', value: '100.000 horas' },
+      { label: 'Montaje', value: '7 a 10 m' },
+      { label: 'Fijación', value: 'Poste / gancho · Ø 60 mm' },
+      { label: 'Dimensiones luminaria', value: '800 × 303 × 186 mm' },
+      { label: 'Packaging', value: '1 u/caja · 87 × 35 × 22 cm · 7,5 kg neto / 8,2 kg bruto' },
+      { label: 'Certificación', value: 'SEC · DS1' },
+      { label: 'Vida útil', value: '100.000 h (L70B10)' },
       { label: 'Garantía', value: '5 años' },
     ],
     specsComponentes: [
-      { label: 'Chip LED', value: 'Bridgelux' },
+      { label: 'Chip LED', value: 'Philips Lumileds 2835' },
       { label: 'Driver', value: 'Mean Well · 0-10V' },
       { label: 'Compatible con dimming', value: 'Sí (0-10V análogo)' },
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
@@ -307,7 +311,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
@@ -521,7 +525,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
@@ -718,7 +722,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
@@ -970,7 +974,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
@@ -1190,7 +1194,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
@@ -1421,7 +1425,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
@@ -1676,7 +1680,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
         { watts: 40, lumens: 6031, eficacia: '150,6 lm/W', sku: 'APB40', productId: 'alumbrado-publico-bestled-40w-ip66-ik08' },
         { watts: 60, lumens: 9167, eficacia: '152,8 lm/W', sku: 'APB60', productId: 'alumbrado-publico-bestled-60w-ip66-ik08' },
         { watts: 90, lumens: 13595, eficacia: '149,6 lm/W', sku: 'APB90', productId: 'alumbrado-publico-bestled-90w-ip66-ik08' },
-        { watts: 120, lumens: 18000, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
+        { watts: 120, lumens: 18023, eficacia: '150,8 lm/W', sku: 'APB120', productId: 'alumbrado-publico-bestled-120w-ip66-ik08' },
         { watts: 150, lumens: 22600, eficacia: '151,1 lm/W', sku: 'APB150', productId: 'alumbrado-publico-bestled-150w-ip66-ik08' },
         { watts: 200, lumens: 30000, eficacia: '150,9 lm/W', sku: 'APB200', productId: 'alumbrado-publico-bestled-200w-ip66-ik08' },
         { watts: 250, lumens: 37600, eficacia: '150,8 lm/W', sku: 'APB250', productId: 'alumbrado-publico-bestled-250w-ip66-ik08' },
