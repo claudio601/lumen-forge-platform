@@ -1,4 +1,4 @@
-import { useApp } from '@/context/AppContext';
+import { useApp, quoteLineKey } from '@/context/AppContext';
 import { buildCheckoutUrl } from '@/services/jumpsellerCart';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingCart, ArrowLeft } from 'lucide-react';
@@ -8,7 +8,7 @@ const CartPage = () => {
   const { cart, updateCartQty, removeFromCart, cartTotal, clearCart, isB2B, formatDisplayPrice, displayPrice, priceLabel } = useApp();
 
   // cartTotal is always sum of IVA-inclusive prices — derive display total
-  const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.product.price) * i.quantity, 0);
+  const displayTotal = cart.reduce((sum, i) => sum + displayPrice(i.unitPrice ?? i.product.price) * i.quantity, 0);
   const ivaAmount = isB2B ? 0 : Math.round(displayTotal - displayTotal / 1.19);
   const neto = isB2B ? displayTotal : Math.round(displayTotal / 1.19);
   const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
@@ -35,8 +35,10 @@ const CartPage = () => {
       <h1 className="text-2xl font-bold mb-6">Carro de compras</h1>
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-3">
-          {cart.map(item => (
-            <div key={item.product.id} className="border rounded-xl p-4 flex gap-4 items-center">
+          {cart.map(item => {
+            const key = quoteLineKey(item.product.id, item.cct);
+            return (
+            <div key={key} className="border rounded-xl p-4 flex gap-4 items-center">
               <img
                 src={item.product.image}
                 alt={item.product.name}
@@ -47,20 +49,21 @@ const CartPage = () => {
                 <Link to={`/producto/${item.product.id}`} className="font-semibold text-sm hover:text-primary transition-colors line-clamp-1">
                   {item.product.name}
                 </Link>
-                <p className="text-xs text-muted-foreground font-mono">{item.product.sku}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{formatDisplayPrice(item.product.price)} c/u {priceLabel}</p>
+                <p className="text-xs text-muted-foreground font-mono">{item.variantSku ?? item.product.sku}{item.cct ? ` · ${item.cct}K` : ''}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{formatDisplayPrice(item.unitPrice ?? item.product.price)} c/u {priceLabel}</p>
               </div>
               <div className="flex items-center border rounded-lg">
-                <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateCartQty(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
+                <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateCartQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
                 <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-                <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateCartQty(item.product.id, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
+                <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateCartQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
               </div>
-              <p className="font-bold text-sm w-24 text-right">{fmt(displayPrice(item.product.price) * item.quantity)}</p>
-              <button onClick={() => removeFromCart(item.product.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+              <p className="font-bold text-sm w-24 text-right">{fmt(displayPrice(item.unitPrice ?? item.product.price) * item.quantity)}</p>
+              <button onClick={() => removeFromCart(key)} className="text-muted-foreground hover:text-destructive transition-colors">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
         <div className="border rounded-xl p-6 h-fit sticky top-32">
           <h2 className="font-bold mb-4">Resumen del pedido</h2>
