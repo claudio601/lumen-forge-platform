@@ -38,7 +38,7 @@ export function inferLeadType(payload: QuotePayload): LeadType {
 function isValidPhone(phone?: string): boolean {
   if (!phone) return false;
   // Strip spaces, dashes, parens, plus sign
-  const cleaned = phone.replace(/[\s\-()\+]/g, '');
+  const cleaned = phone.replace(/[\s\-()+]/g, '');
   // Chilean mobile: 9 digits starting with 9, or with country code 56
   // Accept anything with at least 8 digits as "valid" for scoring
   return /^\d{8,}$/.test(cleaned);
