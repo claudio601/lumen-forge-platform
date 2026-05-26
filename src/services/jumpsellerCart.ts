@@ -4,9 +4,13 @@ import { CartItem } from '@/context/AppContext';
 
 /**
  * Resuelve el ID de variante Jumpseller para un item del carrito.
-  * Prioridad: jumpseller_variant_id > jumpseller_id > undefined
+  * Prioridad: variante CCT seleccionada > jumpseller_variant_id producto > jumpseller_id producto
    */
-   function resolveVariantId(item: CartItem): number | undefined {
+   export function resolveVariantId(item: CartItem): number | undefined {
+     if (item.cct != null) {
+       const variant = item.product.cctVariants?.find(v => v.kelvin === item.cct);
+       if (variant?.jumpseller_variant_id != null) return variant.jumpseller_variant_id;
+     }
      return item.product.jumpseller_variant_id ?? item.product.jumpseller_id;
      }
 

@@ -67,6 +67,9 @@ export interface Product {
     colorHex: string;
     // Precio CON IVA de la variante. Si está ausente, se usa product.price como fallback.
     price?: number;
+    // ID de variante en Jumpseller para esta CCT. Lo usa el checkout (buildCheckoutUrl)
+    // para cobrar la variante correcta; si falta, cae a product.jumpseller_id.
+    jumpseller_variant_id?: number;
   }>;
 
   // Familia de potencias para cross-sell (tabla con highlight del actual)
@@ -302,10 +305,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB120A', colorHex: '#FFB45A', price: 184600 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB120C', colorHex: '#FFD89B', price: 184600 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB120N', colorHex: '#FAF4E8', price: 167800 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB120F', colorHex: '#DCE9F5', price: 167800 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB1201', colorHex: '#FFB45A', price: 184600, jumpseller_variant_id: 116896283 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB1207', colorHex: '#FFD89B', price: 184600, jumpseller_variant_id: 116896284 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB120N', colorHex: '#FAF4E8', price: 167800, jumpseller_variant_id: 95224226 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB120F', colorHex: '#DCE9F5', price: 167800, jumpseller_variant_id: 116896285 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -516,10 +519,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB40A', colorHex: '#FFB45A', price: 119400 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB40C', colorHex: '#FFD89B', price: 119400 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB40N', colorHex: '#FAF4E8', price: 108500 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB40F', colorHex: '#DCE9F5', price: 108500 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB401', colorHex: '#FFB45A', price: 119400, jumpseller_variant_id: 111887367 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB407', colorHex: '#FFD89B', price: 119400, jumpseller_variant_id: 111887368 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB40N', colorHex: '#FAF4E8', price: 108500, jumpseller_variant_id: 95224064 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB40F', colorHex: '#DCE9F5', price: 108500, jumpseller_variant_id: 95224065 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -713,10 +716,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB90A', colorHex: '#FFB45A', price: 154000 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB90C', colorHex: '#FFD89B', price: 154000 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB90N', colorHex: '#FAF4E8', price: 139900 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB90F', colorHex: '#DCE9F5', price: 139900 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB901', colorHex: '#FFB45A', price: 154000, jumpseller_variant_id: 111887901 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB907', colorHex: '#FFD89B', price: 154000, jumpseller_variant_id: 111887900 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB90N', colorHex: '#FAF4E8', price: 139900, jumpseller_variant_id: 95224200 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB90F', colorHex: '#DCE9F5', price: 139900, jumpseller_variant_id: 111887902 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -969,10 +972,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB150A', colorHex: '#FFB45A', price: 189200 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB150C', colorHex: '#FFD89B', price: 189200 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB150N', colorHex: '#FAF4E8', price: 172000 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB150F', colorHex: '#DCE9F5', price: 172000 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB1501', colorHex: '#FFB45A', price: 189200, jumpseller_variant_id: 116896286 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB1507', colorHex: '#FFD89B', price: 189200, jumpseller_variant_id: 113961236 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB150N', colorHex: '#FAF4E8', price: 172000, jumpseller_variant_id: 8853442 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB150F', colorHex: '#DCE9F5', price: 172000, jumpseller_variant_id: 113961237 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -1193,10 +1196,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB200A', colorHex: '#FFB45A', price: 248400 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB200C', colorHex: '#FFD89B', price: 248400 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB200N', colorHex: '#FAF4E8', price: 225700 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB200F', colorHex: '#DCE9F5', price: 225700 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB2001', colorHex: '#FFB45A', price: 248400, jumpseller_variant_id: 116897113 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB2007', colorHex: '#FFD89B', price: 248400, jumpseller_variant_id: 116897114 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB200N', colorHex: '#FAF4E8', price: 225700, jumpseller_variant_id: 95224533 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB200F', colorHex: '#DCE9F5', price: 225700, jumpseller_variant_id: 95224534 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -1424,10 +1427,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB60A', colorHex: '#FFB45A', price: 130400 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB60C', colorHex: '#FFD89B', price: 130400 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB60N', colorHex: '#FAF4E8', price: 118500 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB60F', colorHex: '#DCE9F5', price: 118500 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB601', colorHex: '#FFB45A', price: 130400, jumpseller_variant_id: 107574432 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB607', colorHex: '#FFD89B', price: 130400, jumpseller_variant_id: 107574433 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB60N', colorHex: '#FAF4E8', price: 118500, jumpseller_variant_id: 8853471 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB60F', colorHex: '#DCE9F5', price: 118500, jumpseller_variant_id: 111887332 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -1683,10 +1686,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB250A', colorHex: '#FFB45A', price: 296900 },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB250C', colorHex: '#FFD89B', price: 296900 },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB250N', colorHex: '#FAF4E8', price: 269900 },
-      { kelvin: 5000, name: 'Fría', sku: 'APB250F', colorHex: '#DCE9F5', price: 269900 },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB2501', colorHex: '#FFB45A', price: 296900, jumpseller_variant_id: 118465898 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB2507', colorHex: '#FFD89B', price: 296900, jumpseller_variant_id: 118465899 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB250N', colorHex: '#FAF4E8', price: 269900, jumpseller_variant_id: 95224603 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB250F', colorHex: '#DCE9F5', price: 269900, jumpseller_variant_id: 95224604 },
     ],
     productFamily: {
       title: 'Familia BESTLED',

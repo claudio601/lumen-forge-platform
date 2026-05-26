@@ -5,6 +5,7 @@
 
 import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
+import { buildVariantSku } from '@/lib/variantSku';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -32,14 +33,6 @@ const CCT_LABELS: Record<number, string> = {
   2700: '2700K Cálida',
   4000: '4000K Neutra',
   5000: '5000K Fría',
-};
-
-// Mapping CCT -> sufijo de SKU para variantes BESTLED
-const CCT_SKU_SUFFIX: Record<number, string> = {
-  2200: 'A',
-  2700: 'C',
-  4000: 'N',
-  5000: 'F',
 };
 
 // Renderiza inline **bold** -> <strong>
@@ -210,9 +203,7 @@ const ProductDetail = () => {
       (product.specsComponentes && product.specsComponentes.length > 0)
     );
     const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
-    const skuFinal = selectedCCT != null && CCT_SKU_SUFFIX[selectedCCT]
-      ? `${product.sku}${CCT_SKU_SUFFIX[selectedCCT]}`
-      : product.sku;
+    const skuFinal = buildVariantSku(product.sku, selectedCCT);
 
     const ctaDisabled = hasCCTSelector && selectedCCT === null;
 
@@ -601,7 +592,7 @@ const ProductDetail = () => {
                                               />
                                               <p className="text-sm font-semibold">{v.kelvin}K</p>
                                               <p className="text-xs text-muted-foreground">{v.name}</p>
-                                              <p className="text-xs font-mono text-muted-foreground mt-1">{v.sku}</p>
+                                              <p className="text-xs font-mono text-muted-foreground mt-1">{buildVariantSku(product.sku, v.kelvin)}</p>
                                     </div>
                                   ))}
                               </div>
