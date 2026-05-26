@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { AppProvider, useApp, quoteLineKey, type CartItem } from './AppContext';
 import { resolveVariantId } from '@/services/jumpsellerCart';
+import { buildVariantSku } from '@/lib/variantSku';
 import { products } from '@/data/products';
 
 const p150 = products.find(p => p.id === 'alumbrado-publico-bestled-150w-ip66-ik08')!;
@@ -51,5 +52,17 @@ describe('cart con variantes CCT', () => {
   it('resolveVariantId cae al jumpseller_id del producto cuando no hay CCT seleccionada', () => {
     const item: CartItem = { product: p150, quantity: 1 };
     expect(resolveVariantId(item)).toBe(p150.jumpseller_id);
+  });
+});
+
+describe('SKU de variante CCT (convención Jumpseller 1/7)', () => {
+  it('2700K Cálida → APB1507', () => {
+    expect(buildVariantSku(p150.sku, 2700)).toBe('APB1507');
+  });
+  it('2200K Ámbar → APB1501', () => {
+    expect(buildVariantSku(p150.sku, 2200)).toBe('APB1501');
+  });
+  it('5000K Fría → APB150F', () => {
+    expect(buildVariantSku(p150.sku, 5000)).toBe('APB150F');
   });
 });
