@@ -66,3 +66,14 @@ describe('SKU de variante CCT (convención Jumpseller 1/7)', () => {
     expect(buildVariantSku(p150.sku, 5000)).toBe('APB150F');
   });
 });
+
+describe('cctVariants[].sku no diverge del generador', () => {
+  const conVariantes = products.filter(p => p.cctVariants && p.cctVariants.length > 0);
+  for (const p of conVariantes) {
+    for (const v of p.cctVariants!) {
+      it(`${p.sku} ${v.kelvin}K → ${buildVariantSku(p.sku, v.kelvin)}`, () => {
+        expect(v.sku).toBe(buildVariantSku(p.sku, v.kelvin));
+      });
+    }
+  }
+});
