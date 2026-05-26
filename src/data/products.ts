@@ -65,6 +65,8 @@ export interface Product {
     name: string;
     sku: string;
     colorHex: string;
+    // Precio CON IVA de la variante. Si está ausente, se usa product.price como fallback.
+    price?: number;
   }>;
 
   // Familia de potencias para cross-sell (tabla con highlight del actual)
@@ -124,7 +126,7 @@ export const products: Product[] = [
     sku: 'APB120',
     name: 'ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-120w-ip66-ik08',
-    price: 162000,
+    price: 167800,
     category: 'alumbrado-publico',
     watts: 120,
     kelvin: 0,
@@ -300,10 +302,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB120A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB120C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB120N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB120F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB120A', colorHex: '#FFB45A', price: 184600 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB120C', colorHex: '#FFD89B', price: 184600 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB120N', colorHex: '#FAF4E8', price: 167800 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB120F', colorHex: '#DCE9F5', price: 167800 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -340,7 +342,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     sku: 'APB40',
     name: 'ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-40w-ip66-ik08',
-    price: 105000,
+    price: 108500,
     category: 'alumbrado-publico',
     watts: 40,
     kelvin: 0,
@@ -514,10 +516,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB40A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB40C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB40N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB40F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB40A', colorHex: '#FFB45A', price: 119400 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB40C', colorHex: '#FFD89B', price: 119400 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB40N', colorHex: '#FAF4E8', price: 108500 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB40F', colorHex: '#DCE9F5', price: 108500 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -537,7 +539,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     sku: 'APB90',
     name: 'ALUMBRADO PÚBLICO BESTLED 90W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-90w-ip66-ik08',
-    price: 117600,
+    price: 139900,
     category: 'alumbrado-publico',
     watts: 90,
     kelvin: 0,
@@ -711,10 +713,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB90A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB90C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB90N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB90F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB90A', colorHex: '#FFB45A', price: 154000 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB90C', colorHex: '#FFD89B', price: 154000 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB90N', colorHex: '#FAF4E8', price: 139900 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB90F', colorHex: '#DCE9F5', price: 139900 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -791,7 +793,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     sku: 'APB150',
     name: 'ALUMBRADO PÚBLICO BESTLED 150W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-150w-ip66-ik08',
-    price: 152400,
+    price: 172000,
     category: 'alumbrado-publico',
     watts: 150,
     kelvin: 0,
@@ -967,10 +969,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB150A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB150C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB150N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB150F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB150A', colorHex: '#FFB45A', price: 189200 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB150C', colorHex: '#FFD89B', price: 189200 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB150N', colorHex: '#FAF4E8', price: 172000 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB150F', colorHex: '#DCE9F5', price: 172000 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -1015,7 +1017,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     sku: 'APB200',
     name: 'ALUMBRADO PÚBLICO BESTLED 200W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-200w-ip66-ik08',
-    price: 177600,
+    price: 225700,
     category: 'alumbrado-publico',
     watts: 200,
     kelvin: 0,
@@ -1191,10 +1193,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB200A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB200C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB200N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB200F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB200A', colorHex: '#FFB45A', price: 248400 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB200C', colorHex: '#FFD89B', price: 248400 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB200N', colorHex: '#FAF4E8', price: 225700 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB200F', colorHex: '#DCE9F5', price: 225700 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -1245,7 +1247,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     sku: 'APB60',
     name: 'ALUMBRADO PÚBLICO BESTLED 60W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-60w-ip66-ik08',
-    price: 99900,
+    price: 118500,
     category: 'alumbrado-publico',
     watts: 60,
     kelvin: 0,
@@ -1422,10 +1424,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB60A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB60C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB60N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB60F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB60A', colorHex: '#FFB45A', price: 130400 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB60C', colorHex: '#FFD89B', price: 130400 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB60N', colorHex: '#FAF4E8', price: 118500 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB60F', colorHex: '#DCE9F5', price: 118500 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
@@ -1505,7 +1507,7 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
     sku: 'APB250',
     name: 'ALUMBRADO PÚBLICO BESTLED 250W IP66 IK08',
     permalink: 'alumbrado-publico-bestled-250w-ip66-ik08',
-    price: 245000,
+    price: 269900,
     category: 'alumbrado-publico',
     watts: 250,
     kelvin: 0,
@@ -1681,10 +1683,10 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
       { label: 'Compatible con fotocelda', value: 'Sí (NEMA C136.10)' },
     ],
     cctVariants: [
-      { kelvin: 2200, name: 'Ámbar', sku: 'APB250A', colorHex: '#FFB45A' },
-      { kelvin: 2700, name: 'Cálida', sku: 'APB250C', colorHex: '#FFD89B' },
-      { kelvin: 4000, name: 'Neutra', sku: 'APB250N', colorHex: '#FAF4E8' },
-      { kelvin: 5000, name: 'Fría', sku: 'APB250F', colorHex: '#DCE9F5' },
+      { kelvin: 2200, name: 'Ámbar', sku: 'APB250A', colorHex: '#FFB45A', price: 296900 },
+      { kelvin: 2700, name: 'Cálida', sku: 'APB250C', colorHex: '#FFD89B', price: 296900 },
+      { kelvin: 4000, name: 'Neutra', sku: 'APB250N', colorHex: '#FAF4E8', price: 269900 },
+      { kelvin: 5000, name: 'Fría', sku: 'APB250F', colorHex: '#DCE9F5', price: 269900 },
     ],
     productFamily: {
       title: 'Familia BESTLED',
