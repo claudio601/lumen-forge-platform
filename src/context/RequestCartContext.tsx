@@ -1,6 +1,7 @@
 // src/context/RequestCartContext.tsx
 // Context y hook para el Request Cart (Solicitud de Pedido).
-// Persiste en localStorage. Reutiliza el patron de AppContext.
+// Persiste en sessionStorage (estado de UI, no debe sobrevivir entre sesiones).
+// Reutiliza el patron de AppContext.
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { RequestCartItem } from '@/types/request-order';
@@ -23,7 +24,7 @@ const STORAGE_KEY = 'elights_request_cart';
 
 function loadFromStorage(): RequestCartItem[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as RequestCartItem[]) : [];
   } catch {
     return [];
@@ -34,9 +35,16 @@ function loadFromStorage(): RequestCartItem[] {
 export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<RequestCartItem[]>(loadFromStorage);
 
+  // Limpieza única: el request-cart vivía en localStorage y arrastraba snapshots
+  // viejos (precios congelados pre-refactor) entre sesiones. El estado de UI ahora
+  // es de sesión; eliminamos la key legacy de localStorage para que no resucite stale.
+  useEffect(() => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {
       // Storage lleno o no disponible — silencioso
     }
