@@ -184,8 +184,21 @@ const ProductDetail = () => {
       { label: 'Instalacion', value: product.installationType ?? null },
         ].filter(s => s.value);
   
+    // Resolución de precio por variante de color (CON IVA). Si la variante define
+    // price, manda; si no, cae a product.price. El toggle B2B (÷1,19) lo aplica displayPrice.
+    const selectedVariant = product.cctVariants?.find(v => v.kelvin === selectedCCT);
+    const variantPrices = (product.cctVariants ?? [])
+      .map(v => v.price)
+      .filter((p): p is number => typeof p === 'number');
+    const hasVariantPricing = variantPrices.length > 0;
+    const fromPrice = hasVariantPricing ? Math.min(...variantPrices) : product.price;
+    const basePrice = selectedVariant?.price ?? product.price;
+    // Sin selección y con precios por variante → mostrar "desde {más barato}".
+    const showFromPrice = hasVariantPricing && selectedCCT === null;
+    const displayedBasePrice = showFromPrice ? fromPrice : basePrice;
+
     // Precio congelado al momento de agregar al Request Cart
-    const frozenUnitPrice = displayPrice(product.price);
+    const frozenUnitPrice = displayPrice(basePrice);
 
     // CCT: si el producto define availableCCT[], el cliente debe elegir antes de
     // poder solicitar pedido o cotizar. La selección define el SKU final
@@ -202,6 +215,12 @@ const ProductDetail = () => {
       : product.sku;
 
     const ctaDisabled = hasCCTSelector && selectedCCT === null;
+
+    // Variante propagada a la cotización: SKU final (ej. APB150C) + precio CON IVA
+    // de la variante elegida. Sin selección queda undefined → cae a product.price.
+    const quoteSelection = selectedCCT != null
+      ? { cct: selectedCCT, sku: skuFinal, unitPrice: basePrice }
+      : undefined;
 
     const requestItem = {
           productId: product.id,
@@ -335,13 +354,16 @@ const ProductDetail = () => {
                                   </div>
                         
                                   <div className="flex items-baseline gap-2 mb-2">
-                                              <p className="text-3xl font-bold">{formatDisplayPrice(product.price)}</p>
+                                    {showFromPrice && (
+                                              <span className="text-sm font-medium text-muted-foreground">desde</span>
+                                            )}
+                                              <p className="text-3xl font-bold">{formatDisplayPrice(displayedBasePrice)}</p>
                                               <span className={'text-xs font-medium px-2 py-0.5 rounded-full ' + (isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground')}>
                                                 {priceLabel}
                                               </span>
                                     {isB2B && (
                           <span className="text-sm text-muted-foreground">
-                                          ({new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(product.price)} c/IVA)
+                                          ({new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(displayedBasePrice)} c/IVA)
                           </span>
                                               )}
                                   </div>
@@ -408,15 +430,14 @@ const ProductDetail = () => {
                                     {/* FASE 1: CTA principal = Solicitar pedido */}
                                               <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" disabled={ctaDisabled} />
                                     {/* Cotizar (QuoteCart) se mantiene como accion secundaria.
-                                        TODO: pasar selectedCCT a QuoteCart cuando se actualice AppContext.addToQuote
-                                        para aceptar atributos por línea (hoy solo recibe Product + quantity). */}
+                                        Propaga la variante CCT seleccionada (SKU + precio) a la línea de cotización. */}
                                               <Button
                                                               size="lg"
                                                               variant="outline"
                                                               disabled={ctaDisabled}
                                                               className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
                                                               onClick={() => {
-                                                                                addToQuote(product, qty);
+                                                                                addToQuote(product, qty, undefined, quoteSelection);
                                                                                 toast.success('Agregado a cotización');
                                                               }}
                                                             >

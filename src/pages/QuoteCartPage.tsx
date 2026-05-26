@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, quoteLineKey } from '@/context/AppContext';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,10 +37,10 @@ const QuoteCartPage = () => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const itemsText = quoteCart.map(i =>
-    `• ${i.product.sku} — ${i.product.name} x${i.quantity} = ${fmt(displayPrice(i.product.price) * i.quantity)} ${priceLabel}`
+    `• ${i.variantSku ?? i.product.sku} — ${i.product.name}${i.cct ? ` (${i.cct}K)` : ''} x${i.quantity} = ${fmt(displayPrice(i.unitPrice ?? i.product.price) * i.quantity)} ${priceLabel}`
   ).join('\n');
 
-  const totalDisplay = quoteCart.reduce((s, i) => s + displayPrice(i.product.price) * i.quantity, 0);
+  const totalDisplay = quoteCart.reduce((s, i) => s + displayPrice(i.unitPrice ?? i.product.price) * i.quantity, 0);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +68,7 @@ const QuoteCartPage = () => {
       // Pipedrive CRM (paralelo, no bloquea al usuario si falla)
       try {
         const djb2 = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
-        const buildQuoteRef = () => { const skus = quoteCart.map(i => i.product.sku + 'x' + i.quantity).sort().join(','); const win = Math.floor(Date.now() / 3_600_000); return 'NE-' + djb2([form.email.toLowerCase(), isB2B ? 'B2B' : 'B2C', skus, totalDisplay, win].join('|')); };
+        const buildQuoteRef = () => { const skus = quoteCart.map(i => (i.variantSku ?? i.product.sku) + 'x' + i.quantity).sort().join(','); const win = Math.floor(Date.now() / 3_600_000); return 'NE-' + djb2([form.email.toLowerCase(), isB2B ? 'B2B' : 'B2C', skus, totalDisplay, win].join('|')); };
         const quoteRef = buildQuoteRef();
         const crmRes = await fetch('/api/quotes/create', {
           method: 'POST',
@@ -89,10 +89,10 @@ const QuoteCartPage = () => {
               name: form.razonSocial,
             } : undefined,
             products: quoteCart.map(i => ({
-              sku: i.product.sku,
+              sku: i.variantSku ?? i.product.sku,
               name: i.product.name,
               quantity: i.quantity,
-              unitPriceClp: displayPrice(i.product.price),
+              unitPriceClp: displayPrice(i.unitPrice ?? i.product.price),
             })),
             quoteAmountClp: totalDisplay,
             notes: form.comentarios || undefined,
@@ -165,8 +165,10 @@ const QuoteCartPage = () => {
         <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto_auto] gap-4">
           <span>Producto</span><span>Precio unit.</span><span>Cantidad</span><span></span>
         </div>
-        {quoteCart.map(item => (
-          <div key={item.product.id} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
+        {quoteCart.map(item => {
+          const key = quoteLineKey(item.product.id, item.cct);
+          return (
+          <div key={key} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
             <div className="flex items-center gap-3">
               <img
                 src={item.product.image}
@@ -176,23 +178,26 @@ const QuoteCartPage = () => {
               />
               <div>
                 <p className="font-semibold text-sm line-clamp-1">{item.product.name}</p>
-                <p className="text-[10px] text-muted-foreground font-mono">{item.product.sku}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">
+                  {item.variantSku ?? item.product.sku}{item.cct ? ` · ${item.cct}K` : ''}
+                </p>
               </div>
             </div>
             <div className="text-sm font-medium text-right">
-              <span>{formatDisplayPrice(item.product.price)}</span>
+              <span>{formatDisplayPrice(item.unitPrice ?? item.product.price)}</span>
               <span className="text-[10px] text-muted-foreground ml-1">{priceLabel}</span>
             </div>
             <div className="flex items-center border rounded-lg">
-              <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(item.product.id, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
+              <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
               <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-              <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(item.product.id, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
+              <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
             </div>
-            <button onClick={() => removeFromQuote(item.product.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+            <button onClick={() => removeFromQuote(key)} className="text-muted-foreground hover:text-destructive transition-colors">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
-        ))}
+          );
+        })}
         <div className="px-4 py-3 border-t bg-surface flex justify-end items-center gap-2">
           <span className="text-sm text-muted-foreground">Total referencial:</span>
           <span className="font-bold">{fmt(totalDisplay)}</span>

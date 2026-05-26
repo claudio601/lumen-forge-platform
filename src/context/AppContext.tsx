@@ -2,7 +2,21 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Product } from '@/data/products';
 
 export interface CartItem { product: Product; quantity: number; }
-interface QuoteItem { product: Product; quantity: number; notes?: string; }
+// Selección de variante de color al cotizar. unitPrice es CON IVA (base);
+// displayPrice aplica el toggle B2B (÷1,19) al renderizar.
+export interface QuoteSelection { cct: number; sku: string; unitPrice: number; }
+interface QuoteItem {
+  product: Product;
+  quantity: number;
+  notes?: string;
+  cct?: number;
+  variantSku?: string;
+  unitPrice?: number;
+}
+
+// Identidad de línea de cotización: un mismo producto en dos CCT distintas
+// son líneas separadas.
+export const quoteLineKey = (productId: string, cct?: number) => `${productId}::${cct ?? ''}`;
 
 interface AppContextType {
   cart: CartItem[];
@@ -13,10 +27,10 @@ interface AppContextType {
   cartCount: number;
   cartTotal: number;
   quoteCart: QuoteItem[];
-  addToQuote: (product: Product, qty?: number, notes?: string) => void;
-  removeFromQuote: (id: string) => void;
+  addToQuote: (product: Product, qty?: number, notes?: string, selection?: QuoteSelection) => void;
+  removeFromQuote: (lineKey: string) => void;
   clearQuote: () => void;
-  updateQuoteQty: (id: string, qty: number) => void;
+  updateQuoteQty: (lineKey: string, qty: number) => void;
   quoteCount: number;
   isB2B: boolean;
   toggleB2B: () => void;
@@ -59,18 +73,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
 
-  const addToQuote = (product: Product, qty = 1, notes?: string) => {
+  const addToQuote = (product: Product, qty = 1, notes?: string, selection?: QuoteSelection) => {
+    const key = quoteLineKey(product.id, selection?.cct);
     setQuoteCart(prev => {
-      const existing = prev.find(i => i.product.id === product.id);
-      if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + qty } : i);
-      return [...prev, { product, quantity: qty, notes }];
+      const existing = prev.find(i => quoteLineKey(i.product.id, i.cct) === key);
+      if (existing) return prev.map(i => quoteLineKey(i.product.id, i.cct) === key ? { ...i, quantity: i.quantity + qty } : i);
+      return [...prev, { product, quantity: qty, notes, cct: selection?.cct, variantSku: selection?.sku, unitPrice: selection?.unitPrice }];
     });
   };
-  const removeFromQuote = (id: string) => setQuoteCart(prev => prev.filter(i => i.product.id !== id));
+  const removeFromQuote = (lineKey: string) => setQuoteCart(prev => prev.filter(i => quoteLineKey(i.product.id, i.cct) !== lineKey));
   const clearQuote = () => setQuoteCart([]);
-  const updateQuoteQty = (id: string, qty: number) => {
-    if (qty <= 0) { removeFromQuote(id); return; }
-    setQuoteCart(prev => prev.map(i => i.product.id === id ? { ...i, quantity: qty } : i));
+  const updateQuoteQty = (lineKey: string, qty: number) => {
+    if (qty <= 0) { removeFromQuote(lineKey); return; }
+    setQuoteCart(prev => prev.map(i => quoteLineKey(i.product.id, i.cct) === lineKey ? { ...i, quantity: qty } : i));
   };
   const quoteCount = quoteCart.reduce((s, i) => s + i.quantity, 0);
 
