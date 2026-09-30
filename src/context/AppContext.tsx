@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Product } from '@/data/products';
+import type { Product } from '@/data/catalog/types';
 
 // Selección de variante de color al cotizar. unitPrice es CON IVA (base);
 // displayPrice aplica el toggle B2B (÷1,19) al renderizar.
