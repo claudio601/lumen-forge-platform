@@ -6,6 +6,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
 import { buildVariantSku, requestSku } from '@/lib/variantSku';
+import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -152,7 +153,12 @@ const ProductDetail = () => {
       })),
     } : null;
   
-    const images = product.images?.filter((_, i) => !imgErrors[i]) ?? [];
+    // Galería: fotos con id de Jumpseller (tamaños reducidos por CDN); si no hay, las URLs.
+    const galleryRefs = product.imageRefs?.length ? product.imageRefs : (product.images ?? []).map(url => ({ url }));
+    const gallery = galleryRefs.filter((_, i) => !imgErrors[i]);
+    const images = gallery.map(ref => ref.url);
+    // Si una foto falla y sale de la galería, el índice activo no puede quedar fuera de rango.
+    const current = gallery[Math.min(activeImg, Math.max(gallery.length - 1, 0))];
     const hasImages = images.length > 0;
     const related = products
           .filter(p => p.category === product.category && p.id !== product.id)
@@ -216,7 +222,7 @@ const ProductDetail = () => {
           unitPrice: frozenUnitPrice,
           // Fix 1: persistir el modo de precio al momento de agregar al carrito
           priceMode: (isB2B ? 'neto' : 'iva') as 'neto' | 'iva',
-          image: images[0],
+          image: gallery[0] ? jsImage(gallery[0], 200, 'thumb') : undefined,
           url: `/producto/${product.id}`,
           attributes: {
                   potencia: product.watts > 0 ? `${product.watts}W` : undefined,
@@ -264,9 +270,13 @@ const ProductDetail = () => {
                                     {hasImages ? (
                           <>
                                           <img
-                                                              src={images[activeImg]}
+                                                              src={jsImage(current, 800)}
+                                                              srcSet={jsSrcSet(current, [800, 1200])}
+                                                              sizes="(min-width: 1024px) 50vw, 100vw"
+                                                              width={800}
+                                                              height={800}
                                                               alt={product.name + ' imagen ' + (activeImg + 1)}
-                                                              onError={() => setImgErrors(p => ({ ...p, [activeImg]: true }))}
+                                                              onError={fallbackToOriginal(current, () => setImgErrors(p => ({ ...p, [galleryRefs.indexOf(current)]: true })))}
                                                               className="w-full h-full object-contain p-6"
                                                             />
                             {images.length > 1 && (
@@ -301,14 +311,17 @@ const ProductDetail = () => {
                                   </div>
                           {images.length > 1 && (
                         <div className="flex gap-2 overflow-x-auto pb-1">
-                          {images.map((img, i) => (
+                          {gallery.map((ref, i) => (
                                           <button
                                                               key={i}
                                                               onClick={() => setActiveImg(i)}
                                                               className={'shrink-0 h-16 w-16 rounded-lg border-2 overflow-hidden bg-surface transition-all ' + (i === activeImg ? 'border-primary shadow-sm' : 'border-transparent hover:border-primary/40')}
                                                             >
                                                             <img
-                                                                                  src={img}
+                                                                                  src={jsImage(ref, 200, 'thumb')}
+                                                                                  width={64}
+                                                                                  height={64}
+                                                                                  onError={fallbackToOriginal(ref)}
                                                                                   alt={product.name + ' thumbnail ' + (i + 1)}
                                                                                   className="w-full h-full object-contain p-1"
                                                                                   loading="lazy"
