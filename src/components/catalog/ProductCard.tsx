@@ -34,6 +34,8 @@ const ProductCard = ({ product }: Props) => {
 
     const requestItem = {
           productId: product.id,
+          jumpsellerId: product.jumpseller_id,
+          variantId: product.jumpseller_variant_id,
           sku: requestSku(product),
           name: product.name,
           unitPrice: frozenUnitPrice,

@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { RequestCartProvider, useRequestCart } from './RequestCartContext';
 import type { RequestCartItem } from '@/types/request-order';
+import { requestLineKey } from '@/lib/requestOrder';
 
 const KEY = 'elights_request_cart';
 const wrapper = ({ children }: { children: ReactNode }) => <RequestCartProvider>{children}</RequestCartProvider>;
@@ -46,3 +47,22 @@ describe('RequestCart: estado de UI en sessionStorage, no localStorage', () => {
     expect(result.current.subtotal).toBe(189200);
   });
 });
+
+describe('RequestCart: líneas por producto + variante', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+
+  it('dos colores de luz del mismo BESTLED son dos líneas; la misma variante suma cantidad', () => {
+    const { result } = renderHook(() => useRequestCart(), { wrapper });
+    const neutra = { ...sampleItem, sku: 'APB150N', variantId: 1001, unitPrice: 172000 };
+    const calida = { ...sampleItem, sku: 'APB1507', variantId: 1002, unitPrice: 189200 };
+    act(() => { result.current.addItem(neutra); result.current.addItem(calida); });
+    act(() => { result.current.addItem(calida); });
+    expect(result.current.items).toHaveLength(2);
+    expect(result.current.items.find(i => i.variantId === 1002)!.quantity).toBe(2);
+    act(() => { result.current.removeItem(requestLineKey(neutra)); });
+    expect(result.current.items.map(i => i.variantId)).toEqual([1002]);
+    act(() => { result.current.updateQty(requestLineKey(calida), 5); });
+    expect(result.current.items[0].quantity).toBe(5);
+  });
+});
+

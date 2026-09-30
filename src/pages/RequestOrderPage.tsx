@@ -2,7 +2,7 @@
 // Pagina principal del flujo de Solicitud de Pedido.
 // Muestra el carrito, el formulario de contacto y la confirmacion.
 // Referencia: QuoteCartPage.tsx + InstallationLeadForm.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
       ClipboardList,
@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRequestCart } from '@/context/RequestCartContext';
-import { buildRequestRef, cartItemToOrderItem, formatCLP } from '@/lib/requestOrder';
+import { buildRequestRef, cartItemToOrderItem, formatCLP, reconcileRequestItems, requestLineKey } from '@/lib/requestOrder';
+import { products } from '@/data/products';
+import { toast } from 'sonner';
 import { sendEvent } from '@/lib/analytics';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
 import { Helmet } from 'react-helmet-async';
@@ -81,7 +83,19 @@ function ConfirmationScreen({ requestRef }: { requestRef: string }) {
 
 // ── Pagina principal ────────────────────────────────────────────────────────
 const RequestOrderPage = () => {
-      const { items, updateQty, removeItem, clearCart, subtotal } = useRequestCart();
+      const { items, updateQty, removeItem, clearCart, replaceItems, subtotal } = useRequestCart();
+      const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+
+      // Carritos guardados en la sesión pueden tener precios o productos de antes de la
+      // última sincronización con Jumpseller: se ponen al día al abrir la página.
+      useEffect(() => {
+        const r = reconcileRequestItems(items, products);
+        if (!r.changed) return;
+        replaceItems(r.items);
+        if (r.removed.length) toast.warning(`Quitamos de tu solicitud productos que ya no están disponibles: ${r.removed.join(', ')}`);
+        else if (r.repriced) toast.info('Actualizamos los precios de tu solicitud según el catálogo vigente.');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
       const [form, setForm] = useState<FormValues>(EMPTY_FORM);
       const [status, setStatus] = useState<FormState>('idle');
       const [errorMsg, setErrorMsg] = useState('');
@@ -170,6 +184,7 @@ const RequestOrderPage = () => {
                         region: form.region,
                         notes: form.notes.trim() || undefined,
                         requestReference,
+                        website,
               };
           
               try {
@@ -183,6 +198,13 @@ const RequestOrderPage = () => {
                                     let errDetail = '';
                                     try { errDetail = JSON.stringify(await res.json()); } catch { /* ignored */ }
                                     console.error('[RequestOrder] Endpoint error', { status: res.status, detail: errDetail });
+                                    if (res.status === 400 && errDetail.includes('Products unavailable')) {
+                                              sendEvent('request_form_submit_error', { reason: 'products_unavailable' });
+                                              setStatus('error');
+                                              setErrorMsg('Algunos productos de tu solicitud ya no están disponibles. Recarga la página para actualizarla o escríbenos por WhatsApp.');
+                                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                                              return;
+                                    }
                                     sendEvent('request_form_submit_error', { reason: 'api_error', httpStatus: res.status });
                                     throw new Error('Error al crear la solicitud en el servidor.');
                         }
@@ -243,7 +265,7 @@ const RequestOrderPage = () => {
                   
                             return (
                                             <div
-                                                              key={item.productId}
+                                                              key={requestLineKey(item)}
                                                               className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center"
                                                             >
                                                           <div className="flex items-center gap-3">
@@ -269,20 +291,20 @@ const RequestOrderPage = () => {
                                                           <div className="flex items-center border rounded-lg">
                                                                           <button
                                                                                                 className="p-1.5 hover:bg-accent transition-colors"
-                                                                                                onClick={() => updateQty(item.productId, item.quantity - 1)}
+                                                                                                onClick={() => updateQty(requestLineKey(item), item.quantity - 1)}
                                                                                               >
                                                                                             <Minus className="h-3 w-3" />
                                                                           </button>
                                                                           <span className="px-3 text-sm font-semibold">{item.quantity}</span>
                                                                           <button
                                                                                                 className="p-1.5 hover:bg-accent transition-colors"
-                                                                                                onClick={() => updateQty(item.productId, item.quantity + 1)}
+                                                                                                onClick={() => updateQty(requestLineKey(item), item.quantity + 1)}
                                                                                               >
                                                                                             <Plus className="h-3 w-3" />
                                                                           </button>
                                                           </div>
                                                           <button
-                                                                              onClick={() => removeItem(item.productId)}
+                                                                              onClick={() => removeItem(requestLineKey(item))}
                                                                               className="text-muted-foreground hover:text-destructive transition-colors"
                                                                             >
                                                                           <Trash2 className="h-4 w-4" />
@@ -300,6 +322,13 @@ const RequestOrderPage = () => {
               
                   {/* ── Formulario de contacto ──────────────────────────────────── */}
                     <form onSubmit={handleSubmit} noValidate>
+                      {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
+                      <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+                        <label>
+                          No completar
+                          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+                        </label>
+                      </div>
                             <h2 className="text-lg font-bold mb-4">Datos de contacto</h2>
                     
                         {errorMsg && (

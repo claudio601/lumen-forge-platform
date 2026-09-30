@@ -20,10 +20,36 @@ import {
   isHoneypotTriggered,
   getClientIp,
 } from '../_lib/auth.js';
+import { priceItems } from '../_lib/catalog/pricing.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
 const ALLOWED_METHODS = ['POST'];
+
+// --- Precios del sitio ---
+
+/**
+ * Reemplaza en el lugar precio, nombre y SKU de cada producto por los del catálogo
+ * (CON IVA) y recalcula quoteAmountClp. Si un producto ya no está en el catálogo se
+ * deja como vino (no bloquea: el correo al cliente ya salió) y se registra.
+ */
+function repriceSiteQuote(body: Record<string, unknown>): void {
+  const products = body.products as Record<string, unknown>[];
+  let total = 0;
+  body.products = products.map((p, i) => {
+    const { lines, errors } = priceItems([{ jumpsellerId: p.jumpsellerId, variantId: p.variantId, sku: p.sku, quantity: p.quantity }]);
+    const quantity = typeof p.quantity === 'number' ? p.quantity : Number(p.quantity);
+    if (errors.length) {
+      console.warn(`${LOG_PREFIX} Producto sin precio de catálogo (se deja el del navegador)`, { index: i, errors });
+      total += Number(p.unitPriceClp) * quantity || 0;
+      return { sku: p.sku, name: p.name, quantity: p.quantity, unitPriceClp: p.unitPriceClp };
+    }
+    const line = lines[0];
+    total += line.lineTotal;
+    return { sku: line.sku, name: line.name, quantity: line.quantity, unitPriceClp: line.unitPrice };
+  });
+  body.quoteAmountClp = total;
+}
 
 // --- Auth ---
 
@@ -90,6 +116,13 @@ export default async function handler(
     console.warn(`${LOG_PREFIX} Honeypot triggered from IP: ${ip}`);
     res.status(200).json({ success: true });
     return;
+  }
+
+  // Cotizaciones del sitio: precios CON IVA recalculados desde el catálogo de Jumpseller
+  // (el navegador puede mandar precios netos del modo empresa o desactualizados).
+  // Llamadas server-to-server (x-api-key) no se tocan.
+  if (body && typeof body === 'object' && body.sourceSystem === 'nuevo_elights' && Array.isArray(body.products)) {
+    repriceSiteQuote(body as Record<string, unknown>);
   }
 
   const validation = validateQuotePayload(body);
