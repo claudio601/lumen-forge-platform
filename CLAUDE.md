@@ -1,7 +1,7 @@
 # CLAUDE.md — lumen-forge-platform (nuevo.elights.cl)
 
 > Archivo de memoria del proyecto. Actualizar después de cada corrección relevante.
-> Última revisión: 2026-03-16
+> Última revisión: 2026-09-30
 
 ---
 
@@ -26,20 +26,13 @@
 
 ---
 
-## 3. Arquitectura Fase 2 (checkout nativo) — COMPLETADA
+## 3. Modelo comercial: cotización → link de pago (decisión del dueño, 2026-09-29)
 
-```
-api/
-  create-order.ts  → Vercel Serverless Function, maneja POST de órdenes
-src/
-  jumpsellerCart.ts → lógica de carrito, integración con Jumpseller API
-pages/
-  CartPage.tsx     → UI del carrito con spinner y manejo de errores
-```
-
-- **330 productos** cargados con jumpseller_id mapeado
-- CartPage tiene spinner de loading y estados de error implementados
-- ⚠️ **TODO pendiente**: ProductCard todavía usa window.open → migrar en Fase 2 single product
+- El sitio **no tiene checkout propio**. Todo flujo termina en una solicitud (pedido o cotización) que llega a Pipedrive + email; el vendedor responde con un **link de pago de Jumpseller**.
+- **Nunca mostrar stock** ("En stock" / "Sin stock"): no hay control de bodega y algunos productos se compran en plaza. Texto estándar: **"Consultar disponibilidad"**.
+- **Jumpseller es la única fuente de verdad** de precios, nombres, imágenes, categorías y productos activos. El contenido editorial (fichas BESTLED, FAQ, SEO) se mantiene aparte, asociado por `jumpseller_id`.
+- **Despacho**: hasta 2 días hábiles (muchas veces el mismo día). No prometer plazos distintos.
+- Obsoleto (se elimina en la Etapa 1): `api/create-order.ts` (ya no existe), `src/pages/CartPage.tsx`, `src/services/jumpsellerCart.ts` y el paso a `elights.cl/checkout`.
 
 ---
 
@@ -91,8 +84,16 @@ npm run build
 # Preview del build
 npm run preview
 
-# Push a producción
-git add . && git commit -m "mensaje" && git push origin main
+# Cambios: siempre rama + PR + preview de Vercel (main publica en nuevo.elights.cl)
+git switch -c tipo/descripcion
+git add <rutas explícitas>        # nunca "git add ." (puede subir archivos ajenos)
+git commit -m "mensaje"
+git push -u origin HEAD
+gh pr create --fill               # revisar la preview de Vercel antes de mergear
+
+# Pruebas
+npm test                                        # frontend (src/)
+npx vitest run --config vitest.api.config.ts    # funciones api/ y scripts/
 ```
 
 ---
