@@ -81,37 +81,61 @@ export function parseIp(name: string): string | undefined {
   return m ? `IP${m[1]}` : undefined;
 }
 
+/** Id de sitio para un producto nuevo: desde el permalink, sin repetir ids existentes. */
+export function newSiteId(permalink: string, jumpsellerId: number, taken: ReadonlySet<string>): string {
+  const id = permalink.replace(/\//g, '-');
+  return taken.has(id) ? `${id}-${jumpsellerId}` : id;
+}
+
+/** SKU → productos que lo usan (SKU propio o de alguna de sus variantes). */
+export function skuOwners(snapshot: readonly SnapshotProduct[]): Map<string, Set<number>> {
+  const owners = new Map<string, Set<number>>();
+  const add = (sku: string, id: number) => {
+    if (!sku) return;
+    const set = owners.get(sku) ?? new Set<number>();
+    set.add(id);
+    owners.set(sku, set);
+  };
+  for (const s of snapshot) {
+    add(s.sku, s.jumpseller_id);
+    for (const v of s.variants) add(v.sku, s.jumpseller_id);
+  }
+  return owners;
+}
+
 /**
  * Arma la base del catálogo desde el snapshot de Jumpseller.
- * - id: el id histórico del sitio (URLs publicadas); si es nuevo, desde el permalink.
+ * - id: el registrado para el producto (legado o asignado por la sincronización la
+ *   primera vez que se publicó): las URLs /producto/:id nunca cambian.
+ * - SKU: el de Jumpseller; si no tiene, el legado; si no, el de su única variante,
+ *   pero solo si ningún otro producto usa ese SKU (en Jumpseller hay SKUs repetidos).
  * - orden: el del catálogo legado ("Relevancia"); los productos nuevos van al final.
  */
 export function baseFromSnapshot(
   snapshot: readonly SnapshotProduct[],
   overrides: Readonly<Record<number, BaseOverrides>>,
-  legacyIds: Readonly<Record<number, string>>,
+  siteIds: Readonly<Record<number, string>>,
   legacyOrder: readonly number[],
 ): BaseProduct[] {
   const rank = new Map(legacyOrder.map((id, i) => [id, i]));
   const ordered = [...snapshot].sort(
     (a, b) => (rank.get(a.jumpseller_id) ?? Infinity) - (rank.get(b.jumpseller_id) ?? Infinity) || a.jumpseller_id - b.jumpseller_id,
   );
-  const reserved = new Set(Object.values(legacyIds));
+  const reserved = new Set(Object.values(siteIds));
   const used = new Set<string>();
+  const owners = skuOwners(snapshot);
 
   return ordered.map(s => {
     const ov = overrides[s.jumpseller_id] ?? {};
-    let id = legacyIds[s.jumpseller_id];
-    if (!id) {
-      id = s.permalink.replace(/\//g, '-');
-      if (reserved.has(id) || used.has(id)) id = `${id}-${s.jumpseller_id}`;
-    }
+    // Sin id registrado solo si aún no se sincronizó (la sincronización lo registra).
+    const id = siteIds[s.jumpseller_id] ?? newSiteId(s.permalink, s.jumpseller_id, new Set([...reserved, ...used]));
     used.add(id);
     const ip = parseIp(s.name);
     const singleVariant = s.variants.length === 1 ? s.variants[0] : undefined;
+    const variantSku = singleVariant?.sku && owners.get(singleVariant.sku)?.size === 1 ? singleVariant.sku : '';
     return {
       id,
-      sku: s.sku || ov.sku || singleVariant?.sku || '',
+      sku: s.sku || ov.sku || variantSku,
       name: s.name,
       permalink: s.permalink,
       price: s.price,

@@ -6,6 +6,7 @@
 import { baseFromSnapshot, buildCatalog, refreshCctVariants } from './build';
 import { jumpsellerSnapshot } from './jumpseller-snapshot.generated';
 import { LEGACY_ORDER, LEGACY_SITE_IDS } from './legacy-ids';
+import { SITE_IDS } from './site-ids.generated';
 import { baseOverrides } from './overlay/overrides';
 import { editorialOverlay } from './overlay/editorial';
 import type { Product } from './types';
@@ -15,6 +16,6 @@ const variantIndex = new Map(
 );
 
 export const products: Product[] = refreshCctVariants(
-  buildCatalog(baseFromSnapshot(jumpsellerSnapshot, baseOverrides, LEGACY_SITE_IDS, LEGACY_ORDER), editorialOverlay),
+  buildCatalog(baseFromSnapshot(jumpsellerSnapshot, baseOverrides, { ...LEGACY_SITE_IDS, ...SITE_IDS }, LEGACY_ORDER), editorialOverlay),
   variantIndex,
 );

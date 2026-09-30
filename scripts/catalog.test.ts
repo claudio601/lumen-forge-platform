@@ -1,9 +1,8 @@
 // scripts/catalog.test.ts
-// El catálogo del sitio sale del snapshot de Jumpseller (PR 7). Comparado con el
-// catálogo legado (fixture del 2026-09-30) solo puede cambiar lo esperado:
-// precios, nombres, fotos, productos activos y la pertenencia a varias categorías.
-// Se conservan: ids/URLs, categoría principal, specs, SKU/marca legados y TODO el
-// contenido editorial.
+// El catálogo del sitio sale del snapshot de Jumpseller (PR 7). Estas pruebas corren
+// también en cada PR de sincronización, así que fijan reglas, no datos que Jumpseller
+// puede cambiar: ids/URLs estables, datos derivados del snapshot, valores legados solo
+// donde Jumpseller no tiene y TODO el contenido editorial intacto.
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -14,7 +13,8 @@ import { CATEGORY_PRODUCT_COUNTS, PUBLISHED_PRODUCT_COUNT } from '../src/data/ca
 import { categories } from '../src/data/catalog/categories.config';
 import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
-import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts } from '../src/data/catalog/build';
+import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
+import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts, skuOwners } from '../src/data/catalog/build';
 import { cleanSku } from './jumpseller/normalize';
 import type { Product } from '../src/data/catalog/types';
 
@@ -40,6 +40,14 @@ describe('lectura de specs desde el nombre', () => {
 });
 
 describe('catálogo desde Jumpseller', () => {
+  it('cada producto tiene su id registrado (legado o asignado por la sincronización)', () => {
+    for (const p of products) {
+      expect(p.id).toBe(LEGACY_SITE_IDS[p.jumpseller_id] ?? SITE_IDS[p.jumpseller_id]);
+    }
+    const all = [...Object.values(LEGACY_SITE_IDS), ...Object.values(SITE_IDS)];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
   it('publica exactamente los productos del snapshot, con ids únicos', () => {
     expect(products).toHaveLength(jumpsellerSnapshot.length);
     expect(PUBLISHED_PRODUCT_COUNT).toBe(products.length);
@@ -87,18 +95,16 @@ describe('se conserva lo que no viene de Jumpseller', () => {
   const kept = products.filter(p => legacyById.has(p.jumpseller_id));
 
   it('los productos que siguen publicados mantienen su id (URLs /producto/:id)', () => {
-    expect(kept.length).toBeGreaterThan(300);
+    expect(kept.length).toBeGreaterThan(0);
     for (const p of kept) expect(p.id).toBe(LEGACY_SITE_IDS[p.jumpseller_id]);
   });
 
-  it('y su categoría principal, temperatura, IP y lúmenes', () => {
-    for (const p of kept) {
-      const l = legacyById.get(p.jumpseller_id)!;
-      expect(p.category).toBe(l.category);
-      expect(p.kelvin).toBe(l.kelvin);
-      expect(p.lumens).toBe(l.lumens);
-      if (p.name === l.name) expect(p.ip).toBe(l.ip);
+  it('temperatura e IP salen del nombre; los lúmenes legados se conservan', () => {
+    for (const p of products) {
+      expect(p.kelvin).toBe(parseKelvin(p.name));
+      expect(p.ip).toBe(parseIp(p.name));
     }
+    for (const p of kept) expect(p.lumens).toBe(legacyById.get(p.jumpseller_id)!.lumens);
   });
 
   it('la potencia sale del nombre (corrige cintas "14,4W" que el sitio mostraba como 4W)', () => {
@@ -112,13 +118,28 @@ describe('se conserva lo que no viene de Jumpseller', () => {
   });
 
   it('SKU y marca: los de Jumpseller cuando existen; si no, los del sitio (sin caracteres invisibles)', () => {
+    const owners = skuOwners(jumpsellerSnapshot);
     for (const p of kept) {
       const l = legacyById.get(p.jumpseller_id)!;
       const s = snapById.get(p.jumpseller_id)!;
-      expect(p.sku).toBe(s.sku || cleanSku(l.sku) || (s.variants.length === 1 ? s.variants[0].sku : ''));
-      expect(p.sku).not.toMatch(/[​﻿]/);
+      const single = s.variants.length === 1 && owners.get(s.variants[0].sku)?.size === 1 ? s.variants[0].sku : '';
+      expect(p.sku).toBe(s.sku || cleanSku(l.sku) || single);
+      expect(p.sku).not.toMatch(/[\u200B\uFEFF]/);
       expect(p.brand).toBe(s.brand ?? l.brand);
     }
+  });
+
+  it('nunca toma prestado el SKU de variante que usa otro producto (SKUs repetidos en Jumpseller)', () => {
+    const owners = skuOwners(jumpsellerSnapshot);
+    for (const p of products) {
+      const s = snapById.get(p.jumpseller_id)!;
+      const legacySku = legacyById.has(p.jumpseller_id) ? cleanSku(legacyById.get(p.jumpseller_id)!.sku) : '';
+      if (!p.sku || p.sku === s.sku || p.sku === legacySku) continue;
+      expect(owners.get(p.sku), `${p.jumpseller_id} ${p.sku}`).toEqual(new Set([p.jumpseller_id]));
+    }
+    // Caso real: DLRO40N es del panel Retraído 40W; los de 24W y 6W no lo heredan.
+    expect(products.find(p => p.jumpseller_id === 25714697)!.sku).toBe('');
+    expect(products.find(p => p.jumpseller_id === 25714841)!.sku).toBe('');
   });
 
   it('todo el contenido editorial de los 7 BESTLED sigue intacto', () => {

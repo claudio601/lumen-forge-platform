@@ -11,6 +11,7 @@ export const OUTPUT_PATHS = {
   snapshot: 'src/data/catalog/jumpseller-snapshot.generated.ts',
   categories: 'src/data/catalog/categories.generated.ts',
   priceIndex: 'api/_lib/catalog/price-index.generated.ts',
+  siteIds: 'src/data/catalog/site-ids.generated.ts',
 } as const;
 
 /** Claves que nunca pueden aparecer en un archivo generado (defensa en profundidad). */
@@ -82,6 +83,20 @@ export interface PriceIndexEntry {
 export const SNAPSHOT_HASH = '${hash}';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = ${JSON.stringify(buildPriceIndex(products), null, 2)};
+`;
+}
+
+/**
+ * Registro de ids del sitio para productos publicados después de la migración
+ * (los legados están en legacy-ids.ts). Solo se agregan entradas: un id asignado
+ * nunca cambia, aunque el producto cambie de permalink o deje de publicarse.
+ */
+export function renderSiteIdsFile(ids: Record<number, string>, hash: string): string {
+  const sorted = Object.fromEntries(Object.entries(ids).sort(([a], [b]) => Number(a) - Number(b)));
+  return `${HEADER('Ids del sitio (URLs /producto/:id) de productos nuevos. Solo se agregan entradas: nunca cambian.')}
+export const SNAPSHOT_HASH = '${hash}';
+
+export const SITE_IDS: Readonly<Record<number, string>> = ${JSON.stringify(sorted, null, 2)};
 `;
 }
 

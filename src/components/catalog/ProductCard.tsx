@@ -9,6 +9,7 @@ import { FileText, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Product } from '@/data/catalog/types';
 import { PROJECT_CATEGORIES } from '@/data/catalog/categories.config';
+import { requestSku } from '@/lib/variantSku';
 import { useApp } from '@/context/AppContext';
 import { useRequestCart } from '@/context/RequestCartContext';
 import { toast } from 'sonner';
@@ -30,7 +31,7 @@ const ProductCard = ({ product }: Props) => {
 
     const requestItem = {
           productId: product.id,
-          sku: product.sku,
+          sku: requestSku(product),
           name: product.name,
           unitPrice: frozenUnitPrice,
           // Fix 1: persistir el modo de precio al momento de agregar al carrito
@@ -88,7 +89,7 @@ const ProductCard = ({ product }: Props) => {
                                   </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground">Consultar disponibilidad</p>
-                  {PROJECT_CATEGORIES.includes(product.category) && (
+                  {product.categories.some(c => PROJECT_CATEGORIES.includes(c)) && (
                       <p className="text-[10px] text-muted-foreground">
                                   Precio referencial · Descuentos por proyecto
                       </p>
