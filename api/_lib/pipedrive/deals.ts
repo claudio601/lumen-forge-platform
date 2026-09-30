@@ -72,9 +72,13 @@ void extractId;
 function pickBestDeal(deals: PipedriveDeal[]): PipedriveDeal {
     const open = deals.filter((d) => d.status === 'open');
     const pool = open.length > 0 ? open : deals;
-    return pool.sort(
+    const best = pool.sort(
           (a, b) => new Date(b.update_time).getTime() - new Date(a.update_time).getTime()
         )[0];
+    if (deals.length > 1) {
+          console.warn(`${LOG_PREFIX} multiple deals found (${deals.map((d) => d.id).join(', ')}); picked ${best.id}`);
+    }
+    return best;
 }
 
 // --- Step A: Search by custom field jumpseller_order_id (exact match) ---
