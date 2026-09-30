@@ -30,12 +30,29 @@ describe('precios en el servidor (CON IVA, desde el catálogo)', () => {
   it('carritos viejos sin id: se identifica por "JS-<id>" o por un SKU que use un solo producto', () => {
     expect(priceItems([{ sku: 'JS-3921249', quantity: 1 }], index).lines[0].jumpsellerId).toBe(3921249);
     expect(priceItems([{ sku: 'APB407', quantity: 1 }], index).lines[0]).toMatchObject({ jumpsellerId: 2301098, variantId: 111887368, unitPrice: 119400 });
-    expect(priceItems([{ sku: 'DUP', quantity: 1 }], index).errors[0]).toContain('no disponible');
+    expect(priceItems([{ sku: 'DUP', quantity: 1 }], index).unresolved[0].reason).toContain('no identificado');
   });
 
-  it('rechaza productos o variantes que ya no existen y cantidades inválidas', () => {
-    expect(priceItems([{ jumpsellerId: 1, quantity: 1 }], index).errors[0]).toContain('producto no disponible (1)');
-    expect(priceItems([{ jumpsellerId: 2301098, variantId: 5, quantity: 1 }], index).errors[0]).toContain('variante no disponible');
+  it('bundle viejo: SKU base de BESTLED que no está en el índice → se identifica por el nombre exacto', () => {
+    const r = priceItems([{ sku: 'APB40', name: 'ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08', quantity: 1 }], index);
+    expect(r.lines[0]).toMatchObject({ jumpsellerId: 2301098, unitPrice: 108500 });
+  });
+
+  it('un producto que no se identifica NO invalida la solicitud: queda para revisión', () => {
+    const r = priceItems([{ jumpsellerId: 1, sku: 'X', name: 'Viejo', quantity: 2 }, { jumpsellerId: 3305420, quantity: 1 }], index);
+    expect(r.errors).toEqual([]);
+    expect(r.unresolved).toEqual([{ index: 0, sku: 'X', name: 'Viejo', quantity: 2, reason: 'producto no identificado (1)' }]);
+    expect(r.lineIndexes).toEqual([1]);
+    expect(r.subtotal).toBe(16200);
+  });
+
+  it('una variante que ya no existe usa el precio base y se marca para revisar', () => {
+    const r = priceItems([{ jumpsellerId: 2301098, variantId: 5, quantity: 1 }], index);
+    expect(r.lines[0]).toMatchObject({ unitPrice: 108500, variantUnknown: true });
+    expect(r.lines[0]).not.toHaveProperty('variantId');
+  });
+
+  it('cantidades inválidas sí son un error de validación', () => {
     for (const quantity of [0, -1, 1.5, 10000, 'abc']) {
       expect(priceItems([{ jumpsellerId: 3305420, quantity }], index).errors[0]).toContain('quantity');
     }

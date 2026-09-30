@@ -9,9 +9,11 @@ vi.mock('../_lib/pipedrive/organizations.js', () => ({ findOrCreateOrganization:
 vi.mock('../_lib/pipedrive/deals.js', () => ({ createDeal: vi.fn(async () => ({ dealId: 999, status: 'created' })) }));
 vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}) }));
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn((p: Promise<unknown>) => p) }));
+vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(async () => ({ success: true, data: { id: 1 } })) }));
 
 import handler from './create';
 import { createDeal } from '../_lib/pipedrive/deals.js';
+import { pipedrivePost } from '../_lib/pipedrive/client.js';
 
 let ipSeq = 0;
 function call(body: unknown, opts: { ip?: string; origin?: string } = {}) {
@@ -41,6 +43,7 @@ const ar111 = { jumpsellerId: 3305420, sku: 'AR111OPC', name: 'AR111', quantity:
 describe('POST /api/request-orders/create', () => {
   beforeEach(() => {
     vi.mocked(createDeal).mockClear();
+    vi.mocked(pipedrivePost).mockClear();
     process.env.PIPEDRIVE_PIPELINE_ID = '1';
     process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID = '2';
     vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ status: 'ok' }) })));
@@ -76,10 +79,34 @@ describe('POST /api/request-orders/create', () => {
     expect(deal.notes).toContain('variante 111887368');
   });
 
-  it('producto que ya no existe → 400 "Products unavailable" y no se crea negocio', async () => {
-    const res = await call({ ...base, items: [{ ...ar111, jumpsellerId: 2787870 }] });
+  it('el detalle de productos queda como nota del negocio en Pipedrive (con ids de Jumpseller)', async () => {
+    await call({ ...base, items: [ar111] });
+    const [path, body] = vi.mocked(pipedrivePost).mock.calls[0] as [string, { content: string; deal_id: number }];
+    expect(path).toBe('/notes');
+    expect(body.deal_id).toBe(999);
+    expect(body.content).toContain('Jumpseller 3305420');
+    expect(body.content).toContain('TOTAL CON IVA: 32400 CLP');
+  });
+
+  it('un producto que ya no existe NO pierde la solicitud: se crea el negocio y se marca para revisar', async () => {
+    const res = await call({ ...base, items: [{ ...ar111, jumpsellerId: 2787870, name: 'CAMPANA UFO 150W', unitPrice: 50000 }, ar111] });
+    expect(res.statusCode).toBe(201);
+    const deal = vi.mocked(createDeal).mock.calls[0][0];
+    expect(deal.quoteAmountClp).toBe(2 * 16200);
+    expect(deal.notes).toContain('REVISAR [AR111OPC] CAMPANA UFO 150W x2');
+    expect(deal.notes).toContain('precio por confirmar (el cliente vio 50000 CLP)');
+  });
+
+  it('bundle anterior (sin jumpsellerId, SKU base de BESTLED): se identifica por el nombre', async () => {
+    const old = { sku: 'APB120', name: 'ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08', quantity: 1, unitPrice: 162000, currency: 'CLP', lineTotal: 162000, url: '/producto/alumbrado-publico-bestled-120w-ip66-ik08', attributes: {} };
+    const res = await call({ ...base, items: [old] });
+    expect(res.statusCode).toBe(201);
+    expect(vi.mocked(createDeal).mock.calls[0][0].notes).toContain('Jumpseller 2301110');
+  });
+
+  it('cantidad inválida → 400 (validación)', async () => {
+    const res = await call({ ...base, items: [{ ...ar111, quantity: 1.5 }] });
     expect(res.statusCode).toBe(400);
-    expect(JSON.stringify(res.body)).toContain('Products unavailable');
     expect(createDeal).not.toHaveBeenCalled();
   });
 

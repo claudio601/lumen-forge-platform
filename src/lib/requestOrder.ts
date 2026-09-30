@@ -93,15 +93,28 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
     );
     const gross = variant?.price ?? product.price;
     const unitPrice = item.priceMode === 'neto' ? Math.round(gross / 1.19) : gross;
+    // Solo ids de variante que el producto tiene hoy (una variante vieja haría fallar el precio).
+    const validVariantIds = new Set(
+      [product.jumpseller_variant_id, ...(product.cctVariants ?? []).map((v) => v.jumpseller_variant_id)].filter(Boolean),
+    );
+    const keptVariantId = item.variantId && validVariantIds.has(item.variantId) ? item.variantId : undefined;
     const updated: RequestCartItem = {
       ...item,
       jumpsellerId: product.jumpseller_id,
-      variantId: variant?.jumpseller_variant_id ?? item.variantId ?? product.jumpseller_variant_id,
+      variantId: variant?.jumpseller_variant_id ?? keptVariantId ?? product.jumpseller_variant_id,
       name: product.name,
       unitPrice,
     };
+    if (updated.variantId === undefined) delete updated.variantId;
     if (unitPrice !== item.unitPrice) repriced++;
     if (JSON.stringify(updated) !== JSON.stringify(item)) changed = true;
+    // Al completar ids, una línea vieja puede quedar igual a otra nueva: se juntan.
+    const twin = next.find((i) => requestLineKey(i) === requestLineKey(updated));
+    if (twin) {
+      twin.quantity += updated.quantity;
+      changed = true;
+      continue;
+    }
     next.push(updated);
   }
   return { items: next, removed, repriced, changed };

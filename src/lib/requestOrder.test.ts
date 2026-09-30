@@ -34,6 +34,20 @@ describe('reconcileRequestItems: carritos guardados antes de una sincronización
     expect(r.items).toHaveLength(1);
   });
 
+  it('descarta un id de variante que el producto ya no tiene', () => {
+    const r = reconcileRequestItems([item({ variantId: 1 })], products);
+    expect(r.items[0].variantId).toBe(ar111.jumpseller_variant_id);
+  });
+
+  it('junta líneas que quedan iguales al completar ids (línea vieja + agregada después)', () => {
+    const v4000 = bestled.cctVariants!.find(v => v.kelvin === 4000)!;
+    const vieja = item({ productId: bestled.id, sku: v4000.sku, quantity: 2 });
+    const nueva = item({ productId: bestled.id, sku: v4000.sku, variantId: v4000.jumpseller_variant_id, quantity: 1 });
+    const r = reconcileRequestItems([vieja, nueva], products);
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0].quantity).toBe(3);
+  });
+
   it('un carrito al día no cambia', () => {
     const fresh = reconcileRequestItems([item({})], products).items;
     expect(reconcileRequestItems(fresh, products).changed).toBe(false);

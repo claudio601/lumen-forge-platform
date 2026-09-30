@@ -4,12 +4,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../_lib/crm/dedupe.js', () => ({
-  processQuoteToCrm: vi.fn(async () => ({ deal: { id: 1, status: 'created' } })),
+  processQuoteToCrm: vi.fn(async () => ({ deal: { dealId: 77, status: 'created' } })),
   buildSuccessResponse: vi.fn(() => ({ success: true })),
 }));
+vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(async () => ({ success: true })) }));
 
 import handler from './create';
 import { processQuoteToCrm } from '../_lib/crm/dedupe.js';
+import { pipedrivePost } from '../_lib/pipedrive/client.js';
 
 let ipSeq = 0;
 function call(body: unknown, headers: Record<string, string> = {}) {
@@ -35,6 +37,7 @@ const quote = (sourceSystem: string) => ({
 describe('POST /api/quotes/create', () => {
   beforeEach(() => {
     vi.mocked(processQuoteToCrm).mockClear();
+    vi.mocked(pipedrivePost).mockClear();
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
@@ -47,6 +50,20 @@ describe('POST /api/quotes/create', () => {
     expect(payload.products[0].unitPriceClp).toBe(16200);
     expect(payload.quoteAmountClp).toBe(3 * 16200);
     expect(payload.products[0]).not.toHaveProperty('jumpsellerId');
+    const [path, body] = vi.mocked(pipedrivePost).mock.calls[0] as [string, { content: string; deal_id: number }];
+    expect(path).toBe('/notes');
+    expect(body.deal_id).toBe(77);
+    expect(body.content).toContain('Jumpseller 3305420');
+  });
+
+  it('producto no identificado en modo empresa: el precio neto del sitio se lleva a CON IVA', async () => {
+    const q = quote('nuevo_elights');
+    q.products = [{ jumpsellerId: 1, sku: 'VIEJO', name: 'Retirado', quantity: 2, unitPriceClp: 10000 }] as typeof q.products;
+    await call(q);
+    const payload = vi.mocked(processQuoteToCrm).mock.calls[0][0] as { quoteAmountClp: number; products: { unitPriceClp: number }[] };
+    expect(payload.products[0].unitPriceClp).toBe(11900);
+    expect(payload.quoteAmountClp).toBe(23800);
+    expect((vi.mocked(pipedrivePost).mock.calls[0][1] as { content: string }).content).toContain('REVISAR [VIEJO]');
   });
 
   it('otras fuentes (integraciones con API key) no se modifican', async () => {

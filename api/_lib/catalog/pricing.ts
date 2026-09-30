@@ -16,6 +16,8 @@ export interface PricingInput {
   jumpsellerId?: unknown;
   variantId?: unknown;
   sku?: unknown;
+  /** Nombre que mostró el sitio: último recurso para identificar el producto (bundles viejos). */
+  name?: unknown;
   quantity?: unknown;
 }
 
@@ -29,12 +31,29 @@ export interface PricedLine {
   unitPrice: number;
   /** quantity × unitPrice, CON IVA (CLP). */
   lineTotal: number;
+  /** La variante enviada ya no existe: se usó el precio base del producto (revisar). */
+  variantUnknown?: boolean;
+}
+
+/** Línea que no se pudo identificar en el catálogo: NO se rechaza la solicitud. */
+export interface UnresolvedLine {
+  index: number;
+  sku: string;
+  name: string;
+  quantity: number;
+  reason: string;
 }
 
 export interface PricingResult {
+  /** Líneas con precio de catálogo (mismo orden que la entrada, sin las no identificadas). */
   lines: PricedLine[];
-  /** Suma CON IVA. */
+  /** Posición de cada línea con precio en la entrada. */
+  lineIndexes: number[];
+  /** Líneas que no se pudieron identificar: se informan para revisión, no bloquean. */
+  unresolved: UnresolvedLine[];
+  /** Suma CON IVA de las líneas con precio. */
   subtotal: number;
+  /** Errores de validación (cantidades inválidas): estos sí invalidan la solicitud. */
   errors: string[];
 }
 
@@ -61,14 +80,30 @@ function buildSkuLookup(index: Index): Map<string, { jumpsellerId: number; varia
 const positiveInt = (v: unknown): number | undefined =>
   typeof v === 'number' && Number.isInteger(v) && v > 0 ? v : typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : undefined;
 
+/** Nombre exacto → jumpseller_id, para nombres que usa un solo producto. */
+function buildNameLookup(index: Index): Map<string, number> {
+  const seen = new Map<string, number | null>();
+  for (const [id, entry] of Object.entries(index)) {
+    const key = entry.name.trim();
+    seen.set(key, seen.has(key) ? null : Number(id));
+  }
+  const out = new Map<string, number>();
+  for (const [name, id] of seen) if (id) out.set(name, id);
+  return out;
+}
+
 /**
- * Identifica el producto de cada línea: jumpsellerId (preferido); si falta (carritos
- * viejos), "JS-<id>" o un SKU que use un solo producto. Valida cantidad y variante y
- * calcula el precio CON IVA desde el índice.
+ * Identifica el producto de cada línea: jumpsellerId (preferido); si falta (carritos o
+ * bundles viejos), "JS-<id>", un SKU que use un solo producto o el nombre exacto.
+ * Calcula el precio CON IVA desde el índice. Una línea que no se puede identificar NO
+ * invalida la solicitud: queda en `unresolved` para que el vendedor la revise.
  */
 export function priceItems(items: readonly PricingInput[], index: Index = priceIndex): PricingResult {
   const skuLookup = buildSkuLookup(index);
+  const nameLookup = buildNameLookup(index);
   const lines: PricedLine[] = [];
+  const lineIndexes: number[] = [];
+  const unresolved: UnresolvedLine[] = [];
   const errors: string[] = [];
 
   items.forEach((item, i) => {
@@ -83,6 +118,8 @@ export function priceItems(items: readonly PricingInput[], index: Index = priceI
         variantId ??= hit.variantId;
       }
     }
+    const name = typeof item.name === 'string' ? item.name.trim() : '';
+    if (!jumpsellerId && name) jumpsellerId = nameLookup.get(name);
 
     const quantity = positiveInt(item.quantity);
     if (!quantity || quantity > MAX_QUANTITY) {
@@ -91,15 +128,13 @@ export function priceItems(items: readonly PricingInput[], index: Index = priceI
     }
     const entry = jumpsellerId ? index[String(jumpsellerId)] : undefined;
     if (!entry) {
-      errors.push(`items[${i}]: producto no disponible (${jumpsellerId ?? (sku || 'sin id')})`);
+      unresolved.push({ index: i, sku, name, quantity, reason: `producto no identificado (${jumpsellerId ?? (sku || 'sin id')})` });
       return;
     }
     const variant = variantId ? entry.variants[String(variantId)] : undefined;
-    if (variantId && !variant) {
-      errors.push(`items[${i}]: variante no disponible (${jumpsellerId}/${variantId})`);
-      return;
-    }
+    const variantUnknown = Boolean(variantId && !variant);
     const unitPrice = variant?.price ?? entry.price;
+    lineIndexes.push(i);
     lines.push({
       jumpsellerId: jumpsellerId!,
       ...(variant ? { variantId } : {}),
@@ -108,10 +143,11 @@ export function priceItems(items: readonly PricingInput[], index: Index = priceI
       quantity,
       unitPrice,
       lineTotal: unitPrice * quantity,
+      ...(variantUnknown ? { variantUnknown: true } : {}),
     });
   });
 
-  return { lines, subtotal: lines.reduce((s, l) => s + l.lineTotal, 0), errors };
+  return { lines, lineIndexes, unresolved, subtotal: lines.reduce((s, l) => s + l.lineTotal, 0), errors };
 }
 
 /** Precio neto (sin IVA) redondeado, para comparar con lo que mostró el sitio en modo B2B. */

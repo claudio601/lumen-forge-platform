@@ -6,9 +6,11 @@
 // Orden de ejecucion (CRITICO — no modificar):
 //   0. Rate limit (429), origen (403) y honeypot (200 sin crear nada)
 //   1. Validar payload  -> 400 si falla
-//   1b. Recalcular precios CON IVA desde el catálogo de Jumpseller -> 400 si hay
-//       productos que ya no existen. Los precios del navegador se ignoran.
-//   2. Crear deal en Pipedrive -> BLOQUEANTE. 502 si falla.
+//   1b. Recalcular precios CON IVA desde el catálogo de Jumpseller. Los precios del
+//       navegador se ignoran. Un producto que no se puede identificar NO rechaza la
+//       solicitud: se marca "REVISAR: precio por confirmar" (nunca se pierde un lead).
+//   2. Crear deal en Pipedrive -> BLOQUEANTE. 502 si falla. Luego una nota con el
+//      detalle de productos (no bloqueante): createDeal no guarda las notas.
 //   3. Enviar email GAS -> FIRE-AND-FORGET. Log warn si falla.
 //   4. Retornar 201 { success, requestReference, dealId }
 //
@@ -26,6 +28,7 @@ import { TIPO_SERVICIO } from '../_lib/crm/tipo-servicio.js';
 import type { QuotePayload, SourceSystem } from '../_lib/crm/types.js';
 import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } from '../_lib/auth.js';
 import { netOf, priceItems } from '../_lib/catalog/pricing.js';
+import { pipedrivePost } from '../_lib/pipedrive/client.js';
 
 const LOG = '[RequestOrder]';
 const ALLOWED_METHODS = ['POST'];
@@ -45,6 +48,8 @@ interface RequestOrderItem {
   lineTotal: number;
   /** Cómo veía el precio el cliente al agregarlo: 'neto' (modo empresa) o 'iva'. */
   priceMode?: 'neto' | 'iva';
+  /** Motivo por el que el vendedor debe revisar la línea (sin precio de catálogo, etc.). */
+  review?: string;
   url: string;
   attributes: {
     potencia?: string;
@@ -175,9 +180,14 @@ function buildNotes(p: RequestOrderPayload): string {
   lines.push('--- Items solicitados (precios CON IVA desde Jumpseller) ---');
   p.items.forEach((i) => {
     const cct = i.attributes?.colorLuz ? ` — ${i.attributes.colorLuz}` : '';
+    if (!i.jumpsellerId) {
+      lines.push(`  REVISAR [${i.sku || 'sin SKU'}] ${i.name}${cct} x${i.quantity} — ${i.review ?? 'precio por confirmar'}`);
+      return;
+    }
     lines.push(
       `  [${i.sku}] ${i.name}${cct} x${i.quantity} @ ${i.unitPrice} CLP = ${i.lineTotal} CLP` +
-        ` | Jumpseller ${i.jumpsellerId}${i.variantId ? ` variante ${i.variantId}` : ''}`
+        ` | Jumpseller ${i.jumpsellerId}${i.variantId ? ` variante ${i.variantId}` : ''}` +
+        (i.review ? ` — REVISAR: ${i.review}` : '')
     );
   });
   lines.push(`TOTAL CON IVA: ${p.subtotal} CLP`);
@@ -249,18 +259,30 @@ export default async function handler(
   // ── Paso 1b: Precios CON IVA desde el catálogo (se ignoran los del navegador) ──
   const pricing = priceItems(raw.items);
   if (pricing.errors.length) {
-    console.warn(`${LOG} Productos no disponibles | ref: ${requestReference}`, pricing.errors);
-    res.status(400).json({
-      success: false,
-      error: 'Products unavailable',
-      details: { errors: pricing.errors },
-    });
+    console.warn(`${LOG} Validacion FAIL (cantidades) | ref: ${requestReference}`, pricing.errors);
+    res.status(400).json({ success: false, error: 'Validation failed', details: { errors: pricing.errors } });
     return;
+  }
+  const priced = new Map(pricing.lineIndexes.map((idx, n) => [idx, pricing.lines[n]]));
+  const unresolved = new Map(pricing.unresolved.map((u) => [u.index, u]));
+  if (unresolved.size) {
+    console.warn(`${LOG} Productos sin precio de catálogo (se marcan para revisar) | ref: ${requestReference}`, pricing.unresolved);
   }
   const payload: RequestOrderPayload = {
     ...raw,
-    items: pricing.lines.map((line, idx) => {
-      const client = raw.items[idx];
+    items: raw.items.map((client, idx) => {
+      const base = {
+        currency: 'CLP' as const,
+        priceMode: client.priceMode,
+        url: client.url,
+        attributes: client.attributes ?? {},
+      };
+      const line = priced.get(idx);
+      if (!line) {
+        const u = unresolved.get(idx)!;
+        const shown = typeof client.unitPrice === 'number' ? ` (el cliente vio ${client.unitPrice} CLP${client.priceMode === 'neto' ? ' neto' : ''})` : '';
+        return { ...base, sku: u.sku, name: u.name || String(client.name ?? ''), quantity: u.quantity, unitPrice: 0, lineTotal: 0, review: `${u.reason}; precio por confirmar${shown}` };
+      }
       const shown = client.unitPrice;
       if (typeof shown === 'number' && shown !== line.unitPrice && shown !== netOf(line.unitPrice)) {
         console.warn(`${LOG} Precio del navegador distinto al del catálogo | ref: ${requestReference}`, {
@@ -270,12 +292,11 @@ export default async function handler(
           catalogo: line.unitPrice,
         });
       }
+      const { variantUnknown, ...rest } = line;
       return {
-        ...line,
-        currency: 'CLP' as const,
-        priceMode: client.priceMode,
-        url: client.url,
-        attributes: client.attributes ?? {},
+        ...rest,
+        ...base,
+        ...(variantUnknown ? { review: 'la variante enviada ya no existe en Jumpseller; se usó el precio base' } : {}),
       };
     }),
     subtotal: pricing.subtotal,
@@ -333,6 +354,16 @@ export default async function handler(
     }
 
     dealId = dealResult.dealId;
+
+    // createDeal no guarda las notas: el detalle de productos (con ids de Jumpseller para
+    // el link de pago) se agrega aparte. No bloquea: el deal ya existe.
+    if (dealResult.status === 'created') {
+      try {
+        await pipedrivePost('/notes', { content: buildNotes(payload), deal_id: dealId });
+      } catch (err) {
+        console.warn(`${LOG} Nota de productos en Pipedrive FAIL | dealId: ${dealId}`, err);
+      }
+    }
     console.log(
       `${LOG} Pipedrive createDeal OK | dealId: ${dealId} | score: ${score} | tier: ${priorityTier} | leadType: ${leadType}`
     );
@@ -376,10 +407,12 @@ async function sendGasEmail(
 ): Promise<void> {
   console.log(`${LOG} GAS email starting for ${payload.email} | ref: ${ref}`);
   const itemsText = payload.items
-    .map(
-      (i) =>
-        `\u2022 ${i.sku} \u2014 ${i.name} x${i.quantity} = ${formatCLP(i.lineTotal)} CLP con IVA` +
-        ` (Jumpseller ${i.jumpsellerId}${i.variantId ? `, variante ${i.variantId}` : ''})`
+    .map((i) =>
+      i.jumpsellerId
+        ? `\u2022 ${i.sku} \u2014 ${i.name} x${i.quantity} = ${formatCLP(i.lineTotal)} CLP con IVA` +
+          ` (Jumpseller ${i.jumpsellerId}${i.variantId ? `, variante ${i.variantId}` : ''})` +
+          (i.review ? ` \u2014 REVISAR: ${i.review}` : '')
+        : `\u2022 REVISAR ${i.sku || 'sin SKU'} \u2014 ${i.name} x${i.quantity} \u2014 ${i.review ?? 'precio por confirmar'}`
     )
     .join('\n');
 
