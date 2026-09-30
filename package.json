@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
+    "sync:catalog": "tsx scripts/sync-jumpseller.ts",
     "build": "npm run generate-sitemap && vite build",
     "build:dev": "npm run generate-sitemap && vite build --mode development",
     "lint": "eslint .",
