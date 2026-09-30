@@ -37,7 +37,9 @@ const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
 
                                 const activeFilterCount = selectedCategories.length + selectedWatts.length + selectedKelvin.length + selectedIP.length;
 
-                                  const currentPage = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+                                  // ?page inválido ('abc', '', '0') → página 1 (parseInt da NaN y Math.max(1, NaN) es NaN).
+  const rawPage = Number.parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = Number.isFinite(rawPage) && rawPage > 1 ? rawPage : 1;
 
                                     const goToPage = (page: number) => {
                                         setSearchParams(prev => {
@@ -90,6 +92,9 @@ const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
   useEffect(() => {
     if (prevFilterKey.current === filterKey) return;
     prevFilterKey.current = filterKey;
+    // Sin ?page no hay nada que borrar: navegar igual crearía una location nueva
+    // y RouteTracker enviaría un page_view duplicado a GA.
+    if (!searchParams.has('page')) return;
     setSearchParams(prev => {
       const next = new URLSearchParams(prev);
       next.delete('page');
@@ -106,6 +111,21 @@ const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
 
                                                                                                                                                                                                                                                                                                 const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
                                                                                                                                                                                                                                                                                                   const safePage = Math.min(currentPage, totalPages);
+
+  // Mantener la URL (y GA) alineada con lo que se muestra: ?page inválido o mayor
+  // que el total se corrige sin agregar una entrada al historial.
+  useEffect(() => {
+    const raw = searchParams.get('page');
+    if (raw === null) return;
+    const fixed = safePage > 1 ? String(safePage) : null;
+    if (raw === fixed) return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (fixed) next.set('page', fixed); else next.delete('page');
+      return next;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, safePage]);
                                                                                                                                                                                                                                                                                                     const pageStart = (safePage - 1) * PRODUCTS_PER_PAGE;
                                                                                                                                                                                                                                                                                                       const pageEnd = Math.min(pageStart + PRODUCTS_PER_PAGE, filtered.length);
                                                                                                                                                                                                                                                                                                         const paginated = filtered.slice(pageStart, pageEnd);
