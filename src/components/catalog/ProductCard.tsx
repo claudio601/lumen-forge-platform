@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import type { Product } from '@/data/catalog/types';
 import { PROJECT_CATEGORIES } from '@/data/catalog/categories.config';
 import { requestSku } from '@/lib/variantSku';
+import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
 import { useRequestCart } from '@/context/RequestCartContext';
 import { toast } from 'sonner';
@@ -23,7 +24,9 @@ const ProductCard = ({ product }: Props) => {
     const { addToQuote, formatDisplayPrice, priceLabel, isB2B, displayPrice } = useApp();
     const [imgError, setImgError] = useState(false);
 
-    const firstImage = product.images?.[0];
+    // Foto en tamaño tarjeta desde el CDN de Jumpseller (la original puede pesar varios MB).
+    const imageRef = product.imageRefs?.[0] ?? product.images?.[0];
+    const firstImage = jsImage(imageRef, 400);
     const showImage = firstImage && !imgError;
 
     // Precio congelado al momento de renderizar la tarjeta
@@ -36,7 +39,7 @@ const ProductCard = ({ product }: Props) => {
           unitPrice: frozenUnitPrice,
           // Fix 1: persistir el modo de precio al momento de agregar al carrito
           priceMode: (isB2B ? 'neto' : 'iva') as 'neto' | 'iva',
-          image: firstImage,
+          image: jsImage(imageRef, 200, 'thumb'),
           url: `/producto/${product.id}`,
           attributes: {
                   potencia: product.watts > 0 ? `${product.watts}W` : undefined,
@@ -50,8 +53,12 @@ const ProductCard = ({ product }: Props) => {
                           {showImage ? (
                         <img
                                         src={firstImage}
+                                        srcSet={jsSrcSet(imageRef, [400, 800])}
+                                        sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+                                        width={400}
+                                        height={400}
                                         alt={product.name}
-                                        onError={() => setImgError(true)}
+                                        onError={fallbackToOriginal(imageRef, () => setImgError(true))}
                                         className="w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-300"
                                         loading="lazy"
                                       />

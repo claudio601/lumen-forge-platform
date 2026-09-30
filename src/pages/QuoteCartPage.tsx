@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp, quoteLineKey } from '@/context/AppContext';
 import { requestSku } from '@/lib/variantSku';
+import { jsImage } from '@/lib/jumpsellerImage';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -172,7 +173,7 @@ const QuoteCartPage = () => {
           <div key={key} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
             <div className="flex items-center gap-3">
               <img
-                src={item.product.image}
+                src={jsImage(item.product.imageRefs?.[0] ?? item.product.image, 200, 'thumb')}
                 alt={item.product.name}
                 className="h-10 w-10 object-contain rounded-lg bg-surface"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
