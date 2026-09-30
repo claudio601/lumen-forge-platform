@@ -1,0 +1,123 @@
+[
+ {
+  "category": {
+   "id": 285715,
+   "name": "Ofertas Flash",
+   "description": null,
+   "images": [],
+   "parent_id": null,
+   "permalink": "ofertas_flash",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 286969,
+   "name": "PANEL LED",
+   "description": null,
+   "images": [],
+   "parent_id": null,
+   "permalink": "iluminacion_interior",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 286973,
+   "name": "Dicroico",
+   "description": null,
+   "images": [],
+   "parent_id": 286969,
+   "permalink": "iluminacion-interior/dicroico",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 286980,
+   "name": "PROYECTOR LED",
+   "description": null,
+   "images": [],
+   "parent_id": null,
+   "permalink": "proyector_led",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 286986,
+   "name": "Antivandálico",
+   "description": null,
+   "images": [],
+   "parent_id": 286980,
+   "permalink": "proyector-led/antivandalico",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 286996,
+   "name": "ILUMINACIÓN EXTERIOR",
+   "description": null,
+   "images": [],
+   "parent_id": null,
+   "permalink": "iluminacion_exterior",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 287000,
+   "name": "Canoas",
+   "description": null,
+   "images": [],
+   "parent_id": 286996,
+   "permalink": "ilumin-exterior/canoas",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 380811,
+   "name": "SOLAR",
+   "description": null,
+   "images": [],
+   "parent_id": null,
+   "permalink": "solar",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 389037,
+   "name": "ALUMBRADO PÚBLICO LED SOLAR",
+   "description": null,
+   "images": [],
+   "parent_id": 380811,
+   "permalink": "alumbrado-publico-solar",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 383327,
+   "name": "ALUMBRADO PÚBLICO",
+   "description": null,
+   "images": [],
+   "parent_id": null,
+   "permalink": "alumbrado-publico",
+   "products": []
+  }
+ },
+ {
+  "category": {
+   "id": 411317,
+   "name": "Bestled",
+   "description": null,
+   "images": [],
+   "parent_id": 383327,
+   "permalink": "alumbrado-publico/bestled",
+   "products": []
+  }
+ }
+]

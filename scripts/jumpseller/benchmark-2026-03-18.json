@@ -1,0 +1,55 @@
+{
+  "_nota": "Precios ajustados a mano en src/data/products.ts el 2026-03-18 (commit 69ec265, 'aligned with market benchmark') y nunca cargados en Jumpseller. El informe de sincronización los muestra para que el dueño decida si actualizarlos en Jumpseller.",
+  "prices": [
+    {
+      "jumpseller_id": 2301098,
+      "name": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
+      "price": 105000
+    },
+    {
+      "jumpseller_id": 2301110,
+      "name": "ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08",
+      "price": 162000
+    },
+    {
+      "jumpseller_id": 15021313,
+      "name": "ALUMBRADO PÚBLICO BESTLED 250W IP66 IK08",
+      "price": 245000
+    },
+    {
+      "jumpseller_id": 4320902,
+      "name": "ALUMBRADO PÚBLICO MINI CROSS 60W IP66 IK08",
+      "price": 115000
+    },
+    {
+      "jumpseller_id": 3192973,
+      "name": "SEÑALETICA DE EMERGENCIA LED SALIDA 3W 4 HRS AUTONOMÍA",
+      "price": 16900
+    },
+    {
+      "jumpseller_id": 3433454,
+      "name": "EQUIPO LED DE EMERGENCIA 2*1.2W",
+      "price": 12900
+    },
+    {
+      "jumpseller_id": 3381394,
+      "name": "KIT DE EMERGENCIA LED 20W 90 MINUTOS AUTONOMIA",
+      "price": 18500
+    },
+    {
+      "jumpseller_id": 24031164,
+      "name": "CAMPANA LED UFO NF8 100W 110LM/W IP65",
+      "price": 22000
+    },
+    {
+      "jumpseller_id": 33554875,
+      "name": "CAMPANA LED UFO NF7 100W 120LM/W IP65",
+      "price": 24000
+    },
+    {
+      "jumpseller_id": 33736073,
+      "name": "CAMPANA LED UFO NF9 100W 110LM/W IP65 11.000 Lm.",
+      "price": 22000
+    }
+  ]
+}

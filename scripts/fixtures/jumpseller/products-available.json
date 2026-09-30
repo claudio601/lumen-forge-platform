@@ -1,0 +1,407 @@
+[
+ {
+  "product": {
+   "id": 2301098,
+   "name": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
+   "page_title": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": 12345,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": "JIE",
+   "barcode": null,
+   "featured": false,
+   "status": "available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 383327,
+     "name": "ALUMBRADO PÚBLICO",
+     "description": null,
+     "parent_id": null
+    },
+    {
+     "id": 411317,
+     "name": "Bestled",
+     "description": null,
+     "parent_id": 383327
+    }
+   ],
+   "images": [
+    {
+     "id": 7785929,
+     "url": "https://images.jumpseller.com/store/elights-cl/2301098/02-ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159",
+     "position": 2
+    },
+    {
+     "id": 7785930,
+     "url": "https://images.jumpseller.com/store/elights-cl/2301098/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159",
+     "position": 1
+    }
+   ],
+   "variants": [
+    {
+     "id": 95224064,
+     "position": 2,
+     "price": 108500.0,
+     "sku": "APB40N",
+     "barcode": null,
+     "stock": 0,
+     "stock_unlimited": true,
+     "options": [
+      {
+       "product_option_id": 1149322,
+       "product_option_value_id": 95224064,
+       "option_type": "option",
+       "name": "Color de Temperatura",
+       "value": "Luz Neutra - 4000K ",
+       "custom": null
+      }
+     ],
+     "image": null,
+     "cost_per_item": 55555,
+     "compare_at_price": null,
+     "discount": "0.0"
+    },
+    {
+     "id": 95224065,
+     "position": 3,
+     "price": 108500.0,
+     "sku": "APB40F",
+     "barcode": null,
+     "stock": 0,
+     "stock_unlimited": true,
+     "options": [
+      {
+       "product_option_id": 1149322,
+       "product_option_value_id": 95224065,
+       "option_type": "option",
+       "name": "Color de Temperatura",
+       "value": "Luz Fría - 5000K",
+       "custom": null
+      }
+     ],
+     "image": null,
+     "cost_per_item": null,
+     "compare_at_price": null,
+     "discount": "0.0"
+    },
+    {
+     "id": 111887367,
+     "position": 0,
+     "price": 119400.0,
+     "sku": "APB401",
+     "barcode": null,
+     "stock": 0,
+     "stock_unlimited": true,
+     "options": [
+      {
+       "product_option_id": 1149322,
+       "product_option_value_id": 111887367,
+       "option_type": "option",
+       "name": "Color de Temperatura",
+       "value": "Luz Cálida - 2200K - 1% Luz Azul",
+       "custom": null
+      }
+     ],
+     "image": null,
+     "cost_per_item": null,
+     "compare_at_price": null,
+     "discount": "0.0"
+    },
+    {
+     "id": 111887368,
+     "position": 1,
+     "price": 119400.0,
+     "sku": "APB407",
+     "barcode": null,
+     "stock": 0,
+     "stock_unlimited": true,
+     "options": [
+      {
+       "product_option_id": 1149322,
+       "product_option_value_id": 111887368,
+       "option_type": "option",
+       "name": "Color de Temperatura",
+       "value": "Luz Cálida - 2700K - 7% Luz Azul",
+       "custom": null
+      }
+     ],
+     "image": null,
+     "cost_per_item": null,
+     "compare_at_price": null,
+     "discount": "0.0"
+    }
+   ],
+   "fields": [],
+   "price": 108500.0,
+   "permalink": "alumbrado-publico-bestled-40w-ip66-ik08",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 2502343,
+   "name": "Foco Dicroico LED Embutido SMD 1W Niquel",
+   "page_title": "Foco Dicroico LED Embutido SMD 1W Niquel",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": "JIE",
+   "barcode": null,
+   "featured": false,
+   "status": "available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 286973,
+     "name": "Dicroico",
+     "description": null,
+     "parent_id": 286969
+    }
+   ],
+   "images": [
+    {
+     "id": 4415647,
+     "url": "https://images.jumpseller.com/store/elights-cl/2502343/Foco_Dicroico.png?1653224159",
+     "position": 1
+    }
+   ],
+   "variants": [],
+   "fields": [],
+   "price": 2490.0,
+   "permalink": "foco-dicroico-led-embutido-smd-1w-niquel",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 2254290,
+   "name": "PROYECTOR LED ANTIVANDÁLICO 200W IP66   ",
+   "page_title": "PROYECTOR LED ANTIVANDÁLICO 200W IP66   ",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": "​CHIPX200﻿ ",
+   "brand": "JIE",
+   "barcode": null,
+   "featured": false,
+   "status": "available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 286986,
+     "name": "Antivandálico",
+     "description": null,
+     "parent_id": 286980
+    }
+   ],
+   "images": [
+    {
+     "id": 3000001,
+     "url": "https://images.jumpseller.com/store/elights-cl/2254290/Antivandalico-200W.png?1653224159",
+     "position": 1
+    }
+   ],
+   "variants": [],
+   "fields": [],
+   "price": 62400.0,
+   "permalink": "proyector-led-antivandalico-200w-ip66",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 14582065,
+   "name": "ALUMBRADO PÚBLICO SOLAR FLYHAWK 300W",
+   "page_title": "ALUMBRADO PÚBLICO SOLAR FLYHAWK 300W",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": "JIE",
+   "barcode": null,
+   "featured": true,
+   "status": "available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 380811,
+     "name": "SOLAR",
+     "description": null,
+     "parent_id": null
+    },
+    {
+     "id": 389037,
+     "name": "ALUMBRADO PÚBLICO LED SOLAR",
+     "description": null,
+     "parent_id": 380811
+    },
+    {
+     "id": 383327,
+     "name": "ALUMBRADO PÚBLICO",
+     "description": null,
+     "parent_id": null
+    }
+   ],
+   "images": [
+    {
+     "id": 60087097,
+     "url": "https://images.jumpseller.com/store/elights-cl/14582065/FLYHAWK.png?1653224159",
+     "position": 1
+    }
+   ],
+   "variants": [],
+   "fields": [],
+   "price": 389000.0,
+   "permalink": "alumbrado-publico-solar-flyhawk-300w",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 34540602,
+   "name": "PRODUCTO TEST CHECKOUT",
+   "page_title": "PRODUCTO TEST CHECKOUT",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": null,
+   "barcode": null,
+   "featured": false,
+   "status": "available",
+   "quotable": true,
+   "categories": [],
+   "images": [],
+   "variants": [],
+   "fields": [],
+   "price": 1000.0,
+   "permalink": "producto-test-checkout",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 34549999,
+   "name": "Producto test checkout 2",
+   "page_title": "Producto test checkout 2",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": "JIE",
+   "barcode": null,
+   "featured": false,
+   "status": "available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 286969,
+     "name": "PANEL LED",
+     "description": null,
+     "parent_id": null
+    }
+   ],
+   "images": [],
+   "variants": [],
+   "fields": [],
+   "price": 1000.0,
+   "permalink": "producto-test-checkout-9",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 2506956,
+   "name": "CANOA LED 18W",
+   "page_title": "CANOA LED 18W",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": "JIE",
+   "barcode": null,
+   "featured": false,
+   "status": "not-available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 287000,
+     "name": "Canoas",
+     "description": null,
+     "parent_id": 286996
+    }
+   ],
+   "images": [],
+   "variants": [],
+   "fields": [],
+   "price": 9900.0,
+   "permalink": "canoa-led-18w",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ },
+ {
+  "product": {
+   "id": 2499415,
+   "name": "PANEL OFERTA FLASH",
+   "page_title": "PANEL OFERTA FLASH",
+   "description": "<p>Descripción HTML que nunca debe copiarse</p>",
+   "meta_description": "Pide tu cotización rápida ahora: ventas@elights.cl",
+   "cost_per_item": null,
+   "compare_at_price": null,
+   "stock": 0,
+   "stock_unlimited": true,
+   "sku": null,
+   "brand": "JIE",
+   "barcode": null,
+   "featured": false,
+   "status": "available",
+   "quotable": true,
+   "categories": [
+    {
+     "id": 285715,
+     "name": "Ofertas Flash",
+     "description": null,
+     "parent_id": null
+    }
+   ],
+   "images": [],
+   "variants": [],
+   "fields": [],
+   "price": 4990.0,
+   "permalink": "panel-oferta-flash",
+   "discount": "0.0",
+   "currency": "CLP"
+  }
+ }
+]

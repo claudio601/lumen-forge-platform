@@ -1,0 +1,290 @@
+// scripts/sync-jumpseller.ts
+// Sincroniza el catálogo del sitio con Jumpseller (fuente única de precios, nombres,
+// fotos, categorías y productos activos). Solo LEE de Jumpseller.
+//
+//   npm run sync:catalog                      # simulación: informe, sin tocar archivos
+//   npm run sync:catalog -- --write           # escribe los *.generated.ts
+//   npm run sync:catalog -- --baseline legacy # compara contra src/data/products.ts
+//   npm run sync:catalog -- --from-dir <dir>  # usa páginas guardadas, sin llamar a la API
+//   npm run sync:catalog -- --save-raw <dir>  # guarda las respuestas crudas (dir ignorado por git)
+//
+// Credenciales: JUMPSELLER_LOGIN y JUMPSELLER_TOKEN en el entorno (GitHub Secrets) o
+// en .env.local. Nunca se imprimen.
+//
+// Códigos de salida: 0 ok · 1 validación o resguardo fallido (no se escribe nada)
+//                    2 uso incorrecto · 3 credenciales o error de la API
+
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
+import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
+import { normalizeCatalog } from './jumpseller/normalize';
+import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
+import {
+  OUTPUT_PATHS,
+  findForbiddenKeys,
+  renderCategoriesFile,
+  renderPriceIndexFile,
+  renderSnapshotFile,
+  snapshotHash,
+  writeFilesAtomically,
+} from './jumpseller/write';
+import {
+  IGNORED_JUMPSELLER_CATEGORY_IDS,
+  JUMPSELLER_TOP_CATEGORY_TO_SLUG,
+} from '../src/data/catalog/categories.config';
+
+export const MAX_DROP = 0.15;
+const REPORT_DIR = 'reports/jumpseller-sync';
+
+export interface SyncOptions {
+  argv: string[];
+  env: Record<string, string | undefined>;
+  /** Raíz del repo: se leen .env.local y config, y se escriben las salidas relativas a ella. */
+  root: string;
+  log?: (msg: string) => void;
+  fetchImpl?: FetchLike;
+  sleep?: (ms: number) => Promise<void>;
+  loadLegacyBaseline?: () => Promise<BaselineEntry[]>;
+}
+
+interface Args {
+  write: boolean;
+  baseline?: 'legacy' | 'snapshot';
+  fromDir?: string;
+  saveRaw?: string;
+}
+
+function parseArgs(argv: string[]): Args | string {
+  const args: Args = { write: false };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--write') args.write = true;
+    else if (a === '--baseline') {
+      const v = argv[++i];
+      if (v !== 'legacy' && v !== 'snapshot') return `--baseline debe ser "legacy" o "snapshot"`;
+      args.baseline = v;
+    } else if (a === '--from-dir') {
+      if (!argv[i + 1]) return '--from-dir necesita una carpeta';
+      args.fromDir = argv[++i];
+    } else if (a === '--save-raw') {
+      if (!argv[i + 1]) return '--save-raw necesita una carpeta';
+      args.saveRaw = argv[++i];
+    } else return `Opción desconocida: ${a}`;
+  }
+  return args;
+}
+
+/** Lee solo JUMPSELLER_LOGIN/JUMPSELLER_TOKEN de .env.local si no vienen en el entorno. */
+function readCredentials(root: string, env: SyncOptions['env']): { login?: string; token?: string } {
+  let login = env.JUMPSELLER_LOGIN;
+  let token = env.JUMPSELLER_TOKEN;
+  const file = join(root, '.env.local');
+  if ((!login || !token) && existsSync(file)) {
+    for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*(?:export\s+)?(JUMPSELLER_LOGIN|JUMPSELLER_TOKEN)\s*=\s*(.*)\s*$/);
+      if (!m) continue;
+      const value = m[2].replace(/^(['"])(.*)\1$/, '$2').trim();
+      if (m[1] === 'JUMPSELLER_LOGIN' && !login) login = value;
+      if (m[1] === 'JUMPSELLER_TOKEN' && !token) token = value;
+    }
+  }
+  return { login: login || undefined, token: token || undefined };
+}
+
+function unwrapAll(items: unknown[], key: string): unknown[] {
+  return items.map(i => ((i as Record<string, unknown>)?.[key] ?? i));
+}
+
+function readRawDir(dir: string) {
+  const files = readdirSync(dir).sort();
+  const load = (prefix: string, key: string) =>
+    files
+      .filter(f => f.startsWith(prefix) && f.endsWith('.json'))
+      .flatMap(f => unwrapAll(JSON.parse(readFileSync(join(dir, f), 'utf8')) as unknown[], key));
+  const countFile = join(dir, 'count.json');
+  const count = existsSync(countFile) ? Number((JSON.parse(readFileSync(countFile, 'utf8')) as { count: unknown }).count) : undefined;
+  return { products: load('products', 'product'), categories: load('categories', 'category'), count };
+}
+
+async function defaultLegacyBaseline(): Promise<BaselineEntry[]> {
+  const { products } = await import('../src/data/products');
+  return products.map(p => ({ jumpseller_id: p.jumpseller_id, name: p.name, price: p.price }));
+}
+
+async function loadSnapshotBaseline(root: string): Promise<BaselineEntry[] | null> {
+  const file = join(root, OUTPUT_PATHS.snapshot);
+  if (!existsSync(file)) return null;
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { jumpsellerSnapshot: BaselineEntry[] };
+  return mod.jumpsellerSnapshot.map(p => ({ jumpseller_id: p.jumpseller_id, name: p.name, price: p.price }));
+}
+
+function readJson<T>(root: string, rel: string): T {
+  return JSON.parse(readFileSync(join(root, rel), 'utf8')) as T;
+}
+
+export async function runSync(opts: SyncOptions): Promise<number> {
+  const log = opts.log ?? (msg => console.log(msg));
+  const parsed = parseArgs(opts.argv);
+  if (typeof parsed === 'string') {
+    log(`Error: ${parsed}`);
+    return 2;
+  }
+  const args = parsed;
+  const root = opts.root;
+
+  // 1. Obtener datos crudos
+  let rawProducts: unknown[];
+  let rawCategories: unknown[];
+  let reportedCount: number | undefined;
+  if (args.fromDir) {
+    const raw = readRawDir(resolve(root, args.fromDir));
+    rawProducts = raw.products;
+    rawCategories = raw.categories;
+    reportedCount = raw.count;
+    log(`Leyendo páginas guardadas en ${args.fromDir}`);
+  } else {
+    const { login, token } = readCredentials(root, opts.env);
+    const missing = [!login && 'JUMPSELLER_LOGIN', !token && 'JUMPSELLER_TOKEN'].filter(Boolean);
+    if (missing.length) {
+      log(`Error: falta ${missing.join(' y ')} (en .env.local o en las variables de entorno).`);
+      return 3;
+    }
+    try {
+      const client = createJumpsellerClient({ login: login!, token: token!, fetchImpl: opts.fetchImpl, sleep: opts.sleep });
+      rawProducts = await client.fetchAvailableProducts();
+      reportedCount = await client.countAvailableProducts();
+      rawCategories = await client.fetchCategories();
+    } catch (err) {
+      if (err instanceof JumpsellerApiError) {
+        log(`Error de Jumpseller: ${err.message}`);
+        return err.kind === 'shape' ? 1 : 3;
+      }
+      log('Error inesperado al consultar Jumpseller.');
+      return 3;
+    }
+    log(`Jumpseller: ${rawProducts.length} productos disponibles, ${rawCategories.length} categorías.`);
+    if (args.saveRaw) {
+      const dir = resolve(root, args.saveRaw);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, 'products-available.json'), JSON.stringify(rawProducts.map(product => ({ product }))), 'utf8');
+      writeFileSync(join(dir, 'categories.json'), JSON.stringify(rawCategories.map(category => ({ category }))), 'utf8');
+      writeFileSync(join(dir, 'count.json'), JSON.stringify({ count: reportedCount }), 'utf8');
+    }
+  }
+
+  const abort = (msg: string) => {
+    log(`ABORTADO: ${msg}`);
+    log('No se escribió ningún archivo.');
+    return 1;
+  };
+
+  // 2. Validar
+  const products = validateList(rawProductSchema, rawProducts);
+  const categories = validateList(rawCategorySchema, rawCategories);
+  const issues = [...products.issues, ...categories.issues];
+  if (issues.length) {
+    return abort(
+      `${issues.length} registro(s) con formato inesperado: ` +
+        issues.slice(0, 10).map(i => `id ${String(i.id)} (${i.message})`).join('; '),
+    );
+  }
+  if (products.valid.length === 0) return abort('Jumpseller no devolvió productos.');
+  if (reportedCount !== undefined && reportedCount !== products.valid.length) {
+    return abort(`Jumpseller informa ${reportedCount} productos disponibles pero se recibieron ${products.valid.length}.`);
+  }
+
+  // 3. Normalizar
+  const denylist = readJson<{ ids: number[] }>(root, 'scripts/jumpseller/denylist.json').ids;
+  const result = normalizeCatalog(products.valid, categories.valid, {
+    topCategoryToSlug: JUMPSELLER_TOP_CATEGORY_TO_SLUG,
+    ignoredTopCategoryIds: IGNORED_JUMPSELLER_CATEGORY_IDS,
+    denylist,
+  });
+  if (result.unmappedTopCategories.length) {
+    return abort(
+      'categorías principales de Jumpseller sin mapear en src/data/catalog/categories.config.ts: ' +
+        result.unmappedTopCategories.map(c => `${c.id} "${c.name}" (${c.productIds.length} productos)`).join('; '),
+    );
+  }
+  const next = result.products;
+  if (next.length === 0) return abort('ningún producto quedó publicable después de las exclusiones.');
+  const badPrices = next.filter(p => !(p.price > 0) || p.variants.some(v => !(v.price > 0)));
+  if (badPrices.length) {
+    return abort(`precio 0 o inválido en: ${badPrices.map(p => `${p.jumpseller_id} ${p.name}`).join('; ')}`);
+  }
+
+  // 4. Línea base y resguardo de caída
+  const snapshotBaseline = args.baseline === 'legacy' ? null : await loadSnapshotBaseline(root);
+  let baseline: BaselineEntry[];
+  let baselineLabel: string;
+  if (snapshotBaseline) {
+    baseline = snapshotBaseline;
+    baselineLabel = 'snapshot anterior';
+  } else {
+    if (args.baseline === 'snapshot') return abort('no existe un snapshot anterior (usa --baseline legacy).');
+    baseline = await (opts.loadLegacyBaseline ?? defaultLegacyBaseline)();
+    baselineLabel = 'catálogo legado (src/data/products.ts)';
+  }
+  if (next.length < baseline.length * (1 - MAX_DROP)) {
+    return abort(
+      `quedarían ${next.length} productos, ${Math.round((1 - next.length / baseline.length) * 100)}% menos que antes (${baseline.length}). ` +
+        `Máximo permitido: ${MAX_DROP * 100}%.`,
+    );
+  }
+
+  // 5. Generar archivos y verificar que no filtren campos prohibidos
+  const hash = snapshotHash(next);
+  const files = {
+    [OUTPUT_PATHS.snapshot]: renderSnapshotFile(next, hash),
+    [OUTPUT_PATHS.categories]: renderCategoriesFile(next, hash),
+    [OUTPUT_PATHS.priceIndex]: renderPriceIndexFile(next, hash),
+  };
+  const forbidden = findForbiddenKeys(Object.values(files));
+  if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
+
+  // 6. Informe (reports/ está en .gitignore)
+  const diff = diffCatalog(baseline, next, baselineLabel);
+  const benchmark = readJson<{ prices: BenchmarkPrice[] }>(root, 'scripts/jumpseller/benchmark-2026-03-18.json').prices;
+  const markdown = renderDiffMarkdown(diff, { snapshotHash: hash, excluded: result.excluded, benchmark, next });
+  const summary = {
+    snapshotHash: hash,
+    baseline: baselineLabel,
+    products: next.length,
+    previousProducts: baseline.length,
+    priceChanges: diff.priceChanges.length,
+    flaggedPriceChanges: diff.priceChanges.filter(c => c.flagged).map(c => c.jumpseller_id),
+    added: diff.added.map(a => a.jumpseller_id),
+    removed: diff.removed.map(r => r.jumpseller_id),
+    renamed: diff.renamed.map(r => r.jumpseller_id),
+    excluded: result.excluded,
+    wrote: args.write,
+  };
+  mkdirSync(join(root, REPORT_DIR), { recursive: true });
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), markdown + '\n', 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
+
+  // 7. Escribir (solo con --write)
+  if (args.write) writeFilesAtomically(root, files);
+
+  log(
+    `Snapshot ${hash}: ${next.length} productos (antes ${baseline.length}) · ` +
+      `${diff.priceChanges.length} cambios de precio · ${diff.added.length} nuevos · ` +
+      `${diff.removed.length} salen · ${result.excluded.length} excluidos.`,
+  );
+  log(`Informe: ${REPORT_DIR}/diff.md`);
+  log(args.write ? 'Archivos generados actualizados.' : 'Simulación: no se modificó ningún archivo del sitio (usa --write).');
+  return 0;
+}
+
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (isMain) {
+  runSync({ argv: process.argv.slice(2), env: process.env, root: process.cwd() }).then(
+    code => process.exit(code),
+    () => {
+      console.log('Error inesperado.');
+      process.exit(1);
+    },
+  );
+}
