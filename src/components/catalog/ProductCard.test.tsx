@@ -31,8 +31,9 @@ describe('ProductCard: nunca muestra stock (modelo cotización)', () => {
     });
   }
 
-  it('no ofrece comprar ni agregar al carro', () => {
-    const { container } = renderCard(base);
-    expect(container.textContent).not.toMatch(/comprar|agregar al carro/i);
+  it('los CTA son "Solicitar" (pedido) y "Cotizar": no hay compra directa', () => {
+    renderCard(base);
+    expect(screen.getByRole('button', { name: /^solicitar$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cotizar/i })).toBeInTheDocument();
   });
 });

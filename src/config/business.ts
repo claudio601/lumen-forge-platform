@@ -68,8 +68,8 @@ export const trustClaims = {
     desc: 'Amplia variedad de productos técnicos con reposición continua. Consulta disponibilidad antes de grandes proyectos.',
   },
   dispatch: {
-    title: 'Despacho en 24–48 h hábiles',
-    desc: 'Despachamos en hasta 2 días hábiles, muchas veces el mismo día. Entrega directa con camiones propios en Provincia de Santiago; a regiones, vía operador logístico.',
+    title: 'Despacho en hasta 2 días hábiles',
+    desc: 'Despachamos en hasta 2 días hábiles, y a veces el mismo día. Entrega directa con camiones propios en Provincia de Santiago; a regiones, vía operador logístico.',
   },
   certifications: {
     title: 'Productos certificados',

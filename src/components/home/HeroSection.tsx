@@ -58,9 +58,9 @@ const HeroSection = () => (
 
           <div className="flex flex-wrap gap-5">
             {[
-              { icon: Truck, text: 'Envío gratis +$250k' },
+              { icon: Truck, text: 'Envío gratis Santiago +$250k' },
               { icon: Shield, text: 'Garantía de fábrica' },
-              { icon: Zap, text: 'Despacho 24–48 h hábiles' },
+              { icon: Zap, text: 'Despacho en hasta 2 días hábiles' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-gray-300 text-sm">
                 <Icon className="h-3.5 w-3.5 text-primary" />
