@@ -8,13 +8,15 @@ import { Button } from '@/components/ui/button';
 const PRODUCTS_PER_PAGE = 24;
 
 const wattageRanges = [
-  { label: '0–10W', min: 0, max: 10 },
-    { label: '11–30W', min: 11, max: 30 },
-      { label: '31–60W', min: 31, max: 60 },
-        { label: '61–100W', min: 61, max: 100 },
-          { label: '101–200W', min: 101, max: 200 },
-          ];
-          const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
+  { label: 'Hasta 10W', min: 1, max: 10 },
+  { label: '11–30W', min: 11, max: 30 },
+  { label: '31–60W', min: 31, max: 60 },
+  { label: '61–100W', min: 61, max: 100 },
+  { label: '101–200W', min: 101, max: 200 },
+  { label: '201–500W', min: 201, max: 500 },
+  { label: 'Más de 500W', min: 501, max: Infinity },
+];
+const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
           const ipOptions = ['IP20', 'IP44', 'IP65', 'IP66', 'IP67'];
 
           function toggle<T>(arr: T[], val: T): T[] {
@@ -35,7 +37,9 @@ const wattageRanges = [
 
                                 const activeFilterCount = selectedCategories.length + selectedWatts.length + selectedKelvin.length + selectedIP.length;
 
-                                  const currentPage = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+                                  // ?page inválido ('abc', '', '0') → página 1 (parseInt da NaN y Math.max(1, NaN) es NaN).
+  const rawPage = Number.parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = Number.isFinite(rawPage) && rawPage > 1 ? rawPage : 1;
 
                                     const goToPage = (page: number) => {
                                         setSearchParams(prev => {
@@ -69,7 +73,7 @@ const wattageRanges = [
                                                                                                                                                                     result = result.filter(p =>
                                                                                                                                                                             selectedWatts.some(label => {
                                                                                                                                                                                       const range = wattageRanges.find(r => r.label === label);
-                                                                                                                                                                                                return range && p.watts >= range.min && p.watts <= range.max;
+                                                                                                                                                                                                return range && p.watts > 0 && p.watts >= range.min && p.watts <= range.max;
                                                                                                                                                                                                         })
                                                                                                                                                                                                               );
                                                                                                                                                                                                                   }
@@ -81,14 +85,23 @@ const wattageRanges = [
                                                                                                                                                                                                                                           return result;
                                                                                                                                                                                                                                             }, [categorySlug, selectedCategories, selectedWatts, selectedKelvin, selectedIP, sortBy]);
 
-                                                                                                                                                                                                                                              useEffect(() => {
-                                                                                                                                                                                                                                                  setSearchParams(prev => {
-                                                                                                                                                                                                                                                        const next = new URLSearchParams(prev);
-                                                                                                                                                                                                                                                              next.delete('page');
-                                                                                                                                                                                                                                                                    return next;
-                                                                                                                                                                                                                                                                        }, { replace: true });
-                                                                                                                                                                                                                                                                          // eslint-disable-next-line react-hooks/exhaustive-deps
-                                                                                                                                                                                                                                                                            }, [selectedCategories, selectedWatts, selectedKelvin, selectedIP, sortBy, categorySlug]);
+  // Volver a la página 1 solo cuando cambian los filtros u orden, no en la carga
+  // inicial: así /catalogo/x?page=2 (enlace directo o botón Atrás) se respeta.
+  const filterKey = JSON.stringify([categorySlug, selectedCategories, selectedWatts, selectedKelvin, selectedIP, sortBy]);
+  const prevFilterKey = useRef(filterKey);
+  useEffect(() => {
+    if (prevFilterKey.current === filterKey) return;
+    prevFilterKey.current = filterKey;
+    // Sin ?page no hay nada que borrar: navegar igual crearía una location nueva
+    // y RouteTracker enviaría un page_view duplicado a GA.
+    if (!searchParams.has('page')) return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete('page');
+      return next;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterKey]);
 
                                                                                                                                                                                                                                                                               useEffect(() => {
                                                                                                                                                                                                                                                                                   if (currentPage > 1) {
@@ -98,6 +111,21 @@ const wattageRanges = [
 
                                                                                                                                                                                                                                                                                                 const totalPages = Math.max(1, Math.ceil(filtered.length / PRODUCTS_PER_PAGE));
                                                                                                                                                                                                                                                                                                   const safePage = Math.min(currentPage, totalPages);
+
+  // Mantener la URL (y GA) alineada con lo que se muestra: ?page inválido o mayor
+  // que el total se corrige sin agregar una entrada al historial.
+  useEffect(() => {
+    const raw = searchParams.get('page');
+    if (raw === null) return;
+    const fixed = safePage > 1 ? String(safePage) : null;
+    if (raw === fixed) return;
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (fixed) next.set('page', fixed); else next.delete('page');
+      return next;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, safePage]);
                                                                                                                                                                                                                                                                                                     const pageStart = (safePage - 1) * PRODUCTS_PER_PAGE;
                                                                                                                                                                                                                                                                                                       const pageEnd = Math.min(pageStart + PRODUCTS_PER_PAGE, filtered.length);
                                                                                                                                                                                                                                                                                                         const paginated = filtered.slice(pageStart, pageEnd);

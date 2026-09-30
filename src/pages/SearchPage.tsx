@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useLocation, Link } from 'react-router-dom';
 import { products, popularSearches, categories } from '@/data/products';
 import ProductCard from '@/components/catalog/ProductCard';
 import { Search, X, TrendingUp } from 'lucide-react';
@@ -9,6 +9,10 @@ const SearchPage = () => {
   const [params] = useSearchParams();
   const initialQ = params.get('q') || '';
   const [query, setQuery] = useState(initialQ);
+  // Cada búsqueda desde el header estando ya en /buscar es una navegación nueva
+  // (location.key cambia aunque ?q sea el mismo): el campo vuelve a seguir a ?q.
+  const { key: navKey } = useLocation();
+  useEffect(() => { setQuery(initialQ); }, [initialQ, navKey]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];

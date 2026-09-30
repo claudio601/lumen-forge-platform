@@ -33,7 +33,6 @@ const RequestCartDrawer = () => {
         <span className="hidden sm:inline text-xs font-medium">
           Solicitud ({itemCount}) · {fmt(subtotal)}
         </span>
-        <span className="sm:hidden text-xs font-bold">{itemCount}</span>
         <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center sm:hidden">
           {itemCount}
         </span>
