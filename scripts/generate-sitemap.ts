@@ -1,5 +1,5 @@
 // scripts/generate-sitemap.ts
-// Genera public/sitemap.xml a partir de src/data/products.ts.
+// Genera public/sitemap.xml a partir del catálogo (src/data/products.ts → snapshot de Jumpseller).
 // Se ejecuta como parte de `npm run build` via tsx.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
@@ -40,7 +40,7 @@ for (const product of products) {
 
 for (const cat of categories) {
   urls.push({
-    loc: `${SITE}/catalogo?categoria=${encodeURIComponent(cat.slug)}`,
+    loc: `${SITE}/catalogo/${encodeURIComponent(cat.slug)}`,
     priority: '0.6',
     changefreq: 'monthly',
     lastmod: today,

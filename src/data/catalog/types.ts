@@ -8,16 +8,19 @@ export interface Product {
   name: string;
   permalink: string;
   price: number;
+  /** Categoría principal (breadcrumb, productos relacionados). */
   category: string;
+  /** Todas las categorías del sitio a las que pertenece (filtros del catálogo). */
+  categories: string[];
   watts: number;
   kelvin: number;
   lumens: number;
   ip?: string;
   image: string;
   images: string[];
+  /** Fotos con su id de Jumpseller (para pedir tamaños reducidos al CDN). */
+  imageRefs?: { id: number; url: string }[];
   featured: boolean;
-  /** @deprecated Nunca se muestra (no hay control de bodega). Se elimina al sincronizar con Jumpseller. */
-  stock?: boolean;
   brand: string;
   jumpseller_id: number;
   jumpseller_variant_id?: number;

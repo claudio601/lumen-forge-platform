@@ -91,6 +91,7 @@ jobs:
             src/data/catalog/jumpseller-snapshot.generated.ts
             src/data/catalog/categories.generated.ts
             api/_lib/catalog/price-index.generated.ts
+            src/data/catalog/site-ids.generated.ts
           commit-message: 'chore(catalog): sincronización con Jumpseller'
           title: 'Catálogo: sincronización con Jumpseller'
           body-path: reports/jumpseller-sync/diff.md

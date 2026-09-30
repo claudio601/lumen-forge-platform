@@ -22,8 +22,9 @@ function djb2(s: string): string {
  * Regex valido: /^RC-[a-z0-9]{5,8}$/i
  */
 export function buildRequestRef(email: string, items: RequestCartItem[]): string {
+  // productId además del SKU: en Jumpseller hay SKUs repetidos entre productos distintos.
   const skus = items
-    .map((i) => i.sku + 'x' + i.quantity)
+    .map((i) => i.productId + ':' + i.sku + 'x' + i.quantity)
     .sort()
     .join(',');
   const win = Math.floor(Date.now() / 3_600_000); // ventana de 1 hora

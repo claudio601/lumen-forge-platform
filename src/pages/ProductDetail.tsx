@@ -5,7 +5,7 @@
 
 import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
-import { buildVariantSku } from '@/lib/variantSku';
+import { buildVariantSku, requestSku } from '@/lib/variantSku';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -116,7 +116,7 @@ const ProductDetail = () => {
       product.metaDescription ||
       `${product.name}${product.watts ? ` ${product.watts}W` : ''}${product.ip ? ` ${product.ip}` : ''}. Iluminación LED profesional con ficha técnica, especificaciones y cotización en eLIGHTS.cl.`;
     const productDescription = product.description || seoDescription;
-    const productBrand = product.brand || 'BESTLED';
+    const productBrand = product.brand;
 
     const productJsonLd = {
       '@context': 'https://schema.org/',
@@ -126,10 +126,7 @@ const ProductDetail = () => {
       description: productDescription,
       sku: product.sku || product.id,
       mpn: product.sku || product.id,
-      brand: {
-        '@type': 'Brand',
-        name: productBrand,
-      },
+      ...(productBrand ? { brand: { '@type': 'Brand', name: productBrand } } : {}),
       offers: {
         '@type': 'Offer',
         url: canonicalUrl,
@@ -200,7 +197,7 @@ const ProductDetail = () => {
       (product.specsComponentes && product.specsComponentes.length > 0)
     );
     const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
-    const skuFinal = buildVariantSku(product.sku, selectedCCT);
+    const skuFinal = buildVariantSku(requestSku(product), selectedCCT);
     // Consultas por WhatsApp con la variante elegida (SKU + color de luz), no el SKU base.
     const waUrl = waProductUrl(cctLabel ? `${product.name} – ${cctLabel}` : product.name, skuFinal);
 
@@ -364,7 +361,7 @@ const ProductDetail = () => {
                                               )}
                                   </div>
                         
-                          {PROJECT_CATEGORIES.includes(product.category) ? (
+                          {product.categories.some(c => PROJECT_CATEGORIES.includes(c)) ? (
                         <p className="text-xs text-muted-foreground mb-6">
                                       Precio referencial - Contactanos para descuentos por volumen y proyecto
                         </p>

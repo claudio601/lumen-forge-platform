@@ -5,6 +5,9 @@
 // incluya el arreglo de productos. Solo imports relativos (lo usan también scripts/).
 
 import type { Category } from './types';
+import { CATEGORY_PRODUCT_COUNTS, PUBLISHED_PRODUCT_COUNT } from './categories.generated';
+
+export { PUBLISHED_PRODUCT_COUNT };
 
 export const PROJECT_CATEGORIES = [
     'alumbrado-publico',
@@ -15,22 +18,24 @@ export const PROJECT_CATEGORIES = [
     'iluminacion-antiexplosiva',
     'poste',
   ];
+// productCount: productos publicados por categoría según el último snapshot de Jumpseller
+// (un producto puede estar en 2 categorías; para el total usar PUBLISHED_PRODUCT_COUNT).
 export const categories: Category[] = [
-  { id: 'proyectores-led', name: 'Proyectores LED', slug: 'proyectores-led', icon: 'Projector', productCount: 68, subcategories: [] },
-  { id: 'paneles-led', name: 'Paneles LED', slug: 'paneles-led', icon: 'PanelTop', productCount: 72, subcategories: [] },
-  { id: 'iluminacion-exterior', name: 'Iluminación Exterior', slug: 'iluminacion-exterior', icon: 'SunMedium', productCount: 36, subcategories: [] },
-  { id: 'campanas-led', name: 'Campanas LED', slug: 'campanas-led', icon: 'Warehouse', productCount: 26, subcategories: [] },
-  { id: 'solar', name: 'Solar', slug: 'solar', icon: 'Sun', productCount: 11, subcategories: [] },
-  { id: 'alumbrado-publico', name: 'Alumbrado Público', slug: 'alumbrado-publico', icon: 'RadioTower', productCount: 8, subcategories: [] },
-  { id: 'cinta-led', name: 'Cinta LED', slug: 'cinta-led', icon: 'Waves', productCount: 19, subcategories: [] },
-  { id: 'tubos-led', name: 'Tubos LED', slug: 'tubos-led', icon: 'TestTube', productCount: 17, subcategories: [] },
-  { id: 'lineales-led', name: 'Lineales LED', slug: 'lineales-led', icon: 'Ruler', productCount: 10, subcategories: [] },
-  { id: 'fuentes-de-poder', name: 'Fuentes de Poder', slug: 'fuentes-de-poder', icon: 'PlugZap', productCount: 14, subcategories: [] },
-  { id: 'iluminacion-antiexplosiva', name: 'Iluminación Antiexplosiva', slug: 'iluminacion-antiexplosiva', icon: 'ShieldAlert', productCount: 13, subcategories: [] },
-  { id: 'emergencia-led', name: 'Emergencia LED', slug: 'emergencia-led', icon: 'Siren', productCount: 11, subcategories: [] },
-  { id: 'focos-a-riel', name: 'Focos a Riel', slug: 'focos-a-riel', icon: 'TrainTrack', productCount: 10, subcategories: [] },
-  { id: 'ampolletas-led', name: 'Ampolletas LED', slug: 'ampolletas-led', icon: 'Lightbulb', productCount: 6, subcategories: [] },
-  { id: 'poste', name: 'Poste', slug: 'poste', icon: 'UtilityPole', productCount: 3, subcategories: [] },
+  { id: 'proyectores-led', name: 'Proyectores LED', slug: 'proyectores-led', icon: 'Projector', productCount: CATEGORY_PRODUCT_COUNTS['proyectores-led'] ?? 0, subcategories: [] },
+  { id: 'paneles-led', name: 'Paneles LED', slug: 'paneles-led', icon: 'PanelTop', productCount: CATEGORY_PRODUCT_COUNTS['paneles-led'] ?? 0, subcategories: [] },
+  { id: 'iluminacion-exterior', name: 'Iluminación Exterior', slug: 'iluminacion-exterior', icon: 'SunMedium', productCount: CATEGORY_PRODUCT_COUNTS['iluminacion-exterior'] ?? 0, subcategories: [] },
+  { id: 'campanas-led', name: 'Campanas LED', slug: 'campanas-led', icon: 'Warehouse', productCount: CATEGORY_PRODUCT_COUNTS['campanas-led'] ?? 0, subcategories: [] },
+  { id: 'solar', name: 'Solar', slug: 'solar', icon: 'Sun', productCount: CATEGORY_PRODUCT_COUNTS['solar'] ?? 0, subcategories: [] },
+  { id: 'alumbrado-publico', name: 'Alumbrado Público', slug: 'alumbrado-publico', icon: 'RadioTower', productCount: CATEGORY_PRODUCT_COUNTS['alumbrado-publico'] ?? 0, subcategories: [] },
+  { id: 'cinta-led', name: 'Cinta LED', slug: 'cinta-led', icon: 'Waves', productCount: CATEGORY_PRODUCT_COUNTS['cinta-led'] ?? 0, subcategories: [] },
+  { id: 'tubos-led', name: 'Tubos LED', slug: 'tubos-led', icon: 'TestTube', productCount: CATEGORY_PRODUCT_COUNTS['tubos-led'] ?? 0, subcategories: [] },
+  { id: 'lineales-led', name: 'Lineales LED', slug: 'lineales-led', icon: 'Ruler', productCount: CATEGORY_PRODUCT_COUNTS['lineales-led'] ?? 0, subcategories: [] },
+  { id: 'fuentes-de-poder', name: 'Fuentes de Poder', slug: 'fuentes-de-poder', icon: 'PlugZap', productCount: CATEGORY_PRODUCT_COUNTS['fuentes-de-poder'] ?? 0, subcategories: [] },
+  { id: 'iluminacion-antiexplosiva', name: 'Iluminación Antiexplosiva', slug: 'iluminacion-antiexplosiva', icon: 'ShieldAlert', productCount: CATEGORY_PRODUCT_COUNTS['iluminacion-antiexplosiva'] ?? 0, subcategories: [] },
+  { id: 'emergencia-led', name: 'Emergencia LED', slug: 'emergencia-led', icon: 'Siren', productCount: CATEGORY_PRODUCT_COUNTS['emergencia-led'] ?? 0, subcategories: [] },
+  { id: 'focos-a-riel', name: 'Focos a Riel', slug: 'focos-a-riel', icon: 'TrainTrack', productCount: CATEGORY_PRODUCT_COUNTS['focos-a-riel'] ?? 0, subcategories: [] },
+  { id: 'ampolletas-led', name: 'Ampolletas LED', slug: 'ampolletas-led', icon: 'Lightbulb', productCount: CATEGORY_PRODUCT_COUNTS['ampolletas-led'] ?? 0, subcategories: [] },
+  { id: 'poste', name: 'Poste', slug: 'poste', icon: 'UtilityPole', productCount: CATEGORY_PRODUCT_COUNTS['poste'] ?? 0, subcategories: [] },
 ];
 
 export const popularSearches = [

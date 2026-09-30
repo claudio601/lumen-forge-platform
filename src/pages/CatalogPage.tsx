@@ -64,10 +64,10 @@ const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
                                                                                                                       let result = [...products];
                                                                                                                           if (selectedCategories.length > 0) {
                                                                                                                                 const catIds = selectedCategories.map(slug => categories.find(c => c.slug === slug)?.id).filter(Boolean);
-                                                                                                                                      result = result.filter(p => catIds.includes(p.category));
+                                                                                                                                      result = result.filter(p => p.categories.some(c => catIds.includes(c)));
                                                                                                                                           } else if (categorySlug) {
                                                                                                                                                 const cat = categories.find(c => c.slug === categorySlug);
-                                                                                                                                                      if (cat) result = result.filter(p => p.category === cat.id);
+                                                                                                                                                      if (cat) result = result.filter(p => p.categories.includes(cat.id));
                                                                                                                                                           }
                                                                                                                                                               if (selectedWatts.length > 0) {
                                                                                                                                                                     result = result.filter(p =>

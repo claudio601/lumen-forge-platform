@@ -16,7 +16,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse as parseDotenv } from 'dotenv';
 import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
 import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
@@ -27,11 +27,14 @@ import {
   findForbiddenKeys,
   renderCategoriesFile,
   renderPriceIndexFile,
+  renderSiteIdsFile,
   renderSnapshotFile,
   snapshotHash,
   writeFilesAtomically,
 } from './jumpseller/write';
 import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
+import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
+import { newSiteId, skuOwners } from '../src/data/catalog/build';
 import {
   IGNORED_JUMPSELLER_CATEGORY_IDS,
   JUMPSELLER_TOP_CATEGORY_TO_SLUG,
@@ -106,9 +109,16 @@ function readRawDir(dir: string) {
   return { products: load('products', 'product'), categories: load('categories', 'category'), count };
 }
 
+/** Catálogo legado congelado (antes de pasar a Jumpseller): fixture del 2026-09-30. */
 async function defaultLegacyBaseline(): Promise<BaselineEntry[]> {
-  const { products } = await import('../src/data/products');
-  return products.map(p => ({
+  const file = fileURLToPath(new URL('./fixtures/catalog-legacy-2026-09-30.json', import.meta.url));
+  const legacy = JSON.parse(readFileSync(file, 'utf8')) as {
+    jumpseller_id: number;
+    name: string;
+    price: number;
+    cctVariants?: { sku: string; kelvin: number; price?: number; jumpseller_variant_id?: number }[];
+  }[];
+  return legacy.map(p => ({
     jumpseller_id: p.jumpseller_id,
     name: p.name,
     price: p.price,
@@ -131,6 +141,13 @@ async function loadSnapshotBaseline(root: string): Promise<BaselineEntry[] | nul
     price: p.price,
     variants: p.variants.map(v => ({ id: v.id, price: v.price, label: [v.sku, ...v.options.map(o => o.value)].filter(Boolean).join(' · ') })),
   }));
+}
+
+async function loadSiteIds(root: string): Promise<Record<number, string>> {
+  const file = join(root, OUTPUT_PATHS.siteIds);
+  if (!existsSync(file)) return {};
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { SITE_IDS: Record<number, string> };
+  return { ...mod.SITE_IDS };
 }
 
 function readJson<T>(root: string, rel: string): T {
@@ -277,20 +294,39 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     );
   }
 
-  // 5. Generar archivos y verificar que no filtren campos prohibidos
+  // 5. Registrar ids de productos nuevos (una sola vez: después nunca cambian)
+  const siteIds = await loadSiteIds(root);
+  const taken = new Set([...Object.values(LEGACY_SITE_IDS), ...Object.values(siteIds)]);
+  const newIds: number[] = [];
+  for (const p of next) {
+    if (LEGACY_SITE_IDS[p.jumpseller_id] || siteIds[p.jumpseller_id]) continue;
+    const id = newSiteId(p.permalink, p.jumpseller_id, taken);
+    siteIds[p.jumpseller_id] = id;
+    taken.add(id);
+    newIds.push(p.jumpseller_id);
+  }
+
+  // SKUs repetidos entre productos distintos (se corrigen en Jumpseller)
+  const duplicateSkus = [...skuOwners(next)]
+    .filter(([, ids]) => ids.size > 1)
+    .map(([sku, ids]) => ({ sku, jumpseller_ids: [...ids].sort((a, b) => a - b) }))
+    .sort((a, b) => a.sku.localeCompare(b.sku));
+
+  // 6. Generar archivos y verificar que no filtren campos prohibidos
   const hash = snapshotHash(next);
   const files = {
     [OUTPUT_PATHS.snapshot]: renderSnapshotFile(next, hash),
     [OUTPUT_PATHS.categories]: renderCategoriesFile(next, hash),
     [OUTPUT_PATHS.priceIndex]: renderPriceIndexFile(next, hash),
+    [OUTPUT_PATHS.siteIds]: renderSiteIdsFile(siteIds, hash),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
 
-  // 6. Informe (reports/ está en .gitignore)
+  // 7. Informe (reports/ está en .gitignore)
   const diff = diffCatalog(baseline, next, baselineLabel);
   const benchmark = readJson<{ prices: BenchmarkPrice[] }>(root, 'scripts/jumpseller/benchmark-2026-03-18.json').prices;
-  const markdown = renderDiffMarkdown(diff, { snapshotHash: hash, excluded: result.excluded, benchmark, next });
+  const markdown = renderDiffMarkdown(diff, { snapshotHash: hash, excluded: result.excluded, benchmark, next, duplicateSkus });
   const summary = {
     snapshotHash: hash,
     baseline: baselineLabel,
@@ -304,13 +340,15 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     removed: diff.removed.map(r => r.jumpseller_id),
     renamed: diff.renamed.map(r => r.jumpseller_id),
     excluded: result.excluded,
+    newSiteIds: newIds,
+    duplicateSkus,
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
   writeFileSync(join(root, REPORT_DIR, 'diff.md'), markdown + '\n', 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
-  // 7. Escribir (solo con --write)
+  // 8. Escribir (solo con --write)
   if (args.write) writeFilesAtomically(root, files);
 
   log(
@@ -327,8 +365,8 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(resolve(proc
 if (isMain) {
   runSync({ argv: process.argv.slice(2), env: process.env, root: process.cwd() }).then(
     code => process.exit(code),
-    () => {
-      console.log('Error inesperado.');
+    (err: unknown) => {
+      console.log(`Error inesperado: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
     },
   );

@@ -23,13 +23,11 @@ function renderCard(product: Product) {
 describe('ProductCard: nunca muestra stock (modelo cotización)', () => {
   beforeEach(() => sessionStorage.clear());
 
-  for (const stock of [true, false, undefined]) {
-    it(`stock=${String(stock)} → "Consultar disponibilidad" y ninguna mención a stock`, () => {
-      const { container } = renderCard({ ...base, stock });
-      expect(screen.getByText('Consultar disponibilidad')).toBeInTheDocument();
-      expect(container.textContent).not.toMatch(/(en|sin) stock/i);
-    });
-  }
+  it('muestra "Consultar disponibilidad" y ninguna mención a stock', () => {
+    const { container } = renderCard(base);
+    expect(screen.getByText('Consultar disponibilidad')).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/(en|sin) stock/i);
+  });
 
   it('los CTA son "Solicitar" (pedido) y "Cotizar": no hay compra directa', () => {
     renderCard(base);

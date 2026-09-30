@@ -115,7 +115,13 @@ const REASON_TEXT: Record<Exclusion['reason'], string> = {
 
 export function renderDiffMarkdown(
   diff: CatalogDiff,
-  opts: { snapshotHash: string; excluded: Exclusion[]; benchmark?: BenchmarkPrice[]; next: SnapshotProduct[] },
+  opts: {
+    snapshotHash: string;
+    excluded: Exclusion[];
+    benchmark?: BenchmarkPrice[];
+    next: SnapshotProduct[];
+    duplicateSkus?: { sku: string; jumpseller_ids: number[] }[];
+  },
 ): string {
   const L: string[] = [];
   const flagged = diff.priceChanges.filter(c => c.flagged).length;
@@ -167,6 +173,16 @@ export function renderDiffMarkdown(
   if (opts.excluded.length) {
     L.push('## Excluidos (no se publican)', '', '| ID Jumpseller | Producto | Motivo |', '|---|---|---|');
     for (const e of opts.excluded) L.push(`| ${e.jumpseller_id} | ${e.name} | ${REASON_TEXT[e.reason]} |`);
+    L.push('');
+  }
+  if (opts.duplicateSkus?.length) {
+    const nameOf = new Map(opts.next.map(p => [p.jumpseller_id, p.name]));
+    L.push('## SKU repetidos en Jumpseller', '');
+    L.push('Estos SKU aparecen en productos distintos (como SKU del producto o de una variante). Conviene corregirlos **en Jumpseller**: el sitio no se los asigna a productos que no los tienen como propios.', '');
+    L.push('| SKU | Productos |', '|---|---|');
+    for (const d of opts.duplicateSkus) {
+      L.push(`| ${d.sku} | ${d.jumpseller_ids.map(id => `${id} ${nameOf.get(id) ?? ''}`.trim()).join('<br>')} |`);
+    }
     L.push('');
   }
   if (opts.benchmark?.length) {

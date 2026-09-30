@@ -289,6 +289,31 @@ describe('sincronización completa', () => {
     rmSync(root2, { recursive: true, force: true });
   });
 
+  it('registra una sola vez el id de un producto nuevo: no cambia aunque cambie su permalink', async () => {
+    const nuevo = (permalink: string) => ({ product: { id: 999001, name: 'PANEL LED NUEVO 30W', permalink, price: 9990, status: 'available', sku: null, brand: null, featured: false, categories: [{ id: 286969, name: 'PANEL LED', parent_id: null }], images: [{ id: 1, url: 'https://images.jumpseller.com/x.png', position: 1 }], variants: [] } });
+    const base = fixture('products-available.json');
+    await run(root, ['--write', '--baseline', 'legacy'], { fetchImpl: apiFromFixtures([...base, nuevo('panel/nuevo-30w')]).fn });
+    const idsFile = () => readFileSync(join(root, OUTPUT_PATHS.siteIds), 'utf8');
+    expect(idsFile()).toContain('"999001": "panel-nuevo-30w"');
+    const summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.newSiteIds).toContain(999001);
+    // Jumpseller cambia el permalink: el id publicado se mantiene
+    await run(root, ['--write', '--baseline', 'legacy'], { fetchImpl: apiFromFixtures([...base, nuevo('panel-nuevo-30w-ip40')]).fn });
+    expect(idsFile()).toContain('"999001": "panel-nuevo-30w"');
+    // y si deja de publicarse, el registro lo conserva (para no reutilizar ese id)
+    await run(root, ['--write', '--baseline', 'legacy']);
+    expect(idsFile()).toContain('"999001": "panel-nuevo-30w"');
+  });
+
+  it('el informe lista los SKU repetidos entre productos distintos', async () => {
+    const dup = fixture('products-available.json') as { product: Record<string, unknown> }[];
+    dup[1].product.sku = 'APB40N'; // mismo SKU que una variante del BESTLED 40W
+    await run(root, ['--baseline', 'legacy'], { fetchImpl: apiFromFixtures(dup).fn });
+    const summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.duplicateSkus).toEqual([{ sku: 'APB40N', jumpseller_ids: [2301098, 2502343] }]);
+    expect(readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8')).toContain('SKU repetidos en Jumpseller');
+  });
+
   it('--from-dir usa páginas guardadas sin llamar a la API', async () => {
     const fetchImpl = vi.fn();
     const { code } = await run(root, ['--from-dir', FIX, '--baseline', 'legacy', '--write'], { fetchImpl });

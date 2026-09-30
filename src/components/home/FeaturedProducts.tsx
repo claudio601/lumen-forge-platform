@@ -3,6 +3,10 @@ import ProductCard from '@/components/catalog/ProductCard';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 
+// Destacados = productos marcados como destacados en Jumpseller (si no hay, los primeros 8).
+const destacados = products.filter(p => p.featured);
+const featured = (destacados.length ? destacados : products).slice(0, 8);
+
 const FeaturedProducts = () => (
   <section className="container py-12">
     <div className="flex items-center justify-between mb-6">
@@ -15,7 +19,7 @@ const FeaturedProducts = () => (
       </Link>
     </div>
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {products.slice(0, 8).map(p => (
+      {featured.map(p => (
         <ProductCard key={p.id} product={p} />
       ))}
     </div>
