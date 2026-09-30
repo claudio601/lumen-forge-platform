@@ -10,6 +10,8 @@ export interface BaselineEntry {
   jumpseller_id: number;
   name: string;
   price: number;
+  /** Precios por variante (id de variante de Jumpseller), cuando se conocen. */
+  variants?: { id: number; price: number; label?: string }[];
 }
 
 export interface PriceChange {
@@ -20,6 +22,20 @@ export interface PriceChange {
   /** Variación en % respecto al precio anterior (1 decimal). */
   pct: number;
   /** true si la variación es de 50% o más (hacia arriba o abajo). */
+  flagged: boolean;
+}
+
+export interface VariantPriceChange {
+  jumpseller_id: number;
+  variant_id: number;
+  name: string;
+  /** SKU u opción de la variante (p. ej. "APB407 · Luz Cálida - 2700K"). */
+  label: string;
+  /** null = variante nueva; en ese caso after es su precio. */
+  before: number | null;
+  /** null = la variante ya no existe. */
+  after: number | null;
+  pct: number | null;
   flagged: boolean;
 }
 
@@ -34,6 +50,7 @@ export interface CatalogDiff {
   beforeCount: number;
   afterCount: number;
   priceChanges: PriceChange[];
+  variantPriceChanges: VariantPriceChange[];
   added: { jumpseller_id: number; name: string; price: number }[];
   removed: { jumpseller_id: number; name: string }[];
   renamed: { jumpseller_id: number; before: string; after: string }[];
@@ -45,6 +62,7 @@ export function diffCatalog(baseline: BaselineEntry[], next: SnapshotProduct[], 
   const before = new Map(baseline.map(b => [b.jumpseller_id, b]));
   const after = new Map(next.map(p => [p.jumpseller_id, p]));
   const priceChanges: PriceChange[] = [];
+  const variantPriceChanges: VariantPriceChange[] = [];
   const renamed: CatalogDiff['renamed'] = [];
   const added: CatalogDiff['added'] = [];
   const removed: CatalogDiff['removed'] = [];
@@ -56,6 +74,25 @@ export function diffCatalog(baseline: BaselineEntry[], next: SnapshotProduct[], 
       const pct = b.price > 0 ? Math.round(((p.price - b.price) / b.price) * 1000) / 10 : 100;
       priceChanges.push({ jumpseller_id: p.jumpseller_id, name: p.name, before: b.price, after: p.price, pct, flagged: Math.abs(pct) >= FLAG_PCT });
     }
+    if (b.variants) {
+      const prevV = new Map(b.variants.map(v => [v.id, v]));
+      const nextV = new Map(p.variants.map(v => [v.id, v]));
+      for (const v of p.variants) {
+        const label = [v.sku, ...v.options.map(o => o.value)].filter(Boolean).join(' · ') || String(v.id);
+        const old = prevV.get(v.id);
+        if (!old) {
+          variantPriceChanges.push({ jumpseller_id: p.jumpseller_id, variant_id: v.id, name: p.name, label, before: null, after: v.price, pct: null, flagged: false });
+        } else if (old.price !== v.price) {
+          const pct = old.price > 0 ? Math.round(((v.price - old.price) / old.price) * 1000) / 10 : 100;
+          variantPriceChanges.push({ jumpseller_id: p.jumpseller_id, variant_id: v.id, name: p.name, label, before: old.price, after: v.price, pct, flagged: Math.abs(pct) >= FLAG_PCT });
+        }
+      }
+      for (const old of b.variants) {
+        if (!nextV.has(old.id)) {
+          variantPriceChanges.push({ jumpseller_id: p.jumpseller_id, variant_id: old.id, name: p.name, label: old.label ?? String(old.id), before: old.price, after: null, pct: null, flagged: false });
+        }
+      }
+    }
     if (b.name.trim() !== p.name) renamed.push({ jumpseller_id: p.jumpseller_id, before: b.name.trim(), after: p.name });
   }
   for (const b of baseline) {
@@ -63,7 +100,8 @@ export function diffCatalog(baseline: BaselineEntry[], next: SnapshotProduct[], 
   }
   const byId = (a: { jumpseller_id: number }, c: { jumpseller_id: number }) => a.jumpseller_id - c.jumpseller_id;
   priceChanges.sort((a, c) => Number(c.flagged) - Number(a.flagged) || Math.abs(c.pct) - Math.abs(a.pct) || byId(a, c));
-  return { baselineLabel, beforeCount: baseline.length, afterCount: next.length, priceChanges, added: added.sort(byId), removed: removed.sort(byId), renamed: renamed.sort(byId) };
+  variantPriceChanges.sort((a, c) => Number(c.flagged) - Number(a.flagged) || byId(a, c) || a.variant_id - c.variant_id);
+  return { baselineLabel, beforeCount: baseline.length, afterCount: next.length, priceChanges, variantPriceChanges, added: added.sort(byId), removed: removed.sort(byId), renamed: renamed.sort(byId) };
 }
 
 const clp = (n: number) => `$${Math.round(n).toLocaleString('es-CL')}`;
@@ -81,11 +119,13 @@ export function renderDiffMarkdown(
 ): string {
   const L: string[] = [];
   const flagged = diff.priceChanges.filter(c => c.flagged).length;
+  const flaggedV = diff.variantPriceChanges.filter(c => c.flagged).length;
   L.push('# Sincronización Jumpseller → nuevo.elights.cl', '');
   L.push(`Comparado contra: **${diff.baselineLabel}** · Snapshot \`${opts.snapshotHash}\``, '');
   L.push('| | Cantidad |', '|---|---|');
   L.push(`| Productos publicados | ${diff.afterCount} (antes ${diff.beforeCount}) |`);
   L.push(`| Cambios de precio | ${diff.priceChanges.length}${flagged ? ` (⚠️ ${flagged} de ${FLAG_PCT}% o más)` : ''} |`);
+  L.push(`| Cambios en variantes | ${diff.variantPriceChanges.length}${flaggedV ? ` (⚠️ ${flaggedV} de ${FLAG_PCT}% o más)` : ''} |`);
   L.push(`| Productos nuevos | ${diff.added.length} |`);
   L.push(`| Productos que salen | ${diff.removed.length} |`);
   L.push(`| Nombres cambiados | ${diff.renamed.length} |`);
@@ -96,6 +136,16 @@ export function renderDiffMarkdown(
     L.push('| | ID Jumpseller | Producto | Antes | Ahora | Variación |', '|---|---|---|---|---|---|');
     for (const c of diff.priceChanges) {
       L.push(`| ${c.flagged ? '⚠️' : ''} | ${c.jumpseller_id} | ${c.name} | ${clp(c.before)} | ${clp(c.after)} | ${pctText(c.pct)} |`);
+    }
+    L.push('');
+  }
+  if (diff.variantPriceChanges.length) {
+    L.push('## Cambios de precio en variantes (con IVA)', '');
+    L.push('| | ID Jumpseller | Producto | Variante | Antes | Ahora | Variación |', '|---|---|---|---|---|---|---|');
+    for (const c of diff.variantPriceChanges) {
+      const before = c.before === null ? 'variante nueva' : clp(c.before);
+      const after = c.after === null ? 'ya no existe' : clp(c.after);
+      L.push(`| ${c.flagged ? '⚠️' : ''} | ${c.jumpseller_id} | ${c.name} | ${c.label} | ${before} | ${after} | ${c.pct === null ? '' : pctText(c.pct)} |`);
     }
     L.push('');
   }

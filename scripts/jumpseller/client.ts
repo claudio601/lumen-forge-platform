@@ -82,6 +82,8 @@ export function createJumpsellerClient(opts: ClientOptions) {
 
     for (let attempt = 0; ; attempt++) {
       await throttle();
+      // El timeout cubre también la lectura del cuerpo: una conexión que se corta o
+      // queda colgada a mitad de la respuesta se reintenta como error de red.
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       let res: Awaited<ReturnType<FetchLike>>;
@@ -95,22 +97,35 @@ export function createJumpsellerClient(opts: ClientOptions) {
         if (attempt < maxRetries) { await sleep(backoff(attempt)); continue; }
         throw new JumpsellerApiError(`Sin respuesta de Jumpseller (${path})`, 'network');
       }
-      clearTimeout(timer);
 
       if (res.status === 401 || res.status === 403) {
+        clearTimeout(timer);
         throw new JumpsellerApiError(`Jumpseller rechazó las credenciales (HTTP ${res.status})`, 'auth', res.status);
       }
       if (res.status === 429) {
+        clearTimeout(timer);
         if (attempt >= maxRetries) throw new JumpsellerApiError('Demasiadas solicitudes a Jumpseller (429)', 'rate', 429);
         await sleep(rateLimitWait(res.headers));
         continue;
       }
       if (res.status >= 500) {
+        clearTimeout(timer);
         if (attempt < maxRetries) { await sleep(backoff(attempt)); continue; }
         throw new JumpsellerApiError(`Jumpseller respondió HTTP ${res.status} (${path})`, 'http', res.status);
       }
-      if (!res.ok) throw new JumpsellerApiError(`Jumpseller respondió HTTP ${res.status} (${path})`, 'http', res.status);
-      return res.json();
+      if (!res.ok) {
+        clearTimeout(timer);
+        throw new JumpsellerApiError(`Jumpseller respondió HTTP ${res.status} (${path})`, 'http', res.status);
+      }
+      try {
+        const body = await res.json();
+        clearTimeout(timer);
+        return body;
+      } catch {
+        clearTimeout(timer);
+        if (attempt < maxRetries) { await sleep(backoff(attempt)); continue; }
+        throw new JumpsellerApiError(`Respuesta incompleta o inválida de Jumpseller (${path})`, 'network');
+      }
     }
   }
 

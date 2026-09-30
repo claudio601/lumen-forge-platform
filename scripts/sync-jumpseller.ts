@@ -6,7 +6,7 @@
 //   npm run sync:catalog -- --write           # escribe los *.generated.ts
 //   npm run sync:catalog -- --baseline legacy # compara contra src/data/products.ts
 //   npm run sync:catalog -- --from-dir <dir>  # usa páginas guardadas, sin llamar a la API
-//   npm run sync:catalog -- --save-raw <dir>  # guarda las respuestas crudas (dir ignorado por git)
+//   npm run sync:catalog -- --save-raw <dir>  # guarda lo recibido (solo campos validados) bajo reports/
 //
 // Credenciales: JUMPSELLER_LOGIN y JUMPSELLER_TOKEN en el entorno (GitHub Secrets) o
 // en .env.local. Nunca se imprimen.
@@ -15,8 +15,9 @@
 //                    2 uso incorrecto · 3 credenciales o error de la API
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parse as parseDotenv } from 'dotenv';
 import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
 import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
 import { normalizeCatalog } from './jumpseller/normalize';
@@ -30,6 +31,7 @@ import {
   snapshotHash,
   writeFilesAtomically,
 } from './jumpseller/write';
+import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import {
   IGNORED_JUMPSELLER_CATEGORY_IDS,
   JUMPSELLER_TOP_CATEGORY_TO_SLUG,
@@ -76,19 +78,15 @@ function parseArgs(argv: string[]): Args | string {
   return args;
 }
 
-/** Lee solo JUMPSELLER_LOGIN/JUMPSELLER_TOKEN de .env.local si no vienen en el entorno. */
+/** Lee solo JUMPSELLER_LOGIN/JUMPSELLER_TOKEN de .env.local (con el parser de dotenv) si no vienen en el entorno. */
 function readCredentials(root: string, env: SyncOptions['env']): { login?: string; token?: string } {
-  let login = env.JUMPSELLER_LOGIN;
-  let token = env.JUMPSELLER_TOKEN;
+  let login = env.JUMPSELLER_LOGIN?.trim();
+  let token = env.JUMPSELLER_TOKEN?.trim();
   const file = join(root, '.env.local');
   if ((!login || !token) && existsSync(file)) {
-    for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
-      const m = line.match(/^\s*(?:export\s+)?(JUMPSELLER_LOGIN|JUMPSELLER_TOKEN)\s*=\s*(.*)\s*$/);
-      if (!m) continue;
-      const value = m[2].replace(/^(['"])(.*)\1$/, '$2').trim();
-      if (m[1] === 'JUMPSELLER_LOGIN' && !login) login = value;
-      if (m[1] === 'JUMPSELLER_TOKEN' && !token) token = value;
-    }
+    const parsed = parseDotenv(readFileSync(file));
+    login ||= parsed.JUMPSELLER_LOGIN?.trim();
+    token ||= parsed.JUMPSELLER_TOKEN?.trim();
   }
   return { login: login || undefined, token: token || undefined };
 }
@@ -110,14 +108,29 @@ function readRawDir(dir: string) {
 
 async function defaultLegacyBaseline(): Promise<BaselineEntry[]> {
   const { products } = await import('../src/data/products');
-  return products.map(p => ({ jumpseller_id: p.jumpseller_id, name: p.name, price: p.price }));
+  return products.map(p => ({
+    jumpseller_id: p.jumpseller_id,
+    name: p.name,
+    price: p.price,
+    // El catálogo legado solo conoce las variantes CCT de BESTLED (con su id de Jumpseller).
+    variants: p.cctVariants?.some(v => v.jumpseller_variant_id)
+      ? p.cctVariants
+          .filter(v => v.jumpseller_variant_id)
+          .map(v => ({ id: v.jumpseller_variant_id!, price: v.price ?? p.price, label: `${v.sku} · ${v.kelvin}K` }))
+      : undefined,
+  }));
 }
 
 async function loadSnapshotBaseline(root: string): Promise<BaselineEntry[] | null> {
   const file = join(root, OUTPUT_PATHS.snapshot);
   if (!existsSync(file)) return null;
-  const mod = (await import(pathToFileURL(resolve(file)).href)) as { jumpsellerSnapshot: BaselineEntry[] };
-  return mod.jumpsellerSnapshot.map(p => ({ jumpseller_id: p.jumpseller_id, name: p.name, price: p.price }));
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { jumpsellerSnapshot: SnapshotProduct[] };
+  return mod.jumpsellerSnapshot.map(p => ({
+    jumpseller_id: p.jumpseller_id,
+    name: p.name,
+    price: p.price,
+    variants: p.variants.map(v => ({ id: v.id, price: v.price, label: [v.sku, ...v.options.map(o => o.value)].filter(Boolean).join(' · ') })),
+  }));
 }
 
 function readJson<T>(root: string, rel: string): T {
@@ -133,6 +146,23 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   }
   const args = parsed;
   const root = opts.root;
+
+  const abort = (msg: string) => {
+    log(`ABORTADO: ${msg}`);
+    log('No se modificó ningún archivo del sitio.');
+    return 1;
+  };
+
+  // --save-raw solo dentro de reports/ (ignorado por git): nunca junto al código.
+  let saveRawDir: string | undefined;
+  if (args.saveRaw) {
+    const reportsRoot = resolve(root, 'reports');
+    saveRawDir = resolve(root, args.saveRaw);
+    if (saveRawDir !== reportsRoot && !saveRawDir.startsWith(reportsRoot + sep)) {
+      log('Error: --save-raw solo acepta carpetas dentro de reports/ (ignorada por git).');
+      return 2;
+    }
+  }
 
   // 1. Obtener datos crudos
   let rawProducts: unknown[];
@@ -151,10 +181,15 @@ export async function runSync(opts: SyncOptions): Promise<number> {
       log(`Error: falta ${missing.join(' y ')} (en .env.local o en las variables de entorno).`);
       return 3;
     }
+    let countBefore: number;
+    let countAfter: number;
     try {
       const client = createJumpsellerClient({ login: login!, token: token!, fetchImpl: opts.fetchImpl, sleep: opts.sleep });
+      // Conteo antes y después: la paginación por offset puede duplicar o saltar
+      // productos si el catálogo cambia mientras se descarga.
+      countBefore = await client.countAvailableProducts();
       rawProducts = await client.fetchAvailableProducts();
-      reportedCount = await client.countAvailableProducts();
+      countAfter = await client.countAvailableProducts();
       rawCategories = await client.fetchCategories();
     } catch (err) {
       if (err instanceof JumpsellerApiError) {
@@ -165,22 +200,13 @@ export async function runSync(opts: SyncOptions): Promise<number> {
       return 3;
     }
     log(`Jumpseller: ${rawProducts.length} productos disponibles, ${rawCategories.length} categorías.`);
-    if (args.saveRaw) {
-      const dir = resolve(root, args.saveRaw);
-      mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, 'products-available.json'), JSON.stringify(rawProducts.map(product => ({ product }))), 'utf8');
-      writeFileSync(join(dir, 'categories.json'), JSON.stringify(rawCategories.map(category => ({ category }))), 'utf8');
-      writeFileSync(join(dir, 'count.json'), JSON.stringify({ count: reportedCount }), 'utf8');
+    if (countBefore !== countAfter) {
+      return abort(`el catálogo cambió durante la descarga (${countBefore} → ${countAfter} productos). Vuelve a intentarlo.`);
     }
+    reportedCount = countAfter;
   }
 
-  const abort = (msg: string) => {
-    log(`ABORTADO: ${msg}`);
-    log('No se escribió ningún archivo.');
-    return 1;
-  };
-
-  // 2. Validar
+  // 2. Validar (zod descarta todo campo que no esté en el esquema: costo, stock, descripción…)
   const products = validateList(rawProductSchema, rawProducts);
   const categories = validateList(rawCategorySchema, rawCategories);
   const issues = [...products.issues, ...categories.issues];
@@ -190,7 +216,24 @@ export async function runSync(opts: SyncOptions): Promise<number> {
         issues.slice(0, 10).map(i => `id ${String(i.id)} (${i.message})`).join('; '),
     );
   }
+  if (saveRawDir) {
+    mkdirSync(saveRawDir, { recursive: true });
+    const saved = {
+      'products-available.json': JSON.stringify(products.valid.map(product => ({ product }))),
+      'categories.json': JSON.stringify(categories.valid.map(category => ({ category }))),
+      'count.json': JSON.stringify({ count: reportedCount }),
+    };
+    const leaked = findForbiddenKeys(Object.values(saved));
+    if (leaked.length) return abort(`campos prohibidos en lo que se iba a guardar: ${leaked.join(', ')}`);
+    for (const [name, content] of Object.entries(saved)) writeFileSync(join(saveRawDir, name), content, 'utf8');
+    log(`Datos validados guardados en ${args.saveRaw}`);
+  }
   if (products.valid.length === 0) return abort('Jumpseller no devolvió productos.');
+  const ids = products.valid.map(p => p.id);
+  const duplicated = ids.filter((id, i) => ids.indexOf(id) !== i);
+  if (duplicated.length) {
+    return abort(`productos repetidos en la descarga (${[...new Set(duplicated)].join(', ')}). Vuelve a intentarlo.`);
+  }
   if (reportedCount !== undefined && reportedCount !== products.valid.length) {
     return abort(`Jumpseller informa ${reportedCount} productos disponibles pero se recibieron ${products.valid.length}.`);
   }
@@ -255,6 +298,8 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     previousProducts: baseline.length,
     priceChanges: diff.priceChanges.length,
     flaggedPriceChanges: diff.priceChanges.filter(c => c.flagged).map(c => c.jumpseller_id),
+    variantPriceChanges: diff.variantPriceChanges.length,
+    flaggedVariantPriceChanges: diff.variantPriceChanges.filter(c => c.flagged).map(c => c.variant_id),
     added: diff.added.map(a => a.jumpseller_id),
     removed: diff.removed.map(r => r.jumpseller_id),
     renamed: diff.renamed.map(r => r.jumpseller_id),

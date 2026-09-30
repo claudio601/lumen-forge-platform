@@ -3,7 +3,7 @@
 // que tienen la forma real de las respuestas (incluido un cost_per_item falso).
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
@@ -35,12 +35,16 @@ function fakeFetch(route: (url: URL) => Reply) {
 }
 
 /** API simulada desde los fixtures, paginando de a `limit`. */
-function apiFromFixtures(products = fixture('products-available.json'), categories = fixture('categories.json'), count?: number) {
+function apiFromFixtures(products = fixture('products-available.json'), categories = fixture('categories.json'), count?: number | number[]) {
+  let countCalls = 0;
   return fakeFetch(url => {
     const limit = Number(url.searchParams.get('limit') ?? 50);
     const page = Number(url.searchParams.get('page') ?? 1);
     const slice = (arr: unknown[]) => arr.slice((page - 1) * limit, page * limit);
-    if (url.pathname.endsWith('/products/status/available/count.json')) return { status: 200, body: { count: count ?? products.length } };
+    if (url.pathname.endsWith('/products/status/available/count.json')) {
+      const c = Array.isArray(count) ? count[Math.min(countCalls++, count.length - 1)] : count;
+      return { status: 200, body: { count: c ?? products.length } };
+    }
     if (url.pathname.endsWith('/products/status/available.json')) return { status: 200, body: slice(products) };
     if (url.pathname.endsWith('/categories.json')) return { status: 200, body: slice(categories) };
     return { status: 404 };
@@ -125,6 +129,20 @@ describe('cliente Jumpseller', () => {
     const client = createJumpsellerClient({ login: LOGIN, token: TOKEN, fetchImpl: fn, sleep: noSleep });
     await expect(client.countAvailableProducts()).resolves.toBe(7);
     expect(n).toBe(3);
+  });
+
+  it('una respuesta cortada o con JSON inválido se reintenta', async () => {
+    let n = 0;
+    const fn: FetchLike = async () => {
+      n++;
+      return {
+        ok: true, status: 200, headers: { get: () => null },
+        json: async () => { if (n === 1) throw new SyntaxError('Unexpected end of JSON input'); return { count: 3 }; },
+      };
+    };
+    const client = createJumpsellerClient({ login: LOGIN, token: TOKEN, fetchImpl: fn, sleep: noSleep });
+    await expect(client.countAvailableProducts()).resolves.toBe(3);
+    expect(n).toBe(2);
   });
 
   it('autentica solo con header Basic; la URL no lleva credenciales', async () => {
@@ -232,6 +250,45 @@ describe('sincronización completa', () => {
     expect(existsSync(join(root, 'reports/jumpseller-sync/diff.md'))).toBe(true);
   });
 
+  it('el informe muestra cambios de precio en variantes', async () => {
+    const withVariants: BaselineEntry[] = legacy4.map(b =>
+      b.jumpseller_id === 2301098
+        ? { ...b, variants: [{ id: 111887368, price: 70000, label: 'APB407 · 2700K' }, { id: 95224064, price: 108500 }, { id: 1, price: 5000, label: 'vieja' }] }
+        : b,
+    );
+    await run(root, ['--baseline', 'legacy'], { loadLegacyBaseline: async () => withVariants });
+    const md = readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8');
+    expect(md).toContain('Cambios de precio en variantes');
+    expect(md).toMatch(/⚠️ \| 2301098 \|[^\n]*APB407[^\n]*\$70\.000 \| \$119\.400/); // +70,6%: marcado
+    expect(md).toContain('ya no existe');
+    expect(md).toContain('variante nueva');
+    const summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.flaggedVariantPriceChanges).toEqual([111887368]);
+  });
+
+  it('--save-raw solo acepta carpetas dentro de reports/', async () => {
+    for (const dir of ['scripts/fixtures/jumpseller', 'tmp/raw', '/tmp/fuera', 'reports/../src']) {
+      const { code, logs } = await run(root, ['--save-raw', dir, '--baseline', 'legacy']);
+      expect(code, dir).toBe(2);
+      expect(logs.join('\n')).toContain('reports/');
+    }
+  });
+
+  it('--save-raw guarda solo campos validados (nunca costo, stock ni descripción) y se puede reproducir', async () => {
+    const { code } = await run(root, ['--save-raw', 'reports/raw', '--baseline', 'legacy', '--write']);
+    expect(code).toBe(0);
+    const saved = readdirSync(join(root, 'reports/raw')).map(f => readFileSync(join(root, 'reports/raw', f), 'utf8')).join('\n');
+    expect(saved).not.toMatch(/cost_per_item|12345|55555|"stock|description|Descripción HTML/);
+    const first = readGenerated(root);
+    const root2 = tempRoot();
+    const fetchImpl = vi.fn();
+    const again = await run(root2, ['--from-dir', join(root, 'reports/raw'), '--baseline', 'legacy', '--write'], { fetchImpl });
+    expect(again.code).toBe(0);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(readGenerated(root2)).toEqual(first);
+    rmSync(root2, { recursive: true, force: true });
+  });
+
   it('--from-dir usa páginas guardadas sin llamar a la API', async () => {
     const fetchImpl = vi.fn();
     const { code } = await run(root, ['--from-dir', FIX, '--baseline', 'legacy', '--write'], { fetchImpl });
@@ -252,6 +309,19 @@ describe('credenciales', () => {
     expect(existsSync(join(root, 'reports'))).toBe(false);
   });
 
+  it('lee .env.local como dotenv: comillas, comentarios y la última aparición gana', async () => {
+    writeFileSync(join(root, '.env.local'), [
+      'JUMPSELLER_LOGIN=viejo',
+      'JUMPSELLER_LOGIN="tienda-login"  ',
+      "JUMPSELLER_TOKEN='TOKEN-SUPER-SECRETO-123' # token nuevo",
+      '',
+    ].join('\n'));
+    const api = apiFromFixtures();
+    const { code } = await run(root, ['--baseline', 'legacy'], { env: {}, fetchImpl: api.fn });
+    expect(code).toBe(0);
+    expect(api.calls[0].headers.Authorization).toBe('Basic ' + Buffer.from(`${LOGIN}:${TOKEN}`).toString('base64'));
+  });
+
   it('las credenciales nunca aparecen en lo que se imprime, ni siquiera ante errores', async () => {
     const b64 = Buffer.from(`${LOGIN}:${TOKEN}`).toString('base64');
     for (const status of [401, 500, 200]) {
@@ -269,48 +339,63 @@ describe('resguardos: abortan sin tocar archivos', () => {
   let before: ReturnType<typeof readGenerated>;
   beforeEach(async () => {
     root = tempRoot();
-    await run(root, ['--write', '--baseline', 'legacy']);
+    const seed = await run(root, ['--write', '--baseline', 'legacy']);
+    expect(seed.code, seed.logs.join('\n')).toBe(0);
     before = readGenerated(root);
+    expect(before.snapshot).not.toBeNull();
     return () => rmSync(root, { recursive: true, force: true });
   });
 
   const products = () => fixture('products-available.json') as { product: Record<string, unknown> }[];
 
-  async function expectAbort(fetchImpl: FetchLike, argv = ['--write', '--baseline', 'legacy'], extra = {}) {
-    const { code, logs } = await run(root, argv, { fetchImpl, ...extra });
-    expect(code, logs.join('\n')).toBe(1);
-    expect(logs.join('\n')).toContain('ABORTADO');
+  async function expectAbort(reason: string, fetchImpl: FetchLike, extra = {}) {
+    const { code, logs } = await run(root, ['--write', '--baseline', 'legacy'], { fetchImpl, ...extra });
+    const out = logs.join('\n');
+    expect(code, out).toBe(1);
+    expect(out).toContain('ABORTADO');
+    expect(out).toContain(reason);
     expect(readGenerated(root)).toEqual(before);
   }
+  const oneEntryBaseline = { loadLegacyBaseline: async () => legacy4.slice(0, 1) };
 
   it('formato inesperado (zod)', async () => {
     const bad = products();
     bad[0].product.price = 'no-es-precio';
-    await expectAbort(apiFromFixtures(bad).fn);
+    await expectAbort('formato inesperado', apiFromFixtures(bad).fn);
   });
 
   it('el conteo de Jumpseller no coincide con lo recibido', async () => {
-    await expectAbort(apiFromFixtures(undefined, undefined, 99).fn);
+    await expectAbort('informa 99', apiFromFixtures(undefined, undefined, 99).fn);
+  });
+
+  it('el catálogo cambia mientras se descarga (conteo antes ≠ después)', async () => {
+    await expectAbort('cambió durante la descarga', apiFromFixtures(undefined, undefined, [8, 9]).fn);
+  });
+
+  it('productos repetidos en la descarga (paginación desplazada)', async () => {
+    const dup = products();
+    dup[3] = dup[0];
+    await expectAbort('repetidos', apiFromFixtures(dup).fn);
   });
 
   it('Jumpseller no devuelve productos', async () => {
-    await expectAbort(apiFromFixtures([], undefined, 0).fn);
+    await expectAbort('no devolvió productos', apiFromFixtures([], undefined, 0).fn);
   });
 
   it('una categoría principal nueva sin mapear', async () => {
     const withNew = products();
     withNew[1].product.categories = [{ id: 9999999, name: 'NUEVA', parent_id: null }];
-    await expectAbort(apiFromFixtures(withNew).fn);
+    await expectAbort('sin mapear', apiFromFixtures(withNew).fn, oneEntryBaseline);
   });
 
   it('un precio 0', async () => {
     const zero = products();
     zero[0].product.price = 0;
-    await expectAbort(apiFromFixtures(zero).fn);
+    await expectAbort('precio 0', apiFromFixtures(zero).fn, oneEntryBaseline);
   });
 
   it('caída de más de 15% respecto a la línea base', async () => {
     const big: BaselineEntry[] = Array.from({ length: 20 }, (_, i) => ({ jumpseller_id: i + 1, name: `P${i}`, price: 1000 }));
-    await expectAbort(apiFromFixtures().fn, ['--write', '--baseline', 'legacy'], { loadLegacyBaseline: async () => big });
+    await expectAbort('% menos', apiFromFixtures().fn, { loadLegacyBaseline: async () => big });
   });
 });
