@@ -1,7 +1,7 @@
 // src/components/catalog/ProductCard.tsx
 // Tarjeta de producto en listados y catalogo.
-// FASE 1: CTA principal reemplazado por "Solicitar pedido" (Request Order).
-// El boton "Comprar" (Jumpseller) esta temporalmente deshabilitado.
+// Modelo cotización → link de pago: CTA principal "Solicitar pedido".
+// Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -56,16 +56,6 @@ const ProductCard = ({ product }: Props) => {
                       ) : (
                         <Zap className="h-16 w-16 text-primary/20" />
                       )}
-                          {product.stock === true && (
-                        <span className="absolute top-2 left-2 bg-success/10 text-success text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                                      En stock
-                        </span>
-                                  )}
-                          {product.stock === false && (
-                        <span className="absolute top-2 left-2 bg-muted text-muted-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                                      Sin stock
-                        </span>
-                                  )}
                           {product.ip && (
                         <span className="absolute top-2 right-2 bg-accent text-accent-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">
                           {product.ip}
@@ -96,6 +86,7 @@ const ProductCard = ({ product }: Props) => {
                                     {priceLabel}
                                   </span>
                         </div>
+                        <p className="text-[10px] text-muted-foreground">Consultar disponibilidad</p>
                   {PROJECT_CATEGORIES.includes(product.category) && (
                       <p className="text-[10px] text-muted-foreground">
                                   Precio referencial · Descuentos por proyecto

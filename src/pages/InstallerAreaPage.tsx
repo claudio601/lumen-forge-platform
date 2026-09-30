@@ -13,8 +13,8 @@ const features = [
 
 const tiers = [
   { name: 'Standard', color: 'border-border', desc: 'Registro básico con acceso a catálogo técnico', benefits: ['Acceso al catálogo completo', 'Cotizaciones online', 'Soporte por email'] },
-  { name: 'Silver', color: 'border-muted-foreground', desc: 'Para instaladores con volumen regular', benefits: ['5% descuento base', 'Prioridad en stock', 'Ejecutivo asignado', 'Material técnico premium'] },
-  { name: 'Gold', color: 'border-warning', desc: 'Instaladores con alto volumen y proyectos recurrentes', benefits: ['10% descuento base', 'Stock reservado', 'Soporte prioritario', 'Capacitaciones', 'Crédito 30 días'] },
+  { name: 'Silver', color: 'border-muted-foreground', desc: 'Para instaladores con volumen regular', benefits: ['5% descuento base', 'Prioridad en disponibilidad', 'Ejecutivo asignado', 'Material técnico premium'] },
+  { name: 'Gold', color: 'border-warning', desc: 'Instaladores con alto volumen y proyectos recurrentes', benefits: ['10% descuento base', 'Reserva de productos para tus proyectos', 'Soporte prioritario', 'Capacitaciones', 'Crédito 30 días'] },
 ];
 
 const InstallerAreaPage = () => (

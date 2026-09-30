@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { RequestCartProvider } from "@/context/RequestCartContext";
 import Header from "@/components/layout/Header";
@@ -14,7 +14,6 @@ const Index = lazy(() => import("./pages/Index"));
 const CatalogPage = lazy(() => import("./pages/CatalogPage"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
-const CartPage = lazy(() => import("./pages/CartPage"));
 const QuoteCartPage = lazy(() => import("./pages/QuoteCartPage"));
 const SmartQuotePage = lazy(() => import("./pages/SmartQuotePage"));
 const InstallerAreaPage = lazy(() => import("./pages/InstallerAreaPage"));
@@ -60,7 +59,8 @@ const App = () => (
                     <Route path="/catalogo/:categorySlug/:subSlug" element={<CatalogPage />} />
                     <Route path="/producto/:id" element={<ProductDetail />} />
                     <Route path="/buscar" element={<SearchPage />} />
-                    <Route path="/carro" element={<CartPage />} />
+                    {/* Modelo cotización → link de pago: el carro con checkout ya no existe */}
+                    <Route path="/carro" element={<Navigate to="/solicitar-pedido" replace />} />
                     <Route path="/cotizacion" element={<QuoteCartPage />} />
                     <Route path="/cotizador" element={<SmartQuotePage />} />
                     <Route path="/instaladores" element={<InstallerAreaPage />} />

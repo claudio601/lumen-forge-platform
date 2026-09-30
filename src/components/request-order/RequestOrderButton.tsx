@@ -1,6 +1,6 @@
 // src/components/request-order/RequestOrderButton.tsx
 // Boton "Solicitar pedido" que agrega un producto al Request Cart.
-// Reemplaza el boton "Comprar" en tarjetas y PDP.
+// CTA principal en tarjetas y PDP (modelo cotización → link de pago).
 
 import { useState } from 'react';
 import { ClipboardList, CheckCircle2 } from 'lucide-react';

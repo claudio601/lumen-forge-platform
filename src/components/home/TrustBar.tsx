@@ -2,7 +2,7 @@ import { Truck, Clock, Shield, Phone, Award, Zap } from 'lucide-react';
 
 const benefits = [
   { icon: Truck, text: 'Envío gratis Santiago +$250k' },
-  { icon: Clock, text: 'Despacho 48–72 hrs hábiles' },
+  { icon: Clock, text: 'Despacho en hasta 2 días hábiles' },
   { icon: Shield, text: 'Garantía de fábrica' },
   { icon: Phone, text: 'Soporte técnico incluido' },
   { icon: Award, text: 'Productos certificados CE/IEC' },
@@ -14,9 +14,9 @@ const TrustBar = () => (
     <div className="container">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 md:grid-cols-6">
         {benefits.map(({ icon: Icon, text }) => (
-                    <div key={text} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div key={text} className="flex min-w-0 items-center gap-2 text-sm leading-tight text-muted-foreground">
             <Icon className="h-4 w-4 text-primary shrink-0" />
-            <span className="whitespace-nowrap">{text}</span>
+            <span>{text}</span>
           </div>
         ))}
       </div>

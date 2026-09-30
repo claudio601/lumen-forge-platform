@@ -67,7 +67,7 @@ function ConfirmationScreen({ requestRef }: { requestRef: string }) {
                     <CheckCircle2 className="h-16 w-16 text-green-500" />
                     <h1 className="text-2xl font-bold text-gray-900">Solicitud enviada</h1>
                     <p className="text-gray-500 text-sm leading-relaxed">
-                            Tu solicitud fue enviada. Nuestro equipo revisará stock y te contactará para habilitar el pago.
+                            Tu solicitud fue enviada. Nuestro equipo confirmará disponibilidad y te enviará el link de pago.
                     </p>
                     <p className="text-xs font-mono bg-muted px-3 py-1.5 rounded-lg text-muted-foreground">
                             Referencia: <span className="font-bold text-foreground">{requestRef}</span>
@@ -224,7 +224,7 @@ const RequestOrderPage = () => {
               
                     <h1 className="text-2xl font-bold mb-1">Solicitud de pedido</h1>
                     <p className="text-muted-foreground text-sm mb-6">
-                            Completa tus datos y nuestro equipo revisará stock y disponibilidad para habilitarte el pago.
+                            Completa tus datos: confirmamos disponibilidad y te enviamos un link de pago seguro.
                     </p>
               
                   {/* ── Tabla de productos ──────────────────────────────────────── */}
@@ -490,7 +490,7 @@ const RequestOrderPage = () => {
                             </Button>
                     
                             <p className="text-center text-xs text-gray-400 mt-3">
-                                      Nuestro equipo revisará stock y te contactará para habilitar el pago. Sin cobro automatico.
+                                      Nuestro equipo confirmará disponibilidad y te enviará el link de pago. Sin cobro automático.
                             </p>
                     </form>
               </div>

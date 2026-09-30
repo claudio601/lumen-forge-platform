@@ -1,7 +1,7 @@
 // src/pages/ProductDetail.tsx
 // Pagina de detalle de producto (PDP).
-// FASE 1: CTA principal reemplazado por "Solicitar pedido".
-// El boton "Comprar" (Jumpseller) esta temporalmente deshabilitado.
+// Modelo cotización → link de pago: CTA principal "Solicitar pedido".
+// Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
 import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
@@ -135,9 +135,6 @@ const ProductDetail = () => {
         url: canonicalUrl,
         priceCurrency: 'CLP',
         price: product.price,
-        availability: product.stock === true
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/PreOrder',
         seller: {
           '@type': 'Organization',
           name: 'eLIGHTS.cl',
@@ -204,6 +201,8 @@ const ProductDetail = () => {
     );
     const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
     const skuFinal = buildVariantSku(product.sku, selectedCCT);
+    // Consultas por WhatsApp con la variante elegida (SKU + color de luz), no el SKU base.
+    const waUrl = waProductUrl(cctLabel ? `${product.name} – ${cctLabel}` : product.name, skuFinal);
 
     const ctaDisabled = hasCCTSelector && selectedCCT === null;
 
@@ -338,10 +337,16 @@ const ProductDetail = () => {
                         </div>
                                   )}
                         
-                                  <div className="flex items-center gap-3 mb-4">
-                                              <span className={'text-xs font-semibold px-2 py-0.5 rounded-full ' + (product.stock === true ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
-                                                {product.stock === true ? 'En stock' : 'Disponible - consultar stock'}
-                                              </span>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
+                                              <a
+                                                href={waUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-primary hover:bg-primary/10 transition-colors"
+                                              >
+                                                Consultar disponibilidad
+                                              </a>
+                                              <span className="text-xs text-muted-foreground">Despacho en hasta 2 días hábiles</span>
                                   </div>
                         
                                   <div className="flex items-baseline gap-2 mb-2">
@@ -469,7 +474,7 @@ const ProductDetail = () => {
                                                               <TooltipContent>Ficha técnica próximamente</TooltipContent>
                                                             </Tooltip>
                                               )}
-                                              <a href={waProductUrl(product.name, product.sku)} target="_blank" rel="noopener noreferrer">
+                                              <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
                                                                             Consultar por WhatsApp

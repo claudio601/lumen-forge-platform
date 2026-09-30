@@ -15,7 +15,8 @@ export interface Product {
   image: string;
   images: string[];
   featured: boolean;
-  stock: boolean;
+  /** @deprecated Nunca se muestra (no hay control de bodega). Se elimina al sincronizar con Jumpseller. */
+  stock?: boolean;
   brand: string;
   jumpseller_id: number;
   jumpseller_variant_id?: number;
@@ -67,8 +68,8 @@ export interface Product {
     colorHex: string;
     // Precio CON IVA de la variante. Si está ausente, se usa product.price como fallback.
     price?: number;
-    // ID de variante en Jumpseller para esta CCT. Lo usa el checkout (buildCheckoutUrl)
-    // para cobrar la variante correcta; si falta, cae a product.jumpseller_id.
+    // ID de variante en Jumpseller para esta CCT. Identifica la variante exacta en
+    // solicitudes/cotizaciones (link de pago); si falta, cae a product.jumpseller_id.
     jumpseller_variant_id?: number;
   }>;
 
