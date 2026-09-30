@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { products, popularSearches, categories } from '@/data/products';
 import ProductCard from '@/components/catalog/ProductCard';
@@ -9,6 +9,8 @@ const SearchPage = () => {
   const [params] = useSearchParams();
   const initialQ = params.get('q') || '';
   const [query, setQuery] = useState(initialQ);
+  // Una búsqueda nueva desde el header estando ya en /buscar cambia ?q sin remontar la página.
+  useEffect(() => { setQuery(initialQ); }, [initialQ]);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];

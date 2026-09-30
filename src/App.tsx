@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { RequestCartProvider } from "@/context/RequestCartContext";
 import Header from "@/components/layout/Header";
@@ -23,6 +23,19 @@ const RequestOrderPage = lazy(() => import("./pages/RequestOrderPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+// El estado de filtros de CatalogPage se inicializa desde la URL. Al navegar entre
+// categorías (mismo componente, otra URL) hay que remontarlo para no arrastrar
+// el filtro anterior. Lo mismo para la ficha de producto al saltar entre productos.
+function CatalogRoute() {
+  const { pathname } = useLocation();
+  return <CatalogPage key={pathname} />;
+}
+
+function ProductRoute() {
+  const { id } = useParams();
+  return <ProductDetail key={id} />;
+}
 
 // Componente interno que trackea cambios de ruta en la SPA.
 // Debe estar dentro de BrowserRouter para usar useLocation.
@@ -54,10 +67,10 @@ const App = () => (
                 >
                   <Routes>
                     <Route path="/" element={<Index />} />
-                    <Route path="/catalogo" element={<CatalogPage />} />
-                    <Route path="/catalogo/:categorySlug" element={<CatalogPage />} />
-                    <Route path="/catalogo/:categorySlug/:subSlug" element={<CatalogPage />} />
-                    <Route path="/producto/:id" element={<ProductDetail />} />
+                    <Route path="/catalogo" element={<CatalogRoute />} />
+                    <Route path="/catalogo/:categorySlug" element={<CatalogRoute />} />
+                    <Route path="/catalogo/:categorySlug/:subSlug" element={<CatalogRoute />} />
+                    <Route path="/producto/:id" element={<ProductRoute />} />
                     <Route path="/buscar" element={<SearchPage />} />
                     {/* Modelo cotización → link de pago: el carro con checkout ya no existe */}
                     <Route path="/carro" element={<Navigate to="/solicitar-pedido" replace />} />

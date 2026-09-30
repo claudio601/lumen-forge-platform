@@ -260,7 +260,7 @@ const ProductDetail = () => {
                         Volver al catalogo
                 </Link>
           
-                <div className="grid lg:grid-cols-2 gap-8 mb-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                   {/* ── Galeria ─────────────────────────────────────────── */}
                         <div className="space-y-3">
                                   <div className="bg-surface rounded-xl flex items-center justify-center aspect-square overflow-hidden relative group">
@@ -404,7 +404,7 @@ const ProductDetail = () => {
                                 )}
 
                           {/* Selector de cantidad */}
-                                  <div className="flex items-center gap-3 mb-4">
+                                  <div className="flex flex-wrap items-center gap-3 mb-4">
                                               <div className="flex items-center border rounded-lg">
                                                             <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}>
                                                                             <Minus className="h-4 w-4" />
@@ -422,7 +422,7 @@ const ProductDetail = () => {
                                   </div>
 
                           {/* ── CTAs principales ── */}
-                                  <div className="flex gap-3 mb-6">
+                                  <div className="flex flex-wrap gap-3 mb-6">
                                     {/* FASE 1: CTA principal = Solicitar pedido */}
                                               <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" disabled={ctaDisabled} />
                                     {/* Cotizar (QuoteCart) se mantiene como accion secundaria.
@@ -443,7 +443,7 @@ const ProductDetail = () => {
                                   </div>
                         
                           {/* Acciones secundarias */}
-                                  <div className="flex gap-3">
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1">
                                               {product.datasheetUrl ? (
                                                             <a
                                                               href={product.datasheetUrl}
@@ -552,7 +552,7 @@ const ProductDetail = () => {
                               )}
                     </section>
                 ) : specs.length > 0 && (
-                    <div className="grid lg:grid-cols-2 gap-8 mb-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
                               <div>
                                           <h2 className="text-lg font-bold mb-4">Especificaciones tecnicas</h2>
                                           <div className="border rounded-xl overflow-hidden">

@@ -38,7 +38,7 @@ const Header = () => {
         <header className="sticky top-0 z-50 bg-background border-b shadow-sm">
             <TopInfoBar />
             <div className="container py-3">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
                     <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
                         {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                     </button>

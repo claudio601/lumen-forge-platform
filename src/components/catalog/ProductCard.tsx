@@ -92,14 +92,14 @@ const ProductCard = ({ product }: Props) => {
                                   Precio referencial · Descuentos por proyecto
                       </p>
                         )}
-                        <div className="flex gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2 pt-1">
                           {/* FASE 1: CTA principal = Solicitar pedido */}
                                   <RequestOrderButton item={requestItem} variant="card" />
                           {/* Cotizar (QuoteCart) se mantiene como accion secundaria */}
                                   <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="gap-1 text-xs border-primary/30 text-primary hover:bg-accent h-8"
+                                                className="flex-1 gap-1 text-xs border-primary/30 text-primary hover:bg-accent h-8"
                                                 onClick={() => {
                                                                 addToQuote(product);
                                                                 toast.success('Agregado a cotización');

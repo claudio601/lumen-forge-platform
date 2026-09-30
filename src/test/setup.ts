@@ -13,3 +13,8 @@ Object.defineProperty(window, "matchMedia", {
     dispatchEvent: () => {},
   }),
 });
+
+// jsdom no implementa scrollIntoView (CatalogPage lo usa al cambiar de página).
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
