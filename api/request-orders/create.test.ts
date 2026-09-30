@@ -88,6 +88,20 @@ describe('POST /api/request-orders/create', () => {
     expect(body.content).toContain('TOTAL CON IVA: 32400 CLP');
   });
 
+  it('el correo a ventas trae referencia, negocio de Pipedrive, color de luz y modo de precio', async () => {
+    const bestled = { jumpsellerId: 4156930, variantId: 113961236, sku: 'APB1507', name: 'BESTLED', quantity: 1, unitPrice: 1, currency: 'CLP', lineTotal: 1, url: '/x', attributes: { colorLuz: '2700K Cálida' } };
+    await call({ ...base, notes: 'despacho a obra', items: [bestled] });
+    const [, init] = vi.mocked(fetch).mock.calls[0] as [string, { body: string }];
+    const mail = JSON.parse(init.body) as Record<string, string>;
+    expect(mail.modo_precio).toBe('Con IVA');
+    expect(mail.items_lista).toContain('Solicitud de pedido RC-abc12');
+    expect(mail.items_lista).toContain('negocio Pipedrive #999');
+    expect(mail.items_lista).toContain('Comuna: Santiago, Metropolitana');
+    expect(mail.items_lista).toContain('Notas del cliente: despacho a obra');
+    expect(mail.items_lista).toContain('2700K Cálida x1');
+    expect(mail.items_lista).toContain('(Jumpseller 4156930, variante 113961236)');
+  });
+
   it('un producto que ya no existe NO pierde la solicitud: se crea el negocio y se marca para revisar', async () => {
     const res = await call({ ...base, items: [{ ...ar111, jumpsellerId: 2787870, name: 'CAMPANA UFO 150W', unitPrice: 50000 }, ar111] });
     expect(res.statusCode).toBe(201);

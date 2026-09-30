@@ -379,7 +379,7 @@ export default async function handler(
   // ── Paso 3: Enviar email GAS (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ─────────────────
   console.log(`${LOG} GAS relay iniciado`);
   waitUntil(
-    sendGasEmail(payload, requestReference)
+    sendGasEmail(payload, requestReference, dealId)
       .then(() => {
         console.log(`${LOG} GAS relay OK`);
       })
@@ -403,18 +403,27 @@ const GAS_URL =
 
 async function sendGasEmail(
   payload: RequestOrderPayload,
-  ref: string
+  ref: string,
+  dealId: number
 ): Promise<void> {
   console.log(`${LOG} GAS email starting for ${payload.email} | ref: ${ref}`);
-  const itemsText = payload.items
-    .map((i) =>
-      i.jumpsellerId
-        ? `\u2022 ${i.sku} \u2014 ${i.name} x${i.quantity} = ${formatCLP(i.lineTotal)} CLP con IVA` +
+  const itemLines = payload.items.map((i) => {
+    const name = i.attributes?.colorLuz ? `${i.name} \u2014 ${i.attributes.colorLuz}` : i.name;
+    return i.jumpsellerId
+      ? `\u2022 ${i.sku} \u2014 ${name} x${i.quantity} = ${formatCLP(i.lineTotal)} CLP con IVA` +
           ` (Jumpseller ${i.jumpsellerId}${i.variantId ? `, variante ${i.variantId}` : ''})` +
           (i.review ? ` \u2014 REVISAR: ${i.review}` : '')
-        : `\u2022 REVISAR ${i.sku || 'sin SKU'} \u2014 ${i.name} x${i.quantity} \u2014 ${i.review ?? 'precio por confirmar'}`
-    )
-    .join('\n');
+      : `\u2022 REVISAR ${i.sku || 'sin SKU'} \u2014 ${name} x${i.quantity} \u2014 ${i.review ?? 'precio por confirmar'}`;
+  });
+  // La plantilla del correo (Apps Script, compartida con Cotización) solo muestra algunos
+  // campos: la referencia, el negocio de Pipedrive, la comuna y las notas van en la lista.
+  const itemsText = [
+    `Solicitud de pedido ${ref} \u2014 negocio Pipedrive #${dealId}`,
+    `Comuna: ${payload.commune}, ${payload.region}`,
+    ...(payload.notes ? [`Notas del cliente: ${payload.notes}`] : []),
+    '',
+    ...itemLines,
+  ].join('\n');
 
   const ventas = process.env.SALES_EMAIL ?? 'ventas@elights.cl';
 
@@ -435,6 +444,9 @@ async function sendGasEmail(
       rut: payload.rut ?? '-',
       items_lista: itemsText,
       total: formatCLP(payload.subtotal),
+      modo_precio: payload.items.some((i) => i.priceMode === 'neto')
+        ? 'Con IVA (el cliente veía precios netos, modo empresa)'
+        : 'Con IVA',
       notas: payload.notes ?? '-',
       fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
     }),
