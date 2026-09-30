@@ -3,6 +3,12 @@
 
 // Item individual en el Request Cart
 export interface RequestOrderItem {
+    /** Id del producto en Jumpseller: el servidor recalcula el precio CON IVA con él. */
+    jumpsellerId?: number;
+    /** Id de la variante en Jumpseller (p. ej. color de luz de BESTLED). */
+    variantId?: number;
+    /** Cómo veía el precio el cliente: 'neto' (modo empresa) o 'iva'. */
+    priceMode?: 'neto' | 'iva';
     sku: string;
     name: string;
     quantity: number;
@@ -33,6 +39,8 @@ export interface RequestOrderPayload {
     region: string;
     notes?: string;
     requestReference: string;
+    /** Honeypot anti-bots: campo oculto que las personas dejan vacío. */
+    website?: string;
 }
 
 // Respuesta exitosa del endpoint
@@ -55,6 +63,10 @@ export type RequestOrderResponse =
 // Item en el Request Cart (estado React/localStorage)
 export interface RequestCartItem {
     productId: string;
+    /** Id del producto en Jumpseller (ausente en carritos guardados antes de 2026-10). */
+    jumpsellerId?: number;
+    /** Id de la variante en Jumpseller; distingue dos colores de luz del mismo producto. */
+    variantId?: number;
     sku: string;
     name: string;
     quantity: number;

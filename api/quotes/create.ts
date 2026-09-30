@@ -20,10 +20,49 @@ import {
   isHoneypotTriggered,
   getClientIp,
 } from '../_lib/auth.js';
+import { priceItems } from '../_lib/catalog/pricing.js';
+import { pipedrivePost } from '../_lib/pipedrive/client.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
 const ALLOWED_METHODS = ['POST'];
+
+// --- Precios del sitio ---
+
+/**
+ * Reemplaza en el lugar precio, nombre y SKU de cada producto por los del catálogo
+ * (CON IVA) y recalcula quoteAmountClp. Si un producto no se identifica se deja el
+ * precio del navegador (no bloquea: el correo al vendedor ya salió), llevado a CON IVA
+ * si el cliente cotizó en modo empresa (neto). Devuelve el detalle para la nota del deal.
+ */
+function repriceSiteQuote(body: Record<string, unknown>): string[] {
+  const products = body.products as Record<string, unknown>[];
+  const net = body.leadType === 'B2B'; // el sitio manda precios netos cuando el cliente está en modo empresa
+  const detail: string[] = [];
+  let total = 0;
+  body.products = products.map((p, i) => {
+    const { lines, unresolved } = priceItems([{ jumpsellerId: p.jumpsellerId, variantId: p.variantId, sku: p.sku, name: p.name, quantity: p.quantity }]);
+    const quantity = typeof p.quantity === 'number' ? p.quantity : Number(p.quantity);
+    const line = lines[0];
+    if (!line) {
+      const shown = Number(p.unitPriceClp) || 0;
+      const gross = net ? Math.round(shown * 1.19) : shown;
+      console.warn(`${LOG_PREFIX} Producto sin precio de catálogo (se usa el del navegador, CON IVA)`, { index: i, unresolved });
+      total += gross * (quantity || 0);
+      detail.push(`  REVISAR [${String(p.sku ?? '')}] ${String(p.name ?? '')} x${quantity} @ ${gross} CLP (precio del sitio, por confirmar)`);
+      return { sku: p.sku, name: p.name, quantity: p.quantity, unitPriceClp: gross };
+    }
+    total += line.lineTotal;
+    detail.push(
+      `  [${line.sku}] ${line.name} x${line.quantity} @ ${line.unitPrice} CLP = ${line.lineTotal} CLP` +
+        ` | Jumpseller ${line.jumpsellerId}${line.variantId ? ` variante ${line.variantId}` : ''}` +
+        (line.variantUnknown ? ' — REVISAR: variante ya no existe, precio base' : ''),
+    );
+    return { sku: line.sku, name: line.name, quantity: line.quantity, unitPriceClp: line.unitPrice };
+  });
+  body.quoteAmountClp = total;
+  return detail;
+}
 
 // --- Auth ---
 
@@ -92,6 +131,14 @@ export default async function handler(
     return;
   }
 
+  // Cotizaciones del sitio: precios CON IVA recalculados desde el catálogo de Jumpseller
+  // (el navegador puede mandar precios netos del modo empresa o desactualizados).
+  // Llamadas server-to-server (x-api-key) no se tocan.
+  let siteQuoteDetail: string[] | undefined;
+  if (body && typeof body === 'object' && body.sourceSystem === 'nuevo_elights' && Array.isArray(body.products)) {
+    siteQuoteDetail = repriceSiteQuote(body as Record<string, unknown>);
+  }
+
   const validation = validateQuotePayload(body);
   if (!validation.valid) {
     console.warn(`${LOG_PREFIX} Validation failed:`, validation.errors);
@@ -113,6 +160,22 @@ export default async function handler(
 
     const result = await processQuoteToCrm(payload);
     const response = buildSuccessResponse(result);
+
+    // Cotización del sitio: el detalle de productos (ids de Jumpseller) queda como nota del
+    // deal. No bloquea la respuesta.
+    if (siteQuoteDetail && result.deal?.status === 'created' && result.deal.dealId) {
+      const content = [
+        `Cotización web ${payload.quoteReference} (precios CON IVA desde Jumpseller)`,
+        ...siteQuoteDetail,
+        `TOTAL CON IVA: ${payload.quoteAmountClp} CLP`,
+        ...(payload.notes ? [`Comentarios del cliente: ${payload.notes}`] : []),
+      ].join('\n');
+      try {
+        await pipedrivePost('/notes', { content, deal_id: result.deal.dealId });
+      } catch (err) {
+        console.warn(`${LOG_PREFIX} Nota de productos en Pipedrive FAIL`, err);
+      }
+    }
 
     console.log(
       `${LOG_PREFIX} Quote processed successfully — ` +

@@ -91,6 +91,8 @@ const QuoteCartPage = () => {
               name: form.razonSocial,
             } : undefined,
             products: quoteCart.map(i => ({
+              jumpsellerId: i.product.jumpseller_id,
+              variantId: (i.cct != null ? i.product.cctVariants?.find(v => v.kelvin === i.cct)?.jumpseller_variant_id : undefined) ?? i.product.jumpseller_variant_id,
               sku: i.variantSku ?? requestSku(i.product),
               name: i.product.name,
               quantity: i.quantity,

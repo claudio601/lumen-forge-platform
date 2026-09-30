@@ -6,14 +6,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { RequestCartItem } from '@/types/request-order';
 import { sendEvent } from '@/lib/analytics';
+import { requestLineKey } from '@/lib/requestOrder';
 
 // ── Tipos del contexto ───────────────────────────────────────────────────────
 interface RequestCartContextType {
   items: RequestCartItem[];
   addItem: (item: Omit<RequestCartItem, 'quantity'> & { quantity?: number }) => void;
-  removeItem: (productId: string) => void;
-  updateQty: (productId: string, qty: number) => void;
+  /** lineKey = requestLineKey(item): producto + variante. */
+  removeItem: (lineKey: string) => void;
+  updateQty: (lineKey: string, qty: number) => void;
   clearCart: () => void;
+  /** Reemplaza el carrito completo (p. ej. tras ponerlo al día con el catálogo). */
+  replaceItems: (items: RequestCartItem[]) => void;
   itemCount: number;
   subtotal: number;
 }
@@ -54,16 +58,18 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
     (incoming: Omit<RequestCartItem, 'quantity'> & { quantity?: number }) => {
       const qty = incoming.quantity ?? 1;
       setItems((prev) => {
-        const existing = prev.find((i) => i.productId === incoming.productId);
+        const key = requestLineKey(incoming);
+        const existing = prev.find((i) => requestLineKey(i) === key);
         if (existing) {
           sendEvent('request_cart_add', {
             sku: incoming.sku,
             quantity: qty,
             unitPrice: incoming.unitPrice,
           });
+          // Misma línea: suma cantidad y toma el precio vigente del catálogo.
           return prev.map((i) =>
-            i.productId === incoming.productId
-              ? { ...i, quantity: i.quantity + qty }
+            requestLineKey(i) === key
+              ? { ...i, quantity: i.quantity + qty, unitPrice: incoming.unitPrice, priceMode: incoming.priceMode }
               : i
           );
         }
@@ -78,34 +84,35 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
     []
   );
 
-  const removeItem = useCallback((productId: string) => {
+  const removeItem = useCallback((lineKey: string) => {
     setItems((prev) => {
-      const item = prev.find((i) => i.productId === productId);
+      const item = prev.find((i) => requestLineKey(i) === lineKey);
       if (item) {
         sendEvent('request_cart_remove', { sku: item.sku });
       }
-      return prev.filter((i) => i.productId !== productId);
+      return prev.filter((i) => requestLineKey(i) !== lineKey);
     });
   }, []);
 
-  const updateQty = useCallback((productId: string, qty: number) => {
+  const updateQty = useCallback((lineKey: string, qty: number) => {
     if (qty <= 0) {
-      setItems((prev) => prev.filter((i) => i.productId !== productId));
+      setItems((prev) => prev.filter((i) => requestLineKey(i) !== lineKey));
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity: qty } : i))
+      prev.map((i) => (requestLineKey(i) === lineKey ? { ...i, quantity: qty } : i))
     );
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);
+  const replaceItems = useCallback((next: RequestCartItem[]) => setItems(next), []);
 
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
 
   return (
     <RequestCartContext.Provider
-      value={{ items, addItem, removeItem, updateQty, clearCart, itemCount, subtotal }}
+      value={{ items, addItem, removeItem, updateQty, clearCart, replaceItems, itemCount, subtotal }}
     >
       {children}
     </RequestCartContext.Provider>

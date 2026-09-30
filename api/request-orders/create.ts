@@ -4,8 +4,13 @@
 // Flujo de Solicitud de Pedido (Request Order) — Fase 1
 //
 // Orden de ejecucion (CRITICO — no modificar):
+//   0. Rate limit (429), origen (403) y honeypot (200 sin crear nada)
 //   1. Validar payload  -> 400 si falla
-//   2. Crear deal en Pipedrive -> BLOQUEANTE. 502 si falla.
+//   1b. Recalcular precios CON IVA desde el catálogo de Jumpseller. Los precios del
+//       navegador se ignoran. Un producto que no se puede identificar NO rechaza la
+//       solicitud: se marca "REVISAR: precio por confirmar" (nunca se pierde un lead).
+//   2. Crear deal en Pipedrive -> BLOQUEANTE. 502 si falla. Luego una nota con el
+//      detalle de productos (no bloqueante): createDeal no guarda las notas.
 //   3. Enviar email GAS -> FIRE-AND-FORGET. Log warn si falla.
 //   4. Retornar 201 { success, requestReference, dealId }
 //
@@ -21,18 +26,30 @@ import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { computeLeadScore } from '../_lib/crm/scoring.js';
 import { TIPO_SERVICIO } from '../_lib/crm/tipo-servicio.js';
 import type { QuotePayload, SourceSystem } from '../_lib/crm/types.js';
+import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } from '../_lib/auth.js';
+import { netOf, priceItems } from '../_lib/catalog/pricing.js';
+import { pipedrivePost } from '../_lib/pipedrive/client.js';
 
 const LOG = '[RequestOrder]';
 const ALLOWED_METHODS = ['POST'];
 
 // ── Tipos propios del endpoint ────────────────────────────────────────────────
 interface RequestOrderItem {
+  /** Id del producto en Jumpseller (identifica la línea; el precio sale del servidor). */
+  jumpsellerId?: number;
+  /** Id de la variante en Jumpseller (p. ej. color de luz de BESTLED). */
+  variantId?: number;
   sku: string;
   name: string;
   quantity: number;
+  /** Precio unitario CON IVA calculado en el servidor (el del navegador se ignora). */
   unitPrice: number;
   currency: 'CLP';
   lineTotal: number;
+  /** Cómo veía el precio el cliente al agregarlo: 'neto' (modo empresa) o 'iva'. */
+  priceMode?: 'neto' | 'iva';
+  /** Motivo por el que el vendedor debe revisar la línea (sin precio de catálogo, etc.). */
+  review?: string;
   url: string;
   attributes: {
     potencia?: string;
@@ -114,17 +131,13 @@ function validatePayload(body: unknown): ValidationResult {
         return;
       }
       const it = item as Record<string, unknown>;
-      if (!isNonEmptyString(it.sku)) errors.push(`items[${idx}].sku is required`);
-      if (!isNonEmptyString(it.name)) errors.push(`items[${idx}].name is required`);
+      // Precio, nombre y SKU se recalculan en el servidor: aquí solo se exige poder
+      // identificar el producto (jumpsellerId o SKU) y una cantidad válida.
+      if (it.jumpsellerId === undefined && !isNonEmptyString(it.sku)) {
+        errors.push(`items[${idx}] requires jumpsellerId or sku`);
+      }
       if (!isPositiveNumber(it.quantity)) errors.push(`items[${idx}].quantity must be a positive number`);
-      if (!isPositiveNumber(it.unitPrice)) errors.push(`items[${idx}].unitPrice must be a positive number`);
-      if (it.currency !== 'CLP') errors.push(`items[${idx}].currency must be CLP`);
-      if (typeof it.lineTotal !== 'number') errors.push(`items[${idx}].lineTotal is required`);
     });
-  }
-
-  if (p.subtotal !== undefined && !isPositiveNumber(p.subtotal)) {
-    errors.push('subtotal must be a positive number');
   }
 
   return { valid: errors.length === 0, errors };
@@ -164,14 +177,23 @@ function buildNotes(p: RequestOrderPayload): string {
   ];
   if (p.rut) lines.push(`RUT: ${p.rut}`);
   if (p.notes) lines.push(`Notas del cliente: ${p.notes}`);
-  lines.push('--- Items solicitados ---');
+  lines.push('--- Items solicitados (precios CON IVA desde Jumpseller) ---');
   p.items.forEach((i) => {
     const cct = i.attributes?.colorLuz ? ` — ${i.attributes.colorLuz}` : '';
+    if (!i.jumpsellerId) {
+      lines.push(`  REVISAR [${i.sku || 'sin SKU'}] ${i.name}${cct} x${i.quantity} — ${i.review ?? 'precio por confirmar'}`);
+      return;
+    }
     lines.push(
-      `  [${i.sku}] ${i.name}${cct} x${i.quantity} @ ${i.unitPrice} CLP = ${i.lineTotal} CLP`
+      `  [${i.sku}] ${i.name}${cct} x${i.quantity} @ ${i.unitPrice} CLP = ${i.lineTotal} CLP` +
+        ` | Jumpseller ${i.jumpsellerId}${i.variantId ? ` variante ${i.variantId}` : ''}` +
+        (i.review ? ` — REVISAR: ${i.review}` : '')
     );
   });
-  lines.push(`TOTAL: ${p.subtotal} CLP`);
+  lines.push(`TOTAL CON IVA: ${p.subtotal} CLP`);
+  if (p.items.some((i) => i.priceMode === 'neto')) {
+    lines.push('Nota: el cliente veía precios netos (modo empresa) en el sitio.');
+  }
   lines.push(`requested_items_json: ${JSON.stringify(p.items)}`);
   return lines.join('\n');
 }
@@ -187,7 +209,26 @@ export default async function handler(
     return;
   }
 
+  const ip = getClientIp(req);
+  if (!checkRateLimit(ip).allowed) {
+    console.warn(`${LOG} Rate limit excedido`);
+    res.status(429).json({ success: false, error: 'Too many requests. Try again later.' });
+    return;
+  }
+  if (!isAllowedOrigin(req)) {
+    console.warn(`${LOG} Origen bloqueado:`, req.headers['origin']);
+    res.status(403).json({ success: false, error: 'Forbidden' });
+    return;
+  }
+
   const body = req.body;
+
+  // Campo oculto "website": solo lo llenan bots. Se responde OK sin crear nada.
+  if (isHoneypotTriggered(body)) {
+    console.warn(`${LOG} Honeypot activado`);
+    res.status(200).json({ success: true });
+    return;
+  }
 
   // ── LOG: Payload recibido (sin PII) ────────────────────────────
   const safeLog = {
@@ -211,9 +252,55 @@ export default async function handler(
     return;
   }
 
-  const payload = body as RequestOrderPayload;
-  const requestReference = payload.requestReference;
+  const raw = body as RequestOrderPayload;
+  const requestReference = raw.requestReference;
   console.log(`${LOG} Validacion OK | requestReference: ${requestReference}`);
+
+  // ── Paso 1b: Precios CON IVA desde el catálogo (se ignoran los del navegador) ──
+  const pricing = priceItems(raw.items);
+  if (pricing.errors.length) {
+    console.warn(`${LOG} Validacion FAIL (cantidades) | ref: ${requestReference}`, pricing.errors);
+    res.status(400).json({ success: false, error: 'Validation failed', details: { errors: pricing.errors } });
+    return;
+  }
+  const priced = new Map(pricing.lineIndexes.map((idx, n) => [idx, pricing.lines[n]]));
+  const unresolved = new Map(pricing.unresolved.map((u) => [u.index, u]));
+  if (unresolved.size) {
+    console.warn(`${LOG} Productos sin precio de catálogo (se marcan para revisar) | ref: ${requestReference}`, pricing.unresolved);
+  }
+  const payload: RequestOrderPayload = {
+    ...raw,
+    items: raw.items.map((client, idx) => {
+      const base = {
+        currency: 'CLP' as const,
+        priceMode: client.priceMode,
+        url: client.url,
+        attributes: client.attributes ?? {},
+      };
+      const line = priced.get(idx);
+      if (!line) {
+        const u = unresolved.get(idx)!;
+        const shown = typeof client.unitPrice === 'number' ? ` (el cliente vio ${client.unitPrice} CLP${client.priceMode === 'neto' ? ' neto' : ''})` : '';
+        return { ...base, sku: u.sku, name: u.name || String(client.name ?? ''), quantity: u.quantity, unitPrice: 0, lineTotal: 0, review: `${u.reason}; precio por confirmar${shown}` };
+      }
+      const shown = client.unitPrice;
+      if (typeof shown === 'number' && shown !== line.unitPrice && shown !== netOf(line.unitPrice)) {
+        console.warn(`${LOG} Precio del navegador distinto al del catálogo | ref: ${requestReference}`, {
+          jumpsellerId: line.jumpsellerId,
+          variantId: line.variantId,
+          navegador: shown,
+          catalogo: line.unitPrice,
+        });
+      }
+      const { variantUnknown, ...rest } = line;
+      return {
+        ...rest,
+        ...base,
+        ...(variantUnknown ? { review: 'la variante enviada ya no existe en Jumpseller; se usó el precio base' } : {}),
+      };
+    }),
+    subtotal: pricing.subtotal,
+  };
 
   // ── Paso 2: Crear deal en Pipedrive (BLOQUEANTE) ───────────────
   let dealId: number;
@@ -267,6 +354,16 @@ export default async function handler(
     }
 
     dealId = dealResult.dealId;
+
+    // createDeal no guarda las notas: el detalle de productos (con ids de Jumpseller para
+    // el link de pago) se agrega aparte. No bloquea: el deal ya existe.
+    if (dealResult.status === 'created') {
+      try {
+        await pipedrivePost('/notes', { content: buildNotes(payload), deal_id: dealId });
+      } catch (err) {
+        console.warn(`${LOG} Nota de productos en Pipedrive FAIL | dealId: ${dealId}`, err);
+      }
+    }
     console.log(
       `${LOG} Pipedrive createDeal OK | dealId: ${dealId} | score: ${score} | tier: ${priorityTier} | leadType: ${leadType}`
     );
@@ -282,7 +379,7 @@ export default async function handler(
   // ── Paso 3: Enviar email GAS (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ─────────────────
   console.log(`${LOG} GAS relay iniciado`);
   waitUntil(
-    sendGasEmail(payload, requestReference)
+    sendGasEmail(payload, requestReference, dealId)
       .then(() => {
         console.log(`${LOG} GAS relay OK`);
       })
@@ -306,15 +403,27 @@ const GAS_URL =
 
 async function sendGasEmail(
   payload: RequestOrderPayload,
-  ref: string
+  ref: string,
+  dealId: number
 ): Promise<void> {
   console.log(`${LOG} GAS email starting for ${payload.email} | ref: ${ref}`);
-  const itemsText = payload.items
-    .map(
-      (i) =>
-        `\u2022 ${i.sku} \u2014 ${i.name} x${i.quantity} = ${formatCLP(i.lineTotal)} CLP`
-    )
-    .join('\n');
+  const itemLines = payload.items.map((i) => {
+    const name = i.attributes?.colorLuz ? `${i.name} \u2014 ${i.attributes.colorLuz}` : i.name;
+    return i.jumpsellerId
+      ? `\u2022 ${i.sku} \u2014 ${name} x${i.quantity} = ${formatCLP(i.lineTotal)} CLP con IVA` +
+          ` (Jumpseller ${i.jumpsellerId}${i.variantId ? `, variante ${i.variantId}` : ''})` +
+          (i.review ? ` \u2014 REVISAR: ${i.review}` : '')
+      : `\u2022 REVISAR ${i.sku || 'sin SKU'} \u2014 ${name} x${i.quantity} \u2014 ${i.review ?? 'precio por confirmar'}`;
+  });
+  // La plantilla del correo (Apps Script, compartida con Cotización) solo muestra algunos
+  // campos: la referencia, el negocio de Pipedrive, la comuna y las notas van en la lista.
+  const itemsText = [
+    `Solicitud de pedido ${ref} \u2014 negocio Pipedrive #${dealId}`,
+    `Comuna: ${payload.commune}, ${payload.region}`,
+    ...(payload.notes ? [`Notas del cliente: ${payload.notes}`] : []),
+    '',
+    ...itemLines,
+  ].join('\n');
 
   const ventas = process.env.SALES_EMAIL ?? 'ventas@elights.cl';
 
@@ -335,6 +444,9 @@ async function sendGasEmail(
       rut: payload.rut ?? '-',
       items_lista: itemsText,
       total: formatCLP(payload.subtotal),
+      modo_precio: payload.items.some((i) => i.priceMode === 'neto')
+        ? 'Con IVA (el cliente veía precios netos, modo empresa)'
+        : 'Con IVA',
       notas: payload.notes ?? '-',
       fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
     }),

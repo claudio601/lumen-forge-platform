@@ -215,8 +215,14 @@ const ProductDetail = () => {
       ? { cct: selectedCCT, sku: skuFinal, unitPrice: basePrice }
       : undefined;
 
+    const selectedVariantId = selectedCCT != null
+      ? product.cctVariants?.find(v => v.kelvin === selectedCCT)?.jumpseller_variant_id
+      : undefined;
+
     const requestItem = {
           productId: product.id,
+          jumpsellerId: product.jumpseller_id,
+          variantId: selectedVariantId ?? product.jumpseller_variant_id,
           sku: skuFinal,
           name: product.name,
           unitPrice: frozenUnitPrice,
