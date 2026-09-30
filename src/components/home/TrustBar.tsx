@@ -2,7 +2,7 @@ import { Truck, Clock, Shield, Phone, Award, Zap } from 'lucide-react';
 
 const benefits = [
   { icon: Truck, text: 'Envío gratis Santiago +$250k' },
-  { icon: Clock, text: 'Despacho 48–72 hrs hábiles' },
+  { icon: Clock, text: 'Despacho 24–48 h hábiles' },
   { icon: Shield, text: 'Garantía de fábrica' },
   { icon: Phone, text: 'Soporte técnico incluido' },
   { icon: Award, text: 'Productos certificados CE/IEC' },

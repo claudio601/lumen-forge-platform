@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    Search, ShoppingCart, FileText, User, Menu, X, ChevronDown,
+    Search, FileText, User, Menu, X, ChevronDown,
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium,
     RadioTower, AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
     TestTube, Ruler, TrainTrack, UtilityPole, Wrench,
@@ -20,7 +20,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const Header = () => {
-    const { cartCount, quoteCount, isB2B, toggleB2B } = useApp();
+    const { quoteCount, isB2B, toggleB2B } = useApp();
     const [search, setSearch] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
     const [catOpen, setCatOpen] = useState(false);
@@ -152,14 +152,6 @@ const Header = () => {
                             )}
                         </Link>
                         <RequestCartDrawer />
-                        <Link to="/carro" className="relative p-2 hover:bg-accent rounded-lg transition-colors" title="Carro">
-                            <ShoppingCart className="h-5 w-5" />
-                            {cartCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-[16px] flex items-center justify-center px-1">
-                                    {cartCount}
-                                </span>
-                            )}
-                        </Link>
                         <Link to="/instaladores" className="hidden sm:flex p-2 hover:bg-accent rounded-lg transition-colors" title="Mi cuenta">
                             <User className="h-5 w-5" />
                         </Link>

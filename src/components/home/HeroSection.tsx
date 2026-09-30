@@ -29,7 +29,7 @@ const HeroSection = () => (
         >
           <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary-foreground/90 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
             <span className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
-            Catálogo técnico con stock actualizado
+            Catálogo técnico · Asesoría especializada
           </div>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-5 text-white">
@@ -60,7 +60,7 @@ const HeroSection = () => (
             {[
               { icon: Truck, text: 'Envío gratis +$250k' },
               { icon: Shield, text: 'Garantía de fábrica' },
-              { icon: Zap, text: 'Despacho 48-72 hrs' },
+              { icon: Zap, text: 'Despacho 24–48 h hábiles' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-gray-300 text-sm">
                 <Icon className="h-3.5 w-3.5 text-primary" />

@@ -15,7 +15,8 @@ export interface Product {
   image: string;
   images: string[];
   featured: boolean;
-  stock: boolean;
+  /** @deprecated Nunca se muestra (no hay control de bodega). Se elimina al sincronizar con Jumpseller. */
+  stock?: boolean;
   brand: string;
   jumpseller_id: number;
   jumpseller_variant_id?: number;

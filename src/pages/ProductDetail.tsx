@@ -1,7 +1,7 @@
 // src/pages/ProductDetail.tsx
 // Pagina de detalle de producto (PDP).
-// FASE 1: CTA principal reemplazado por "Solicitar pedido".
-// El boton "Comprar" (Jumpseller) esta temporalmente deshabilitado.
+// Modelo cotización → link de pago: CTA principal "Solicitar pedido".
+// Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
 import { useParams, Link } from 'react-router-dom';
 import { products, PROJECT_CATEGORIES } from '@/data/products';
@@ -135,9 +135,6 @@ const ProductDetail = () => {
         url: canonicalUrl,
         priceCurrency: 'CLP',
         price: product.price,
-        availability: product.stock === true
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/PreOrder',
         seller: {
           '@type': 'Organization',
           name: 'eLIGHTS.cl',
@@ -338,10 +335,16 @@ const ProductDetail = () => {
                         </div>
                                   )}
                         
-                                  <div className="flex items-center gap-3 mb-4">
-                                              <span className={'text-xs font-semibold px-2 py-0.5 rounded-full ' + (product.stock === true ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground')}>
-                                                {product.stock === true ? 'En stock' : 'Disponible - consultar stock'}
-                                              </span>
+                                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
+                                              <a
+                                                href={waProductUrl(product.name, product.sku)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-primary hover:bg-primary/10 transition-colors"
+                                              >
+                                                Consultar disponibilidad
+                                              </a>
+                                              <span className="text-xs text-muted-foreground">Despacho en 24–48 h hábiles</span>
                                   </div>
                         
                                   <div className="flex items-baseline gap-2 mb-2">
