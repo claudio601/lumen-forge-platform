@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
-import { categories } from '@/data/catalog/categories.config';
+import { categories, PUBLISHED_PRODUCT_COUNT } from '@/data/catalog/categories.config';
 import TopInfoBar from './TopInfoBar';
 import Logo from '../Logo';
 import RequestCartDrawer from '@/components/request-order/RequestCartDrawer';
@@ -97,7 +97,7 @@ const Header = () => {
                                     </div>
                                     <div className="border-t mt-3 pt-3 flex justify-between items-center">
                                         <span className="text-xs text-muted-foreground">
-                                            {categories.reduce((s, c) => s + c.productCount, 0)} productos en total
+                                            {PUBLISHED_PRODUCT_COUNT} productos en total
                                         </span>
                                         <Link to="/catalogo" className="text-xs font-semibold text-primary hover:underline" onClick={() => setCatOpen(false)}>
                                             Ver catalogo completo

@@ -116,7 +116,7 @@ const ProductDetail = () => {
       product.metaDescription ||
       `${product.name}${product.watts ? ` ${product.watts}W` : ''}${product.ip ? ` ${product.ip}` : ''}. Iluminación LED profesional con ficha técnica, especificaciones y cotización en eLIGHTS.cl.`;
     const productDescription = product.description || seoDescription;
-    const productBrand = product.brand || 'BESTLED';
+    const productBrand = product.brand;
 
     const productJsonLd = {
       '@context': 'https://schema.org/',
@@ -126,10 +126,7 @@ const ProductDetail = () => {
       description: productDescription,
       sku: product.sku || product.id,
       mpn: product.sku || product.id,
-      brand: {
-        '@type': 'Brand',
-        name: productBrand,
-      },
+      ...(productBrand ? { brand: { '@type': 'Brand', name: productBrand } } : {}),
       offers: {
         '@type': 'Offer',
         url: canonicalUrl,

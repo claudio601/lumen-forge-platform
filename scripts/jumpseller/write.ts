@@ -63,6 +63,9 @@ export function renderCategoriesFile(products: SnapshotProduct[], hash: string):
   return `${HEADER('Cantidad de productos publicados por categoría del sitio.')}
 export const SNAPSHOT_HASH = '${hash}';
 
+/** Productos publicados (un producto en 2 categorías cuenta una vez). */
+export const PUBLISHED_PRODUCT_COUNT = ${products.length};
+
 export const CATEGORY_PRODUCT_COUNTS: Readonly<Record<string, number>> = ${JSON.stringify(categoryCounts(products), null, 2)};
 `;
 }
