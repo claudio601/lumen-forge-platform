@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MessageCircle } from 'lucide-react';
-import { categories } from '@/data/products';
+import { categories } from '@/data/catalog/categories.config';
 import Logo from '@/components/Logo';
 import { waBase, whatsappDisplayNumber, contactEmail } from '@/config/business';
 

@@ -4,7 +4,7 @@ import {
     AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
     TestTube, Ruler, TrainTrack, UtilityPole,
 } from 'lucide-react';
-import { categories } from '@/data/products';
+import { categories } from '@/data/catalog/categories.config';
 
 const iconMap: Record<string, React.ElementType> = {
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,

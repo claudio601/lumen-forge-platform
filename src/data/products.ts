@@ -1,125 +1,12 @@
 // Auto-generado desde export Jumpseller 2026-03-18
 // 324 productos activos en 15 categorías
+// Tipos y categorías viven en ./catalog (livianos); este archivo solo trae los productos
+// y los re-exporta para no cambiar a quienes ya importan desde '@/data/products'.
 
-export interface Product {
-  id: string;
-  sku: string;
-  name: string;
-  permalink: string;
-  price: number;
-  category: string;
-  watts: number;
-  kelvin: number;
-  lumens: number;
-  ip?: string;
-  image: string;
-  images: string[];
-  featured: boolean;
-  /** @deprecated Nunca se muestra (no hay control de bodega). Se elimina al sincronizar con Jumpseller. */
-  stock?: boolean;
-  brand: string;
-  jumpseller_id: number;
-  jumpseller_variant_id?: number;
-  cri?: number;
-  voltage?: string;
-  beamAngle?: number;
-  lifetime?: number;
-  warranty?: string;
-  installationType?: string;
-  tags?: string[];
-  applications?: string[];
+import type { Product } from './catalog/types';
 
-  // SEO content (optional, populated per-product over time)
-  metaTitle?: string;
-  metaDescription?: string;
-  description?: string;
-  shortDescription?: string;
-  faq?: Array<{
-    question: string;
-    answer: string;
-  }>;
-  keyBenefits?: string[];
-  technicalDetails?: string;
-  certifications?: Array<{
-    name: string;
-    description: string;
-    issuer?: string;
-  }>;
-  installationInfo?: string;
-  useCases?: string[];
-
-  // URL pública absoluta del PDF de ficha técnica. Debe ser servible desde
-  // otros dominios (Jumpseller legacy enlaza al mismo archivo).
-  datasheetUrl?: string;
-
-  // Variantes CCT disponibles para selección al momento de cotizar/pedir
-  availableCCT?: number[];
-
-  // Specs agrupadas por categoría (cada array es una sub-tabla en el PDP)
-  specsElectricos?: Array<{ label: string; value: string }>;
-  specsConstruccion?: Array<{ label: string; value: string }>;
-  specsComponentes?: Array<{ label: string; value: string }>;
-
-  // Variantes CCT con visualización de color (preview block en el PDP)
-  cctVariants?: Array<{
-    kelvin: number;
-    name: string;
-    sku: string;
-    colorHex: string;
-    // Precio CON IVA de la variante. Si está ausente, se usa product.price como fallback.
-    price?: number;
-    // ID de variante en Jumpseller para esta CCT. Identifica la variante exacta en
-    // solicitudes/cotizaciones (link de pago); si falta, cae a product.jumpseller_id.
-    jumpseller_variant_id?: number;
-  }>;
-
-  // Familia de potencias para cross-sell (tabla con highlight del actual)
-  productFamily?: {
-    title: string;
-    items: Array<{
-      watts: number;
-      lumens: number;
-      eficacia: string;
-      sku: string;
-      productId?: string;
-    }>;
-  };
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  icon: string;
-  productCount: number;
-  subcategories: { slug: string; name: string }[];
-}
-export const PROJECT_CATEGORIES = [
-    'alumbrado-publico',
-    'iluminacion-exterior',
-    'solar',
-    'lineales-led',
-    'emergencia-led',
-    'iluminacion-antiexplosiva',
-    'poste',
-  ];
-export const categories: Category[] = [
-  { id: 'proyectores-led', name: 'Proyectores LED', slug: 'proyectores-led', icon: 'Projector', productCount: 68, subcategories: [] },
-  { id: 'paneles-led', name: 'Paneles LED', slug: 'paneles-led', icon: 'PanelTop', productCount: 72, subcategories: [] },
-  { id: 'iluminacion-exterior', name: 'Iluminación Exterior', slug: 'iluminacion-exterior', icon: 'SunMedium', productCount: 36, subcategories: [] },
-  { id: 'campanas-led', name: 'Campanas LED', slug: 'campanas-led', icon: 'Warehouse', productCount: 26, subcategories: [] },
-  { id: 'solar', name: 'Solar', slug: 'solar', icon: 'Sun', productCount: 11, subcategories: [] },
-  { id: 'alumbrado-publico', name: 'Alumbrado Público', slug: 'alumbrado-publico', icon: 'RadioTower', productCount: 8, subcategories: [] },
-  { id: 'cinta-led', name: 'Cinta LED', slug: 'cinta-led', icon: 'Waves', productCount: 19, subcategories: [] },
-  { id: 'tubos-led', name: 'Tubos LED', slug: 'tubos-led', icon: 'TestTube', productCount: 17, subcategories: [] },
-  { id: 'lineales-led', name: 'Lineales LED', slug: 'lineales-led', icon: 'Ruler', productCount: 10, subcategories: [] },
-  { id: 'fuentes-de-poder', name: 'Fuentes de Poder', slug: 'fuentes-de-poder', icon: 'PlugZap', productCount: 14, subcategories: [] },
-  { id: 'iluminacion-antiexplosiva', name: 'Iluminación Antiexplosiva', slug: 'iluminacion-antiexplosiva', icon: 'ShieldAlert', productCount: 13, subcategories: [] },
-  { id: 'emergencia-led', name: 'Emergencia LED', slug: 'emergencia-led', icon: 'Siren', productCount: 11, subcategories: [] },
-  { id: 'focos-a-riel', name: 'Focos a Riel', slug: 'focos-a-riel', icon: 'TrainTrack', productCount: 10, subcategories: [] },
-  { id: 'ampolletas-led', name: 'Ampolletas LED', slug: 'ampolletas-led', icon: 'Lightbulb', productCount: 6, subcategories: [] },
-  { id: 'poste', name: 'Poste', slug: 'poste', icon: 'UtilityPole', productCount: 3, subcategories: [] },
-];
+export type { Product, Category } from './catalog/types';
+export { PROJECT_CATEGORIES, categories, popularSearches } from './catalog/categories.config';
 
 export const products: Product[] = [
   { id: 'proyector-led-antivandalico-200w-ip66', sku: 'CHIPX200', name: 'PROYECTOR LED ANTIVANDÁLICO 200W IP66', permalink: 'proyector-led-antivandalico-200w-ip66', price: 62400, category: 'proyectores-led', watts: 200, kelvin: 0, lumens: 0, ip: 'IP66', image: 'https://images.jumpseller.com/store/elights-cl/2254290/Antivandalico-200W.png?1573055827,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-eLIGHTS.cl.png?1582292405,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-BLANCO-eLIGHTS.cl.png?1582292761', images: ['https://images.jumpseller.com/store/elights-cl/2254290/Antivandalico-200W.png?1573055827,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-eLIGHTS.cl.png?1582292405,https://images.jumpseller.com/store/elights-cl/2254290/PROYECTOR-LED-ANTIVAND_LICO-200W-BLANCO-eLIGHTS.cl.png?1582292761'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 2254290 },
@@ -1829,13 +1716,4 @@ Garantía oficial de 5 años contra defectos de fabricación, aplicable desde la
   { id: 'w-ip65-16500-lm', sku: '', name: 'CAMPANA LED UFO NF9 150W 110LM/W IP65 16.500 Lm.', permalink: 'campana-led-ufo-nf9-150w-110lm/w-ip65-16500-lm', price: 20900, category: 'campanas-led', watts: 150, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/33748536/CAMPANA_20LED_20UFO_20NF9.png?1770661102,https://images.jumpseller.com/store/elights-cl/33748536/CAMPANA_20LED_20UFO_20NF9_20BACK.png?1770661102,https://images.jumpseller.com/store/elights-cl/33748536/CAMPANA_20LED_20UFO_20NF9_20UP.png?1770661102', images: ['https://images.jumpseller.com/store/elights-cl/33748536/CAMPANA_20LED_20UFO_20NF9.png?1770661102,https://images.jumpseller.com/store/elights-cl/33748536/CAMPANA_20LED_20UFO_20NF9_20BACK.png?1770661102,https://images.jumpseller.com/store/elights-cl/33748536/CAMPANA_20LED_20UFO_20NF9_20UP.png?1770661102'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 33748536 },
   { id: 'w-ip65-22000-lm', sku: '', name: 'CAMPANA LED UFO NF9 200W 110LM/W IP65 22.000 Lm.', permalink: 'campana-led-ufo-nf9-200w-110lm/w-ip65-22000-lm', price: 28900, category: 'campanas-led', watts: 200, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/33748560/CAMPANA_20LED_20UFO_20NF9.png?1770661307,https://images.jumpseller.com/store/elights-cl/33748560/CAMPANA_20LED_20UFO_20NF9_20BACK.png?1770661308,https://images.jumpseller.com/store/elights-cl/33748560/CAMPANA_20LED_20UFO_20NF9_20UP.png?1770661308', images: ['https://images.jumpseller.com/store/elights-cl/33748560/CAMPANA_20LED_20UFO_20NF9.png?1770661307,https://images.jumpseller.com/store/elights-cl/33748560/CAMPANA_20LED_20UFO_20NF9_20BACK.png?1770661308,https://images.jumpseller.com/store/elights-cl/33748560/CAMPANA_20LED_20UFO_20NF9_20UP.png?1770661308'], featured: false, stock: false, brand: 'JIE', jumpseller_id: 33748560 },
   { id: 'control-remoto-34057374', sku: 'PLS200', name: 'PROYECTOR LED SOLAR 500W IP65 C/PANEL SOLAR C/CONTROL REMOTO', permalink: 'proyector-led-solar-500w-ip65-c/panel-solar-c/control-remoto', price: 117600, category: 'proyectores-led', watts: 500, kelvin: 0, lumens: 0, ip: 'IP65', image: 'https://images.jumpseller.com/store/elights-cl/34057374/PROYECTOR_20SOLAR_20500W_20CPANEL_20SOLAR_20CCONTROL_20REMOTO_20ELIGHTS.CL.png?1771964228', images: ['https://images.jumpseller.com/store/elights-cl/34057374/PROYECTOR_20SOLAR_20500W_20CPANEL_20SOLAR_20CCONTROL_20REMOTO_20ELIGHTS.CL.png?1771964228'], featured: false, stock: true, brand: 'JIE', jumpseller_id: 34057374 },
-];
-
-export const popularSearches = [
-  'Panel LED',
-  'Proyector LED',
-  'Campana LED',
-  'Tubo LED',
-  'Cinta LED',
-  'Alumbrado Público',
 ];
