@@ -1,10 +1,13 @@
-// Páginas estáticas (Etapa 2): el HTML se genera en el servidor, sin sesión, y el
-// navegador lo "hidrata". Si el primer render del navegador difiere del HTML (por
-// ejemplo porque lee el carrito o el modo empresa de la sesión durante el render),
-// React descarta el HTML y lo vuelve a dibujar (onRecoverableError).
+// Páginas estáticas (Etapa 2): el HTML se genera en el servidor, sin sesión y sin
+// parámetros de URL, y el navegador lo "hidrata". El árbol imita App.tsx: proveedores
+// arriba, la página en un React.lazy dentro de <Suspense>. Si el primer render del
+// navegador difiere del HTML, o si una actualización urgente llega a la página antes
+// de que termine de hidratarse, React descarta el HTML del servidor y la vuelve a
+// dibujar (onRecoverableError) o avisa por consola ("did not match").
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act } from '@testing-library/react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { renderToString } from 'react-dom/server';
 import { hydrateRoot, type Root } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
@@ -19,22 +22,34 @@ import CatalogPage from '@/pages/CatalogPage';
 import ProductDetail from '@/pages/ProductDetail';
 import { products } from '@/data/products';
 
-const tree = (url: string) => (
+type Pages = { Index: ComponentType; CatalogPage: ComponentType; ProductDetail: ComponentType };
+
+const server: Pages = { Index, CatalogPage, ProductDetail };
+// En el navegador las páginas llegan con React.lazy, como en App.tsx (el chunk ya está
+// en caché, pero lazy igual suspende en el primer render de la hidratación).
+const lazyPage = (C: ComponentType) => lazy(() => Promise.resolve({ default: C }));
+const client = (): Pages => ({ Index: lazyPage(Index), CatalogPage: lazyPage(CatalogPage), ProductDetail: lazyPage(ProductDetail) });
+
+const tree = (url: string, P: Pages) => (
   <HelmetProvider>
     <TooltipProvider>
-    <AppProvider>
-      <RequestCartProvider>
-        <MemoryRouter initialEntries={[url]}>
-          <Header />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/catalogo/:categorySlug" element={<CatalogPage />} />
-            <Route path="/producto/:id" element={<ProductDetail />} />
-          </Routes>
-          <Footer />
-        </MemoryRouter>
-      </RequestCartProvider>
-    </AppProvider>
+      <AppProvider>
+        <RequestCartProvider>
+          <MemoryRouter initialEntries={[url]}>
+            <Header />
+            <main id="main">
+              <Suspense fallback={<div data-testid="cargando" />}>
+                <Routes>
+                  <Route path="/" element={<P.Index />} />
+                  <Route path="/catalogo/:categorySlug" element={<P.CatalogPage />} />
+                  <Route path="/producto/:id" element={<P.ProductDetail />} />
+                </Routes>
+              </Suspense>
+            </main>
+            <Footer />
+          </MemoryRouter>
+        </RequestCartProvider>
+      </AppProvider>
     </TooltipProvider>
   </HelmetProvider>
 );
@@ -56,43 +71,59 @@ afterEach(() => {
   root = undefined;
   sessionStorage.clear();
   document.body.innerHTML = '';
+  vi.restoreAllMocks();
 });
 
-async function hydrate(url: string) {
+const MISMATCH = /did not match|did not expect server HTML|Expected server HTML|received an update before it finished hydrating|switch to client rendering/i;
+
+/**
+ * Genera el HTML como el servidor (ruta sin parámetros, sin sesión) y lo hidrata
+ * en la URL del visitante, opcionalmente con una sesión activa.
+ */
+async function hydrate(serverPath: string, clientUrl: string, withSession: boolean) {
   sessionStorage.clear();
-  const html = renderToString(tree(url)); // "servidor": sin sesión
-  seedSession(); // el visitante sí tiene sesión
+  const html = renderToString(tree(serverPath, server));
+  if (withSession) seedSession();
   const container = document.createElement('div');
   container.innerHTML = html;
   document.body.appendChild(container);
+  const serverH1 = container.querySelector('#main h1');
   const errors: unknown[] = [];
+  const consoleErrors: string[] = [];
+  vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => { consoleErrors.push(args.map(String).join(' ')); });
   await act(async () => {
-    root = hydrateRoot(container, tree(url), { onRecoverableError: e => errors.push(e) });
+    root = hydrateRoot(container, tree(clientUrl, client()), { onRecoverableError: e => errors.push(e) });
+    await new Promise(r => setTimeout(r, 0));
   });
-  return { errors, container };
+  await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+  return { errors, mismatches: consoleErrors.filter(m => MISMATCH.test(m)), container, serverH1 };
 }
 
-describe('hidratación de páginas estáticas con una sesión activa', () => {
-  it('portada: sin desajustes', async () => {
-    const { errors } = await hydrate('/');
-    expect(errors).toEqual([]);
-  });
+const PAGES: [string, string, string][] = [
+  ['portada', '/', '/'],
+  ['categoría (Google Ads, página 2)', '/catalogo/paneles-led', '/catalogo/paneles-led?gclid=abc&utm_source=google&page=2'],
+  ['ficha de producto', `/producto/${products[0].id}`, `/producto/${products[0].id}?gclid=abc`],
+];
 
-  it('categoría en ?page=2: sin desajustes, y después de montar muestra la página 2', async () => {
-    const { errors, container } = await hydrate('/catalogo/paneles-led?page=2');
-    expect(errors).toEqual([]);
+describe('hidratación de las páginas estáticas (árbol como App.tsx: lazy + Suspense)', () => {
+  for (const [name, serverPath, clientUrl] of PAGES) {
+    for (const withSession of [false, true]) {
+      it(`${name}, ${withSession ? 'con sesión (modo empresa y carrito)' : 'visitante nuevo'}: conserva el HTML del servidor`, async () => {
+        const { errors, mismatches, container, serverH1 } = await hydrate(serverPath, clientUrl, withSession);
+        expect(errors).toEqual([]);
+        expect(mismatches).toEqual([]);
+        expect(serverH1).not.toBeNull();
+        expect(container.contains(serverH1)).toBe(true); // React reutilizó el nodo: no lo volvió a dibujar
+        expect(container.querySelector('[data-testid="cargando"]')).toBeNull();
+      });
+    }
+  }
+
+  it('después de hidratar, la categoría muestra la página de la URL y la sesión queda aplicada', async () => {
+    const { container } = await hydrate('/catalogo/paneles-led', '/catalogo/paneles-led?page=2', true);
     expect(container.textContent).toContain('Página 2 de');
-  });
-
-  it('ficha de producto: sin desajustes', async () => {
-    const { errors } = await hydrate(`/producto/${products[0].id}`);
-    expect(errors).toEqual([]);
-  });
-
-  it('después de hidratar se ve la sesión: modo empresa y cantidades del carrito', async () => {
-    const { container } = await hydrate(`/producto/${products[0].id}`);
+    expect(container.textContent).toContain('B2B - Precio neto');
     expect(sessionStorage.getItem('elights_b2b')).toBe('true');
     expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)).toHaveLength(1);
-    expect(container.textContent).toMatch(/neto|sin IVA/i);
   });
 });

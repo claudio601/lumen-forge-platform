@@ -3,11 +3,10 @@
 // Persiste en sessionStorage (estado de UI, no debe sobrevivir entre sesiones).
 // Reutiliza el patron de AppContext.
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, startTransition, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import type { RequestCartItem } from '@/types/request-order';
 import { sendEvent } from '@/lib/analytics';
 import { requestLineKey } from '@/lib/requestOrder';
-import { useIsomorphicLayoutEffect } from '@/lib/ssr';
 
 // ── Tipos del contexto ───────────────────────────────────────────────────────
 interface RequestCartContextType {
@@ -40,13 +39,18 @@ function loadFromStorage(): RequestCartItem[] {
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
-  // El carrito guardado se lee después de montar (antes de pintar), para que el HTML
-  // generado en el servidor coincida con el primer render del navegador.
+  // El carrito guardado se lee después de montar, para que el HTML generado en el
+  // servidor coincida con el primer render del navegador. En una transición (no
+  // urgente): durante la hidratación React termina de hidratar antes de aplicarlo.
+  // Un producto agregado antes de que termine la carga se suma al carrito guardado
+  // (React reaplica las actualizaciones en orden sobre la carga).
   const [items, setItems] = useState<RequestCartItem[]>([]);
   const [loaded, setLoaded] = useState(false);
-  useIsomorphicLayoutEffect(() => {
-    setItems(loadFromStorage());
-    setLoaded(true);
+  useEffect(() => {
+    startTransition(() => {
+      setItems(loadFromStorage());
+      setLoaded(true);
+    });
   }, []);
 
   // Limpieza única: el request-cart vivía en localStorage y arrastraba snapshots

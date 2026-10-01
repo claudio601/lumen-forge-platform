@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, startTransition, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Product } from '@/data/catalog/types';
-import { useIsomorphicLayoutEffect } from '@/lib/ssr';
 
 // Selección de variante de color al cotizar. unitPrice es CON IVA (base);
 // displayPrice aplica el toggle B2B (÷1,19) al renderizar.
@@ -27,6 +26,8 @@ interface AppContextType {
   quoteCount: number;
   isB2B: boolean;
   toggleB2B: () => void;
+  /** true cuando ya se leyó la sesión (después de montar). */
+  loaded: boolean;
   displayPrice: (price: number) => number;
   formatDisplayPrice: (price: number) => string;
   priceLabel: string;
@@ -42,16 +43,20 @@ function loadFromSession<T>(key: string, fallback: T): T {
 }
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  // La sesión se lee después de montar (antes de pintar): así el HTML generado en el
-  // servidor (cotización vacía, precios con IVA) coincide con el primer render del
-  // navegador. `loaded` evita que el primer guardado borre lo que había en la sesión.
+  // La sesión se lee después de montar: así el HTML generado en el servidor
+  // (cotización vacía, precios con IVA) coincide con el primer render del navegador.
+  // Va en una transición (no urgente): si la página se está hidratando, React termina
+  // de hidratar antes de aplicarla, en vez de descartar el HTML del servidor.
+  // `loaded` evita que el primer guardado borre lo que había en la sesión.
   const [quoteCart, setQuoteCart] = useState<QuoteItem[]>([]);
   const [isB2B, setIsB2B] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  useIsomorphicLayoutEffect(() => {
-    setQuoteCart(loadFromSession('elights_quote', []));
-    setIsB2B(loadFromSession('elights_b2b', false));
-    setLoaded(true);
+  useEffect(() => {
+    startTransition(() => {
+      setQuoteCart(loadFromSession('elights_quote', []));
+      setIsB2B(loadFromSession('elights_b2b', false));
+      setLoaded(true);
+    });
   }, []);
 
   // El carro viejo (checkout en Jumpseller) se eliminó: limpiar su estado de la sesión.
@@ -92,7 +97,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AppContext.Provider value={{
       quoteCart, addToQuote, removeFromQuote, clearQuote, updateQuoteQty, quoteCount,
-      isB2B, toggleB2B, displayPrice, formatDisplayPrice, priceLabel,
+      isB2B, toggleB2B, displayPrice, formatDisplayPrice, priceLabel, loaded,
     }}>
       {children}
     </AppContext.Provider>

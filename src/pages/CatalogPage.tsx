@@ -54,7 +54,8 @@ const kelvinOptions = [3000, 4000, 5000, 5700, 6500];
                                     // Enlaces de paginación (Google los sigue; antes eran botones): conservan los demás
   // parámetros de la URL y omiten ?page en la página 1.
   const pageSearch = (page: number) => {
-    const next = new URLSearchParams(searchParams);
+    // Antes de montar, sin los parámetros de la URL (gclid, utm…): el HTML estático no los tiene.
+    const next = new URLSearchParams(mounted ? searchParams : undefined);
     if (page <= 1) next.delete('page'); else next.set('page', String(page));
     const qs = next.toString();
     return qs ? `?${qs}` : '';
