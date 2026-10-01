@@ -8,7 +8,8 @@
 //   PR 13) cambiará los valores por defecto a "denied".
 // - Un solo detector de clics mide los enlaces a WhatsApp, correo y teléfono de
 //   todo el sitio.
-// Si VITE_GA4_ID no está definida (o es un placeholder), todo es no-op.
+// Si VITE_GA4_ID no está definida (o es un placeholder), o el dominio no es el
+// definitivo (ver ANALYTICS_HOSTS), todo es no-op.
 
 declare global {
   interface Window {
@@ -26,6 +27,15 @@ const GA_ID = import.meta.env.VITE_GA4_ID as string | undefined;
 const PLACEHOLDER_VALUES = ['', 'PENDING_GA4_MEASUREMENT_ID', '__VITE_GA4_ID__'];
 
 const isValidId = !!GA_ID && !PLACEHOLDER_VALUES.includes(GA_ID);
+
+// G-C06JF3ZNH5 es la propiedad GA4 de la tienda elights.cl (tráfico de Google Ads,
+// compras). Solo se mide desde los dominios definitivos: en nuevo.elights.cl y en
+// los previews no se envía nada, para no mezclar datos con la tienda. Empieza a
+// medir solo cuando el sitio se sirva como elights.cl (Etapa 3).
+const ANALYTICS_HOSTS = (import.meta.env.VITE_ANALYTICS_HOSTS as string | undefined)?.split(',').map(h => h.trim()) ?? [
+  'elights.cl',
+  'www.elights.cl',
+];
 
 let initialized = false;
 
@@ -46,6 +56,7 @@ function trackContactClick(e: MouseEvent): void {
 /** Carga gtag.js una sola vez. Devuelve false si no hay que medir (sin ID o fuera del navegador). */
 function init(): boolean {
   if (!isValidId || typeof window === 'undefined' || typeof document === 'undefined') return false;
+  if (!ANALYTICS_HOSTS.includes(window.location.hostname)) return false;
   if (initialized) return true;
   initialized = true;
 

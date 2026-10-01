@@ -2,9 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Analytics = typeof import('./analytics');
 
-async function load(id: string | undefined): Promise<Analytics> {
+// En las pruebas el dominio es localhost: se habilita explícitamente, salvo en la
+// prueba que verifica que fuera de elights.cl no se mide nada.
+async function load(id: string | undefined, hosts: string | null = 'localhost'): Promise<Analytics> {
   vi.resetModules();
   vi.stubEnv('VITE_GA4_ID', id ?? '');
+  if (hosts !== null) vi.stubEnv('VITE_ANALYTICS_HOSTS', hosts);
   return import('./analytics');
 }
 
@@ -61,6 +64,15 @@ describe('analytics (GA4)', () => {
     document.body.addEventListener('click', e => e.preventDefault()); // jsdom no navega
     for (const id of ['wa-icon', 'mail', 'tel', 'otro']) document.getElementById(id)!.click();
     expect(events().filter(n => n !== 'page_view')).toEqual(['whatsapp_click', 'contact_email_click', 'contact_phone_click']);
+  });
+
+  it('fuera de elights.cl (nuevo.elights.cl, previews) no envía nada a la propiedad de la tienda', async () => {
+    const a = await load('G-TEST123', null); // dominios por defecto: elights.cl y www.elights.cl
+    expect(window.location.hostname).toBe('localhost');
+    a.sendPageView('/');
+    a.trackLead('solicitud_pedido');
+    expect(window.dataLayer).toBeUndefined();
+    expect(gaScripts()).toBe(0);
   });
 
   it('sin ID configurado no carga nada ni falla', async () => {
