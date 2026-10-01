@@ -1,7 +1,7 @@
 // scripts/jumpseller/client.ts
 // Cliente mínimo y de solo lectura para la API de Jumpseller.
 // - Autenticación SOLO por header Basic base64(login:token) (CLAUDE.md §2).
-//   Nunca por query string (patrón obsoleto de scripts/extract-variant-ids.mjs).
+//   Nunca por query string (patrón obsoleto de los scripts de ids anteriores, ya borrados).
 // - Nunca registra credenciales, headers ni URLs con secretos.
 // - Reintentos con backoff + jitter en 5xx y errores de red; 429 respeta los
 //   headers Jumpseller-*RateLimit-*; máximo ~5 req/s (límite de la API: 20/s).

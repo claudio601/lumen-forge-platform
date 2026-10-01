@@ -1,6 +1,9 @@
-# Sincronización del catálogo con Jumpseller (Etapa 1, PR 5).
-# Se ejecuta A MANO (Actions → "Sincronizar catálogo Jumpseller" → Run workflow) o
-# con `gh workflow run sync-jumpseller.yml`. Nunca publica directo: abre o actualiza
+# Sincronización del catálogo con Jumpseller (Etapa 1, PR 5; horario desde el PR 10).
+# Corre sola de lunes a viernes a las 11:00 UTC (8:00 en Chile con horario de verano)
+# y también a mano (Actions → "Sincronizar catálogo Jumpseller" → Run workflow, o
+# `gh workflow run sync-jumpseller.yml`). GitHub desactiva los horarios tras 60 días
+# sin actividad en el repo: se reactiva con `gh workflow enable sync-jumpseller.yml`.
+# Nunca publica directo: abre o actualiza
 # una PR (rama bot/jumpseller-sync) con el informe de cambios para que el dueño la
 # revise y la apruebe. Solo workflow_dispatch: el repositorio es público, nunca usar
 # pull_request_target aquí.
@@ -13,6 +16,8 @@
 name: Sincronizar catálogo Jumpseller
 
 on:
+  schedule:
+    - cron: '0 11 * * 1-5'
   workflow_dispatch:
     inputs:
       baseline:
@@ -53,7 +58,7 @@ jobs:
         env:
           JUMPSELLER_LOGIN: ${{ secrets.JUMPSELLER_LOGIN }}
           JUMPSELLER_TOKEN: ${{ secrets.JUMPSELLER_TOKEN }}
-          BASELINE: ${{ inputs.baseline }}
+          BASELINE: ${{ inputs.baseline || 'auto' }}  # vacío en las ejecuciones programadas
         run: |
           ARGS="--write"
           if [ "$BASELINE" = "legacy" ] || { [ "$BASELINE" = "auto" ] && [ ! -f src/data/catalog/jumpseller-snapshot.generated.ts ]; }; then
