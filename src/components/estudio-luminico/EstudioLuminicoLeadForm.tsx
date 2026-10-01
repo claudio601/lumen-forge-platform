@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail } from '@/config/business';
-import { sendEvent } from '@/lib/analytics';
+import { sendEvent, trackLead } from '@/lib/analytics';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────
 
@@ -202,13 +202,13 @@ const EstudioLuminicoLeadForm = () => {
       const payload = buildPayload();
       await sendToPipedrive(payload);
 
-      // GA4: form_submit_success
-      sendEvent('estudio_luminico_form_submit_success', {
-        tipoProyecto: form.tipoProyecto,
-        tienePlanos: form.tienePlanos,
-        objetivoProyecto: form.objetivoProyecto,
-        normativaObjetivo: form.normativaObjetivo || 'no_seguro',
-        urgenciaProyecto: form.urgenciaProyecto || 'sin_definir',
+      // GA4: lead enviado (conversión)
+      trackLead('estudio_luminico', {
+        tipo_proyecto: form.tipoProyecto,
+        tiene_planos: form.tienePlanos,
+        objetivo_proyecto: form.objetivoProyecto,
+        normativa_objetivo: form.normativaObjetivo || 'no_seguro',
+        urgencia_proyecto: form.urgenciaProyecto || 'sin_definir',
       });
 
       setStatus('success');

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail } from '@/config/business';
-import { sendEvent } from '@/lib/analytics';
+import { sendEvent, trackLead } from '@/lib/analytics';
 
 export interface InstallationLeadPayload {
   nombre: string;
@@ -129,7 +129,7 @@ const InstallationLeadForm = () => {
     try {
       const payload = buildPayload();
       await sendLeadEmail(payload);
-      sendEvent('instalacion_form_submit_success', { tipoProyecto, comuna });
+      trackLead('instalacion', { tipo_proyecto: tipoProyecto, comuna });
       sendToPipedrive(payload).catch(err => { console.warn('[Pipedrive] Error inesperado:', err); });
       setStatus('success');
       setForm(EMPTY_FORM);
