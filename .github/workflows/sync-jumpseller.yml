@@ -91,7 +91,7 @@ jobs:
         with:
           branch: bot/jumpseller-sync
           delete-branch: true
-          # Solo los archivos generados: el build también reescribe public/sitemap.xml.
+          # Solo los archivos generados del catálogo (el build escribe en dist/, que no se versiona).
           add-paths: |
             src/data/catalog/jumpseller-snapshot.generated.ts
             src/data/catalog/categories.generated.ts

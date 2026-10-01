@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
 
 const NotFound = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">
-    <Helmet>
-      <title>Página no encontrada | eLIGHTS Chile</title>
-      <meta name="description" content="Esta página no existe. Vuelve al inicio para explorar el catálogo de iluminación LED profesional." />
-    </Helmet>
+    <Seo title="Página no encontrada | eLIGHTS Chile" description="Esta página no existe. Vuelve al inicio para explorar el catálogo de iluminación LED profesional." noindex />
 
       <div className="text-center">
         <h1 className="mb-4 text-4xl font-bold">404</h1>

@@ -22,7 +22,7 @@ import { products } from '@/data/products';
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 const REGIONS = [
@@ -61,10 +61,7 @@ const EMPTY_FORM: FormValues = {
 function ConfirmationScreen({ requestRef }: { requestRef: string }) {
       return (
               <div className="flex flex-col items-center justify-center gap-5 py-20 text-center max-w-md mx-auto">
-    <Helmet>
-      <title>Solicitud de Pedido | eLIGHTS Chile</title>
-      <meta name="description" content="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." />
-    </Helmet>
+    <Seo title="Solicitud de Pedido | eLIGHTS Chile" description="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." noindex />
 
                     <CheckCircle2 className="h-16 w-16 text-green-500" />
                     <h1 className="text-2xl font-bold text-gray-900">Solicitud enviada</h1>

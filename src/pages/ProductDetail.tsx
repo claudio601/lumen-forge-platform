@@ -4,7 +4,7 @@
 // Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
 import { useParams, Link } from 'react-router-dom';
-import { products, PROJECT_CATEGORIES } from '@/data/products';
+import { products, categories, PROJECT_CATEGORIES } from '@/data/products';
 import { buildVariantSku, requestSku } from '@/lib/variantSku';
 import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
@@ -26,7 +26,9 @@ import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { waProductUrl } from '@/config/business';
 import RequestOrderButton from '@/components/request-order/RequestOrderButton';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
+import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from '@/lib/seo/jsonld';
+import { categoryPath, productPath } from '@/lib/seo/routes';
 
 // Mapping CCT -> etiqueta visible en UI / Pipedrive
 const CCT_LABELS: Record<number, string> = {
@@ -95,11 +97,7 @@ const ProductDetail = () => {
     if (!product) {
           return (
                   <div className="container py-16 text-center">
-    <Helmet>
-      <title>Producto no encontrado | eLIGHTS.cl</title>
-      <meta name="description" content="El producto solicitado no existe o fue removido del catálogo de eLIGHTS.cl." />
-      <meta name="robots" content="noindex, follow" />
-    </Helmet>
+    <Seo title="Producto no encontrado | eLIGHTS.cl" description="El producto solicitado no existe o fue removido del catálogo de eLIGHTS.cl." noindex />
 
                           <p className="text-muted-foreground">Producto no encontrado</p>
                           <Link to="/catalogo" className="text-primary text-sm mt-4 inline-block">
@@ -109,50 +107,26 @@ const ProductDetail = () => {
                 );
     }
 
-    const canonicalUrl = `https://nuevo.elights.cl/producto/${product.id}`;
-    const fallbackImage = 'https://nuevo.elights.cl/logo.svg';
-    const ogImage = (product.images && product.images[0]) || product.image || fallbackImage;
+    const productUrlPath = productPath(product.id);
+    // Imagen para compartir: la primera foto original de Jumpseller (PNG/JPG); sin foto, la de la marca.
+    const ogImage = (product.images && product.images[0]) || product.image || undefined;
     const seoTitle = product.metaTitle || `${product.name} | eLIGHTS.cl`;
     const seoDescription =
       product.metaDescription ||
       `${product.name}${product.watts ? ` ${product.watts}W` : ''}${product.ip ? ` ${product.ip}` : ''}. Iluminación LED profesional con ficha técnica, especificaciones y cotización en eLIGHTS.cl.`;
     const productDescription = product.description || seoDescription;
-    const productBrand = product.brand;
+    const productCategory = categories.find(c => c.slug === product.category);
+    const seoJsonLd = [
+      productJsonLd(product, productDescription),
+      breadcrumbJsonLd([
+        { name: 'Inicio', path: '/' },
+        { name: 'Catálogo', path: '/catalogo' },
+        ...(productCategory ? [{ name: productCategory.name, path: categoryPath(productCategory.slug) }] : []),
+        { name: product.name, path: productUrlPath },
+      ]),
+      ...(product.faq && product.faq.length > 0 ? [faqJsonLd(product.faq)] : []),
+    ];
 
-    const productJsonLd = {
-      '@context': 'https://schema.org/',
-      '@type': 'Product',
-      name: product.name,
-      image: (product.images && product.images.length > 0) ? product.images : [product.image].filter(Boolean),
-      description: productDescription,
-      sku: product.sku || product.id,
-      mpn: product.sku || product.id,
-      ...(productBrand ? { brand: { '@type': 'Brand', name: productBrand } } : {}),
-      offers: {
-        '@type': 'Offer',
-        url: canonicalUrl,
-        priceCurrency: 'CLP',
-        price: product.price,
-        seller: {
-          '@type': 'Organization',
-          name: 'eLIGHTS.cl',
-        },
-      },
-    };
-
-    const faqJsonLd = (product.faq && product.faq.length > 0) ? {
-      '@context': 'https://schema.org/',
-      '@type': 'FAQPage',
-      mainEntity: product.faq.map(item => ({
-        '@type': 'Question',
-        name: item.question,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: item.answer,
-        },
-      })),
-    } : null;
-  
     // Galería: fotos con id de Jumpseller (tamaños reducidos por CDN); si no hay, las URLs.
     const galleryRefs = product.imageRefs?.length ? product.imageRefs : (product.images ?? []).map(url => ({ url }));
     const gallery = galleryRefs.filter((_, i) => !imgErrors[i]);
@@ -238,29 +212,7 @@ const ProductDetail = () => {
   
     return (
           <div className="container py-8">
-                <Helmet>
-                  <title>{seoTitle}</title>
-                  <meta name="description" content={seoDescription} />
-                  <link rel="canonical" href={canonicalUrl} />
-                  <meta property="og:title" content={seoTitle} />
-                  <meta property="og:description" content={seoDescription} />
-                  <meta property="og:type" content="product" />
-                  <meta property="og:url" content={canonicalUrl} />
-                  <meta property="og:image" content={ogImage} />
-                  <meta property="og:site_name" content="eLIGHTS.cl" />
-                  <meta name="twitter:card" content="summary_large_image" />
-                  <meta name="twitter:title" content={seoTitle} />
-                  <meta name="twitter:description" content={seoDescription} />
-                  <meta name="twitter:image" content={ogImage} />
-                  <script type="application/ld+json">
-                    {JSON.stringify(productJsonLd)}
-                  </script>
-                  {faqJsonLd && (
-                    <script type="application/ld+json">
-                      {JSON.stringify(faqJsonLd)}
-                    </script>
-                  )}
-                </Helmet>
+                <Seo title={seoTitle} description={seoDescription} path={productUrlPath} image={ogImage} type="product" jsonLd={seoJsonLd} />
                 <Link
                           to="/catalogo"
                           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"

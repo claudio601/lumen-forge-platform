@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { trackLead } from '@/lib/analytics';
 import { waBase, contactEmail, whatsappDisplayNumber } from '@/config/business';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
 
 const EMAILJS_SERVICE_ID = 'service_elights';
 const EMAILJS_TEMPLATE_ID = 'template_6y0bq3l';
@@ -95,10 +95,7 @@ const SmartQuotePage = () => {
   if (submitted) {
     return (
       <div className="container py-16 text-center max-w-md mx-auto">
-    <Helmet>
-      <title>Cotizar Iluminación LED | eLIGHTS Chile</title>
-      <meta name="description" content="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." />
-    </Helmet>
+    <Seo title="Cotizar Iluminación LED | eLIGHTS Chile" description="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." path="/cotizador" />
 
         <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Propuesta solicitada!</h1>
