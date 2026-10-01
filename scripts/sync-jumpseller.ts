@@ -21,13 +21,15 @@ import { parse as parseDotenv } from 'dotenv';
 import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
 import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
 import { normalizeCatalog } from './jumpseller/normalize';
-import { sanitizeDescription, unsafeHtmlReasons } from './jumpseller/sanitize-description';
+import { buildDescriptions, diffDescriptions, renderDescriptionsReport } from './jumpseller/descriptions';
+import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
 import {
   OUTPUT_PATHS,
   findForbiddenKeys,
   renderCategoriesFile,
   renderDescriptionsFile,
+  type ProductDescription,
   renderPriceIndexFile,
   renderSiteIdsFile,
   renderSnapshotFile,
@@ -143,6 +145,13 @@ async function loadSnapshotBaseline(root: string): Promise<BaselineEntry[] | nul
     price: p.price,
     variants: p.variants.map(v => ({ id: v.id, price: v.price, label: [v.sku, ...v.options.map(o => o.value)].filter(Boolean).join(' · ') })),
   }));
+}
+
+async function loadPreviousDescriptions(root: string): Promise<Record<number, ProductDescription> | null> {
+  const file = join(root, OUTPUT_PATHS.descriptions);
+  if (!existsSync(file)) return null;
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { productDescriptions: Record<number, ProductDescription> };
+  return { ...mod.productDescriptions };
 }
 
 async function loadSiteIds(root: string): Promise<Record<number, string>> {
@@ -315,24 +324,15 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     .map(([sku, ids]) => ({ sku, jumpseller_ids: [...ids].sort((a, b) => a - b) }))
     .sort((a, b) => a.sku.localeCompare(b.sku));
 
-  // Descripciones de los productos publicados, limpias (solo HTML de texto y tablas)
-  const published = new Set(next.map(p => p.jumpseller_id));
-  const descriptions: Record<number, string> = {};
-  for (const raw of products.valid) {
-    if (!published.has(raw.id)) continue;
-    const html = sanitizeDescription(raw.description);
-    if (!html) continue;
-    const reasons = unsafeHtmlReasons(html);
-    if (reasons.length) return abort(`la descripción de ${raw.id} sigue con contenido no permitido después de limpiarla: ${reasons.join(', ')}`);
-    descriptions[raw.id] = html;
-  }
-  // Textos de Jumpseller que contradicen las reglas del sitio (nunca stock, despacho en
-  // hasta 2 días hábiles): no bloquean, quedan en el informe para corregirlos en Jumpseller.
-  const RULE_BREAKING = /\bstock\b|agotad|24\s*(?:-|a)\s*48|\b48\s*h(?:oras|rs)?\b|despacho inmediato|entrega inmediata/i;
-  const descriptionWarnings = Object.entries(descriptions)
-    .filter(([, html]) => RULE_BREAKING.test(html.replace(/<[^>]+>/g, ' ')))
-    .map(([id]) => Number(id));
-  if (descriptionWarnings.length) log(`Descripciones con textos a revisar en Jumpseller (stock o plazos): ${descriptionWarnings.join(', ')}`);
+  // Descripciones (texto y especificaciones agrupadas), limpias. Una problemática se omite y
+  // se informa; nunca bloquea la sincronización. Sin el campo en los datos (respaldo
+  // anterior), se mantiene el archivo actual.
+  const previousDescriptions = await loadPreviousDescriptions(root);
+  const desc = buildDescriptions(products.valid, new Set(next.map(p => p.jumpseller_id)), editorialOverlay);
+  if (!desc.available) log('Los datos no traen descripciones: se mantienen las del sitio.');
+  if (desc.skipped.length) log(`Descripciones omitidas: ${desc.skipped.map(s => `${s.id} (${s.reason})`).join(', ')}`);
+  if (desc.warnings.length) log(`Descripciones con textos a corregir en Jumpseller: ${desc.warnings.map(w => `${w.id} ("${w.phrase}")`).join(', ')}`);
+  if (desc.unknownLabels.length) log(`Etiquetas de especificación sin grupo: ${desc.unknownLabels.join(', ')}`);
 
   // 6. Generar archivos y verificar que no filtren campos prohibidos
   const hash = snapshotHash(next);
@@ -341,7 +341,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     [OUTPUT_PATHS.categories]: renderCategoriesFile(next, hash),
     [OUTPUT_PATHS.priceIndex]: renderPriceIndexFile(next, hash),
     [OUTPUT_PATHS.siteIds]: renderSiteIdsFile(siteIds, hash),
-    [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(descriptions, hash),
+    ...(desc.available ? { [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(desc.descriptions, hash) } : {}),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
@@ -350,6 +350,12 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   const diff = diffCatalog(baseline, next, baselineLabel);
   const benchmark = readJson<{ prices: BenchmarkPrice[] }>(root, 'scripts/jumpseller/benchmark-2026-03-18.json').prices;
   const markdown = renderDiffMarkdown(diff, { snapshotHash: hash, excluded: result.excluded, benchmark, next, duplicateSkus });
+  const descriptionsReport = renderDescriptionsReport(
+    desc,
+    previousDescriptions ? diffDescriptions(previousDescriptions, desc.descriptions) : null,
+    new Map(next.map(p => [p.jumpseller_id, p.name])),
+    previousDescriptions ? Object.keys(previousDescriptions).length : 0,
+  );
   const summary = {
     snapshotHash: hash,
     baseline: baselineLabel,
@@ -364,14 +370,17 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     renamed: diff.renamed.map(r => r.jumpseller_id),
     excluded: result.excluded,
     newSiteIds: newIds,
-    descriptions: Object.keys(descriptions).length,
-    withoutDescription: next.filter(p => !descriptions[p.jumpseller_id]).map(p => p.jumpseller_id),
-    descriptionWarnings,
+    descriptions: Object.keys(desc.descriptions).length,
+    descriptionsAvailable: desc.available,
+    withoutDescription: next.filter(p => !desc.descriptions[p.jumpseller_id]).map(p => p.jumpseller_id),
+    descriptionWarnings: desc.warnings,
+    specLabelsWithoutGroup: desc.unknownLabels,
+    descriptionsSkipped: desc.skipped,
     duplicateSkus,
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
-  writeFileSync(join(root, REPORT_DIR, 'diff.md'), markdown + '\n', 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n`, 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
   // 8. Escribir (solo con --write)

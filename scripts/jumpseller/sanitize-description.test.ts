@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeDescription, unsafeHtmlReasons } from './sanitize-description';
+import { sanitizeDescription, splitDescription, unsafeHtmlReasons } from './sanitize-description';
 
 describe('limpieza de la descripción de Jumpseller', () => {
   it('conserva tablas, párrafos, listas, negritas y subtítulos (sin atributos)', () => {
@@ -53,5 +53,18 @@ describe('limpieza de la descripción de Jumpseller', () => {
     expect(unsafeHtmlReasons('<p style="x">a</p>')).toContain('atributo no permitido');
     expect(unsafeHtmlReasons('<a href="javascript:x">a</a>')).toContain('URL no permitida');
     expect(unsafeHtmlReasons('<p onmouseover="x">a</p>')).toContain('atributo de evento');
+  });
+
+  it('separa las tablas (especificaciones) del texto (descripción)', () => {
+    const t = '<table><tbody><tr><td>Base</td><td>G53</td></tr></tbody></table>';
+    const p = '<p>Panel extra plano para oficinas, salas de reuniones y pasillos con cielo americano.</p>';
+    expect(splitDescription(t)).toEqual({ text: '', specs: t });
+    expect(splitDescription(p + t)).toEqual({ text: p, specs: t });
+    expect(splitDescription(p)).toEqual({ text: p, specs: '' });
+    // un rótulo suelto antes de la tabla no es una descripción
+    expect(splitDescription('<p>Especificaciones técnicas:</p>' + t)).toEqual({ text: '', specs: t });
+    // tabla dentro de tabla: una sola especificación
+    const nested = '<table><tbody><tr><td><table><tbody><tr><td>x</td></tr></tbody></table></td></tr></tbody></table>';
+    expect(splitDescription(nested + p)).toEqual({ text: p, specs: nested });
   });
 });

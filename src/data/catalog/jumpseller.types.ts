@@ -39,3 +39,29 @@ export interface SnapshotProduct {
   images: SnapshotImage[];
   variants: SnapshotVariant[];
 }
+
+/** Fila de especificación técnica: etiqueta y valor en texto plano (los saltos de línea van como \n). */
+export interface SpecRow {
+  label: string;
+  value: string;
+}
+
+/**
+ * Descripción de un producto en Jumpseller, limpia y ordenada en la sincronización
+ * (scripts/jumpseller/descriptions.ts): el texto y la tabla de especificaciones, esta
+ * última en los mismos grupos de las fichas BESTLED.
+ */
+export interface ProductDescription {
+  /** Texto descriptivo (HTML limpio), sin las tablas. */
+  text?: string;
+  /** Eléctrico y fotométrico. */
+  electricos?: SpecRow[];
+  /** Construcción y operación. */
+  construccion?: SpecRow[];
+  /** Componentes y control. */
+  componentes?: SpecRow[];
+  /** Usos declarados en la fila "Aplicación". */
+  applications?: string[];
+  /** Tablas que no son "etiqueta | valor" (p. ej. la comparativa de una familia), en HTML limpio. */
+  tables?: string;
+}

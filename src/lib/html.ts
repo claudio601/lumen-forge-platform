@@ -6,8 +6,8 @@
  */
 export function htmlToText(html: string, max = 5000): string {
   const text = html
-    .replace(/<br>/g, ' ')
-    .replace(/<\/(?:p|li|tr|td|th|h3|h4|blockquote)>/g, ' ')
+    // Los bloques (al abrir y al cerrar) y los saltos separan palabras: "Texto<ul><li>Uso" → "Texto Uso"
+    .replace(/<br>|<\/?(?:p|ul|ol|li|table|thead|tbody|tr|td|th|h3|h4|blockquote)(?: [^>]*)?>/g, ' ')
     .replace(/<[^>]+>/g, '')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

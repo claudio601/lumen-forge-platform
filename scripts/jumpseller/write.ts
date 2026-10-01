@@ -5,7 +5,9 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, renameSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
+import type { ProductDescription, SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
+
+export type { ProductDescription };
 
 export const OUTPUT_PATHS = {
   snapshot: 'src/data/catalog/jumpseller-snapshot.generated.ts',
@@ -102,15 +104,21 @@ export const SITE_IDS: Readonly<Record<number, string>> = ${JSON.stringify(sorte
 }
 
 /**
- * Descripciones ya limpias (HTML seguro), por jumpseller_id. Archivo aparte del
- * snapshot: solo lo importa la ficha de producto, así no pesa en la portada ni en el catálogo.
+ * Descripciones ya limpias y ordenadas, por jumpseller_id: un producto por línea (diffs
+ * legibles). Archivo aparte del snapshot: solo lo importa la ficha de producto, así no
+ * pesa en la portada ni en el catálogo.
  */
-export function renderDescriptionsFile(descriptions: Record<number, string>, hash: string): string {
-  const sorted = Object.fromEntries(Object.entries(descriptions).sort(([a], [b]) => Number(a) - Number(b)));
-  return `${HEADER('Descripción de cada producto, limpia en la sincronización (solo tablas, párrafos, listas, negritas y enlaces https).')}
+export function renderDescriptionsFile(descriptions: Record<number, ProductDescription>, hash: string): string {
+  const ids = Object.keys(descriptions).map(Number).sort((a, b) => a - b);
+  const body = ids.map(id => `  "${id}": ${JSON.stringify(descriptions[id])},`).join('\n');
+  return `${HEADER('Descripción y especificaciones agrupadas de cada producto, limpias en la sincronización (el HTML solo trae párrafos, listas, negritas, tablas y enlaces https).')}
+import type { ProductDescription } from './jumpseller.types';
+
 export const SNAPSHOT_HASH = '${hash}';
 
-export const productDescriptions: Readonly<Record<number, string>> = ${JSON.stringify(sorted, null, 2)};
+export const productDescriptions: Readonly<Record<number, ProductDescription>> = {
+${body}
+};
 `;
 }
 

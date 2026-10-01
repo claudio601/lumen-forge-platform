@@ -54,29 +54,51 @@ describe('ProductDetail: modelo cotización, nunca stock', () => {
   });
 });
 
-describe('ProductDetail: descripción', () => {
-  it('un producto sin texto editorial muestra la descripción de Jumpseller (tabla de especificaciones)', async () => {
+const sectionOf = async (heading: string) => (await screen.findByRole('heading', { name: heading, level: 2 })).closest('section')!;
+
+describe('ProductDetail: descripción y especificaciones en el formato BESTLED', () => {
+  it('la tabla de Jumpseller se muestra en los grupos de las BESTLED, no como descripción', async () => {
     const { container } = renderPdp('amp-led-ar111-15-150w');
-    await screen.findByRole('heading', { name: 'Descripción' });
-    const section = screen.getByRole('heading', { name: 'Descripción' }).closest('section')!;
-    expect(section.querySelector('table')).not.toBeNull();
-    expect(section.textContent).toContain('G53');
+    const specs = await sectionOf('Especificaciones técnicas');
+    const groups = [...specs.querySelectorAll('h3')].map(h => h.textContent);
+    expect(groups).toEqual(['Eléctrico y fotométrico', 'Construcción y operación', 'Componentes y control']);
+    expect(specs.textContent).toContain('G53');
+    expect(specs.querySelector('table')).toBeNull();
+    // Este producto no trae texto en Jumpseller: sin sección "Descripción" (antes mostraba la tabla ahí)
+    expect(screen.queryByRole('heading', { name: 'Descripción' })).toBeNull();
     expect(container.querySelector('script:not([type="application/ld+json"])')).toBeNull();
   });
 
-  it('los BESTLED conservan el texto editorial del prototipo', async () => {
-    renderPdp(BESTLED);
-    const section = (await screen.findByRole('heading', { name: 'Descripción' })).closest('section')!;
-    expect(section.textContent).toContain('La luminaria LED BESTLED 150W');
-    expect(section.querySelector('.prose')).toBeNull();
+  it('con texto en Jumpseller: el texto va en Descripción y la tabla en Especificaciones técnicas', async () => {
+    renderPdp('panel-led-backlight-60x60-cm-48w-para-cielo-americano');
+    const description = await sectionOf('Descripción');
+    expect(description.textContent).toContain('Panel LED Backlight 60x60');
+    expect(description.querySelector('table')).toBeNull();
+    const specs = await sectionOf('Especificaciones técnicas');
+    expect(specs.textContent).toContain('Eléctrico y fotométrico');
   });
 
-  it('los datos estructurados del producto usan el texto de la descripción de Jumpseller', async () => {
+  it('una comparativa de varias columnas se conserva como tabla', async () => {
+    renderPdp('alumbrado-publico-led-solar-flyhawk-40-80w');
+    const specs = await sectionOf('Especificaciones técnicas');
+    expect(specs.querySelector('table')?.textContent).toContain('Flyhawk 60W');
+  });
+
+  it('los BESTLED conservan el texto y las especificaciones editoriales del prototipo', async () => {
+    renderPdp(BESTLED);
+    const description = await sectionOf('Descripción');
+    expect(description.textContent).toContain('La luminaria LED BESTLED 150W');
+    expect(description.querySelector('.prose')).toBeNull();
+    const specs = await sectionOf('Especificaciones técnicas');
+    expect(specs.textContent).toContain('Philips Lumileds 2835');
+  });
+
+  it('los datos estructurados del producto resumen sus especificaciones en texto plano', async () => {
     renderPdp('amp-led-ar111-15-150w');
     await waitFor(() => {
       const ld = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
       const product = ld.find(d => d['@type'] === 'Product');
-      expect(product?.description).toContain('G53');
+      expect(product?.description).toContain('Flujo luminoso: 1200 Lm.');
       expect(product?.description).not.toMatch(/<[a-z]/);
     });
   });

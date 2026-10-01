@@ -211,7 +211,9 @@ describe('sincronización completa', () => {
     }
     expect(findForbiddenKeys(['{"cost_per_item": 1}'])).toEqual(['cost_per_item']);
     // la descripción solo llega limpia, a su propio archivo
-    expect(descriptions).toContain('<p>Panel <strong>LED</strong> 40W para oficinas</p><table><tbody><tr><td>Potencia</td><td>40W</td></tr></tbody></table>');
+    expect(descriptions).toContain('"text":"<p>Panel <strong>LED</strong> 40W para oficinas, salas de reuniones y pasillos</p>"');
+    // la tabla, ordenada en los grupos de las fichas BESTLED y en texto plano
+    expect(descriptions).toContain('"electricos":[{"label":"Potencia","value":"40W"}]');
     expect(descriptions).not.toMatch(/<script|alert|onerror|onclick|<img|style=|<span/);
     expect(descriptions).not.toMatch(/cost_per_item|"stock/);
   });
