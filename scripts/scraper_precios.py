@@ -96,6 +96,9 @@ PE_EXCLUDED_SUBCATEGORIES = {
 }
 # Packs (precio por varias unidades): no son comparables con un precio unitario
 PE_PACK_PATTERN = re.compile(r"(-pck$|(^|-)pack(-|$)|-x-\d+-und)", re.I)
+# Accesorios y equipos que PowerEnergy cuelga de estas categorias (atriles, perfiles,
+# estancos): distorsionan el minimo/maximo de la categoria
+PE_EXCLUDED_NAME_PATTERN = re.compile(r"\b(soporte|atril|perfil|marco|accesorio|repuesto|estanco)", re.I)
 PE_DELAY = 1.0
 PE_MIN_PRICE = 100              # un precio menor es un error de lectura
 PE_MAX_CONSECUTIVE_FAILURES = 20  # bloqueo del sitio: cortar en vez de esperar 45 min
@@ -294,7 +297,9 @@ def scrape_powerenergy() -> tuple:
         if not category:
             unmapped += 1
             continue
-        if PE_EXCLUDED_SUBCATEGORIES.intersection(info["subs"]) or PE_PACK_PATTERN.search(info["name"]):
+        if (PE_EXCLUDED_SUBCATEGORIES.intersection(info["subs"])
+                or PE_PACK_PATTERN.search(info["name"])
+                or PE_EXCLUDED_NAME_PATTERN.search(info["name"])):
             continue
         grouped[f"PowerEnergy::{category}"].append(ProductPrice(
             competitor="PowerEnergy",
