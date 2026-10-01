@@ -72,25 +72,7 @@ const Header = () => {
                                                         {cat.name}
                                                         <span className="ml-auto text-[10px] text-muted-foreground font-normal">{cat.productCount}</span>
                                                     </Link>
-                                                    {cat.subcategories.slice(0, 3).map(sub => (
-                                                        <Link
-                                                            key={sub.slug}
-                                                            to={`/catalogo/${cat.slug}/${sub.slug}`}
-                                                            className="block text-xs text-muted-foreground hover:text-primary transition-colors pl-5 py-0.5"
-                                                            onClick={() => setCatOpen(false)}
-                                                        >
-                                                            {sub.name}
-                                                        </Link>
-                                                    ))}
-                                                    {cat.subcategories.length > 3 && (
-                                                        <Link
-                                                            to={`/catalogo/${cat.slug}`}
-                                                            className="block text-xs text-primary/60 hover:text-primary transition-colors pl-5 py-0.5"
-                                                            onClick={() => setCatOpen(false)}
-                                                        >
-                                                            +{cat.subcategories.length - 3} mas...
-                                                        </Link>
-                                                    )}
+                                                    
                                                 </div>
                                             );
                                         })}

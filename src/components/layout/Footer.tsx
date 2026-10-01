@@ -83,7 +83,8 @@ const Footer = () => {
           </div>
         </div>
         <div className="border-t border-background/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40">
-          <span>© {new Date().getFullYear()} eLIGHTS - Todos los derechos reservados</span>
+          {/* El año de la build y el del navegador pueden diferir en Año Nuevo: sin aviso de hidratación. */}
+          <span suppressHydrationWarning>© {new Date().getFullYear()} eLIGHTS - Todos los derechos reservados</span>
           <span>Iluminación al alcance de tus proyectos.</span>
         </div>
       </div>

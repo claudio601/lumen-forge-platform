@@ -146,7 +146,7 @@ const ProductDetail = () => {
       { label: 'Voltaje', value: product.voltage ?? null },
       { label: 'Grado IP', value: product.ip ?? null },
       { label: 'Angulo de haz', value: product.beamAngle ? product.beamAngle + 'deg' : null },
-      { label: 'Vida util', value: product.lifetime ? product.lifetime.toLocaleString() + 'h' : null },
+      { label: 'Vida util', value: product.lifetime ? product.lifetime.toLocaleString('es-CL') + 'h' : null },
       { label: 'Garantia', value: product.warranty ?? null },
       { label: 'Instalacion', value: product.installationType ?? null },
         ].filter(s => s.value);

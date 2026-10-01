@@ -22,9 +22,10 @@ const HeroSection = () => (
     <div className="container relative h-full">
       <div className="flex items-center py-16 md:py-24" style={{ minHeight: '540px' }}>
         <motion.div
-          initial={{ opacity: 0, x: -30 }}
+          // Sin animación de entrada: en el HTML generado en el servidor el título quedaría
+          // invisible (opacity 0) hasta que cargue el JavaScript.
+          initial={false}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7 }}
           className="max-w-xl z-10"
         >
           <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary-foreground/90 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">

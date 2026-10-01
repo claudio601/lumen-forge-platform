@@ -16,7 +16,7 @@ export const NOINDEX_ROUTES = ['/buscar', '/cotizacion', '/solicitar-pedido'] as
 export const REDIRECT_ROUTES = ['/carro'] as const;
 
 /** Patrones de App.tsx con páginas generadas desde el catálogo. */
-export const DYNAMIC_ROUTE_PATTERNS = ['/catalogo/:categorySlug', '/catalogo/:categorySlug/:subSlug', '/producto/:id'] as const;
+export const DYNAMIC_ROUTE_PATTERNS = ['/catalogo/:categorySlug', '/producto/:id'] as const;
 
 export const categoryPath = (slug: string) => `/catalogo/${encodeURIComponent(slug)}`;
 export const productPath = (id: string) => `/producto/${id}`;

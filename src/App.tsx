@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { RequestCartProvider } from "@/context/RequestCartContext";
@@ -22,7 +21,6 @@ const EstudioLuminicoPage = lazy(() => import("./pages/EstudioLuminicoPage"));
 const RequestOrderPage = lazy(() => import("./pages/RequestOrderPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
 
 // El estado de filtros de CatalogPage se inicializa desde la URL. Al navegar entre
 // categorías (mismo componente, otra URL) hay que remontarlo para no arrastrar
@@ -48,7 +46,6 @@ function RouteTracker() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AppProvider>
         <RequestCartProvider>
@@ -69,7 +66,6 @@ const App = () => (
                     <Route path="/" element={<Index />} />
                     <Route path="/catalogo" element={<CatalogRoute />} />
                     <Route path="/catalogo/:categorySlug" element={<CatalogRoute />} />
-                    <Route path="/catalogo/:categorySlug/:subSlug" element={<CatalogRoute />} />
                     <Route path="/producto/:id" element={<ProductRoute />} />
                     <Route path="/buscar" element={<SearchPage />} />
                     {/* Modelo cotización → link de pago: el carro con checkout ya no existe */}
@@ -91,7 +87,6 @@ const App = () => (
         </RequestCartProvider>
       </AppProvider>
     </TooltipProvider>
-  </QueryClientProvider>
 );
 
 export default App;

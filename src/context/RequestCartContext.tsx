@@ -7,6 +7,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import type { RequestCartItem } from '@/types/request-order';
 import { sendEvent } from '@/lib/analytics';
 import { requestLineKey } from '@/lib/requestOrder';
+import { useIsomorphicLayoutEffect } from '@/lib/ssr';
 
 // ── Tipos del contexto ───────────────────────────────────────────────────────
 interface RequestCartContextType {
@@ -20,6 +21,8 @@ interface RequestCartContextType {
   replaceItems: (items: RequestCartItem[]) => void;
   itemCount: number;
   subtotal: number;
+  /** true cuando ya se leyó el carrito guardado en la sesión (después de montar). */
+  loaded: boolean;
 }
 
 const RequestCartContext = createContext<RequestCartContextType | null>(null);
@@ -37,7 +40,14 @@ function loadFromStorage(): RequestCartItem[] {
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
-  const [items, setItems] = useState<RequestCartItem[]>(loadFromStorage);
+  // El carrito guardado se lee después de montar (antes de pintar), para que el HTML
+  // generado en el servidor coincida con el primer render del navegador.
+  const [items, setItems] = useState<RequestCartItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    setItems(loadFromStorage());
+    setLoaded(true);
+  }, []);
 
   // Limpieza única: el request-cart vivía en localStorage y arrastraba snapshots
   // viejos (precios congelados pre-refactor) entre sesiones. El estado de UI ahora
@@ -47,12 +57,13 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
+    if (!loaded) return; // sin esto, el carrito vacío inicial borraría el guardado
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {
       // Storage lleno o no disponible — silencioso
     }
-  }, [items]);
+  }, [items, loaded]);
 
   const addItem = useCallback(
     (incoming: Omit<RequestCartItem, 'quantity'> & { quantity?: number }) => {
@@ -112,7 +123,7 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <RequestCartContext.Provider
-      value={{ items, addItem, removeItem, updateQty, clearCart, replaceItems, itemCount, subtotal }}
+      value={{ items, addItem, removeItem, updateQty, clearCart, replaceItems, itemCount, subtotal, loaded }}
     >
       {children}
     </RequestCartContext.Provider>

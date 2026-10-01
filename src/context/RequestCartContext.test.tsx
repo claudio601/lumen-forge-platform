@@ -66,3 +66,16 @@ describe('RequestCart: líneas por producto + variante', () => {
   });
 });
 
+
+describe('RequestCart: la sesión se lee después de montar (páginas estáticas)', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+
+  it('al recargar con un carrito guardado lo carga y no lo borra con el carrito vacío inicial', () => {
+    sessionStorage.setItem(KEY, JSON.stringify([{ ...sampleItem, quantity: 3 }]));
+    const { result, unmount } = renderHook(() => useRequestCart(), { wrapper });
+    expect(result.current.loaded).toBe(true);
+    expect(result.current.itemCount).toBe(3);
+    unmount();
+    expect(JSON.parse(sessionStorage.getItem(KEY)!)[0].quantity).toBe(3);
+  });
+});

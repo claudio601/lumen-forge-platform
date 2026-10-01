@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Product } from '@/data/catalog/types';
+import { useIsomorphicLayoutEffect } from '@/lib/ssr';
 
 // Selección de variante de color al cotizar. unitPrice es CON IVA (base);
 // displayPrice aplica el toggle B2B (÷1,19) al renderizar.
@@ -41,13 +42,28 @@ function loadFromSession<T>(key: string, fallback: T): T {
 }
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>(() => loadFromSession('elights_quote', []));
-  const [isB2B, setIsB2B] = useState(() => loadFromSession('elights_b2b', false));
+  // La sesión se lee después de montar (antes de pintar): así el HTML generado en el
+  // servidor (cotización vacía, precios con IVA) coincide con el primer render del
+  // navegador. `loaded` evita que el primer guardado borre lo que había en la sesión.
+  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>([]);
+  const [isB2B, setIsB2B] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useIsomorphicLayoutEffect(() => {
+    setQuoteCart(loadFromSession('elights_quote', []));
+    setIsB2B(loadFromSession('elights_b2b', false));
+    setLoaded(true);
+  }, []);
 
   // El carro viejo (checkout en Jumpseller) se eliminó: limpiar su estado de la sesión.
   useEffect(() => { try { sessionStorage.removeItem('elights_cart'); } catch { /* sin storage */ } }, []);
-  useEffect(() => { sessionStorage.setItem('elights_quote', JSON.stringify(quoteCart)); }, [quoteCart]);
-  useEffect(() => { sessionStorage.setItem('elights_b2b', JSON.stringify(isB2B)); }, [isB2B]);
+  useEffect(() => {
+    if (!loaded) return;
+    try { sessionStorage.setItem('elights_quote', JSON.stringify(quoteCart)); } catch { /* sin storage */ }
+  }, [quoteCart, loaded]);
+  useEffect(() => {
+    if (!loaded) return;
+    try { sessionStorage.setItem('elights_b2b', JSON.stringify(isB2B)); } catch { /* sin storage */ }
+  }, [isB2B, loaded]);
 
   const addToQuote = (product: Product, qty = 1, notes?: string, selection?: QuoteSelection) => {
     const key = quoteLineKey(product.id, selection?.cct);
