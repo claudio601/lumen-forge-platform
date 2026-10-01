@@ -2,11 +2,14 @@
 # -*- coding: utf-8 -*-
 """
 Scraper de precios de competidores para eLights.
-Fuentes: PowerEnergy (WC API), Megabright (WC API), TecnoIluminacion (HTML).
+Fuentes: PowerEnergy (fichas de producto: datos estructurados JSON-LD),
+Megabright (WC API), TecnoIluminacion (HTML).
 
 Modos de ejecucion:
   SCRAPER_MODE=auto  -> Solo PowerEnergy (usado en GitHub Actions)
   SCRAPER_MODE=all   -> Todos los competidores (ejecucion manual)
+
+PE_MAX_PRODUCTS=N limita las fichas de PowerEnergy que se leen (pruebas locales).
 """
 from __future__ import annotations
 
@@ -63,20 +66,36 @@ class ProductPrice:
     price_raw:  str
     url:        str
     scraped_at: str
+    availability: str = ""
 
 # -- Modo de ejecucion ------------------------------------------------------
 # "auto" = solo PowerEnergy (GitHub Actions cron quincenal)
 # "all"  = todos los competidores (ejecucion manual desde IP residencial)
 SCRAPER_MODE = os.environ.get("SCRAPER_MODE", "all").lower()
 
-# -- WC Store API configs ---------------------------------------------------
-PE_API_BASE = "https://powerenergy.cl/wp-json/wc/store/v1/products"
-PE_CATEGORIES = {
-    "Proyectores LED": 2362,
-    "Paneles LED":     2357,
-    "Campanas LED":    2361,
-    "Tubos LED":       2359,
+# -- PowerEnergy -------------------------------------------------------------
+# En 2026 PowerEnergy dejo WooCommerce (ya no existe /wp-json). Sus fichas de
+# producto traen datos estructurados para buscadores (JSON-LD: Product con precio
+# y BreadcrumbList con la categoria), y su robots.txt permite /producto/.
+# Se leen las fichas listadas en el sitemap, de a una y con pausa.
+PE_SITEMAP = "https://powerenergy.cl/sitemap.xml"
+# Categoria principal (2do nivel del breadcrumb, por slug) -> categoria del reporte
+PE_TOP_CATEGORIES = {
+    "proyectores-de-area-led": "Proyectores LED",
+    "panel-led":               "Paneles LED",
+    "campanas-led-ufo":        "Campanas LED",
+    "tubos-led":               "Tubos LED",
 }
+# Subcategorias que no son luminarias comparables (accesorios, marcos, estancos)
+PE_EXCLUDED_SUBCATEGORIES = {
+    "accesorios-para-panel-led",
+    "marcos-panel-led",
+    "accesorios-tubo",
+    "estancos-para-tubo-t8",
+    "accesorios-para-campanas",
+}
+PE_DELAY = 1.0
+PE_MAX_PRODUCTS = int(os.environ.get("PE_MAX_PRODUCTS", "0") or 0)
 
 MB_API_BASE = "https://www.megabright.cl/wp-json/wc/store/v1/products"
 MB_CATEGORIES = {
@@ -167,6 +186,100 @@ def extract_price_clp(price_text: str) -> Optional[int]:
         return None
 
 
+def slug_of(url: str) -> str:
+    return (url or "").rstrip("/").rsplit("/", 1)[-1]
+
+
+def parse_product_jsonld(html: str) -> Optional[dict]:
+    """Nombre, precio, disponibilidad y categorias desde el JSON-LD de una ficha."""
+    product = None
+    crumbs: List[dict] = []
+    for raw in re.findall(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', html, re.S):
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        nodes = data.get("@graph", [data]) if isinstance(data, dict) else data
+        for node in nodes if isinstance(nodes, list) else []:
+            if not isinstance(node, dict):
+                continue
+            if node.get("@type") == "Product" and product is None:
+                product = node
+            elif node.get("@type") == "BreadcrumbList":
+                crumbs = sorted(node.get("itemListElement", []), key=lambda i: i.get("position", 0))
+    if not product:
+        return None
+    offers = product.get("offers") or {}
+    if isinstance(offers, list):
+        offers = offers[0] if offers else {}
+    try:
+        price = int(round(float(str(offers.get("price", "")).replace(",", "."))))
+    except ValueError:
+        price = 0
+    # Breadcrumb: [inicio, categoria principal, subcategoria..., producto]
+    cats = [slug_of(c.get("item", "")) for c in crumbs[1:-1]]
+    return {
+        "name": clean_text(unescape(str(product.get("name", "")))),
+        "price": price,
+        "availability": slug_of(str(offers.get("availability", ""))),
+        "top": cats[0] if cats else "",
+        "subs": cats[1:],
+    }
+
+
+def scrape_powerenergy() -> Dict[str, List[ProductPrice]]:
+    """PowerEnergy: fichas del sitemap; precio y categoria desde su JSON-LD."""
+    grouped: Dict[str, List[ProductPrice]] = {f"PowerEnergy::{c}": [] for c in PE_TOP_CATEGORIES.values()}
+    scraped_at = datetime.now(timezone.utc).isoformat()
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    try:
+        resp = session.get(PE_SITEMAP, timeout=TIMEOUT)
+        resp.raise_for_status()
+    except Exception as exc:
+        logger.error("PowerEnergy sitemap: %s", exc)
+        return grouped
+    urls = re.findall(r"<loc>(https://powerenergy\.cl/producto/[^<]+)</loc>", resp.text)
+    if PE_MAX_PRODUCTS:
+        urls = urls[:PE_MAX_PRODUCTS]
+    logger.info("PowerEnergy: %s fichas en el sitemap", len(urls))
+    failures = 0
+    for n, url in enumerate(urls, 1):
+        time.sleep(PE_DELAY)
+        try:
+            resp = session.get(url, timeout=TIMEOUT)
+            if resp.status_code != 200:
+                failures += 1
+                continue
+            info = parse_product_jsonld(resp.text)
+        except Exception as exc:
+            logger.warning("PowerEnergy %s: %s", url, exc)
+            failures += 1
+            continue
+        if n % 100 == 0:
+            logger.info("PowerEnergy: %s/%s fichas leidas", n, len(urls))
+        if not info or not info["price"] or not info["name"]:
+            continue
+        category = PE_TOP_CATEGORIES.get(info["top"])
+        if not category or PE_EXCLUDED_SUBCATEGORIES.intersection(info["subs"]):
+            continue
+        grouped[f"PowerEnergy::{category}"].append(ProductPrice(
+            competitor="PowerEnergy",
+            category=category,
+            name=info["name"],
+            price_clp=info["price"],
+            price_raw=format_clp(info["price"]),
+            url=url,
+            scraped_at=scraped_at,
+            availability=info["availability"],
+        ))
+    for key, products in grouped.items():
+        logger.info("%s: %s productos", key.replace("::", " "), len(products))
+    if failures:
+        logger.warning("PowerEnergy: %s fichas no se pudieron leer", failures)
+    return grouped
+
+
 def scrape_tecnoiluminacion() -> Dict[str, List[ProductPrice]]:
     """Scrape TecnoIluminacion category pages (PrestaShop)."""
     grouped: Dict[str, List[ProductPrice]] = {}
@@ -244,7 +357,7 @@ def scrape_all() -> Dict[str, List[ProductPrice]]:
     logger.info("Modo de ejecucion: %s", SCRAPER_MODE)
 
     # PowerEnergy siempre se ejecuta
-    grouped.update(scrape_wc_api("PowerEnergy", PE_API_BASE, PE_CATEGORIES))
+    grouped.update(scrape_powerenergy())
 
     if SCRAPER_MODE == "all":
         # Megabright y TecnoIluminacion solo en modo manual
@@ -361,6 +474,13 @@ def main() -> None:
     logger.info("Scraping finalizado. Total: %s productos (modo: %s)", total, SCRAPER_MODE)
     logger.info("JSON: %s", JSON_OUTPUT)
     logger.info("Markdown: %s", MD_OUTPUT)
+
+    # PowerEnergy es la unica fuente automatica: si no trae nada, falla en vez de
+    # mandar un reporte vacio (GitHub avisa por correo cuando un workflow falla).
+    pe_total = sum(len(v) for k, v in grouped.items() if k.startswith("PowerEnergy::"))
+    if pe_total == 0:
+        logger.error("PowerEnergy no devolvio productos: revisar si cambio su sitio.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

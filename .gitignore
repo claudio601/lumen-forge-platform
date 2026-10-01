@@ -36,3 +36,8 @@ reports/
 
 # Defensive: local axiom test scripts may contain production credentials
 axiom-test*
+
+# Reporte de precios de la competencia: se envia por correo y queda como artefacto
+# de GitHub Actions; no va al repo (publico).
+scripts/data/precios_competencia.json
+scripts/data/reporte_precios.md
