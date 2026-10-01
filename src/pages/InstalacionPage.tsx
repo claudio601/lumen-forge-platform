@@ -9,7 +9,7 @@ import {
 } from '@/config/business';
 import InstallationLeadForm from '@/components/instalacion/InstallationLeadForm';
 import { sendEvent } from '@/lib/analytics';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
 
 // Hero copy: Variante A implementada, Variante B documentada.
 // Variante A: titulo con cobertura RM explicita, subcopy orientado a propuesta
@@ -29,10 +29,7 @@ const InstalacionPage = () => {
 
   return (
     <div className="bg-[#FAFAF7]">
-    <Helmet>
-      <title>Instalación Profesional de Iluminación LED y Paneles Solares | eLIGHTS</title>
-      <meta name="description" content="Servicio de instalación eléctrica profesional de iluminación LED y paneles solares en la Región Metropolitana. Visita técnica, cotización y ejecución por técnicos certificados SEC." />
-    </Helmet>
+    <Seo title="Instalación Profesional de Iluminación LED y Paneles Solares | eLIGHTS" description="Servicio de instalación eléctrica profesional de iluminación LED y paneles solares en la Región Metropolitana. Visita técnica, cotización y ejecución por técnicos certificados SEC." path="/instalacion" />
 
       {/* Hero */}
       <section

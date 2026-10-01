@@ -7,14 +7,12 @@ import SolutionsSection from '@/components/home/SolutionsSection';
 import InstallerTeaser from '@/components/home/InstallerTeaser';
 import EstudioLuminicoTeaser from '@/components/home/EstudioLuminicoTeaser';
 import WhyElights from '@/components/home/WhyElights';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 
 const Index = () => (
   <>
-    <Helmet>
-      <title>eLIGHTS — Iluminación LED Profesional Chile</title>
-      <meta name="description" content="Iluminación LED profesional para proyectos, empresas y hogar. Catálogo técnico, instalación profesional y estudio lumínico DIALux. Despacho a todo Chile." />
-    </Helmet>
+    <Seo title="eLIGHTS — Iluminación LED Profesional Chile" description="Iluminación LED profesional para proyectos, empresas y hogar. Catálogo técnico, instalación profesional y estudio lumínico DIALux. Despacho a todo Chile." path="/" jsonLd={[organizationJsonLd(), websiteJsonLd()]} />
     <HeroSection />
     <TrustBar />
     <DualPathCards />

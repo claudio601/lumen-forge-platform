@@ -7,6 +7,7 @@ import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCirc
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { trackLead } from '@/lib/analytics';
+import Seo from '@/components/Seo';
 
 const EMAILJS_SERVICE_ID  = 'service_elights';
 const EMAILJS_TEMPLATE_ID = 'template_6y0bq3l';
@@ -132,6 +133,7 @@ const QuoteCartPage = () => {
   if (submitted) {
     return (
       <div className="container py-16 text-center max-w-md mx-auto">
+        <Seo title="Solicitud de Cotización | eLIGHTS Chile" description="Revisa los productos de tu cotización y envíanos tus datos: un asesor te responde con precios especiales." noindex />
         <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Solicitud enviada</h1>
         <p className="text-muted-foreground mb-6">
@@ -147,6 +149,7 @@ const QuoteCartPage = () => {
   if (quoteCart.length === 0) {
     return (
       <div className="container py-16 text-center">
+        <Seo title="Solicitud de Cotización | eLIGHTS Chile" description="Revisa los productos de tu cotización y envíanos tus datos: un asesor te responde con precios especiales." noindex />
         <FileText className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Tu lista de cotización está vacía</h1>
         <p className="text-muted-foreground mb-6">Agrega productos desde el catálogo para solicitar una cotización</p>
@@ -159,6 +162,7 @@ const QuoteCartPage = () => {
 
   return (
     <div className="container py-8">
+        <Seo title="Solicitud de Cotización | eLIGHTS Chile" description="Revisa los productos de tu cotización y envíanos tus datos: un asesor te responde con precios especiales." noindex />
       <Link to="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
         <ArrowLeft className="h-4 w-4" /> Seguir explorando
       </Link>

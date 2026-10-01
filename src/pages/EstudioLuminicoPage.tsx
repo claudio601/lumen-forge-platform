@@ -8,7 +8,7 @@ import {
 import EstudioLuminicoLeadForm from '@/components/estudio-luminico/EstudioLuminicoLeadForm';
 import { waEstudioLuminico } from '@/config/business';
 import { sendEvent } from '@/lib/analytics';
-import { Helmet } from 'react-helmet-async';
+import Seo from '@/components/Seo';
 
 // ── Helpers de scroll ─────────────────────────────────────────────────────────
 
@@ -243,10 +243,7 @@ const EstudioLuminicoPage = () => {
 
   return (
     <div className="bg-[#FAFAF7]">
-    <Helmet>
-      <title>Estudio Lumínico DIALux en Chile | Simulación y Cálculo de Iluminación | eLIGHTS</title>
-      <meta name="description" content="Solicita un estudio lumínico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe técnico con simulación 3D, verificación normativa y propuesta de luminarias LED. Entrega en 48 horas desde la recepción de todos los antecedentes." />
-    </Helmet>
+    <Seo title="Estudio Lumínico DIALux en Chile | Simulación y Cálculo de Iluminación | eLIGHTS" description="Solicita un estudio lumínico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe técnico con simulación 3D, verificación normativa y propuesta de luminarias LED. Entrega en 48 horas desde la recepción de todos los antecedentes." path="/estudio-luminico" />
 
 
       {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
