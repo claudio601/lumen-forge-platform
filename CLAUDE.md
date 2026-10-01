@@ -194,4 +194,20 @@ usa 5 subagentes para explorar la base de código:
 
 ---
 
+## 15. Etapa 2 (SEO y confianza): reglas de despliegue
+
+Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
+
+- **vercel.json gobierna también producción.** En el mismo proyecto viven el webhook de Jumpseller, el bot de WhatsApp, el webhook de Pipedrive y los formularios. Reglas (las vigila `scripts/vercel-config.test.ts`):
+  - `/api/(.*)` sigue siendo la primera reescritura, sin cambios, y la región sigue en `iad1`.
+  - Ninguna redirección ni cabecera alcanza `/api`, y no hay redirecciones por dominio.
+  - Sin `cleanUrls` ni `trailingSlash`: convertirían los POST de los webhooks en redirecciones.
+- **Chequeo de humo** (`npm run smoke -- <url> [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`). Solo hace GET; los webhooks responden 405 antes de procesar nada.
+  - Se corre en cada preview, comparando con producción, y después de cada merge.
+  - Falla si una ruta da 5xx, o si una función de `api/` o un archivo cambia de estado o de tipo.
+- **nuevo.elights.cl está fuera de Google** hasta el cambio de dominio: cabecera `X-Robots-Tag: noindex` solo para ese host. Así no compite con elights.cl. Deja de aplicarse sola cuando el sitio se sirva como elights.cl.
+- Claude prueba cada preview y publica el resultado en la PR. El dueño aprueba la fusión.
+
+---
+
 > Actualizar este archivo después de cada corrección significativa o decisión de arquitectura.

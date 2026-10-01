@@ -8,6 +8,7 @@
     "generate-sitemap": "tsx scripts/generate-sitemap.ts",
     "sync:catalog": "tsx scripts/sync-jumpseller.ts",
     "warm:images": "tsx scripts/warm-images.ts",
+    "smoke": "tsx scripts/smoke.ts",
     "build": "npm run generate-sitemap && vite build",
     "build:dev": "npm run generate-sitemap && vite build --mode development",
     "lint": "eslint .",
