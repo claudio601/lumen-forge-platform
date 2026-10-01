@@ -1,7 +1,7 @@
 # CLAUDE.md — lumen-forge-platform (nuevo.elights.cl)
 
 > Archivo de memoria del proyecto. Actualizar después de cada corrección relevante.
-> Última revisión: 2026-09-30
+> Última revisión: 2026-10-01
 
 ---
 
@@ -19,7 +19,7 @@
 ## 2. Autenticación Jumpseller
 
 - **Método**: Basic Auth (NO Bearer, NO OAuth)
-- **Credenciales**: JUMPSELLER_LOGIN + JUMPSELLER_TOKEN (env vars en Vercel)
+- **Credenciales**: JUMPSELLER_LOGIN + JUMPSELLER_TOKEN (secretos de GitHub Actions y `.env.local`; ver §14). En Vercel solo se usa `JUMPSELLER_HOOKS_TOKEN` (webhook): no tocar.
 - **Formato header**: Authorization: Basic base64(login:token)
 - **Endpoint base**: https://api.jumpseller.com/v1/
 - ⚠️ **Error histórico**: Usar Bearer en vez de Basic Auth rompe todas las llamadas a la API. Verificar siempre el header antes de debuggear otras causas.
@@ -31,8 +31,9 @@
 - El sitio **no tiene checkout propio**. Todo flujo termina en una solicitud (pedido o cotización) que llega a Pipedrive + email; el vendedor responde con un **link de pago de Jumpseller**.
 - **Nunca mostrar stock** ("En stock" / "Sin stock"): no hay control de bodega y algunos productos se compran en plaza. Texto estándar: **"Consultar disponibilidad"**.
 - **Jumpseller es la única fuente de verdad** de precios, nombres, imágenes, categorías y productos activos. El contenido editorial (fichas BESTLED, FAQ, SEO) se mantiene aparte, asociado por `jumpseller_id`.
-- **Despacho**: hasta 2 días hábiles (muchas veces el mismo día). No prometer plazos distintos.
-- Obsoleto (se elimina en la Etapa 1): `api/create-order.ts` (ya no existe), `src/pages/CartPage.tsx`, `src/services/jumpsellerCart.ts` y el paso a `elights.cl/checkout`.
+- **Despacho**: "Despacho en hasta 2 días hábiles" (versión larga: "y a veces el mismo día"). Nunca "24–48 h" ni "muchas veces".
+- Ya eliminados en la Etapa 1: `api/create-order.ts`, `src/pages/CartPage.tsx`, `src/services/jumpsellerCart.ts` y el paso a `elights.cl/checkout` (`/carro` redirige a `/solicitar-pedido`).
+- **Montos en Pipedrive**: siempre CON IVA, calculados en el servidor desde el catálogo (`api/_lib/catalog/pricing.ts`); nunca se confía en el precio que manda el navegador.
 
 ---
 
@@ -50,6 +51,7 @@
 - **Push a main** = deploy automático en Vercel — revisar preview antes de mergear
 - **Naming**: camelCase para funciones/variables, PascalCase para componentes React
 - **Variables de entorno**: NUNCA hardcodear credenciales. Siempre usar .env.local en dev y Vercel env vars en producción
+- **Forma de trabajo con Claude** (regla del dueño, 2026-10-01): lo que Claude puede hacer, lo hace él: pruebas en el preview de Vercel, configuración del repo con `gh`, ejecutar workflows, verificar en Pipedrive/Gmail. El dueño solo ingresa credenciales (Claude nunca ve ni escribe tokens, contraseñas ni RUT) y aprueba las fusiones a main.
 
 ---
 
@@ -152,9 +154,43 @@ usa 5 subagentes para explorar la base de código:
 ## 13. Checklist de inicio de sesión
 
 - [ ] Revisar este CLAUDE.md
-- [ ] Revisar TODOs abiertos (especialmente ProductCard con window.open)
+- [ ] Leer `~/proyectos/elights-auditoria-2026-09-28/ESTADO-ACTUAL.md` (traspaso entre sesiones)
+- [ ] Revisar si hay una PR abierta del bot de catálogo (`bot/jumpseller-sync`)
 - [ ] Verificar estado de Vercel (último deploy exitoso)
 - [ ] Confirmar env vars activas si se agregaron nuevas
+
+---
+
+## 14. Pipeline del catálogo (Jumpseller → sitio)
+
+**Fuentes de verdad**
+- **Jumpseller**: precios, nombres, fotos, categorías, productos activos y SKU de variantes.
+- `src/data/catalog/overlay/editorial.ts`: contenido editorial (fichas BESTLED, FAQ, SEO), asociado por `jumpseller_id`.
+- `src/data/catalog/overlay/overrides.ts`: correcciones puntuales (SKU, marca, lúmenes) por `jumpseller_id`.
+- `src/data/catalog/categories.config.ts`: las 15 categorías del sitio y el mapa desde Jumpseller (`JUMPSELLER_TOP_CATEGORY_TO_SLUG`).
+- `scripts/jumpseller/denylist.json`: productos de Jumpseller que nunca se publican. Tampoco se publican los no disponibles ni los sin categoría.
+
+**Archivos generados: NUNCA editarlos a mano** (los escribe `npm run sync:catalog -- --write`)
+- `src/data/catalog/jumpseller-snapshot.generated.ts`
+- `src/data/catalog/categories.generated.ts`
+- `src/data/catalog/site-ids.generated.ts`: solo crece; da ids estables del sitio a productos nuevos.
+- `api/_lib/catalog/price-index.generated.ts`: precios CON IVA que usa el servidor en pedidos y cotizaciones.
+
+**Cómo se actualiza**
+- Automático: workflow "Sincronizar catálogo Jumpseller" (`.github/workflows/sync-jumpseller.yml`), de lunes a viernes a las 11:00 UTC. Si hay cambios, abre o actualiza la PR `bot/jumpseller-sync` con el informe; se revisa y se fusiona como cualquier PR. Si no hay cambios, no abre nada.
+- A mano: `gh workflow run sync-jumpseller.yml` (o Actions → Run workflow).
+- Local: `npm run sync:catalog` (solo informe, en `reports/jumpseller-sync/diff.md`); `-- --write` escribe los generados. Necesita `.env.local`.
+- Guardas (abortan sin escribir): cae más del 15% de productos, ids duplicados, precio ≤ 0, categoría sin mapear, datos que no pasan la validación, campos prohibidos.
+- GitHub desactiva los workflows programados tras 60 días sin actividad en el repo. Si pasa: `gh workflow enable sync-jumpseller.yml`.
+
+**Secretos** (los valores los pone el dueño; Claude nunca los ve)
+- GitHub Actions: `JUMPSELLER_LOGIN`, `JUMPSELLER_TOKEN` (Settings → Secrets and variables → Actions).
+- Local: los mismos dos en `.env.local` (gitignored).
+
+**Reglas**
+- El repo es público: nunca deben llegar a archivos versionados `cost_per_item`, el stock ni la descripción cruda de Jumpseller. `--save-raw` solo escribe en `reports/` (gitignored).
+- Agentes: el MCP de Jumpseller es solo de lectura (`get_*`/`list_*`/`search_*`). Para sincronizar se usa `gh workflow run`; el sitio nunca escribe en Jumpseller.
+- Fotos: CDN de Jumpseller (`src/lib/jumpsellerImage.ts`). `npm run warm:images` precalienta los tamaños que usa el sitio.
 
 ---
 
