@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, startTransition, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Product } from '@/data/catalog/types';
 
 // Selección de variante de color al cotizar. unitPrice es CON IVA (base);
@@ -26,6 +26,8 @@ interface AppContextType {
   quoteCount: number;
   isB2B: boolean;
   toggleB2B: () => void;
+  /** true cuando ya se leyó la sesión (después de montar). */
+  loaded: boolean;
   displayPrice: (price: number) => number;
   formatDisplayPrice: (price: number) => string;
   priceLabel: string;
@@ -41,13 +43,32 @@ function loadFromSession<T>(key: string, fallback: T): T {
 }
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>(() => loadFromSession('elights_quote', []));
-  const [isB2B, setIsB2B] = useState(() => loadFromSession('elights_b2b', false));
+  // La sesión se lee después de montar: así el HTML generado en el servidor
+  // (cotización vacía, precios con IVA) coincide con el primer render del navegador.
+  // Va en una transición (no urgente): si la página se está hidratando, React termina
+  // de hidratar antes de aplicarla, en vez de descartar el HTML del servidor.
+  // `loaded` evita que el primer guardado borre lo que había en la sesión.
+  const [quoteCart, setQuoteCart] = useState<QuoteItem[]>([]);
+  const [isB2B, setIsB2B] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    startTransition(() => {
+      setQuoteCart(loadFromSession('elights_quote', []));
+      setIsB2B(loadFromSession('elights_b2b', false));
+      setLoaded(true);
+    });
+  }, []);
 
   // El carro viejo (checkout en Jumpseller) se eliminó: limpiar su estado de la sesión.
   useEffect(() => { try { sessionStorage.removeItem('elights_cart'); } catch { /* sin storage */ } }, []);
-  useEffect(() => { sessionStorage.setItem('elights_quote', JSON.stringify(quoteCart)); }, [quoteCart]);
-  useEffect(() => { sessionStorage.setItem('elights_b2b', JSON.stringify(isB2B)); }, [isB2B]);
+  useEffect(() => {
+    if (!loaded) return;
+    try { sessionStorage.setItem('elights_quote', JSON.stringify(quoteCart)); } catch { /* sin storage */ }
+  }, [quoteCart, loaded]);
+  useEffect(() => {
+    if (!loaded) return;
+    try { sessionStorage.setItem('elights_b2b', JSON.stringify(isB2B)); } catch { /* sin storage */ }
+  }, [isB2B, loaded]);
 
   const addToQuote = (product: Product, qty = 1, notes?: string, selection?: QuoteSelection) => {
     const key = quoteLineKey(product.id, selection?.cct);
@@ -76,7 +97,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AppContext.Provider value={{
       quoteCart, addToQuote, removeFromQuote, clearQuote, updateQuoteQty, quoteCount,
-      isB2B, toggleB2B, displayPrice, formatDisplayPrice, priceLabel,
+      isB2B, toggleB2B, displayPrice, formatDisplayPrice, priceLabel, loaded,
     }}>
       {children}
     </AppContext.Provider>

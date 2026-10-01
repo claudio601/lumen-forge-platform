@@ -20,7 +20,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const Header = () => {
-    const { quoteCount, isB2B, toggleB2B } = useApp();
+    const { quoteCount, isB2B, toggleB2B, loaded } = useApp();
     const [search, setSearch] = useState('');
     const [menuOpen, setMenuOpen] = useState(false);
     const [catOpen, setCatOpen] = useState(false);
@@ -72,25 +72,7 @@ const Header = () => {
                                                         {cat.name}
                                                         <span className="ml-auto text-[10px] text-muted-foreground font-normal">{cat.productCount}</span>
                                                     </Link>
-                                                    {cat.subcategories.slice(0, 3).map(sub => (
-                                                        <Link
-                                                            key={sub.slug}
-                                                            to={`/catalogo/${cat.slug}/${sub.slug}`}
-                                                            className="block text-xs text-muted-foreground hover:text-primary transition-colors pl-5 py-0.5"
-                                                            onClick={() => setCatOpen(false)}
-                                                        >
-                                                            {sub.name}
-                                                        </Link>
-                                                    ))}
-                                                    {cat.subcategories.length > 3 && (
-                                                        <Link
-                                                            to={`/catalogo/${cat.slug}`}
-                                                            className="block text-xs text-primary/60 hover:text-primary transition-colors pl-5 py-0.5"
-                                                            onClick={() => setCatOpen(false)}
-                                                        >
-                                                            +{cat.subcategories.length - 3} mas...
-                                                        </Link>
-                                                    )}
+                                                    
                                                 </div>
                                             );
                                         })}
@@ -122,6 +104,8 @@ const Header = () => {
                     <div className="flex items-center gap-1 ml-auto">
                         <button
                             onClick={toggleB2B}
+                            // Hasta leer la sesión (milisegundos) el modo mostrado aún no es el guardado.
+                            disabled={!loaded}
                             title={isB2B ? 'Modo empresa activo - precios sin IVA' : 'Activar precios para empresa'}
                             className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
                                 isB2B
@@ -191,6 +175,8 @@ const Header = () => {
                         <hr className="my-2" />
                         <button
                             onClick={() => { toggleB2B(); setMenuOpen(false); }}
+                            // Hasta leer la sesión (milisegundos) el modo mostrado aún no es el guardado.
+                            disabled={!loaded}
                             className={`w-full flex items-center gap-2 py-2 px-3 text-sm font-semibold rounded-md transition-all ${
                                 isB2B
                                     ? 'bg-primary text-primary-foreground'

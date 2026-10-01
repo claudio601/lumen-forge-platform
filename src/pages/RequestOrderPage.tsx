@@ -2,7 +2,7 @@
 // Pagina principal del flujo de Solicitud de Pedido.
 // Muestra el carrito, el formulario de contacto y la confirmacion.
 // Referencia: QuoteCartPage.tsx + InstallationLeadForm.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
       ClipboardList,
@@ -80,19 +80,24 @@ function ConfirmationScreen({ requestRef }: { requestRef: string }) {
 
 // ── Pagina principal ────────────────────────────────────────────────────────
 const RequestOrderPage = () => {
-      const { items, updateQty, removeItem, clearCart, replaceItems, subtotal } = useRequestCart();
+      const { items, updateQty, removeItem, clearCart, replaceItems, subtotal, loaded } = useRequestCart();
       const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
 
       // Carritos guardados en la sesión pueden tener precios o productos de antes de la
-      // última sincronización con Jumpseller: se ponen al día al abrir la página.
+      // última sincronización con Jumpseller: se ponen al día una vez, apenas se lee el
+      // carrito guardado (después de montar; si esta es la primera página, eso ocurre
+      // después del primer render).
+      const reconciled = useRef(false);
       useEffect(() => {
+        if (!loaded || reconciled.current) return;
+        reconciled.current = true;
         const r = reconcileRequestItems(items, products);
         if (!r.changed) return;
         replaceItems(r.items);
         if (r.removed.length) toast.warning(`Quitamos de tu solicitud productos que ya no están disponibles: ${r.removed.join(', ')}`);
         else if (r.repriced) toast.info('Actualizamos los precios de tu solicitud según el catálogo vigente.');
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
+      }, [loaded]);
       const [form, setForm] = useState<FormValues>(EMPTY_FORM);
       const [status, setStatus] = useState<FormState>('idle');
       const [errorMsg, setErrorMsg] = useState('');

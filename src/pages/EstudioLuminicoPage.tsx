@@ -1,5 +1,4 @@
 // src/pages/EstudioLuminicoPage.tsx
-import { useEffect } from 'react';
 import {
   FileText, Zap, BarChart3, MapPin, Clock, ChevronDown,
   Building2, Truck, Shield, Lightbulb, Globe, GraduationCap,
@@ -222,24 +221,6 @@ const ReportPreview = ({
 
 const EstudioLuminicoPage = () => {
   // SEO: actualizar document.title y meta description
-  useEffect(() => {
-    document.title =
-      'Estudio Lumínico DIALux en Chile | Simulación y Cálculo de Iluminación | eLIGHTS';
-    const meta = document.querySelector('meta[name="description"]');
-    const desc =
-      'Solicita un estudio lumínico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe técnico con simulación 3D, verificación normativa y propuesta de luminarias LED. Entrega en 48 horas desde la recepción de todos los antecedentes.';
-    if (meta) {
-      meta.setAttribute('content', desc);
-    } else {
-      const newMeta = document.createElement('meta');
-      newMeta.name = 'description';
-      newMeta.content = desc;
-      document.head.appendChild(newMeta);
-    }
-    return () => {
-      document.title = 'eLIGHTS — Iluminación LED Profesional Chile';
-    };
-  }, []);
 
   return (
     <div className="bg-[#FAFAF7]">

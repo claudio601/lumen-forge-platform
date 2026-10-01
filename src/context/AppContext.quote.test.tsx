@@ -83,3 +83,19 @@ describe('cctVariants[].sku no diverge del generador', () => {
     }
   }
 });
+
+describe('sesión leída después de montar (páginas estáticas)', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it('al recargar, la cotización y el modo empresa se cargan y no se borran', () => {
+    sessionStorage.setItem('elights_b2b', 'true');
+    sessionStorage.setItem('elights_quote', JSON.stringify([{ product: p150, quantity: 2, cct: 4000 }]));
+    const { result, unmount } = renderHook(() => useApp(), { wrapper });
+    expect(result.current.isB2B).toBe(true);
+    expect(result.current.quoteCount).toBe(2);
+    expect(result.current.displayPrice(119000)).toBe(100000);
+    unmount();
+    expect(sessionStorage.getItem('elights_b2b')).toBe('true');
+    expect(JSON.parse(sessionStorage.getItem('elights_quote')!)).toHaveLength(1);
+  });
+});
