@@ -113,6 +113,7 @@ const RequestOrderPage = () => {
       if (items.length === 0 && status !== 'success') {
               return (
                         <div className="container py-16 text-center">
+                          <Seo title="Solicitud de Pedido | eLIGHTS Chile" description="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." noindex />
                                 <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
                                 <h1 className="text-2xl font-bold mb-2">Tu solicitud está vacía</h1>
                                 <p className="text-muted-foreground mb-6">
@@ -231,6 +232,7 @@ const RequestOrderPage = () => {
     
       return (
               <div className="container py-8 max-w-3xl">
+                          <Seo title="Solicitud de Pedido | eLIGHTS Chile" description="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." noindex />
                     <Link
                                 to="/catalogo"
                                 className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"

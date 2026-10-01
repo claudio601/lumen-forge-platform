@@ -117,6 +117,7 @@ const SmartQuotePage = () => {
 
   return (
     <div className="container py-8">
+      <Seo title="Cotizar Iluminación LED | eLIGHTS Chile" description="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." path="/cotizador" />
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-accent text-accent-foreground text-xs font-semibold px-3 py-1.5 rounded-full mb-4">

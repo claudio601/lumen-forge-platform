@@ -3,6 +3,7 @@ import { render, waitFor } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import Seo from './Seo';
 import { SITE_URL } from '@/config/site';
+import indexHtml from '../../index.html?raw';
 
 const head = (selector: string) => document.head.querySelector(selector);
 
@@ -27,6 +28,24 @@ describe('<Seo>', () => {
     expect(head('meta[name="robots"]')?.getAttribute('content')).toBe('noindex, follow');
     expect(head('link[rel="canonical"]')).toBeNull();
     expect(head('meta[property="og:url"]')).toBeNull();
+  });
+
+  it('con el <head> real de index.html no quedan etiquetas repetidas: las de la página reemplazan las fijas', async () => {
+    const html = indexHtml;
+    document.head.innerHTML = html.slice(html.indexOf('<head>') + 6, html.indexOf('</head>'));
+    render(
+      <HelmetProvider>
+        <Seo title="Proyector 200W | eLIGHTS" description="desc producto" path="/producto/x" type="product" image="https://img/x.png" />
+      </HelmetProvider>,
+    );
+    await waitFor(() => expect(head('meta[property="og:url"]')?.getAttribute('content')).toBe(`${SITE_URL}/producto/x`));
+    expect(document.head.querySelectorAll('meta[name="description"]')).toHaveLength(1);
+    for (const sel of ['meta[property="og:image"]', 'meta[property="og:title"]', 'meta[property="og:type"]', 'meta[name="twitter:image"]', 'meta[property="og:url"]']) {
+      expect(document.head.querySelectorAll(sel), sel).toHaveLength(1);
+    }
+    expect(head('meta[name="description"]')?.getAttribute('content')).toBe('desc producto');
+    expect(head('meta[property="og:image"]')?.getAttribute('content')).toBe('https://img/x.png');
+    expect(head('meta[property="og:url"]')?.getAttribute('content')).toBe(`${SITE_URL}/producto/x`);
   });
 
   it('una imagen absoluta (foto de Jumpseller) se usa tal cual; el JSON-LD va en su propio script', async () => {
