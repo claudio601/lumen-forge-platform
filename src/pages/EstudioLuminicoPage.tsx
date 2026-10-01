@@ -314,7 +314,6 @@ const EstudioLuminicoPage = () => {
               href={waEstudioLuminico}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => sendEvent('estudio_luminico_whatsapp_click', { source: 'hero' })}
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold border-2 text-white transition-all hover:bg-white/10"
               style={{ borderColor: 'rgba(37,211,102,0.5)', color: '#4ADE80' }}
             >
@@ -665,9 +664,6 @@ const EstudioLuminicoPage = () => {
               href={waEstudioLuminico}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() =>
-                sendEvent('estudio_luminico_whatsapp_click', { source: 'form_footer' })
-              }
               className="font-semibold hover:underline"
               style={{ color: '#67E8F9' }}
             >

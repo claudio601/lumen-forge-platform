@@ -20,7 +20,7 @@ import { useRequestCart } from '@/context/RequestCartContext';
 import { buildRequestRef, cartItemToOrderItem, formatCLP, reconcileRequestItems, requestLineKey } from '@/lib/requestOrder';
 import { products } from '@/data/products';
 import { toast } from 'sonner';
-import { sendEvent } from '@/lib/analytics';
+import { sendEvent, trackLead } from '@/lib/analytics';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
 import { Helmet } from 'react-helmet-async';
 
@@ -213,11 +213,9 @@ const RequestOrderPage = () => {
                   
                         // Email enviado solo desde backend (fire-and-forget).
                   
-                        sendEvent('request_form_submit_success', {
-                                    requestReference: data.requestReference,
-                                    dealId: data.dealId,
-                                    itemCount: items.length,
-                                    subtotal,
+                        trackLead('solicitud_pedido', {
+                                    request_reference: data.requestReference,
+                                    item_count: items.length,
                         });
                   
                         clearCart();

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Send, CheckCircle2, Upload, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { trackLead } from '@/lib/analytics';
 import { waBase, contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { Helmet } from 'react-helmet-async';
 
@@ -80,6 +81,7 @@ const SmartQuotePage = () => {
         from_name: form.nombre,
         reply_to: form.email,
       });
+      trackLead('cotizador');
       toast.success('Propuesta solicitada — te contactamos pronto');
       setSubmitted(true);
     } catch (err) {

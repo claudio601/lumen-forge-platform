@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { trackLead } from '@/lib/analytics';
 
 const EMAILJS_SERVICE_ID  = 'service_elights';
 const EMAILJS_TEMPLATE_ID = 'template_6y0bq3l';
@@ -117,6 +118,7 @@ const QuoteCartPage = () => {
         console.warn('[Pipedrive] Error enviando cotización:', err);
       }
 
+      trackLead('cotizacion', { lead_type: isB2B ? 'B2B' : 'B2C', item_count: quoteCart.length });
       setSubmitted(true);
       clearQuote();
     } catch (err) {

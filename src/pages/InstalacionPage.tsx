@@ -77,7 +77,6 @@ const InstalacionPage = () => {
               href={waInstalacion}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => sendEvent('instalacion_whatsapp_hero_click')}
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold border-2 text-white transition-all hover:bg-white/10"
               style={{ borderColor: 'rgba(37,211,102,0.5)', color: '#4ADE80' }}
             >
@@ -217,7 +216,6 @@ const InstalacionPage = () => {
               href={waInstalacion}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => sendEvent('instalacion_fallback_contact_click', { channel: 'whatsapp' })}
               className="text-primary-foreground hover:underline"
             >
               WhatsApp
@@ -225,7 +223,6 @@ const InstalacionPage = () => {
             o{' '}
             <a
               href={'mailto:' + contactEmailInstalacion}
-              onClick={() => sendEvent('instalacion_fallback_contact_click', { channel: 'email' })}
               className="text-primary-foreground hover:underline"
             >
               correo
@@ -268,7 +265,6 @@ const InstalacionPage = () => {
             href={waInstalacion}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => sendEvent('instalacion_whatsapp_hero_click')}
             className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl font-bold border-2 border-[#25D366] text-[#16A34A] hover:bg-[#25D366] hover:text-white transition-all"
           >
             WhatsApp
