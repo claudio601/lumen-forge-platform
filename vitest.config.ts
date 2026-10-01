@@ -8,6 +8,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // Pruebas que montan la app completa (rutas lazy, catálogo de 322 productos,
+    // hidratación): con la suite en paralelo una sola puede pasar de 5 s.
+    testTimeout: 15_000,
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
   resolve: {
