@@ -30,6 +30,7 @@ describe('JSON-LD', () => {
       address: { addressLocality: 'Santiago', addressCountry: 'CL' },
     });
     expect(JSON.stringify(organizationJsonLd())).not.toContain('streetAddress');
+    expect(organizationJsonLd().logo).toEqual({ '@type': 'ImageObject', url: `${SITE_URL}/logo-square.png`, width: 512, height: 512 });
   });
 
   it('migas y listas con posiciones y URLs absolutas (la página 2 sigue numerando)', () => {

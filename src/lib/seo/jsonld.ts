@@ -26,7 +26,8 @@ export function organizationJsonLd(): JsonLd {
     name: SITE_NAME,
     legalName: LEGAL_NAME,
     url: SITE_URL + '/',
-    // logo: falta un PNG cuadrado de la marca (Google pide mínimo 112×112; logo.svg es apaisado).
+    // Isotipo cuadrado de la marca (Google pide mínimo 112×112; logo.svg es apaisado).
+    logo: { '@type': 'ImageObject', url: absoluteUrl('/logo-square.png'), width: 512, height: 512 },
     email: contactEmail,
     telephone: `+${whatsappNumber}`,
     address: { '@type': 'PostalAddress', addressLocality: 'Santiago', addressCountry: 'CL' },
