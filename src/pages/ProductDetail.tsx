@@ -29,6 +29,8 @@ import RequestOrderButton from '@/components/request-order/RequestOrderButton';
 import Seo from '@/components/Seo';
 import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from '@/lib/seo/jsonld';
 import { categoryPath, productPath } from '@/lib/seo/routes';
+import { productDescriptions } from '@/data/catalog/descriptions.generated';
+import { htmlToText } from '@/lib/html';
 
 // Mapping CCT -> etiqueta visible en UI / Pipedrive
 const CCT_LABELS: Record<number, string> = {
@@ -114,7 +116,10 @@ const ProductDetail = () => {
     const seoDescription =
       product.metaDescription ||
       `${product.name}${product.watts ? ` ${product.watts}W` : ''}${product.ip ? ` ${product.ip}` : ''}. Iluminación LED profesional con ficha técnica, especificaciones y cotización en eLIGHTS.cl.`;
-    const productDescription = product.description || seoDescription;
+    // Descripción de Jumpseller (HTML ya limpio en la sincronización) para los productos
+    // sin texto editorial. Los BESTLED conservan el del prototipo (decisión del dueño: mejor para SEO).
+    const jumpsellerDescription = product.description ? undefined : productDescriptions[product.jumpseller_id];
+    const productDescription = product.description || (jumpsellerDescription ? htmlToText(jumpsellerDescription) : seoDescription);
     const productCategory = categories.find(c => c.slug === product.category);
     const seoJsonLd = [
       productJsonLd(product, productDescription),
@@ -622,14 +627,21 @@ const ProductDetail = () => {
                 )}
           
             {/* ── Descripción larga ────────────────────────────────── */}
-            {product.description && (
-                    <section className="prose-content max-w-3xl mb-12">
-                              <h2 className="text-xl font-bold mb-4">Descripción</h2>
-                              <div className="text-sm text-foreground/90">
-                                {renderDescriptionBlocks(product.description)}
-                              </div>
-                    </section>
+            {(product.description || jumpsellerDescription) && (
+              <section className="prose-content max-w-3xl mb-12">
+                <h2 className="text-xl font-bold mb-4">Descripción</h2>
+                {product.description ? (
+                  <div className="text-sm text-foreground/90">{renderDescriptionBlocks(product.description)}</div>
+                ) : (
+                  // HTML limpio en la sincronización (scripts/jumpseller/sanitize-description.ts):
+                  // solo tablas, párrafos, listas, negritas y enlaces https, sin atributos.
+                  <div
+                    className="prose prose-sm max-w-none text-foreground/90 prose-table:my-0 prose-td:py-1.5 prose-td:align-top prose-headings:text-foreground"
+                    dangerouslySetInnerHTML={{ __html: jumpsellerDescription! }}
+                  />
                 )}
+              </section>
+            )}
 
             {/* ── Beneficios clave ─────────────────────────────────── */}
             {product.keyBenefits && product.keyBenefits.length > 0 && (

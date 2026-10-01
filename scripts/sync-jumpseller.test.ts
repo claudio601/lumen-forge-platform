@@ -203,12 +203,17 @@ describe('sincronización completa', () => {
     expect(md).toContain('benchmark de mercado');
   });
 
-  it('el costo (cost_per_item), el stock y la descripción nunca llegan a la salida', async () => {
+  it('el costo (cost_per_item), el stock y la descripción cruda nunca llegan a la salida', async () => {
     await run(root, ['--write', '--baseline', 'legacy']);
-    for (const content of Object.values(readGenerated(root))) {
-      expect(content).not.toMatch(/cost_per_item|12345|55555|stock|description|Descripción HTML/);
+    const { descriptions, ...rest } = readGenerated(root);
+    for (const content of Object.values(rest)) {
+      expect(content).not.toMatch(/cost_per_item|12345|55555|stock|description|Panel <b>|<script|onerror/);
     }
     expect(findForbiddenKeys(['{"cost_per_item": 1}'])).toEqual(['cost_per_item']);
+    // la descripción solo llega limpia, a su propio archivo
+    expect(descriptions).toContain('<p>Panel <strong>LED</strong> 40W para oficinas</p><table><tbody><tr><td>Potencia</td><td>40W</td></tr></tbody></table>');
+    expect(descriptions).not.toMatch(/<script|alert|onerror|onclick|<img|style=|<span/);
+    expect(descriptions).not.toMatch(/cost_per_item|"stock/);
   });
 
   it('las tildes se escriben en UTF-8', async () => {
@@ -274,11 +279,13 @@ describe('sincronización completa', () => {
     }
   });
 
-  it('--save-raw guarda solo campos validados (nunca costo, stock ni descripción) y se puede reproducir', async () => {
+  it('--save-raw guarda solo campos validados (nunca costo ni stock) y se puede reproducir', async () => {
     const { code } = await run(root, ['--save-raw', 'reports/raw', '--baseline', 'legacy', '--write']);
     expect(code).toBe(0);
     const saved = readdirSync(join(root, 'reports/raw')).map(f => readFileSync(join(root, 'reports/raw', f), 'utf8')).join('\n');
-    expect(saved).not.toMatch(/cost_per_item|12345|55555|"stock|description|Descripción HTML/);
+    expect(saved).not.toMatch(/cost_per_item|12345|55555|"stock/);
+    // la descripción (texto público) sí queda en el respaldo local: --from-dir la vuelve a limpiar igual
+    expect(saved).toContain('"description"');
     const first = readGenerated(root);
     const root2 = tempRoot();
     const fetchImpl = vi.fn();

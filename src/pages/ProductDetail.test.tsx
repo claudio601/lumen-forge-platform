@@ -53,3 +53,31 @@ describe('ProductDetail: modelo cotización, nunca stock', () => {
     });
   });
 });
+
+describe('ProductDetail: descripción', () => {
+  it('un producto sin texto editorial muestra la descripción de Jumpseller (tabla de especificaciones)', async () => {
+    const { container } = renderPdp('amp-led-ar111-15-150w');
+    await screen.findByRole('heading', { name: 'Descripción' });
+    const section = screen.getByRole('heading', { name: 'Descripción' }).closest('section')!;
+    expect(section.querySelector('table')).not.toBeNull();
+    expect(section.textContent).toContain('G53');
+    expect(container.querySelector('script:not([type="application/ld+json"])')).toBeNull();
+  });
+
+  it('los BESTLED conservan el texto editorial del prototipo', async () => {
+    renderPdp(BESTLED);
+    const section = (await screen.findByRole('heading', { name: 'Descripción' })).closest('section')!;
+    expect(section.textContent).toContain('La luminaria LED BESTLED 150W');
+    expect(section.querySelector('.prose')).toBeNull();
+  });
+
+  it('los datos estructurados del producto usan el texto de la descripción de Jumpseller', async () => {
+    renderPdp('amp-led-ar111-15-150w');
+    await waitFor(() => {
+      const ld = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
+      const product = ld.find(d => d['@type'] === 'Product');
+      expect(product?.description).toContain('G53');
+      expect(product?.description).not.toMatch(/<[a-z]/);
+    });
+  });
+});

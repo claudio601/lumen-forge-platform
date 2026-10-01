@@ -175,6 +175,7 @@ usa 5 subagentes para explorar la base de código:
 - `src/data/catalog/categories.generated.ts`
 - `src/data/catalog/site-ids.generated.ts`: solo crece; da ids estables del sitio a productos nuevos.
 - `api/_lib/catalog/price-index.generated.ts`: precios CON IVA que usa el servidor en pedidos y cotizaciones.
+- `src/data/catalog/descriptions.generated.ts`: descripción de cada producto, **limpiada** en la sincronización (`scripts/jumpseller/sanitize-description.ts`: solo tablas, párrafos, listas, negritas y enlaces https; sin atributos). Solo la importa la ficha de producto. Los 7 BESTLED muestran su texto editorial (decisión del dueño: mejor para SEO).
 
 **Cómo se actualiza**
 - Automático: workflow "Sincronizar catálogo Jumpseller" (`.github/workflows/sync-jumpseller.yml`), de lunes a viernes a las 11:00 UTC. Si hay cambios, abre o actualiza la PR `bot/jumpseller-sync` con el informe; se revisa y se fusiona como cualquier PR. Si no hay cambios, no abre nada.
@@ -188,7 +189,8 @@ usa 5 subagentes para explorar la base de código:
 - Local: los mismos dos en `.env.local` (gitignored).
 
 **Reglas**
-- El repo es público: nunca deben llegar a archivos versionados `cost_per_item`, el stock ni la descripción cruda de Jumpseller. `--save-raw` solo escribe en `reports/` (gitignored).
+- El repo es público: nunca deben llegar a archivos versionados `cost_per_item`, el stock ni la descripción **cruda** de Jumpseller (solo la limpia, en su archivo). `--save-raw` solo escribe en `reports/` (gitignored).
+- Si una descripción de Jumpseller menciona stock o plazos distintos de "hasta 2 días hábiles", el informe de la sincronización la lista en `descriptionWarnings` para corregirla en Jumpseller.
 - Agentes: el MCP de Jumpseller es solo de lectura (`get_*`/`list_*`/`search_*`). Para sincronizar se usa `gh workflow run`; el sitio nunca escribe en Jumpseller.
 - Fotos: CDN de Jumpseller (`src/lib/jumpsellerImage.ts`). `npm run warm:images` precalienta los tamaños que usa el sitio.
 

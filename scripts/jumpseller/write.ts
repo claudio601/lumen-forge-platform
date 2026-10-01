@@ -12,6 +12,7 @@ export const OUTPUT_PATHS = {
   categories: 'src/data/catalog/categories.generated.ts',
   priceIndex: 'api/_lib/catalog/price-index.generated.ts',
   siteIds: 'src/data/catalog/site-ids.generated.ts',
+  descriptions: 'src/data/catalog/descriptions.generated.ts',
 } as const;
 
 /** Claves que nunca pueden aparecer en un archivo generado (defensa en profundidad). */
@@ -100,11 +101,24 @@ export const SITE_IDS: Readonly<Record<number, string>> = ${JSON.stringify(sorte
 `;
 }
 
-/** Devuelve las claves prohibidas que aparecen en algún archivo generado. */
-export function findForbiddenKeys(files: string[]): string[] {
+/**
+ * Descripciones ya limpias (HTML seguro), por jumpseller_id. Archivo aparte del
+ * snapshot: solo lo importa la ficha de producto, así no pesa en la portada ni en el catálogo.
+ */
+export function renderDescriptionsFile(descriptions: Record<number, string>, hash: string): string {
+  const sorted = Object.fromEntries(Object.entries(descriptions).sort(([a], [b]) => Number(a) - Number(b)));
+  return `${HEADER('Descripción de cada producto, limpia en la sincronización (solo tablas, párrafos, listas, negritas y enlaces https).')}
+export const SNAPSHOT_HASH = '${hash}';
+
+export const productDescriptions: Readonly<Record<number, string>> = ${JSON.stringify(sorted, null, 2)};
+`;
+}
+
+/** Devuelve las claves prohibidas que aparecen en algún archivo generado (`allow`: excepciones). */
+export function findForbiddenKeys(files: string[], allow: readonly string[] = []): string[] {
   const found = new Set<string>();
   for (const content of files) {
-    for (const key of FORBIDDEN_KEYS) if (content.includes(`"${key}"`)) found.add(key);
+    for (const key of FORBIDDEN_KEYS) if (!allow.includes(key) && content.includes(`"${key}"`)) found.add(key);
   }
   return [...found];
 }

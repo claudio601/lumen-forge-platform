@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '65767bbfa37a';
+export const SNAPSHOT_HASH = 'e94494c8c631';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -4269,6 +4269,12 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "name": "SEÑALÉTICA DE EMERGENCIA LED SLIM 24 X 18 CM. SALIDA",
     "sku": "33716",
     "price": 19900,
+    "variants": {}
+  },
+  "37404730": {
+    "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 300W",
+    "sku": "PLAPEX300F",
+    "price": 321600,
     "variants": {}
   }
 };

@@ -47,6 +47,8 @@ export const rawProductSchema = z.object({
   categories: z.array(rawProductCategorySchema).nullable().optional(),
   images: z.array(rawImageSchema).nullable().optional(),
   variants: z.array(rawVariantSchema).nullable().optional(),
+  /** HTML de la descripción: solo se guarda limpio (sanitize-description.ts), en su propio archivo. */
+  description: nullableString,
 });
 
 export type RawCategory = z.infer<typeof rawCategorySchema>;

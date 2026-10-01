@@ -21,11 +21,13 @@ import { parse as parseDotenv } from 'dotenv';
 import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
 import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
 import { normalizeCatalog } from './jumpseller/normalize';
+import { sanitizeDescription, unsafeHtmlReasons } from './jumpseller/sanitize-description';
 import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
 import {
   OUTPUT_PATHS,
   findForbiddenKeys,
   renderCategoriesFile,
+  renderDescriptionsFile,
   renderPriceIndexFile,
   renderSiteIdsFile,
   renderSnapshotFile,
@@ -240,7 +242,8 @@ export async function runSync(opts: SyncOptions): Promise<number> {
       'categories.json': JSON.stringify(categories.valid.map(category => ({ category }))),
       'count.json': JSON.stringify({ count: reportedCount }),
     };
-    const leaked = findForbiddenKeys(Object.values(saved));
+    // La descripción (texto público, sin limpiar) sí va en el respaldo local: --from-dir la necesita.
+    const leaked = findForbiddenKeys(Object.values(saved), ['description']);
     if (leaked.length) return abort(`campos prohibidos en lo que se iba a guardar: ${leaked.join(', ')}`);
     for (const [name, content] of Object.entries(saved)) writeFileSync(join(saveRawDir, name), content, 'utf8');
     log(`Datos validados guardados en ${args.saveRaw}`);
@@ -312,6 +315,25 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     .map(([sku, ids]) => ({ sku, jumpseller_ids: [...ids].sort((a, b) => a - b) }))
     .sort((a, b) => a.sku.localeCompare(b.sku));
 
+  // Descripciones de los productos publicados, limpias (solo HTML de texto y tablas)
+  const published = new Set(next.map(p => p.jumpseller_id));
+  const descriptions: Record<number, string> = {};
+  for (const raw of products.valid) {
+    if (!published.has(raw.id)) continue;
+    const html = sanitizeDescription(raw.description);
+    if (!html) continue;
+    const reasons = unsafeHtmlReasons(html);
+    if (reasons.length) return abort(`la descripción de ${raw.id} sigue con contenido no permitido después de limpiarla: ${reasons.join(', ')}`);
+    descriptions[raw.id] = html;
+  }
+  // Textos de Jumpseller que contradicen las reglas del sitio (nunca stock, despacho en
+  // hasta 2 días hábiles): no bloquean, quedan en el informe para corregirlos en Jumpseller.
+  const RULE_BREAKING = /\bstock\b|agotad|24\s*(?:-|a)\s*48|\b48\s*h(?:oras|rs)?\b|despacho inmediato|entrega inmediata/i;
+  const descriptionWarnings = Object.entries(descriptions)
+    .filter(([, html]) => RULE_BREAKING.test(html.replace(/<[^>]+>/g, ' ')))
+    .map(([id]) => Number(id));
+  if (descriptionWarnings.length) log(`Descripciones con textos a revisar en Jumpseller (stock o plazos): ${descriptionWarnings.join(', ')}`);
+
   // 6. Generar archivos y verificar que no filtren campos prohibidos
   const hash = snapshotHash(next);
   const files = {
@@ -319,6 +341,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     [OUTPUT_PATHS.categories]: renderCategoriesFile(next, hash),
     [OUTPUT_PATHS.priceIndex]: renderPriceIndexFile(next, hash),
     [OUTPUT_PATHS.siteIds]: renderSiteIdsFile(siteIds, hash),
+    [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(descriptions, hash),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
@@ -341,6 +364,9 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     renamed: diff.renamed.map(r => r.jumpseller_id),
     excluded: result.excluded,
     newSiteIds: newIds,
+    descriptions: Object.keys(descriptions).length,
+    withoutDescription: next.filter(p => !descriptions[p.jumpseller_id]).map(p => p.jumpseller_id),
+    descriptionWarnings,
     duplicateSkus,
     wrote: args.write,
   };
