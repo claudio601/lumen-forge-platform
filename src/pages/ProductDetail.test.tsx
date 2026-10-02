@@ -6,6 +6,7 @@ import { AppProvider } from '@/context/AppContext';
 import { RequestCartProvider } from '@/context/RequestCartContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import ProductDetail from './ProductDetail';
+import proyector100 from '@/data/catalog/content/2252962.json';
 
 const BESTLED = 'alumbrado-publico-bestled-150w-ip66-ik08';
 
@@ -101,5 +102,40 @@ describe('ProductDetail: descripción y especificaciones en el formato BESTLED',
       expect(product?.description).toContain('Flujo luminoso: 1200 Lm.');
       expect(product?.description).not.toMatch(/<[a-z]/);
     });
+  });
+});
+
+describe('ProductDetail: contenido SEO en el formato BESTLED', () => {
+  it('carga el contenido del producto: descripción con subtítulos, beneficios, casos de uso y preguntas', async () => {
+    renderPdp('proyector-led-antivandalico-100w-ip66');
+    const benefits = await sectionOf('Beneficios clave');
+    expect(benefits.querySelectorAll('li')).toHaveLength(proyector100.keyBenefits.length);
+    const description = await sectionOf('Descripción');
+    expect(description.querySelectorAll('h3').length).toBeGreaterThanOrEqual(2);
+    expect(description.textContent).not.toContain('**');
+    await sectionOf('Casos de uso');
+    const faq = await sectionOf('Preguntas frecuentes');
+    expect(faq.textContent).toContain(proyector100.faq[0].question);
+    // Las especificaciones de Jumpseller siguen ahí
+    expect((await sectionOf('Especificaciones técnicas')).textContent).toContain('Eléctrico y fotométrico');
+  });
+
+  it('título, descripción y preguntas frecuentes llegan a Google (meta y datos estructurados)', async () => {
+    renderPdp('proyector-led-antivandalico-100w-ip66');
+    await waitFor(() => {
+      expect(document.title).toBe(proyector100.metaTitle);
+      expect(document.querySelector('meta[name="description"]')?.getAttribute('content')).toBe(proyector100.metaDescription);
+      const ld = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
+      expect(ld.find(d => d['@type'] === 'FAQPage')?.mainEntity).toHaveLength(proyector100.faq.length);
+      const product = ld.find(d => d['@type'] === 'Product');
+      expect(product?.description).not.toMatch(/\*\*|<[a-z]/);
+    });
+  });
+
+  it('sin contenido escrito, la ficha muestra lo de Jumpseller sin secciones vacías', async () => {
+    renderPdp('amp-led-ar111-15-150w');
+    await sectionOf('Especificaciones técnicas');
+    expect(screen.queryByRole('heading', { name: 'Beneficios clave' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Preguntas frecuentes' })).toBeNull();
   });
 });

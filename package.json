@@ -15,7 +15,8 @@
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "content": "tsx scripts/content/content.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",

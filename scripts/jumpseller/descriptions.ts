@@ -44,7 +44,10 @@ export function findRuleBreaking(text: string): string | null {
   if (stock) return stock[0];
   const immediate = t.match(/\b(?:despacho|entrega|disponibilidad)\s+inmediat[oa]\b/i);
   if (immediate) return immediate[0];
-  const delivery = t.match(/\b(?:despach\w*|entreg\w*|env[ií]\w*)\b[^.;]{0,40}?\b\d+(?:\s*(?:-|a)\s*\d+)?\s*(?:h|hrs?|horas|d[ií]as?(?:\s+h[aá]biles)?)\b/i);
+  // "entrega 410 lm y hasta 3 horas de autonomía" habla de la batería, no del despacho
+  const delivery = t.match(
+    /\b(?:despach\w*|entreg\w*|env[ií]\w*)\b[^.;]{0,40}?\b\d+(?:\s*(?:-|a)\s*\d+)?\s*(?:h|hrs?|horas|d[ií]as?(?:\s+h[aá]biles)?)\b(?!\.?\s+(?:de\s+)?(?:autonom|carga|respaldo|funcionamiento|uso|trabajo|iluminaci|encendido|operaci|duraci))/i,
+  );
   if (delivery && !/hasta\s+2\s+d[ií]as\s+h[aá]biles/i.test(delivery[0])) return delivery[0];
   const price = t.match(/\$\s?\d[\d.]*/);
   if (price) return price[0];

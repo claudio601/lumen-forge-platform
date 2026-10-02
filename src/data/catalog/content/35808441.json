@@ -1,0 +1,45 @@
+{
+  "metaTitle": "Luz de Emergencia LED 6W, 2 Faros Orientables, 410 lm | eLIGHTS",
+  "metaDescription": "Luz de emergencia LED Segurimax 6W con 2 faros orientables, 410 lm, encendido automático y hasta 3 horas de autonomía. Cotiza con despacho a todo Chile.",
+  "description": "La Luminaria de Emergencia LED 6W de Segurimax, también llamada luz de emergencia, es un equipo autónomo que se enciende automáticamente ante un corte de luz, para que pasillos, oficinas y rutas de evacuación no queden a oscuras. Tiene **2 faros orientables** con 24 LEDs en total (12 por faro), ofrece 410 lúmenes de luz blanca fría y su batería de litio recargable le da una autonomía de hasta 3 horas.\n\n**Encendido automático y autonomía de la batería**\n\nMientras hay suministro, el equipo permanece conectado a la red de 220V, 50Hz, y mantiene cargada su batería de litio de 3,7V y 2.500 mAh. Ante un corte, se enciende automáticamente, sin que nadie tenga que accionarlo. La batería tiene una vida útil de 500 recargas, y el botón de prueba permite verificar en forma periódica que la batería y los LEDs funcionan, una revisión recomendable en cualquier plan de mantención del edificio.\n\n**Cobertura y orientación de la luz**\n\nTiene un ámbito de alcance declarado de 100 m². Los dos faros orientables permiten dirigir la luz hacia una puerta de salida, una escalera o el recorrido de un pasillo. La luz es blanca fría, de 6.000 a 7.000 K, un tono habitual en pasillos, escaleras y zonas de tránsito. En edificios de varios pisos o con pasillos largos se instalan varios equipos para cubrir todo el recorrido hasta la salida.\n\n**Construcción y normas**\n\nLa carcasa es de plástico ABS anti-llama con clasificación UL94V0; el equipo mide 22,5 x 11 x 4,55 cm y pesa 364 g. Declara la norma IEC 60598-2-22, específica para luminarias de alumbrado de emergencia, y el marcado CE. Su grado de protección es IP20 y opera entre 0 y 50 °C. Cuenta con 1 año de garantía.",
+  "keyBenefits": [
+    "Encendido automático ante un corte de energía, sin intervención",
+    "2 faros orientables con 24 LEDs y 410 lm de luz blanca fría",
+    "Autonomía de hasta 3 horas con batería de litio de 2.500 mAh",
+    "Ámbito de alcance de 100 m² por equipo",
+    "Botón de prueba para revisar su funcionamiento",
+    "Carcasa de ABS anti-llama UL94V0 y norma IEC 60598-2-22",
+    "Batería de litio con vida útil de 500 recargas"
+  ],
+  "useCases": [
+    "Pasillos y rutas de evacuación interiores",
+    "Oficinas y salas de reuniones",
+    "Hoteles y hostales",
+    "Restaurantes y cafeterías",
+    "Centros comerciales y locales",
+    "Escaleras y pasillos interiores de edificios residenciales"
+  ],
+  "installationInfo": "Se instala **en superficie** y se conecta a un circuito de 220V, 50Hz, que mantiene la batería cargada.\n\nLa cantidad y la ubicación de los equipos las define el proyecto eléctrico del recinto. Como referencia, se suelen ubicar sobre puertas de salida, en cambios de dirección de pasillos y en escaleras.\n\n- Orienta cada faro hacia el recorrido o la salida que debe quedar iluminada.\n- Usa el botón de prueba periódicamente para confirmar que el encendido automático y la batería funcionan.\n- Por su grado IP20, instálala solo en interiores secos.\n\nSi tienes dudas sobre la distribución, el equipo de eLIGHTS te asesora por WhatsApp o en ventas@elights.cl.",
+  "faq": [
+    {
+      "question": "¿Cuánto dura encendida esta luz de emergencia durante un corte?",
+      "answer": "Tiene una autonomía de hasta 3 horas con la batería cargada. La batería es de litio de 3,7V y 2.500 mAh, con una vida útil de 500 recargas; con el uso la autonomía puede disminuir, así que conviene revisarla periódicamente con el botón de prueba."
+    },
+    {
+      "question": "¿Cuánta superficie ilumina?",
+      "answer": "Cada equipo tiene un ámbito de alcance de 100 m². Es un valor de referencia: lo que queda bien iluminado depende de la altura a la que se instale, de la forma del recinto y de hacia dónde orientes los faros. En recintos grandes o pasillos largos se instalan varios equipos."
+    },
+    {
+      "question": "¿Se recarga sola después de un corte?",
+      "answer": "Sí. Queda conectada a la red de 220V, 50Hz, y cuando vuelve el suministro recarga sola su batería de litio de 3,7V y 2.500 mAh, sin que tengas que hacer nada. En espera consume 4W y mientras carga, 5W."
+    },
+    {
+      "question": "¿Se puede instalar en exterior?",
+      "answer": "No. Su grado de protección es IP20: protege contra el contacto con objetos sólidos medianos, pero no contra el agua. Debe instalarse solo en interiores secos, como oficinas, pasillos, hoteles o locales, con una temperatura de operación de 0 a 50 °C."
+    },
+    {
+      "question": "¿Qué garantía tiene y cómo pido una cotización?",
+      "answer": "Tiene 1 año de garantía. Para cotizar, indica cuántas unidades necesitas, sea para una comunidad, una oficina o un local: el equipo comercial de eLIGHTS responde con la cotización formal y factura, y despacha a todo Chile en hasta 2 días hábiles."
+    }
+  ]
+}

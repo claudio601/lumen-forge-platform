@@ -40,9 +40,12 @@ import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 import { newSiteId, skuOwners } from '../src/data/catalog/build';
 import {
+  categories as siteCategories,
   IGNORED_JUMPSELLER_CATEGORY_IDS,
   JUMPSELLER_TOP_CATEGORY_TO_SLUG,
 } from '../src/data/catalog/categories.config';
+import { baseOverrides } from '../src/data/catalog/overlay/overrides';
+import { renderContentReport, reviewContent } from './content/report';
 
 export const MAX_DROP = 0.15;
 const REPORT_DIR = 'reports/jumpseller-sync';
@@ -356,6 +359,14 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     new Map(next.map(p => [p.jumpseller_id, p.name])),
     previousDescriptions ? Object.keys(previousDescriptions).length : 0,
   );
+  // Contenido SEO: revisado contra los datos nuevos (solo informa, no bloquea)
+  const contentReview = reviewContent(root, next, desc.available ? desc.descriptions : (previousDescriptions ?? {}), {
+    categoryNames: Object.fromEntries(siteCategories.map(c => [c.slug, c.name])),
+    site: p => ({ sku: p.sku || baseOverrides[p.jumpseller_id]?.sku || '', brand: p.brand ?? baseOverrides[p.jumpseller_id]?.brand ?? '' }),
+    hasEditorial: id => !!editorialOverlay[id]?.description,
+  });
+  const contentReport = renderContentReport(contentReview, new Map(next.map(p => [p.jumpseller_id, p.name])));
+  if (contentReview.mismatched.length) log(`Contenido SEO a corregir: ${contentReview.mismatched.map(m => m.id).join(', ')}`);
   const summary = {
     snapshotHash: hash,
     baseline: baselineLabel,
@@ -376,11 +387,14 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     descriptionWarnings: desc.warnings,
     specLabelsWithoutGroup: desc.unknownLabels,
     descriptionsSkipped: desc.skipped,
+    contentWritten: contentReview.written,
+    contentMismatched: contentReview.mismatched,
+    contentOrphans: contentReview.orphans,
     duplicateSkus,
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
-  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n`, 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${contentReport}\n`, 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
   // 8. Escribir (solo con --write)

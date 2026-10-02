@@ -49,6 +49,10 @@ describe('descripciones para el sitio', () => {
     expect(findRuleBreaking('Despacho en hasta 2 días hábiles')).toBeNull();
     expect(findRuleBreaking('Precio $19.990')).toBe('$19.990');
     expect(findRuleBreaking('Potencia 40W, IP65')).toBeNull();
+    // horas de batería, no de despacho
+    expect(findRuleBreaking('Entrega 410 lm y hasta 3 horas de autonomía')).toBeNull();
+    expect(findRuleBreaking('Se entrega con 8 h de carga completa')).toBeNull();
+    expect(findRuleBreaking('Entrega en 48 horas')).toBe('Entrega en 48 horas');
   });
 
   it('el informe lista cambios, omitidas, avisos y etiquetas sin grupo', () => {

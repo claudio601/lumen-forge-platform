@@ -4,7 +4,9 @@
 // Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
 import { useParams, Link } from 'react-router-dom';
-import { products, categories, PROJECT_CATEGORIES } from '@/data/products';
+import { products, categories, PROJECT_CATEGORIES, type Product } from '@/data/products';
+import { useProductContent } from '@/data/catalog/content';
+import type { ProductContent } from '@/data/catalog/types';
 import { buildVariantSku, requestSku } from '@/lib/variantSku';
 import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
@@ -89,16 +91,33 @@ function renderDescriptionBlocks(text: string): ReactNode {
   });
 }
 
+// Contenido SEO del producto (formato BESTLED) sobre los datos de Jumpseller. Los BESTLED
+// tienen su ficha editorial completa y no lo usan.
+function withContent(p: Product, c: ProductContent | undefined): Product {
+  if (!c || p.description) return p;
+  return {
+    ...p,
+    metaTitle: c.metaTitle,
+    metaDescription: c.metaDescription,
+    description: c.description,
+    keyBenefits: c.keyBenefits,
+    useCases: c.useCases,
+    installationInfo: c.installationInfo,
+    faq: c.faq,
+  };
+}
+
 const ProductDetail = () => {
     const { id } = useParams();
-    const product = products.find(p => p.id === id);
+    const found = products.find(p => p.id === id);
+    const content = useProductContent(found?.jumpseller_id);
     const { addToQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
     const [qty, setQty] = useState(1);
     const [activeImg, setActiveImg] = useState(0);
     const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
     const [selectedCCT, setSelectedCCT] = useState<number | null>(null);
 
-    if (!product) {
+    if (!found) {
           return (
                   <div className="container py-16 text-center">
     <Seo title="Producto no encontrado | eLIGHTS.cl" description="El producto solicitado no existe o fue removido del catálogo de eLIGHTS.cl." noindex />
@@ -111,6 +130,7 @@ const ProductDetail = () => {
                 );
     }
 
+    const product = withContent(found, content);
     const productUrlPath = productPath(product.id);
     // Imagen para compartir: la primera foto original de Jumpseller (PNG/JPG); sin foto, la de la marca.
     const ogImage = (product.images && product.images[0]) || product.image || undefined;
@@ -129,7 +149,7 @@ const ProductDetail = () => {
       ...(jumpsellerContent?.componentes ?? []),
     ];
     const productDescription =
-      product.description ||
+      (product.description && product.description.replace(/\*\*/g, '').replace(/^- /gm, '').replace(/\s+/g, ' ').trim()) ||
       (jumpsellerContent?.text
         ? htmlToText(jumpsellerContent.text)
         : jumpsellerRows.length
