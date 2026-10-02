@@ -210,6 +210,9 @@ describe('sincronización completa', () => {
       expect(content).not.toMatch(/cost_per_item|12345|55555|stock|description|Panel <b>|<script|onerror/);
     }
     expect(findForbiddenKeys(['{"cost_per_item": 1}'])).toEqual(['cost_per_item']);
+    // un valor de especificación que diga "stock" no es la clave stock
+    expect(findForbiddenKeys(['{"label":"Estado","value":"stock"}', '{"stock":3}'])).toEqual(['stock']);
+    expect(findForbiddenKeys(['{"label":"Estado","value":"stock"}'])).toEqual([]);
     // la descripción solo llega limpia, a su propio archivo
     expect(descriptions).toContain('"text":"<p>Panel <strong>LED</strong> 40W para oficinas, salas de reuniones y pasillos</p>"');
     // la tabla, ordenada en los grupos de las fichas BESTLED y en texto plano

@@ -88,6 +88,16 @@ export function newSiteId(permalink: string, jumpsellerId: number, taken: Readon
 }
 
 /** SKU → productos que lo usan (SKU propio o de alguna de sus variantes). */
+/**
+ * SKU que muestra el sitio: el de Jumpseller; si no tiene, el del catálogo legado; si
+ * tampoco, el de su única variante (cuando ningún otro producto lo usa).
+ */
+export function siteSku(s: SnapshotProduct, ov: BaseOverrides, owners: Map<string, Set<number>>): string {
+  const single = s.variants.length === 1 ? s.variants[0] : undefined;
+  const variantSku = single?.sku && owners.get(single.sku)?.size === 1 ? single.sku : '';
+  return s.sku || ov.sku || variantSku;
+}
+
 export function skuOwners(snapshot: readonly SnapshotProduct[]): Map<string, Set<number>> {
   const owners = new Map<string, Set<number>>();
   const add = (sku: string, id: number) => {
@@ -132,10 +142,9 @@ export function baseFromSnapshot(
     used.add(id);
     const ip = parseIp(s.name);
     const singleVariant = s.variants.length === 1 ? s.variants[0] : undefined;
-    const variantSku = singleVariant?.sku && owners.get(singleVariant.sku)?.size === 1 ? singleVariant.sku : '';
     return {
       id,
-      sku: s.sku || ov.sku || variantSku,
+      sku: siteSku(s, ov, owners),
       name: s.name,
       permalink: s.permalink,
       price: s.price,

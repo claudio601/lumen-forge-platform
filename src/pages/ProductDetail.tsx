@@ -66,7 +66,7 @@ function renderDescriptionBlocks(text: string): ReactNode {
   const blocks = text.trim().split(/\n\n+/);
   return blocks.map((block, i) => {
     const lines = block.split('\n');
-    if (lines.length > 1 && lines.every(l => l.trim().startsWith('- '))) {
+    if (lines.every(l => l.trim().startsWith('- '))) {
       return (
         <ul key={i} className="list-disc pl-5 space-y-1 my-2">
           {lines.map((l, j) => (
@@ -75,7 +75,8 @@ function renderDescriptionBlocks(text: string): ReactNode {
         </ul>
       );
     }
-    const headingMatch = /^\*\*(.+)\*\*$/.exec(block.trim());
+    // Solo un bloque que es entero una negrita es subtítulo ("**a** texto **b**" es un párrafo)
+    const headingMatch = /^\*\*([^*]+)\*\*$/.exec(block.trim());
     if (headingMatch) {
       return (
         <h3 key={i} className="text-base font-semibold mt-5 mb-2">
@@ -231,7 +232,7 @@ const ProductDetail = () => {
           componentes: product.specsComponentes,
           applications: product.applications,
         }
-      : jumpsellerRows.length || jumpsellerContent?.tables
+      : jumpsellerRows.length || jumpsellerContent?.tables || jumpsellerContent?.applications?.length
         ? {
             electricos: jumpsellerContent?.electricos,
             construccion: jumpsellerContent?.construccion,

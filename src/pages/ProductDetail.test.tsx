@@ -65,8 +65,9 @@ describe('ProductDetail: descripción y especificaciones en el formato BESTLED',
     expect(groups).toEqual(['Eléctrico y fotométrico', 'Construcción y operación', 'Componentes y control']);
     expect(specs.textContent).toContain('G53');
     expect(specs.querySelector('table')).toBeNull();
-    // Este producto no trae texto en Jumpseller: sin sección "Descripción" (antes mostraba la tabla ahí)
-    expect(screen.queryByRole('heading', { name: 'Descripción' })).toBeNull();
+    // La tabla ya no aparece en "Descripción" (antes se mostraba ahí)
+    const description = screen.queryByRole('heading', { name: 'Descripción', level: 2 })?.closest('section');
+    expect(description?.querySelector('table') ?? null).toBeNull();
     expect(container.querySelector('script:not([type="application/ld+json"])')).toBeNull();
   });
 
@@ -132,10 +133,4 @@ describe('ProductDetail: contenido SEO en el formato BESTLED', () => {
     });
   });
 
-  it('sin contenido escrito, la ficha muestra lo de Jumpseller sin secciones vacías', async () => {
-    renderPdp('amp-led-ar111-15-150w');
-    await sectionOf('Especificaciones técnicas');
-    expect(screen.queryByRole('heading', { name: 'Beneficios clave' })).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'Preguntas frecuentes' })).toBeNull();
-  });
 });

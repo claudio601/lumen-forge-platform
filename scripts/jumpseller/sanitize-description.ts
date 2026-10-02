@@ -42,7 +42,11 @@ const textOf = (n: ChildNode): string =>
   n.nodeName === '#text' ? (n as TextNode).value : isElement(n) ? n.childNodes.map(textOf).join('') : '';
 const hasText = (htmlString: string) => !!htmlString.replace(/<[^>]+>/g, '').trim();
 
-function write(nodes: ChildNode[]): string {
+/** Ninguna descripción real se acerca a esto; más es basura o un intento de colgar la sincronización. */
+const MAX_DEPTH = 200;
+
+function write(nodes: ChildNode[], depth = 0): string {
+  if (depth > MAX_DEPTH) throw new Error(`descripción anidada más de ${MAX_DEPTH} niveles`);
   let out = '';
   for (const node of nodes) {
     if (node.nodeName === '#text') {
@@ -57,7 +61,7 @@ function write(nodes: ChildNode[]): string {
       const firstCell = node.childNodes.find(c => isElement(c) && (tagOf(c) === 'td' || tagOf(c) === 'th'));
       if (firstCell && REDUNDANT_ROW.test(textOf(firstCell))) continue;
     }
-    const inner = write(node.childNodes);
+    const inner = write(node.childNodes, depth + 1);
     // div con bloques adentro (aunque estén dentro de un span o font) se desenvuelve; si no, es un párrafo
     let tag = original === 'div' ? (BLOCK_OUT.test(inner) ? 'unwrap' : 'p') : RENAME[original] ?? original;
     // un elemento en línea o un párrafo que envuelve bloques también se desenvuelve (el navegador los separaría)
@@ -72,7 +76,7 @@ function write(nodes: ChildNode[]): string {
     }
     if (tag === 'table') {
       const caption = node.childNodes.find(c => isElement(c) && tagOf(c) === 'caption') as ElementNode | undefined;
-      const captionText = caption ? write(caption.childNodes) : '';
+      const captionText = caption ? write(caption.childNodes, depth + 1) : '';
       if (hasText(captionText) && !BLOCK_OUT.test(captionText)) out += `<p>${captionText}</p>`;
       if (!hasText(inner)) continue; // tabla vacía (p. ej. solo tenía filas redundantes)
     }
@@ -144,6 +148,23 @@ export function unsafeHtmlReasons(htmlString: string): string[] {
   return reasons;
 }
 
+/**
+ * Lo que queda vacío al sacar las tablas del texto: viñetas y listas vacías, y subtítulos
+ * huérfanos (seguidos de otro subtítulo o al final, como el "Especificaciones" de la tabla).
+ */
+function dropEmptyLeftovers(htmlString: string): string {
+  let out = htmlString;
+  for (let i = 0; i < 5; i++) {
+    const next = out
+      .replace(/<(p|h3|h4|strong|em|u|li|blockquote)>\s*<\/\1>/g, '')
+      .replace(/<(ul|ol)>\s*<\/\1>/g, '')
+      .replace(/<(h3|h4)>(?:(?!<\/?h[34]>).)*<\/\1>(?=\s*(?:<h[34]>|$))/g, '');
+    if (next === out) break;
+    out = next;
+  }
+  return out.trim();
+}
+
 /** Texto mínimo (sin etiquetas) para considerar que hay una descripción: menos es un rótulo suelto. */
 const MIN_TEXT = 40;
 
@@ -176,7 +197,7 @@ export function splitDescription(htmlString: string): { text: string; specs: str
     tables.push(htmlString.slice(start));
     last = htmlString.length;
   }
-  text = (text + htmlString.slice(last)).replace(/<(p|h3|h4|strong|em|u)>\s*<\/\1>/g, '').trim();
+  text = dropEmptyLeftovers(text + htmlString.slice(last));
   const plain = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   return { text: plain.length >= MIN_TEXT ? text : '', specs: tables.join('') };
 }

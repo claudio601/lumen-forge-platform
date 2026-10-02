@@ -67,4 +67,14 @@ describe('limpieza de la descripción de Jumpseller', () => {
     const nested = '<table><tbody><tr><td><table><tbody><tr><td>x</td></tr></tbody></table></td></tr></tbody></table>';
     expect(splitDescription(nested + p)).toEqual({ text: p, specs: nested });
   });
+
+  it('al separar las tablas no quedan viñetas vacías ni subtítulos huérfanos', () => {
+    const html = sanitizeDescription(
+      '<p>Panel LED para oficinas, salas de reuniones y pasillos de edificios</p><h3>Especificaciones</h3><table><tr><td>Potencia</td><td>40W</td></tr></table>' +
+        '<ul><li><table><tr><td>a</td><td>b</td></tr></table></li></ul>',
+    );
+    const { text, specs } = splitDescription(html);
+    expect(text).toBe('<p>Panel LED para oficinas, salas de reuniones y pasillos de edificios</p>');
+    expect(specs).toContain('Potencia');
+  });
 });

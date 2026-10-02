@@ -51,7 +51,8 @@ const RULES: Rule[] = [
   [/^temperatura (de )?color °k$/, 'electricos'],
   [/^(cri( ra)?|indice de reproduccion cromatica( cri)?)$/, 'electricos', 'Índice cromático (CRI)'],
   [/^codigo fotometrico$/, 'electricos', 'Código fotométrico'],
-  [/angulo|^a° de iluminacion$|^direccion de luz$/, 'electricos', 'Ángulo de apertura'],
+  [/angulo|^a° de iluminacion$/, 'electricos', 'Ángulo de apertura'],
+  [/^direccion de luz$/, 'electricos'],
   [/^(area de (cobertura|exposicion|iluminacion)|ambito de alcance|iluminacion)$|^cantidad de lux/, 'electricos'],
   [/^seguridad electrica$/, 'electricos'],
 
@@ -139,7 +140,8 @@ export function cleanLabel(label: string): string {
   return words.join(' ');
 }
 
-const BLOCK = new Set(['p', 'ul', 'ol', 'li', 'h3', 'h4', 'blockquote', 'div', 'table', 'tr']);
+// td/th: una tabla anidada en una celda no pega sus celdas entre sí
+const BLOCK = new Set(['p', 'ul', 'ol', 'li', 'h3', 'h4', 'blockquote', 'div', 'table', 'tr', 'td', 'th']);
 
 /** Texto de una celda: <br>, párrafos y viñetas pasan a saltos de línea. */
 function cellText(node: Node): string {
@@ -216,18 +218,31 @@ export function groupSpecs(tablesHtml: string): GroupSpecsResult {
       if (topTables[t]) keptTables.push(topTables[t]);
       return;
     }
-    for (const [labelCell, valueCell] of tableRows) {
+    // Fila de encabezado: la primera, entera en <th> ("Característica | Valor", "Modelo | Ficha")
+    const first = tableRows[0];
+    const body = first && first.every(c => c.tagName === 'th') ? tableRows.slice(1) : tableRows;
+    let previous: (typeof rows)[number] | undefined;
+    for (const [labelCell, valueCell] of body) {
       const rawLabel = tidy(cellText(labelCell)).replace(/\n/g, ' ');
       const value = tidy(cellText(valueCell));
       const n = normalizeLabel(rawLabel);
+      // Sin etiqueta: continúa el valor de la fila anterior (p. ej. una segunda línea de packaging)
+      if (!n && value && previous) {
+        previous.value = `${previous.value}\n${value}`;
+        continue;
+      }
+      previous = undefined;
       if (!n || SKIP.test(n) || EMPTY_VALUE.test(value)) continue;
       if (HEADER_LABEL.test(n) && HEADER_VALUE.test(normalizeLabel(value))) continue;
       const c = classify(rawLabel);
       if (!c.known) unknownLabels.push(rawLabel);
       const apps = c.group === 'applications' ? splitApplications(value) : null;
       if (apps) applications.push(...apps);
-      else if (c.group === 'applications') rows.push({ group: 'construccion', label: c.label, value, rank: RULES.length, order: rows.length });
-      else rows.push({ group: c.group, label: c.label, value, rank: c.rank, order: rows.length });
+      else {
+        const group = c.group === 'applications' ? 'construccion' : c.group;
+        previous = { group, label: c.label, value, rank: c.group === 'applications' ? RULES.length : c.rank, order: rows.length };
+        rows.push(previous);
+      }
     }
   });
 

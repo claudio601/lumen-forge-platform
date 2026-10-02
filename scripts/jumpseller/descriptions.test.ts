@@ -30,6 +30,13 @@ describe('descripciones para el sitio', () => {
     expect(onlyText.descriptions[1].electricos).toBeDefined();
   });
 
+  it('una descripción imposible de procesar se omite y se informa, sin detener la sincronización', () => {
+    const deep = '<div>'.repeat(5000) + 'x' + '</div>'.repeat(5000);
+    const r = buildDescriptions([{ id: 1, description: deep }, { id: 2, description: TABLE }], new Set([1, 2]), {});
+    expect(r.descriptions[2]).toBeDefined();
+    expect(r.descriptions[1]).toBeUndefined();
+  });
+
   it('sin el campo description en los datos (respaldo antiguo) no hay descripciones disponibles', () => {
     expect(buildDescriptions([{ id: 1 }], new Set([1]), {}).available).toBe(false);
   });
@@ -53,6 +60,11 @@ describe('descripciones para el sitio', () => {
     expect(findRuleBreaking('Entrega 410 lm y hasta 3 horas de autonomía')).toBeNull();
     expect(findRuleBreaking('Se entrega con 8 h de carga completa')).toBeNull();
     expect(findRuleBreaking('Entrega en 48 horas')).toBe('Entrega en 48 horas');
+    // todas las menciones, no solo la primera
+    expect(findRuleBreaking('Despacho en hasta 2 días hábiles. Entrega en 24 horas en Santiago.')).toBe('Entrega en 24 horas');
+    expect(findRuleBreaking('Despacho en hasta 2 días hábiles; envío a regiones en 3 a 5 días hábiles.')).toMatch(/3 a 5 días hábiles/);
+    // tildes al inicio de palabra
+    expect(findRuleBreaking('Últimas unidades')).toBe('Últimas unidades');
   });
 
   it('el informe lista cambios, omitidas, avisos y etiquetas sin grupo', () => {

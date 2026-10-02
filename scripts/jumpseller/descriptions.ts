@@ -38,17 +38,27 @@ const plain = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, 
  * Frases que contradicen las reglas del dueño: nunca hablar de stock, el despacho se
  * promete solo como "hasta 2 días hábiles", y los precios viven en Jumpseller (no en el texto).
  */
+/** Bordes de palabra que entienden tildes ("\b" de JavaScript no reconoce "Ú" como letra). */
+const W = String.raw`(?<![\p{L}\p{N}])`;
+const WE = String.raw`(?![\p{L}\p{N}])`;
+const STOCK = new RegExp(`${W}(?:stock|existencias?|[uú]ltimas unidades|agotad[oa]s?)${WE}`, 'iu');
+const IMMEDIATE = new RegExp(`${W}(?:despacho|entrega|disponibilidad)\\s+inmediat[oa]${WE}`, 'iu');
+// Toda mención de despacho, entrega o envío junto a un plazo. "Entrega 410 lm y hasta 3 horas
+// de autonomía" habla de la batería, no del despacho.
+const DELIVERY = new RegExp(
+  `${W}(?:despach|entreg|env[ií])\\p{L}*[^.;]{0,40}?${W}\\d+(?:\\s*(?:-|a)\\s*\\d+)?\\s*(?:h|hrs?|horas|d[ií]as?(?:\\s+h[aá]biles)?)${WE}` +
+    String.raw`(?!\.?\s+(?:de\s+)?(?:autonom|carga|respaldo|funcionamiento|uso|trabajo|iluminaci|encendido|operaci|duraci))`,
+  'giu',
+);
+
 export function findRuleBreaking(text: string): string | null {
   const t = plain(text);
-  const stock = t.match(/\b(?:stock|existencias?|[uú]ltimas unidades|agotad[oa]s?)\b/i);
+  const stock = t.match(STOCK);
   if (stock) return stock[0];
-  const immediate = t.match(/\b(?:despacho|entrega|disponibilidad)\s+inmediat[oa]\b/i);
+  const immediate = t.match(IMMEDIATE);
   if (immediate) return immediate[0];
-  // "entrega 410 lm y hasta 3 horas de autonomía" habla de la batería, no del despacho
-  const delivery = t.match(
-    /\b(?:despach\w*|entreg\w*|env[ií]\w*)\b[^.;]{0,40}?\b\d+(?:\s*(?:-|a)\s*\d+)?\s*(?:h|hrs?|horas|d[ií]as?(?:\s+h[aá]biles)?)\b(?!\.?\s+(?:de\s+)?(?:autonom|carga|respaldo|funcionamiento|uso|trabajo|iluminaci|encendido|operaci|duraci))/i,
-  );
-  if (delivery && !/hasta\s+2\s+d[ií]as\s+h[aá]biles/i.test(delivery[0])) return delivery[0];
+  // Todas las menciones, no solo la primera: "hasta 2 días hábiles" no autoriza un "24 horas" después
+  for (const m of t.matchAll(DELIVERY)) if (!/hasta\s+2\s+d[ií]as\s+h[aá]biles/i.test(m[0])) return m[0];
   const price = t.match(/\$\s?\d[\d.]*/);
   if (price) return price[0];
   return null;
@@ -69,32 +79,45 @@ export function buildDescriptions(
   const unknown = new Set<string>();
   for (const raw of raws) {
     if (!raw.id || !published.has(raw.id)) continue;
-    const html = sanitizeDescription(raw.description);
-    if (!html) continue;
-    const unsafe = unsafeHtmlReasons(html);
-    if (unsafe.length) {
-      result.skipped.push({ id: raw.id, reason: unsafe.join(', ') });
-      continue;
+    try {
+      addDescription(result, { id: raw.id, description: raw.description }, editorial[raw.id], unknown);
+    } catch (err) {
+      // Una descripción imposible de procesar (p. ej. anidada miles de niveles) se omite y se informa
+      result.skipped.push({ id: raw.id, reason: `no se pudo procesar: ${(err as Error).message.slice(0, 80)}` });
     }
-    let { text, specs } = splitDescription(html);
-    const ed = editorial[raw.id];
-    if (ed?.description) text = ''; // texto editorial del prototipo (BESTLED)
-    if (hasGroupedSpecs(ed)) specs = ''; // especificaciones editoriales agrupadas
-    const grouped = specs ? groupSpecs(specs) : null;
-    const bad = [text, grouped?.specs.tables].find(part => part && !roundTripsInBrowser(part));
-    if (bad) {
-      result.skipped.push({ id: raw.id, reason: 'el navegador leería el HTML distinto' });
-      continue;
-    }
-    const entry: ProductDescription = { ...(text ? { text } : {}), ...grouped?.specs };
-    if (!Object.keys(entry).length) continue;
-    result.descriptions[raw.id] = entry;
-    grouped?.unknownLabels.forEach(l => unknown.add(l));
-    const phrase = findRuleBreaking(descriptionText(entry));
-    if (phrase) result.warnings.push({ id: raw.id, phrase });
   }
   result.unknownLabels = [...unknown].sort();
   return result;
+}
+
+function addDescription(
+  result: DescriptionsResult,
+  raw: { id: number; description?: string | null },
+  ed: EditorialCoverage | undefined,
+  unknown: Set<string>,
+): void {
+  const html = sanitizeDescription(raw.description);
+  if (!html) return;
+  const unsafe = unsafeHtmlReasons(html);
+  if (unsafe.length) {
+    result.skipped.push({ id: raw.id, reason: unsafe.join(', ') });
+    return;
+  }
+  let { text, specs } = splitDescription(html);
+  if (ed?.description) text = ''; // texto editorial del prototipo (BESTLED)
+  if (hasGroupedSpecs(ed)) specs = ''; // especificaciones editoriales agrupadas
+  const grouped = specs ? groupSpecs(specs) : null;
+  const bad = [text, grouped?.specs.tables].find(part => part && !roundTripsInBrowser(part));
+  if (bad) {
+    result.skipped.push({ id: raw.id, reason: 'el navegador leería el HTML distinto' });
+    return;
+  }
+  const entry: ProductDescription = { ...(text ? { text } : {}), ...grouped?.specs };
+  if (!Object.keys(entry).length) return;
+  result.descriptions[raw.id] = entry;
+  grouped?.unknownLabels.forEach(l => unknown.add(l));
+  const phrase = findRuleBreaking(descriptionText(entry));
+  if (phrase) result.warnings.push({ id: raw.id, phrase });
 }
 
 /** Todo el texto visible de una descripción (para buscar frases que rompen las reglas). */

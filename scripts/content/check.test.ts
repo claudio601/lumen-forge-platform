@@ -63,6 +63,43 @@ describe('verificación del contenido SEO', () => {
     expect(checkFacts({ ...good, keyBenefits: ['Flujo de 13000 lm'] }, facts)).toEqual([]);
   });
 
+  it('la cifra tiene que estar con su unidad: un "5" de otro dato no respalda "5 años"', () => {
+    const c = { ...good, keyBenefits: ['Garantía de 5 años contra defectos', 'Opera hasta 100 °C', 'Vida útil de 50 mil horas', 'Corriente de 8,5A'] };
+    expect(checkFacts(c, facts)).toEqual([
+      'cifra que no está en los datos de Jumpseller: "5 años"',
+      'cifra que no está en los datos de Jumpseller: "100 °C"',
+      'cifra que no está en los datos de Jumpseller: "50 mil horas"',
+      'cifra que no está en los datos de Jumpseller: "8,5A"',
+    ]);
+    // "1 año" sí: la fila Garantía lo dice; "1.200" se lee como mil doscientos, no 1,2
+    expect(checkFacts({ ...good, keyBenefits: ['Garantía de 1 año'] }, facts)).toEqual([]);
+    expect(checkFacts({ ...good, keyBenefits: ['Entrega 13.000 lm'] }, facts)).toEqual([]);
+    expect(checkFacts({ ...good, keyBenefits: ['Entrega 13 lm'] }, facts)).toEqual(['cifra que no está en los datos de Jumpseller: "13 lm"']);
+  });
+
+  it('"IP66 y 3 años" no es un rango; "entre 100 y 277V" sí; las medidas "A x B mm" dan unidad a todas', () => {
+    expect(checkFacts({ ...good, keyBenefits: ['IP66 y 1 año de garantía', 'Funciona entre 100 y 277V'] }, facts)).toEqual([]);
+    expect(checkFacts({ ...good, keyBenefits: ['Funciona entre 90 y 277V'] }, facts)).toEqual(['cifra que no está en los datos de Jumpseller: "entre 90 y 277V"']);
+    const f = { ...facts, construccion: [...facts.construccion, { label: 'Dimensiones', value: 'Ø390 x 120 mm' }] };
+    expect(checkFacts({ ...good, keyBenefits: ['Mide 390 mm de diámetro y 120 mm de alto'] }, f)).toEqual([]);
+  });
+
+  it('una fila sin unidad en el valor toma la de su etiqueta', () => {
+    const f = productFacts(product, { construccion: [{ label: 'Alto (mm)', value: '20' }, { label: 'Temperatura de operación', value: '-20 ~ 45' }] }, {});
+    expect(checkFacts({ ...good, keyBenefits: ['Solo 20 mm de alto', 'Opera entre -20 °C y 45 °C'] }, { ...facts, construccion: f.construccion })).not.toContainEqual(
+      expect.stringMatching(/20 mm|45 °C/),
+    );
+  });
+
+  it('los grados se reconocen con guion, espacio o minúsculas, y "cree" (verbo) no es una marca', () => {
+    expect(checkFacts({ ...good, keyBenefits: ['Grado ip-68 y IPX8'] }, facts)).toEqual([
+      'certificación o grado que no está en los datos de Jumpseller: "IP68"',
+      'certificación o grado que no está en los datos de Jumpseller: "IPX8"',
+    ]);
+    expect(checkFacts({ ...good, keyBenefits: ['Quien cree que basta con potencia se equivoca'] }, facts)).toEqual([]);
+    expect(checkFacts({ ...good, keyBenefits: ['LED CREE de alto rendimiento'] }, facts)).toEqual(['marca que no está en los datos de Jumpseller: "CREE"']);
+  });
+
   it('rechaza certificaciones, grados y marcas que no están en los datos', () => {
     const c = { ...good, keyBenefits: ['Certificación CE y RoHS', 'Grado IP67', 'Driver Mean Well'] };
     const problems = checkFacts(c, facts);

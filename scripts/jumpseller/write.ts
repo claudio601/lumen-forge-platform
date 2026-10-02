@@ -126,7 +126,8 @@ ${body}
 export function findForbiddenKeys(files: string[], allow: readonly string[] = []): string[] {
   const found = new Set<string>();
   for (const content of files) {
-    for (const key of FORBIDDEN_KEYS) if (!allow.includes(key) && content.includes(`"${key}"`)) found.add(key);
+    // Solo como clave ("stock": …): un valor de especificación que diga "stock" no es una fuga
+    for (const key of FORBIDDEN_KEYS) if (!allow.includes(key) && new RegExp(`"${key}"\\s*:`).test(content)) found.add(key);
   }
   return [...found];
 }

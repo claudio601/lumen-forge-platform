@@ -38,7 +38,7 @@ import {
 } from './jumpseller/write';
 import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
-import { newSiteId, skuOwners } from '../src/data/catalog/build';
+import { newSiteId, siteSku, skuOwners } from '../src/data/catalog/build';
 import {
   categories as siteCategories,
   IGNORED_JUMPSELLER_CATEGORY_IDS,
@@ -360,9 +360,11 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     previousDescriptions ? Object.keys(previousDescriptions).length : 0,
   );
   // Contenido SEO: revisado contra los datos nuevos (solo informa, no bloquea)
-  const contentReview = reviewContent(root, next, desc.available ? desc.descriptions : (previousDescriptions ?? {}), {
+  const owners = skuOwners(next);
+  const siteDescriptions = desc.available ? desc.descriptions : (previousDescriptions ?? {});
+  const contentReview = reviewContent(root, next, siteDescriptions, {
     categoryNames: Object.fromEntries(siteCategories.map(c => [c.slug, c.name])),
-    site: p => ({ sku: p.sku || baseOverrides[p.jumpseller_id]?.sku || '', brand: p.brand ?? baseOverrides[p.jumpseller_id]?.brand ?? '' }),
+    site: p => ({ sku: siteSku(p, baseOverrides[p.jumpseller_id] ?? {}, owners), brand: p.brand ?? baseOverrides[p.jumpseller_id]?.brand ?? '' }),
     hasEditorial: id => !!editorialOverlay[id]?.description,
   });
   const contentReport = renderContentReport(contentReview, new Map(next.map(p => [p.jumpseller_id, p.name])));
@@ -381,9 +383,10 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     renamed: diff.renamed.map(r => r.jumpseller_id),
     excluded: result.excluded,
     newSiteIds: newIds,
-    descriptions: Object.keys(desc.descriptions).length,
+    // Sin el campo en los datos se mantiene el archivo anterior: el resumen habla de ese
+    descriptions: Object.keys(siteDescriptions).length,
     descriptionsAvailable: desc.available,
-    withoutDescription: next.filter(p => !desc.descriptions[p.jumpseller_id]).map(p => p.jumpseller_id),
+    withoutDescription: next.filter(p => !siteDescriptions[p.jumpseller_id]).map(p => p.jumpseller_id),
     descriptionWarnings: desc.warnings,
     specLabelsWithoutGroup: desc.unknownLabels,
     descriptionsSkipped: desc.skipped,

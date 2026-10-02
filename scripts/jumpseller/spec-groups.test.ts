@@ -71,6 +71,17 @@ describe('especificaciones agrupadas como en las fichas BESTLED', () => {
     });
   });
 
+  it('fila sin etiqueta continúa la anterior; encabezado en <th> se omite; tabla anidada no pega celdas', () => {
+    const html = sanitizeDescription(
+      '<table><tr><th>Modelo</th><th>Ficha</th></tr><tr><td>Packaging</td><td>1 por caja</td></tr><tr><td></td><td>37 x 37 cm</td></tr>' +
+        '<tr><td>Dirección de luz</td><td>Bidireccional</td></tr><tr><td>Accesorios</td><td><table><tr><td>Pernos</td><td>Canastillo</td></tr></table></td></tr></table>',
+    );
+    const { specs } = groupSpecs(html);
+    expect(specs.construccion).toEqual([{ label: 'Packaging', value: '1 por caja\n37 x 37 cm' }]);
+    expect(specs.electricos).toEqual([{ label: 'Dirección de luz', value: 'Bidireccional' }]);
+    expect(specs.componentes).toEqual([{ label: 'Accesorios', value: 'Pernos\nCanastillo' }]);
+  });
+
   it('una tabla de más de dos columnas (comparativa) se conserva tal cual', () => {
     const comparison = sanitizeDescription('<table><tr><th>Modelo</th><th>40W</th><th>60W</th></tr><tr><td>Flujo</td><td>7.190 lm</td><td>10.200 lm</td></tr></table>');
     const { specs } = groupSpecs(comparison + table([['Potencia', '40W']]));
