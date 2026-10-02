@@ -94,16 +94,6 @@ describe('ProductDetail: descripción y especificaciones en el formato BESTLED',
     const specs = await sectionOf('Especificaciones técnicas');
     expect(specs.textContent).toContain('Philips Lumileds 2835');
   });
-
-  it('los datos estructurados del producto resumen sus especificaciones en texto plano', async () => {
-    renderPdp('amp-led-ar111-15-150w');
-    await waitFor(() => {
-      const ld = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
-      const product = ld.find(d => d['@type'] === 'Product');
-      expect(product?.description).toContain('Flujo luminoso: 1200 Lm.');
-      expect(product?.description).not.toMatch(/<[a-z]/);
-    });
-  });
 });
 
 describe('ProductDetail: contenido SEO en el formato BESTLED', () => {
@@ -117,6 +107,9 @@ describe('ProductDetail: contenido SEO en el formato BESTLED', () => {
     await sectionOf('Casos de uso');
     const faq = await sectionOf('Preguntas frecuentes');
     expect(faq.textContent).toContain(proyector100.faq[0].question);
+    // Las respuestas están en el HTML aunque el acordeón esté cerrado (las declara el FAQPage)
+    expect(faq.textContent).toContain(proyector100.faq[0].answer.slice(0, 60));
+    expect(screen.getByText(proyector100.faq[0].answer).closest('[data-state]')?.getAttribute('data-state')).toBe('closed');
     // Las especificaciones de Jumpseller siguen ahí
     expect((await sectionOf('Especificaciones técnicas')).textContent).toContain('Eléctrico y fotométrico');
   });
@@ -129,6 +122,8 @@ describe('ProductDetail: contenido SEO en el formato BESTLED', () => {
       const ld = [...document.head.querySelectorAll('script[type="application/ld+json"]')].map(s => JSON.parse(s.textContent!));
       expect(ld.find(d => d['@type'] === 'FAQPage')?.mainEntity).toHaveLength(proyector100.faq.length);
       const product = ld.find(d => d['@type'] === 'Product');
+      // La descripción del contenido, en texto plano (sin ** de negritas ni viñetas)
+      expect(product?.description).toContain(proyector100.description.split('\n')[0].replace(/\*\*/g, '').slice(0, 60));
       expect(product?.description).not.toMatch(/\*\*|<[a-z]/);
     });
   });

@@ -690,7 +690,8 @@ const ProductDetail = () => {
                                               <AccordionTrigger className="text-sm font-medium text-left">
                                                 {q.question}
                                               </AccordionTrigger>
-                                              <AccordionContent className="text-sm text-foreground/85 leading-relaxed">
+                                              {/* forceMount: las respuestas quedan en el HTML (las declaran los datos estructurados FAQPage) */}
+                                              <AccordionContent forceMount className="text-sm text-foreground/85 leading-relaxed">
                                                 {q.answer}
                                               </AccordionContent>
                                     </AccordionItem>
