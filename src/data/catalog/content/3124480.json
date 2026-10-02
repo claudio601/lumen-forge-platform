@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Proyector LED 20W con sensor de movimiento IP66 | eLIGHTS",
+  "metaDescription": "Foco LED de 20W con sensor de movimiento para entradas de autos, patios y pasajes: luz fría de 6500K, 90 lm/W, IP66 y sello SEC. Cotiza en eLIGHTS.",
+  "description": "El Proyector LED Ultra Thin SMD 20W con Sensor de Movimiento es un foco JIE que se enciende cuando detecta movimiento, una solución frecuente en la entrada de autos, el patio trasero, el pasaje de un condominio o el acceso peatonal de un local. Consume 20W con una eficacia de **90 lm/W**, emite luz fría de **6500K** en un haz de 120° y trabaja con 180 a 265V (50Hz). Su carcasa tiene grado **IP66** y el equipo, certificación **SEC**.\n\n**Luz por detección en accesos y patios**\n\nUn foco que se prende cuando alguien cruza el patio cumple dos funciones: ilumina el camino de quien llega y deja en evidencia a quien entra sin aviso. Por eso los proyectores con sensor se usan tanto en entradas de autos, portones y patios traseros, donde una luz encendida toda la noche gastaría energía sin necesidad y podría molestar a los vecinos.\n\n**Luz fría y buena eficiencia eléctrica**\n\nUsa LED SMD Epistar con una eficacia de 90 lm/W, es decir, la cantidad de luz que entrega por cada watt que consume. El blanco frío de 6500K es el tono que suele elegirse en accesos vigilados, también cuando el sector cuenta con una cámara de seguridad.\n\nSu factor de potencia de 0,99, muy cercano a 1, indica que la potencia aparente que demanda de la red prácticamente coincide con la que consume. En la práctica, circula menos corriente por los conductores para la misma potencia, algo que interesa cuando varios equipos comparten un circuito, como en los pasajes de un condominio.\n\n**Montaje exterior y conexión a tierra**\n\nGracias a su grado IP66 se monta en exteriores sin necesidad de alero. Como equipo **Clase I**, necesita que el circuito tenga conductor de tierra de protección conectado a su carcasa. Su peso es de 0,84 kg y la ficha declara 30.000 horas de vida útil.\n\n**Respaldo y solicitud de cotización**\n\nLa certificación SEC acredita su conformidad con las exigencias de seguridad eléctrica vigentes en Chile. Si vas a equipar varios accesos, envíanos la cantidad y te responderemos con la cotización formal. El pedido sale a cualquier región de Chile con despacho en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Detección de movimiento: ilumina a quien llega y advierte de una presencia en el acceso",
+    "Eficacia de 90 lm/W con 20W de consumo y factor de potencia de 0,99",
+    "Blanco frío de 6500K, el tono habitual en entradas de autos y accesos vigilados",
+    "Apertura de 120° para abrir la luz sobre una entrada de autos, un patio o un pasaje",
+    "Grado IP66 y equipo Clase I: preparado para la intemperie, con conexión a tierra",
+    "Sello SEC y 30.000 horas de vida útil declarada"
+  ],
+  "useCases": [
+    "Entradas de autos de casas",
+    "Patios traseros y de servicio de viviendas",
+    "Pasajes y circulaciones de condominios",
+    "Accesos peatonales de locales comerciales",
+    "Portones vehiculares de casas",
+    "Sectores de basureros y estacionamientos de bicicletas"
+  ],
+  "installationInfo": "Elige un punto desde el que el sensor domine el acceso completo, por ejemplo sobre el portón o en la esquina de la casa que mira a la entrada de autos.\n\n- Tensión de alimentación: 180 a 265V, 50Hz.\n- Clase I: lleva conexión a tierra, así que el punto donde se conecta debe tener ese conductor.\n- Sella el empalme en una caja estanca para mantener el IP66.\n- Deja fuera de su campo los árboles y arbustos que se mecen con el viento: pueden encenderlo sin que haya nadie.\n\nEl empalme y la tierra de protección deben quedar a cargo de un instalador eléctrico.",
+  "faq": [
+    {
+      "question": "¿Alcanza para iluminar la entrada de autos de una casa?",
+      "answer": "Es uno de los usos más habituales de esta potencia. Lo que define el resultado es la altura de montaje y el largo del acceso: si el equipo queda a una altura adecuada, su haz de 120° se abre sobre todo el ancho de la entrada. Si el acceso es muy extenso, o quieres cubrir además el antejardín, puede convenir un segundo equipo o una versión de mayor potencia de la misma línea."
+    },
+    {
+      "question": "¿Se pueden ajustar el tiempo de encendido o la sensibilidad del sensor?",
+      "answer": "La ficha técnica no indica si el sensor tiene ajustes, ni informa su alcance, su ángulo de detección o el tiempo que la luz queda encendida. Antes de comprar, cuéntanos cómo es el acceso que quieres cubrir por WhatsApp o en ventas@elights.cl y te orientamos."
+    },
+    {
+      "question": "¿Funciona con la red eléctrica de una casa?",
+      "answer": "Sí. Trabaja con tensiones de 180 a 265V y 50Hz, un rango que cubre la red eléctrica domiciliaria. Lo que sí debes revisar es la tierra: por ser un equipo Clase I, el punto donde se conecte tiene que contar con tierra de protección, y si tu instalación no la tiene, el electricista debe habilitarla."
+    },
+    {
+      "question": "¿Lo puedo instalar sin techo, expuesto a la lluvia?",
+      "answer": "Sí. Su grado IP66 indica que es hermético al polvo y que resiste chorros potentes de agua, así que puede quedar a la intemperie. Lo que hay que cuidar es el empalme: debe quedar en una caja estanca para que el agua no llegue a la conexión."
+    },
+    {
+      "question": "¿Tiene garantía?",
+      "answer": "Sí: la ficha del producto indica que cuenta con garantía. Si quieres conocer sus condiciones antes de comprar, pídelas junto con la cotización. La compra se emite con factura, tanto para personas como para empresas."
+    }
+  ]
+}

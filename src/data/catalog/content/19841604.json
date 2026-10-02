@@ -1,0 +1,42 @@
+{
+  "metaTitle": "Señalética de Salida de Emergencia Antiexplosiva | eLIGHTS",
+  "metaDescription": "Señalética de emergencia Salida a prueba de explosión: marcado Ex d IIB T5 Gb, IP65, IK10 y 120 minutos de autonomía. Cotiza con despacho a todo Chile.",
+  "description": "La Señalética de Emergencia Salida a Prueba de Explosión (SKU SDESAPEX) es un letrero luminoso de salida para rutas de evacuación en áreas donde puede haber gases inflamables: plantas químicas, bodegas de combustibles, salas de bombas o talleres que trabajan con solventes. Tiene carcasa de aluminio con grado **IP65** y resistencia al impacto **IK10**, consume 5W conectada a 220V (50/60 Hz) y su ficha declara **120 minutos** de autonomía con batería.\n\n**Qué indica el marcado Ex d IIB T5 Gb**\n\nLa ficha registra la protección como EXDIIBT5 GB, que se lee Ex d IIB T5 Gb. Ex d es la envolvente antideflagrante, diseñada para contener una ignición en su interior. IIB es el grupo de gases para el que está marcada, que abarca también a los del grupo IIA, como el propano o el metano. T5 es una clase de temperatura superficial exigente, que se compara con la temperatura de ignición de los gases presentes, y Gb es el nivel de protección que se pide en Zona 1 y que sirve también en Zona 2. Todo el marcado se refiere a atmósferas de gas.\n\n**Batería y autonomía**\n\nLleva una batería de níquel-cadmio (Ni-Cd) de 2.500 mAh, con una vida útil declarada de 500 ciclos, y la ficha indica una autonomía de 120 minutos. La ficha no precisa si el letrero queda encendido en forma permanente o solo se enciende ante un corte de energía, ni declara la norma de iluminación de emergencia que cumple: si tu proyecto, tu mandante o la autoridad exigen un modo de funcionamiento, una autonomía o una norma determinados, confírmalo con nosotros antes de comprar.\n\n**Construcción para ambientes industriales**\n\nLa carcasa es de aluminio con protección anticorrosión WF1. El grado IP65 la protege del polvo y de chorros de agua, y la clasificación IK10, la más alta de su escala, indica una alta resistencia a golpes: útil en pasillos de planta con tránsito de carros, herramientas o grúas horquilla. Sus medidas son 26,5 x 20,5 x 6 cm.\n\n**Compra para proyectos**\n\nPara equipar varias salidas, indica en la solicitud la cantidad y la ubicación de cada letrero, junto con la clasificación de las áreas. Recibirás la cotización formal con factura; el despacho a todo Chile es en hasta 2 días hábiles, con camiones propios en la Provincia de Santiago.",
+  "keyBenefits": [
+    "Marcado Ex d IIB T5 Gb: envolvente antideflagrante con nivel de protección Gb",
+    "Autonomía declarada de 120 minutos, con batería Ni-Cd de 2.500 mAh",
+    "Consumo de 5W conectada a 220V, 50/60 Hz",
+    "IP65 e IK10: protegida contra polvo, chorros de agua y golpes fuertes",
+    "Aluminio con tratamiento anticorrosión WF1 para ambientes industriales",
+    "Batería con vida útil de 500 ciclos"
+  ],
+  "useCases": [
+    "Rutas de evacuación en plantas químicas y petroquímicas",
+    "Salidas de salas de bombas y compresores",
+    "Bodegas de combustibles, pinturas y solventes",
+    "Plantas de gas licuado y de biogás",
+    "Laboratorios y salas de mezcla con solventes"
+  ],
+  "faq": [
+    {
+      "question": "¿Qué mantención necesita la batería?",
+      "answer": "Su batería Ni-Cd declara una vida útil de 500 ciclos. Como en todo sistema de iluminación de emergencia, conviene probar el equipo de forma periódica y llevar un registro de esas pruebas: así se detecta a tiempo cuándo la autonomía empieza a quedar por debajo de los 120 minutos y corresponde planificar el recambio. En un área clasificada, abrir la envolvente para revisar o cambiar la batería es trabajo de personal calificado, con el equipo sin tensión."
+    },
+    {
+      "question": "¿Sirve para áreas con hidrógeno o acetileno?",
+      "answer": "No según su marcado. IIB cubre gases como el etileno y los del grupo IIA, pero el hidrógeno y el acetileno pertenecen al grupo IIC, que exige equipos marcados para ese grupo. Si tu proceso involucra gases de ese grupo, cuéntanos al cotizar para revisar alternativas."
+    },
+    {
+      "question": "¿Se puede instalar en zonas con polvo combustible?",
+      "answer": "Su marcado Ex d IIB T5 Gb es para atmósferas de gas y no declara protección para polvo combustible. Por eso no está indicada para áreas clasificadas por polvo, como molinos, silos de granos o plantas de alimentos con polvo en suspensión."
+    },
+    {
+      "question": "¿Cómo se conecta?",
+      "answer": "Se alimenta a 220V, 50/60 Hz, con un consumo de 5W. En un área clasificada, la conexión debe hacerla un instalador con experiencia en instalaciones Ex, con prensaestopas y canalización adecuadas para conservar la protección de la envolvente antideflagrante."
+    },
+    {
+      "question": "¿Venden por caja para proyectos?",
+      "answer": "Sí. El embalaje por mayor trae 10 unidades por caja, de 52 x 27 x 23 cm y 12 kg. Envía la cantidad que necesitas y el área comercial prepara la cotización formal, con factura. Para cantidades menores, el embalaje individual es de una unidad por caja."
+    }
+  ]
+}

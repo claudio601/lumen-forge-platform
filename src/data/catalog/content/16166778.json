@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED RGB 50W para fachadas, 5.000 lm IP66 | eLIGHTS",
+  "metaDescription": "Proyector LED RGB de 50W con 5.000 lm y 13 a 16 m² de cobertura por equipo, para fachadas, muros perimetrales y tótems. IP66 y SEC. Cotiza en eLIGHTS.",
+  "description": "El Proyector LED RGB 50W (SKU PLCRGB50N) es un foco de color para proyectos de ambientación en exterior: fachadas, muros perimetrales, tótems publicitarios y recintos de eventos al aire libre. Mezcla luz roja, verde y azul para obtener distintos tonos y declara **5.000 lm** con 50W, una eficacia de 100 lm/W, con un área de cobertura de **13 a 16 m²** por equipo. Admite tensiones de 185 a 265V y viene en carcasa negra de aluminio y vidrio, con grados **IP66** e **IK08**.\n\n**Cuántos equipos lleva una fachada**\n\nPara una primera estimación, divide la superficie que quieres teñir de color por los 13 a 16 m² que cubre cada proyector. En fachadas con aleros, balcones o ventanas profundas suele hacer falta algún punto adicional, porque cada saliente proyecta sombra sobre lo que queda encima. Un tótem o un letrero de gran formato, en cambio, puede resolverse con pocos equipos bien orientados.\n\nAl ser luz de color, su aporte es estético: resalta la arquitectura, identifica un local de noche o crea ambiente en un evento. Para iluminar zonas de circulación o vigilancia se usa luz blanca.\n\n**Varios equipos: el control del color**\n\nEn la ficha, el color figura solo como RGB: no se indica si se maneja con control remoto, con un controlador externo ni si trae efectos programados. Cuando una fachada lleva varios proyectores, ese dato define si todos podrán mostrar el mismo tono al mismo tiempo, así que plantéalo al equipo comercial antes de cotizar, por WhatsApp o en ventas@elights.cl.\n\n**Construcción y datos eléctricos**\n\nSus medidas son 182 x 178 mm, con 30 mm de fondo, un volumen discreto sobre un muro o un tótem. **IP66** protege el equipo del polvo y de los chorros de agua, e **IK08** indica que la carcasa resiste impactos. Es un equipo **Clase I**, por lo que debe quedar conectado a tierra. Tiene un factor de potencia de 0,99, opera entre -20 °C y 60 °C y su vida útil declarada es de 50.000 horas.\n\n**Proyectos de ambientación**\n\nPara una fachada completa o un recinto de eventos podemos evaluar la distribución de los equipos con un estudio lumínico DIALux. Envíanos la superficie, una foto del lugar y la cantidad estimada, y te responderemos con la cotización formal.",
+  "keyBenefits": [
+    "5.000 lm declarados con 50W para teñir de color fachadas y muros",
+    "Cobertura de 13 a 16 m² por proyector, útil para estimar cuántos lleva una fachada",
+    "Luz RGB para resaltar arquitectura, tótems y espacios de eventos",
+    "IP66, IK08 y Clase I: preparado para exterior, con conexión a tierra",
+    "Seis certificaciones en su ficha: SEC, CE, EMC, FCC, RoHS y VDE",
+    "Factor de potencia de 0,99 y 50.000 horas de vida útil declarada"
+  ],
+  "useCases": [
+    "Fachadas de edificios bajos, iglesias y edificios patrimoniales",
+    "Muros perimetrales de hoteles, casinos y centros comerciales",
+    "Tótems y letreros de gran formato",
+    "Escenarios y recintos de eventos al aire libre",
+    "Plazas y paseos con iluminación ornamental",
+    "Fachadas de discotecas, bares y restaurantes"
+  ],
+  "installationInfo": "Se fija en **muro o poste**, a la distancia de instalación que sugiere su ficha: de 1 a 6 m. Para bañar una fachada desde abajo, lo habitual es ubicarlo frente a la base del muro y orientarlo hacia arriba; montado en un poste frente al edificio, en cambio, ilumina de frente sin perforar el muro.\n\n- Tensión de entrada: 185 a 265V.\n- Equipo Clase I: requiere conexión a tierra de protección.\n- Une los cables dentro de una caja estanca para no comprometer el IP66.\n\nLa conexión corresponde a un instalador eléctrico. Para fachadas en la Región Metropolitana, también ofrecemos el montaje como servicio adicional.",
+  "faq": [
+    {
+      "question": "¿Qué certificaciones tiene?",
+      "answer": "Su ficha declara certificación SEC, el sistema que supervisa en Chile la Superintendencia de Electricidad y Combustibles, y además CE, EMC, FCC, RoHS y VDE. EMC se refiere a la compatibilidad electromagnética, es decir, a que el equipo no genere interferencias que afecten a otros aparatos, y RoHS, a la restricción de sustancias peligrosas como el plomo y el mercurio."
+    },
+    {
+      "question": "¿El color se ve de día?",
+      "answer": "Muy poco. Como cualquier iluminación de color, su efecto se aprecia al atardecer y de noche; con luz solar directa, el tono sobre el muro prácticamente no se distingue. Por eso los proyectos de ambientación se piensan para el horario nocturno, cuando la fachada queda a oscuras y el color destaca."
+    },
+    {
+      "question": "¿Qué quiere decir que tenga 100 lm/W?",
+      "answer": "Es su eficacia luminosa: cuántos lúmenes produce por cada watt que consume. En este equipo, 50W producen 5.000 lm declarados. Ese dato sirve para comparar el consumo entre proyectores con un flujo parecido; en un equipo de color, sin embargo, lo que más pesa al elegir es la cobertura y el efecto que buscas sobre la superficie."
+    },
+    {
+      "question": "¿Atienden proyectos municipales y de empresas?",
+      "answer": "Sí. Trabajamos con empresas, municipios, constructoras, arquitectos e instaladores eléctricos, y atendemos licitaciones. Facturamos cada compra y despachamos a todo Chile en hasta 2 días hábiles: con camiones propios en la Provincia de Santiago y mediante operador logístico en regiones."
+    }
+  ]
+}

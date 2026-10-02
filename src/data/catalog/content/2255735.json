@@ -1,0 +1,34 @@
+{
+  "metaTitle": "Fuente de Poder 12V 150W 12,5A Interior Perforada | eLIGHTS",
+  "metaDescription": "Fuente switching de 150W, 12V DC y 12,5A para interiores, con IP20 y marcado CE. Para cornisas de luz y recorridos largos de cinta LED. Cotiza para todo Chile.",
+  "description": "La Fuente de Poder Switching 150W 12V (SKU FU150I) convierte la corriente alterna de la red en **12V de corriente continua con 12,5A**, para alimentar instalaciones de cinta LED que recorren muchos metros en interiores. Es una fuente AC/DC de carcasa perforada, con grado IP20 y certificación CE, de 199 x 98 x 38 mm, un tamaño que se puede alojar sobre un cielo falso, en un cajón de cielo amplio o dentro de un gabinete.\n\n**Iluminación indirecta en recorridos largos**\n\nEn salones, lobbies, salas de ventas y oficinas, la luz indirecta suele lograrse con cinta oculta en cornisas, cajones de cielo o bordes de muebles, a lo largo de muchos metros. Con 150W de salida, una fuente puede abastecer varios de esos recorridos si la suma de sus consumos queda dentro de su capacidad.\n\nPara planificar, divide el perímetro en sectores y calcula el consumo de cada uno con el dato de watts por metro de la cinta. Ubicar la fuente en un punto central, desde donde los cables lleguen cortos a cada sector, ayuda a que la intensidad se vea pareja en todo el recorrido.\n\n**Dónde ubicarla**\n\nSobre un cielo falso, déjala fijada a la estructura junto a un registro, para poder revisarla sin romper planchas, y fuera del colchón de aislación térmica: las perforaciones de la carcasa necesitan aire para que el calor salga. Su grado **IP20** no la protege de goteras ni de condensación, así que el cielo debe ser interior y seco.\n\nDel lado de la red admite 200 a 220V a 50 Hz, el rango chileno, o 100 a 120V a 60 Hz, y esa conexión la hace un instalador eléctrico.\n\n**Para tu proyecto**\n\nCuéntanos cuántos metros de cinta vas a instalar y de qué tipo, y te ayudamos a definir si basta una fuente de 150W o conviene dividir en circuitos. La compra se formaliza con cotización y factura, y el envío llega a cualquier región del país en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "12,5A a 12V DC: 150W para recorridos largos de cinta LED",
+    "Una sola fuente para varios sectores de cornisa o cajón de cielo",
+    "199 x 98 x 38 mm: se aloja sobre un cielo falso o en un gabinete",
+    "Carcasa perforada: va fuera de la aislación térmica para que el calor salga",
+    "IP20, para cielos y recintos interiores secos"
+  ],
+  "useCases": [
+    "Cornisas de luz en salones y livings",
+    "Lobbies y recepciones de hoteles",
+    "Salas de venta y showrooms inmobiliarios",
+    "Cajones de cielo con iluminación indirecta",
+    "Muebles de exhibición de gran largo",
+    "Iluminación perimetral en oficinas"
+  ],
+  "faq": [
+    {
+      "question": "¿Por qué la cinta se ve más tenue al final del tramo?",
+      "answer": "Por la caída de tensión: en sistemas de 12V, parte de la tensión se pierde a lo largo de los cables y de la propia cinta, y el efecto crece con la corriente y con el largo. Se corrige alimentando la cinta por ambos extremos o por el centro, con cables que vengan desde la fuente, y acortando la distancia entre la fuente y la cinta."
+    },
+    {
+      "question": "¿Puedo usarla si mi instalación consume justo 150W?",
+      "answer": "No es lo recomendable. Una fuente que trabaja siempre en su máximo se calienta más y queda sin margen. Si tu cálculo se acerca a los 150W, elige una fuente de mayor capacidad o divide la instalación en dos circuitos, cada uno con su fuente. Si nos envías el modelo y los metros de cinta, revisamos el cálculo contigo."
+    },
+    {
+      "question": "¿Sirve para una cinta LED RGB?",
+      "answer": "La fuente no controla colores: solo entrega 12V de corriente continua. Una cinta RGB de 12V se alimenta a través de un controlador RGB de 12V, que va entre la fuente y la cinta. Revisa la tensión de la cinta y del controlador, y suma el consumo de ambos para verificar que quede bajo los 150W de la fuente."
+    }
+  ]
+}

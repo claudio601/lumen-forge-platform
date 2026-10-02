@@ -1,0 +1,34 @@
+{
+  "metaTitle": "Fuente de Poder 12V 360W 30A Interior Perforada | eLIGHTS",
+  "metaDescription": "Fuente switching de 360W y 30A con salida de 12V DC, para grandes instalaciones LED alimentadas desde una sala técnica. IP20 y marcado CE. Cotiza en eLIGHTS.",
+  "description": "La Fuente de Poder Switching 360W 12V (SKU FU360I) es una fuente de alta capacidad: entrega **30A a 12V de corriente continua** para instalaciones LED de gran tamaño en interiores, como supermercados, grandes tiendas, salas de espectáculos o letreros de gran formato bajo techo. Es de tipo AC/DC, con carcasa perforada, grado IP20 y certificación CE, y mide 215 x 115 x 50 mm. Con 360W de capacidad, una sola unidad instalada en una sala técnica puede reemplazar a varias fuentes pequeñas repartidas por el cielo.\n\n**Conexiones firmes para 30A**\n\nUna corriente de 30A exige un cableado de salida bien resuelto. Los terminales deben quedar bien apretados y los conductores bien asentados, porque con esta corriente una unión suelta levanta temperatura y puede dañar la conexión. La sección de cada conductor se elige según la corriente que transporta, y ese diseño, junto con la conexión a la red, corresponde a un instalador eléctrico. Antes de conectar la carga, conviene medir que la salida entregue la tensión esperada y comprobar que ninguna derivación tenga un cortocircuito.\n\n**Ubicación en una sala técnica o tablero**\n\n- Solo en interior y en un ambiente seco: el grado IP20 no protege contra líquidos.\n- Con espacio libre alrededor de la carcasa perforada, para que el calor se disipe.\n- Lejos de otras fuentes de calor y del polvo en suspensión, que puede acumularse en su interior.\n- En un lugar accesible, para revisarla sin desmontar otros equipos.\n\nEn la entrada, la ficha indica 200 a 220V a 50 Hz, que corresponde a la red de Chile, y 100 a 120V a 60 Hz.\n\n**Cotización de proyectos**\n\nSi estás planificando una instalación de este tamaño, envíanos el detalle de los circuitos y te ayudamos a definir la fuente y su ubicación. Despachamos a todo Chile en hasta 2 días hábiles y cada compra se respalda con factura.",
+  "keyBenefits": [
+    "360W y 30A en 12V DC para grandes instalaciones de cinta y módulos LED",
+    "Una sola fuente en la sala técnica, en lugar de varias repartidas en el cielo",
+    "Salida de alta corriente para repartir en varias derivaciones protegidas",
+    "Mide 215 x 115 x 50 mm y necesita espacio libre alrededor para disipar el calor",
+    "Grado IP20: su lugar es una sala técnica o un tablero seco"
+  ],
+  "useCases": [
+    "Supermercados y tiendas de gran superficie",
+    "Letreros luminosos de gran formato bajo techo",
+    "Salas de espectáculos, teatros y auditorios",
+    "Pasillos y vitrinas de centros comerciales",
+    "Tableros centrales de iluminación en edificios comerciales",
+    "Salas técnicas de proyectos decorativos de gran escala"
+  ],
+  "faq": [
+    {
+      "question": "¿Es necesario poner protecciones en la salida?",
+      "answer": "Con una corriente de 30A, es lo recomendable: dividir la salida en varias derivaciones, cada una con su protección, evita que una falla en un tramo afecte a toda la instalación y que un conductor delgado quede sobrecargado. El diseño de las protecciones debe hacerlo un instalador eléctrico."
+    },
+    {
+      "question": "¿Qué hago si algunos sectores quedan lejos de la fuente?",
+      "answer": "Los 12V pierden tensión en cables largos, así que un sector alejado de la sala técnica recibe menos tensión y puede verse más tenue. Hay dos caminos: usar conductores de mayor sección para ese tramo o instalar una fuente propia cerca de esa carga. La elección depende de la distancia y del consumo del sector."
+    },
+    {
+      "question": "¿Ofrecen instalación?",
+      "answer": "Sí, en la Región Metropolitana ofrecemos la instalación como servicio aparte. Para el resto del país despachamos la fuente en hasta 2 días hábiles y te asesoramos por WhatsApp o en ventas@elights.cl, para que tu instalador tenga la información que necesita."
+    }
+  ]
+}

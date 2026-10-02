@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Campana LED Antiexplosiva 50W 7.500 lm Zona 2 y 22 | eLIGHTS",
+  "metaDescription": "Campana LED a prueba de explosión de 50W para Zona 2 y Zona 22: 7.500 lm, entrada de 110 a 240V, IP66 e IK10. Para salas chicas; cotiza con envío a todo Chile.",
+  "description": "La Campana LED UFO a Prueba de Explosión 50W (SKU PLAPEX50F) es una luminaria antiexplosiva de baja potencia para recintos acotados dentro de un área clasificada: una sala de bombas, una caseta de compresores o un pañol de pinturas. Según su ficha, corresponde a áreas clasificadas como **Zona 2 (gas) o Zona 22 (polvo)**; su marcado es **II 3GD Ex d IIC T3 Gc**. Con 50W entrega **7.500 lm**, es decir, una eficacia de 150 lm/W, y su luz es fría, de 6000K.\n\n**Un solo punto de luz para recintos chicos**\n\nSus 7.500 lm salen con una apertura de 120°, un haz amplio que permite cubrir una sala pequeña desde un solo punto cuando no hay espacio para instalar varias luminarias. Esa luz blanca, con un CRI superior a 80, permite reconocer el código de colores de cañerías y válvulas y leer los rótulos de seguridad.\n\n**Antes de elegirla para tu área**\n\nAdemás de la zona, hay dos datos del marcado que revisar. La clase T3 debe quedar por debajo de la temperatura de ignición de cada gas o vapor presente, según sus hojas de seguridad. Y para polvo, el marcado no informa una temperatura superficial máxima: si el área es Zona 22, consúltanos por ese dato antes de comprar.\n\n**Componentes y alimentación**\n\nUsa LED Luxeon 3030 y un driver Mean Well. Se alimenta con tensiones de 110 a 240V AC, 50/60Hz, tiene un factor de potencia sobre 0,95 y toma IEC 60598-1 como referencia de seguridad eléctrica.\n\n**Envolvente de aluminio y vidrio templado**\n\nEl cuerpo es de aleación de aluminio anticorrosión, con grado WF2, y la luz sale a través de un vidrio templado. Con **IP66** no deja pasar polvo y tolera chorros fuertes de agua; su resistencia al impacto es **IK10**, el máximo de esa escala. La campana mide 240 x 200 mm y opera en ambientes de -40 °C a +40 °C.\n\n**Respaldo y cotización**\n\nEl respaldo es de **5 años** de garantía, y la vida útil declarada llega a 100.000 horas. Si vas a equipar varias salas, cuéntanos cuántas son, qué superficie tiene cada una y qué zona tienen asignada; con eso, el equipo comercial prepara la cotización formal, con factura. El plazo de despacho a todo Chile es de hasta 2 días hábiles, y las dudas técnicas previas las resolvemos por WhatsApp o en ventas@elights.cl.",
+  "keyBenefits": [
+    "7.500 lm con 50W (150 lm/W): una potencia acotada para salas y bodegas pequeñas",
+    "Uso en Zona 2 de gas o Zona 22 de polvo; marcado II 3GD Ex d IIC T3 Gc",
+    "Entrada de 110 a 240V AC (50/60Hz) y factor de potencia sobre 0,95",
+    "Driver Mean Well y LED Luxeon 3030",
+    "IP66 contra polvo y agua, e IK10, el máximo de la escala de impacto",
+    "Cuerpo compacto de 240 x 200 mm en aluminio anticorrosión WF2",
+    "Garantía de 5 años y vida útil de 100.000 horas, según la ficha"
+  ],
+  "useCases": [
+    "Casetas de compresores en áreas clasificadas como Zona 2",
+    "Pañoles de pinturas y solventes con clasificación Zona 2",
+    "Salas de bombas de poca superficie en Zona 2",
+    "Bodegas químicas pequeñas dentro de áreas Zona 2",
+    "Recintos chicos con polvo combustible en Zona 22, previa consulta",
+    "Estaciones de regulación de gas con áreas Zona 2"
+  ],
+  "faq": [
+    {
+      "question": "¿Se puede instalar en un área clasificada como Zona 1?",
+      "answer": "No. Según su ficha, esta campana corresponde a Zona 2 (gas) y Zona 22 (polvo), y su nivel de protección para gas es Gc. En la Zona 1 y la Zona 21 la atmósfera explosiva puede aparecer durante la operación normal, por lo que se exigen equipos con un nivel de protección mayor. Si no tienes clara la clasificación, pídela al responsable de seguridad de la instalación antes de cotizar."
+    },
+    {
+      "question": "¿Con qué tensión funciona?",
+      "answer": "Acepta de 110 a 240V AC, 50/60Hz, un rango que cubre la red eléctrica habitual en Chile. En un área clasificada, el cableado, las cajas y los accesorios de conexión también deben estar certificados para esa zona, así que la conexión debe hacerla un electricista con experiencia en atmósferas explosivas."
+    },
+    {
+      "question": "¿Basta una campana de 50W para mi sala o bodega?",
+      "answer": "Depende de la superficie, de la altura a la que quede y de la tarea que se hace bajo ella. Como referencia, sus 7.500 lm se reparten en un haz de 120°. Si el espacio es mayor o tiene varios sectores, envíanos sus medidas y te orientamos sobre la cantidad de equipos o sobre una potencia mayor de la misma línea."
+    },
+    {
+      "question": "¿Funciona en recintos sin calefacción o muy calurosos?",
+      "answer": "Su rango de operación va de -40 °C a +40 °C de temperatura ambiente, así que funciona en salas sin calefacción y en casetas expuestas al frío del invierno. El límite superior es el que más conviene revisar: si el recinto supera los +40 °C, como ocurre cerca de hornos, calderas o equipos que irradian calor, la campana queda fuera de su rango de operación."
+    }
+  ]
+}

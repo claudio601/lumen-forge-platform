@@ -1,0 +1,34 @@
+{
+  "metaTitle": "Fuente de Poder Switching 12V 400W 33A Interior | eLIGHTS",
+  "metaDescription": "Fuente switching de alta capacidad: 400W y 33A a 12V DC para letreros grandes, escenografías y cargas LED concentradas en interior. Cotiza tu proyecto.",
+  "description": "La Fuente de Poder Switching 400W 12V (SKU FU400I) entrega **33A en 12V de corriente continua** para proyectos LED de gran escala bajo techo: grandes locales comerciales, centros de eventos, escenografías, letreros interiores de gran tamaño o instalaciones con muchos tramos de cinta. Es de tipo AC/DC, tiene grado de protección IP20 y certificación CE, y su carcasa perforada mide 22 x 12 x 5,5 cm.\n\n**Una fuente grande o varias pequeñas**\n\nUna fuente de esta capacidad tiene sentido cuando la carga de 12V está concentrada y la fuente puede quedar cerca de ella: un letrero de gran formato, una escenografía o un sector con muchos tramos de cinta agrupados. Si en cambio los circuitos están dispersos en un recinto amplio, los cables de 12V se alargan y obligan a usar conductores muy gruesos; ahí suele resultar mejor repartir la carga en fuentes más pequeñas, cada una junto a su sector.\n\nEn montajes temporales, como ferias o eventos, concentrar la carga en una fuente también reduce la cantidad de equipos que hay que montar, conectar y retirar en cada armado.\n\n**Espacio en el gabinete**\n\nAl proyectar el tablero o el gabinete, reserva sus 22 x 12 x 5,5 cm más una holgura alrededor: la carcasa perforada entrega el calor al aire, así que no debe quedar encerrada sin ventilación ni pegada a otros equipos que se calienten. Por su grado **IP20**, va en un recinto interior seco, como un tablero o una sala técnica.\n\nPara la conexión a la red, la ficha declara 100 a 120V a 60 Hz y 200 a 220V a 50 Hz, este último propio de la red eléctrica chilena. Todo el trabajo eléctrico, tanto la conexión a la red como el reparto de la salida en derivaciones protegidas, debe quedar a cargo de un instalador.\n\n**Asesoría para proyectos grandes**\n\nAntes de definir cuántas fuentes de 400W usar y dónde ubicarlas, podemos revisar contigo el plano o el listado de circuitos. Así la cotización formal que te enviamos responde a la distribución real de tu proyecto.",
+  "keyBenefits": [
+    "400W con 33A disponibles en 12V DC para proyectos LED de gran escala",
+    "Concentra en una fuente la carga de un letrero grande o una escenografía",
+    "Cuerpo de 22 x 12 x 5,5 cm, fácil de reservar al proyectar el gabinete",
+    "Grado IP20 y perforaciones: va en tableros secos y con aire alrededor",
+    "Menos equipos que montar y retirar en ferias y eventos"
+  ],
+  "useCases": [
+    "Centros de eventos y salones de banquetes",
+    "Escenografías y montajes para ferias",
+    "Grandes letreros luminosos en interiores",
+    "Discotecas y salas de baile con cinta LED",
+    "Salones de hoteles con iluminación decorativa",
+    "Sectores con muchos tramos de cinta agrupados"
+  ],
+  "faq": [
+    {
+      "question": "¿Puedo conectar dos fuentes en paralelo para sumar potencia?",
+      "answer": "No es lo recomendable. La ficha de esta fuente no indica que admita conexión en paralelo, y unir las salidas de dos fuentes que no están diseñadas para eso puede repartir mal la carga entre ellas. Lo correcto es dividir la instalación en circuitos independientes, cada uno alimentado por su propia fuente."
+    },
+    {
+      "question": "¿Qué mantención necesita?",
+      "answer": "Poca, pero periódica. Revisa que las perforaciones no estén tapadas por polvo u objetos, porque el aire que circula es lo que la mantiene a buena temperatura. Comprueba además el apriete de las conexiones de entrada y salida: con 33A en juego, una unión que se afloja con el tiempo se calienta. Esa revisión, con la fuente desenergizada, la debe hacer un instalador eléctrico."
+    },
+    {
+      "question": "¿Cómo cotizo un proyecto?",
+      "answer": "Envíanos el listado de circuitos con su consumo, o el modelo y los metros de cinta, por WhatsApp o a ventas@elights.cl. Te respondemos con la cotización formal y factura, y despachamos a todo Chile en hasta 2 días hábiles; si la obra está en la Región Metropolitana, también podemos cotizar la instalación."
+    }
+  ]
+}

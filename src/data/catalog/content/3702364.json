@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Panel LED Backlight 120x60 cm 96W y 9.600 lm | eLIGHTS",
+  "metaDescription": "Panel LED backlight de gran formato, 120x60 cm y 96W: 9.600 lm por equipo para salas amplias, aulas y oficinas con cielo americano. Cotiza para tu obra.",
+  "description": "El Panel LED Backlight 120x60 de 96W es un panel de gran formato para **cielo americano**: ocupa un módulo de 120 x 60 cm, el mismo espacio que dos placas de 60 x 60 cm, y reúne **9.600 lm** en un solo equipo. Su eficacia llega a 100 lm/W, el índice de reproducción cromática (CRI) es mayor a 80 y acepta de 170 a 265V, 50-60 Hz. Viene con marco blanco y en tres temperaturas de color: 3000K, 4000K y 6000K.\n\n**Menos puntos de luz en recintos amplios**\n\nCon 9.600 lúmenes por panel, una sala grande se resuelve con menos equipos que con formatos de menor flujo: hay menos conexiones que hacer, menos módulos del cielo ocupados por luminarias y una grilla de luz más ordenada. Por eso este tamaño es habitual en salas de clases, oficinas de planta libre, salas de venta y comedores de empresa.\n\nLa eficacia de 100 lm/W indica cuánta luz entrega el panel por cada watt que consume. Es el dato que conviene comparar al estimar el consumo de una instalación completa: a mayor eficacia, menos energía para el mismo nivel de iluminación.\n\n**Temperatura de color según el recinto**\n\nLa luz cálida de 3000K suaviza comedores, recepciones y salas de estar; la neutra de 4000K es la elección habitual en aulas, oficinas y salas de reuniones, y la fría de 6000K se usa en laboratorios y zonas de servicio. Con un CRI superior a 80, los colores de documentos, materiales y mobiliario se distinguen bien en tareas de oficina.\n\n**Construcción**\n\nMide 1.200 x 600 mm con 30 mm de alto y tiene cuerpo de aluminio con marco blanco. En una placa de este tamaño la uniformidad se nota a simple vista, y para eso existe la construcción backlight: los LED SMD5730 quedan repartidos sobre el fondo del equipo y alumbran de frente el difusor de PS y el lente de PMMA, en lugar de entrar por los bordes. El grado **IP44** lo protege de salpicaduras y de partículas sólidas pequeñas, así que se instala bajo techo, en interiores. El factor de potencia es 0,9 y funciona sin regulación.\n\n**Proyectos con varias salas**\n\nPara habilitar un piso de oficinas o un colegio, cuéntanos la cantidad de paneles y el tono de cada recinto, o envíanos un plano. El equipo comercial de eLIGHTS prepara la cotización formal con factura, y en la Región Metropolitana puedes contratar además la instalación como servicio aparte.",
+  "keyBenefits": [
+    "9.600 lm por panel con 96W: menos equipos para iluminar recintos amplios",
+    "Eficacia de 100 lm/W e índice cromático sobre 80",
+    "Ocupa el espacio de dos placas de 60 x 60 cm en el cielo americano",
+    "Elige 3000K (cálida), 4000K (neutra) o 6000K (fría) según el recinto",
+    "Backlight sobre una placa de 1.200 x 600 mm, con lente de PMMA y difusor de PS",
+    "Respaldo de 1 año de garantía, con certificación CE y RoHS declarada"
+  ],
+  "useCases": [
+    "Salas de clases y bibliotecas de colegios",
+    "Oficinas de planta libre con cielo americano",
+    "Salas de venta y tiendas de gran superficie",
+    "Comedores de empresa y casinos",
+    "Halls y salas de espera de edificios",
+    "Salas de reuniones y de capacitación"
+  ],
+  "installationInfo": "Va sobre la perfilería del cielo americano, en un **módulo de 120 x 60 cm**. Si el cielo está modulado en placas de 60 x 60 cm, se retira el perfil que separa dos de ellas para abrir el espacio del panel.\n\n- Placa de 1.200 x 600 mm y 30 mm de alto.\n- Entrada: acepta de 170 a 265V, 50-60 Hz.\n- Sin regulación: encendido con interruptor simple.\n- IP44: solo en interiores.\n\nPor su tamaño, conviene subirlo al cielo entre dos personas, y que un instalador eléctrico haga el conexionado.",
+  "faq": [
+    {
+      "question": "¿Cuántos paneles de 120x60 necesito para una sala?",
+      "answer": "La cantidad sale de tres datos: la superficie, la altura del cielo y el nivel de iluminación que pide la actividad, porque un aula no exige lo mismo que un pasillo. Cada panel aporta 9.600 lm. Para proyectos con varios recintos, eLIGHTS puede hacer un estudio lumínico DIALux que define cuántos paneles van y dónde; en salas simples, te orientamos al cotizar con las medidas del recinto."
+    },
+    {
+      "question": "¿Funciona con la red eléctrica de una oficina o un colegio?",
+      "answer": "Sí. Su rango de entrada, de 170 a 265V y 50-60 Hz, cubre la red eléctrica habitual de edificios y viviendas en Chile. Ten presente que el encendido debe ser con interruptor simple, porque el panel no es regulable y un atenuador podría provocarle parpadeo."
+    },
+    {
+      "question": "¿Qué garantía y certificaciones tiene?",
+      "answer": "Se vende con 1 año de garantía. En certificaciones, la ficha informa CE y RoHS. Si tu proyecto o licitación pide documentación técnica específica, consúltala antes de cotizar por WhatsApp o en ventas@elights.cl."
+    },
+    {
+      "question": "¿Cómo llegan los paneles en un pedido grande?",
+      "answer": "En compras por mayor vienen en cajas de 6 paneles; cada caja mide 121,5 x 21,5 x 61,5 cm y pesa 20 kg, así que conviene prever espacio de acopio y dos personas para la descarga. Los pedidos se despachan en hasta 2 días hábiles: los de la Provincia de Santiago van en camiones propios y los de regiones, con un operador logístico."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "metaTitle": "Campana LED UFO NF3 300W 45.000 lm para naves altas | eLIGHTS",
+  "metaDescription": "Campana LED UFO NF3 de 300W con 45.000 lm y 150 lm/W, IP66, en luz cálida, neutra o fría. Para naves altas y centros logísticos. Solicita tu cotización.",
+  "description": "La Campana LED UFO NF3 300W reúne en un solo equipo **45.000 lm**, un flujo para recintos muy altos o muy extensos: naves de producción, centros logísticos, hangares y galpones de gran luz. Trabaja con 300W y una eficacia de 150 lm/W, admite tensiones de 110 a 265V en corriente alterna e incorpora LED Lumileds y driver Mean Well. Se cotiza en luz cálida, neutra o fría.\n\n**Menos puntos de luz en recintos grandes**\n\nCuando el techo está lejos del piso, se necesitan equipos de mayor flujo para llegar con buen nivel de iluminación al plano de trabajo. Con 45.000 lúmenes por campana, el proyecto se resuelve con menos luminarias, y eso simplifica el cableado, la mantención y el acceso en altura.\n\n**Temperatura de color y calidad de luz**\n\nLas tres versiones responden a usos distintos. La fría (6500K) se elige en bodegas y logística; la neutra (4500K), en plantas y talleres donde se trabaja muchas horas bajo la misma luz; la cálida (3500K), en espacios de doble uso como salas de venta mayorista con techo alto. Con un CRI igual o superior a 80, productos, uniformes y señalética se distinguen con claridad.\n\n**Protección y rango de operación**\n\nLa carcasa circular mide Ø390 mm por 120 mm de alto y cuenta con grado **IP66**: es estanca al polvo y soporta chorros intensos de agua. La ficha declara funcionamiento entre -35 °C y +70 °C, una amplitud que da margen tanto en galpones del sur durante el invierno como bajo cubiertas metálicas expuestas al sol. Tiene certificación CE y 3 años de garantía.\n\n**Cotización**\n\nAl cotizar, indica la cantidad, la temperatura de color y, si lo tienes, el plano del recinto. Con esa información armamos la cotización formal con factura, y despachamos a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "45.000 lm por equipo: menos puntos de luz en recintos de gran altura",
+    "300W con una eficacia de 150 lm/W",
+    "Tres versiones: cálida (3500K), neutra (4500K) o fría (6500K)",
+    "Driver Mean Well y LED Lumileds en un cuerpo de Ø390 x 120 mm",
+    "Estanca al polvo (IP66) y operativa entre -35 °C y +70 °C",
+    "Respaldo de 3 años de garantía y certificación CE"
+  ],
+  "useCases": [
+    "Centros logísticos y de distribución",
+    "Hangares y talleres de maquinaria pesada",
+    "Naves de producción de gran altura",
+    "Salas de venta mayorista con techo alto",
+    "Bodegas de almacenaje en altura"
+  ],
+  "faq": [
+    {
+      "question": "¿En qué recintos no conviene una campana de 300W?",
+      "answer": "En los de techo bajo. Con 45.000 lm concentrados en un solo punto, una campana de esta potencia montada a poca altura puede encandilar y dejar zonas muy iluminadas junto a otras más oscuras. En esos casos rinde mejor un número mayor de equipos de menor potencia. Si dudas, envíanos la altura del recinto y te orientamos antes de cotizar."
+    },
+    {
+      "question": "¿Qué hay que considerar en la instalación eléctrica?",
+      "answer": "Admite de 110 a 265V en corriente alterna. Como cada equipo consume 300W, el instalador eléctrico debe dimensionar los circuitos, los conductores y las protecciones para la carga total del proyecto, y dejar las conexiones protegidas para conservar el grado IP66."
+    },
+    {
+      "question": "¿Ofrecen estudio lumínico e instalación?",
+      "answer": "Sí. Para recintos grandes preparamos un estudio lumínico DIALux con la cantidad de campanas, su altura de montaje y la separación entre ellas. Si el recinto está en la Región Metropolitana, el montaje también se puede contratar con nosotros, cotizado por separado."
+    },
+    {
+      "question": "¿Atienden a constructoras y licitaciones?",
+      "answer": "Sí. Cotizamos para empresas, constructoras, instaladores eléctricos, municipios y licitaciones, con factura. Indica en tu solicitud la cantidad por temperatura de color y la comuna de destino; el despacho a todo Chile toma hasta 2 días hábiles."
+    }
+  ]
+}

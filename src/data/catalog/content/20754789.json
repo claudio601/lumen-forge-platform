@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED Ultra Slim 300W para obras y faenas | eLIGHTS",
+  "metaDescription": "Proyector LED Ultra Slim de 300W y 27.000 lm, IP66 e IK08, para obras nocturnas, faenas y canchas amateur. Cotiza tu proyecto con despacho a todo Chile.",
+  "description": "Para recintos que trabajan o se usan de noche, como obras de construcción, canchas de fútbol amateur, patios de maniobra y zonas de acopio, el Proyector LED Ultra Slim 300W es un foco LED de alta potencia. Produce **27.000 lm** con 300W, se alimenta con 220-240V a 50Hz y viene en carcasa negra con grado **IP66** e **IK08**. Puedes pedirlo en luz fría o en un tono más cálido.\n\n**Luz para obras y faenas nocturnas**\n\nEn una obra que sigue de noche, un proyector de esta potencia ilumina frentes de trabajo, zonas de carga y accesos de camiones. Para esos frentes suele elegirse la versión fría, de blanco nítido; la de tono más cálido queda mejor en accesos y fachadas. Como su IP66 lo hace hermético, el polvo en suspensión no entra al equipo, y la lluvia directa tampoco lo afecta. Trabaja con temperaturas ambiente desde -20 °C hasta 60 °C, lo que abarca las heladas invernales y el calor de las faenas del norte.\n\n**27.000 lúmenes por punto de luz**\n\nLos 252 chips LED SMD 2835 alcanzan 90 lm/W y proyectan un haz de 120°. Con 27.000 lúmenes por equipo, cada poste o muro de apoyo cubre un sector amplio, lo que ayuda a ordenar el tendido eléctrico del alumbrado de la obra. El CRI superior a 80 mantiene reconocibles los colores de la señalética, los cables y la maquinaria.\n\n**Cuerpo plano y carcasa resistente**\n\nSu frente es de 28 x 38 cm y la profundidad, de solo 2,6 cm: un perfil bajo para su potencia. En una faena donde se mueven herramientas y materiales, la clasificación IK08 indica que la carcasa está preparada para soportar impactos. Cuenta con certificación SEC y 1 año de garantía.\n\n**Proyecto y despacho**\n\nPara canchas y recintos grandes, eLIGHTS ofrece estudio lumínico DIALux, que define cuántos proyectores instalar, a qué altura y con qué orientación. Despachamos a obras de todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "27.000 lm con 300W para frentes de obra, canchas y patios de maniobra",
+    "IP66 e IK08: soporta polvo en suspensión, lluvia e impactos de faena",
+    "Trabaja de -20 °C a 60 °C: de las heladas al calor del norte",
+    "CRI superior a 80: colores reconocibles en señalética, cables y maquinaria",
+    "Solo 2,6 cm de profundidad, con 28 x 38 cm de frente",
+    "Certificación SEC y 1 año de garantía"
+  ],
+  "useCases": [
+    "Obras de construcción con turnos nocturnos",
+    "Canchas de fútbol amateur y de entrenamiento",
+    "Patios de maniobra de empresas de transporte",
+    "Zonas de acopio de materiales",
+    "Accesos de camiones a obras y plantas",
+    "Muros altos de galpones industriales"
+  ],
+  "installationInfo": "Montaje en **muro o poste**; en recintos grandes va normalmente en postes altos o en el coronamiento de los muros de un galpón.\n\n- Alimentación: 220-240V, 50Hz.\n- No incluye accesorios. El instalador debe dimensionar el cable y la protección de cada circuito según la cantidad de proyectores de 300W conectados.\n- En canchas, reparte los equipos en ambos costados para evitar sombras marcadas.\n\nPara proyectos en la Región Metropolitana, eLIGHTS ofrece además el servicio de instalación, que se cotiza aparte.",
+  "faq": [
+    {
+      "question": "¿Sirve para iluminar una cancha de fútbol amateur?",
+      "answer": "Sí, es un uso habitual a esta potencia, siempre con varios equipos repartidos en postes a ambos costados de la cancha, cada uno con 27.000 lm y 120° de apertura. Cuántos equipos y a qué altura se define según las medidas de la cancha y el uso, recreativo o de entrenamiento; envíanos las dimensiones para evaluarlo al cotizar."
+    },
+    {
+      "question": "¿Se puede usar en áreas con riesgo de explosión?",
+      "answer": "No. Su IP66 lo protege del polvo y del agua, pero la ficha no lo declara para áreas clasificadas con atmósferas explosivas de gas o polvo combustible. En esos recintos se requiere un equipo certificado para la zona correspondiente; consúltanos por las alternativas antiexplosivas."
+    },
+    {
+      "question": "¿Qué hay que considerar en la instalación eléctrica?",
+      "answer": "Cada proyector consume 300W a 220-240V. Su factor de potencia de 0,99 reduce la corriente reactiva que circula por los conductores, y su THD menor al 15% limita la distorsión de la corriente que toma de la red. Aun así, cuando se suman muchos equipos, el instalador debe dimensionar conductores, protecciones y tablero para la carga total."
+    },
+    {
+      "question": "¿Cómo se cotiza para una obra?",
+      "answer": "Indica la cantidad de proyectores, el tono de luz de cada uno y la comuna de la obra. La caja de cada equipo mide 28,5 x 40 x 4,5 cm; si el pedido es por volumen, la caja master agrupa 10 unidades con 19,3 kg. Con esos datos preparamos la cotización formal; al comprar, se emite factura."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Panel LED Sobrepuesto 18W con Sensor de Movimiento | eLIGHTS",
+  "metaDescription": "Panel LED redondo sobrepuesto de 18W con sensor de movimiento: 1.360 lm, detección de 120° y alcance de 4 a 6 metros. Para pasillos y escaleras. Cotiza.",
+  "description": "El Panel LED Redondo Sobrepuesto 18W con Sensor de Movimiento (SKU PLRS18SB) enciende la luz cuando detecta movimiento en su campo, así que conviene en pasillos, escaleras, accesos y bodegas, donde la luz se necesita por momentos y es fácil olvidar apagarla. Ofrece **1.360 lm** con 18W, mide 210 mm de diámetro y 28 mm de alto, y tiene un área recomendada de 12 m².\n\n**Cómo funciona el sensor de movimiento**\n\nEl sensor cubre un ángulo de **120°** y tiene un rango de detección de **4 a 6 metros**. Al detectar movimiento, el panel se enciende; la ficha indica un tiempo de encendido de 50 segundos. Así la luz trabaja mientras alguien circula y no queda prendida durante horas en un recinto vacío.\n\n**Dónde conviene instalarlo, y dónde no**\n\nRinde mejor en recintos de paso, donde nadie se queda quieto mucho rato. En una escalera de varios pisos, lo habitual es poner un panel en cada descanso, para que cada tramo se ilumine a medida que se avanza. Para que el sensor reaccione a tiempo, ubícalo de modo que la persona entre a su campo de detección apenas ingresa al recinto, por ejemplo cerca de la puerta o al inicio de la escalera.\n\nEn cambio, no es la mejor opción para una oficina, un dormitorio o una sala de estar: cuando las personas permanecen quietas, un sensor de movimiento deja de detectarlas y la luz puede apagarse aunque el recinto siga ocupado. Para esos espacios conviene un panel sin sensor.\n\n**Luz, materiales y alimentación**\n\nUsa LED SMD 2835 y su índice de reproducción cromática (CRI) es superior a 80, una luz clara para circular y reconocer objetos con comodidad. La carcasa combina aluminio y policarbonato, y el marco es blanco. La ficha indica temperaturas de color de 3500K y 6500K: al cotizar, señala el tono que necesitas y el equipo comercial confirma la versión. Funciona con tensión de entrada de 85 a 265V, no es regulable y está pensado para interiores, en espacios residenciales y comerciales.\n\n**Garantía y cotización**\n\nTiene 1 año de garantía. Cada solicitud recibe una cotización formal del equipo comercial de eLIGHTS, la compra se factura y el despacho a todo Chile se hace en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Sensor de movimiento integrado con cobertura de 120°",
+    "Rango de detección de 4 a 6 metros, adecuado para pasillos y descansos",
+    "Tiempo de encendido de 50 segundos al detectar movimiento",
+    "Al activarse ofrece 1.360 lm, con 18W de consumo",
+    "Luz solo mientras alguien circula: evita luces prendidas en recintos vacíos",
+    "Tensión de entrada de 85 a 265V y 1 año de garantía"
+  ],
+  "useCases": [
+    "Pasillos de edificios residenciales y oficinas",
+    "Cajas de escalera y descansos",
+    "Halls de acceso de casas y condominios",
+    "Bodegas, despensas y salas de basura",
+    "Salas de bicicletas de condominios",
+    "Cuartos de servicio y salas de medidores"
+  ],
+  "installationInfo": "Se instala **sobrepuesto** en el cielo, con 28 mm de alto, y trae el sensor de movimiento en el mismo equipo, así que no hace falta un detector aparte.\n\n- Ubícalo donde el sensor vea la entrada al recinto: cubre 120° y detecta de 4 a 6 metros.\n- Tensión de entrada: 85 a 265V.\n- No es regulable: no lo conectes a un dimmer.\n- Solo para interiores.\n\nLa conexión debe hacerla un instalador eléctrico, que definirá cómo queda alimentado el circuito para que el sensor controle el encendido.",
+  "faq": [
+    {
+      "question": "¿Cuánto tiempo queda encendido después de detectar movimiento?",
+      "answer": "La ficha del producto indica un tiempo de encendido al detectar de 50 segundos, un lapso que por lo general alcanza para recorrer un pasillo, subir un tramo de escalera o sacar algo de una bodega. La ficha no lo señala como ajustable: si tu recinto necesita otro tiempo, consúltanos antes de cotizar."
+    },
+    {
+      "question": "¿Sirve para un pasillo largo?",
+      "answer": "Su rango de detección es de 4 a 6 metros, con una cobertura de 120°. Si el pasillo es más largo que ese alcance, un solo panel no detectará a quien entra por el extremo opuesto: conviene instalar uno cerca de cada acceso o repartir varios a lo largo del recorrido."
+    },
+    {
+      "question": "¿Se puede usar en exterior?",
+      "answer": "No. Es un panel para uso interior, en espacios residenciales o comerciales. Para accesos al aire libre conviene elegir una luminaria diseñada para quedar expuesta a la lluvia; escríbenos por WhatsApp o a ventas@elights.cl y te orientamos."
+    },
+    {
+      "question": "¿Qué temperatura de color tiene?",
+      "answer": "La ficha indica 3500K y 6500K. La primera es una luz cálida, más acogedora en halls y pasillos de viviendas; la segunda, una luz blanca y fría, habitual en bodegas y escaleras de servicio. Indica en tu solicitud el tono que prefieres y lo confirmamos en la cotización."
+    },
+    {
+      "question": "¿Puedo comprar varios para un edificio?",
+      "answer": "Sí. Para condominios, edificios de oficinas o comunidades, indica cuántos pasillos, escaleras y bodegas quieres cubrir y la cantidad de paneles; con eso preparamos la cotización formal. Cada pedido se despacha a cualquier punto de Chile en hasta 2 días hábiles."
+    }
+  ]
+}

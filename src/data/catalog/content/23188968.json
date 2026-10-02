@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED Ultra Slim 600W 54.000 lm IP66 | eLIGHTS",
+  "metaDescription": "Proyector LED Ultra Slim de 600W con 54.000 lm, IP66, IK08 y entrada de 185 a 265V. Para medialunas, muelles y faenas. Cotiza tu proyecto con despacho a Chile.",
+  "description": "El Proyector LED Ultra Slim 600W, de la marca JIE, se monta en muro o poste a buena altura para resolver con pocos puntos de luz exteriores extensos: medialunas y recintos de rodeo, canchas de barrio, muelles y caletas, patios de faena y explanadas de plantas industriales. Produce **54.000 lm** con 600W y 90 lm/W de eficacia, acepta tensiones de **185 a 265V** a 50Hz y su carcasa es **IP66** contra polvo y agua e **IK08** contra impactos. Hay dos versiones de color: 3000K y 6500K.\n\n**Flujo luminoso y apertura**\n\nSus 648 chips LED SMD 2835 generan 54.000 lúmenes que salen con un ángulo de 120°. Es un haz abierto: instalado en altura, un solo equipo puede actuar como fuente principal de un sector amplio, mientras que montado a poca altura concentra demasiada luz junto al poste y tiende a encandilar. El CRI sobre 80 permite reconocer bien los colores de camisetas, carga y señalética.\n\nEn recintos deportivos y patios de trabajo lo usual es optar por la versión de 6500K, un blanco frío que da sensación de claridad. La de 3000K, de luz cálida, tiene sentido en medialunas, explanadas de eventos o fachadas donde importa el ambiente.\n\n**Tensión de entrada de rango amplio**\n\nEl rango de 185 a 265V le da margen frente a las variaciones de tensión que se dan en recintos rurales, muelles o faenas ubicadas al final de una línea larga, siempre que la tensión se mantenga dentro de esos límites. Su factor de potencia de 0,99 y una distorsión armónica total bajo 15% hacen que la carga sobre la red sea ordenada, un punto que pesa cuando se suman varios equipos de 600W en un mismo empalme.\n\n**Construcción, medidas y respaldo**\n\nEl cuerpo es plano para su potencia: 55,8 cm de ancho, 34,1 cm de largo y 4,5 cm de grosor. Con IP66, el polvo no entra y los chorros de agua no lo afectan; con IK08, la carcasa queda respaldada ante golpes. Funciona entre -20 °C y 60 °C y declara una vida útil de 50.000 horas, lo que espacia las subidas al poste para mantención. Tiene certificación SEC y garantía de 1 año.\n\n**Cotización del proyecto**\n\nUn recinto que necesita equipos de 600W conviene calcularlo antes de comprar, y en la Región Metropolitana eLIGHTS ofrece además la instalación como servicio aparte. Cuéntanos la cantidad y la temperatura de color: te respondemos con la cotización formal y factura, con despacho a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "54.000 lm con 600W para cubrir grandes exteriores desde postes altos",
+    "Admite de 185 a 265V: margen ante variaciones de tensión en redes rurales y faenas",
+    "648 chips LED SMD 2835 y CRI sobre 80 para colores reconocibles",
+    "Carcasa IP66 e IK08 que trabaja de -20 °C a 60 °C",
+    "Vida útil declarada de 50.000 horas: menos mantenciones en altura",
+    "Luz cálida de 3000K o fría de 6500K, con sello SEC y 1 año de garantía"
+  ],
+  "useCases": [
+    "Medialunas y recintos de rodeo",
+    "Canchas de fútbol de barrio y recintos deportivos amateur",
+    "Muelles, caletas y explanadas portuarias",
+    "Patios de faenas y campamentos de obra",
+    "Explanadas de plantas industriales",
+    "Patios de buses y de maquinaria pesada"
+  ],
+  "installationInfo": "Se monta en **muro o poste**; a esta potencia, cuanto más alto quede el punto de fijación, mejor aprovecha su haz de 120° sobre el sector que debe cubrir.\n\n- Tensión de entrada: 185 a 265V, 50Hz.\n- El equipo mide 55,8 x 34,1 cm: considera ese tamaño al elegir el punto de fijación y planificar un izaje seguro.\n- Se vende sin accesorios: conductores, canalización y protecciones se calculan en el proyecto eléctrico según la cantidad de equipos.\n\nPara el montaje en altura se requieren instaladores calificados y los elementos de seguridad que exige ese tipo de trabajo.",
+  "faq": [
+    {
+      "question": "¿Qué recintos se iluminan con un proyector de 600W?",
+      "answer": "Espacios exteriores grandes que se iluminan desde la altura: medialunas, canchas de barrio, muelles, patios de faena y explanadas industriales. Cada equipo aporta 54.000 lm con un haz de 120°, así que su rendimiento depende sobre todo de la altura a la que se pueda montar y de la distancia hasta la zona que se quiere iluminar."
+    },
+    {
+      "question": "¿Funciona si la tensión de la red es inestable?",
+      "answer": "Admite de 185 a 265V a 50Hz, un rango amplio que le permite operar con las variaciones habituales de sectores rurales o de líneas largas. Fuera de ese rango, o frente a alzas bruscas por tormentas o maniobras en la red, esa cifra no lo cubre: las protecciones del circuito deben definirse en el proyecto eléctrico según la potencia instalada."
+    },
+    {
+      "question": "¿Cuántos proyectores necesito para una medialuna o una cancha?",
+      "answer": "Depende de las dimensiones del recinto, de la altura de los postes y del uso: no se ilumina igual un entrenamiento que un evento con público. Con las medidas y fotos del lugar, eLIGHTS prepara un estudio lumínico DIALux que define la cantidad, la ubicación y la orientación de cada equipo."
+    },
+    {
+      "question": "¿Cuánto pesa y cómo se embala?",
+      "answer": "Cada proyector viene en una caja de 35,5 x 58 x 4,5 cm que pesa 5 kg. Para pedidos de proyecto, la caja por mayor reúne 4 unidades y pesa 20 kg. Conviene tenerlo en cuenta al planificar el izaje y el traslado a obra."
+    }
+  ]
+}

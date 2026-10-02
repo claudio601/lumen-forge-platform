@@ -1,0 +1,41 @@
+{
+  "metaTitle": "Proyector LED 30W con sensor de movimiento, 6500K | eLIGHTS",
+  "metaDescription": "Proyector LED de 30W con sensor de movimiento para patios de servicio, bodegas y accesos: 90 lm/W, haz de 120°, IP66 y certificación SEC. Pide tu cotización.",
+  "description": "El Proyector LED Ultra Thin SMD 30W con Sensor de Movimiento, de la marca JIE, se usa en exteriores más amplios que una puerta o un pasillo: patios de servicio, accesos a bodegas y talleres, estacionamientos de locales pequeños o el camino de entrada de una parcela. Se enciende al detectar movimiento, consume 30W con una eficacia de **90 lm/W** y emite luz fría de **6500K** con una apertura de 120°. Admite tensiones de 180 a 265V (50Hz), cuenta con grado **IP66** y lleva sello **SEC**.\n\n**Iluminación por detección en zonas de trabajo**\n\nEn un patio de servicio o en la puerta de una bodega, la luz se necesita en momentos puntuales: cuando llega un proveedor, cuando alguien saca la basura o cuando el cuidador hace su ronda. Un proyector con sensor responde a esa lógica: queda en reposo mientras el sector está vacío y se enciende al detectar movimiento, sin depender de que alguien recuerde prenderlo y apagarlo. En sectores apartados de la propiedad, ese encendido repentino además puede disuadir a quien se acerca sin permiso.\n\n**Potencia y calidad de la luz**\n\nCon LED SMD Epistar y 90 lm/W, los 30W se emplean para cubrir un patio de servicio, el frente de un taller o una zona de estacionamiento con pocos autos. La apertura de 120° reparte la luz en abanico sobre el área, y el blanco frío de 6500K es el que suele elegirse para recorridos y rondas nocturnas. El factor de potencia, de 0,99, conviene cuando varios proyectores cuelgan de un mismo circuito.\n\n**Construcción y vida útil**\n\nCon grado **IP66**, el equipo queda protegido del ingreso de polvo y de chorros potentes de agua, algo que se agradece en patios de descarga y accesos expuestos al clima. Es un equipo **Clase I**, con conexión a tierra. Pesa 1,15 kg y su vida útil declarada es de 30.000 horas; como el sensor lo mantiene apagado mientras no hay movimiento, esas horas de funcionamiento se reparten en un período más largo que en un foco encendido toda la noche.\n\n**Garantía y despacho**\n\nSegún la ficha, el proyector cuenta con garantía. Envía la cantidad que necesitas y recibirás una cotización formal; cada compra se respalda con factura. Los pedidos se despachan a todo Chile en hasta 2 días hábiles, con camiones propios en la Provincia de Santiago.",
+  "keyBenefits": [
+    "Encendido automático al detectar movimiento en patios, bodegas y accesos de servicio",
+    "30W y 90 lm/W para zonas de trabajo más amplias que un pórtico",
+    "Luz fría de 6500K repartida en un abanico de 120°",
+    "IP66: resiste polvo, lluvia y chorros de agua en patios y zonas de descarga",
+    "Factor de potencia de 0,99, conveniente si varios equipos comparten circuito",
+    "Construido con LED SMD Epistar y respaldado por la certificación SEC"
+  ],
+  "useCases": [
+    "Patios de servicio de locales y restaurantes",
+    "Accesos y puertas de bodegas o talleres",
+    "Estacionamientos pequeños de comercios",
+    "Caminos de acceso en parcelas",
+    "Zonas de descarga de proveedores",
+    "Patios traseros amplios de viviendas",
+    "Perímetros de galpones pequeños"
+  ],
+  "installationInfo": "Móntalo apuntando hacia el sector de paso, de modo que el sensor detecte a quien entra antes de que llegue a la puerta o al portón. En un galpón o un conjunto de bodegas, lo habitual es instalar un equipo sobre cada acceso.\n\n- Rango de tensión: 180 a 265V, 50Hz.\n- La línea que lo alimenta debe incluir el conductor de tierra de protección, por tratarse de un equipo Clase I.\n- La conexión va dentro de una caja estanca, para que el conjunto conserve la protección IP66.\n- Si el equipo mira hacia la calle, el paso de autos puede activarlo: ajusta su orientación para dejar la vía fuera del campo del sensor.\n\nLa instalación debe realizarla un electricista. Si el recinto está en la Región Metropolitana, podemos cotizarte la instalación como servicio adicional.",
+  "faq": [
+    {
+      "question": "¿Qué tamaño de patio o acceso puede cubrir?",
+      "answer": "Depende de la altura a la que se instale y de cuánta luz exija el uso. Como referencia, una potencia de 30W con apertura de 120° se usa en patios de servicio, frentes de bodegas o talleres y estacionamientos con pocos autos. Para un sector grande, en vez de un solo equipo conviene repartir varios puntos de luz, y la cantidad la podemos revisar contigo al preparar la cotización."
+    },
+    {
+      "question": "¿Qué alcance tiene el sensor de movimiento?",
+      "answer": "La ficha técnica no informa la distancia ni el ángulo de detección, y tampoco el tiempo que la luz permanece encendida. Si necesitas cubrir un acceso largo o un patio con varias entradas, escríbenos por WhatsApp o a ventas@elights.cl con una descripción del lugar y te orientamos."
+    },
+    {
+      "question": "¿Cotizan varios equipos para un galpón o un conjunto de bodegas?",
+      "answer": "Sí. Indica cuántos accesos quieres cubrir y cómo es cada uno (puerta peatonal, portón, zona de descarga), y te respondemos con una cotización formal del total, con factura. Si el proyecto abarca el perímetro completo de un recinto grande, eLIGHTS puede hacer un estudio lumínico DIALux para definir cantidad y ubicación de los equipos."
+    },
+    {
+      "question": "¿Viene en otra temperatura de color?",
+      "answer": "Este modelo se ofrece en luz fría de 6500K, un blanco intenso que se usa sobre todo en accesos, patios de servicio y zonas de vigilancia. Si para tu proyecto prefieres un tono más cálido, por ejemplo en un jardín o una terraza, consúltanos por alternativas del catálogo al pedir tu cotización."
+    }
+  ]
+}

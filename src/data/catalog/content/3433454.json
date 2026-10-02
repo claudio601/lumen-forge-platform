@@ -1,0 +1,42 @@
+{
+  "metaTitle": "Equipo LED de Emergencia 2 x 1,2W de dos faros | eLIGHTS",
+  "metaDescription": "Equipo de emergencia LED de dos faros con 12 LEDs cada uno: 90 minutos de operación, batería de 3,6V y 1.000 mAh, e IP20 para interiores. Cotiza en eLIGHTS.",
+  "description": "El Equipo LED de Emergencia 2 x 1,2W es una luz de respaldo de dos faros, un formato habitual sobre puertas, en descansos de escalera y a lo largo de pasillos. Cada faro lleva 12 LEDs de alto brillo y su batería de 3,6V y 1.000 mAh le permite **90 minutos de operación** durante un corte de energía. Su grado de protección **IP20** lo define como un equipo para interiores secos.\n\n**Dos faros LED de bajo consumo**\n\nLa potencia es de 2 x 1,2W, un consumo bajo propio de la tecnología LED. En un corte, un equipo de este tipo da una luz de respaldo para distinguir el piso, los cambios de nivel y las puertas. La ficha no informa su flujo luminoso ni indica que cumpla una norma de alumbrado de emergencia o de evacuación: si el recinto debe cumplirla, el proyecto eléctrico define qué equipos corresponden.\n\n**Batería y tiempo de operación**\n\nMientras hay suministro, la batería de 3,6V y 1.000 mAh se recarga; durante un corte, el equipo ofrece 90 minutos de operación. Recuperar la carga completa toma como máximo 24 horas, un dato a considerar si en tu zona los cortes son frecuentes y seguidos.\n\n**Tensión declarada: confírmala antes de comprar**\n\nLa ficha de este equipo declara una tensión de **120V / 277V, 60Hz**, valores que no coinciden con la red domiciliaria chilena. Antes de comprarlo, confirma con nosotros por WhatsApp o en ventas@elights.cl la tensión del equipo y cómo se conecta a tu instalación, y no lo conectes sin esa confirmación.\n\n**Dónde instalarlo**\n\nPor su grado IP20 y su temperatura de operación de 0 a 40 °C, está pensado para recintos interiores: oficinas, salas de clases, pasillos de edificios, locales comerciales o consultas. No sirve para exteriores ni para lugares donde pueda mojarse.\n\nCuántos equipos instalar y en qué puntos lo resuelve el proyecto eléctrico de cada recinto, considerando salidas, escaleras y cambios de dirección de los pasillos.\n\n**Cotización**\n\nPara equipar un edificio o un local con varias unidades, indica la cantidad en tu solicitud: el equipo comercial de eLIGHTS prepara la cotización formal y emite factura por la compra. Los equipos se despachan a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Dos faros con 12 LEDs de alto brillo cada uno",
+    "Bajo consumo: potencia de 2 x 1,2W",
+    "90 minutos de operación durante un corte de energía",
+    "Batería de 3,6V y 1.000 mAh con carga completa en un máximo de 24 horas",
+    "Grado IP20 y operación de 0 a 40 °C, para interiores secos"
+  ],
+  "useCases": [
+    "Sobre puertas y accesos interiores",
+    "Escaleras y pasillos de edificios",
+    "Oficinas y salas de reuniones",
+    "Salas de clases y colegios",
+    "Locales comerciales y galerías",
+    "Consultas y centros de salud"
+  ],
+  "faq": [
+    {
+      "question": "¿Cuánto dura encendido si se corta la luz?",
+      "answer": "Ofrece 90 minutos de operación con la batería completamente cargada. Tras un corte, la batería de 3,6V y 1.000 mAh necesita como máximo 24 horas para recargarse. Como en cualquier equipo de emergencia, conviene revisar su funcionamiento en forma periódica, porque la autonomía de una batería disminuye con el tiempo."
+    },
+    {
+      "question": "¿Se puede instalar en exterior o en una zona húmeda?",
+      "answer": "No. El grado IP20 indica que el equipo no tiene protección contra el agua, así que no sirve para terrazas, estacionamientos abiertos ni zonas de lavado. Su temperatura de operación va de 0 a 40 °C: está hecho para recintos interiores secos."
+    },
+    {
+      "question": "¿Funciona con la red eléctrica de Chile?",
+      "answer": "La ficha declara una tensión de 120V / 277V, 60Hz, que no coincide con la red domiciliaria chilena. Por eso, antes de comprar, escríbenos por WhatsApp o a ventas@elights.cl para confirmar la tensión del equipo y la forma de conectarlo; la conexión debe hacerla un instalador eléctrico."
+    },
+    {
+      "question": "¿Cuántos LEDs tiene y cuánta luz entrega?",
+      "answer": "Tiene dos faros con 12 LEDs de alto brillo cada uno, y su potencia es de 2 x 1,2W. La ficha no informa el flujo luminoso en lúmenes; si necesitas definir cuántos equipos instalar en un recinto, escríbenos por WhatsApp o a ventas@elights.cl y te orientamos."
+    },
+    {
+      "question": "¿Cuánto demora el despacho?",
+      "answer": "Despachamos a todo Chile en hasta 2 días hábiles: con camiones propios dentro de la Provincia de Santiago y mediante operador logístico a regiones. La compra se hace por cotización y se emite factura."
+    }
+  ]
+}

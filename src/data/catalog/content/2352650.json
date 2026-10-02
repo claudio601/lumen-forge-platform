@@ -1,0 +1,37 @@
+{
+  "metaTitle": "Luminaria LED Tri-Proof a Prueba de Explosión ATEX 60W | eLIGHTS",
+  "metaDescription": "Luminaria LED lineal antiexplosiva WAROM de 60W: Ex e IIC T6, IP66, ATEX y 130 lux a 3 m, para montajes de 3 a 6 m de altura. Solicita tu cotización.",
+  "description": "Cuando un pasillo, una galería o una zona de proceso con riesgo de gases inflamables necesita más luz o un montaje más alto, la Luminaria LED Tri-Proof a Prueba de Explosión ATEX 60W (SKU LLTPATPAX60), de WAROM, es la versión de 60W de esta línea. Según la ficha, logra **130 lux a 3 m de altura**, con una altura de instalación recomendada de 3 a 6 m, y combina el grado **Ex e IIC T6** con protección **IP66** y certificaciones **CE, RoHS, UL y ATEX**.\n\n**Rendimiento lumínico y altura de montaje**\n\nCon 60W rinde 100 lm/W y emite luz blanca de 5500K, un tono frío que ayuda a leer manómetros y rótulos, con una apertura de 120°. Como su altura de instalación recomendada llega a los 6 m, sirve también en galerías, salas de compresores y bodegas de techo más alto.\n\nAdmite tensiones entre 90 y 305V AC, 50/60Hz, y su factor de potencia es de 0,90 o más. Su vida útil declarada es de 50.000 horas.\n\n**Marcado y certificaciones**\n\nEl grado **Ex e IIC T6** reúne tres datos: el modo de protección por seguridad aumentada, el grupo de gases más exigente y la clase con el límite de temperatura más bajo. A eso se suman las certificaciones ATEX, CE, RoHS y UL. Lo que la ficha no informa es la categoría, la zona de uso ni el número de los certificados; por eso, al cotizar, pedimos la clasificación del área donde irá cada luminaria y revisamos que el equipo calce con lo que exige tu instalación.\n\n**Cuerpo hermético y anticorrosión**\n\nEl cuerpo, de aleación de aluminio resistente a la corrosión (grado **WF2**), tiene protección **IP66**: no deja pasar polvo y soporta chorros de agua. Trabaja con temperaturas ambiente desde -40 °C hasta +60 °C, una combinación útil en plantas químicas y zonas de lavado. Sus medidas son 1315 (L) x 132 (An) x 82 (Al) mm, con un peso de 6,4 kg.\n\n**Cómo cotizar**\n\nCuéntanos qué zona tiene asignada el área, a qué altura irán los equipos y el largo de los pasillos o galerías que quieres iluminar. Con eso, el equipo comercial de eLIGHTS prepara la cotización formal y emite factura. Enviamos a todo Chile en hasta 2 días hábiles; dentro de la Provincia de Santiago, en camiones propios.",
+  "keyBenefits": [
+    "Con 60W y 100 lm/W, logra 130 lux con montaje a 3 m",
+    "Altura de instalación recomendada de 3 a 6 m",
+    "Grado Ex e IIC T6: seguridad aumentada y clase T6, la de menor temperatura superficial",
+    "Certificaciones ATEX, CE, RoHS y UL declaradas en su ficha",
+    "Hermética y anticorrosión: IP66 y grado WF2 en aleación de aluminio",
+    "Tensión admitida de 90 a 305V AC (50/60Hz) y factor de potencia de 0,90 o más",
+    "Trabaja entre -40 °C y +60 °C, con vida útil declarada de 50.000 horas"
+  ],
+  "useCases": [
+    "Galerías de cañerías y salas de techo alto en plantas químicas",
+    "Pasillos de bodegas de combustibles y solventes",
+    "Plataformas y escaleras de estanques en refinerías",
+    "Salas de compresores de gas con techos de hasta 6 m",
+    "Áreas techadas de carga de combustibles",
+    "Plantas de pinturas y barnices con zonas clasificadas"
+  ],
+  "installationInfo": "Se recomienda instalarla **entre 3 y 6 m** de altura. Según la ficha, a 3 m logra 130 lux con su apertura de 120°; más arriba, el nivel en el piso baja y puede hacer falta acercar las luminarias entre sí.\n\n- Entrada de cable: diámetro de Φ 8 a Φ 10 mm; un cable fuera de ese rango compromete el sellado de la entrada.\n- Tensión admitida: entre 90 y 305V AC, 50/60Hz.\n- Cuerpo lineal de 6,4 kg, con medidas de 1315 (L) x 132 (An) x 82 (Al) mm: prevé fijaciones acordes a ese peso.\n\nEn áreas clasificadas, las canalizaciones, cajas y accesorios también deben ser aptos para la zona. El montaje y la conexión deben quedar a cargo de personal calificado para trabajar en atmósferas explosivas.",
+  "faq": [
+    {
+      "question": "¿Qué diferencia hay entre Ex e y Ex d?",
+      "answer": "Son dos modos de protección distintos. Ex d, o envolvente antideflagrante, acepta que la mezcla inflamable entre al equipo y lo construye para contener una explosión interna. Ex e, o seguridad aumentada, que es el modo de esta luminaria, apunta a que no se produzcan chispas, arcos ni temperaturas peligrosas durante la operación normal. La elección depende de la zona y del tipo de equipo, así que al cotizar indícanos la clasificación de tu área."
+    },
+    {
+      "question": "¿Qué significa la clase T6?",
+      "answer": "Es la clase con el límite de temperatura más bajo de la escala para atmósferas de gas: la superficie del equipo se mantiene bajo el límite más estricto que contempla la clasificación, lo que la hace compatible con más sustancias, incluidas las que tienen una temperatura de ignición baja. Aun así, compara la clase con la temperatura de ignición de cada gas o vapor de tu área, que figura en su ficha de seguridad."
+    },
+    {
+      "question": "¿Qué mantención necesita?",
+      "answer": "Al ser una luminaria LED con vida útil declarada de 50.000 horas, la mantención se centra en conservar sus protecciones: limpiar la superficie por donde sale la luz, revisar que la entrada de cable siga bien sellada y que el cuerpo no tenga golpes ni fisuras que comprometan el IP66. En un área clasificada, esas revisiones deben hacerlas técnicos habilitados para áreas clasificadas, con el circuito desenergizado."
+    }
+  ]
+}

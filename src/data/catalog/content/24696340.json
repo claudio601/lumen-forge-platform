@@ -1,0 +1,43 @@
+{
+  "metaTitle": "Proyector LED de Estadio Modular 400W, 68.000 lm | eLIGHTS",
+  "metaDescription": "Proyector LED modular de 400W y 68.000 lm para recintos deportivos y grandes patios. IP66, IK10, CRI sobre 85 y 5 años de garantía. Cotiza tu proyecto.",
+  "description": "El Proyector LED de Estadio Modular 400W está orientado a recintos amplios: canchas de fútbol amateur, complejos deportivos municipales, grandes patios industriales y explanadas. Con **68.000 lm** por equipo y una eficacia de 170 lm/W, entrega un flujo acorde a espacios donde los reflectores se montan a mayor altura. Usa 560 LED SMD 3030 Lumileds, funciona con 110 a 220V AC y tiene protección **IP66** e **IK10**.\n\n**Flujo luminoso para recintos amplios**\n\nA medida que crece la superficie, también crece la altura a la que se montan los proyectores, y con ella la distancia que la luz debe recorrer. Un equipo de 68.000 lúmenes concentra más luz en cada punto, lo que puede reducir la cantidad de postes frente a una solución con proyectores de menor flujo. Para dirigir el haz, la ficha lista tres aperturas: 30°, 60° y 90° x 60°.\n\n**Cuatro drivers y LED Lumileds**\n\nEl equipo reparte su consumo de 400W entre **cuatro drivers Mean Well XLG-100-H-A**. Su factor de potencia supera 0,98 y la distorsión armónica es inferior a 10%, dos valores que interesan cuando varios proyectores comparten un mismo circuito. La ficha también indica regulador de intensidad: en un complejo con varias canchas permite ajustar el nivel de luz según la actividad, y conviene confirmar al cotizar el tipo de control que usarás.\n\nEl CRI superior a 85 permite reconocer colores con fidelidad, y la temperatura de color se elige entre cálida, neutra (4000K) y fría (5000K).\n\n**Protección frente al clima y a los impactos**\n\nLa carcasa es de aluminio, con una placa de policarbonato que protege los LED. Con IP66 queda sellada contra el polvo y los chorros de agua, y con IK10 alcanza el nivel más alto de resistencia a golpes, algo valioso en recintos públicos. Trabaja entre -20 °C y 50 °C.\n\n**Planificar el proyecto**\n\nEn un complejo deportivo o un patio de gran tamaño, la diferencia entre una iluminación pareja y una con sombras está en el diseño: cuántos equipos, a qué altura y con qué inclinación. eLIGHTS puede preparar un estudio lumínico DIALux y, en la Región Metropolitana, ofrece instalación como servicio aparte. La visera se vende por separado; si la necesitas para controlar el encandilamiento, agrégala a tu solicitud.",
+  "keyBenefits": [
+    "68.000 lm por equipo para grandes superficies",
+    "560 LED SMD 3030 Lumileds con eficacia de 170 lm/W",
+    "Cuatro drivers Mean Well XLG-100-H-A reparten la carga de 400W",
+    "IP66 e IK10: sellado contra polvo y agua, y resistente a golpes",
+    "Aperturas de 30°, 60° y 90° x 60° según la distancia de proyección",
+    "100.000 horas de vida útil declarada: menos recambios en postes altos"
+  ],
+  "useCases": [
+    "Canchas de fútbol amateur y de clubes de barrio",
+    "Complejos deportivos municipales",
+    "Patios industriales y centros de distribución",
+    "Explanadas y recintos al aire libre",
+    "Estacionamientos de gran superficie",
+    "Gimnasios de techo alto"
+  ],
+  "faq": [
+    {
+      "question": "¿Qué tamaño y peso considero para la cruceta?",
+      "answer": "Son 8 kg en un cuerpo de 36 x 43 x 9 cm (largo, alto y ancho). Al montar varios en un mismo poste o cruceta, suma el peso de todos y verifica la capacidad de la estructura con un instalador o un ingeniero. Embalado en su caja individual (47 x 41 x 11 cm), pesa 8,5 kg."
+    },
+    {
+      "question": "¿Qué apertura conviene para un poste alto?",
+      "answer": "Por regla general, cuanto mayor es la distancia entre el proyector y la superficie, más cerrado conviene el haz: el haz de 30° es el que más alcance tiene. Las de 60° y 90° x 60° reparten la luz en áreas más amplias y cercanas. En una cancha suelen combinarse distintas aperturas, y un estudio lumínico define cuál usar en cada poste."
+    },
+    {
+      "question": "¿Atienden proyectos municipales?",
+      "answer": "Sí. eLIGHTS trabaja con municipios, constructoras e instaladores eléctricos. Para cotizar, detalla por sector cuántos equipos necesitas, con qué apertura y en qué tono de luz; con eso preparamos la cotización formal, y la compra se emite con factura."
+    },
+    {
+      "question": "¿Qué garantía y certificaciones tiene?",
+      "answer": "La garantía es de 5 años. El equipo está certificado SEC, CE y RoHS y declara una vida útil de 100.000 horas. Si quieres despejar dudas técnicas antes de comprar, te atendemos por WhatsApp o en ventas@elights.cl."
+    },
+    {
+      "question": "¿Cuánto demora el despacho?",
+      "answer": "Hasta 2 días hábiles a todo Chile. En la Provincia de Santiago despachamos con camiones propios y a regiones mediante operador logístico, con la factura de la compra."
+    }
+  ]
+}

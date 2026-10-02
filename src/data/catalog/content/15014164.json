@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Lámpara de Emergencia LED Antiexplosiva 2x3W IP65 IK10 | eLIGHTS",
+  "metaDescription": "Lámpara de emergencia LED antiexplosiva 2x3W para Zona 1 y Zona 21: 600 lm, 90 a 120 minutos de autonomía, IP65 e IK10. Cotiza para tu planta en eLIGHTS.",
+  "description": "La Lámpara de Emergencia LED Antiexplosiva 2x3W (SKU LEATEX2X8) entrega luz de respaldo con su batería cuando falla el suministro eléctrico en áreas con riesgo de explosión. Según su ficha, es apta para **Zona 1 (gases) y Zona 21 (polvos)**, con el estándar **Ex db IIB+H2 T6 Gb** y **Ex tb IIIC T70 °C Db**. Declara un flujo de 600 lm, con grado **IP65** y resistencia al impacto **IK10**. La ficha la orienta a plantas petroquímicas, estaciones de llenado de gas y almacenes de productos químicos, lugares donde preocupa la presencia de hidrógeno o de polvos combustibles.\n\n**Dos protecciones en un mismo equipo**\n\nEl estándar combina una protección para gases y otra para polvos. Para gases, **Ex db** indica una envolvente antideflagrante, diseñada para contener una explosión interna sin que se propague hacia afuera, y **Gb** es el nivel de protección que corresponde a la Zona 1, donde una atmósfera explosiva de gas puede aparecer durante la operación normal.\n\nPara polvos, **Ex tb** es la protección por envolvente contra la ignición de polvo, **IIIC** abarca el polvo conductor, el grupo más exigente, y **Db** es el nivel que corresponde a la Zona 21, donde una nube de polvo combustible puede formarse en la operación normal.\n\n**Funcionamiento en emergencia**\n\nSegún la ficha, el tiempo de uso con batería es de 90 a 120 minutos; para dimensionar un respaldo, conviene considerar el valor menor. Su potencia es de 2x3W y su flujo, de 600 lm, con una eficacia de 100 lm/W; la ficha no precisa si ese flujo corresponde al funcionamiento con red o con batería. Se conecta a la red con tensiones de 100 a 277V AC, 50/60Hz.\n\nLa ficha tampoco indica si opera en modo permanente o no permanente, ni el cumplimiento de una norma de alumbrado de emergencia. Si la vas a usar en una vía de evacuación, indícalo al cotizar: la cantidad de lámparas por recorrido depende de su largo y del nivel de iluminación exigido, y conviene calcularla en cada proyecto.\n\n**Construcción y dimensiones**\n\nEl cuerpo es de aluminio. El grado **IP65** impide la entrada de polvo y la protege contra chorros de agua, y la clasificación **IK10** corresponde a la mayor resistencia al impacto de esa escala, útil en zonas de tránsito de equipos y materiales. Mide 24 cm de alto, 20 cm de ancho y 10 cm de profundidad.\n\n**Compra por unidad o por caja**\n\nViene en caja individual de 28 x 12 x 25 cm y 1,67 kg; para compras por mayor, en cajas de 8 unidades de 58 x 27 x 51 cm y 13,4 kg. Indica en tu solicitud cuántas lámparas necesitas y la clasificación de cada área; te enviaremos la cotización formal con factura. Hacemos despachos a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Apta para Zona 1 (gases) y Zona 21 (polvos), con niveles de protección Gb y Db",
+    "Grupo IIB+H2: sirve con gases del grupo IIB y con hidrógeno",
+    "Clase T6: su superficie no supera los 85 °C en atmósferas de gas",
+    "Tiempo de uso con batería de 90 a 120 minutos, según su ficha",
+    "600 lm con 2x3W y una eficacia de 100 lm/W",
+    "IP65 e IK10 en cuerpo de aluminio",
+    "Alimentación de 100 a 277V AC, 50/60Hz"
+  ],
+  "useCases": [
+    "Respaldo de luz ante cortes en plantas petroquímicas",
+    "Estaciones de llenado de gas",
+    "Almacenes de productos químicos con presencia de hidrógeno",
+    "Salas de carga de baterías con riesgo de hidrógeno",
+    "Plantas con polvos combustibles o conductores en Zona 21",
+    "Puntos críticos de áreas Zona 1 que requieren luz durante un corte"
+  ],
+  "faq": [
+    {
+      "question": "¿Se puede usar también en Zona 2 o Zona 22?",
+      "answer": "Por regla general, sí: un equipo con nivel de protección Gb o Db, apto para Zona 1 o Zona 21, también se acepta en las zonas menos exigentes, Zona 2 y Zona 22. Lo que no corresponde es instalarlo en Zona 0 o Zona 20, que exigen un nivel de protección mayor. En cualquier caso, verifica con el plano de clasificación de tu planta."
+    },
+    {
+      "question": "¿Sirve en áreas con hidrógeno?",
+      "answer": "En cuanto al grupo de gas, sí: su marcado IIB+H2 la declara para gases del grupo IIB y para hidrógeno, que es altamente volátil. No cubre todo el grupo IIC, que incluye además al acetileno, así que si en tu área hay acetileno, consúltanos antes de elegirla. El área también debe estar clasificada en una zona compatible con el equipo, como la Zona 1 que indica la ficha."
+    },
+    {
+      "question": "¿Qué significan T6 y T70 °C?",
+      "answer": "Son límites de temperatura superficial. T6 es la clase para atmósferas de gas e indica que la superficie del equipo no superará los 85 °C, el límite más bajo de la escala de clases. T70 °C aplica a polvos: en presencia de polvo, la superficie no pasa de 70 °C. Ambos valores deben quedar bajo la temperatura de ignición de las sustancias presentes en tu área."
+    },
+    {
+      "question": "¿Cuánto tarda en recargarse la batería?",
+      "answer": "La ficha indica un tiempo de carga de 30 horas. Después de un corte largo, la lámpara puede no tener su autonomía completa hasta terminar ese ciclo, algo a considerar si en tu planta los cortes son frecuentes. Como en toda luminaria de emergencia, conviene probarla periódicamente dentro del plan de mantención para confirmar que enciende y que la batería conserva su autonomía."
+    },
+    {
+      "question": "¿Cumple la normativa de alumbrado de emergencia?",
+      "answer": "Su ficha no lo indica: no declara una norma de alumbrado de emergencia ni si funciona en modo permanente o no permanente, y tampoco precisa con qué flujo opera cuando trabaja con batería. Si tu proyecto exige un cumplimiento normativo, por ejemplo en una vía de evacuación o una salida de emergencia, indícalo al cotizar para revisarlo antes de cerrar la compra."
+    }
+  ]
+}

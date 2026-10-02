@@ -1,0 +1,39 @@
+{
+  "metaTitle": "Fuente de Poder 12V 30W 2,5A para Cinta LED Interior | eLIGHTS",
+  "metaDescription": "Fuente de poder switching compacta de 12V, 30W y 2,5A (85 x 58 x 31 mm) para tramos cortos de cinta LED en muebles y closets. Cotiza con despacho a todo Chile.",
+  "description": "La Fuente de Poder Switching 30W 12V (SKU FU30I) es una fuente compacta para alimentar tramos cortos de cinta LED de 12V en interiores. Convierte la corriente alterna de la red en **12V de corriente continua**, con una salida de 2,5A y 30W, y su carcasa perforada mide apenas 85 x 58 x 31 mm: cabe dentro de un mueble, detrás de un zócalo o en el fondo de un closet, cerca de la cinta que alimenta.\n\n**Para luz de acento en muebles y nichos**\n\nUna fuente de 30W calza con proyectos puntuales, en los que la cinta recorre pocos metros: la línea de luz bajo los muebles altos de la cocina, el interior de un vestidor, el borde de una repisa, una cabecera de cama o una vitrina pequeña. Como puede quedar escondida junto al tramo, el cable de 12V entre la fuente y la cinta resulta corto, y eso ayuda a que la luz se vea pareja de punta a punta.\n\n**Carcasa perforada: dónde sí y dónde no**\n\nLas perforaciones dejan circular el aire para que el calor de la electrónica salga al ambiente. A cambio, su grado de protección es **IP20**: evita que se toquen con los dedos las partes internas, pero no ofrece protección contra el agua. Por eso va en recintos secos. En la cocina, ubícala lejos del lavaplatos, del hervidor y de la campana, donde se juntan vapor y salpicaduras; en un baño, una terraza o un letrero a la intemperie corresponde una fuente estanca.\n\n**Conexión a la red y a la cinta**\n\nAcepta una entrada de 200 a 220V a 50 Hz, la tensión de la red domiciliaria chilena, y también de 100 a 120V a 60 Hz. Del lado de la red, el trabajo le corresponde a un instalador eléctrico. En la salida, el positivo de la fuente va al positivo de la cinta y el negativo al negativo: con la polaridad invertida, la cinta no enciende.\n\nEs una fuente AC/DC con certificación **CE**, el marcado que declara la conformidad del equipo con los requisitos de seguridad de la Unión Europea.\n\n**Asesoría antes de cotizar**\n\nCon el modelo de cinta y el largo de cada tramo podemos confirmar si 30W bastan para tu mueble o tu closet. Envíanos esos datos por WhatsApp o a ventas@elights.cl y te respondemos con la cotización formal, con factura.",
+  "keyBenefits": [
+    "Salida de 12V DC con 2,5A y 30W, para tramos cortos de cinta LED de 12V",
+    "Solo 85 x 58 x 31 mm: se esconde dentro de un mueble, un closet o una repisa",
+    "Carcasa perforada que deja salir el calor de la electrónica",
+    "IP20: para recintos interiores secos, lejos del agua y del vapor",
+    "Entrada de 200 a 220V a 50 Hz, el rango de la red domiciliaria chilena",
+    "Fuente switching AC/DC con certificación CE"
+  ],
+  "useCases": [
+    "Luz bajo los muebles altos de la cocina",
+    "Interior de closets y vestidores",
+    "Repisas, nichos y bibliotecas con luz de acento",
+    "Cabeceras de cama con cinta LED",
+    "Vitrinas y exhibidores pequeños",
+    "Letreros de interior de formato pequeño"
+  ],
+  "faq": [
+    {
+      "question": "¿Cuántos metros de cinta LED puedo conectar a una fuente de 30W?",
+      "answer": "No hay un largo fijo: depende de cuánto consume la cinta por metro, un dato que aparece en su ficha. Multiplica ese consumo por los metros que vas a instalar y compara el resultado con los 30W de la fuente. El total debe quedar por debajo y con holgura; si se acerca al límite, divide la instalación en dos circuitos o elige una fuente de mayor capacidad."
+    },
+    {
+      "question": "¿Es lo mismo que un transformador de 12V?",
+      "answer": "Cumple la misma función y en el comercio muchos la llaman así, pero técnicamente es una fuente switching: rectifica y regula la tensión con electrónica, en lugar de usar un transformador de núcleo de hierro. Entrega 12V de corriente continua, que es lo que necesitan las cintas y los módulos LED de 12V."
+    },
+    {
+      "question": "¿Dónde va el interruptor para encender la cinta?",
+      "answer": "Lo habitual es ubicarlo antes de la fuente, en el circuito de la red: al cortar el interruptor se desenergiza la fuente y la cinta se apaga con ella, sin que la fuente quede conectada mientras la luz no se usa. La conexión del interruptor y de la fuente a la red debe hacerla un instalador eléctrico."
+    },
+    {
+      "question": "¿Cómo la pido y cuánto demora el despacho?",
+      "answer": "Solicita la cotización indicando el código FU30I y la cantidad. El equipo comercial te responde con la cotización formal y la compra se factura. Despachamos a todo Chile en hasta 2 días hábiles: con camiones propios dentro de la Provincia de Santiago y mediante operador logístico a regiones."
+    }
+  ]
+}

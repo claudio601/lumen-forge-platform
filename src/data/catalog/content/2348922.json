@@ -1,0 +1,36 @@
+{
+  "metaTitle": "Panel LED 120x30 cm 40W regulable para cielo americano | eLIGHTS",
+  "metaDescription": "Panel LED regulable de 120x30 cm y 40W: 3.200 lm, CRI sobre 80, IP44 y luz cálida, neutra o fría. Embutido o colgado. Cotiza tu proyecto con eLIGHTS.",
+  "description": "El Panel LED 120x30 de 40W regulable combina un formato alargado de 120 x 30 cm con la posibilidad de **subir o bajar la intensidad** de la luz. Ofrece 3.200 lm a plena potencia, un CRI superior a 80 y tecnología LED SMD2835, con tensiones de entrada de 85 a 265V. Tiene marco blanco y se cotiza en luz cálida, neutra o fría.\n\n**Luz ajustable en espacios alargados**\n\nPasillos de hoteles, salas de reuniones angostas, comedores o zonas de atención: en estos recintos la luz que se necesita cambia según la hora o la actividad. Al ser regulable, el panel permite dejar una iluminación plena para el aseo o el trabajo concentrado y una más suave para el resto de la jornada, con las mismas luminarias.\n\n**Un tono para cada ambiente**\n\nEn un comedor o un hotel, la cálida de 3500K a media intensidad crea un ambiente de descanso. En oficinas privadas y salas de reuniones, la neutra de 4500K da una luz equilibrada para trabajar, y la fría de 6500K transmite limpieza en consultas, salas de procedimientos o zonas técnicas. Un índice cromático sobre 80 ayuda a que tonos de piel, alimentos y materiales se vean naturales.\n\n**Regulación: qué revisar antes de comprar**\n\nLa ficha declara que el panel es regulable, sin indicar el protocolo de control. Por eso, al cotizar, cuéntanos qué regulador pretendes usar y consúltanos antes de comprarlo. Un dimmer que no corresponde puede producir parpadeo o un rango de regulación demasiado corto, y conviene descartarlo antes de la obra.\n\n**Materiales, montaje y garantía**\n\nEl cuerpo es de aluminio y el grado **IP44** lo pone a salvo de salpicaduras y del ingreso de partículas sólidas pequeñas, así que es un panel para interiores. Por defecto se instala embutido en el cielo americano y, donde no hay cielo falso, puede ir suspendido con piolas. Cuenta con certificación CE, EMC, RoHS y UL según la ficha, y tiene 1 año de garantía.",
+  "keyBenefits": [
+    "Intensidad regulable para adaptar la luz a cada momento del día",
+    "3.200 lm a plena potencia con 40W",
+    "Formato de 120 x 30 cm para pasillos, comedores y salas angostas",
+    "Se embute en el cielo americano o se cuelga con piolas",
+    "Tonos de 3500K, 4500K y 6500K con CRI superior a 80",
+    "IP44 para interiores y certificaciones CE, EMC, RoHS y UL"
+  ],
+  "useCases": [
+    "Pasillos de hoteles y edificios residenciales",
+    "Salas de reuniones angostas",
+    "Comedores de empresa y casinos",
+    "Consultas médicas y salas de espera",
+    "Oficinas privadas con cielo americano",
+    "Salas de capacitación con pantalla"
+  ],
+  "installationInfo": "El montaje por defecto es **embutido** en la perfilería del cielo americano; la ficha contempla también la opción **suspendida con piolas** para recintos sin cielo falso.\n\n- Formato: 120 x 30 cm.\n- Tensión de entrada: 85 a 265V.\n- Regulación: necesita un dimmer compatible con el panel; confírmalo con nuestro equipo antes de comprarlo.\n- IP44: apto solo para interiores.\n\nUn instalador eléctrico debe conectar el panel y el regulador. Si el proyecto está en la Región Metropolitana, podemos hacer la instalación como servicio aparte.",
+  "faq": [
+    {
+      "question": "¿Con qué dimmer funciona?",
+      "answer": "La ficha confirma que admite regulación, pero no especifica el tipo. Existen reguladores de muro, que recortan la onda de la red, y sistemas que controlan los equipos por una señal aparte, y no son intercambiables. Antes de instalar un dimmer, consúltanos con la marca y el modelo que tienes en mente: así evitas parpadeos o un rango de ajuste reducido."
+    },
+    {
+      "question": "¿Puedo tener paneles regulables y no regulables en un mismo recinto?",
+      "answer": "Sí, siempre que vayan en circuitos separados: este panel en el circuito del regulador y los equipos no regulables en uno con interruptor común. Un equipo no regulable conectado a un dimmer puede parpadear o dañarse, así que conviene definir los circuitos antes de la obra junto con tu instalador eléctrico."
+    },
+    {
+      "question": "¿Cómo lo cotizo?",
+      "answer": "Indica la cantidad, el tono de luz de cada recinto, si irá embutido o suspendido y el regulador que tienes previsto. El equipo comercial de eLIGHTS prepara la cotización formal y emite factura, y los envíos a todo Chile se hacen en hasta 2 días hábiles. Para dudas técnicas previas, escríbenos por WhatsApp o a ventas@elights.cl."
+    }
+  ]
+}

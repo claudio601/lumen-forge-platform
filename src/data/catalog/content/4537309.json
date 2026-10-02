@@ -1,0 +1,38 @@
+{
+  "metaTitle": "Fuente de Poder 12V 150W 12,5A Exterior IP67 | eLIGHTS",
+  "metaDescription": "Fuente switching IP67 de 150W y 12,5A a 12V DC, entrada de 90 a 250V y perfil de 20 x 7 x 4 cm, para letreros y fachadas LED. Despacho en hasta 2 días hábiles.",
+  "description": "Con **12,5A a 12V de corriente continua**, la Fuente de Poder Switching 150W 12V (SKU FU150E) tiene capacidad para proyectos LED exteriores de buen tamaño: fachadas con cinta perimetral, letreros exteriores, pérgolas largas o iluminación de paisajismo. Su cuerpo, de 20 x 7 x 4 cm, va sellado con grado **IP67** (a prueba de agua); es una fuente AC/DC y declara certificación CE.\n\n**Entrada de 90 a 250V**\n\nAcepta de 90 a 250V en la entrada, a 50/60Hz. Es un margen amplio: funciona con la red de cualquier casa o local en Chile y también en redes de menor tensión. Para revisar el circuito que la alimenta, la ficha declara una potencia de entrada de 187,5W para la salida de 150W; ese es el valor que conviene entregarle al instalador eléctrico.\n\n**Una fuente sellada de perfil delgado**\n\nEl grado IP67 indica que es hermética al polvo y que soporta una inmersión temporal. Como va cerrada, entrega su calor al ambiente a través de la carcasa: rinde mejor fijada sobre una superficie firme y despejada, con aire alrededor, que encerrada en un cajón estrecho o cubierta por otros materiales. En exterior, un punto con sombra también ayuda.\n\nCon 7 cm de ancho y 4 cm de alto, cabe en la estructura de un letrero, sobre un alero o detrás de una cornisa. La protección de la carcasa no se extiende a las uniones: cada empalme, del lado de la red y del lado de la cinta, requiere su propio sellado.\n\n**Cómo conectar los tramos**\n\nCon 12,5A disponibles, lo recomendable es no concentrar toda la corriente en un solo cable hacia un tramo largo, sino sacar desde la salida de la fuente una línea por sector de la fachada o del letrero, cada una con un conductor dimensionado para lo que transporta y lo más corta posible. Evita encadenar los tramos uno detrás de otro: el último recibe menos tensión y se ve más tenue que el primero.\n\n**Para proyectos y obras**\n\nSi estás iluminando una fachada o un letrero grande, cuéntanos cuántos sectores tiene y qué cinta o módulos vas a usar. Te ayudamos a decidir si basta con una fuente de 150W o si conviene repartir la carga, y te enviamos la cotización formal con factura. Para obras en la Región Metropolitana, eLIGHTS también ofrece la instalación como servicio aparte.",
+  "keyBenefits": [
+    "12,5A a 12V DC: 150W para fachadas, letreros y proyectos LED en exterior",
+    "IP67, a prueba de agua: hermética al polvo y preparada para la intemperie",
+    "Entrada de rango amplio, de 90 a 250V a 50/60Hz",
+    "Perfil delgado de 20 x 7 x 4 cm para letreros, aleros y cornisas",
+    "Potencia de entrada declarada de 187,5W, el dato para revisar el circuito que la alimenta"
+  ],
+  "useCases": [
+    "Fachadas de edificios con cinta LED perimetral",
+    "Letreros y avisos luminosos exteriores de gran tamaño",
+    "Marquesinas y aleros de locales comerciales",
+    "Cornisas exteriores con iluminación indirecta",
+    "Paisajismo en jardines de condominios y hoteles",
+    "Pérgolas largas con cinta LED de 12V"
+  ],
+  "faq": [
+    {
+      "question": "¿Cuántos metros de cinta LED puedo conectarle?",
+      "answer": "No hay un número fijo de metros: depende de cuántos watts por metro consume la cinta que elijas. Con ese dato de su ficha, calcula el consumo de cada tramo, súmalos y deja el total con margen por debajo de los 150W. Una cinta de bajo consumo permite tramos más largos que una de alta potencia."
+    },
+    {
+      "question": "¿Puede quedar dentro de un letrero exterior?",
+      "answer": "Sí, su grado IP67 se lo permite. Antes de comprar, mide el espacio interior del letrero; al instalarla, déjala fijada y junto a una tapa o registro que permita revisarla sin desmontar el aviso. Lleva los empalmes a una caja estanca, porque dentro de un letrero también puede condensarse humedad."
+    },
+    {
+      "question": "¿Sirve para cinta LED de otra tensión?",
+      "answer": "No. Su salida es de 12V de corriente continua, así que corresponde a cintas y módulos LED de 12V. Una cinta de otra tensión necesita una fuente de su misma tensión: conectada a esta, podría no encender bien o dañarse. Si no sabes qué tensión usa tu cinta, revisa la etiqueta del carrete o envíanos el modelo."
+    },
+    {
+      "question": "¿Cuánto tarda el despacho?",
+      "answer": "Hasta 2 días hábiles a cualquier punto de Chile. En la Provincia de Santiago repartimos con camiones propios, y a regiones enviamos con un operador logístico. Toda compra se respalda con factura."
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED de Estadio 300W, 45.000 lm, 60° o 90° | eLIGHTS",
+  "metaDescription": "Foco LED de estadio de 300W: 45.000 lm, óptica de 60° o 90°, luz cálida o fría, IP66 e IK09. Para gimnasios, multicanchas y plazas. Pide tu cotización.",
+  "description": "El Proyector LED de Estadio 300W es un foco de alta potencia para gimnasios, multicanchas, plazas y recintos exteriores que se iluminan desde postes o desde la estructura del techo. Ofrece **45.000 lm** con una eficacia de 150 lm/W y se cotiza con dos ópticas, **60° o 90°**, y en dos tonos de luz: cálida de 3000K o fría de 6000K. Lleva LED Bridgelux y driver Mean Well, y su ficha declara certificación SEC, DS1 y DS43.\n\n**Dos ópticas para dos formas de montaje**\n\nLa apertura del haz define cómo se reparten los 45.000 lúmenes. La óptica de 60° los concentra en un cono más cerrado, que llega con más intensidad a los sectores alejados del punto de montaje: es la opción lógica cuando los proyectores van en postes al costado de una cancha y la luz tiene que alcanzar el centro. La de 90° abre el haz sobre un área más ancha y cercana, algo útil cuando el equipo queda a poca distancia de la superficie, como en plazas con postes bajos.\n\nSi no tienes claro cuál conviene, indica al cotizar la altura de montaje y la distancia hasta la zona que quieres iluminar; con esos datos te orientamos.\n\n**Luz cálida o fría, con buena reproducción de color**\n\nEl índice de reproducción cromática (CRI) superior a 85 hace que camisetas, líneas de juego, pasto y pavimentos se vean con colores cercanos a los reales. La luz fría de 6000K, blanca y nítida, es la más usada en recintos deportivos. La cálida de 3000K tiene un tono más amarillento y resulta más acogedora en plazas, paseos y canchas rodeadas de viviendas.\n\n**Construcción para trabajar a la intemperie**\n\nEl cuerpo es de aluminio y el frente, de vidrio templado. Su grado **IP66** indica que es hermético al polvo y resiste chorros potentes de agua, de modo que puede quedar expuesto a la lluvia de forma permanente, y el **IK09** lo ubica entre los niveles más altos de la escala que mide la resistencia de una carcasa a impactos mecánicos. El driver Mean Well, la fuente que adapta la corriente de la red a lo que necesitan los LED, trabaja con un factor de potencia superior a 0,95.\n\nEl equipo pesa 8,6 kg: considéralo al elegir el soporte, la cruceta del poste o el punto de fijación en la estructura de un gimnasio.\n\n**Compra con factura para municipios y empresas**\n\neLIGHTS cotiza para municipios, constructoras, instaladores eléctricos y empresas, y emite factura por cada compra. Envía la cantidad de proyectores que necesitas y el equipo comercial te responde con la cotización formal. El despacho a todo Chile se hace en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "45.000 lm con 300W, gracias a una eficacia de 150 lm/W",
+    "Óptica a elección: 60° para proyectar a distancia o 90° para cubrir un área cercana y amplia",
+    "Luz cálida de 3000K o fría de 6000K, ambas con CRI superior a 85",
+    "Aluminio y vidrio templado con IP66 e IK09, para uso permanente en exterior",
+    "LED Bridgelux y driver Mean Well con factor de potencia superior a 0,95",
+    "Pesa 8,6 kg, un dato clave para dimensionar el soporte en poste o en cercha",
+    "Su ficha declara certificación SEC y las normas lumínicas DS1 y DS43"
+  ],
+  "useCases": [
+    "Gimnasios municipales y de colegios",
+    "Multicanchas de barrio y de juntas de vecinos",
+    "Plazas y áreas verdes con postes de poca altura",
+    "Canchas de tenis y de baby fútbol",
+    "Canchas de entrenamiento en recintos deportivos",
+    "Patios y estacionamientos exteriores de empresas"
+  ],
+  "faq": [
+    {
+      "question": "¿Sirve para iluminar un gimnasio techado?",
+      "answer": "Sí, el gimnasio figura entre las aplicaciones que declara su ficha. Si el proyector queda a poca altura sobre la cancha, la óptica de 90° reparte mejor la luz; si va alto en la estructura del techo, la de 60° la concentra sobre el área de juego. En recintos cerrados conviene orientarlo para que no apunte a la vista de los jugadores y ubicarlo fuera de la línea directa de los lanzamientos."
+    },
+    {
+      "question": "¿Cuántos proyectores necesito para una multicancha?",
+      "answer": "Depende de las medidas de la cancha, de la altura y la ubicación de los postes y del uso: no pide la misma luz un recinto de entrenamiento que uno de competencia. Como referencia, la ficha le asigna a cada equipo un área de iluminación de 300 a 500 m². Para un número exacto, eLIGHTS puede hacer un estudio lumínico DIALux a partir de las medidas del recinto y la posición de los postes."
+    },
+    {
+      "question": "¿Qué significan SEC, DS1 y DS43 en su ficha?",
+      "answer": "SEC es la Superintendencia de Electricidad y Combustibles, el organismo que fiscaliza la seguridad de los productos eléctricos que se venden en Chile. DS1 y DS43 son decretos del Ministerio del Medio Ambiente que regulan la contaminación lumínica, es decir, la luz que escapa hacia el cielo o fuera de la zona que se quiere iluminar. Si tu proyecto o licitación pide respaldos, indícalo al cotizar."
+    },
+    {
+      "question": "¿Puedo pedir equipos con distinta óptica o tono de luz en una misma compra?",
+      "answer": "Puedes detallar en una sola solicitud la óptica y el tono de luz de cada equipo, por ejemplo luz fría para la cancha y cálida para el acceso, y la cotización formal responde por cada versión. El despacho se hace con camiones propios dentro de la Provincia de Santiago y mediante operador logístico hacia regiones."
+    }
+  ]
+}

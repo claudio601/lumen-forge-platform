@@ -1,0 +1,39 @@
+{
+  "metaTitle": "Proyector LED de Estadio Modular 150W, 25.500 lm | eLIGHTS",
+  "metaDescription": "Reflector LED de estadio modular de 150W: 25.500 lm, CRI sobre 85, IP66 e IK10. Para canchas de pádel, patios y plazas. 5 años de garantía. Pide tu cotización.",
+  "description": "El Proyector LED de Estadio Modular 150W es un reflector de **25.500 lm** para canchas de pádel y tenis, patios de colegio, multicanchas y frontis que necesitan un nivel de luz parejo durante la noche. Trabaja con una eficacia de 170 lm/W, se conecta a tensiones de 110 a 220V AC y cuenta con protección **IP66** e **IK10**.\n\n**Calidad de luz y temperatura de color**\n\nUn CRI superior a 85 permite distinguir bien colores como los de la pelota, las líneas de la cancha o la ropa de quienes juegan. Hay tres opciones de luz: cálida, neutra de 4000K y fría de 5000K. La neutra suele preferirse en recintos deportivos y patios porque ilumina con claridad sin un tono azulado; la fría, en zonas de vigilancia y estacionamientos, y la cálida, en plazas cercanas a viviendas.\n\n**Apertura del haz: 30°, 60° o 90° x 60°**\n\nElegir la óptica es tan importante como la potencia, y la ficha lista estas tres aperturas. Un haz de 30° es estrecho y se proyecta a mayor distancia; uno de 60° se abre y cubre un área más ancha cuando el equipo está cerca, y el de 90° x 60° reparte la luz en forma rectangular, útil en canchas alargadas. Si no sabes cuál te conviene, cuéntanos la altura de montaje y las medidas del lugar.\n\n**Dos drivers, regulación y construcción**\n\nLa potencia se reparte entre **dos drivers Mean Well XLG-100-H-A** que alimentan LED SMD 3030 Lumileds. Otro dato de la ficha: cuenta con regulador de intensidad. Si planeas bajar la luz en ciertos horarios, avísanos al cotizar qué control usarás y confirmamos la compatibilidad.\n\nSobre los LED va una placa de policarbonato, montada en un cuerpo de aluminio con IP66 (protección total contra polvo y contra agua a presión) e IK10 (la clase más alta de resistencia al impacto). Funciona entre -20 °C y 50 °C, mide 36 x 21 x 9 cm y pesa 4,5 kg.\n\n**Respaldo y cotización**\n\nTiene 5 años de garantía, 100.000 horas de vida útil declarada y certificación SEC, CE y RoHS. Al pedir la cotización indica la cantidad, la apertura y el tono de luz de cada sector: eLIGHTS te hace llegar la cotización formal, con factura.",
+  "keyBenefits": [
+    "25.500 lm con 150W, gracias a una eficacia de 170 lm/W",
+    "Dos drivers Mean Well XLG-100-H-A y LED SMD 3030 Lumileds",
+    "Factor de potencia sobre 0,98 y THD bajo 10%: una carga eléctrica más limpia",
+    "IP66 e IK10 para canchas y patios al aire libre",
+    "Tres aperturas, 30°, 60° y 90° x 60°, para ajustar la cobertura",
+    "CRI sobre 85 y luz cálida, neutra o fría según el uso"
+  ],
+  "useCases": [
+    "Canchas de pádel y tenis al aire libre",
+    "Patios y multicanchas de colegios",
+    "Plazas activas y parques urbanos",
+    "Frontis y fachadas de edificios",
+    "Estacionamientos de supermercados y centros comerciales",
+    "Gimnasios municipales"
+  ],
+  "faq": [
+    {
+      "question": "¿Sirve para iluminar una cancha de pádel?",
+      "answer": "Es un rango de potencia habitual en canchas de pádel y tenis, con los equipos montados en los postes del perímetro. La cantidad de proyectores y la apertura se definen según las medidas de la cancha, la altura de los postes y si el uso es recreativo o de competencia. Cuéntanos esos datos al cotizar y te orientamos; para recintos con varias canchas, podemos hacer un estudio lumínico DIALux."
+    },
+    {
+      "question": "¿Qué significa que tenga factor de potencia sobre 0,98?",
+      "answer": "El factor de potencia compara la potencia que el equipo realmente aprovecha con la que demanda de la red. Un valor superior a 0,98 está muy cerca del ideal: casi no circula energía reactiva por los conductores. Este modelo tiene además una distorsión armónica bajo 10%, señal de una corriente de forma limpia. En instalaciones con muchos proyectores en el mismo tablero, ambos datos facilitan el diseño de los circuitos."
+    },
+    {
+      "question": "¿La visera viene incluida?",
+      "answer": "No, la visera es un accesorio que se vende por separado. Sirve para recortar la luz que se escapa del haz y limitar el encandilamiento, algo que conviene si la cancha o el patio queda cerca de casas o de una calle. Inclúyela en tu solicitud si la necesitas."
+    },
+    {
+      "question": "¿Cómo viene embalado y cuánto demora el despacho?",
+      "answer": "Cada proyector viene en su caja individual de 27 x 41 x 11 cm, con 4,9 kg en total. Despachamos a todo Chile en hasta 2 días hábiles: en la Provincia de Santiago con camiones propios y en regiones mediante operador logístico."
+    }
+  ]
+}

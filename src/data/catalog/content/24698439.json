@@ -1,0 +1,39 @@
+{
+  "metaTitle": "Proyector LED de Estadio Modular 500W, 85.000 lm | eLIGHTS",
+  "metaDescription": "Proyector de estadio LED modular de 500W: 85.000 lm, 700 LED Lumileds, cinco drivers Mean Well e IP66. Para canchas de fútbol y explanadas. Cotiza aquí.",
+  "description": "El Proyector LED de Estadio Modular 500W combina **85.000 lm** con un cuerpo de aluminio de 36 x 54 x 9 cm, y apunta a canchas de fútbol, estadios municipales, explanadas y patios de gran extensión. Sus 700 LED SMD 3030 Lumileds trabajan con una eficacia de 170 lm/W, y la alimentación se reparte entre cinco drivers Mean Well XLG-100-H-A. Admite 110 a 220V AC y tiene grado **IP66** con resistencia al impacto **IK10**.\n\n**Potencia para iluminar a distancia**\n\nEn una cancha de fútbol, los proyectores suelen ir en postes altos ubicados fuera del campo de juego, y la luz debe recorrer varios metros antes de llegar al pasto. Con 85.000 lúmenes por equipo, cada poste aporta un flujo alto para cubrir esas distancias. Entre las aperturas que indica la ficha (30°, 60° y 90° x 60°), la más cerrada concentra la luz hacia las zonas alejadas del poste y las más abiertas cubren los sectores cercanos.\n\n**Color, regulación y factor de potencia**\n\nEl CRI superior a 85 ayuda a distinguir el color de camisetas, balón y líneas. Hay tres opciones de color: luz cálida, neutra de 4000K y fría de 5000K. También admite regulación de intensidad, según la ficha; para asegurar que funcione con el control de tu recinto, indícalo en la solicitud. En lo eléctrico, el factor de potencia supera 0,98.\n\n**Cuerpo de aluminio para exterior**\n\nEl cuerpo de aluminio aloja los LED bajo una placa de policarbonato. El grado IP66 lo protege del polvo y de chorros de agua a presión, de modo que puede quedar a la intemperie todo el año. Opera entre -20 °C y 50 °C.\n\n**Garantía y cotización**\n\nCuenta con 5 años de garantía y certificación SEC, CE y RoHS, y su vida útil declarada llega a 100.000 horas. Como accesorio opcional existe una visera, que se vende aparte y ayuda a recortar la luz que escapa hacia los costados, lo que conviene si la cancha está cerca de viviendas. La compra se cotiza formalmente y se factura, y el despacho a todo Chile toma hasta 2 días hábiles.",
+  "keyBenefits": [
+    "85.000 lm por equipo, con 170 lm/W de eficacia",
+    "Cinco drivers Mean Well XLG-100-H-A para sus 700 LED SMD 3030 Lumileds",
+    "Aperturas de 30°, 60° y 90° x 60° para proyectar desde postes altos",
+    "Carcasa IP66 e IK10, preparada para exterior todo el año",
+    "CRI sobre 85 para una visión nítida del juego",
+    "Garantía de 5 años; certificado por la SEC y con marcados CE y RoHS"
+  ],
+  "useCases": [
+    "Canchas de fútbol de clubes y municipios",
+    "Estadios municipales",
+    "Explanadas para eventos y ferias",
+    "Patios de maniobras y de acopio",
+    "Medialunas y recintos de rodeo",
+    "Plazas cívicas de gran extensión"
+  ],
+  "faq": [
+    {
+      "question": "¿Cuántos proyectores necesita una cancha de fútbol?",
+      "answer": "La cifra cambia con el tamaño de la cancha, el número y la altura de los postes y el nivel de iluminación que se busca: entrenamiento, partidos recreativos o competencia. Cada proyector ofrece 85.000 lm. La forma más segura de definirlo es un estudio lumínico DIALux, que eLIGHTS puede preparar a partir de las medidas del recinto y la ubicación de los postes."
+    },
+    {
+      "question": "¿Qué significa IK10?",
+      "answer": "Es la clasificación más alta de la escala IK, que mide la resistencia de una carcasa a impactos mecánicos. En una cancha o una explanada los equipos quedan expuestos a golpes accidentales, por ejemplo durante la mantención, y el IK10 indica que la carcasa superó la prueba de impacto más exigente de esa escala. Aun así, montarlo en altura sigue siendo la mejor protección."
+    },
+    {
+      "question": "¿Qué peso hay que considerar para izarlo?",
+      "answer": "El proyector pesa 9,8 kg. Se entrega en una caja de 57 x 41 x 11 cm que, con el equipo dentro, suma 10,3 kg. Considera ese peso al planificar el izamiento en postes altos, que normalmente requiere alzahombre o grúa."
+    },
+    {
+      "question": "¿Qué indica una distorsión armónica bajo 10%?",
+      "answer": "La distorsión armónica total (THD) mide cuánto se aleja la corriente que consume el equipo de una onda limpia. Un valor inferior a 10% significa poca perturbación para la red: en una cancha con muchos proyectores en el mismo tablero, reduce el riesgo de calentamiento de conductores y de interferencias con otros equipos conectados."
+    }
+  ]
+}

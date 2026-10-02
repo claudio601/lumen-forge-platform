@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Kit de Emergencia LED 50W para paneles 60x60 y 120x60 | eLIGHTS",
+  "metaDescription": "Kit de emergencia LED de 50W para paneles 60x60, 120x30 y 120x60 con driver externo: 90 a 120 minutos de autonomía. Cotiza con despacho a todo Chile.",
+  "description": "El Kit de Emergencia LED 50W (SKU SS50W) está pensado para los paneles LED que se instalan en cielo americano. La ficha lo indica para **paneles de 60x60, 120x30 y 120x60** que funcionen con driver externo, en potencias de 3 a 50W. Conectado al panel, lo mantiene encendido con su batería cuando se corta la energía, con una autonomía de **90 a 120 minutos** según la ficha técnica.\n\n**Respaldo sin romper la modulación del cielo**\n\nEn oficinas, colegios o locales con cielo americano, los paneles ocupan el lugar de las placas y definen el diseño del cielo. Si algunos de ellos llevan kit, esos mismos paneles dan luz durante un corte, sin agregar equipos de emergencia en los muros ni piezas que interrumpan la modulación. Eso sí, la ficha no detalla con qué potencia queda encendido el panel mientras usa la batería: si el recinto exige un nivel mínimo de luz durante el corte, defínelo con el proyecto eléctrico.\n\n**Paneles compatibles: formato, potencia y driver**\n\nSegún la ficha, sirve para paneles de 3 a 50W que usen driver externo, en los formatos 60x60, 120x30 y 120x60. Que el driver sea externo quiere decir que el equipo que alimenta los LEDs no va dentro del marco del panel, sino en una caja aparte, por lo común apoyada sobre el cielo. Si tu panel tiene la fuente integrada, consúltanos antes de cotizar.\n\n**Tensión de entrada y batería**\n\nAdmite una tensión de entrada de 85 a 265V, 50-60Hz, y funciona con una batería de 3,7V. Tiene 1 año de garantía.\n\n**Cotización para proyectos de oficinas**\n\nIndica en tu solicitud cuántos paneles necesitan respaldo y de qué formato son. Con esa información, eLIGHTS te envía una cotización formal y, una vez confirmada la compra, despacha a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Para paneles LED de 60x60, 120x30 y 120x60 con driver externo",
+    "Para paneles de 3 a 50W de potencia",
+    "Autonomía de 90 a 120 minutos ante un corte de energía",
+    "Entrada de 85 a 265V, 50-60Hz, y batería de 3,7V",
+    "Caja individual de 0,13 kg y cajas de 100 kits para obras",
+    "1 año de garantía y factura en cada compra"
+  ],
+  "useCases": [
+    "Oficinas con cielo americano de 60x60",
+    "Salas de clases y colegios con paneles de 120x60",
+    "Pasillos y halls de edificios corporativos",
+    "Supermercados y locales con paneles de 120x30",
+    "Clínicas y centros médicos con cielo modular",
+    "Remodelaciones de cielo americano"
+  ],
+  "installationInfo": "El kit se conecta a un **panel LED con driver externo** de 3 a 50W, en formato 60x60, 120x30 o 120x60.\n\n- Tensión de entrada: 85 a 265V, 50-60Hz.\n- Sobre el cielo americano, deja el kit junto al driver del panel, de modo que se pueda revisar levantando una placa vecina.\n- La ficha no detalla el esquema de conexión, así que el instalador debe confirmarlo antes de cablear. En general, estos kits llevan una alimentación que no se corta con el interruptor de la sala, para que la batería se mantenga cargada.\n\nEste trabajo corresponde a un instalador eléctrico con experiencia en cielo americano.",
+  "faq": [
+    {
+      "question": "¿Sirve para mi panel de 60x60?",
+      "answer": "Sí, si funciona con driver externo y su potencia está entre 3 y 50W. La ficha lo indica para paneles de 60x60, 120x30 y 120x60. Si tienes dudas, indícanos la marca, el modelo y la potencia del panel al cotizar."
+    },
+    {
+      "question": "¿Qué pasa si mi panel tiene el driver integrado?",
+      "answer": "La ficha indica este kit solo para paneles que usan driver externo. Para un panel con la fuente integrada en el marco, escríbenos por WhatsApp o a ventas@elights.cl antes de comprar y revisamos qué alternativa sirve."
+    },
+    {
+      "question": "¿Por qué la autonomía figura entre 90 y 120 minutos?",
+      "answer": "La ficha técnica declara una autonomía de 90 a 120 minutos con la batería de 3,7V cargada, sin precisar de qué depende. Si tu proyecto exige un mínimo, toma como referencia el valor inferior, 90 minutos. La capacidad de una batería además disminuye con el tiempo y los ciclos de carga, por eso conviene probar el sistema de emergencia periódicamente."
+    },
+    {
+      "question": "¿Cómo viene embalado?",
+      "answer": "Viene en caja individual, de 0,13 kg. Para proyectos, la caja por mayor reúne 100 unidades y pesa 13,71 kg, práctica para llevar a obra y almacenar. Tiene 1 año de garantía."
+    }
+  ]
+}

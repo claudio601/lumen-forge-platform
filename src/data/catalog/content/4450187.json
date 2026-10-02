@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED de Estadio 600W, 90.000 lm, luz fría | eLIGHTS",
+  "metaDescription": "Proyector LED de estadio 600W (PLE600F): 90.000 lm en luz fría de 6000K, haz de 60°, IP66 e IK09. Para estadios y canchas de fútbol. Solicita tu cotización.",
+  "description": "El Proyector LED de Estadio 600W (SKU PLE600F) reúne **90.000 lm** en un solo foco y está orientado a estadios, canchas de fútbol, grandes plazas y recintos exteriores donde los puntos de montaje son pocos, altos y quedan lejos de la superficie que hay que iluminar. Consume 600W y rinde 150 lm/W, tiene óptica de 60° y se ofrece únicamente en luz fría de 6000K.\n\n**Luz fría de 6000K para recintos deportivos**\n\nSegún su ficha, este modelo no tiene versión cálida. La luz de 6000K es blanca y de tono frío, la más usada en canchas y estadios porque marca el contraste entre el campo, las líneas y el balón. Con un CRI superior a 85, los colores de camisetas, césped y publicidad perimetral se ven fieles a los reales.\n\n**Iluminación desde torres y superficie que cubre**\n\nLa óptica de 60° concentra el flujo en un cono medio, adecuado para iluminar desde torres o postes ubicados fuera del campo de juego. Como referencia, su ficha declara entre 500 y 800 m² de área de iluminación por equipo. Ese rango permite una primera estimación; en un estadio o una cancha de fútbol 11, la cantidad de proyectores y su inclinación se definen con un cálculo que considera la altura de las torres, las medidas del campo y el nivel de iluminación que exige el uso, sea entrenamiento o competencia.\n\n**Componentes y envolvente**\n\nLos LED son Bridgelux y los alimenta un driver Mean Well; el factor de potencia es mayor a 0,95. La carcasa combina aluminio con un frente de vidrio templado: el grado **IP66** la deja sellada contra el polvo y protegida frente a chorros fuertes de agua, y el **IK09** acredita una alta resistencia a impactos. La ficha declara también certificación SEC y las normas DS1 y DS43, que en Chile regulan la contaminación lumínica; en recintos deportivos cercanos a barrios, orientar bien cada equipo es parte del diseño.\n\n**Estudio lumínico e instalación**\n\nPara estadios y canchas, eLIGHTS puede preparar un estudio lumínico DIALux que entrega el número de equipos, su ubicación en las torres y el ángulo de cada uno. En la Región Metropolitana también ofrecemos la instalación, contratada como servicio aparte.",
+  "keyBenefits": [
+    "90.000 lm concentrados en un solo proyector de 600W",
+    "Eficacia de 150 lm/W y driver Mean Well de alto factor de potencia (mayor a 0,95)",
+    "Luz fría de 6000K y CRI sobre 85, el tono habitual en canchas y estadios",
+    "Óptica de 60° para iluminar desde torres o postes ubicados fuera del campo",
+    "Rango de 500 a 800 m² de área de iluminación por equipo como base de cálculo",
+    "LED Bridgelux protegidos por aluminio y vidrio templado: IP66 e IK09",
+    "Certificación SEC, más las normas de contaminación lumínica DS1 y DS43 según la ficha"
+  ],
+  "useCases": [
+    "Estadios comunales y regionales",
+    "Canchas de fútbol 11 con torres de iluminación",
+    "Pistas de atletismo y canchas de rugby",
+    "Grandes plazas y explanadas cívicas",
+    "Gimnasios techados de gran volumen y altura",
+    "Patios industriales y zonas de carga extensas"
+  ],
+  "faq": [
+    {
+      "question": "¿Se puede pedir en luz cálida?",
+      "answer": "No. Según su ficha, este proyector se ofrece solo en luz fría de 6000K. Si tu recinto está junto a viviendas o es una plaza donde buscas un ambiente más acogedor, cuéntanos tu caso por WhatsApp o en ventas@elights.cl y te indicamos proyectores del catálogo que sí tienen versión cálida."
+    },
+    {
+      "question": "¿Qué información necesito para el estudio lumínico de una cancha?",
+      "answer": "Un plano o las medidas del campo, la ubicación y la altura de las torres o postes (existentes o proyectados) y el uso que tendrá el recinto: entrenamiento o competencia. También ayuda saber si hay viviendas cerca, para cuidar la orientación de los equipos. Con eso, el estudio DIALux define cuántos proyectores lleva la cancha y hacia dónde apunta cada uno."
+    },
+    {
+      "question": "¿Qué hay que considerar para montarlo en una torre?",
+      "answer": "Que la estructura y las crucetas estén calculadas para el peso de los proyectores y para el viento que reciben en altura, que el izamiento se haga con alzahombre o grúa y que la conexión quede a cargo de un instalador eléctrico. Al cotizar, confirma con nosotros el peso y las medidas del equipo para dimensionar el soporte. Una vez arriba, la inclinación de cada proyector se ajusta según el estudio lumínico."
+    },
+    {
+      "question": "¿Cómo se cotiza y cuándo se despacha?",
+      "answer": "Envía la cantidad de proyectores y, si lo tienes, el plano del recinto. El equipo comercial de eLIGHTS responde con la cotización formal y emite factura a nombre de tu empresa, municipio o club. Se despacha a todo el país en hasta 2 días hábiles: dentro de la Provincia de Santiago con camiones propios y hacia regiones mediante operador logístico."
+    }
+  ]
+}

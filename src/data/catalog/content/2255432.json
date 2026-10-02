@@ -1,0 +1,38 @@
+{
+  "metaTitle": "Fuente de Poder 12V 30W 2,5A IP67 para Exterior | eLIGHTS",
+  "metaDescription": "Fuente de poder switching de 12V, 30W y 2,5A con IP67, de solo 168 x 47 x 33 mm, para tramos cortos de cinta LED en exterior. Cotiza con despacho a todo Chile.",
+  "description": "La Fuente de Poder Switching 30W 12V (SKU FU30E) es una fuente estanca y delgada pensada para cargas pequeñas de 12V que quedan a la intemperie: un trozo de cinta LED, unos pocos módulos o un letrero chico. Su salida es de **12V DC, 2,5A y 30W**, obtenidos a partir de la corriente alterna de la red, con una entrada de 170 a 265V a 50/60Hz. El cuerpo sellado tiene grado **IP67**, a prueba de agua, mide 168 x 47 x 33 mm y cuenta con certificación CE y RoHS.\n\n**Para qué alcanzan 30W a 12V**\n\nCon 2,5A de salida, es una fuente para cargas acotadas: la línea de luz de una jardinera, el número iluminado de una casa, un tramo de cinta bajo un alero o un letrero exterior pequeño. Antes de elegirla, suma el consumo de lo que vas a conectar; en una cinta, ese dato sale de multiplicar los watts por metro de su ficha por el largo instalado. El total debe quedar holgadamente bajo los 30W. Si no alcanza, la solución es dividir la instalación en dos circuitos, no exigirle más a la fuente.\n\n**Formato delgado, fácil de esconder**\n\nSu cuerpo de 168 x 47 x 33 mm es angosto y bajo, de modo que se puede alojar dentro de una caja de luz, al interior de un perfil o detrás de una jardinera sin quedar a la vista. Dos cuidados al elegir el lugar: que deje acceso para una revisión futura y que la fuente no quede envuelta ni tapada, porque necesita entregar su calor al aire que la rodea.\n\n**Cotiza tu fuente**\n\nIndícanos qué vas a alimentar y dónde quedará instalada, y te confirmamos si una fuente de 30W es suficiente o si tu proyecto pide más capacidad. El equipo comercial de eLIGHTS responde con la cotización formal, y la compra se respalda con factura.",
+  "keyBenefits": [
+    "Salida de 12V DC con 2,5A y 30W para tramos cortos de cinta y módulos LED",
+    "Grado IP67: resiste lluvia, riego y polvo en jardines, aleros y fachadas",
+    "Cuerpo delgado de 168 x 47 x 33 mm que se esconde en cajas de luz y perfiles",
+    "Trabaja con 170 a 265V a 50/60Hz en la entrada",
+    "Certificaciones CE y RoHS, esta última con restricción de sustancias peligrosas"
+  ],
+  "useCases": [
+    "Cinta LED de 12V en jardineras y bordes de jardín",
+    "Números de casa y letreros pequeños iluminados",
+    "Un tramo corto de cinta LED bajo un alero",
+    "Cajas de luz exteriores de pequeño formato",
+    "Acentos de luz en balcones y terrazas pequeñas",
+    "Señalética exterior con módulos LED de 12V"
+  ],
+  "faq": [
+    {
+      "question": "¿Puedo dejarla en un jardín, expuesta al riego?",
+      "answer": "Sí. Su grado IP67 indica que es hermética al polvo y que tolera una inmersión breve, así que la lluvia y el riego no son un problema para el equipo; lo que no admite es quedar bajo agua de forma permanente. Ubícala sobre una base firme, fuera de los puntos donde se junta agua o barro, y deja los empalmes dentro de una caja de conexiones estanca: la hermeticidad es de la fuente, no de las uniones."
+    },
+    {
+      "question": "¿Funciona con la red eléctrica de mi casa?",
+      "answer": "Sí. Admite una entrada de 170 a 265V a 50/60Hz, que incluye la red domiciliaria chilena; por debajo de 170V queda fuera de su rango. La conexión a la red debe hacerla un instalador eléctrico, y en la salida hay que respetar la polaridad (+ y −) de la cinta."
+    },
+    {
+      "question": "¿Qué indica la certificación RoHS?",
+      "answer": "RoHS es una directiva europea que restringe el uso de sustancias peligrosas, como el plomo, el mercurio o el cadmio, en equipos eléctricos y electrónicos. Esta fuente la declara junto con el marcado CE, que indica conformidad con los requisitos de seguridad del mercado europeo."
+    },
+    {
+      "question": "¿Cuánto demora el despacho?",
+      "answer": "Despachamos en hasta 2 días hábiles a todo Chile: con camiones propios dentro de la Provincia de Santiago y con operador logístico a regiones. Para cotizar basta con el código FU30E y la cantidad; si necesitas varias para un mismo proyecto, indícalo en la solicitud."
+    }
+  ]
+}

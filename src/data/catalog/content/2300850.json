@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Tubo LED T8 24V Opal de Aluminio 9W 60 cm | eLIGHTS",
+  "metaDescription": "Tubo LED de 24V en aluminio y policarbonato opal: 9W, 1.080 lm de luz fría 6500K, 60 cm y base G13. Para circuitos de baja tensión. Cotiza con eLIGHTS.",
+  "description": "El Tubo LED Opal de Aluminio 9W es un tubo de 60 cm con base G13, en formato T8, que funciona a **24V**: no se conecta a la red eléctrica domiciliaria, sino a una instalación de baja tensión. Con un consumo de 9W entrega **1.080 lm** de luz fría (6500K) y, según la ficha, equivale a un fluorescente de 18W. Combina aluminio y policarbonato opal, tiene una apertura de 300° y una vida útil declarada de 30.000 horas.\n\n**Un tubo para instalaciones de 24V**\n\nLo habitual es que un tubo LED vaya conectado a la red. Este modelo, en cambio, necesita una fuente de alimentación o un sistema eléctrico de 24V, así que tiene sentido en proyectos donde la iluminación ya trabaja en esa tensión o se diseña en baja tensión desde el inicio. La ficha indica 24V sin precisar si se trata de corriente continua o alterna: antes de comprar, confirma con nosotros cómo se alimenta tu circuito, porque una tensión distinta de la indicada puede dañar el tubo.\n\n**Luz fría y difusa**\n\nLos 1.080 lúmenes en 6500K dan un blanco nítido, el tono que suele elegirse en talleres, salas de máquinas y zonas de servicio. La cubierta opal difumina los puntos LED y suaviza el brillo cuando el tubo queda a la vista, y con su apertura de 300° la luz sale hacia casi todo el contorno, de forma parecida a un tubo fluorescente.\n\n**Aluminio y policarbonato en vez de vidrio**\n\nEl tubo no lleva vidrio: combina aluminio con policarbonato, un plástico resistente que no se quiebra como el vidrio. Eso facilita su transporte y su montaje en talleres, faenas o espacios de trabajo donde un tubo quebrado sería un problema. Tiene 1 año de garantía.\n\n**Cotización**\n\nAl pedir la cotización, indica cuántos tubos necesitas y cómo se alimenta el circuito de 24V. El equipo comercial de eLIGHTS responde con la cotización formal y emite factura, y el despacho a todo Chile se hace en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Funciona a 24V: pensado para instalaciones de iluminación en baja tensión",
+    "1.080 lm con un consumo de 9W, en reemplazo de un fluorescente de 18W",
+    "Luz fría de 6500K, un blanco nítido para talleres y zonas de servicio",
+    "Aluminio y policarbonato, sin vidrio que pueda quebrarse al manipularlo",
+    "Cubierta opal y apertura de 300°: luz difusa, sin puntos LED a la vista",
+    "Base G13 de formato T8 y largo de 60 cm",
+    "30.000 horas de vida útil declarada, con garantía de 1 año"
+  ],
+  "useCases": [
+    "Instalaciones de iluminación alimentadas en 24V",
+    "Talleres y bancos de trabajo",
+    "Salas de máquinas y zonas de servicio",
+    "Pañoles y bodegas de herramientas",
+    "Pasillos cortos de instalaciones industriales"
+  ],
+  "installationInfo": "Usa los mismos portalámparas **G13** de una luminaria T8 de 60 cm, pero esa luminaria debe quedar conectada a un circuito de 24V.\n\n- No lo conectes directamente a la red eléctrica domiciliaria.\n- Confirma que la fuente o el sistema que alimenta el circuito entregue la tensión del tubo y tenga capacidad para todos los tubos que vas a conectar.\n- Si aprovechas una luminaria de tubo fluorescente, revisa su cableado: esos equipos se hicieron para conectarse a la red.\n\nLa conexión al circuito de 24V debe hacerla un instalador eléctrico.",
+  "faq": [
+    {
+      "question": "¿Puedo conectarlo a la red eléctrica de mi casa o local?",
+      "answer": "No. Trabaja a 24V, una tensión muy inferior a la de la red domiciliaria, y conectarlo directo podría dañarlo. Necesita una fuente de alimentación o un sistema eléctrico de 24V. Si no sabes cómo se alimenta tu instalación, cuéntanos por WhatsApp o en ventas@elights.cl y te orientamos."
+    },
+    {
+      "question": "¿Cómo dimensiono la fuente si conecto varios tubos?",
+      "answer": "Cada tubo consume 9W, así que la fuente debe entregar la misma tensión del tubo y cubrir la suma del consumo de todos los tubos del circuito, con un margen de reserva. Escríbenos con la cantidad de tubos y el tipo de alimentación que tienes, y te ayudamos a revisar si tu fuente alcanza o qué necesitas."
+    },
+    {
+      "question": "¿Qué tubo fluorescente reemplaza?",
+      "answer": "La ficha lo declara equivalente a un fluorescente de 18W, y comparte con los tubos T8 de 60 cm la base G13 y el largo. Aun así, solo funciona si la luminaria queda conectada a un circuito de 24V: una luminaria fluorescente conectada a la red no sirve tal como está."
+    },
+    {
+      "question": "¿Qué garantía tiene?",
+      "answer": "La garantía cubre 1 año, y la ficha indica una vida útil de 30.000 horas. Emitimos factura por cada compra y, si tienes dudas técnicas antes o después de instalarlo, te atendemos por WhatsApp o en ventas@elights.cl."
+    }
+  ]
+}

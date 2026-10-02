@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED Antiexplosivo Square 200W 26.000 lm | eLIGHTS",
+  "metaDescription": "Proyector LED a prueba de explosión de 200W y 26.000 lm, IP66, driver Mean Well y marcado Ex d T3 de categoría 3, para áreas Zona 2. Cotiza tu proyecto.",
+  "description": "El Proyector LED a Prueba de Explosión Square 200W (SKU PLAPEXS200) reúne **26.000 lm** en una carcasa de aluminio de 40 x 26 x 13 cm, para iluminar grandes superficies en áreas clasificadas donde la atmósfera explosiva es ocasional y breve, según la categoría 3 de su marcado: sectores de patios de estanques, zonas de carga de combustibles, naves de proceso y bodegas de gran altura que tengan esa clasificación. Trabaja con 200W y una eficacia de 130 lm/W, y la ficha lo identifica con el marcado **II 3 GD Ex d** y clase de temperatura T3.\n\n**Grandes áreas con menos puntos de luz**\n\nCon 26.000 lúmenes por equipo y una apertura de 120°, cada proyector cubre una superficie amplia. En un área clasificada eso tiene una ventaja práctica: menos puntos de luz significan menos cajas de conexión, menos canalización y menos intervenciones en zona de riesgo. La cantidad y la posición definitivas dependen de la altura de montaje, de las sombras que generan estanques y estructuras y del nivel de iluminación que pide cada tarea.\n\n**Marcado y lugares de uso**\n\nSu grupo II lo ubica entre los equipos para industrias de superficie; la minería subterránea usa otro grupo. La categoría 3 corresponde a áreas donde la atmósfera explosiva es ocasional y breve, que el sistema de zonas identifica como Zona 2 en el caso de gases, y el «GC» que cierra el marcado se lee como nivel de protección Gc, propio de esa zona. Ex d corresponde a la envolvente antideflagrante, y la clase T3 fija la temperatura superficial máxima del equipo frente a gases. Para Zona 1 o Zona 0 se requiere un equipo de categoría superior.\n\nAntes de cotizar, revisa dos puntos con nosotros. El grupo de gas aparece en la ficha como «IICC», que no es un grupo estándar: las sustancias de tu planta definen el grupo que debe cumplir el equipo, y lo confirmamos contra su documentación. Y aunque el marcado incluye la letra D, no detalla modo de protección ni temperatura superficial máxima para polvo: para áreas clasificadas por polvo, consúltanos antes de elegirlo.\n\n**Componentes, alimentación y vida útil**\n\nSu módulo de 66 LED Luxeon 3030 trabaja con un driver Mean Well. El equipo admite alimentación de 150 a 260V a 50/60 Hz, con factor de potencia sobre 0,95. La vida útil declarada es de 100.000 horas, un dato relevante donde cada recambio de luminaria exige permisos de trabajo y coordinación con operaciones.\n\n**Carcasa, garantía y despacho**\n\nLa carcasa, de aleación de aluminio con grado anticorrosión WF2 y protección IP66, admite temperaturas ambiente desde -40 °C hasta +40 °C. El equipo tiene 3 años de garantía. Para un patio o una nave completa, envíanos las medidas del recinto y la cantidad estimada: respondemos con la cotización formal y factura, y despachamos a todo Chile en hasta 2 días hábiles, con operador logístico a regiones.",
+  "keyBenefits": [
+    "26.000 lm con 200W y 130 lm/W para patios y naves de gran superficie",
+    "66 LED Luxeon 3030 y driver Mean Well en un solo equipo",
+    "Vida útil declarada de 100.000 horas: menos recambios en zonas de riesgo",
+    "Categoría 3 y protección Ex d con clase T3, para áreas Zona 2 donde la atmósfera explosiva es ocasional",
+    "Carcasa WF2 resistente a la corrosión, con grado IP66 para trabajar a la intemperie",
+    "Opera desde -40 °C hasta +40 °C, también en faenas con heladas intensas",
+    "Respaldo de 3 años de garantía"
+  ],
+  "useCases": [
+    "Sectores Zona 2 de patios de estanques en terminales de combustibles",
+    "Naves de proceso de gran altura clasificadas como Zona 2",
+    "Entorno Zona 2 de las islas de carga de camiones cisterna",
+    "Bodegas de gran superficie con productos inflamables",
+    "Áreas Zona 2 de plantas de biogás y rellenos sanitarios",
+    "Patios de maniobras en plantas de gas licuado"
+  ],
+  "faq": [
+    {
+      "question": "¿Cuántos proyectores de 200W necesito para un patio de estanques?",
+      "answer": "No hay una cifra única: influyen la superficie, la altura de montaje, la ubicación de los estanques y las sombras de las estructuras. Cada equipo aporta 26.000 lm con apertura de 120°. Con las medidas del recinto y la clasificación de áreas, eLIGHTS puede hacer un estudio lumínico DIALux que defina cantidad, posición y orientación de los proyectores."
+    },
+    {
+      "question": "¿Qué tipo de luz entrega?",
+      "answer": "Luz blanca de 5000K, con un índice de reproducción cromática (CRI) superior a 70 y una apertura de 120°. Un CRI sobre 70 es adecuado para circulación, maniobras de carga y supervisión de equipos; las tareas que exigen distinguir colores con precisión suelen pedir índices más altos, así que si es tu caso, cuéntanos al cotizar."
+    },
+    {
+      "question": "¿Resiste lavado y ambientes corrosivos?",
+      "answer": "Su grado IP66 lo protege del ingreso de polvo y de chorros potentes de agua, y su cuerpo de aluminio lleva grado anticorrosión WF2, previsto para exteriores con ambiente corrosivo. Antes de lavar cualquier equipo eléctrico en una planta, sigue los procedimientos de bloqueo y autorización que exija tu instalación."
+    },
+    {
+      "question": "¿Cuánto mide y cómo viene embalado?",
+      "answer": "El cuerpo tiene 40 cm de ancho por 26 de alto, con 13 cm de profundidad. Viene en caja individual de 44,5 x 29,5 x 16,5 cm y pesa 5,6 kg embalado, datos útiles para planificar el traslado y el montaje en altura."
+    }
+  ]
+}

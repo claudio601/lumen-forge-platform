@@ -1,0 +1,45 @@
+{
+  "metaTitle": "Barra de Emergencia LED Recargable de 60 LEDs | eLIGHTS",
+  "metaDescription": "Barra de emergencia LED recargable de 60 LEDs: 200 lm, selector de flujo y 3 a 6 horas de autonomía. Se fija en muro o se usa portátil. Cotiza en eLIGHTS.",
+  "description": "La Barra de Emergencia LED Recargable de 60 LEDs (SKU BELR60SMD) es una luz de respaldo para cuando se corta el suministro eléctrico. Puede quedar fija en el muro, gracias a sus agujeros de montaje, o usarse en forma portátil tomándola por su mango. Ofrece hasta **200 lúmenes** de luz blanca fría, tiene un selector entre flujo máximo y mínimo, y su batería de litio recargable le da una autonomía de **3 a 6 horas**. Se conecta a la red mediante una fuente bivolt automática.\n\n**Dos niveles de luz para estirar la batería**\n\nEl selector permite elegir entre el flujo máximo, de 200 lm, y el mínimo, de 120 lm. Como regla general, con menos luz la batería se descarga más lento: el modo mínimo conviene cuando el corte se alarga y lo importante es no quedar a oscuras, y el máximo cuando hay que ver con detalle, por ejemplo para revisar un tablero eléctrico o moverse entre estanterías.\n\nSus 60 LEDs dan una luz blanca fría, de 6000K a 7000K, un tono que favorece la visibilidad en pasillos, escaleras y espacios técnicos.\n\n**Batería de litio y controles**\n\nFunciona con una batería de litio de 3,7V y 1.800 mAh, con una vida útil declarada de 500 ciclos de carga. Un LED indicativo muestra que el equipo está operando, y el botón de prueba permite comprobar, sin esperar a que se corte la luz, que la batería y los LEDs responden.\n\n**Construcción y lugar de uso**\n\nEl cuerpo es de plástico ABS, un material liviano de uso habitual en equipos eléctricos, y el equipo cuenta con certificación CE. Trabaja con temperaturas de 0 a 50 °C. La ficha no declara un grado de protección contra polvo o agua, así que conviene usarla en recintos interiores y secos. Tampoco indica que cumpla una norma de alumbrado de emergencia o de evacuación: si tu recinto debe cumplirla, el proyecto eléctrico define qué equipo corresponde.\n\n**Cotización y despacho**\n\nSi necesitas varias barras para un edificio, un local o una bodega, indica la cantidad en tu solicitud y el equipo comercial de eLIGHTS te responde con la cotización formal; la compra se emite con factura. Despachamos a todo Chile en hasta 2 días hábiles, y ante dudas técnicas te asesoramos por WhatsApp o en ventas@elights.cl.",
+  "keyBenefits": [
+    "Selector de flujo: 200 lm en máximo o 120 lm en mínimo, según lo que necesites",
+    "Autonomía de 3 a 6 horas con batería de litio de 3,7V y 1.800 mAh",
+    "Doble uso: fija en el muro o portátil gracias a su mango",
+    "Fuente bivolt automática de 110V a 240V, 50/60 Hz",
+    "60 LEDs de luz blanca fría, de 6000K a 7000K",
+    "Botón de prueba y LED indicativo de operación",
+    "Batería con vida útil declarada de 500 ciclos de carga"
+  ],
+  "useCases": [
+    "Pasillos y escaleras de edificios",
+    "Salas de tableros eléctricos y de máquinas",
+    "Bodegas y talleres bajo techo",
+    "Locales comerciales y oficinas",
+    "Recorridos de inspección durante un corte, en uso portátil",
+    "Casas y departamentos"
+  ],
+  "installationInfo": "Se fija **en muro** mediante sus agujeros de montaje o se usa en forma **portátil**, tomándola por su mango.\n\n- Su fuente bivolt automática admite de 110V a 240V, 50/60 Hz.\n- Elige un punto donde pueda quedar conectada a la red de forma permanente, para que la batería se mantenga cargada.\n- Ubícala en un lugar visible, como el comienzo de un pasillo, una escalera o la puerta de una bodega.\n- Deja el botón de prueba y el LED indicativo a la vista y al alcance, para revisarla sin descolgarla.",
+  "faq": [
+    {
+      "question": "¿Cuántas horas ilumina durante un corte de luz?",
+      "answer": "La ficha declara una autonomía de 3 a 6 horas con la batería cargada, sin precisar cuánto dura en cada posición del selector. En general, el flujo mínimo, de 120 lm, hace rendir más la batería que el máximo, de 200 lm. Con el uso, la capacidad de una batería de litio baja de a poco: esta tiene una vida útil declarada de 500 ciclos."
+    },
+    {
+      "question": "¿Funciona con la red eléctrica de Chile?",
+      "answer": "Sí. Su fuente de alimentación es bivolt automática y admite de 110V a 240V, en 50 o 60 Hz, un rango que cubre la red domiciliaria chilena. Se adapta sola a la tensión, sin selectores que ajustar."
+    },
+    {
+      "question": "¿Cuánto tarda en cargarse y cómo la mantengo lista?",
+      "answer": "La ficha indica un tiempo de carga de 24 horas. Después de instalarla o de un corte largo, déjala conectada a la red ese tiempo para que recupere toda su carga, y usa el botón de prueba cada cierto tiempo para confirmar que responde."
+    },
+    {
+      "question": "¿Se puede dejar a la intemperie?",
+      "answer": "No conviene. La ficha no declara protección contra polvo ni agua, así que no debe quedar expuesta a la lluvia ni en zonas de lavado. Opera entre 0 y 50 °C: úsala en recintos interiores secos, como pasillos, bodegas techadas o salas de tableros."
+    },
+    {
+      "question": "¿Cómo pido una cotización?",
+      "answer": "Envíanos la cantidad que necesitas y la comuna de destino, y el equipo comercial de eLIGHTS te responde con la cotización formal; se emite factura. El envío a todo Chile toma hasta 2 días hábiles: en la Provincia de Santiago va en camiones propios de eLIGHTS y a regiones, por operador logístico."
+    }
+  ]
+}

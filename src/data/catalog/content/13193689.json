@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED Portátil Antiexplosivo 30W con Batería | eLIGHTS",
+  "metaDescription": "Proyector LED portátil a prueba de explosión con batería de 10 Ah: 3.200 lm, 16 horas en luz de trabajo y marcado Ex d e T6 Gb. Cotiza para tu faena.",
+  "description": "El Proyector LED Portátil a Prueba de Explosión 30W (SKU PLP30APEX) es un foco autónomo, con batería, para llevar luz a lugares sin alimentación eléctrica o donde no conviene tender extensiones: mantenciones y paradas de planta, inspecciones en patios de estanques y emergencias en áreas con gases o polvo combustible. Ofrece **3.200 lm** de iluminación de área amplia, tiene cabezal ajustable y una batería de **10 Ah** de capacidad nominal.\n\n**Autonomía y recarga**\n\nLa ficha distingue dos modos de uso: en luz fuerte, la batería rinde 8 horas, y en luz de trabajo, 16 horas. Después de un uso normal, la recarga toma 8 horas. La luz de trabajo es el modo para tareas largas, como una ronda nocturna o una mantención extendida, y la luz fuerte queda para los momentos en que se necesita más luz sobre el punto intervenido. Son valores declarados: en terreno, la autonomía depende también del estado de la batería. Como práctica general con equipos portátiles Ex, la recarga se hace fuera del área clasificada y siguiendo las instrucciones del equipo.\n\n**Marcado para gas y para polvo**\n\nPara atmósferas de gas, la ficha indica el marcado **Ex d e IIB T6 Gb / Ex d e IIC T6 Gb**; para polvo combustible, **Ex tD A21 IP66 T80 °C**. T6 es la clase de temperatura más exigente para gases, y T80 °C es la temperatura superficial máxima declarada para polvo: ambas se comparan con la temperatura de ignición de las sustancias presentes en el área. El IP66 de la parte de polvo indica hermeticidad total al polvo y resistencia a chorros potentes de agua.\n\nComo la ficha lista los grupos IIB y IIC, si en tu área hay gases del grupo IIC, como hidrógeno o acetileno, confirma con nosotros la versión antes de cotizar.\n\n**Peso, tamaño y vida útil**\n\nEs un equipo portátil de 6 kg, con medidas de 800 x 250 x 220 mm (largo, ancho y alto), que se traslada entre frentes de trabajo sin depender de un punto de conexión fijo. Su cabezal ajustable permite dirigir el haz hacia el punto que se está interviniendo. Declara una vida útil de 100.000 horas.\n\n**Cotización para brigadas y equipos de mantención**\n\nSi equipas a una brigada de emergencia o a un equipo de mantención, indica la cantidad y las áreas donde se usarán los proyectores. Con esa información, el área comercial de eLIGHTS arma la cotización formal y emite la factura, y despachamos los proyectores a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Batería de 10 Ah con autonomía declarada de 8 horas en luz fuerte y 16 horas en luz de trabajo",
+    "Recarga en 8 horas después de un uso normal",
+    "3.200 lm de iluminación de área amplia con cabezal ajustable",
+    "Para gas: Ex d e con nivel Gb y clase T6, la más exigente en temperatura",
+    "Para polvo: Ex tD A21 con IP66 y temperatura superficial máxima de 80 °C",
+    "Portátil y autónomo: ilumina sin conexión a la red en faenas y mantenciones",
+    "100.000 horas de vida útil según su ficha"
+  ],
+  "useCases": [
+    "Mantenciones y paradas de planta en refinerías",
+    "Trabajos nocturnos en patios de estanques",
+    "Respuesta a emergencias en plantas químicas",
+    "Faenas en terminales de combustibles y gas",
+    "Inspecciones y mantenciones en salas de bombas",
+    "Molinos y plantas con polvo combustible"
+  ],
+  "faq": [
+    {
+      "question": "¿Alcanza la batería para un turno completo?",
+      "answer": "Depende del modo y del estado de la batería. La ficha declara 16 horas en luz de trabajo y 8 horas en luz fuerte, valores que pueden bajar a medida que la batería envejece. Como la recarga después de un uso normal toma 8 horas, en operaciones continuas conviene contar con un segundo equipo para alternarlos mientras uno se carga, siempre fuera del área clasificada."
+    },
+    {
+      "question": "¿Para qué zonas está indicado?",
+      "answer": "Para gas, el marcado incluye el nivel de protección Gb, propio de Zona 1 y válido también en Zona 2. Para polvo, A21 remite a la Zona 21, y un equipo apto para Zona 21 se acepta también en Zona 22. En ambos casos, el grupo de gas y la temperatura superficial tienen que ser compatibles con las sustancias presentes. No corresponde a Zona 0 ni Zona 20, donde la atmósfera explosiva es permanente o muy frecuente. La clasificación de cada área sale del estudio de riesgos de la instalación: compártela al cotizar."
+    },
+    {
+      "question": "¿Sirve para minería subterránea?",
+      "answer": "No. Su marcado es del grupo II, propio de instalaciones de superficie como plantas, refinerías y terminales. La minería subterránea con presencia de grisú exige equipos del grupo I, con requisitos propios."
+    },
+    {
+      "question": "¿Qué significa Ex d e?",
+      "answer": "Indica dos modos de protección combinados. La envolvente antideflagrante (d) contiene una posible ignición dentro de la carcasa, y la seguridad aumentada (e) reduce la posibilidad de chispas o calentamientos peligrosos en partes como bornes y conexiones. Juntos permiten usar el equipo en atmósferas de gas clasificadas, según su nivel Gb."
+    }
+  ]
+}

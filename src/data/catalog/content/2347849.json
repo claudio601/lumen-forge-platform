@@ -1,0 +1,35 @@
+{
+  "metaTitle": "Panel LED 120x15 cm 36W en luz cálida, neutra o fría | eLIGHTS",
+  "metaDescription": "Panel LED lineal de 120x15 cm y 36W en tres tonos: 3500K, 4500K o 6500K. CRI sobre 80 e IP44 para pasillos, oficinas y aulas. Pide tu cotización a eLIGHTS.",
+  "description": "El Panel LED 120x15 de 36W es un panel de formato estrecho para **cielo americano** que se cotiza en tres temperaturas de color: cálida (3500K), neutra (4500K) y fría (6500K). Mide 120,5 x 15,5 cm con un espesor de 0,8 cm, opera con tensiones de entrada de 85 a 265V y tiene un índice de reproducción cromática superior a 80. Su forma alargada sirve cuando se quiere una franja de luz plana, integrada al cielo, en lugar de un panel cuadrado.\n\n**Tres tonos para distintos recintos**\n\nLa neutra de 4500K es la elección frecuente en oficinas, salas de clases y pasillos de edificios, donde se necesita una luz clara para trabajar durante horas. La fría de 6500K encaja en laboratorios, zonas de servicio y recintos donde se valora una sensación de limpieza. La cálida de 3500K se reserva para viviendas, hoteles y comercios que buscan un ambiente cercano.\n\n**Líneas de luz en pasillos y oficinas**\n\nInstalados uno a continuación de otro, varios paneles forman líneas que guían la circulación en pasillos y halls, o que siguen la orientación de las filas de escritorios. El CRI mayor a 80 entrega una reproducción de colores adecuada para tareas de oficina, lectura y atención de público.\n\n**Materiales y protección**\n\nLa estructura es de aluminio con marco blanco, y la luz proviene de LED SMD2835. El grado **IP44** significa que tolera salpicaduras de agua y que impide el paso de objetos sólidos pequeños hacia su interior, por lo que se destina a recintos bajo techo. Es un panel de encendido simple, no regulable, y tiene 1 año de garantía.\n\n**Cotización por cantidad**\n\nPara proyectos, el embalaje por mayor contiene 10 paneles en una caja de 127,5 x 17 x 19 cm y 14,7 kg. Indica cuántos paneles quieres de cada temperatura de color: el equipo comercial de eLIGHTS responde con la cotización formal, emite factura y despacha a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Elige el tono por recinto: cálida de 3500K, neutra de 4500K o fría de 6500K",
+    "Formato estrecho de 120,5 x 15,5 cm para formar líneas de luz continuas",
+    "Espesor de 0,8 cm: muy poco volumen sobre el cielo americano",
+    "CRI superior a 80 para lectura, tareas de oficina y atención de público",
+    "LED SMD2835 en cuerpo de aluminio, con tensión de entrada de 85 a 265V"
+  ],
+  "useCases": [
+    "Pasillos y halls de edificios de oficinas",
+    "Salas de clases y bibliotecas",
+    "Laboratorios y zonas de servicio",
+    "Habitaciones de hotel y departamentos",
+    "Tiendas y locales comerciales",
+    "Oficinas con filas de escritorios"
+  ],
+  "installationInfo": "El panel va en el **cielo americano**, en un módulo acorde a sus medidas: 120,5 x 15,5 cm y 0,8 cm de alto.\n\n- Tensión de entrada: 85 a 265V.\n- Encendido simple: se conecta a un interruptor normal, sin regulador de intensidad.\n- IP44: uso en recintos interiores.\n\nComo no todos los cielos tienen módulos de ese ancho, revisa la perfilería antes de cotizar o envíanos la modulación para orientarte. La conexión debe hacerla un instalador eléctrico; en la Región Metropolitana, eLIGHTS ofrece la instalación por separado.",
+  "faq": [
+    {
+      "question": "¿Cuántos paneles necesito para un pasillo?",
+      "answer": "Si buscas una línea continua, divide el largo del pasillo por el largo de cada panel, que es de 120,5 cm. Si prefieres paneles separados, la distancia entre ellos depende del nivel de luz que pide el recinto. Para pasillos largos o un edificio completo, eLIGHTS puede hacer un estudio lumínico DIALux que define la cantidad y la ubicación."
+    },
+    {
+      "question": "¿Puedo pedir los tres tonos en una misma cotización?",
+      "answer": "Sí. Indica en la solicitud cuántas unidades necesitas de luz cálida, neutra y fría, por ejemplo neutra para las salas y cálida para la recepción, y recibes una sola cotización formal con factura."
+    },
+    {
+      "question": "¿Qué certificaciones y garantía tiene?",
+      "answer": "La ficha declara certificación CE, EMC, RoHS y UL. CE indica conformidad con los requisitos europeos; EMC se refiere a la compatibilidad electromagnética, que evalúa que el equipo no genere interferencias en otros aparatos ni se vea afectado por ellas; RoHS limita sustancias peligrosas, y UL es una certificación de seguridad de origen estadounidense. Tiene 1 año de garantía."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "metaTitle": "Panel LED Redondo Embutido 18W con Sensor de Movimiento | eLIGHTS",
+  "metaDescription": "Panel LED redondo para embutir de 18W con sensor de movimiento: 1.360 lm, detección de 120° y de 4 a 6 metros, IP33, luz de 3200K o 4500K. Cotiza aquí.",
+  "description": "El Panel LED Redondo Embutido 18W con Sensor de Movimiento se instala en el cielo y enciende la luz solo cuando detecta movimiento, sin que nadie tenga que buscar un interruptor. Es una solución práctica para lugares de paso, como pasillos, escaleras, halls y bodegas, donde la circulación es intermitente y la luz tiende a quedar encendida sin necesidad. Con 18W ofrece **1.360 lm** y un CRI superior a 80, en tono de 3200K o de 4500K, y se embute en una perforación de **19,3 cm**.\n\n**Cómo funciona el sensor**\n\nSegún la ficha, el sensor cubre un ángulo de **120°** y detecta movimiento a una distancia de 4 a 6 metros. Al detectar, la luz se enciende y se mantiene encendida durante 50 segundos. En las áreas comunes de un condominio o en los pasillos de una oficina, donde nadie se encarga de apagar, el sensor evita que la luz quede prendida durante horas en un espacio vacío.\n\n**Dónde ubicarlo**\n\nLa posición importa más que en un panel común, porque el sensor tiene que ver el movimiento. En un pasillo conviene ubicarlo sobre el eje de circulación; en una escalera, en un punto desde donde abarque el tramo que se recorre, como el descanso. En recorridos largos se instalan varios paneles uno tras otro, de modo que sus zonas de detección se toquen y cada uno se encienda a medida que la persona avanza.\n\n**Protección IP33, materiales y alimentación**\n\nEl grado IP33 protege contra el ingreso de objetos sólidos como herramientas o cables gruesos y contra el agua que cae rociada desde arriba con cierta inclinación. No cubre las salpicaduras que llegan desde cualquier dirección, así que corresponde a interiores secos. La carcasa combina aluminio y policarbonato, con marco blanco de 21,7 cm de diámetro. Usa LED SMD2835, acepta tensiones de 170 a 250V, 50-60 Hz, y no es regulable. El área recomendada es de 12 m² por panel y la garantía, de 1 año.\n\n**Compra para edificios y oficinas**\n\nPor mayor se embala en cajas de 20 unidades, de 11 kg cada una. Si vas a equipar los pisos de un edificio, indica la cantidad y el tono de cada sector: el equipo comercial de eLIGHTS te enviará la cotización formal, con factura, y el despacho a todo Chile se hace en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Sensor de movimiento integrado: enciende la luz solo cuando hay movimiento",
+    "Detección en un ángulo de 120° y a una distancia de 4 a 6 metros",
+    "Al detectar movimiento, la luz permanece encendida 50 segundos",
+    "1.360 lm con 18W y un área recomendada de 12 m² por panel",
+    "Embutido: perforación de 19,3 cm y marco blanco de 21,7 cm",
+    "Tono cálido de 3200K o neutro de 4500K, con CRI sobre 80",
+    "Tensión de 170 a 250V, 50-60 Hz, y 1 año de garantía"
+  ],
+  "useCases": [
+    "Áreas comunes y pasillos de condominios",
+    "Escaleras de edificios residenciales",
+    "Vestíbulos y halls de ascensores",
+    "Pasillos y accesos interiores de oficinas",
+    "Bodegas, salas de archivo y despensas",
+    "Pasillos de hoteles y hostales"
+  ],
+  "installationInfo": "Va **embutido** en una perforación de **19,3 cm**, y el marco de 21,7 cm cubre el borde del corte.\n\n- Alimentación: 170 a 250V, 50-60 Hz.\n- El circuito debe quedar energizado de forma permanente para que el sensor controle el encendido; si hay un interruptor en la línea, debe permanecer en posición de encendido.\n- Ubícalo donde el sensor vea el recorrido, sobre el eje del pasillo o en el descanso de la escalera, considerando su alcance de 4 a 6 metros y su ángulo de 120°.\n- IP33: solo para interiores secos.\n\nLa conexión a la red la debe ejecutar un electricista.",
+  "faq": [
+    {
+      "question": "¿Necesita un interruptor aparte?",
+      "answer": "No para encenderse: el sensor de movimiento integrado decide cuándo prender la luz. Lo que sí necesita es que el circuito esté alimentado en forma permanente; si en la línea hay un interruptor, debe quedar encendido, porque al cortarlo el sensor también se apaga. Tu instalador puede definir la mejor forma de cablearlo."
+    },
+    {
+      "question": "¿Por cuánto tiempo se mantiene encendida la luz?",
+      "answer": "La ficha indica 50 segundos de encendido al detectar movimiento y no señala que ese tiempo pueda ajustarse. Alcanza para cruzar un hall o sacar algo de una bodega pequeña; en recorridos largos conviene instalar varios paneles uno tras otro, para que cada tramo se ilumine cuando la persona llega a él."
+    },
+    {
+      "question": "¿Qué diferencia hay entre los tonos de 3200K y 4500K?",
+      "answer": "El de 3200K es una luz cálida, de tono amarillento, que se siente acogedora en pasillos y halls de viviendas. El de 4500K es neutro, más blanco, y da sensación de mayor claridad en bodegas, salas de archivo y escaleras de servicio. Puedes cotizar ambos tonos en un mismo pedido."
+    },
+    {
+      "question": "¿Lo puedo instalar en un baño?",
+      "answer": "No es lo indicado. Su grado IP33 lo protege del agua que cae rociada desde arriba, pero no de las salpicaduras que llegan desde cualquier dirección, como las de una ducha o un lavamanos. Además, la luz se mantiene 50 segundos después de detectar movimiento: si una persona permanece quieta, puede apagarse. Rinde mejor en lugares de paso, como pasillos, escaleras y halls."
+    }
+  ]
+}
