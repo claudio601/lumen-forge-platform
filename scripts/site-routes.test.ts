@@ -1,8 +1,8 @@
 // La lista de rutas indexables (src/lib/seo/routes.ts) es la única fuente del
-// sitemap y, desde la PR 04, del prerender: cada <Route> de App.tsx tiene que estar
+// sitemap y del prerender: cada ruta de la app (src/routes.tsx) tiene que estar
 // clasificada ahí, para que ninguna página nueva quede fuera de Google sin querer.
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   DYNAMIC_ROUTE_PATTERNS,
@@ -16,10 +16,11 @@ import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
 
-const appRoutes = [...readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf-8').matchAll(/<Route\s+path="([^"]+)"/g)].map(m => m[1]);
+const routesSource = readFileSync(new URL('../src/routes.tsx', import.meta.url), 'utf-8');
+const appRoutes = [...routesSource.matchAll(/\{ path: '([^']+)', element:/g)].map(m => m[1]);
 
 describe('rutas del sitio', () => {
-  it('cada <Route> de App.tsx está clasificada (indexable, noindex, redirección o dinámica)', () => {
+  it('cada ruta de src/routes.tsx está clasificada (indexable, noindex, redirección o dinámica)', () => {
     const known = new Set<string>([...STATIC_ROUTES, ...NOINDEX_ROUTES, ...REDIRECT_ROUTES, ...DYNAMIC_ROUTE_PATTERNS, '*']);
     expect(appRoutes.length).toBeGreaterThan(10);
     expect(appRoutes.filter(r => !known.has(r))).toEqual([]);
@@ -41,5 +42,14 @@ describe('rutas del sitio', () => {
     expect(xml.match(/<loc>/g)).toHaveLength(indexableRoutes().length);
     expect(buildRobots()).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`);
     expect(buildRobots()).toContain('Disallow: /api/');
+  });
+
+  it('cada página carga su propio archivo (el prerender lo precarga por ese nombre)', () => {
+    const pages = [...routesSource.matchAll(/lazyPage\('(\w+)', \(\) => import\('\.\/pages\/(\w+)'\)\)/g)];
+    expect(pages.length).toBeGreaterThan(10);
+    for (const [, name, file] of pages) {
+      expect(file).toBe(name);
+      expect(existsSync(new URL(`../src/pages/${name}.tsx`, import.meta.url)), name).toBe(true);
+    }
   });
 });

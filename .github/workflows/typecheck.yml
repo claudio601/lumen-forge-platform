@@ -50,3 +50,29 @@ jobs:
 
       - name: API tests
         run: npx vitest run --config vitest.api.config.ts
+
+  prerender:
+    # Páginas estáticas (Etapa 2, PR 04): el build completo de Vercel (vite + render del
+    # servidor + sitemap + prerender) y la revisión del HTML generado. En la PR diaria del
+    # robot de Jumpseller, los problemas de contenido solo avisan (scripts/check-prerender.ts).
+    name: Build + páginas estáticas
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check prerender
+        run: npm run check:prerender

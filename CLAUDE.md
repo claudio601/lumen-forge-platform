@@ -1,7 +1,7 @@
 # CLAUDE.md — lumen-forge-platform (nuevo.elights.cl)
 
 > Archivo de memoria del proyecto. Actualizar después de cada corrección relevante.
-> Última revisión: 2026-10-01
+> Última revisión: 2026-10-03
 
 ---
 
@@ -96,6 +96,7 @@ gh pr create --fill               # revisar la preview de Vercel antes de mergea
 # Pruebas
 npm test                                        # frontend (src/)
 npx vitest run --config vitest.api.config.ts    # funciones api/ y scripts/
+npm run build && npm run check:prerender        # páginas estáticas (dist/)
 ```
 
 ---
@@ -216,6 +217,14 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
   - Falla si una ruta da 5xx, o si una función de `api/` o un archivo cambia de estado o de tipo.
 - **nuevo.elights.cl está fuera de Google** hasta el cambio de dominio: cabecera `X-Robots-Tag: noindex` solo para ese host. Así no compite con elights.cl. Deja de aplicarse sola cuando el sitio se sirva como elights.cl.
 - Claude prueba cada preview y publica el resultado en la PR. El dueño aprueba la fusión.
+
+**Páginas estáticas (prerender, PR 04)**
+- `npm run build` = `vite build` + `vite build --ssr src/entry-server.tsx --outDir dist-ssr` + sitemap + `scripts/prerender.ts`. Escribe el HTML completo de cada página indexable en `dist/<ruta>/index.html` (título, descripción, canonical, Open Graph, JSON-LD y contenido), más `dist/spa.html` (app vacía, noindex: `/buscar`, `/cotizacion`, `/solicitar-pedido` y URLs desconocidas, vía la última reescritura de vercel.json) y `dist/404.html` (para la PR 05). Si una página falla al dibujarse, el build falla y Vercel mantiene el despliegue anterior.
+- `src/routes.tsx` es la tabla única de rutas (la usan `App.tsx` y `entry-server.tsx`). Una página nueva va ahí y en `src/lib/seo/routes.ts` (lo vigila `scripts/site-routes.test.ts`). Si la página lee datos de forma síncrona en su primer render (como el contenido SEO de la ficha), la ruta los carga en `preload`.
+- `src/main.tsx` hidrata (`hydrateRoot`) cuando `#root` trae HTML, después de precargar el trozo de la página y sus datos; si no, dibuja desde cero (`createRoot`).
+- Reglas para que la hidratación no falle (lo vigila `src/ssr-hydration.test.tsx`): el primer render no puede depender del navegador (sesión, `window`, fecha, parámetros de la URL); eso va en efectos. `<Seo>` dibuja `<Helmet>` recién después de montarse en el navegador: Helmet registra cada etiqueta durante el render y un render que React descarta al hidratar dejaba etiquetas de una página en las siguientes.
+- `npm run check:prerender` (también en CI, trabajo "Build + páginas estáticas") revisa el HTML: un título, un h1 visible, canonical igual a la URL, og:image en formato de foto, JSON-LD que se lee y precio igual al catálogo; noindex en spa.html y 404.html; sitemap igual a las páginas. Además busca frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" (en la PR del robot solo avisa). Las excepciones conocidas, con su motivo, están en `KNOWN_PHRASES`.
+- Fotos: si una falla en el CDN antes de que React hidrate, `retryBrokenImages` (`src/lib/brokenImages.ts`) le reenvía el error al terminar de hidratar, para que pase a la foto original.
 
 ---
 

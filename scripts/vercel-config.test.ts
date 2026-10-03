@@ -50,6 +50,13 @@ describe('vercel.json', () => {
     for (const r of (cfg.rewrites ?? []).slice(1)) expect(r.source.startsWith('/api')).toBe(false);
   });
 
+  it('lo que no es un archivo ni una página estática va a spa.html (noindex), no a la portada', () => {
+    // dist/index.html es la portada generada: servirla en otra URL mostraría la portada
+    // antes de que la app dibuje la página correcta. La PR 05 cambia esto por 404 reales.
+    expect(cfg.rewrites?.at(-1)).toEqual({ source: '/(.*)', destination: '/spa.html' });
+    expect((cfg.rewrites ?? []).some(r => r.destination === '/index.html')).toBe(false);
+  });
+
   it('nuevo.elights.cl queda fuera de Google hasta el cambio de dominio (solo ese dominio)', () => {
     const rule = (cfg.headers ?? []).find(h => h.headers?.some(x => x.key === 'X-Robots-Tag'));
     expect(rule?.has).toEqual([{ type: 'host', value: 'nuevo.elights.cl' }]);
