@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { Suspense } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import Seo from './Seo';
 import { SITE_URL } from '@/config/site';
+import { SPA_HEAD } from '@/entry-server';
 import indexHtml from '../../index.html?raw';
 
 const head = (selector: string) => document.head.querySelector(selector);
@@ -30,8 +32,8 @@ describe('<Seo>', () => {
     expect(head('meta[property="og:url"]')).toBeNull();
   });
 
-  it('con el <head> real de index.html no quedan etiquetas repetidas: las de la página reemplazan las fijas', async () => {
-    const html = indexHtml;
+  it('con el <head> de spa.html no quedan etiquetas repetidas: las de la página reemplazan las fijas', async () => {
+    const html = indexHtml.replace('<!--app-head-->', SPA_HEAD);
     document.head.innerHTML = html.slice(html.indexOf('<head>') + 6, html.indexOf('</head>'));
     render(
       <HelmetProvider>
@@ -46,6 +48,28 @@ describe('<Seo>', () => {
     expect(head('meta[name="description"]')?.getAttribute('content')).toBe('desc producto');
     expect(head('meta[property="og:image"]')?.getAttribute('content')).toBe('https://img/x.png');
     expect(head('meta[property="og:url"]')?.getAttribute('content')).toBe(`${SITE_URL}/producto/x`);
+    expect(head('meta[name="robots"]')).toBeNull(); // el noindex de spa.html era de la app vacía
+  });
+
+  it('un render que React descarta no deja sus etiquetas registradas para las páginas siguientes', async () => {
+    // La página "fantasma" se dibuja junto a algo que suspende para siempre: React descarta
+    // ese render y muestra el fallback. Pasa al hidratar una página estática.
+    const never = new Promise<never>(() => undefined);
+    const Suspends = () => {
+      throw never;
+    };
+    renderSeo(
+      <>
+        <Suspense fallback={null}>
+          <Seo title="Fantasma" description="d" path="/fantasma" jsonLd={[{ '@type': 'Thing', name: 'fantasma' }]} />
+          <Suspends />
+        </Suspense>
+        <Seo title="Real" description="d" path="/real" />
+      </>,
+    );
+    await waitFor(() => expect(document.title).toBe('Real'));
+    expect(head('link[rel="canonical"]')?.getAttribute('href')).toBe(`${SITE_URL}/real`);
+    expect(document.head.querySelector('script[type="application/ld+json"]')).toBeNull();
   });
 
   it('una imagen absoluta (foto de Jumpseller) se usa tal cual; el JSON-LD va en su propio script', async () => {

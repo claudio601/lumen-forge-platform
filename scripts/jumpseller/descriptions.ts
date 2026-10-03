@@ -51,14 +51,22 @@ const DELIVERY = new RegExp(
   'giu',
 );
 
-export function findRuleBreaking(text: string): string | null {
-  const t = plain(text);
+/** Stock, despacho "inmediato" o un plazo distinto de "hasta 2 días hábiles" (texto plano). */
+export function findPolicyBreaking(t: string): string | null {
   const stock = t.match(STOCK);
   if (stock) return stock[0];
   const immediate = t.match(IMMEDIATE);
   if (immediate) return immediate[0];
   // Todas las menciones, no solo la primera: "hasta 2 días hábiles" no autoriza un "24 horas" después
   for (const m of t.matchAll(DELIVERY)) if (!/hasta\s+2\s+d[ií]as\s+h[aá]biles/i.test(m[0])) return m[0];
+  return null;
+}
+
+/** Lo anterior, en HTML, y además precios escritos en el texto (los precios viven en Jumpseller). */
+export function findRuleBreaking(text: string): string | null {
+  const t = plain(text);
+  const policy = findPolicyBreaking(t);
+  if (policy) return policy;
   const price = t.match(/\$\s?\d[\d.]*/);
   if (price) return price[0];
   return null;
