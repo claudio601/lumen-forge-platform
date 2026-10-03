@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED Antiexplosivo Square 100W IP66 | eLIGHTS",
+  "metaDescription": "Proyector LED antiexplosivo Square de 100W: 13.000 lm, 130 lm/W, IP66 y envolvente Ex d de categoría 3 para áreas en Zona 2. Solicita tu cotización.",
+  "description": "El Proyector LED a Prueba de Explosión Square 100W (SKU PLAPEXS100) es un foco de aluminio con marcado Ex de categoría 3, pensado para sectores de plantas industriales, patios de proceso y bodegas de inflamables clasificados como Zona 2, es decir, donde una atmósfera explosiva de gas se forma rara vez y dura poco. Con 100W ofrece **13.000 lm** (130 lm/W) en luz blanca de 5000K, con una apertura de 120°. Tiene grado **IP66**, y su ficha indica el marcado **II 3 GD Ex d IICC T3 GC**.\n\n**Dónde rinde un proyector de 13.000 lm**\n\nEs un flujo habitual para patios de estanques pequeños, andenes de carga de una planta, el perímetro de una sala de procesos o una bodega de altura media, siempre que el sector donde se monte esté clasificado como Zona 2. La apertura de 120° reparte el haz en un área ancha frente al equipo, y la luz de 5000K, con CRI superior a 70, ayuda a distinguir tuberías, válvulas y rotulación durante las rondas de inspección.\n\n**Marcado Ex: categoría, protección y temperatura**\n\nEl marcado II 3 GD Ex d IICC T3 GC se interpreta por partes. El grupo II reúne los equipos para instalaciones de superficie, y la categoría 3 es la prevista para lugares donde una mezcla explosiva se forma rara vez y por poco tiempo: en la clasificación por zonas, la Zona 2 para gas. El modo Ex d, de envolvente antideflagrante, mantiene dentro de la carcasa una eventual ignición. La clase T3 es una condición que hay que contrastar con el proceso: el equipo sirve solo si la temperatura de ignición de cada gas o vapor presente queda por sobre la temperatura superficial máxima que admite esa clase. Con estos datos, no corresponde instalarlo en Zona 1 ni en Zona 0.\n\nHay dos puntos que conviene aclarar antes de comprar. El grupo de gas y el nivel de protección aparecen en la ficha como «IICC» y «GC»: al cotizar, comparte la clasificación de áreas de tu planta y las sustancias del proceso para confirmarlos con el certificado del equipo, que la ficha no incluye. Y aunque la letra D alude a polvo, el marcado no trae modo de protección ni temperatura superficial máxima para polvo; en un área clasificada por polvo, no lo elijas sin revisarlo antes con nosotros.\n\n**Construcción y componentes**\n\nEl cuerpo de aluminio lleva tratamiento anticorrosión de grado WF2. Sus medidas son 32 x 23 x 13 cm (ancho, alto y profundidad). Dentro hay 42 LED Luxeon 3030 y un driver Mean Well; se alimenta con 150 a 260V (50/60 Hz) y su factor de potencia supera 0,95.\n\n**Garantía y compra**\n\nSu ficha declara 3 años de garantía y 100.000 horas de vida útil. Viene en caja individual de 36 x 27 x 18 cm y 4,5 kg. Para cotizar, indica la cantidad y la clasificación del área: emitimos cotización formal y factura, y el despacho a todo Chile se hace en hasta 2 días hábiles; en la Provincia de Santiago llega en nuestros propios camiones.",
+  "keyBenefits": [
+    "13.000 lm con 100W para patios de proceso, andenes y bodegas de inflamables clasificados como Zona 2",
+    "Categoría 3 para áreas Zona 2, con envolvente Ex d y clase T3; grupo de gas a confirmar con el certificado",
+    "IP66 y aluminio anticorrosión WF2 para montaje a la intemperie",
+    "130 lm/W de eficacia y factor de potencia por sobre 0,95",
+    "Driver Mean Well y 42 LED Luxeon 3030 en su interior",
+    "Temperatura de operación de -40 °C a +40 °C",
+    "Certificación CESMEC IEC 60598, 3 años de garantía y 100.000 horas de vida útil"
+  ],
+  "useCases": [
+    "Patios de proceso clasificados como Zona 2 en plantas químicas y petroquímicas",
+    "Bodegas de inflamables de altura media, en áreas Zona 2",
+    "Andenes de carga clasificados como Zona 2 en plantas de combustibles y lubricantes",
+    "Entorno Zona 2 de salas de proceso con vapores de solventes",
+    "Racks de cañerías en refinerías y terminales, en sectores clasificados como Zona 2",
+    "Plantas de tratamiento con áreas clasificadas como Zona 2"
+  ],
+  "faq": [
+    {
+      "question": "¿Qué significa la clase de temperatura T3?",
+      "answer": "T3 limita cuánto puede calentarse la superficie del proyector en una atmósfera de gas. Cada gas o vapor tiene su propia temperatura de ignición, y un equipo es adecuado solo si su temperatura superficial máxima queda por debajo de ella. Algunos vapores se encienden a temperaturas bajas y exigen clases más altas, como T4, T5 o T6: si trabajas con ellos, consúltanos antes de cotizar."
+    },
+    {
+      "question": "¿En qué rango de temperatura ambiente opera?",
+      "answer": "Su ficha declara una temperatura de operación de -40 °C a +40 °C. Ese rango abarca instalaciones con heladas intensas, como las de la zona austral, y patios abiertos en verano, siempre que la temperatura ambiente junto al equipo no supere el máximo: bajo una cubierta metálica o cerca de equipos de proceso calientes puede ser mayor que la del aire exterior. En un equipo con marcado Ex, respetar ese rango es parte de su uso seguro."
+    },
+    {
+      "question": "¿Qué certificación declara?",
+      "answer": "La ficha indica certificación CESMEC IEC 60598. La IEC 60598 es la norma de requisitos generales de seguridad para luminarias; no es una certificación para atmósferas explosivas. La aptitud para esas áreas se lee en el marcado II 3 GD Ex d IICC T3 GC, que conviene revisar junto a la clasificación de tu área. La ficha no menciona un certificado de conformidad del marcado Ex: si tu proyecto o tu mandante lo exige, pídelo al cotizar."
+    },
+    {
+      "question": "¿Qué datos necesito para cotizar varios proyectores?",
+      "answer": "La cantidad, la clasificación de cada área, las sustancias del proceso y, si la tienes, la planta del recinto. Con eso preparamos la cotización formal. Para patios o naves completas podemos hacer un estudio lumínico DIALux que defina cuántos proyectores instalar y hacia dónde orientarlos; si prefieres resolver dudas antes, te asesoramos por WhatsApp o en ventas@elights.cl."
+    }
+  ]
+}

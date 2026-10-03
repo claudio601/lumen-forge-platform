@@ -1,0 +1,46 @@
+{
+  "metaTitle": "Señalética de Salida de Emergencia Antiexplosiva | eLIGHTS",
+  "metaDescription": "Letrero de salida de emergencia a prueba de explosión, con envolvente Ex d para gas, IP65, IK10 y 120 minutos de autonomía. Cotiza con despacho a todo Chile.",
+  "description": "La Señalética de Emergencia Salida a Prueba de Explosión (SKU SDESAPEX) es un letrero luminoso de salida para rutas de evacuación en áreas clasificadas por presencia de gases inflamables, como sectores de plantas químicas, salas de bombas o bodegas de combustibles, siempre que el certificado del equipo cubra la zona asignada a cada área. Tiene carcasa de aluminio con grado **IP65** y resistencia al impacto **IK10**, consume 5W conectada a 220V (50/60 Hz) y su ficha declara **120 minutos** de autonomía con batería.\n\n**Cómo leer el marcado EXDIIBT5 GB**\n\nLa ficha registra la protección como **EXDIIBT5 GB**, escrita sin espacios. En la notación habitual se leería Ex d IIB T5 Gb: Ex d es la envolvente antideflagrante, diseñada para contener una ignición en su interior; IIB es el grupo de gases, que abarca también a los del grupo IIA, como el propano o el metano; T5 es la clase de temperatura superficial, y Gb, el nivel de protección del equipo. Todo el marcado se refiere a atmósferas de gas.\n\nComo la ficha no escribe el marcado en su forma normalizada ni declara la categoría del equipo ni su zona de uso, confirma esa lectura y la zona para la que está aprobado con el certificado del equipo antes de instalarlo en un área clasificada; la ficha no incluye ese certificado, así que pídelo al cotizar. La clase T5 también es una condición que hay que verificar: la temperatura superficial máxima que admite debe quedar por debajo de la temperatura de ignición de cada gas o vapor presente, un dato que trae su hoja de datos de seguridad.\n\n**Batería y autonomía**\n\nLleva una batería de níquel-cadmio (Ni-Cd) de 2.500 mAh, con una vida útil declarada de 500 ciclos, y la ficha indica una autonomía de 120 minutos. La ficha no precisa si el letrero queda encendido en forma permanente o solo se enciende ante un corte de energía, ni declara la norma de iluminación de emergencia que cumple: si tu proyecto, tu mandante o la autoridad exigen un modo de funcionamiento, una autonomía o una norma determinados, confírmalo con nosotros antes de comprar.\n\n**Construcción para ambientes industriales**\n\nLa carcasa es de aluminio con protección anticorrosión WF1. El grado IP65 la protege del polvo y de chorros de agua, y la clasificación IK10, la más alta de su escala, indica una alta resistencia a golpes: útil donde circulan carros, herramientas o grúas horquilla. Sus medidas son 26,5 x 20,5 x 6 cm.\n\n**Compra para proyectos**\n\nPara equipar varias salidas, indica en la solicitud la cantidad y la ubicación de cada letrero, junto con la clasificación de las áreas y los gases presentes. Recibirás la cotización formal con factura; el despacho a todo Chile es en hasta 2 días hábiles, con camiones propios en la Provincia de Santiago.",
+  "keyBenefits": [
+    "Envolvente antideflagrante Ex d para gas; marcado EXDIIBT5 GB a confirmar con el certificado",
+    "Autonomía declarada de 120 minutos, con batería Ni-Cd de 2.500 mAh",
+    "Consumo de 5W conectada a 220V, 50/60 Hz",
+    "IP65 e IK10: protegida contra polvo, chorros de agua y golpes fuertes",
+    "Carcasa de aluminio con tratamiento anticorrosión WF1",
+    "Batería con vida útil de 500 ciclos"
+  ],
+  "useCases": [
+    "Rutas de evacuación en plantas químicas, en áreas de gas que cubra su certificado",
+    "Salidas de salas de bombas y compresores, si el certificado cubre la zona del área",
+    "Bodegas de combustibles y pinturas, en la zona que admita su certificado",
+    "Plantas de gas licuado y de biogás, en sectores que admita su certificado",
+    "Laboratorios con vapores inflamables, verificando zona, grupo IIB y clase T5"
+  ],
+  "faq": [
+    {
+      "question": "¿En qué zona clasificada se puede instalar?",
+      "answer": "La ficha no declara la zona de uso ni la categoría del equipo: solo registra el marcado EXDIIBT5 GB, para atmósferas de gas. La zona de cada área la define el estudio de clasificación de la instalación, y la zona para la que el letrero está aprobado la indica su certificado. Pídelo al cotizar y compáralo con la clasificación de tus áreas antes de instalarlo; si el certificado no cubre la zona de una salida, te ayudamos a revisar otra alternativa."
+    },
+    {
+      "question": "¿Sirve para áreas con hidrógeno o acetileno?",
+      "answer": "No, según la lectura habitual de su marcado, EXDIIBT5 GB, que indica el grupo IIB. Ese grupo cubre gases como el etileno y los del grupo IIA, pero el hidrógeno y el acetileno pertenecen al grupo IIC, que exige equipos marcados para ese grupo. Si tu proceso involucra gases de ese grupo, cuéntanos al cotizar para revisar alternativas."
+    },
+    {
+      "question": "¿Se puede instalar en zonas con polvo combustible?",
+      "answer": "Su marcado, EXDIIBT5 GB según la ficha, es para atmósferas de gas y no declara protección para polvo combustible. Por eso no está indicada para áreas clasificadas por polvo, como molinos, silos de granos o plantas de alimentos con polvo en suspensión."
+    },
+    {
+      "question": "¿Qué mantención necesita la batería?",
+      "answer": "Su batería Ni-Cd declara una vida útil de 500 ciclos. Como en todo sistema de iluminación de emergencia, conviene probar el equipo de forma periódica y llevar un registro de esas pruebas: así se detecta a tiempo cuándo la autonomía empieza a quedar por debajo de los 120 minutos y corresponde planificar el recambio. En un área clasificada, abrir la envolvente para revisar o cambiar la batería es trabajo de personal calificado, con el equipo sin tensión."
+    },
+    {
+      "question": "¿Cómo se conecta?",
+      "answer": "Se alimenta a 220V, 50/60 Hz, con un consumo de 5W. En un área clasificada, la conexión debe hacerla un instalador con experiencia en instalaciones Ex, con prensaestopas y canalización adecuadas para conservar la protección de la envolvente antideflagrante."
+    },
+    {
+      "question": "¿Venden por caja para proyectos?",
+      "answer": "Sí. Además del embalaje individual, de una unidad por caja, la ficha indica un embalaje de 10 unidades por caja, práctico para equipar varias salidas de una misma planta. Envía la cantidad que necesitas y el área comercial prepara la cotización formal, con factura."
+    }
+  ]
+}

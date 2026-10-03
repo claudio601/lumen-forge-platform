@@ -4,7 +4,9 @@
 // Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
 import { useParams, Link } from 'react-router-dom';
-import { products, categories, PROJECT_CATEGORIES } from '@/data/products';
+import { products, categories, PROJECT_CATEGORIES, type Product } from '@/data/products';
+import { useProductContent } from '@/data/catalog/content';
+import type { ProductContent } from '@/data/catalog/types';
 import { buildVariantSku, requestSku } from '@/lib/variantSku';
 import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
@@ -29,6 +31,10 @@ import RequestOrderButton from '@/components/request-order/RequestOrderButton';
 import Seo from '@/components/Seo';
 import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from '@/lib/seo/jsonld';
 import { categoryPath, productPath } from '@/lib/seo/routes';
+import { productDescriptions } from '@/data/catalog/descriptions.generated';
+import SpecGroups, { type SpecGroupsProps } from '@/components/catalog/SpecGroups';
+import type { SpecRow } from '@/data/catalog/jumpseller.types';
+import { htmlToText } from '@/lib/html';
 
 // Mapping CCT -> etiqueta visible en UI / Pipedrive
 const CCT_LABELS: Record<number, string> = {
@@ -60,7 +66,7 @@ function renderDescriptionBlocks(text: string): ReactNode {
   const blocks = text.trim().split(/\n\n+/);
   return blocks.map((block, i) => {
     const lines = block.split('\n');
-    if (lines.length > 1 && lines.every(l => l.trim().startsWith('- '))) {
+    if (lines.every(l => l.trim().startsWith('- '))) {
       return (
         <ul key={i} className="list-disc pl-5 space-y-1 my-2">
           {lines.map((l, j) => (
@@ -69,7 +75,8 @@ function renderDescriptionBlocks(text: string): ReactNode {
         </ul>
       );
     }
-    const headingMatch = /^\*\*(.+)\*\*$/.exec(block.trim());
+    // Solo un bloque que es entero una negrita es subtítulo ("**a** texto **b**" es un párrafo)
+    const headingMatch = /^\*\*([^*]+)\*\*$/.exec(block.trim());
     if (headingMatch) {
       return (
         <h3 key={i} className="text-base font-semibold mt-5 mb-2">
@@ -85,16 +92,33 @@ function renderDescriptionBlocks(text: string): ReactNode {
   });
 }
 
+// Contenido SEO del producto (formato BESTLED) sobre los datos de Jumpseller. Los BESTLED
+// tienen su ficha editorial completa y no lo usan.
+function withContent(p: Product, c: ProductContent | undefined): Product {
+  if (!c || p.description) return p;
+  return {
+    ...p,
+    metaTitle: c.metaTitle,
+    metaDescription: c.metaDescription,
+    description: c.description,
+    keyBenefits: c.keyBenefits,
+    useCases: c.useCases,
+    installationInfo: c.installationInfo,
+    faq: c.faq,
+  };
+}
+
 const ProductDetail = () => {
     const { id } = useParams();
-    const product = products.find(p => p.id === id);
+    const found = products.find(p => p.id === id);
+    const content = useProductContent(found?.jumpseller_id);
     const { addToQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B } = useApp();
     const [qty, setQty] = useState(1);
     const [activeImg, setActiveImg] = useState(0);
     const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
     const [selectedCCT, setSelectedCCT] = useState<number | null>(null);
 
-    if (!product) {
+    if (!found) {
           return (
                   <div className="container py-16 text-center">
     <Seo title="Producto no encontrado | eLIGHTS.cl" description="El producto solicitado no existe o fue removido del catálogo de eLIGHTS.cl." noindex />
@@ -107,6 +131,7 @@ const ProductDetail = () => {
                 );
     }
 
+    const product = withContent(found, content);
     const productUrlPath = productPath(product.id);
     // Imagen para compartir: la primera foto original de Jumpseller (PNG/JPG); sin foto, la de la marca.
     const ogImage = (product.images && product.images[0]) || product.image || undefined;
@@ -114,7 +139,23 @@ const ProductDetail = () => {
     const seoDescription =
       product.metaDescription ||
       `${product.name}${product.watts ? ` ${product.watts}W` : ''}${product.ip ? ` ${product.ip}` : ''}. Iluminación LED profesional con ficha técnica, especificaciones y cotización en eLIGHTS.cl.`;
-    const productDescription = product.description || seoDescription;
+    // Descripción de Jumpseller, limpia y ordenada en la sincronización: su texto (HTML) y su
+    // tabla de especificaciones en los grupos de las fichas BESTLED. Los BESTLED conservan su
+    // texto y sus especificaciones editoriales (decisión del dueño: mejor para SEO).
+    const jumpsellerContent = productDescriptions[product.jumpseller_id];
+    const jumpsellerText = product.description ? undefined : jumpsellerContent?.text;
+    const jumpsellerRows = [
+      ...(jumpsellerContent?.electricos ?? []),
+      ...(jumpsellerContent?.construccion ?? []),
+      ...(jumpsellerContent?.componentes ?? []),
+    ];
+    const productDescription =
+      (product.description && product.description.replace(/\*\*/g, '').replace(/^- /gm, '').replace(/\s+/g, ' ').trim()) ||
+      (jumpsellerContent?.text
+        ? htmlToText(jumpsellerContent.text)
+        : jumpsellerRows.length
+          ? `${product.name}. ${jumpsellerRows.slice(0, 8).map(s => `${s.label}: ${s.value.replace(/\n/g, ', ')}`).join('. ')}.`
+          : seoDescription);
     const productCategory = categories.find(c => c.slug === product.category);
     const seoJsonLd = [
       productJsonLd(product, productDescription),
@@ -138,18 +179,24 @@ const ProductDetail = () => {
           .filter(p => p.category === product.category && p.id !== product.id)
           .slice(0, 4);
   
-    const specs = [
-      { label: 'Potencia', value: product.watts ? product.watts + 'W' : null },
-      { label: 'Flujo luminoso', value: product.lumens ? product.lumens.toLocaleString('es-CL') + ' lm' : null },
-      { label: 'Temperatura de color', value: product.kelvin ? product.kelvin + 'K' : null },
-      { label: 'CRI', value: product.cri ? '>' + product.cri : null },
-      { label: 'Voltaje', value: product.voltage ?? null },
-      { label: 'Grado IP', value: product.ip ?? null },
-      { label: 'Angulo de haz', value: product.beamAngle ? product.beamAngle + 'deg' : null },
-      { label: 'Vida util', value: product.lifetime ? product.lifetime.toLocaleString('es-CL') + 'h' : null },
-      { label: 'Garantia', value: product.warranty ?? null },
-      { label: 'Instalacion', value: product.installationType ?? null },
-        ].filter(s => s.value);
+    // Sin tabla en Jumpseller: los pocos datos deducidos del nombre, en los mismos grupos.
+    const known = (rows: { label: string; value: string | null }[]) => rows.filter((r): r is SpecRow => !!r.value);
+    const nameSpecs = {
+      electricos: known([
+        { label: 'Potencia', value: product.watts ? product.watts + 'W' : null },
+        { label: 'Tensión', value: product.voltage ?? null },
+        { label: 'Flujo luminoso', value: product.lumens ? product.lumens.toLocaleString('es-CL') + ' lm' : null },
+        { label: 'Temperatura de color', value: product.kelvin ? product.kelvin + 'K' : null },
+        { label: 'Índice cromático (CRI)', value: product.cri ? '>' + product.cri : null },
+        { label: 'Ángulo de apertura', value: product.beamAngle ? product.beamAngle + '°' : null },
+      ]),
+      construccion: known([
+        { label: 'Grado de protección', value: product.ip ?? null },
+        { label: 'Instalación', value: product.installationType ?? null },
+        { label: 'Vida útil', value: product.lifetime ? product.lifetime.toLocaleString('es-CL') + ' h' : null },
+        { label: 'Garantía', value: product.warranty ?? null },
+      ]),
+    };
   
     // Resolución de precio por variante de color (CON IVA). Si la variante define
     // price, manda; si no, cae a product.price. El toggle B2B (÷1,19) lo aplica displayPrice.
@@ -176,6 +223,26 @@ const ProductDetail = () => {
       (product.specsConstruccion && product.specsConstruccion.length > 0) ||
       (product.specsComponentes && product.specsComponentes.length > 0)
     );
+    // Especificaciones en el formato BESTLED: las editoriales (BESTLED) o la tabla de Jumpseller
+    // (la misma de elights.cl) ordenada en grupos; sin ninguna, los pocos datos deducidos del nombre.
+    const specGroups: SpecGroupsProps | null = hasGroupedSpecs
+      ? {
+          electricos: product.specsElectricos,
+          construccion: product.specsConstruccion,
+          componentes: product.specsComponentes,
+          applications: product.applications,
+        }
+      : jumpsellerRows.length || jumpsellerContent?.tables || jumpsellerContent?.applications?.length
+        ? {
+            electricos: jumpsellerContent?.electricos,
+            construccion: jumpsellerContent?.construccion,
+            componentes: jumpsellerContent?.componentes,
+            applications: product.applications?.length ? product.applications : jumpsellerContent?.applications,
+            tablesHtml: jumpsellerContent?.tables,
+          }
+        : nameSpecs.electricos.length || nameSpecs.construccion.length
+          ? { ...nameSpecs, applications: product.applications }
+          : null;
     const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
     const skuFinal = buildVariantSku(requestSku(product), selectedCCT);
     // Consultas por WhatsApp con la variante elegida (SKU + color de luz), no el SKU base.
@@ -453,100 +520,7 @@ const ProductDetail = () => {
                 </div>
           
             {/* ── Especificaciones técnicas ──────────────────────────── */}
-            {hasGroupedSpecs ? (
-                    <section className="mb-12">
-                              <h2 className="text-xl font-bold mb-6">Especificaciones técnicas</h2>
-                              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl">
-                                {product.specsElectricos && product.specsElectricos.length > 0 && (
-                                    <div>
-                                              <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
-                                                Eléctrico y fotométrico
-                                              </h3>
-                                              <div className="border rounded-xl overflow-hidden">
-                                                {product.specsElectricos.map((s, i) => (
-                                                    <div key={s.label} className={'flex justify-between gap-3 px-4 py-2.5 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
-                                                              <span className="text-muted-foreground">{s.label}</span>
-                                                              <span className="font-medium text-right">{s.value}</span>
-                                                    </div>
-                                                  ))}
-                                              </div>
-                                    </div>
-                                  )}
-                                {product.specsConstruccion && product.specsConstruccion.length > 0 && (
-                                    <div>
-                                              <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
-                                                Construcción y operación
-                                              </h3>
-                                              <div className="border rounded-xl overflow-hidden">
-                                                {product.specsConstruccion.map((s, i) => (
-                                                    <div key={s.label} className={'flex justify-between gap-3 px-4 py-2.5 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
-                                                              <span className="text-muted-foreground">{s.label}</span>
-                                                              <span className="font-medium text-right">{s.value}</span>
-                                                    </div>
-                                                  ))}
-                                              </div>
-                                    </div>
-                                  )}
-                                {product.specsComponentes && product.specsComponentes.length > 0 && (
-                                    <div>
-                                              <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
-                                                Componentes y control
-                                              </h3>
-                                              <div className="border rounded-xl overflow-hidden">
-                                                {product.specsComponentes.map((s, i) => (
-                                                    <div key={s.label} className={'flex justify-between gap-3 px-4 py-2.5 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
-                                                              <span className="text-muted-foreground">{s.label}</span>
-                                                              <span className="font-medium text-right">{s.value}</span>
-                                                    </div>
-                                                  ))}
-                                              </div>
-                                    </div>
-                                  )}
-                              </div>
-                      {(product.applications ?? []).length > 0 && (
-                                  <div className="mt-8 max-w-3xl">
-                                                <h3 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
-                                                  Aplicaciones
-                                                </h3>
-                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                                                  {(product.applications ?? []).map(a => (
-                                                      <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
-                                                                          <span className="h-2 w-2 bg-primary rounded-full" />
-                                                        {a}
-                                                      </div>
-                                                    ))}
-                                                </div>
-                                  </div>
-                              )}
-                    </section>
-                ) : specs.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-                              <div>
-                                          <h2 className="text-lg font-bold mb-4">Especificaciones tecnicas</h2>
-                                          <div className="border rounded-xl overflow-hidden">
-                                            {specs.map((s, i) => (
-                                      <div key={s.label} className={'flex justify-between px-4 py-3 text-sm ' + (i % 2 === 0 ? 'bg-surface' : 'bg-background')}>
-                                                        <span className="text-muted-foreground">{s.label}</span>
-                                                        <span className="font-medium">{s.value}</span>
-                                      </div>
-                                    ))}
-                                          </div>
-                              </div>
-                      {(product.applications ?? []).length > 0 && (
-                                  <div>
-                                                <h2 className="text-lg font-bold mb-4">Aplicaciones</h2>
-                                                <div className="grid grid-cols-2 gap-2">
-                                                  {(product.applications ?? []).map(a => (
-                                                      <div key={a} className="flex items-center gap-2 text-sm bg-surface rounded-lg p-3">
-                                                                          <span className="h-2 w-2 bg-primary rounded-full" />
-                                                        {a}
-                                                      </div>
-                                                    ))}
-                                                </div>
-                                  </div>
-                              )}
-                    </div>
-                )}
+            {specGroups && <SpecGroups {...specGroups} />}
 
             {/* ── Variantes de temperatura de color (preview visual) ── */}
             {product.cctVariants && product.cctVariants.length > 0 && (
@@ -622,14 +596,21 @@ const ProductDetail = () => {
                 )}
           
             {/* ── Descripción larga ────────────────────────────────── */}
-            {product.description && (
-                    <section className="prose-content max-w-3xl mb-12">
-                              <h2 className="text-xl font-bold mb-4">Descripción</h2>
-                              <div className="text-sm text-foreground/90">
-                                {renderDescriptionBlocks(product.description)}
-                              </div>
-                    </section>
+            {(product.description || jumpsellerText) && (
+              <section className="prose-content max-w-3xl mb-12">
+                <h2 className="text-xl font-bold mb-4">Descripción</h2>
+                {product.description ? (
+                  <div className="text-sm text-foreground/90">{renderDescriptionBlocks(product.description)}</div>
+                ) : (
+                  // Texto de Jumpseller (sin las tablas, que van en Especificaciones técnicas),
+                  // limpio en la sincronización (scripts/jumpseller/sanitize-description.ts).
+                  <div
+                    className="prose prose-sm max-w-none text-foreground/90 prose-table:my-0 prose-td:py-1.5 prose-td:align-top prose-headings:text-foreground"
+                    dangerouslySetInnerHTML={{ __html: jumpsellerText! }}
+                  />
                 )}
+              </section>
+            )}
 
             {/* ── Beneficios clave ─────────────────────────────────── */}
             {product.keyBenefits && product.keyBenefits.length > 0 && (
@@ -709,7 +690,8 @@ const ProductDetail = () => {
                                               <AccordionTrigger className="text-sm font-medium text-left">
                                                 {q.question}
                                               </AccordionTrigger>
-                                              <AccordionContent className="text-sm text-foreground/85 leading-relaxed">
+                                              {/* forceMount: las respuestas quedan en el HTML (las declaran los datos estructurados FAQPage) */}
+                                              <AccordionContent forceMount className="text-sm text-foreground/85 leading-relaxed">
                                                 {q.answer}
                                               </AccordionContent>
                                     </AccordionItem>

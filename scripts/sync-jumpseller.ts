@@ -21,11 +21,15 @@ import { parse as parseDotenv } from 'dotenv';
 import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './jumpseller/client';
 import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
 import { normalizeCatalog } from './jumpseller/normalize';
+import { buildDescriptions, diffDescriptions, renderDescriptionsReport } from './jumpseller/descriptions';
+import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
 import {
   OUTPUT_PATHS,
   findForbiddenKeys,
   renderCategoriesFile,
+  renderDescriptionsFile,
+  type ProductDescription,
   renderPriceIndexFile,
   renderSiteIdsFile,
   renderSnapshotFile,
@@ -34,11 +38,14 @@ import {
 } from './jumpseller/write';
 import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
-import { newSiteId, skuOwners } from '../src/data/catalog/build';
+import { newSiteId, siteSku, skuOwners } from '../src/data/catalog/build';
 import {
+  categories as siteCategories,
   IGNORED_JUMPSELLER_CATEGORY_IDS,
   JUMPSELLER_TOP_CATEGORY_TO_SLUG,
 } from '../src/data/catalog/categories.config';
+import { baseOverrides } from '../src/data/catalog/overlay/overrides';
+import { renderContentReport, reviewContent } from './content/report';
 
 export const MAX_DROP = 0.15;
 const REPORT_DIR = 'reports/jumpseller-sync';
@@ -143,6 +150,13 @@ async function loadSnapshotBaseline(root: string): Promise<BaselineEntry[] | nul
   }));
 }
 
+async function loadPreviousDescriptions(root: string): Promise<Record<number, ProductDescription> | null> {
+  const file = join(root, OUTPUT_PATHS.descriptions);
+  if (!existsSync(file)) return null;
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { productDescriptions: Record<number, ProductDescription> };
+  return { ...mod.productDescriptions };
+}
+
 async function loadSiteIds(root: string): Promise<Record<number, string>> {
   const file = join(root, OUTPUT_PATHS.siteIds);
   if (!existsSync(file)) return {};
@@ -240,7 +254,8 @@ export async function runSync(opts: SyncOptions): Promise<number> {
       'categories.json': JSON.stringify(categories.valid.map(category => ({ category }))),
       'count.json': JSON.stringify({ count: reportedCount }),
     };
-    const leaked = findForbiddenKeys(Object.values(saved));
+    // La descripción (texto público, sin limpiar) sí va en el respaldo local: --from-dir la necesita.
+    const leaked = findForbiddenKeys(Object.values(saved), ['description']);
     if (leaked.length) return abort(`campos prohibidos en lo que se iba a guardar: ${leaked.join(', ')}`);
     for (const [name, content] of Object.entries(saved)) writeFileSync(join(saveRawDir, name), content, 'utf8');
     log(`Datos validados guardados en ${args.saveRaw}`);
@@ -312,6 +327,16 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     .map(([sku, ids]) => ({ sku, jumpseller_ids: [...ids].sort((a, b) => a - b) }))
     .sort((a, b) => a.sku.localeCompare(b.sku));
 
+  // Descripciones (texto y especificaciones agrupadas), limpias. Una problemática se omite y
+  // se informa; nunca bloquea la sincronización. Sin el campo en los datos (respaldo
+  // anterior), se mantiene el archivo actual.
+  const previousDescriptions = await loadPreviousDescriptions(root);
+  const desc = buildDescriptions(products.valid, new Set(next.map(p => p.jumpseller_id)), editorialOverlay);
+  if (!desc.available) log('Los datos no traen descripciones: se mantienen las del sitio.');
+  if (desc.skipped.length) log(`Descripciones omitidas: ${desc.skipped.map(s => `${s.id} (${s.reason})`).join(', ')}`);
+  if (desc.warnings.length) log(`Descripciones con textos a corregir en Jumpseller: ${desc.warnings.map(w => `${w.id} ("${w.phrase}")`).join(', ')}`);
+  if (desc.unknownLabels.length) log(`Etiquetas de especificación sin grupo: ${desc.unknownLabels.join(', ')}`);
+
   // 6. Generar archivos y verificar que no filtren campos prohibidos
   const hash = snapshotHash(next);
   const files = {
@@ -319,6 +344,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     [OUTPUT_PATHS.categories]: renderCategoriesFile(next, hash),
     [OUTPUT_PATHS.priceIndex]: renderPriceIndexFile(next, hash),
     [OUTPUT_PATHS.siteIds]: renderSiteIdsFile(siteIds, hash),
+    ...(desc.available ? { [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(desc.descriptions, hash) } : {}),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
@@ -327,6 +353,22 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   const diff = diffCatalog(baseline, next, baselineLabel);
   const benchmark = readJson<{ prices: BenchmarkPrice[] }>(root, 'scripts/jumpseller/benchmark-2026-03-18.json').prices;
   const markdown = renderDiffMarkdown(diff, { snapshotHash: hash, excluded: result.excluded, benchmark, next, duplicateSkus });
+  const descriptionsReport = renderDescriptionsReport(
+    desc,
+    previousDescriptions ? diffDescriptions(previousDescriptions, desc.descriptions) : null,
+    new Map(next.map(p => [p.jumpseller_id, p.name])),
+    previousDescriptions ? Object.keys(previousDescriptions).length : 0,
+  );
+  // Contenido SEO: revisado contra los datos nuevos (solo informa, no bloquea)
+  const owners = skuOwners(next);
+  const siteDescriptions = desc.available ? desc.descriptions : (previousDescriptions ?? {});
+  const contentReview = reviewContent(root, next, siteDescriptions, {
+    categoryNames: Object.fromEntries(siteCategories.map(c => [c.slug, c.name])),
+    site: p => ({ sku: siteSku(p, baseOverrides[p.jumpseller_id] ?? {}, owners), brand: p.brand ?? baseOverrides[p.jumpseller_id]?.brand ?? '' }),
+    hasEditorial: id => !!editorialOverlay[id]?.description,
+  });
+  const contentReport = renderContentReport(contentReview, new Map(next.map(p => [p.jumpseller_id, p.name])));
+  if (contentReview.mismatched.length) log(`Contenido SEO a corregir: ${contentReview.mismatched.map(m => m.id).join(', ')}`);
   const summary = {
     snapshotHash: hash,
     baseline: baselineLabel,
@@ -341,11 +383,21 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     renamed: diff.renamed.map(r => r.jumpseller_id),
     excluded: result.excluded,
     newSiteIds: newIds,
+    // Sin el campo en los datos se mantiene el archivo anterior: el resumen habla de ese
+    descriptions: Object.keys(siteDescriptions).length,
+    descriptionsAvailable: desc.available,
+    withoutDescription: next.filter(p => !siteDescriptions[p.jumpseller_id]).map(p => p.jumpseller_id),
+    descriptionWarnings: desc.warnings,
+    specLabelsWithoutGroup: desc.unknownLabels,
+    descriptionsSkipped: desc.skipped,
+    contentWritten: contentReview.written,
+    contentMismatched: contentReview.mismatched,
+    contentOrphans: contentReview.orphans,
     duplicateSkus,
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
-  writeFileSync(join(root, REPORT_DIR, 'diff.md'), markdown + '\n', 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${contentReport}\n`, 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
   // 8. Escribir (solo con --write)

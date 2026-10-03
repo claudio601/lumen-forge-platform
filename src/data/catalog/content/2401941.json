@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Kit de Emergencia LED 300W para campanas y proyectores | eLIGHTS",
+  "metaDescription": "Kit de emergencia de 300W para campanas y proyectores LED: 120 minutos de respaldo en un corte, batería de 7,4V y entrada de 85 a 265V. Cotiza para tu bodega.",
+  "description": "El Kit de Emergencia LED 300W (SKU SS300W) lleva el respaldo ante cortes de energía a la iluminación industrial. La ficha lo declara compatible con **campanas LED y proyectores LED de hasta 300W**, con un poder de carga de 3 a 300W, y le asigna una autonomía de **120 minutos**: durante un corte, la luminaria sigue encendida alimentada por la batería del kit.\n\n**Por qué poner kits de emergencia en una bodega o nave**\n\nUn corte de energía en una bodega, una nave o un centro de distribución deja a oscuras pasillos entre racks, andenes de carga y zonas con maquinaria en movimiento. Si algunas de las campanas llevan kit, parte de la iluminación se mantiene encendida mientras dura la autonomía de la batería.\n\nCon proyectores, el mismo criterio sirve en patios de maniobra, accesos vehiculares y estacionamientos donde se trabaja de noche.\n\n**Qué esperar durante el respaldo**\n\nLa ficha no indica con qué potencia queda encendida la campana o el proyector mientras funciona con la batería. En los kits de emergencia esa potencia suele ser una fracción de la nominal, así que no conviene contar con el mismo nivel de luz que con la red ni plantearlo como una forma de seguir operando la nave. La ficha tampoco indica que el kit cumpla una norma de alumbrado de emergencia o de evacuación: si tu recinto debe cumplirla o exige un nivel mínimo de iluminación durante el corte, el proyecto eléctrico define qué equipos corresponden; menciónalo también al cotizar.\n\n**Alimentación y batería**\n\nSu batería es de 7,4V y la entrada acepta de 85 a 265V, 50-60Hz. La garantía es de 1 año. Como la ficha no declara grado de protección para el kit, si la campana o el proyector están en un lugar con humedad, con polvo o a la intemperie, revisa con el instalador dónde ubicarlo para que quede resguardado.\n\n**Proyectos industriales y cotización**\n\nPara una nave completa, eLIGHTS puede preparar un estudio lumínico DIALux que define la cantidad y la ubicación de las campanas; al cotizar, indica además cuántas de ellas necesitan respaldo de emergencia y su potencia. El embalaje por mayor es de 100 kits por caja, con 16,5 kg.",
+  "keyBenefits": [
+    "Para campanas LED y proyectores LED de hasta 300W",
+    "Poder de carga de 3 a 300W en luminarias LED",
+    "Autonomía declarada de 120 minutos durante un corte de energía",
+    "Admite tensiones de 85 a 265V, 50-60Hz",
+    "Batería de 7,4V y 1 año de garantía",
+    "Caja por mayor de 100 kits para proyectos de naves y bodegas"
+  ],
+  "useCases": [
+    "Bodegas y centros de distribución con campanas LED",
+    "Naves industriales y plantas de producción",
+    "Andenes y zonas de carga",
+    "Patios de maniobra iluminados con proyectores",
+    "Galpones y talleres de mantención",
+    "Estacionamientos con proyectores LED"
+  ],
+  "installationInfo": "El kit se conecta a una **campana LED o un proyector LED** de hasta 300W.\n\n- Tensión de entrada: 85 a 265V, 50-60Hz.\n- Ubícalo resguardado de la humedad y el polvo: la ficha no declara grado de protección para el kit.\n- Planifica el acceso al kit para las revisiones periódicas de la batería, sobre todo si la luminaria está en altura.\n\nPor la altura y la potencia de estos equipos, la conexión debe hacerla un instalador eléctrico. Para proyectos en la Región Metropolitana, también cotizamos el montaje como servicio aparte.",
+  "faq": [
+    {
+      "question": "¿Con qué luminarias es compatible?",
+      "answer": "La ficha lo indica para campanas LED y proyectores LED de hasta 300W, con un poder de carga de 3 a 300W. Al cotizar, indícanos el modelo y la potencia de tus equipos para confirmar la compatibilidad."
+    },
+    {
+      "question": "¿Cuánto tiempo mantiene encendida una campana durante un corte?",
+      "answer": "Su autonomía declarada es de 120 minutos, contados desde el corte y con la batería de 7,4V cargada. La ficha no indica con qué potencia queda encendida la campana en ese modo; en los kits de emergencia suele ser bastante menor que la nominal, así que no esperes el mismo nivel de luz que con la red. Si necesitas un mínimo de iluminación durante el corte, plantéalo al cotizar."
+    },
+    {
+      "question": "¿Cuántas campanas deben llevar kit de emergencia?",
+      "answer": "Depende del recinto: de su superficie, de sus zonas de trabajo y de los recorridos que no deben quedar a oscuras. Lo define el proyecto eléctrico según la normativa que aplique; como la ficha no indica que el kit cumpla una norma de alumbrado de emergencia o de evacuación, el proyectista debe confirmar si sirve para ese fin. Para naves y bodegas completas, eLIGHTS puede hacer un estudio lumínico DIALux que ayuda a ubicar las luminarias. Indica en la solicitud cuántas necesitan respaldo."
+    },
+    {
+      "question": "¿Qué tensión de alimentación necesita?",
+      "answer": "Admite de 85 a 265V, 50-60Hz, así que se conecta a la red monofásica habitual en Chile. La conexión, como en cualquier equipo industrial, debe hacerla un instalador eléctrico."
+    },
+    {
+      "question": "¿Cómo se cotiza y despacha?",
+      "answer": "Indica la cantidad de kits y la potencia de las campanas o proyectores que llevarán respaldo; con eso te enviamos una cotización formal, y la compra se factura. El despacho a todo Chile es en hasta 2 días hábiles, y dentro de la Provincia de Santiago lo hacemos con camiones propios."
+    }
+  ]
+}

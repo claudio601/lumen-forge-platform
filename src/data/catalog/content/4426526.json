@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Panel LED 120x30 cm para cielo americano, 48W | eLIGHTS",
+  "metaDescription": "Panel LED backlight de 120x30 cm y 48W: 4.800 lm y 100 lm/W, en luz cálida, neutra o fría. Para pasillos, mesones y oficinas. Cotiza con despacho a todo Chile.",
+  "description": "El Panel LED Backlight 120x30 de 48W es un panel rectangular para **cielo americano**: ocupa un módulo de 120 x 30 cm y forma una franja de luz que sigue el largo del recinto. Cada equipo entrega **4.800 lm** con una eficacia de **100 lm/W** y un índice de reproducción cromática (CRI) mayor a 80, y trabaja en un rango de 170 a 265V, 50-60 Hz. El marco es blanco y la luz puede ser cálida (3500K), neutra (4500K) o fría (6500K).\n\n**Un formato alargado para pasillos y líneas de trabajo**\n\nDonde un panel cuadrado concentra la luz en un punto, el formato de 120 x 30 cm dibuja una línea que acompaña el eje de un pasillo, de un mesón de atención o de una hilera de escritorios. Alineados en el cielo, varios paneles marcan el recorrido de una circulación y ordenan visualmente la planta.\n\nEsa combinación de flujo y rendimiento cromático sirve para leer, atender público o exhibir productos, y por eso es un formato habitual en circulaciones de oficinas, salas de estudio, consultas y locales comerciales.\n\n**Qué tono elegir para cada sector**\n\nLa luz cálida de 3500K acompaña departamentos, hoteles y salas de espera, donde se busca un ambiente acogedor. La neutra de 4500K es la opción de trabajo para oficinas, aulas y mesones de atención. La fría de 6500K, más azulada, se aprovecha en archivos y pasillos de servicio. Si el proyecto tiene zonas distintas, puedes pedir un tono para cada una en la misma solicitud.\n\n**Construcción y datos eléctricos**\n\nEl panel combina un cuerpo de aluminio y marco blanco con un lente de PMMA y un difusor de PS, y emplea LED SMD5730. Tiene grado **IP44**, que lo resguarda de salpicaduras y del ingreso de objetos sólidos pequeños, por lo que corresponde a recintos interiores, y opera entre -20 °C y 45 °C. No admite regulación, y su factor de potencia declarado es 0,9.\n\n**Cómo cotizar**\n\nIndica en tu solicitud cuántos paneles necesitas y qué tono va en cada sector. El equipo comercial de eLIGHTS responde con la cotización formal y emite factura; si tienes dudas sobre la modulación de tu cielo, te asesoramos antes por WhatsApp o en ventas@elights.cl.",
+  "keyBenefits": [
+    "Formato de 120 x 30 cm que traza líneas de luz en pasillos, mesones e hileras de escritorios",
+    "4.800 lm con 48W, con una eficacia de 100 lm/W",
+    "Luz cálida de 3500K, neutra de 4500K o fría de 6500K, con CRI sobre 80",
+    "Perfil de 30 mm de alto: útil en entretechos con poco espacio libre",
+    "IP44 y operación de -20 °C a 45 °C para recintos interiores",
+    "Vida útil declarada de 30.000 horas, 1 año de garantía y certificación CE y RoHS"
+  ],
+  "useCases": [
+    "Pasillos y circulaciones de oficinas con cielo americano",
+    "Hileras de escritorios en oficinas de planta abierta",
+    "Mesones de atención en locales comerciales",
+    "Salas de estudio y bibliotecas",
+    "Pasillos de edificios residenciales con cielo modular",
+    "Archivos y pasillos de servicio (versión fría)"
+  ],
+  "installationInfo": "El panel se apoya en un **módulo de 120 x 30 cm** de la perfilería del cielo americano, igual que una placa del cielo. Si tu cielo está modulado en otra medida, indícalo al cotizar y revisamos contigo cómo formar ese espacio.\n\n- Alto del panel: 30 mm.\n- Alimentación: de 170 a 265V, 50-60 Hz.\n- No regulable: se conecta a un interruptor de encendido y apagado.\n- IP44: solo para interiores.\n\nPara conectarlo, recurre a un instalador eléctrico.",
+  "faq": [
+    {
+      "question": "¿Qué diferencia hay entre un panel backlight y uno de luz lateral?",
+      "answer": "En un panel backlight los LED quedan repartidos detrás del difusor y lo iluminan de frente; en uno de luz lateral (edge-lit), van en el marco y una placa guía conduce la luz hacia el centro. El esquema backlight apunta a una superficie más uniforme, algo que se nota en un formato largo como este, y el lateral permite perfiles más delgados. Este modelo es backlight, con 30 mm de alto."
+    },
+    {
+      "question": "¿Se puede conectar a un dimmer?",
+      "answer": "No. La ficha lo declara no regulable, así que se maneja con un interruptor común de encendido y apagado; conectado a un dimmer podría parpadear o dañarse. Si en tu proyecto necesitas variar la intensidad de la luz, escríbenos y buscamos una alternativa."
+    },
+    {
+      "question": "¿Cuánto dura y qué respaldo tiene?",
+      "answer": "Según sus datos técnicos, alcanza 30.000 horas de vida útil y se vende con 1 año de garantía. En certificaciones informa CE y RoHS: el marcado CE indica que el equipo cumple las exigencias europeas que le aplican, y RoHS, que se fabrica dentro de los límites para sustancias como plomo, mercurio o cadmio."
+    },
+    {
+      "question": "¿Cómo viene embalado si compro por mayor?",
+      "answer": "Por mayor se embala de a 6 paneles en una caja larga de 121,5 x 17 x 31,5 cm, con un peso de 8,2 kg. Cada pedido lleva cotización formal y factura, y se despacha a todo Chile en hasta 2 días hábiles; dentro de la Provincia de Santiago, en camiones propios."
+    }
+  ]
+}

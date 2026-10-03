@@ -1,0 +1,34 @@
+{
+  "metaTitle": "Fuente de Poder Switching 12V 60W para Interior | eLIGHTS",
+  "metaDescription": "Fuente de 12V DC y 60W para huincha LED bajo techo: una por ambiente, cada una con su encendido. Mide 110 x 77 x 35 mm; caja por mayor de 50. Cotiza en eLIGHTS.",
+  "description": "La Fuente de Poder Switching 60W 12V (SKU FU60I) entrega **12V de corriente continua** con una potencia de salida de 60W, para cintas LED, módulos y otros equipos de 12V DC instalados bajo techo. Su carcasa perforada, de 110 x 77 x 35 mm, tiene grado de protección IP20; es de tipo AC/DC y cuenta con certificación CE. Con esa capacidad intermedia, sirve cuando un ambiente o un mueble lleva más cinta de la que cubre una fuente pequeña, sin llegar a justificar una fuente de tablero.\n\n**Una fuente por ambiente**\n\nEn una casa, una oficina o un local, cada sector suele tener su propio encendido: la cocina, el comedor, la sala de reuniones o la vitrina. En lugar de llevar todos los tramos de huincha a una sola fuente grande, se puede asignar una fuente de 60W a cada zona, conectada a su interruptor del lado de la red. Así cada sector se enciende por separado, los cables de 12V quedan cortos y una falla en una zona no deja sin luz a las demás.\n\nEse esquema también facilita crecer: si más adelante sumas un mueble o un nicho iluminado, agregas otra fuente sin rehacer lo que ya está instalado.\n\n**Instalación bajo techo**\n\nEl grado IP20 indica que el equipo no tiene protección contra líquidos, así que se instala en un lugar seco. Las perforaciones de la carcasa permiten que el aire circule y se lleve el calor: no la encierres en una caja sin ventilación y déjala en un punto al que se pueda llegar para revisarla, como un mueble con tapa o un registro.\n\nSe alimenta desde la red domiciliaria chilena, dentro de su rango de entrada de 200 a 220V a 50 Hz; el otro rango que declara es de 100 a 120V a 60 Hz. Un instalador eléctrico hace la conexión a la red, y en el lado de 12V hay que cuidar la polaridad de cada tramo.\n\n**Compras por cantidad**\n\nPara instaladores y obras con muchos puntos, el embalaje por mayor trae 50 unidades por caja, de 43,5 x 24,5 x 23 cm y 10,5 kg, un dato útil para calcular el traslado y el acopio. Indica la cantidad y el uso que le darás, y el equipo de eLIGHTS te enviará la cotización formal con factura. El despacho llega a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Salida de 12V DC y 60W para huincha y módulos LED de 12V bajo techo",
+    "Capacidad intermedia: una fuente por ambiente, cada una con su encendido",
+    "Con una fuente junto a cada zona, los cables de 12V quedan cortos",
+    "Carcasa perforada IP20 de 110 x 77 x 35 mm, para lugares secos y ventilados",
+    "Embalaje por mayor de 50 unidades por caja, para instaladores y obras"
+  ],
+  "useCases": [
+    "Cielos con cinta LED perimetral en livings y dormitorios",
+    "Cocinas y bares con luz bajo cubierta",
+    "Salas de reuniones con encendido independiente por zona",
+    "Exhibidores y góndolas de tiendas",
+    "Iluminación de acento en hoteles y restaurantes",
+    "Proyectos inmobiliarios con muchas unidades iguales"
+  ],
+  "faq": [
+    {
+      "question": "¿Puedo usarla con cualquier cinta LED?",
+      "answer": "Solo con cintas y módulos que funcionen con 12V de corriente continua, que es lo que entrega esta fuente. Una cinta diseñada para una tensión mayor quedaría con poca luz o no encendería, y las cintas que se conectan directamente a la red eléctrica no usan este tipo de fuente. Revisa la tensión en la ficha de la cinta antes de cotizar."
+    },
+    {
+      "question": "¿Qué pasa si le conecto más de 60W?",
+      "answer": "La fuente queda trabajando por sobre su capacidad: se calienta más de la cuenta, la cinta puede parpadear o perder brillo y el equipo dura menos. Para evitarlo, suma lo que vas a conectar (en una cinta, su consumo por metro multiplicado por el largo; en módulos, la potencia de cada uno) y verifica que el total quede bajo los 60W, con margen. Si no alcanza, divide en dos circuitos con una fuente cada uno."
+    },
+    {
+      "question": "¿Sirve para otros equipos de 12V, además de iluminación?",
+      "answer": "Sí, puede alimentar otros equipos de 12V de corriente continua, siempre que la tensión del equipo coincida y que su consumo, sumado al resto de lo conectado, no supere los 60W de la fuente. Revisa ambos datos en la ficha de cada equipo antes de conectarlo y, si tienes dudas sobre un caso puntual, escríbenos por WhatsApp o a ventas@elights.cl."
+    }
+  ]
+}

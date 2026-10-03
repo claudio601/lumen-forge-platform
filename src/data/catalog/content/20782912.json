@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED Ultra Slim 400W 36.000 lm IP66 | eLIGHTS",
+  "metaDescription": "Proyector LED Ultra Slim de 400W y 36.000 lm, IP66 e IK08, para centros de distribución, estacionamientos extensos y canchas. Cotiza con despacho a todo Chile.",
+  "description": "El modelo de 400W del Proyector LED Ultra Slim ilumina desde la altura superficies exteriores amplias: explanadas de centros de distribución, estacionamientos de gran tamaño, complejos deportivos y frentes de faena. Entrega **36.000 lm** con 400W (90 lm/W) y opera con 220-240V a 50Hz. Su carcasa negra, de marca JIE, tiene grado **IP66** y clasificación **IK08**. Puede pedirse en luz fría o en una variante de tono más cálido.\n\n**Montaje en altura: donde rinde el haz de 120°**\n\nEl flujo lo generan 360 chips LED SMD 2835, con una apertura de 120°. Un haz tan abierto pide altura: desde un poste alto o desde el muro de una nave, la luz se reparte sobre una gran superficie y llega al suelo de forma más pareja; montado bajo, en cambio, deja manchas brillantes y encandila. El CRI mayor a 80 permite reconocer colores durante la carga y descarga y leer rotulados en el patio.\n\n**Datos eléctricos para el proyecto**\n\nEn un recinto con decenas de equipos, la potencia no es el único dato que revisa el proyectista. Este proyector trabaja con factor de potencia de 0,99, es decir, casi no demanda energía reactiva, y con una distorsión armónica total (THD) menor al 15%. Ambos valores entran en el cálculo del empalme, de los tableros y de las protecciones.\n\n**Protección y respaldo**\n\nSellado contra el polvo y apto para recibir chorros de agua gracias a su IP66, tiene además una carcasa con clasificación IK08 frente a impactos. Soporta temperaturas de trabajo entre -20 °C y 60 °C. Cuenta con certificación SEC y garantía de 1 año, y su vida útil declarada es de 40.000 horas.\n\n**Estudio lumínico y compra**\n\nPara un recinto de esta escala, eLIGHTS prepara un estudio lumínico DIALux que define la cantidad de proyectores, su altura de montaje y su orientación. Dentro de la Región Metropolitana, la instalación se puede agregar como servicio aparte. Indica en tu solicitud cuántos equipos van en cada sector y con qué tono: recibirás la cotización formal, y la compra se factura.",
+  "keyBenefits": [
+    "36.000 lm con 400W para cubrir grandes superficies desde postes altos",
+    "Haz abierto de 120° que rinde mejor montado en altura",
+    "THD menor al 15% y factor de potencia de 0,99, datos para el cálculo del empalme",
+    "IP66 e IK08: sellado contra polvo y agua, con carcasa resistente a impactos",
+    "CRI mayor a 80 para carga y descarga y lectura de rotulados",
+    "Vida útil declarada de 40.000 horas y garantía de 1 año, con sello SEC"
+  ],
+  "useCases": [
+    "Explanadas de centros de distribución",
+    "Estacionamientos de grandes centros comerciales",
+    "Complejos deportivos con canchas de fútbol",
+    "Frentes de faena con trabajo nocturno",
+    "Muros altos de naves industriales y bodegas",
+    "Patios de camiones de empresas de transporte"
+  ],
+  "installationInfo": "Admite montaje en **muro o poste**. Para aprovechar su haz de 120°, se instala en postes altos o en la parte alta de los muros de naves y edificios.\n\n- Tensión: 220-240V, 50Hz.\n- Sin accesorios incluidos: el cableado, la caja de conexión estanca y las protecciones del circuito se definen en el proyecto eléctrico.\n- Orienta cada proyector hacia la zona que le asigna el estudio lumínico y evita apuntarlo hacia vías o recintos vecinos.\n\nEl izado y la conexión deben hacerlos instaladores calificados, con los resguardos propios del trabajo en altura.",
+  "faq": [
+    {
+      "question": "¿En qué recintos conviene un proyector de 400W?",
+      "answer": "Conviene cuando hay que cubrir mucha superficie desde pocos puntos de montaje: la explanada de un centro de distribución, un estacionamiento extenso, una cancha de fútbol o un frente de faena. Cada equipo aporta 36.000 lm. En cambio, para un patio de casa, un acceso o la fachada de un local, esta potencia es excesiva: encandilaría y consumiría más energía de la necesaria."
+    },
+    {
+      "question": "¿Qué tono de luz conviene para un patio logístico?",
+      "answer": "En patios logísticos y canchas se usa sobre todo la luz fría, porque su blanco intenso favorece la percepción de detalle durante el trabajo nocturno. La versión de tono más cálido se elige cuando el proyector ilumina una fachada o un espacio público donde se busca un ambiente menos industrial. Puedes cotizar ambas en un mismo pedido."
+    },
+    {
+      "question": "¿Cuánto pesa y cómo se embala?",
+      "answer": "Cada proyector viene en caja individual, con un peso de 2,95 kg. Para obras con varios puntos, la caja master agrupa 6 unidades y pesa 18 kg, un dato útil para planificar el traslado a la obra y la maniobra de izado."
+    },
+    {
+      "question": "¿Despachan a faenas y obras en regiones?",
+      "answer": "Sí. El despacho a cualquier región toma hasta 2 días hábiles: en la Provincia de Santiago llegamos con camiones propios y a regiones a través de un operador logístico. Indica en la solicitud la comuna de la obra y la cantidad de equipos para coordinar la entrega."
+    }
+  ]
+}

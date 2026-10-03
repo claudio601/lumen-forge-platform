@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '65767bbfa37a';
+export const SNAPSHOT_HASH = 'e94494c8c631';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -7592,7 +7592,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "permalink": "campana-led-ufo-a-prueba-de-explosion-150w",
     "sku": "PLAPE150F",
     "price": 251900,
-    "brand": "JIE",
+    "brand": null,
     "featured": false,
     "categories": [
       "iluminacion-antiexplosiva"
@@ -15264,6 +15264,41 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "id": 81007565,
         "url": "https://images.jumpseller.com/store/elights-cl/37039738/media/696376_2e12c4f686f74c5aa1cfa4b4e5822763~mv2.png?1788980660",
         "position": 1
+      }
+    ],
+    "variants": []
+  },
+  {
+    "jumpseller_id": 37404730,
+    "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 300W",
+    "permalink": "campana-led-ufo-a-prueba-de-explosion-300w",
+    "sku": "PLAPEX300F",
+    "price": 321600,
+    "brand": null,
+    "featured": false,
+    "categories": [
+      "iluminacion-antiexplosiva"
+    ],
+    "images": [
+      {
+        "id": 81839749,
+        "url": "https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_eLIGHTS.cl.png?1790864686",
+        "position": 1
+      },
+      {
+        "id": 81839747,
+        "url": "https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_3_eLIGHTS.cl.png?1790864686",
+        "position": 2
+      },
+      {
+        "id": 81839748,
+        "url": "https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_4_eLIGHTS.cl.png?1790864686",
+        "position": 3
+      },
+      {
+        "id": 81839746,
+        "url": "https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_2_eLIGHTS.cl.png?1790864686",
+        "position": 4
       }
     ],
     "variants": []

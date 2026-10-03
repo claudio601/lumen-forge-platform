@@ -1,0 +1,36 @@
+{
+  "metaTitle": "Panel LED 120x60 cm 80W regulable de 6.800 lm | eLIGHTS",
+  "metaDescription": "Panel LED regulable de 120x60 cm y 80W: 6.800 lm a plena potencia, CRI sobre 80 y tres temperaturas de color. Pide tu cotización para oficinas y aulas.",
+  "description": "El Panel LED 120x60 de 80W regulable permite **ajustar la intensidad de la luz** en recintos con cielo americano, algo muy útil cuando un mismo espacio cambia de uso durante el día. A plena potencia alcanza 6.800 lm, con 85 lm/W de eficacia, y su índice de reproducción cromática (CRI) es mayor a 80. Admite tensiones de entrada de 85 a 265V, tiene marco blanco y se cotiza en luz cálida (3500K), neutra (4500K) o fría (6500K).\n\n**Por qué elegir un panel regulable**\n\nEn una sala de reuniones con proyector, un auditorio o un aula, bajar la luz mejora la lectura de la pantalla sin dejar el recinto a oscuras. En restaurantes y salas de exhibición, la regulación permite pasar de una luz plena durante la limpieza o el montaje a un ambiente más tenue durante la atención. Con un panel regulable, esos cambios se hacen desde el regulador, sin apagar equipos completos.\n\n**El regulador tiene que ser compatible**\n\nQue el panel admita regulación está confirmado en la ficha; el sistema con que se regula, en cambio, no aparece indicado. Como existen distintos tipos de dimmer, antes de comprarlo conviene confirmar con nuestro equipo cuál corresponde a este modelo: un regulador incompatible puede causar parpadeo, zumbido o un rango de ajuste muy corto. Coméntalo al cotizar y lo revisamos contigo.\n\n**Gran formato para salas y aulas**\n\nAl repartir 6.800 lúmenes en un formato de 120 x 60 cm, el panel funciona como una fuente de luz amplia, algo que se agradece frente a pantallas, pizarras y mesas de trabajo. Su CRI mayor a 80 mantiene reconocibles los colores de gráficos, maquetas y material impreso.\n\n**Construcción y montaje**\n\nTiene cuerpo de aluminio, tecnología LED SMD2835 y grado **IP44**, que lo protege de las salpicaduras y de la entrada de cuerpos extraños sólidos de pocos milímetros: es un equipo para interiores. Viene preparado para ir embutido en la perfilería del cielo, y la ficha contempla también el montaje suspendido con piolas. Sus certificaciones declaradas son CE, EMC, RoHS y UL, y la garantía es de 1 año.\n\n**Cotización y despacho**\n\nPara proyectos con varios paneles, el embalaje por mayor es de 6 unidades por caja de 124,5 x 11,5 x 63 cm, con 33,7 kg. Cuéntanos la cantidad, el tono de luz y el regulador que piensas usar; el equipo comercial de eLIGHTS te envía la cotización formal con factura, y la entrega en cualquier región del país toma hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Regulable: más luz para trabajar, menos para proyectar o presentar",
+    "6.800 lm a plena potencia con 80W y una eficacia de 85 lm/W",
+    "Gran formato de 120 x 60 cm para salas de reuniones, aulas y auditorios",
+    "CRI mayor a 80 en cualquiera de sus tres tonos: 3500K, 4500K o 6500K",
+    "Embutido en la perfilería o colgado con piolas desde la losa",
+    "Garantía de 1 año; la ficha lista CE, EMC, RoHS y UL"
+  ],
+  "useCases": [
+    "Salas de reuniones con proyector o pantalla",
+    "Auditorios y salas de capacitación",
+    "Restaurantes que cambian de ambiente entre almuerzo y cena",
+    "Aulas universitarias y salas de clases",
+    "Salas de exhibición y showrooms",
+    "Salas de directorio y oficinas gerenciales"
+  ],
+  "installationInfo": "Por defecto el panel va **embutido** en un módulo de 120 x 60 cm del cielo americano; si el recinto no tiene cielo falso, la ficha permite montarlo **suspendido con piolas**.\n\n- Tensión de entrada: 85 a 265V.\n- Es regulable: usa un dimmer compatible con el panel, confirmado con nuestro equipo antes de la compra.\n- Grado IP44: uso en interiores.\n\nEl cableado del circuito regulado y la conexión deben quedar a cargo de un instalador eléctrico. En obras de la Región Metropolitana, el equipo de eLIGHTS puede hacerse cargo de la instalación, que se cotiza por separado.",
+  "faq": [
+    {
+      "question": "¿Puedo controlar varios paneles con un solo regulador?",
+      "answer": "Depende del regulador. Además de ser compatible con el panel, debe soportar la carga total del circuito: cada panel consume 80W, así que suma la potencia de todos los que irán en ese circuito y compárala con la capacidad que indica el fabricante del dimmer. Indícanos al cotizar cuántos paneles irán por regulador y lo revisamos contigo."
+    },
+    {
+      "question": "¿Qué pasa con la luz y el consumo cuando bajo la intensidad?",
+      "answer": "Los 6.800 lm y los 80W corresponden a plena potencia. Al bajar la intensidad con el regulador, el flujo disminuye según el ajuste que elijas y, en general, el consumo también se reduce. La ficha no detalla el rango de regulación, así que si necesitas un nivel mínimo de luz en particular, coméntalo al cotizar."
+    },
+    {
+      "question": "¿Qué tono conviene para una sala de reuniones o un aula?",
+      "answer": "La neutra de 4500K es la más usada en salas de reuniones y aulas, porque es una luz clara y equilibrada. La fría de 6500K se prefiere en laboratorios y áreas técnicas, y la cálida de 3500K en restaurantes, hoteles y salas de estar. Puedes combinar tonos en un mismo pedido según cada recinto."
+    }
+  ]
+}

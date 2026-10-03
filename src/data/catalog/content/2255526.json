@@ -1,0 +1,38 @@
+{
+  "metaTitle": "Fuente de Poder Exterior IP67 12V 60W 5A | eLIGHTS",
+  "metaDescription": "Fuente de poder estanca IP67 de 60W, con salida de 12V DC y 5A, para cinta y módulos LED en terrazas, fachadas y letreros. Pide tu cotización en eLIGHTS.",
+  "description": "La Fuente de Poder Switching 60W 12V (SKU FU60E) entrega **5A a 12V de corriente continua** y está sellada con grado **IP67**, a prueba de agua, para instalaciones LED que quedan en exterior: terrazas, quinchos, fachadas de casas, pérgolas o letreros medianos. Es una fuente AC/DC que se conecta a la red con una entrada de 170 a 265V a 50/60Hz, mide 168 x 47 x 33 mm y tiene certificación CE y RoHS.\n\n**60W o 5A: cómo dimensionar la carga**\n\nSegún el fabricante, el consumo de una cinta o de un módulo puede venir expresado en watts o en amperes. Por eso conviene tener presentes los dos topes de esta fuente, que son equivalentes: lo conectado tiene que sumar menos de 60W o, lo que es igual, menos de 5A a 12V. Calcula el consumo de cada tramo, súmalos y deja una parte sin usar; en exterior, donde el calor del día también eleva la temperatura del equipo, una fuente holgada trabaja con menos exigencia.\n\n**Montaje en exterior**\n\nGracias al IP67 resiste polvo y agua, aunque el lugar donde la fijes también influye en cuánto dura:\n\n- Fíjala en un muro, una viga o dentro de un letrero, con los cables saliendo hacia abajo para que el agua no escurra hacia las conexiones.\n- Evita las zonas donde se forma charco o se acumula tierra.\n- Sella cada empalme de entrada y de salida con manga termocontraíble.\n- Deja un acceso para revisarla sin desarmar la instalación.\n\n**Cotización**\n\nEnvíanos qué vas a iluminar, el modelo de cinta o módulo y el largo aproximado de cada tramo, y revisamos contigo si una fuente de 60W calza con tu proyecto. Recibirás la cotización formal con factura, con despacho en hasta 2 días hábiles a cualquier región de Chile.",
+  "keyBenefits": [
+    "Salida de 12V DC con 5A y 60W para terrazas, fachadas y letreros con LED",
+    "Carcasa sellada IP67, a prueba de agua, para instalación a la intemperie",
+    "Formato de 168 x 47 x 33 mm, fácil de fijar en muros, vigas o letreros",
+    "Se alimenta desde la red con 170 a 265V, a 50/60Hz",
+    "Marcado CE y RoHS en una fuente switching AC/DC"
+  ],
+  "useCases": [
+    "Terrazas y quinchos con cinta LED de 12V",
+    "Luz perimetral bajo los aleros de una casa",
+    "Pérgolas y cobertizos de patio",
+    "Letreros y cajas de luz exteriores de tamaño mediano",
+    "Módulos LED en jardines y antejardines",
+    "Accesos y pasillos exteriores de condominios"
+  ],
+  "faq": [
+    {
+      "question": "¿Puedo instalarla a pleno sol?",
+      "answer": "Puede quedar a la intemperie gracias a su grado IP67, pero el sol directo durante todo el día eleva su temperatura de trabajo. Si tienes la opción, móntala en un lugar con sombra, como bajo un alero o detrás de un letrero, y no la cargues al máximo: así la electrónica trabaja más descansada."
+    },
+    {
+      "question": "¿Qué pasa si la cinta queda lejos de la fuente?",
+      "answer": "El cable de 12V pierde tensión a lo largo del recorrido, y con 5A ese efecto se nota: el tramo se ve más tenue en su extremo final. Para evitarlo, acerca la fuente a la carga, usa un conductor de sección acorde a la corriente o alimenta la cinta desde ambos extremos. Un instalador eléctrico puede definir la sección adecuada."
+    },
+    {
+      "question": "¿Dónde pongo el interruptor para encender la cinta?",
+      "answer": "Lo habitual es ubicarlo del lado de la red, antes de la fuente: así, al apagar la luz, la fuente también queda sin alimentación. Si el proyecto tiene sectores que se usan en momentos distintos, como la terraza y el jardín, conviene darle a cada uno su propia fuente y su propio interruptor, en vez de concentrar todo en una sola unidad. Esa conexión la debe hacer un instalador eléctrico."
+    },
+    {
+      "question": "¿Venden varias unidades para un mismo proyecto?",
+      "answer": "Sí. Si divides el proyecto en sectores, cada uno con su fuente, indica la cantidad total al pedir la cotización. Atendemos a instaladores eléctricos, constructoras y empresas, y toda compra se emite con factura. Si tienes dudas sobre cuántas fuentes usar, te asesoramos por WhatsApp o en ventas@elights.cl."
+    }
+  ]
+}

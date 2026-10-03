@@ -1,0 +1,37 @@
+{
+  "metaTitle": "Panel LED Redondo Embutido 12W IP44, 1.140 lm | eLIGHTS",
+  "metaDescription": "Panel LED redondo de 12W para embutir: 1.140 lm, IP44, certificación SEC y controlador incluido. Para dormitorios y oficinas. Cotiza con despacho a todo Chile.",
+  "description": "Pensado para cielo falso, el Panel LED Redondo Embutido 12W IP44 da luz general a dormitorios, cocinas y oficinas pequeñas. Ofrece **1.140 lm** con 12W (95 lm/W), un CRI superior a 80 y tres opciones de tono: 3000K, 4000K y 6500K. Su marco blanco de **16,8 cm** se embute en un corte de 14,6 cm, el cuerpo tiene 20 mm de alto y la ficha le asigna un área recomendada de 8 m².\n\n**Luz pareja para dormitorios y escritorios**\n\nSobre los LED SMD2835 va un difusor acrílico que suaviza el brillo y reparte la luz por todo el disco. El CRI sobre 80 permite ver con naturalidad los colores de muebles, ropa y documentos, algo que se agradece tanto en un dormitorio como frente a un escritorio.\n\nEn una pieza para dormir, la luz cálida de 3000K da un ambiente más tranquilo para el final del día. Si el mismo recinto se usa para trabajar o hacer tareas, la de 4000K se ve clara sin resultar dura, y la de 6500K, la más blanca, queda para talleres pequeños o zonas de servicio.\n\n**Certificación SEC y controlador incluido**\n\nEl panel cuenta con certificación SEC N° 598707, emitida con base en las normas IEC 60598-1 (requisitos generales de seguridad de luminarias) e IEC 60598-2-1 (luminarias fijas de uso general). Se conecta a la red de 220V - 50Hz a través de un controlador externo de bajo voltaje que viene incluido, con un factor de potencia de 0,98.\n\n**Construcción y protección**\n\nEl cuerpo es de aluminio y su grado IP44 lo protege del ingreso de objetos sólidos pequeños y del agua que salpica en cualquier dirección, por ejemplo cerca de un lavaplatos; no está hecho para recibir agua directa. Opera entre -20 °C y 50 °C, tiene una vida útil declarada de 50.000 horas y 1 año de garantía.\n\n**Embalaje**\n\nCada panel viene en una caja de 17,9 x 20,5 x 2,5 cm y 0,21 kg. Por mayor se embalan 40 unidades en cajas de 75,5 x 27 x 21,5 cm y 9,4 kg, un formato práctico cuando hay que equipar varios departamentos de una misma obra.",
+  "keyBenefits": [
+    "1.140 lm con 12W y 95 lm/W para la luz general de dormitorios y oficinas pequeñas",
+    "Área recomendada de 8 m² por panel, según la ficha",
+    "Marco de 16,8 cm, corte de 14,6 cm y cuerpo de 20 mm de alto",
+    "Certificación SEC N° 598707 bajo IEC 60598-1 e IEC 60598-2-1",
+    "Controlador externo de bajo voltaje incluido: no hay que comprar un driver aparte",
+    "Difusor acrílico y CRI sobre 80: luz suave y colores naturales",
+    "Vida útil declarada de 50.000 horas y 1 año de garantía"
+  ],
+  "useCases": [
+    "Dormitorios de casas y departamentos",
+    "Cocinas y comedores de diario",
+    "Oficinas individuales y privados",
+    "Consultas médicas y dentales",
+    "Salas de estudio y bibliotecas pequeñas",
+    "Locales comerciales pequeños"
+  ],
+  "installationInfo": "Se monta **empotrado** en el cielo falso, en una perforación de **14,6 cm**. El marco blanco de 16,8 cm cubre el corte; el cuerpo mide 20 mm de alto, y sobre la placa también debe haber lugar para el controlador.\n\n- Conexión: la red de 220V - 50Hz llega al controlador externo de bajo voltaje incluido, y este alimenta el panel.\n- Interruptor común: el panel no admite dimmer.\n- IP44: para recintos interiores con salpicaduras ocasionales.\n\nConviene que un electricista calificado haga la conexión; si el proyecto está en la Región Metropolitana, eLIGHTS puede encargarse de la instalación como servicio aparte.",
+  "faq": [
+    {
+      "question": "¿Para qué sirve el controlador externo?",
+      "answer": "El controlador (o driver) transforma la corriente de la red, de 220V - 50Hz, en el bajo voltaje con que trabajan los LED del panel. Viene incluido en la caja, así que no necesitas comprarlo por separado. Se deja sobre el cielo, junto a la luminaria, conectado entre el cable de la red y el panel."
+    },
+    {
+      "question": "¿Con cuántos paneles cubro un dormitorio?",
+      "answer": "Un panel por cada 8 m² es lo que indica la ficha. Un dormitorio de esa superficie queda cubierto con uno al centro; si es más grande o alargado, dos paneles separados reparten mejor la luz. Para leer en la cama, lo habitual es complementar con una lámpara de velador."
+    },
+    {
+      "question": "¿Cómo pido una cotización?",
+      "answer": "Indica la cantidad de paneles y la temperatura de color de cada recinto (3000K, 4000K o 6500K). El equipo comercial de eLIGHTS responde con la cotización formal y la compra se emite con factura. Atendemos a personas, instaladores y constructoras, y despachamos a todo Chile en hasta 2 días hábiles, con camiones propios dentro de la Provincia de Santiago."
+    }
+  ]
+}

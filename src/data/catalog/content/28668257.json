@@ -1,0 +1,45 @@
+{
+  "metaTitle": "Proyector LED Solar 150W IP66 gris, luz fría 6500K | eLIGHTS",
+  "metaDescription": "Proyector solar LED 150W gris, de aluminio y policarbonato IP66, con panel de 12W, batería LiFePO4 de 15.000 mAh y control remoto. Despacho a todo Chile.",
+  "description": "El Proyector LED Solar 150W gris (modelo GJX-S-FT-118-150W, SKU PLSG150F) ilumina patios, entradas y estacionamientos de casas con energía del sol. Su panel monocristalino de 12W, independiente del foco, carga una batería LiFePO4 de 15.000 mAh, y la carcasa de aluminio con policarbonato tiene protección **IP66** contra polvo y chorros de agua. Su luz fría de 6500K sale con una apertura de 120°, y el equipo se maneja con fotocelda y control remoto.\n\n**Montaje y distribución de la luz**\n\nSe monta en muro o poste, sin superar los 4 metros que sugiere la ficha. Con su apertura de 120°, el haz se abre a lo ancho y llega a los costados del área, algo útil en patios, frentes de locales y estacionamientos de pocos autos. Usa 39 LED SMD 5054 y tiene un CRI igual o superior a 70, suficiente para circular con seguridad y distinguir obstáculos.\n\n**Carga y horas de luz**\n\nEl panel de 6V y 12W carga la batería de 3,2 V en 4 a 6 horas de sol, y la ficha declara más de 12 horas de encendido con carga completa. Para que la energía alcance, la intensidad se dosifica en tramos de una hora: 100% en el primero, 80% en el segundo, 60% en el tercero, 50% en el cuarto y 30% en el quinto y el sexto. Cumplidas esas etapas, permanece encendido hasta que llega el día o hasta que la fotocelda lo pone a cargar.\n\n**Modos de control**\n\nLa fotocelda lo enciende sola al caer la noche. Con el control remoto puedes fijar un control de tiempo, con apagado a las 3, 5 u 8 horas, o dejarlo en automático, el modo recomendado y predeterminado, donde el brillo de la lámpara se regula según la energía que queda en la batería.\n\n**Garantía y pedido**\n\nOpera entre -20 °C y +50 °C y su vida útil declarada es de 50.000 horas, con 1 año de garantía y certificaciones CE, CCC y RoHS. Al cotizar, indica cuántos equipos necesitas: el equipo comercial de eLIGHTS te responde con la cotización formal y factura, y el despacho a cualquier punto de Chile es en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Energía solar propia: panel de 12W y batería de litio ferrofosfato de 15.000 mAh",
+    "Carga completa en 4 a 6 horas de sol y más de 12 horas de encendido",
+    "IP66: hermético al polvo y resistente a chorros de agua, para zonas lluviosas",
+    "Apertura de 120° para cubrir el ancho de patios y accesos",
+    "Modo automático que adapta el brillo a la carga que queda en la batería",
+    "Para muro o poste de hasta 4 metros de altura",
+    "Luz fría de 6500K y 1 año de garantía"
+  ],
+  "useCases": [
+    "Patios traseros y estacionamientos de casas",
+    "Frentes de almacenes y locales de barrio",
+    "Accesos a viviendas en sectores rurales",
+    "Senderos y accesos de campings o cabañas",
+    "Galpones agrícolas sin conexión a la red",
+    "Áreas comunes de condominios pequeños"
+  ],
+  "installationInfo": "El foco se fija a **muro o poste** hasta 4 metros de altura, y el panel solar, de 36 x 21 x 1,5 cm, en un soporte propio.\n\n- Orienta las celdas del panel hacia el norte, sin árboles ni techos que les den sombra.\n- Fíjalo en un soporte firme, con la inclinación que le permita recibir sol directo la mayor parte del día.\n- Apunta el foco de modo que el haz caiga sobre el piso del área a iluminar.\n\nAntes de perforar, presenta el panel y el foco en sus ubicaciones para confirmar que el cable que los une alcance.",
+  "faq": [
+    {
+      "question": "¿Se puede usar en zonas lluviosas?",
+      "answer": "Sí. Su grado IP66 indica que es hermético al polvo y resiste chorros potentes de agua, por lo que puede quedar expuesto a la lluvia. La carcasa es de aluminio y policarbonato. En ambientes con mucha salinidad, como la orilla del mar, conviene revisar periódicamente las fijaciones."
+    },
+    {
+      "question": "¿Cuántas horas funciona?",
+      "answer": "La ficha declara más de 12 horas de encendido con la batería de 15.000 mAh cargada. El brillo baja por etapas desde el 100% hasta el 30%, y en modo automático se adapta a la energía disponible, lo que ayuda en días nublados, cuando el panel carga menos."
+    },
+    {
+      "question": "¿Sirve para un poste más alto que 4 metros?",
+      "answer": "La ficha sugiere instalarlo hasta 4 metros. Más arriba, la luz llega al piso más repartida y con menos intensidad. Si el montaje debe ir más alto o el espacio es grande, cuéntanos el caso y te recomendamos la cantidad de equipos o un modelo con mayor altura de instalación."
+    },
+    {
+      "question": "¿Sigue alumbrando si hay un corte de luz?",
+      "answer": "Sí, porque no depende de la red: su energía viene del panel solar y de la batería LiFePO4 de 15.000 mAh. Mientras la batería tenga carga, la fotocelda lo enciende al oscurecer aunque el barrio esté sin electricidad, lo que sirve para mantener iluminado un acceso o un patio durante un corte."
+    },
+    {
+      "question": "¿Cómo viene embalado?",
+      "answer": "Vienen en dos cajas: el foco en una de 27,7 x 25 x 6 cm (1,24 kg) y el panel solar en otra de 37 x 22 x 3,5 cm (0,86 kg). Para compras por mayor hay cajas de 10 proyectores (12,4 kg) y de 10 paneles (8,6 kg). La cotización formal incluye factura."
+    }
+  ]
+}

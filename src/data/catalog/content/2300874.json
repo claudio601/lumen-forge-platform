@@ -1,0 +1,41 @@
+{
+  "metaTitle": "Tubo LED T8 Opal 18W de 120 cm para 12V | eLIGHTS",
+  "metaDescription": "Tubo LED opal T8 de 120 cm y 18W que trabaja con 12V: 2.100 lm, luz fría de 6500K y base G13. Para instalaciones de baja tensión. Cotiza tu pedido.",
+  "description": "El Tubo LED Opal Aluminio 18W 12V (SKU TLOA18W12012V) es un tubo de formato T8 y 120 cm que trabaja con **12V**, no con la red eléctrica domiciliaria. Esa es la tensión de muchas instalaciones de baja tensión, como los sistemas con batería, los kits solares aislados o las fuentes de poder de 12V que se usan en cabañas, refugios, casas rodantes, campamentos o kioscos. Ofrece **2.100 lm** con un consumo de 18W, se declara equivalente a un fluorescente de 36W, usa base G13 y emite luz fría de 6500K con una apertura de 300°.\n\n**Un tubo para instalaciones de 12V**\n\nA diferencia de los tubos para red, este modelo necesita una alimentación de 12V y no debe conectarse a la instalación eléctrica domiciliaria. Antes de comprar, cuéntanos cómo es tu sistema (batería, regulador de carga, panel solar o fuente de poder) y te confirmamos la conexión.\n\n**Luz fría y bien repartida**\n\nSus 2.100 lúmenes en luz fría de 6500K dan una luz blanca y nítida, adecuada para trabajar, leer o cocinar. La cubierta opal atenúa el brillo puntual de los LED, y la apertura de 300° reparte la luz casi en todo el contorno del tubo, algo valioso en espacios estrechos donde la luminaria queda cerca de las personas.\n\n**Construcción y respaldo**\n\nEl cuerpo de aluminio ayuda a evacuar el calor y la cubierta de policarbonato es menos frágil que el vidrio, una ventaja donde el tubo puede recibir golpes. Su garantía es de 1 año y la ficha le atribuye una vida útil de 30.000 horas.\n\n**Cotización y despacho**\n\nIndica la cantidad de tubos que necesitas. Con esa información preparamos tu cotización formal con factura y despachamos el pedido a cualquier región en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Funciona con 12V: una opción para cabañas, refugios y sistemas aislados de la red",
+    "Rinde 2.100 lm: su ficha lo equipara a un fluorescente de 36W",
+    "Consumo conocido de 18W, útil para dimensionar baterías y paneles",
+    "Luz fría de 6500K con cubierta opal que suaviza el brillo",
+    "Apertura de 300° para repartir la luz en espacios estrechos",
+    "120 cm de largo y casquillo G13, el estándar de los tubos T8",
+    "Garantía de 1 año y una vida útil de 30.000 horas según la ficha"
+  ],
+  "useCases": [
+    "Instalaciones solares aisladas que trabajan a 12V",
+    "Casas rodantes con circuito de 12V",
+    "Cabañas y refugios sin red eléctrica",
+    "Campamentos y faenas con energía de batería",
+    "Contenedores habilitados con sistema de 12V",
+    "Kioscos y carros de venta con sistema de 12V"
+  ],
+  "installationInfo": "Usa base **G13** (formato T8) y mide 120 cm. Se alimenta con **12V**.\n\n- Conéctalo a una alimentación de 12V; nunca directo a la red eléctrica domiciliaria.\n- Si vas a reutilizar una canoa fluorescente de 120 cm, el instalador debe adaptar su cableado: el balasto y el partidor de esos equipos están hechos para la red, no para baja tensión.\n- En baja tensión, los tramos largos de cable necesitan una sección adecuada para evitar caídas de tensión; ubica la batería o la fuente lo más cerca posible del tubo.\n\nLa conexión debe hacerla una persona con conocimientos de electricidad.",
+  "faq": [
+    {
+      "question": "¿Lo puedo conectar a la red eléctrica de la casa?",
+      "answer": "No. Es un tubo de 12V y necesita una alimentación de esa tensión; conectado directo a la red domiciliaria se dañaría. Si en el lugar hay red eléctrica, la línea Opal Aluminio también tiene tubos para red: pregunta por ellos en la misma solicitud de cotización."
+    },
+    {
+      "question": "¿Sirve para un sistema solar con batería?",
+      "answer": "Está hecho para 12V, la tensión de trabajo de muchos sistemas solares con batería y regulador de carga. Para confirmar que calza con el tuyo, cuéntanos al cotizar la tensión del sistema y qué batería, regulador o fuente usas; te asesoramos por WhatsApp o en ventas@elights.cl antes de la compra."
+    },
+    {
+      "question": "¿En qué temperatura de color viene?",
+      "answer": "Solo en luz fría de 6500K, una luz blanca que da buena visibilidad para trabajar, cocinar o leer. La cubierta opal suaviza su brillo, lo que la hace más cómoda en espacios pequeños donde el tubo queda cerca de la vista."
+    },
+    {
+      "question": "¿Cuántos tubos puedo alimentar con mi batería?",
+      "answer": "Depende de la capacidad de la batería, de cuánta energía repone el panel cada día y de cuántas horas enciendes la luz. Cada tubo consume 18W: multiplicado por las horas de uso y por la cantidad de tubos, da la energía diaria que el sistema debe cubrir. Si nos envías esos datos al cotizar, te ayudamos a revisar el cálculo."
+    }
+  ]
+}

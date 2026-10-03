@@ -1,0 +1,38 @@
+{
+  "metaTitle": "Fuente de Poder 12V 200W 16,5A IP67 Exterior | eLIGHTS",
+  "metaDescription": "Fuente de poder estanca de 200W, 12V DC y 16,5A, con IP67 y certificación CE, para alimentar varios circuitos LED en exterior. Cotiza tu proyecto en eLIGHTS.",
+  "description": "La Fuente de Poder Switching 200W 12V (SKU FU200E) ofrece **200W en 12V DC, con 16,5A**, dentro de un cuerpo estanco con grado **IP67** (a prueba de agua). Con esa capacidad, un mismo equipo puede alimentar varios circuitos de cinta o módulos LED al aire libre, como los sectores de una fachada, el letrero de un local o la iluminación de un patio, siempre que su consumo sumado quede dentro de los 200W. Funciona con una entrada de 170 a 250V a 50/60Hz, mide 20 x 12,05 x 6 cm y es un equipo AC/DC con certificación CE.\n\n**Un punto de alimentación para varios sectores**\n\nEn un proyecto exterior con varios tramos, la fuente puede quedar en un lugar resguardado, como bajo un alero, junto al tablero o dentro de la estructura del letrero, y desde ahí repartir líneas de 12V hacia cada sector. Es una forma ordenada de trabajar cuando los tramos están relativamente cerca entre sí. Si los sectores quedan muy separados, los cables largos de 12V pierden tensión y vale la pena evaluar fuentes independientes, más próximas a cada carga.\n\n**Conexiones con 16,5A**\n\nCon 16,5A disponibles, cada unión cuenta: un empalme flojo o un conductor demasiado delgado se calienta cuando circula una corriente alta. Usa una sección de cable acorde a la corriente de cada derivación y uniones firmes, y protege cada línea. En exterior, además, cada empalme tiene que quedar sellado: el grado IP67 resguarda a la fuente, pero no a los cables que salen de ella. El diseño de las derivaciones y sus protecciones conviene dejarlo en manos de un instalador eléctrico.\n\n**Montaje a la intemperie**\n\nElige para ella una superficie firme, a la sombra si es posible, y déjale espacio libre: con 200W en juego, el calor que produce tiene que poder salir hacia el aire que la rodea. No la encierres en un cajón sin circulación ni la dejes donde se junta agua, aunque tolere una inmersión temporal. Con 12,05 cm de ancho y 6 cm de alto, es una fuente de mayor volumen: reserva su lugar en el letrero o en el gabinete exterior y deja un acceso para revisarla.\n\n**Cotización para proyectos**\n\nPara proyectos con varios circuitos, envíanos un croquis con los tramos, su largo y el tipo de cinta o módulo. Te orientamos sobre cuántas fuentes conviene usar y te enviamos la cotización formal con factura; el despacho a todo Chile es en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "16,5A a 12V DC: 200W para alimentar varios circuitos LED en exterior",
+    "IP67 a prueba de agua: puede montarse en fachadas, patios y letreros sin techo",
+    "Entrada de 170 a 250V a 50/60Hz, para la red de casas y locales",
+    "Declara 217W de potencia de entrada, el valor que pide el instalador para el circuito",
+    "Mide 20 x 12,05 x 6 cm: considera el espacio en letreros y gabinetes",
+    "Equipo AC/DC switching con certificación CE"
+  ],
+  "useCases": [
+    "Fachadas de casas con cinta LED en varios sectores",
+    "Frentes de locales comerciales con letrero y cinta LED",
+    "Patios y áreas comunes de condominios",
+    "Terrazas de restaurantes y hoteles",
+    "Gabinetes exteriores que alimentan varios tramos de 12V"
+  ],
+  "faq": [
+    {
+      "question": "¿Qué diferencia hay entre esta fuente y una de interior?",
+      "answer": "Esta va sellada con grado IP67: es hermética al polvo y resiste el agua, por lo que puede quedar a la intemperie. Las fuentes perforadas de interior se ventilan por aberturas en la carcasa y no tienen protección contra la humedad. Si la instalación queda bajo techo y en un lugar seco, una de interior también sirve; si queda expuesta, corresponde una estanca como esta."
+    },
+    {
+      "question": "¿Puedo conectar cinta y módulos LED a la misma fuente?",
+      "answer": "Sí, siempre que todo funcione con 12V de corriente continua y que el consumo sumado no pase de 200W, idealmente con un margen libre. En una cinta, el consumo es su valor por metro multiplicado por el largo; en módulos, la potencia que informa cada fabricante. Lleva cada tipo de carga por su propia línea desde la salida, para revisarlas y protegerlas por separado."
+    },
+    {
+      "question": "¿Qué dato uso para dimensionar el circuito que la alimenta?",
+      "answer": "Usa la potencia de entrada que declara la ficha: 217W, frente a los 200W que entrega en la salida. Con ese valor y con su rango de entrada, de 170 a 250V, el instalador eléctrico define el conductor y la protección del circuito en el tablero. Si vas a conectar varias fuentes al mismo circuito, suma la potencia de entrada de cada una."
+    },
+    {
+      "question": "¿Ofrecen la instalación?",
+      "answer": "Sí, en la Región Metropolitana, como servicio aparte de la compra. Si el proyecto es una fachada o un letrero con varios circuitos, indícalo al pedir la cotización y te enviamos la propuesta. Para obras en regiones, te asesoramos por WhatsApp o en ventas@elights.cl y despachamos las fuentes con operador logístico."
+    }
+  ]
+}

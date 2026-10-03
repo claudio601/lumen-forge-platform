@@ -5,13 +5,16 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, renameSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
+import type { ProductDescription, SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
+
+export type { ProductDescription };
 
 export const OUTPUT_PATHS = {
   snapshot: 'src/data/catalog/jumpseller-snapshot.generated.ts',
   categories: 'src/data/catalog/categories.generated.ts',
   priceIndex: 'api/_lib/catalog/price-index.generated.ts',
   siteIds: 'src/data/catalog/site-ids.generated.ts',
+  descriptions: 'src/data/catalog/descriptions.generated.ts',
 } as const;
 
 /** Claves que nunca pueden aparecer en un archivo generado (defensa en profundidad). */
@@ -100,11 +103,31 @@ export const SITE_IDS: Readonly<Record<number, string>> = ${JSON.stringify(sorte
 `;
 }
 
-/** Devuelve las claves prohibidas que aparecen en algún archivo generado. */
-export function findForbiddenKeys(files: string[]): string[] {
+/**
+ * Descripciones ya limpias y ordenadas, por jumpseller_id: un producto por línea (diffs
+ * legibles). Archivo aparte del snapshot: solo lo importa la ficha de producto, así no
+ * pesa en la portada ni en el catálogo.
+ */
+export function renderDescriptionsFile(descriptions: Record<number, ProductDescription>, hash: string): string {
+  const ids = Object.keys(descriptions).map(Number).sort((a, b) => a - b);
+  const body = ids.map(id => `  "${id}": ${JSON.stringify(descriptions[id])},`).join('\n');
+  return `${HEADER('Descripción y especificaciones agrupadas de cada producto, limpias en la sincronización (el HTML solo trae párrafos, listas, negritas, tablas y enlaces https).')}
+import type { ProductDescription } from './jumpseller.types';
+
+export const SNAPSHOT_HASH = '${hash}';
+
+export const productDescriptions: Readonly<Record<number, ProductDescription>> = {
+${body}
+};
+`;
+}
+
+/** Devuelve las claves prohibidas que aparecen en algún archivo generado (`allow`: excepciones). */
+export function findForbiddenKeys(files: string[], allow: readonly string[] = []): string[] {
   const found = new Set<string>();
   for (const content of files) {
-    for (const key of FORBIDDEN_KEYS) if (content.includes(`"${key}"`)) found.add(key);
+    // Solo como clave ("stock": …): un valor de especificación que diga "stock" no es una fuga
+    for (const key of FORBIDDEN_KEYS) if (!allow.includes(key) && new RegExp(`"${key}"\\s*:`).test(content)) found.add(key);
   }
   return [...found];
 }

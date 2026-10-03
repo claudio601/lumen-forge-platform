@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Kit de Emergencia LED 3-48W para paneles y downlights | eLIGHTS",
+  "metaDescription": "Kit de emergencia para paneles y downlights LED de 3 a 48W con driver externo: 120 minutos de autonomía y entrada de 85 a 265V. Cotiza para tu obra.",
+  "description": "El Kit de Emergencia LED 3-48W (SKU SS48W) convierte una luminaria LED de uso diario en un punto de luz de respaldo para los cortes de energía. Se conecta a la luminaria y, cuando falta el suministro, la alimenta desde su batería durante **120 minutos**, por lo general con menos luz que en su funcionamiento normal. Está indicado para **luminarias LED con driver externo** en el rango de 3 a 48W, como paneles para cielo americano, paneles concéntricos, paneles ultradelgados y downlights LED.\n\n**Cómo funciona un kit de emergencia**\n\nMientras hay energía, la luminaria funciona de forma normal y el kit carga su batería; si se corta, el kit pasa a alimentar el módulo LED. Así, algunas de las luminarias que ya iluminan el recinto entregan luz de respaldo sin agregar equipos a la vista, algo que se valora en oficinas y edificios con cielos de diseño limpio.\n\nLa ficha no informa cuánta luz entrega la luminaria durante el respaldo; en los kits de emergencia suele ser una fracción de la potencia nominal. Tampoco declara cumplimiento de normas de alumbrado de emergencia: si estas luminarias van a formar parte de la iluminación de evacuación de un edificio, la instalación debe seguir la normativa aplicable y el estudio lumínico del proyecto. Si se exige un nivel de luz determinado durante el corte, plantéalo al cotizar.\n\n**Paneles y downlights compatibles**\n\nLa ficha lo declara compatible con cuatro tipos de luminaria, siempre con driver externo: paneles LED para cielo americano, paneles LED concéntricos, paneles LED ultradelgados y downlights LED. La tensión de salida del kit va de 2 a 190V.\n\nAntes de comprar, revisa en la etiqueta del driver de tu luminaria su potencia y su tensión de salida: con esos dos datos confirmamos si el kit es el adecuado.\n\n**Alimentación y garantía**\n\nAcepta una tensión de entrada de 85 a 265V, 50-60Hz, un rango amplio que incluye la red eléctrica chilena. Lleva certificación CE y ROHS y tiene 1 año de garantía.\n\n**Compra para proyectos**\n\nEn obras o remodelaciones con muchas luminarias, al pedir la cotización indica cuántas luminarias llevarán respaldo y el tipo de panel o downlight; con esa información armamos la cotización formal, con factura, y el pedido llega a cualquier punto de Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "120 minutos de autonomía como luz de respaldo ante un corte de energía",
+    "Para luminarias LED de 3 a 48W con driver externo",
+    "Compatible con paneles para cielo americano, concéntricos, ultradelgados y downlights",
+    "Tensión de entrada de 85 a 265V, 50-60Hz, y salida de 2 a 190V",
+    "Certificación CE y ROHS",
+    "Garantía de 1 año; embalaje por mayor de 100 kits"
+  ],
+  "useCases": [
+    "Oficinas con paneles LED en cielo americano",
+    "Luz de respaldo en halls y pasillos con downlights",
+    "Salas de clases y bibliotecas",
+    "Clínicas y consultas con paneles ultradelgados",
+    "Locales comerciales con paneles concéntricos",
+    "Remodelaciones que suman respaldo a luminarias existentes"
+  ],
+  "installationInfo": "El kit se incorpora a una luminaria LED que funcione con **driver externo**, dentro del rango de 3 a 48W.\n\n- Tensión de entrada: 85 a 265V, 50-60Hz.\n- Tensión de salida hacia el módulo LED: 2 a 190V.\n- Por lo general, un kit de emergencia necesita una alimentación permanente, que no pase por el interruptor de la luz, para mantener la batería cargada y reconocer cuándo hay un corte.\n\nEncarga la conexión a un instalador eléctrico; si el proyecto está en la Región Metropolitana, eLIGHTS puede hacer la instalación como servicio adicional.",
+  "faq": [
+    {
+      "question": "¿Con qué luminarias funciona este kit?",
+      "answer": "Con luminarias LED de 3 a 48W que usen driver externo. La ficha nombra en particular paneles LED para cielo americano, paneles concéntricos, paneles ultradelgados y downlights LED. Si tu luminaria es de otro tipo, mándanos su potencia y una foto de la etiqueta del driver para revisarla."
+    },
+    {
+      "question": "¿Cuánto tiempo queda encendida la luminaria con el kit?",
+      "answer": "La autonomía declarada es de 120 minutos con la batería cargada. En ese lapso la luminaria suele dar menos luz que en uso normal, y la ficha no informa cuánta. Cuando vuelve la energía, la luminaria retoma su funcionamiento normal y el kit recarga la batería para el siguiente corte."
+    },
+    {
+      "question": "¿Qué tensión de salida tiene y por qué importa?",
+      "answer": "La tensión de salida del kit va de 2 a 190V: es la tensión con la que alimenta el módulo LED durante el corte. Compararla con la tensión de salida que indica el driver de tu luminaria es una primera revisión de compatibilidad, no la única: envíanos también la potencia y una foto de la etiqueta por WhatsApp o a ventas@elights.cl, y la confirmamos antes de la compra."
+    },
+    {
+      "question": "¿Qué certificaciones y garantía tiene?",
+      "answer": "Cuenta con certificación CE y ROHS. CE indica conformidad con las exigencias europeas de seguridad del producto, y ROHS, la restricción de sustancias peligrosas, como el plomo o el cadmio, en sus componentes. Tiene 1 año de garantía, y cada compra se emite con factura."
+    },
+    {
+      "question": "¿Hay embalaje por mayor para proyectos?",
+      "answer": "Sí. El embalaje por mayor reúne 100 unidades por caja, con un peso de 14,5 kg. Indica en tu solicitud la cantidad y el tipo de luminarias, y te haremos llegar la cotización formal; el despacho a todo Chile es en hasta 2 días hábiles."
+    }
+  ]
+}

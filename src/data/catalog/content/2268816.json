@@ -1,0 +1,41 @@
+{
+  "metaTitle": "Panel LED Redondo Embutido 24W IP44, 2.280 lm | eLIGHTS",
+  "metaDescription": "Panel LED redondo de 24W para embutir: 2.280 lm, 29,8 cm de diámetro, IP44 y certificación SEC. Para oficinas, salas y locales. Cotiza para tu proyecto.",
+  "description": "El Panel LED Redondo Embutido 24W IP44 es un panel de gran formato, de **29,8 cm** de diámetro, para la luz general de oficinas, salas de reuniones, locales comerciales y recepciones. Ofrece **2.280 lm** con 24W, mantiene una eficacia de 95 lm/W y su CRI está por sobre 80. Se instala embutido en una perforación de 27,1 cm, se cotiza en 3000K, 4000K o 6500K y tiene un área recomendada de **14 m²** por panel, según la ficha.\n\n**Proyectos con estudio lumínico**\n\nCuando se trata de un piso de oficinas, un colegio o una cadena de locales, la cantidad de paneles se calcula mejor con un estudio lumínico DIALux, un servicio que eLIGHTS realiza para este tipo de proyectos. El estudio considera la altura del cielo, el color de muros y piso y el nivel de luz que exige cada actividad, y define la ubicación de cada panel para que los puestos de trabajo reciban una iluminación pareja.\n\n**Construcción y protección**\n\nEl cuerpo de aluminio y el difusor acrílico forman un disco de solo 20 mm de alto, con marco blanco y LED SMD2835. El grado IP44 lo deja preparado para salpicaduras ocasionales, y el equipo trabaja en temperaturas de -20 °C a 50 °C.\n\n**Seguridad eléctrica, embalaje y despacho**\n\nEl driver externo, incluido, adapta la red de 220V - 50Hz al bajo voltaje de los LED; el factor de potencia es de 0,98. No admite regulación de intensidad. Su certificación SEC N° 598707 se otorgó según las normas IEC 60598-1 e IEC 60598-2-1, y el panel tiene 1 año de garantía.\n\nLa unidad se entrega en una caja de 30,2 x 32,6 x 2,3 cm (0,66 kg), y la caja por mayor reúne 20 paneles en 61 x 30 x 31 cm y 11 kg. Cotiza indicando la cantidad y el tono: respondemos con la cotización formal y factura, y el despacho a todo Chile toma hasta 2 días hábiles.",
+  "keyBenefits": [
+    "2.280 lm con 24W: luz general para oficinas, salas y locales",
+    "Área recomendada de 14 m² por panel: menos puntos para cubrir una sala",
+    "Gran formato de 29,8 cm, corte de 27,1 cm y 20 mm de alto",
+    "Seguridad eléctrica certificada por la SEC, con el N° 598707",
+    "Controlador incluido para conectarlo a 220V - 50Hz, con factor de potencia de 0,98",
+    "IP44 y operación entre -20 °C y 50 °C",
+    "50.000 horas de vida útil declarada y 1 año de garantía"
+  ],
+  "useCases": [
+    "Oficinas abiertas y salas de reuniones",
+    "Salas de clases e institutos",
+    "Locales comerciales y tiendas",
+    "Recepciones y halls de edificios",
+    "Centros médicos y salas de espera",
+    "Salas multiuso interiores"
+  ],
+  "installationInfo": "Necesita un corte de **27,1 cm** de diámetro en el cielo; el marco de 29,8 cm lo cubre. Por su tamaño, revisa antes la ubicación de los perfiles o costaneras del cielo para que la perforación no los intercepte; si alguno queda en la trayectoria, desplaza levemente la posición del panel.\n\n- Conexión a la red de 220V - 50Hz mediante el controlador de bajo voltaje incluido, que se ubica sobre el cielo.\n- Va con interruptor convencional: no es regulable.\n- IP44: para interiores, con protección ante salpicaduras.\n\nLa instalación eléctrica debe hacerla un profesional. En la Región Metropolitana, eLIGHTS ofrece este servicio por separado.",
+  "faq": [
+    {
+      "question": "¿Cuántos paneles de 24W necesito para una oficina?",
+      "answer": "Como primera estimación, divide la superficie de la oficina por 14 m², el área que la ficha recomienda por panel, y distribúyelos en una grilla pareja. Es una referencia: si los puestos exigen más luz o el cielo es alto, puede hacer falta sumar puntos. Indícanos superficie, altura y uso al cotizar y te orientamos."
+    },
+    {
+      "question": "¿Sirve para una sala de clases?",
+      "answer": "Puede usarse para la luz general de una sala de clases: ofrece 2.280 lm por punto con CRI sobre 80, y entre sus tonos están la luz neutra (4000K) y la fría (6500K), las que se suelen elegir en espacios de estudio. La cantidad depende de la superficie, la altura del cielo y el nivel de luz que exige el establecimiento; para varias salas, un estudio lumínico permite definirla con precisión."
+    },
+    {
+      "question": "¿Conviene un panel de 24W o varios más pequeños?",
+      "answer": "Con un área recomendada de 14 m² por panel, el de 24W cubre una sala con menos puntos: menos perforaciones en el cielo, menos controladores que conectar y menos equipos que mantener. Los paneles más pequeños tienen sentido en recintos chicos o de forma irregular, donde un solo punto grande dejaría zonas alejadas con menos luz. Ten en cuenta que este modelo necesita un corte de 27,1 cm."
+    },
+    {
+      "question": "¿Qué significa una vida útil de 50.000 horas?",
+      "answer": "Es la duración de funcionamiento que declara la ficha para el panel. En iluminación LED, la vida útil suele referirse al momento en que la luz baja de un nivel definido, más que a un apagado repentino, y no equivale a la garantía, que en este caso es de 1 año. Una vida útil larga significa menos recambios, algo que pesa en cielos altos o de difícil acceso."
+    }
+  ]
+}

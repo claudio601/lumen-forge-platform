@@ -1,0 +1,34 @@
+{
+  "metaTitle": "Fuente de Poder 12V 100W 8A Interior Perforada | eLIGHTS",
+  "metaDescription": "Fuente switching de 100W con salida de 12V DC y 8A para cinta LED en interiores secos. Carcasa perforada de 199 x 98 x 38 mm y marcado CE. Cotiza en eLIGHTS.",
+  "description": "La Fuente de Poder Switching 100W 12V (SKU FU100I) es una fuente AC/DC de carcasa perforada que entrega **12V de corriente continua con 8A**, para alimentar cinta LED o módulos de 12V en recintos interiores. Mide 199 x 98 x 38 mm, tiene grado de protección IP20 y certificación CE. Sirve para proyectos con varios tramos de cinta en un mismo recinto, como una cornisa de living, una barra o un letrero de interior, siempre que la suma de sus consumos quede dentro de su capacidad y que la fuente quede resguardada en un cielo falso, un mueble o un tablero.\n\n**Perforada o estanca: cuál corresponde**\n\nEntre las fuentes de poder para cinta LED hay dos formatos habituales. Las estancas van selladas y se usan donde hay agua, polvo o humedad; las perforadas, como esta, tienen aberturas en la carcasa para ventilarse con el aire del ambiente. Esa ventilación directa ayuda a disipar el calor de la electrónica, pero deja el interior expuesto: el grado **IP20** protege del contacto con los dedos, no de la lluvia, las salpicaduras ni la condensación.\n\nLa regla práctica es simple: si el lugar es interior y seco (un cielo falso, un mueble, un tablero o un letrero bajo techo), sirve la perforada, siempre que quede en un espacio ventilado, sin taparla y fuera del alcance de las personas; si le puede llegar agua o vapor, como en un baño, una terraza o un alero, corresponde una estanca. En el catálogo de fuentes de poder de eLIGHTS también hay modelos para exterior.\n\n**Entrada para la red chilena**\n\nLa fuente declara dos rangos de tensión de entrada: 100 a 120V a 60 Hz y 200 a 220V a 50 Hz. Este último corresponde a la red eléctrica domiciliaria de Chile. Antes de energizarla, el instalador debe revisar la etiqueta del equipo, confirmar la tensión de entrada que indica y, si la fuente trae un selector de tensión, verificar que esté en la posición que corresponde a la red.\n\n**Asesoría y cotización**\n\nSi estás armando un proyecto con cinta LED y no sabes si una fuente de 100W alcanza, escríbenos por WhatsApp o a ventas@elights.cl con los metros y el modelo de cinta. Con esa información te enviamos la cotización formal, con factura, y despachamos a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "12V DC con 8A y 100W, para varios tramos de cinta LED en un mismo recinto",
+    "Carcasa perforada que se ventila con el aire del ambiente",
+    "IP20: para tableros, cielos falsos y letreros bajo techo, en lugares secos y ventilados",
+    "Dos rangos de entrada: 100 a 120V a 60 Hz o 200 a 220V a 50 Hz",
+    "Formato de 199 x 98 x 38 mm, fácil de alojar en un tablero o un mueble"
+  ],
+  "useCases": [
+    "Cielos con cornisa iluminada en casas y departamentos",
+    "Barras, mesones y bares con cinta LED",
+    "Letreros y cajas de luz bajo techo",
+    "Mostradores de tiendas con cinta LED",
+    "Recepciones de oficinas con luz indirecta",
+    "Tableros de iluminación con varias líneas de cinta"
+  ],
+  "faq": [
+    {
+      "question": "¿Cómo conecto varios tramos de cinta a la misma fuente?",
+      "answer": "Lo recomendable es llevar un cable desde la salida de 12V hasta cada tramo (conexión en paralelo), en lugar de unir los tramos uno detrás de otro: en una cadena, el inicio de la cinta conduce la corriente de todos los tramos siguientes, cada unión suma pérdidas y los últimos metros reciben menos tensión. Respeta en cada conexión el positivo y el negativo, y verifica que la suma de todos los tramos quede bajo los 100W de la fuente, con margen."
+    },
+    {
+      "question": "¿Puedo usar una fuente de más potencia que la que necesito?",
+      "answer": "Sí. Una fuente de 12V entrega solo la corriente que le pide lo que está conectado, así que conectarle una carga menor que sus 8A es un uso normal y, de hecho, trabajar con holgura es lo recomendable. Lo que no se debe hacer es lo contrario: conectar más de lo que la fuente puede entregar."
+    },
+    {
+      "question": "¿Quién debe conectarla?",
+      "answer": "La conexión a la red debe hacerla un instalador eléctrico, porque involucra tensión de red y las protecciones del tablero. Del lado de 12V el riesgo eléctrico es menor, pero las uniones igual deben quedar firmes y aisladas, con la polaridad correcta, para evitar parpadeos y puntos calientes."
+    }
+  ]
+}

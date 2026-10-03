@@ -1,0 +1,43 @@
+{
+  "metaTitle": "Proyector LED de Estadio Modular 300W, 51.000 lm | eLIGHTS",
+  "metaDescription": "Proyector LED modular de 300W para estadio: 51.000 lm, tres drivers Mean Well, IP66 e IK10. Para baby fútbol y gimnasios. Cotiza con despacho a todo Chile.",
+  "description": "El Proyector LED de Estadio Modular 300W es una opción para canchas de baby fútbol, gimnasios polideportivos y grandes patios exteriores. Ofrece **51.000 lm** con 300W de consumo, gracias a 420 LED SMD 3030 Lumileds y una eficacia de 170 lm/W. Admite tensiones de 110 a 220V AC, y su carcasa de aluminio, con grado **IP66** e **IK10**, está preparada para trabajar a la intemperie.\n\n**Un proyector para baby fútbol, multicanchas y gimnasios**\n\nEn una cancha de baby fútbol o de fútbol 7, los proyectores se ubican en postes a los costados o en las esquinas y deben cubrir toda la superficie sin encandilar a los jugadores. Con 51.000 lúmenes por equipo, cada poste concentra más luz, lo que puede reducir la cantidad de puntos de montaje. La ficha indica tres aperturas, 30°, 60° y 90° x 60°, y señala que el equipo cuenta con regulador de intensidad; el método de control conviene revisarlo con nosotros antes de comprar.\n\n**Calidad eléctrica: factor de potencia y distorsión armónica**\n\nCuando un recinto deportivo suma varios proyectores en un mismo tablero, la calidad eléctrica de cada equipo importa. Este modelo tiene un factor de potencia superior a 0,98, es decir, casi toda la potencia que demanda de la red es potencia activa, y una distorsión armónica total (THD) inferior a 10%, lo que limita las perturbaciones en la instalación. La alimentación está a cargo de **tres drivers Mean Well XLG-100-H-A**.\n\n**Materiales y medidas**\n\nUna placa de policarbonato resguarda los LED dentro de un cuerpo de aluminio. El IP66 lo hace hermético al polvo y resistente a chorros potentes de agua, y el IK10 corresponde al nivel más alto de resistencia a impactos. Mide 36 x 32 x 9 cm y pesa 6 kg.\n\n**Color, respaldo y cotización**\n\nSe ofrece en luz cálida, neutra (4000K) y fría (5000K), con CRI superior a 85. Está certificado por la SEC y cuenta con los marcados CE y RoHS; la garantía es de 5 años y la vida útil declarada, de 100.000 horas. La visera se compra por separado. En tu solicitud, especifica cantidad, apertura y color: la respuesta es una cotización formal, y la compra se factura.",
+  "keyBenefits": [
+    "51.000 lm con 300W de consumo y 170 lm/W de eficacia",
+    "420 LED SMD 3030 Lumileds alimentados por tres drivers Mean Well",
+    "Factor de potencia sobre 0,98 y THD bajo 10%: conveniente en tableros con muchos equipos",
+    "IP66 e IK10: para trabajar a la intemperie, con alta resistencia a impactos",
+    "Opera entre -20 °C y 50 °C, para recintos con heladas o calor intenso",
+    "Certificado SEC, CE y RoHS, con garantía de 5 años"
+  ],
+  "useCases": [
+    "Canchas de baby fútbol y fútbol 7",
+    "Gimnasios polideportivos municipales",
+    "Multicanchas techadas o al aire libre",
+    "Patios de maniobra y zonas de carga",
+    "Explanadas y plazas cívicas",
+    "Recintos deportivos de colegios y universidades"
+  ],
+  "faq": [
+    {
+      "question": "¿Cuántos proyectores lleva una cancha de baby fútbol?",
+      "answer": "No hay una cifra única: influyen las medidas de la cancha, la altura y ubicación de los postes y el uso, recreativo o de competencia. Cada proyector ofrece 51.000 lm, y la apertura elegida define cuánta superficie cubre. Para un cálculo preciso, eLIGHTS puede hacer un estudio lumínico DIALux con la cantidad y orientación de los equipos; envíanos un plano o las medidas al cotizar."
+    },
+    {
+      "question": "¿Funciona con frío intenso?",
+      "answer": "Su rango de operación va de -20 °C a 50 °C, así que sirve en recintos al aire libre de zonas con heladas y también en lugares calurosos. Además, su grado IP66 lo protege del polvo y de la lluvia con viento."
+    },
+    {
+      "question": "¿Con qué tensión funciona?",
+      "answer": "Admite tensiones de 110 a 220V AC, así que se conecta a la red eléctrica habitual de recintos deportivos, colegios y empresas. Por la potencia del equipo, la conexión y el dimensionamiento del circuito deben quedar a cargo de un instalador eléctrico. En la Región Metropolitana, eLIGHTS ofrece instalación como servicio aparte."
+    },
+    {
+      "question": "¿Por qué tiene tres drivers?",
+      "answer": "La potencia se reparte entre tres drivers Mean Well XLG-100-H-A en lugar de concentrarse en una sola fuente. El driver convierte la corriente de la red en la que necesitan los LED, y dividir la carga entre varias fuentes es una solución habitual en proyectores de alta potencia."
+    },
+    {
+      "question": "¿Cómo viene embalado?",
+      "answer": "La caja individual mide 41 x 37 x 11 cm y, con el equipo dentro, pesa 6,7 kg; el proyector solo pesa 6 kg. Llegamos a todo Chile en hasta 2 días hábiles, con camiones propios en la Provincia de Santiago y por operador logístico a regiones."
+    }
+  ]
+}

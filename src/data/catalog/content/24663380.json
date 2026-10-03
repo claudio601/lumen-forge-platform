@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED de Estadio Modular 200W, 34.000 lm | eLIGHTS",
+  "metaDescription": "Proyector LED de estadio modular de 200W: 34.000 lm, 280 LED Lumileds, IP66 e IK10. Para canchas de tenis, gimnasios y patios. Cotiza con despacho a todo Chile.",
+  "description": "El Proyector LED de Estadio Modular 200W está pensado para recintos deportivos medianos y espacios exteriores que piden un nivel de luz alto: canchas de tenis y pádel, multicanchas, gimnasios de colegio y patios de trabajo. Ofrece **34.000 lm** a partir de 280 LED SMD 3030 Lumileds, con una eficacia de 170 lm/W, y funciona con tensiones de 110 a 220V AC. Su cuerpo de aluminio tiene grado **IP66** y resistencia al impacto **IK10**.\n\n**Luz pareja para canchas medianas**\n\nEn deporte, la luz no solo tiene que ser abundante: tiene que ser pareja, para que la pelota no se pierda al cruzar una zona más oscura. Con 34.000 lúmenes por equipo, esa uniformidad depende sobre todo de cuántos proyectores se instalan y cómo se orientan. Las aperturas de 30°, 60° y 90° x 60° que indica la ficha permiten ajustar la cobertura a la distancia entre el poste y la superficie de juego.\n\n**Tonos de luz y regulación**\n\nLa temperatura de color se elige entre cálida, neutra (4000K) y fría (5000K), y en un mismo recinto se pueden pedir tonos distintos por sector si lo indicas al cotizar. Sus especificaciones incluyen regulador de intensidad: si necesitas variar el nivel de luz, menciona en la solicitud qué sistema de control usarás para confirmar que sea compatible.\n\n**Construcción IP66 e IK10**\n\nLos LED quedan cubiertos por una placa de policarbonato y el cuerpo es de aluminio. El grado IP66 indica que es hermético al polvo y resiste chorros fuertes de agua, por lo que puede quedar a la intemperie; el IK10 es el máximo de la escala de resistencia a impactos mecánicos. Trabaja entre -20 °C y 50 °C.\n\nInternamente usa **dos drivers Mean Well XLG-100-H-A**, con un factor de potencia superior a 0,98 y una distorsión armónica total inferior a 10%.\n\n**Proyecto, cotización y despacho**\n\nSu respaldo: certificación SEC, CE y RoHS, 100.000 horas de vida útil declarada y 5 años de garantía. La visera se vende aparte. Para cotizar, envía la cantidad de proyectores, la apertura y la temperatura de color; si se trata de un recinto completo, eLIGHTS puede hacer un estudio lumínico DIALux para definir la ubicación y el número de equipos. Recibirás una cotización formal con factura, y el despacho a todo Chile es en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "34.000 lm a partir de 280 LED SMD 3030 Lumileds",
+    "Eficacia de 170 lm/W: mucha luz por cada watt consumido",
+    "CRI sobre 85 para distinguir colores y líneas de juego",
+    "IP66 e IK10: hermético al polvo y al agua, con la clase más alta de resistencia al impacto",
+    "Alimentado por dos drivers Mean Well XLG-100-H-A",
+    "Regulador de intensidad, según la ficha del producto",
+    "5 años de garantía y 100.000 horas de vida útil declarada"
+  ],
+  "useCases": [
+    "Canchas de tenis y pádel",
+    "Multicanchas de colegios y clubes deportivos",
+    "Gimnasios de establecimientos educacionales",
+    "Patios de trabajo y zonas de carga",
+    "Plazas y parques con áreas deportivas",
+    "Accesos y perímetros de recintos industriales"
+  ],
+  "faq": [
+    {
+      "question": "¿Se puede instalar dentro de un gimnasio techado?",
+      "answer": "Sí, la ficha lo indica para gimnasios. Aunque su grado IP66 apunta a la intemperie, también sirve bajo techo. La apertura conviene definirla según la altura del cielo: a mayor altura, más cerrado suele ser el haz que se usa. Te ayudamos a elegir al cotizar."
+    },
+    {
+      "question": "¿Cuánto pesa y qué dimensiones tiene?",
+      "answer": "Pesa 4,5 kg y mide 36 x 21 x 9 cm (largo, alto y ancho). Embalado, el conjunto pesa 4,9 kg en una caja de 27 x 41 x 11 cm. Antes de instalarlo, revisa que el poste o la estructura de soporte resista el número de equipos que vas a montar."
+    },
+    {
+      "question": "¿Qué temperatura de color conviene para una cancha?",
+      "answer": "En canchas y gimnasios se suele elegir luz neutra (4000K), que ilumina con claridad sin resultar dura a la vista. La fría (5000K) da una luz más blanca y se usa en espacios abiertos o zonas de seguridad, y la cálida se reserva para plazas o ambientes donde se busca un tono más acogedor."
+    },
+    {
+      "question": "¿Qué significa un CRI sobre 85?",
+      "answer": "El CRI, o índice de reproducción cromática, mide qué tan fielmente una fuente de luz muestra los colores frente a una luz de referencia, en una escala que llega a 100. Con un valor superior a 85, este proyector permite distinguir con claridad camisetas, líneas de la cancha y señalética, y da una imagen más natural en las cámaras de seguridad."
+    }
+  ]
+}

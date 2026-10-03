@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED de Estadio 500W, 75.000 lm para canchas | eLIGHTS",
+  "metaDescription": "Reflector LED de estadio de 500W con 75.000 lm, haz de 60° y luz cálida o fría. IP66, IK09 y certificación SEC. Para canchas y plazas extensas. Cotiza aquí.",
+  "description": "Con **75.000 lm** y 500W, el Proyector LED de Estadio 500W está pensado para canchas de fútbol amateur, plazas extensas, explanadas y gimnasios de gran altura, donde la luz debe recorrer una distancia importante desde el poste o la torre hasta la superficie de uso. Este reflector LED trabaja con una óptica de 60°, reproduce bien los colores (CRI sobre 85) y se cotiza en luz cálida (3000K) o fría (6000K). Usa LED Bridgelux y un driver Mean Well.\n\n**Óptica de 60° y área de referencia**\n\nSe ofrece con una apertura de 60°, un haz intermedio: lo bastante cerrado para proyectar la luz a distancia desde el borde de una cancha y lo bastante abierto para que, con una separación adecuada entre postes, los haces de equipos vecinos se superpongan.\n\nSu ficha indica un área de iluminación de 400 a 700 m² por equipo. Sirve para un primer cálculo de cuántos proyectores lleva un recinto; el número definitivo se afina con la altura de los postes, la inclinación de cada equipo y el nivel de iluminación que pide la actividad.\n\n**Eficacia y factor de potencia: qué significan en la instalación**\n\nLa eficacia de 150 lm/W indica cuánta luz entrega el equipo por cada watt que consume, y es útil para estimar la potencia que necesitará la instalación completa. Un factor de potencia mayor que 0,95 significa que casi toda la energía que toma de la red se aprovecha como potencia activa, con poca corriente reactiva circulando por los conductores, algo que se valora cuando varios proyectores comparten tablero y circuito.\n\n**Carcasa y certificación**\n\nLos LED y el driver van en un cuerpo de aluminio cerrado por un vidrio templado, con grado IP66 y resistencia al impacto IK09. Su ficha declara además certificación SEC y las normas chilenas de contaminación lumínica DS1 y DS43, un punto que suele revisarse en proyectos municipales de alumbrado exterior.\n\n**Proyecto y compra**\n\nPara canchas o plazas completas conviene partir con un estudio lumínico DIALux, que define la cantidad de proyectores, su altura y su orientación. Envíanos la cantidad y el tono de luz que necesitas y te mandamos la cotización formal con factura; el despacho a todo Chile se realiza en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "75.000 lm desde un solo punto de luz de 500W",
+    "Haz de 60° para proyectar la luz desde postes perimetrales o torres",
+    "Su ficha le asigna un área de iluminación de 400 a 700 m² por equipo",
+    "Eficacia de 150 lm/W y factor de potencia sobre 0,95: buen aprovechamiento de la energía",
+    "Se cotiza en 3000K o 6000K, con CRI sobre 85 en los dos tonos",
+    "Cuerpo de aluminio y frente de vidrio templado, con IP66 contra polvo y agua e IK09",
+    "LED Bridgelux, driver Mean Well y certificación SEC, DS1 y DS43"
+  ],
+  "useCases": [
+    "Canchas de fútbol amateur y de barrio",
+    "Canchas de hockey césped y de rugby",
+    "Plazas cívicas y parques de gran extensión",
+    "Gimnasios municipales de gran altura",
+    "Explanadas para ferias y eventos al aire libre",
+    "Patios de acopio y canchas de maniobra"
+  ],
+  "faq": [
+    {
+      "question": "¿Este modelo tiene otras aperturas de haz?",
+      "answer": "Según su ficha, se ofrece con óptica de 60°. Si el proyector va a quedar muy cerca de la superficie, por ejemplo en un gimnasio de techo bajo, un haz más abierto puede repartir mejor la luz: escríbenos por WhatsApp o a ventas@elights.cl y revisamos otras alternativas de proyectores."
+    },
+    {
+      "question": "¿Luz fría o cálida para una cancha que colinda con casas?",
+      "answer": "La fría de 6000K es la más común en canchas por el contraste que da para seguir el balón y las líneas. Si el recinto está junto a viviendas, la versión de 3000K, más amarillenta, resulta más suave a la vista. Más que el color, lo que evita molestias a los vecinos es la orientación: los proyectores deben apuntar a la cancha con la inclinación justa y no hacia las ventanas cercanas."
+    },
+    {
+      "question": "¿Qué protección tiene frente a la lluvia y los golpes?",
+      "answer": "Su grado IP66 impide la entrada de polvo y lo protege de chorros de agua a presión, así que puede quedar a la intemperie todo el año. La resistencia al impacto es IK09, uno de los grados superiores de la clasificación IK, que mide cuánto aguanta una carcasa frente a golpes mecánicos. Eso no lo vuelve indestructible: en canchas conviene montarlo en altura y fuera de la trayectoria habitual del balón."
+    },
+    {
+      "question": "¿Ofrecen la instalación?",
+      "answer": "En la Región Metropolitana, eLIGHTS ofrece la instalación como un servicio aparte. En otras regiones, el montaje puede hacerlo tu instalador eléctrico; para trabajar en postes o torres hay que considerar alzahombre o grúa. Si tienes dudas sobre la conexión o el soporte, te asesoramos por WhatsApp o en ventas@elights.cl."
+    }
+  ]
+}

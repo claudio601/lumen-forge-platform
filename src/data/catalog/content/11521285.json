@@ -1,0 +1,49 @@
+{
+  "metaTitle": "Luminaria Solar para Alumbrado Público Flyhawk 40-80W | eLIGHTS",
+  "metaDescription": "Luminaria solar todo en uno para alumbrado público de 40, 60 y 80W: sin red eléctrica, con fotocelda, sensor de movimiento e IP66/IK10. Cotiza tu proyecto.",
+  "description": "La Flyhawk es una luminaria solar LED todo en uno para alumbrado público: panel de silicio monocristalino, controlador de carga MPPT, batería **LiFePO4**, fotocelda y sensor de movimiento van integrados en un solo equipo, sin conexión a la red eléctrica. De día el panel carga la batería y de noche esa energía alimenta los LED, con chips SMD 3030 Lumileds. Se ofrece en potencias de 40W, 60W y 80W, con protección **IP66** y resistencia al impacto **IK10**.\n\n**Energía solar y control automático**\n\nAl no depender del tendido eléctrico, la Flyhawk evita zanjas, canalizaciones y cableado entre postes, y no suma consumo a la cuenta de la luz. El controlador **MPPT** ajusta en forma continua el punto de trabajo del panel para aprovechar mejor la energía disponible. Aun así, con nubosidad el panel genera menos, y la radiación de la zona y la ubicación del equipo siguen siendo determinantes. La batería LiFePO4 (litio ferrofosfato) es una química de litio conocida por su estabilidad térmica y por tolerar bien los ciclos diarios de carga y descarga.\n\nLa fotocelda enciende la luminaria al oscurecer y la apaga con la luz del día. El sensor de movimiento ajusta la potencia según la presencia de personas, lo que ayuda a administrar la carga de la batería durante la noche. La ficha no declara la capacidad de la batería ni las horas de autonomía, así que conviene revisar el comportamiento esperado para tu zona al cotizar.\n\n**Tres potencias según el tipo de vía**\n\n- **40W:** calles secundarias y parques.\n- **60W:** avenidas y plazas.\n- **80W:** vías principales y proyectos municipales.\n\nLas tres usan panel monocristalino con controlador MPPT, batería LiFePO4 y protección IP66 e IK10; lo que cambia es la potencia del LED y, con ella, el flujo luminoso. La versión de 80W ofrece 12.800 lm, con una eficacia de 160 lm/W.\n\n**Temperatura de color y norma DS1**\n\nCada potencia se puede pedir en tres temperaturas de color, todas con un índice de reproducción cromática CRI ≥80: cálida de 2200K con 1% de luz azul, cálida de 2700K con 7% de luz azul y neutra de 4000K. El porcentaje de luz azul importa porque las normas de contaminación lumínica buscan limitar esa parte del espectro.\n\nLas versiones de 2200K y 2700K están indicadas como **DS1**, la norma chilena de contaminación lumínica, un requisito frecuente en proyectos municipales. Si tu proyecto está en una zona regulada, confirma con el equipo comercial la versión y su documentación DS1 al cotizar.\n\n**Construcción IP66 e IK10 y vida útil**\n\nEl grado IP66 protege contra el polvo y los chorros de agua, y el IK10 corresponde al nivel más alto de resistencia a impactos de esa escala, útil en espacios públicos expuestos a vandalismo. El LED tiene una vida útil declarada de 100.000 horas y el panel solar, de 20 a 25 años; la garantía es de 3 años.\n\n**Proyectos y cotización**\n\nPara municipios, licitaciones, constructoras y urbanizaciones, eLIGHTS puede apoyar con un estudio lumínico DIALux que define potencia, altura y distancia entre postes. El equipo comercial prepara la cotización formal y el despacho a todo Chile se realiza en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Todo en uno y autónoma: panel monocristalino y batería LiFePO4, sin conexión a la red ni cuenta de luz",
+    "Controlador MPPT para aprovechar mejor la energía del panel",
+    "Fotocelda y sensor de movimiento integrados: encendido automático y potencia según presencia",
+    "IP66 e IK10: resiste polvo, agua e impactos en la vía pública",
+    "Versiones de 2200K y 2700K indicadas como DS1 para zonas con control de contaminación lumínica",
+    "Chips SMD 3030 Lumileds y CRI ≥80",
+    "3 años de garantía y vida útil declarada de 100.000 horas en el LED"
+  ],
+  "useCases": [
+    "Calles secundarias, avenidas y vías principales",
+    "Parques públicos y plazas",
+    "Ciclovías, paseos peatonales y bulevares",
+    "Estacionamientos descubiertos",
+    "Accesos a condominios y nuevas urbanizaciones",
+    "Sectores rurales o localidades sin red eléctrica"
+  ],
+  "installationInfo": "Se instala a una **altura de 10 a 11 metros**. La luminaria reúne panel, batería, controlador, fotocelda y sensor en un solo equipo, por lo que no requiere cableado hacia la red. El tipo de fijación y el poste que necesita tu proyecto se confirman al cotizar.\n\n- Ubica el equipo donde el panel reciba sol directo la mayor parte del día.\n- Evita sombras de árboles, edificios o cables sobre el panel, porque reducen la carga de la batería.\n- Define la distancia entre postes según el ancho de la vía y el nivel de iluminación exigido.\n\nEn la Región Metropolitana, eLIGHTS ofrece la instalación como servicio aparte.",
+  "faq": [
+    {
+      "question": "¿Necesita conexión a la red eléctrica?",
+      "answer": "No. Genera y almacena su propia energía con el panel solar y la batería LiFePO4, y se enciende sola al oscurecer gracias a la fotocelda."
+    },
+    {
+      "question": "¿Qué potencia elijo: 40W, 60W u 80W?",
+      "answer": "Como referencia, se recomienda 40W para calles secundarias y parques, 60W para avenidas y plazas, y 80W para vías principales y proyectos municipales. La elección final depende del ancho de la vía, la distancia entre postes y el nivel de iluminación exigido; para definirla, eLIGHTS puede hacer un estudio lumínico DIALux de tu proyecto."
+    },
+    {
+      "question": "¿Cumple con la norma DS1 de contaminación lumínica?",
+      "answer": "Las versiones de luz cálida de 2200K (1% de luz azul) y 2700K (7% de luz azul) están indicadas como DS1. Si tu proyecto está en una zona regulada, indica la temperatura de color al cotizar y confirma con el equipo comercial la documentación DS1 de esa versión."
+    },
+    {
+      "question": "¿Cuánta autonomía tiene con días nublados?",
+      "answer": "La ficha no declara horas de autonomía, capacidad de batería ni noches de respaldo sin sol. Con nubosidad el panel genera menos energía; el controlador MPPT ayuda a aprovechar la que hay y el sensor de movimiento baja la potencia cuando no hay personas, lo que cuida la batería. El rendimiento real depende de la radiación solar de la zona y de la ubicación del equipo, por eso conviene evaluarlo en el estudio del proyecto."
+    },
+    {
+      "question": "¿Qué garantía y vida útil tiene?",
+      "answer": "Tiene 3 años de garantía. La vida útil declarada es de 100.000 horas para el LED y de 20 a 25 años para el panel solar."
+    },
+    {
+      "question": "¿Cómo cotizo para un proyecto municipal o una licitación?",
+      "answer": "Indica la cantidad, la potencia y la temperatura de color que necesitas, y si el proyecto está en una zona con control de contaminación lumínica. El equipo comercial responde con la cotización formal y se emite factura. Para dudas técnicas, la asesoría es por WhatsApp o en ventas@elights.cl. El despacho llega a todo Chile en hasta 2 días hábiles."
+    }
+  ]
+}

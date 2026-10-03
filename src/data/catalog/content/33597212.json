@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Campana LED UFO NF7 150W 18.000 lm para bodegas | eLIGHTS",
+  "metaDescription": "Campana industrial UFO NF7 de 150W: 18.000 lm, haz de 120°, IP65 y factor de potencia ≥ 0,98. Incluye gancho y cadena. Cotiza para tu bodega o galpón.",
+  "description": "La Campana LED UFO NF7 150W es una campana industrial para centros de distribución, naves medianas y talleres que necesitan un flujo alto por punto de luz. Con 150W ofrece **18.000 lúmenes**, a 120 lm/W, en luz fría de 6000K y con un haz abierto de 120°. La carcasa de aluminio tiene protección IP65, y el gancho y la cadena de 25 cm que vienen en la caja permiten colgarla de la estructura del techo.\n\n**Rendimiento: 18.000 lm por punto**\n\nCon 18.000 lm por equipo, es una alternativa para pasillos de estanterías, zonas de picking y áreas de proceso. El haz de 120° extiende la luz hacia los lados, por lo que conviene en techos de altura media o cuando se busca una iluminación pareja sobre una superficie amplia con campanas bien separadas; en recintos muy altos, un haz más cerrado lleva mejor la luz hasta el piso. Su luz fría de 6000K favorece el contraste para leer rótulos y maniobrar carga, con un CRI de 70 o más.\n\n**Calidad eléctrica para instalaciones con muchas campanas**\n\nCuando un galpón suma decenas de campanas, lo que aporta cada una al circuito se multiplica. Esta tiene un **factor de potencia igual o superior a 0,98**, un valor alto que conviene en instalaciones grandes. Acepta corriente alterna de 100V a 265V, 50Hz, un rango amplio que da margen frente a las variaciones de tensión, e incorpora un protector contra sobretensiones (SPD).\n\n**Protección y respaldo**\n\nEl grado IP65 la hace hermética al polvo y la protege contra chorros de agua, de modo que funciona en ambientes con polvo y en recintos que se lavan. Eso sí, no es una luminaria para atmósferas explosivas ni para zonas con polvo combustible, que requieren equipos certificados para esa zona. Su rango de temperatura de trabajo va de -20 °C a +50 °C. Declara una vida útil de 50.000 horas y tiene 1 año de garantía, con certificación CE y RoHS.\n\n**Cotización**\n\nAl cotizar, indica la cantidad de campanas y las medidas del recinto. Te enviamos la cotización formal con factura, y el despacho a cualquier punto de Chile se hace en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "18.000 lm por equipo con 150W, a 120 lm/W",
+    "Factor de potencia ≥ 0,98: baja energía reactiva en circuitos con muchas campanas",
+    "Rango de 100V a 265V, 50Hz, con protector contra sobretensiones (SPD)",
+    "Haz de 120° para una luz pareja sobre superficies amplias",
+    "Carcasa de aluminio IP65 que trabaja entre -20 °C y +50 °C",
+    "Gancho y cadena de 25 cm en la caja, listos para el montaje colgante"
+  ],
+  "useCases": [
+    "Centros de distribución y zonas de picking",
+    "Naves medianas con estanterías",
+    "Bodegas de materiales de construcción",
+    "Talleres de soldadura y de mantención industrial",
+    "Patios de maniobra cubiertos",
+    "Galpones de faenas y obras"
+  ],
+  "installationInfo": "Montaje **colgante**: con el gancho y la cadena de 25 cm incluidos, la campana queda suspendida de vigas, costaneras o cerchas.\n\n- Tensión admitida: 100V a 265V en alterna, a 50Hz.\n- Fija el gancho a un elemento estructural firme antes de colgar el equipo y revisa que la cadena quede vertical.\n- Reparte las campanas con separaciones parejas, de acuerdo con el haz de 120°, para evitar manchas de luz y sombras.\n\nPide la conexión a un instalador eléctrico; en la Región Metropolitana, eLIGHTS puede hacerse cargo de la instalación como servicio adicional.",
+  "faq": [
+    {
+      "question": "¿Para qué sirve un factor de potencia de 0,98 o más?",
+      "answer": "Indica que casi toda la potencia que la campana toma de la red se convierte en trabajo útil y que genera muy poca energía reactiva. Con muchas campanas en una misma instalación, eso ayuda a no sobrecargar los circuitos y a evitar recargos por bajo factor de potencia en las tarifas eléctricas que lo cobran."
+    },
+    {
+      "question": "¿Qué hace el protector contra sobretensiones?",
+      "answer": "El SPD absorbe picos de tensión breves, como los que aparecen al partir motores o por maniobras en la red, y así protege la electrónica de la campana. Es un complemento: las protecciones del tablero eléctrico siguen siendo necesarias y las define tu instalador."
+    },
+    {
+      "question": "¿Se puede lavar con agua la zona donde va instalada?",
+      "answer": "Con grado IP65, la campana está protegida contra chorros de agua y es hermética al polvo, por lo que tolera el lavado con manguera del recinto. Evita apuntarle con hidrolavadora a alta presión y mantén sellada la conexión eléctrica para conservar esa protección."
+    },
+    {
+      "question": "¿Cuántas campanas necesito para mi bodega?",
+      "answer": "Depende de la superficie, de la altura de montaje y de la luz que pide cada tarea. Con 18.000 lm y un haz de 120°, cada campana cubre una superficie ancha por punto. Para galpones grandes o con varias zonas, eLIGHTS puede hacer un estudio lumínico DIALux que indica cuántas campanas instalar y dónde."
+    },
+    {
+      "question": "¿Qué garantía y certificaciones tiene?",
+      "answer": "La NF7 150W tiene 1 año de garantía y una vida útil declarada de 50.000 horas. El marcado CE indica la conformidad con los requisitos de seguridad de la Unión Europea, y RoHS limita sustancias peligrosas, como el plomo y el mercurio, en sus componentes."
+    }
+  ]
+}

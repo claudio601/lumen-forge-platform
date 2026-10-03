@@ -1,0 +1,35 @@
+{
+  "metaTitle": "Campana LED UFO Antiexplosiva 200W 30.000 lm | eLIGHTS",
+  "metaDescription": "Campana LED antiexplosiva de 200W y 30.000 lm para naves en Zona 2 y Zona 22: grupo de gases IIC, IP66 e IK10, con 5 años de garantía. Solicita tu cotización.",
+  "description": "Para naves, bodegas y galpones amplios dentro de un área clasificada, la Campana LED UFO a Prueba de Explosión 200W (SKU PLAPEX200F) ofrece **30.000 lm** de luz fría (6000K), a razón de 150 lm/W. Su ficha la destina solo a **Zona 2 (gas) y Zona 22 (polvo)** y se identifica con el marcado **II 3GD Ex d IIC T3 Gc**.\n\n**Qué significa IIC y por qué importa**\n\nLos gases y vapores inflamables se agrupan en IIA, IIB y IIC según la facilidad con que se encienden, de menor a mayor. El grupo **IIC** reúne a los más fáciles de encender, como el hidrógeno y el acetileno, y un equipo marcado IIC se acepta también en atmósferas de los grupos IIA y IIB. Esa amplitud simplifica la elección del grupo cuando en el área hay varias sustancias, pero no resuelve por sí sola la de la temperatura.\n\nEl grupo no es lo único que hay que revisar. La temperatura superficial máxima que fija la clase **T3** tiene que quedar por debajo de la temperatura de ignición de cada sustancia presente, y la zona asignada al área debe ser la 2 o la 22. En el caso del polvo, aunque la ficha indica Zona 22 y la categoría 3GD incluye la D, el marcado no trae los datos para polvo (grupo de polvo y temperatura superficial máxima), de modo que en un área Zona 22 hay que confirmarlos con el certificado del equipo antes de comprar. Si tienes dudas sobre alguno de esos puntos, adjunta al cotizar las hojas de seguridad de las sustancias.\n\n**Flujo y componentes**\n\nSus 30.000 lm, distribuidos en 120°, son un flujo que se elige para cubrir superficies grandes con menos puntos de luz. Usa LED Luxeon 3030 como fuente de luz y un driver Mean Well; su CRI mayor a 80 ayuda en tareas de inspección y en la lectura de instrumentos.\n\n**Construcción para ambientes industriales**\n\nSu carcasa, una aleación de aluminio con protección anticorrosión clase WF2, cierra con un vidrio templado. El grado **IP66** impide el ingreso de polvo y aguanta chorros de agua; la clasificación **IK10** indica la mayor resistencia a impactos de esa escala. Mide 340 x 215 mm, pesa 4,8 kg y trabaja con temperatura ambiente de -40 °C a +40 °C. Cada equipo viaja en caja individual de 39 x 38 x 24,5 cm, con 5,5 kg en total, un dato útil para planificar el izaje y el acopio en obra.\n\n**Proyectos y cotización**\n\nPara una nave completa, eLIGHTS puede preparar un estudio lumínico DIALux antes de cerrar la compra, de modo que la cantidad de campanas responda a las medidas reales del recinto. La ficha declara **5 años de garantía** y 100.000 horas de vida útil. Te hacemos llegar la cotización formal con factura; el despacho a cualquier punto de Chile toma hasta 2 días hábiles.",
+  "keyBenefits": [
+    "30.000 lm con 200W (150 lm/W) para cubrir superficies amplias con menos puntos de luz",
+    "Grupo de gases IIC, el más exigente; declarada para Zona 2 y Zona 22",
+    "LED Luxeon 3030 y driver Mean Well, con factor de potencia superior a 0,95",
+    "IP66 e IK10: hermética al polvo, protegida contra chorros de agua y resistente a impactos",
+    "Aluminio anticorrosión WF2 y vidrio templado, para operar de -40 °C a +40 °C",
+    "5 años de garantía y 100.000 horas de vida útil declarada"
+  ],
+  "useCases": [
+    "Naves de plantas petroquímicas con áreas clasificadas como Zona 2",
+    "Bodegas de combustibles y lubricantes en Zona 2, compatibles con la clase T3",
+    "Salas de bombas en áreas clasificadas como Zona 2",
+    "Áreas de envasado de alcoholes en Zona 2, compatibles con la clase T3",
+    "Plantas de biogás con galpones clasificados como Zona 2",
+    "Galpones con polvo combustible en Zona 22, tras confirmar los datos para polvo"
+  ],
+  "faq": [
+    {
+      "question": "¿A qué altura se instala?",
+      "answer": "La ficha no indica una altura de montaje recomendada: depende del recinto, de la tarea y de la uniformidad que buscas. Como dato de partida, sus 30.000 lm salen con un haz de 120°. Para definir altura, cantidad y separación entre equipos, podemos preparar un estudio lumínico DIALux con las medidas de tu nave."
+    },
+    {
+      "question": "¿Qué driver usa y con qué tensión funciona?",
+      "answer": "Usa un driver Mean Well, el componente que convierte la tensión alterna de la red en la corriente continua que necesitan los LED. La campana admite de 150 a 260V AC, 50/60Hz, con un factor de potencia superior a 0,95, y su ficha declara seguridad eléctrica según la norma IEC 60598-1. En un área clasificada, el cableado y las cajas de conexión tienen que corresponder a la zona."
+    },
+    {
+      "question": "¿Se puede instalar en una estructura abierta, expuesta a la lluvia?",
+      "answer": "Su grado IP66 indica que no entra polvo y que resiste chorros de agua de alta intensidad, y la carcasa de aluminio tiene grado anticorrosión WF2. La ficha no indica, eso sí, un uso específico a la intemperie, así que en una estructura abierta revisa también que la temperatura ambiente del lugar, con sol directo incluido, se mantenga dentro de su rango de -40 °C a +40 °C. Y cuida la conexión: la caja y las entradas de cable deben ser aptas para la zona del área, que para esta campana tiene que ser Zona 2 o Zona 22, y quedar selladas contra el agua."
+    }
+  ]
+}

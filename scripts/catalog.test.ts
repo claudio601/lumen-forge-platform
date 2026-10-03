@@ -12,6 +12,7 @@ import { jumpsellerSnapshot } from '../src/data/catalog/jumpseller-snapshot.gene
 import { CATEGORY_PRODUCT_COUNTS, PUBLISHED_PRODUCT_COUNT } from '../src/data/catalog/categories.generated';
 import { categories } from '../src/data/catalog/categories.config';
 import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
+import { baseOverrides } from '../src/data/catalog/overlay/overrides';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
 import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts, skuOwners } from '../src/data/catalog/build';
@@ -125,7 +126,10 @@ describe('se conserva lo que no viene de Jumpseller', () => {
       const single = s.variants.length === 1 && owners.get(s.variants[0].sku)?.size === 1 ? s.variants[0].sku : '';
       expect(p.sku).toBe(s.sku || cleanSku(l.sku) || single);
       expect(p.sku).not.toMatch(/[\u200B\uFEFF]/);
-      expect(p.brand).toBe(s.brand ?? l.brand);
+      // Marca: la de Jumpseller cuando existe; si Jumpseller no la trae, la de las
+      // correcciones del sitio (overrides). Si alguien la quita en Jumpseller, el sitio
+      // deja de mostrarla (no vuelve a la copia de marzo).
+      expect(p.brand).toBe(s.brand ?? baseOverrides[p.jumpseller_id]?.brand ?? '');
     }
   });
 

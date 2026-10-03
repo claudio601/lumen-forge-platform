@@ -1,0 +1,34 @@
+{
+  "metaTitle": "Fuente de Poder Switching 12V 200W 16,6A Interior | eLIGHTS",
+  "metaDescription": "Alimenta varios circuitos de cinta LED desde un gabinete con esta fuente de 12V DC, 200W y 16,6A para interior. Mide 199 x 110 x 50 mm. Cotiza con eLIGHTS.",
+  "description": "La Fuente de Poder Switching 200W 12V (SKU FU200I) entrega **16,6A a 12V DC**, una capacidad que permite alimentar varios circuitos de cinta o módulos LED desde un mismo punto. Es una fuente AC/DC para interior, con carcasa perforada, grado de protección IP20 y certificación CE. Mide 199 x 110 x 50 mm.\n\n**Varios circuitos desde un gabinete**\n\nCon 200W de salida, una sola fuente puede abastecer varios tramos de cinta repartidos en una tienda, un restaurante o una sala de exposición, siempre que la suma de sus consumos quede bajo su capacidad. Lo habitual es instalarla en un gabinete o un tablero de iluminación y llevar desde ahí una línea independiente a cada tramo. Tener la alimentación en un solo punto simplifica la revisión: si un tramo falla, se diagnostica desde el gabinete.\n\n**Cableado de salida con 16,6A**\n\nA esta corriente, el cableado de salida pasa a ser parte del diseño. Cuanto mayor es la corriente, más se notan las pérdidas en cables delgados o demasiado largos: se calientan y la cinta recibe menos tensión. Por eso conviene repartir la carga en varias líneas y dimensionar la sección de cada conductor según la corriente que llevará y su largo. Las protecciones y la conexión a la red las debe definir un instalador eléctrico.\n\n**Entrada y protección**\n\nAdmite tensiones de entrada de 100 a 120V a 60 Hz y de 200 a 220V a 50 Hz; este último es el rango de la red domiciliaria chilena. Su grado IP20 la restringe a interiores secos: protege del contacto con los dedos, pero no del agua.\n\n**Cotiza para tu local u obra**\n\nEnvíanos el plano o el listado de tramos, con su largo y el modelo de cinta, y te orientamos sobre cuántas fuentes conviene usar. El equipo de eLIGHTS responde con la cotización formal y factura, y despacha a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Salida de 16,6A en 12V DC (200W), para repartir en varios circuitos de cinta",
+    "Una fuente de gabinete para alimentar tramos repartidos en un local",
+    "Carcasa perforada de 199 x 110 x 50 mm para liberar el calor",
+    "IP20, para gabinetes, tableros y salas técnicas interiores",
+    "Conversión AC/DC por tecnología switching, con certificación CE"
+  ],
+  "useCases": [
+    "Tiendas con cinta LED en varios sectores",
+    "Bares y restaurantes con cinta en barras y repisas",
+    "Salas de exposición y showrooms",
+    "Gabinetes que alimentan letreros de interior",
+    "Oficinas amplias con luz indirecta en cielos",
+    "Gimnasios y locales con cinta LED en varios muros"
+  ],
+  "faq": [
+    {
+      "question": "¿Se calienta mucho?",
+      "answer": "Toda fuente se calienta mientras trabaja, y más cuanto más cerca está de su capacidad. Esta disipa el calor a través de su carcasa perforada, así que necesita espacio y aire alrededor, lejos de materiales que la cubran. Ubicarla en un lugar ventilado y no cargarla al máximo son las dos medidas que más ayudan."
+    },
+    {
+      "question": "¿Puedo conectar cinta LED y módulos LED a la misma fuente?",
+      "answer": "Sí. Cinta y módulos pueden compartir la fuente si ambos funcionan con 12V de corriente continua y el consumo de todo, sumado, queda bajo los 200W con margen. Lleva una línea para la cinta y otra para los módulos: si algo falla, puedes revisar cada circuito por separado."
+    },
+    {
+      "question": "¿Cabe en el lugar de una fuente de menor potencia?",
+      "answer": "Depende del espacio. Esta fuente mide 199 x 110 x 50 mm; antes de reemplazar una fuente existente, mide el hueco disponible y considera además una holgura alrededor para la ventilación. Si el espacio es justo, puede ser mejor repartir la carga en dos fuentes más pequeñas."
+    }
+  ]
+}

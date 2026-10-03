@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Campana LED a Prueba de Explosión 300W 44.992 lm | eLIGHTS",
+  "metaDescription": "Campana LED UFO a prueba de explosión de 300W: 44.992 lm, haz de 90°, 280 LED Luxeon y driver Mean Well, para Zona 2 y Zona 22. Cotiza tu proyecto industrial.",
+  "description": "La Campana LED UFO a Prueba de Explosión 300W (SKU PLAPEX300F) es una luminaria antiexplosiva de alta potencia para sectores de naves industriales y bodegas de gran superficie clasificados como Zona 2 o Zona 22. Ofrece **44.992 lm** en luz fría de 6000K, con una apertura de 90° (valor medido) y 280 LED Luxeon 3030 alimentados por un driver Mean Well. Su ficha la declara para **Zona 2 (gas) y Zona 22 (polvo)**, con el marcado **II 3GD Ex d IIC T3 Gc**.\n\n**Un haz de 90° para montajes altos**\n\nSu apertura de 90° marca cómo conviene usarla. Un haz de ese ancho concentra la luz bajo la campana más que uno abierto, y eso se aprovecha cuando el equipo queda colgado a gran altura: se pierde menos luz en muros y vigas, y llega más al piso, a los pasillos de racks o a la zona de trabajo. En recintos bajos, en cambio, un haz cerrado puede dejar sectores menos iluminados entre una campana y otra, así que la separación entre equipos debe calcularse.\n\n**Zona 2 y Zona 22: lo que indica el marcado**\n\nEn el marcado, las letras **Gc** señalan el nivel de protección para gas que corresponde a la Zona 2, y la D de la categoría 3GD se refiere al polvo combustible. La ficha indica su uso en Zona 22, pero el marcado no informa una temperatura superficial máxima para polvo, así que en esa zona conviene confirmar ese dato con el certificado del equipo antes de comprar. Ninguna de las dos alcanza la Zona 1 ni la Zona 21, donde la atmósfera explosiva puede presentarse en la operación normal y se exigen equipos de categoría superior. El modo de protección es Ex d, una envolvente antideflagrante, y el grupo IIC abarca también los gases de los grupos IIA y IIB. La clase T3, en cambio, no vale para cualquier gas: la temperatura superficial máxima que admite tiene que quedar por debajo de la temperatura de ignición de cada gas o vapor presente en el área.\n\n**Construcción y alimentación**\n\nSobre un cuerpo de aluminio anticorrosión WF2 va un vidrio templado de 8 mm. Su grado **IP66** cierra el paso al polvo y resiste chorros intensos de agua, y su resistencia al impacto es **IK10**. Mide 360 x 215 mm, pesa 4,8 kg y soporta un ambiente de -40 °C a +40 °C. La alimentación admite de 150 a 260V AC en 50/60Hz, el factor de potencia supera 0,95 y la ficha cita IEC 60598-1 como norma de seguridad eléctrica.\n\n**Estudio lumínico y respaldo**\n\nCon equipos de esta potencia, pocos puntos de luz cubren mucha superficie, pero un error en la cantidad o en la altura se nota. En naves completas, eLIGHTS puede hacer un estudio lumínico DIALux para fijar cuántas campanas usar, a qué altura y con qué separación. La ficha le asigna una garantía de **5 años**; su vida útil declarada es de 100.000 horas, y el despacho a todo Chile se hace en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "44.992 lm con 300W para naves y bodegas de gran superficie en Zona 2 o Zona 22",
+    "Apertura de 90° (medida): concentra la luz en montajes de gran altura",
+    "280 LED Luxeon 3030 con driver Mean Well",
+    "Vidrio templado de 8 mm sobre carcasa de aluminio anticorrosión WF2",
+    "IP66 e IK10; apta según ficha para Zona 2 (gas) y Zona 22 (polvo)",
+    "Rango de operación de -40 °C a +40 °C y entrada de 150 a 260V AC",
+    "5 años de garantía; 100.000 horas de vida útil según la ficha"
+  ],
+  "useCases": [
+    "Naves de refinerías, en sectores clasificados como Zona 2",
+    "Bodegas de gran altura con productos inflamables en Zona 2",
+    "Galpones de terminales de combustibles clasificados como Zona 2",
+    "Recintos con polvo combustible clasificados como Zona 22, previa consulta",
+    "Patios techados de estanques en áreas clasificadas como Zona 2",
+    "Hangares de mantención, en sectores clasificados como Zona 2"
+  ],
+  "faq": [
+    {
+      "question": "¿Cómo sé si la clase T3 sirve para las sustancias de mi planta?",
+      "answer": "Busca en la hoja de datos de seguridad de cada gas o vapor su temperatura de ignición: la temperatura superficial máxima que admite la clase T3 debe quedar por debajo de ese valor. No basta con que el área sea Zona 2: hay sustancias que se encienden a temperaturas más bajas y requieren una clase más restrictiva. La clase T3 se refiere a gases; para polvo, el marcado no informa una temperatura superficial. Si tienes dudas, o si en el área hay polvo combustible, compártenos esos datos al cotizar y lo revisamos."
+    },
+    {
+      "question": "¿Conviene una campana de 300W o varias de menor potencia?",
+      "answer": "Depende de la altura y de la uniformidad que necesitas. Con montajes altos, una campana de 44.992 lm puede reemplazar varios puntos de menor potencia y simplificar la mantención; en recintos bajos, más equipos de menor flujo suelen repartir mejor la luz. Un estudio lumínico DIALux compara ambas alternativas con las medidas reales de tu recinto."
+    },
+    {
+      "question": "¿Qué aporta el vidrio templado de 8 mm?",
+      "answer": "El vidrio templado recibe un tratamiento térmico que lo hace más resistente a golpes y a cambios bruscos de temperatura que un vidrio común, y si llega a romperse, se fragmenta en trozos pequeños. En esta campana tiene 8 mm de espesor y forma parte del cierre del equipo, que declara una resistencia al impacto IK10. Conviene revisarlo en cada mantención: un vidrio trizado compromete la protección de la campana."
+    },
+    {
+      "question": "¿Qué datos necesitan para cotizar?",
+      "answer": "La zona asignada al área (Zona 2 o Zona 22), la altura a la que se colgarán las campanas, las medidas del recinto y la cantidad que estimas. Con eso respondemos con la cotización formal y la factura; si prefieres validar la cantidad antes, partimos por el estudio lumínico. El envío cubre todo Chile, con flota propia en la Provincia de Santiago."
+    }
+  ]
+}

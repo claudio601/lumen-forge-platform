@@ -1,0 +1,35 @@
+{
+  "metaTitle": "Proyector LED Slim SMD 300W 33.000 lm IP66 IK08 | eLIGHTS",
+  "metaDescription": "Proyector LED Slim SMD de 300W con 33.000 lm, IP66, IK08 y haz de 120°. Luz fría 6500K o cálida; SEC y DS1. Para canchas y patios industriales. Cotiza aquí.",
+  "description": "El Proyector LED Slim SMD 300W, de marca JIE, está orientado a exteriores grandes que se iluminan desde la altura: canchas de fútbol amateur, patios industriales, explanadas de carga y estacionamientos de grandes superficies. Ofrece **33.000 lm** con 300W, acepta tensiones de 85 a 265V y combina hermeticidad **IP66** con resistencia al impacto **IK08**. Se cotiza en luz fría de 6500K y en luz cálida de 2200K, 2700K o 3000K, y tiene certificación SEC y DS1.\n\n**Potencia para superficies extensas**\n\nLos 33.000 lúmenes salen de LED SMD Bridgelux con una apertura de 120°. En recintos de este tamaño conviene diseñar la iluminación antes de comprar: eLIGHTS hace estudios lumínicos DIALux que definen cuántos proyectores instalar, a qué altura y con qué orientación, para evitar zonas oscuras entre postes o sectores sobreiluminados.\n\nSu factor de potencia de 0,99 es un dato que el proyectista eléctrico considera al calcular tableros y alimentadores de un recinto con muchos equipos de alta potencia.\n\n**Construcción, certificaciones y respaldo**\n\nSu carcasa es hermética al polvo y resiste chorros de agua (IP66), y tolera golpes gracias a su clasificación IK08. Pesa 3,95 kg. Además de la certificación SEC, la ficha anota la indicación DS1, la norma que regula la contaminación lumínica en Chile, junto a las versiones cálidas. Tiene una vida útil declarada de 30.000 horas y cuenta con garantía. La visera universal, que se vende por separado, permite recortar el haz cuando hay casas o calles cerca.\n\n**Cotización para proyectos**\n\nRecibirás la cotización formal con factura; en la Región Metropolitana también ofrecemos la instalación como servicio aparte. El despacho llega a cualquier ciudad de Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "33.000 lm con 300W para canchas, patios industriales y explanadas",
+    "Haz de 120° para cubrir grandes superficies desde postes altos",
+    "IP66 e IK08 para trabajar a la intemperie y resistir golpes",
+    "Versión fría de 6500K para canchas y tres cálidas (2200K, 2700K y 3000K) para entornos residenciales",
+    "30.000 horas de vida útil declarada, con certificación SEC y DS1",
+    "Factor de potencia de 0,99, útil al dimensionar tableros con muchos equipos"
+  ],
+  "useCases": [
+    "Canchas de fútbol amateur",
+    "Patios industriales y de acopio",
+    "Explanadas de carga y descarga",
+    "Estacionamientos de malls y grandes tiendas",
+    "Terminales de buses y patios de camiones",
+    "Recintos deportivos vecinos a viviendas (versiones cálidas)"
+  ],
+  "faq": [
+    {
+      "question": "¿A qué altura conviene instalar un proyector de 300W?",
+      "answer": "No hay una altura única: depende de la superficie, de la distancia entre postes y del nivel de luz que pide el uso. Con un haz de 120°, la altura es decisiva: más arriba, cada equipo cubre más superficie y la luz llega pareja; demasiado abajo, encandila y concentra la luz al pie del poste. El estudio DIALux fija la altura y la inclinación para tu recinto."
+    },
+    {
+      "question": "¿Qué temperatura de color conviene para una cancha de fútbol?",
+      "answer": "Para jugar de noche se suele elegir la luz fría de 6500K: su blanco intenso da una sensación de claridad que ayuda a seguir el juego. Las versiones cálidas, de 2200K, 2700K y 3000K, son la alternativa cuando la cancha está junto a casas o cuando el proyecto debe acreditar la norma DS1, que la ficha asocia a esas versiones."
+    },
+    {
+      "question": "¿Qué debo indicar al pedir la cotización?",
+      "answer": "Las medidas del recinto, la altura disponible para montar los equipos, la temperatura de color y si necesitas la visera universal, que se vende por separado. Si aún no sabes cuántos proyectores requiere, con esos mismos datos podemos preparar el estudio lumínico junto con la cotización formal."
+    }
+  ]
+}

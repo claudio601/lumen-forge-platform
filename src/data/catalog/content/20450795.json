@@ -1,0 +1,37 @@
+{
+  "metaTitle": "Proyector LED recargable 100W IP66 de 12.000 lm | eLIGHTS",
+  "metaDescription": "Foco LED recargable de 100W y 12.000 lm para faenas sin red eléctrica: batería de litio, 4 horas de trabajo, IP66 y Clase II. Cotiza en eLIGHTS.",
+  "description": "El Proyector LED de Emergencia Recargable 100W (SKU PLER100F) es un foco portátil con batería de litio para iluminar faenas nocturnas, trabajos en terreno y emergencias donde no hay red eléctrica a mano. Ofrece **12.000 lm** en luz fría de 6500K, con una eficacia de 120 lm/W, y su ficha indica un tiempo de trabajo de 4 horas.\n\n**Rendimiento lumínico**\n\nUsa 80 chips LED SMD y tiene un índice de reproducción cromática (CRI) superior a 80. La ficha propone una distancia de instalación de 9 a 12 metros, con un área de cobertura de 17 a 20 m², lo que permite ubicarlo a cierta distancia del frente de trabajo, por ejemplo al borde de una excavación o sobre la plataforma de un camión, sin que el equipo estorbe la maniobra.\n\n**Batería de litio**\n\nLa batería se recarga en 4 a 6 horas con el cargador Li-ion de muro que figura entre sus accesorios. Para turnos de noche, lo práctico es cargarlo durante el día y llevarlo listo a la faena.\n\n**Construcción para trabajo en terreno**\n\nLa carcasa es de aleación de aluminio en amarillo y negro, con grado **IP66**: hermética al polvo y resistente a chorros potentes de agua, de modo que puede trabajar a la intemperie. Es un equipo **Clase II** y opera entre -20 °C y 60 °C, así que tolera tanto noches de helada como jornadas calurosas.\n\n**Garantía y cotización**\n\nEl equipo tiene 1 año de garantía y certificación SEC, y su ficha declara 50.000 horas de vida útil. Para equipar a varias cuadrillas, indica la cantidad al cotizar: te enviamos la cotización formal con factura y despachamos a todo Chile en hasta 2 días hábiles. Si tienes dudas sobre el uso en tu faena, te asesoramos por WhatsApp o en ventas@elights.cl.",
+  "keyBenefits": [
+    "12.000 lm con 100W y 120 lm/W, con 80 chips LED SMD",
+    "Área de cobertura de 17 a 20 m², con una distancia de instalación de 9 a 12 metros",
+    "Batería de litio: 4 horas de trabajo por carga según su ficha",
+    "Portátil: lleva luz a faenas y terrenos sin red eléctrica",
+    "IP66 y Clase II para trabajar a la intemperie",
+    "Luz fría de 6500K con CRI superior a 80",
+    "Certificación SEC, con 1 año de garantía según su ficha"
+  ],
+  "useCases": [
+    "Obras de construcción con turnos nocturnos",
+    "Frentes de obra sin empalme eléctrico",
+    "Faenas agrícolas y forestales de noche",
+    "Mantención de caminos y redes en terreno",
+    "Patios de maniobra si se corta la energía",
+    "Brigadas de emergencia de empresas"
+  ],
+  "installationInfo": "Es un equipo **portátil**, sin conexión fija a la red. Se carga, se lleva al lugar de trabajo y se ubica según la distancia de instalación que sugiere la ficha, de 9 a 12 metros.\n\n- Cargador: Li-ion, de muro; entrada 100-240V, salida 8,4V a 1000mA.\n- Temperatura de operación: -20 °C a 60 °C.\n\nAntes de cada turno, revisa que la batería esté completa y deja el cargador en un lugar seco.",
+  "faq": [
+    {
+      "question": "¿Se enciende solo cuando se corta la luz?",
+      "answer": "La ficha lo describe como un proyector portátil y recargable, sin indicar encendido automático ante un corte. Funciona como un foco de respaldo: se mantiene cargado y se lleva al lugar donde hace falta luz. Si necesitas una luminaria que se encienda sola al cortarse la energía, consúltanos por alternativas."
+    },
+    {
+      "question": "¿Alcanzan 4 horas de trabajo para un turno completo?",
+      "answer": "Según su ficha, trabaja 4 horas por carga. Para un turno más largo, lo habitual es tener dos equipos y alternarlos mientras uno se recarga, lo que toma de 4 a 6 horas. Si necesitas luz toda la noche en un mismo punto, conviene evaluar un proyector conectado a la red; te asesoramos al cotizar."
+    },
+    {
+      "question": "¿Qué significa que sea Clase II?",
+      "answer": "Es una clase de protección eléctrica: el equipo tiene doble aislamiento o aislamiento reforzado entre las partes con tensión y la carcasa, de modo que no depende de una conexión a tierra para proteger a quien lo usa. Es un dato relevante en un equipo que se manipula y traslada en terreno."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "metaTitle": "Campana LED UFO Premium 150W, haz 60° y 150 lm/W | eLIGHTS",
+  "metaDescription": "Campana LED UFO Premium de 150W: 22.500 lm a 150 lm/W, haz de 60°, LED Lumileds y driver Mean Well; 5 años de garantía. Cotiza para tu bodega o nave.",
+  "description": "La Campana LED UFO Premium Gris 150W (SKU UFOP150F) es una campana de alta eficiencia para recintos altos que necesitan concentrar la luz en el plano de trabajo. Genera **22.500 lm** con 150W, una eficacia de **150 lm/W**, en luz fría de 6500K y con un haz cerrado de 60°. Combina LED SMD Lumileds con driver Mean Well, funciona con tensiones de 100 a 240V en corriente alterna y tiene 5 años de garantía.\n\n**Haz de 60°: luz concentrada para techos altos**\n\nLa apertura es lo que más distingue a esta campana. Con 60°, el flujo sale en un cono estrecho y llega con más intensidad al piso, algo que se aprovecha cuando el equipo va montado muy alto o cuando hay que iluminar el fondo de pasillos angostos entre racks: se pierde menos luz en muros, estructuras y en la parte alta de las estanterías.\n\nLa luz fría de 6500K y un CRI igual o superior a 80 facilitan leer códigos, etiquetas y señalética en estanterías altas, y muestran los colores de la mercadería con buena fidelidad.\n\n**Eficiencia y componentes**\n\nCon 150 lm/W, la campana obtiene un flujo alto con una potencia moderada, algo que pesa en el consumo de recintos que mantienen la luz encendida durante toda la jornada. Los chips son LED SMD de Lumileds y el driver, la fuente que transforma la tensión de la red en la corriente que alimenta a los LED, es Mean Well.\n\nSu factor de potencia, de 0,95 o más, indica que casi toda la potencia que toma de la red es potencia activa; en instalaciones con muchas campanas, eso ayuda a mantener acotada la corriente en circuitos y tableros.\n\n**Formato y respaldo**\n\nDe color gris, su cuerpo mide Ø38 cm y 13 cm de alto. La ficha le asigna **5 años de garantía**, un respaldo amplio para equipos que se montan en altura y cuya reposición exige plataforma elevadora.\n\n**Proyectos y cotización**\n\nSi vas a equipar una nave o un centro de distribución completo, eLIGHTS puede preparar un estudio lumínico DIALux que define cuántas campanas instalar y dónde. El equipo comercial responde cada solicitud con una cotización formal y factura, y el despacho llega a todo Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "Eficacia de 150 lm/W: 22.500 lm con 150W",
+    "Haz de 60° que concentra la luz en naves altas y pasillos entre racks",
+    "Luz fría de 6500K y CRI de 80 o más para leer códigos en estanterías altas",
+    "Chips LED SMD Lumileds y driver Mean Well, con factor de potencia de 0,95 o más",
+    "Respaldo de 5 años de garantía, con certificación CE y RoHS"
+  ],
+  "useCases": [
+    "Centros de distribución con pasillos angostos entre racks",
+    "Naves industriales con montaje muy alto",
+    "Bodegas de almacenaje vertical",
+    "Supermercados mayoristas con estanterías altas",
+    "Líneas de producción bajo techos altos"
+  ],
+  "faq": [
+    {
+      "question": "¿Sirve si el techo de mi recinto es bajo?",
+      "answer": "No es su mejor uso. En techos bajos, un haz de 60° deja círculos de luz marcados en el piso y zonas más oscuras entre equipos, y obliga a instalar más puntos para lograr una luz pareja. Para esos recintos, o para espacios abiertos sin estanterías, conviene una campana de apertura más amplia; al cotizar, indícanos la altura de montaje y te orientamos."
+    },
+    {
+      "question": "¿Con qué tensión funciona?",
+      "answer": "Admite tensiones de 100 a 240V en corriente alterna, un rango que cubre la red eléctrica habitual de bodegas, plantas y locales comerciales en Chile. Conviene que la conexión la haga un instalador eléctrico; si el proyecto está en la Región Metropolitana, eLIGHTS puede encargarse de la instalación como servicio aparte."
+    },
+    {
+      "question": "¿Qué garantía y certificaciones tiene?",
+      "answer": "La ficha indica 5 años de garantía. Cuenta además con marcado CE, que declara el cumplimiento de la normativa europea aplicable, y con RoHS, que restringe metales pesados como el plomo o el mercurio en sus componentes."
+    },
+    {
+      "question": "¿Qué medidas tiene?",
+      "answer": "El cuerpo mide Ø38 cm y 13 cm de alto, en color gris. Revisa esas medidas si la campana irá entre vigas, junto a bandejas portaconductores o cerca de otras instalaciones del techo; si tienes dudas sobre cómo montarla en tu estructura, cuéntanos al cotizar."
+    },
+    {
+      "question": "¿Qué datos necesito para cotizar una bodega con racks?",
+      "answer": "El largo y el ancho de la bodega, la altura de los racks, el ancho de los pasillos y la altura de montaje disponible. Con esa información revisamos si el haz de 60° calza con tus pasillos y cuántas campanas hacen falta. El envío a cualquier región tarda hasta 2 días hábiles; dentro de la Provincia de Santiago lo hacemos con camiones propios."
+    }
+  ]
+}

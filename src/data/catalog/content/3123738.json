@@ -1,0 +1,40 @@
+{
+  "metaTitle": "Proyector LED 10W con sensor de movimiento, luz fría | eLIGHTS",
+  "metaDescription": "Foco LED de 10W con sensor de movimiento para puertas, escaleras y pasillos exteriores: luz fría de 6500K, IP66 y certificación SEC. Cotiza en eLIGHTS.",
+  "description": "El Proyector LED Ultra Thin SMD 10W con Sensor de Movimiento, de la marca JIE, es un foco LED para exterior que se enciende al detectar movimiento en su campo. Con 10W de potencia, es el tamaño que suele elegirse para puntos de luz acotados: la puerta principal de una casa, una escalera exterior, el pasillo que lleva al patio o la entrada de una caseta de herramientas. Funciona con tensiones de 180 a 265V (50Hz), emite luz fría de **6500K** y cuenta con grado de protección **IP66** y certificación **SEC**.\n\n**Luz en el momento en que llegas**\n\nUn foco con sensor permanece en reposo mientras no hay movimiento y se enciende cuando alguien entra en su campo de detección. En una puerta o una escalera, eso significa llegar de noche y encontrar la cerradura y los peldaños con luz, sin buscar el interruptor a tientas. Como no queda prendido hasta el amanecer, el equipo funciona solo en los momentos en que hace falta.\n\n**Rendimiento lumínico**\n\nUsa LED SMD Epistar con una eficacia de **90 lm/W** y abre su haz en 120°, un ángulo amplio que reparte la luz sobre el entorno inmediato del equipo en lugar de proyectarla lejos. Con 10W, su terreno son los espacios cortos: un pórtico, un descanso de escalera, un acceso lateral o el frente de una bodega pequeña. La luz fría de 6500K es un blanco intenso, el tono que se usa con más frecuencia en accesos y zonas de paso. Su factor de potencia es de 0,99.\n\n**Protección a la intemperie**\n\nEl grado **IP66** significa que el equipo es hermético al polvo y tolera chorros potentes de agua, así que puede quedar bajo la lluvia sin un alero que lo cubra. Es un equipo **Clase I**, por lo que requiere tierra de protección en el punto donde se conecta. Pesa 0,72 kg y la ficha le asigna una vida útil de 30.000 horas.\n\n**Certificación SEC, garantía y pedido**\n\nLa certificación SEC acredita que el producto cumple los requisitos de seguridad que la Superintendencia de Electricidad y Combustibles exige para comercializarlo en Chile. La ficha indica, además, que el proyector cuenta con garantía. Para cotizar, indica cuántas unidades necesitas y qué accesos vas a iluminar: el equipo comercial te enviará la cotización formal con factura.",
+  "keyBenefits": [
+    "Se enciende al detectar movimiento frente a la puerta o en la escalera, sin buscar el interruptor",
+    "10W de potencia y 90 lm/W de eficacia, a la medida de pórticos, escaleras y accesos cortos",
+    "Haz de 120° en luz fría de 6500K que cubre el entorno inmediato del equipo",
+    "Hermético al polvo y resistente a chorros de agua gracias a su grado IP66",
+    "Certificación SEC y garantía, según la ficha del producto",
+    "Vida útil declarada de 30.000 horas, con LED SMD Epistar"
+  ],
+  "useCases": [
+    "Puertas de entrada y pórticos de viviendas",
+    "Escaleras exteriores y descansos",
+    "Pasillos laterales que llevan al patio",
+    "Casetas de herramientas y bodegas pequeñas",
+    "Accesos a salas de medidores en condominios",
+    "Puertas de servicio de oficinas y locales pequeños"
+  ],
+  "installationInfo": "Antes de fijarlo, define qué tramo debe cubrir el sensor: el frente de la puerta, el primer peldaño o la entrada del pasillo. Lo ideal es que quien llega entre en su campo antes de alcanzar la puerta o la escalera, y que el haz de 120° caiga sobre la zona de paso y no sobre la ventana de un vecino.\n\nSe alimenta con 180 a 265V, 50Hz. Por ser un equipo Clase I, el circuito debe llevar tierra de protección conectada al proyector, y el empalme tiene que quedar dentro de una caja estanca para no perder la protección IP66 del conjunto. Si el pasillo da a la calle, oriéntalo de modo que los peatones de la vereda no lo enciendan a cada rato.\n\nLa conexión debe hacerla un instalador eléctrico, que además verificará la tierra del circuito.",
+  "faq": [
+    {
+      "question": "¿Para qué espacios sirve un proyector de 10W con sensor?",
+      "answer": "Se usa en puntos de luz cercanos y de poca superficie: una puerta de entrada, una escalera exterior, un pasillo lateral o el acceso a una bodega pequeña. Su haz de 120° se abre sobre el entorno inmediato del equipo. Para un patio amplio o una entrada de autos suele convenir una versión de mayor potencia de esta misma línea; al cotizar te ayudamos a elegir."
+    },
+    {
+      "question": "¿Cuánto rato se mantiene encendido tras detectar a alguien?",
+      "answer": "La ficha técnica no informa ese tiempo, ni tampoco el alcance o el ángulo de detección del sensor. Si esos datos son decisivos para tu proyecto, escríbenos por WhatsApp o a ventas@elights.cl antes de comprar y te orientamos."
+    },
+    {
+      "question": "¿Qué significa que sea un equipo Clase I?",
+      "answer": "Que su seguridad frente a descargas eléctricas depende de la conexión a tierra: la carcasa debe quedar unida al conductor de tierra de protección del circuito. Si una falla interna dejara la carcasa energizada, la tierra deriva esa corriente y permite que actúen las protecciones del tablero. Si la instalación de tu casa o local no tiene tierra en ese punto, el electricista debe resolverlo antes de conectar el proyector."
+    },
+    {
+      "question": "¿Cómo hago el pedido y en qué plazo llega?",
+      "answer": "Envía una solicitud con la cantidad de proyectores y, si quieres, una breve descripción de los accesos que vas a iluminar. Te respondemos con una cotización formal y la compra se factura. Los envíos cubren todo Chile y tardan hasta 2 días hábiles: dentro de la Provincia de Santiago van en nuestros camiones y a regiones, con un operador logístico."
+    }
+  ]
+}

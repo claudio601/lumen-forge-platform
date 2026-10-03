@@ -1,0 +1,38 @@
+{
+  "metaTitle": "Kit de Emergencia LED SS30W para paneles de 3 a 30W | eLIGHTS",
+  "metaDescription": "Kit de emergencia SS30W para paneles LED de 3 a 30W con driver externo: 90 minutos de autonomía y conexión a 220V, 50Hz. Cotiza con despacho a todo Chile.",
+  "description": "El Kit de Emergencia LED SS30W da respaldo ante cortes de energía a **paneles LED de 3 a 30W** que trabajen con driver externo. Si se va la luz, el panel sigue encendido gracias a la batería del kit durante **90 minutos**. Trabaja con la red de **220V, 50Hz**, y su garantía es de 1 año.\n\n**Para paneles de hasta 30W**\n\nEl rango de 3 a 30W abarca muchos de los paneles LED que se usan en oficinas pequeñas, consultas, salas de espera, pasillos de edificios y locales. En esos espacios, equipar algunos paneles con kit permite que sigan dando luz durante un corte. La ficha no indica con qué potencia lo hacen ni que el kit cumpla una norma de alumbrado de emergencia o de evacuación, así que, si el recinto la exige, el proyecto eléctrico define qué equipos corresponden.\n\n**Por qué importa el driver externo**\n\nLa ficha lo indica para luminarias LED con driver externo. El driver adapta la energía de la red para los LEDs y, cuando va por fuera del panel, en general el kit se conecta entre ese driver y el módulo LED. Por eso, antes de comprar, confirma dos cosas: que tu panel tenga driver externo y que su potencia esté entre 3 y 30W.\n\n**Datos eléctricos y embalaje**\n\nFunciona con una batería de 3,7V y una configuración de lámpara LED de 3 a 30W. Para proyectos, el embalaje por mayor reúne 100 kits en una caja de 9 kg.\n\n**Cotiza tu proyecto**\n\nIndica cuántos paneles necesitan respaldo y su potencia. Recibirás la cotización formal de eLIGHTS, con factura, y el despacho a todo Chile se coordina en hasta 2 días hábiles. Las dudas de compatibilidad las resolvemos por WhatsApp o en ventas@elights.cl.",
+  "keyBenefits": [
+    "Respaldo para paneles LED de 3 a 30W con driver externo",
+    "90 minutos de autonomía con la batería cargada",
+    "Conexión a la red de 220V, 50Hz",
+    "Configuración de lámpara LED de 3 a 30W y batería de 3,7V",
+    "1 año de garantía y cajas por mayor de 100 kits"
+  ],
+  "useCases": [
+    "Oficinas pequeñas y espacios de cowork",
+    "Consultas médicas y dentales",
+    "Salas de espera y recepciones",
+    "Halls y accesos de edificios residenciales",
+    "Locales comerciales con paneles LED"
+  ],
+  "installationInfo": "Se conecta a la red de **220V, 50Hz** y a un panel LED de 3 a 30W con **driver externo**.\n\n- Revisa la potencia del panel en la etiqueta de su driver antes de instalar.\n- Ubica el kit cerca del driver, sobre el cielo, donde quede accesible para la mantención.\n- La ficha no detalla el esquema de conexión. Por lo común, si la alimentación del kit se corta cada vez que alguien apaga la luz, su batería no se mantiene cargada, por lo que suele dejarse en una línea sin interruptor; tu instalador debe confirmarlo para este modelo.\n\nConfía el trabajo a un instalador eléctrico. Para obras en la Región Metropolitana, también podemos cotizarte la instalación.",
+  "faq": [
+    {
+      "question": "¿Qué paneles puedo conectar a este kit?",
+      "answer": "Paneles LED de 3 a 30W que funcionen con driver externo. Si tu panel tiene más potencia, eLIGHTS cotiza kits de emergencia para rangos mayores; cuéntanos la potencia y te recomendamos el modelo adecuado."
+    },
+    {
+      "question": "¿Cómo sé si mi panel tiene driver externo?",
+      "answer": "Si al bajar el panel ves una caja pequeña unida a él por un cable, esa es su fuente de poder, el driver, y tu panel lo tiene externo. Este kit está indicado para ese tipo de luminarias; si la fuente va dentro del panel, consúltanos antes de comprar."
+    },
+    {
+      "question": "¿Qué paneles conviene respaldar y por cuánto tiempo?",
+      "answer": "Son 90 minutos de respaldo a partir del corte, siempre que la batería de 3,7V esté cargada, y a una potencia que la ficha no precisa. Durante ese tiempo solo siguen encendidos los paneles que llevan kit, por lo que suelen elegirse los de zonas de paso y accesos; cuántos y cuáles, lo define el proyecto eléctrico según la normativa que aplique al recinto."
+    },
+    {
+      "question": "¿Cómo pido la cotización para varios paneles?",
+      "answer": "Escríbenos la cantidad de paneles que llevarán respaldo y su potencia. Para volumen, el kit viene en cajas de 100 unidades de 9 kg, y la compra se factura, algo útil para empresas e instaladores eléctricos."
+    }
+  ]
+}

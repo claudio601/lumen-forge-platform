@@ -98,3 +98,20 @@ export interface Category {
   productCount: number;
   subcategories: { slug: string; name: string }[];
 }
+
+/**
+ * Contenido SEO de un producto en el formato de las fichas BESTLED (descripción con
+ * subtítulos, beneficios, casos de uso, preguntas frecuentes), escrito a partir de los
+ * datos de Jumpseller. Un archivo por producto en ./content/<jumpseller_id>.json: solo
+ * se descarga al abrir esa ficha. Lo verifican scripts/content/check.ts y content.test.ts.
+ */
+export interface ProductContent {
+  metaTitle: string;
+  metaDescription: string;
+  /** Párrafos separados por línea en blanco, subtítulos "**Subtítulo**" y listas "- ". */
+  description: string;
+  keyBenefits: string[];
+  useCases: string[];
+  installationInfo?: string;
+  faq: Array<{ question: string; answer: string }>;
+}

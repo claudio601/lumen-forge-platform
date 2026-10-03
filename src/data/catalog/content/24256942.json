@@ -1,0 +1,36 @@
+{
+  "metaTitle": "Proyector LED 150W con sensor de movimiento, 13.500 lm | eLIGHTS",
+  "metaDescription": "Proyector LED Ultra Slim de 150W con sensor de movimiento: 13.500 lm en luz fría, IP66 e IK08. Para acopios y andenes. Cotiza para tu patio en eLIGHTS.",
+  "description": "El Proyector LED Ultra Slim 150W con Sensor de Movimiento, de marca JIE, está pensado para áreas de trabajo exteriores que quedan vacías durante la noche pero deben iluminarse en cuanto alguien llega: patios de acopio, andenes de carga, barracas de materiales, accesos de camiones y estacionamientos de empresas fuera de horario. Ofrece **13.500 lm** con 150W en luz fría de 6500K, funciona a 220-240V y 50Hz, y cuenta con hermeticidad **IP66** y resistencia al impacto **IK08**.\n\n**Por qué un sensor en un patio de trabajo**\n\nEn recintos sin turno nocturno, mantener proyectores prendidos hasta el amanecer significa gastar energía en un espacio sin actividad. Con sensor, el equipo se enciende cuando detecta movimiento en su campo: un camión que llega temprano o un guardia en ronda. Esa respuesta facilita la maniobra y, de paso, hace notoria la llegada de quien entra al sector.\n\nSobre el sensor, la ficha no publica su rango, su ángulo de detección ni el tiempo de encendido. Si son datos críticos para tu proyecto, revísalos con nosotros antes de definir la cantidad de equipos.\n\n**Rendimiento lumínico**\n\nLos 13.500 lúmenes provienen de 144 chips LED SMD 2835, con 90 lm/W de eficacia y una apertura de 120° que cubre un sector ancho desde un muro o un poste. El blanco frío de 6500K y un CRI mayor a 80 ayudan a leer guías, rotulados y patentes en cuanto la luz se enciende.\n\n**Dimensiones, resistencia y respaldo**\n\nEl cuerpo mide 26,5 x 27 cm y 3 cm de alto. La protección IP66 deja fuera el polvo de un patio de acopio y resiste chorros de agua, y con IK08 la carcasa resiste golpes accidentales. Trabaja de -20 °C a 60 °C, con factor de potencia de 0,99 y THD inferior al 15%. Cuenta con certificación SEC, su garantía es de 1 año y la vida útil que declara alcanza las 40.000 horas.",
+  "keyBenefits": [
+    "Se enciende al detectar movimiento: luz en el patio cuando hay actividad",
+    "13.500 lm con 150W en blanco frío de 6500K",
+    "144 chips LED SMD 2835, 90 lm/W y apertura de 120°",
+    "IP66 e IK08 para patios con polvo, lluvia y golpes accidentales",
+    "Cuerpo de 26,5 x 27 cm y 3 cm de alto, de perfil plano",
+    "Garantía de 1 año, certificación SEC y 40.000 horas de vida útil declarada"
+  ],
+  "useCases": [
+    "Patios de acopio y barracas de materiales",
+    "Andenes de carga sin turno nocturno",
+    "Accesos de camiones a centros de distribución",
+    "Estacionamientos de empresas fuera de horario",
+    "Perímetros de galpones y plantas",
+    "Patios traseros de supermercados y locales grandes"
+  ],
+  "installationInfo": "Su montaje es en **muro o poste**. Elige una posición desde la cual el sensor cubra el acceso o la zona de maniobra.\n\n- Tensión: 220-240V, 50Hz.\n- Se vende sin accesorios; el cableado y la protección del circuito los define la instalación.\n- En patios con grúas horquilla o camiones altos, ubícalo fuera de su recorrido: el IK08 se refiere a golpes accidentales, no al impacto de un mástil o de una carga.\n\nLa conexión debe ejecutarla un instalador eléctrico. En la Región Metropolitana podemos cotizarte el montaje como servicio adicional.",
+  "faq": [
+    {
+      "question": "¿Conviene si el patio tiene actividad toda la noche?",
+      "answer": "Su ventaja está en los patios de uso esporádico. Si hay tránsito constante, como en un turno nocturno, el sensor detectará movimiento casi todo el tiempo y el proyector pasará la mayor parte de la noche encendido, así que el beneficio del sensor se reduce. En ese caso, cuéntanos cómo opera el recinto y te orientamos."
+    },
+    {
+      "question": "¿Se pueden poner varios en un mismo recinto?",
+      "answer": "Sí, y en patios grandes es lo habitual: cada proyector reacciona a lo que ocurre dentro de su propio campo. Para decidir cuántos instalar y dónde, eLIGHTS prepara estudios lumínicos DIALux con las medidas del lugar. La caja por mayor trae 10 unidades y pesa 13 kg."
+    },
+    {
+      "question": "¿Qué datos conviene enviar al cotizar?",
+      "answer": "La cantidad de equipos o, si aún no la tienes, las medidas del patio, los puntos donde se pueden montar (muro o poste) y los accesos que quieres cubrir. Con eso el equipo comercial prepara la cotización formal con factura. El despacho llega a todo Chile en hasta 2 días hábiles, con operador logístico para regiones."
+    }
+  ]
+}

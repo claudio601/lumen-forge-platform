@@ -1,0 +1,35 @@
+{
+  "metaTitle": "Proyector LED Slim SMD 500W 55.000 lm IP66 IK08 | eLIGHTS",
+  "metaDescription": "Proyector LED Slim SMD de 500W y 55.000 lm, con vidrio a prueba de golpes, IP66, IK08 y certificación SEC y DS1. Para canchas y perímetros. Cotiza en eLIGHTS.",
+  "description": "Con **55.000 lm**, el Proyector LED Slim SMD 500W de JIE ilumina desde la altura recintos deportivos y grandes superficies exteriores: canchas de fútbol, gimnasios de gran volumen, patios industriales y perímetros extensos. Consume 500W, admite de 110 a 240V (50Hz) y va montado en **muro o poste**. Su cuerpo de aluminio lleva un protector de vidrio a prueba de golpes, con grado **IP66**, resistencia al impacto **IK08** y clasificación **Clase I**. Hay una versión de luz fría de 6500K y tres de luz cálida: 2200K, 2700K y 3000K.\n\n**55.000 lúmenes con LED Epistar**\n\nLa luz se genera con LED SMD Epistar y sale con una apertura de 120°. Concentrar tanto flujo en un solo equipo permite cubrir superficies grandes con menos puntos de luz, aunque la distribución final siempre depende de la altura de montaje y de la separación entre postes. El factor de potencia declarado es de 0,99.\n\n**Construcción para condiciones exigentes**\n\nEl cuerpo es de aluminio y el frente, de vidrio a prueba de golpes. Gracias a su grado IP66, ni el polvo ni los chorros de agua entran al equipo, que además trabaja con temperaturas de -20 °C a 60 °C. Como equipo Clase I, su cuerpo metálico debe quedar conectado a la tierra de protección de la instalación eléctrica.\n\n**Respaldo y compra**\n\nLa ficha le asigna 30.000 horas de vida útil y el equipo tiene garantía. Para cotizar, indica las medidas del recinto, la cantidad estimada y la temperatura de color: la fría de 6500K es la habitual en canchas y zonas de trabajo nocturno, y las cálidas dan un tono más ámbar. Enviamos la cotización formal con factura, y el pedido llega a cualquier punto de Chile en hasta 2 días hábiles.",
+  "keyBenefits": [
+    "55.000 lm con 500W para recintos deportivos y grandes superficies exteriores",
+    "Chips LED SMD Epistar con apertura de 120°",
+    "Frente de vidrio a prueba de golpes, con IP66 e IK08",
+    "Cuerpo de aluminio Clase I, para conectar a la tierra de protección",
+    "Montaje en muro o poste y operación de -20 °C a 60 °C",
+    "Sellos SEC y DS1 en su ficha de certificación"
+  ],
+  "useCases": [
+    "Gimnasios y polideportivos de gran altura",
+    "Canchas de fútbol de complejos deportivos",
+    "Perímetros extensos de plantas industriales",
+    "Explanadas de estacionamiento de grandes superficies",
+    "Recintos feriales y explanadas para eventos"
+  ],
+  "installationInfo": "El proyector admite montaje en **muro o poste**. En canchas y patios grandes suele ir en postes altos; en gimnasios, en los muros laterales.\n\n- Tensión de entrada: 110 a 240V, 50Hz.\n- Clase I: el cuerpo debe quedar unido a la tierra de protección del tablero.\n- Antes de montar, revisa con el proyectista la sección de los conductores y las protecciones del circuito, considerando que cada equipo es de 500W.\n- Ajusta la inclinación para que el haz de 120° caiga sobre la cancha o la zona de trabajo, y no hacia el cielo ni hacia casas vecinas.\n\nLa instalación en altura requiere personal calificado y equipos de elevación. Dentro de la Región Metropolitana, eLIGHTS puede hacer el montaje como servicio adicional, con su propia cotización.",
+  "faq": [
+    {
+      "question": "¿Qué superficie ilumina un proyector de 500W?",
+      "answer": "No hay una cifra fija: depende de la altura de montaje, de la separación entre equipos y del nivel de luz que exige el uso, que no es el mismo para una cancha de competencia que para un patio de acopio. Un solo equipo aporta 55.000 lm repartidos en un haz de 120°. Con un estudio lumínico DIALux calculamos cuántos proyectores necesita tu recinto."
+    },
+    {
+      "question": "¿Resiste balonazos y golpes?",
+      "answer": "Su frente es un protector de vidrio a prueba de golpes y la carcasa tiene clasificación IK08, que mide la resistencia a impactos mecánicos. Son protecciones útiles en canchas, patios y faenas, donde un balonazo o un golpe accidental es habitual; montado en altura, además, queda fuera del alcance de impactos directos."
+    },
+    {
+      "question": "¿Cumple la norma de contaminación lumínica DS1?",
+      "answer": "La ficha declara certificación SEC y DS1. Como la norma regula la luz que se emite hacia el cielo, la temperatura de color y la orientación del equipo también influyen: si tu proyecto debe acreditar DS1, indícalo al cotizar para confirmar la versión que corresponde."
+    }
+  ]
+}
