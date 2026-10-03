@@ -30,7 +30,7 @@
     },
     {
       "question": "¿Cuántas campanas deben llevar kit de emergencia?",
-      "answer": "Depende del recinto: de su superficie, de las rutas de salida y de las zonas de riesgo, y lo define el proyecto eléctrico. Para naves y bodegas completas, eLIGHTS puede hacer un estudio lumínico DIALux que ayuda a ubicar las luminarias. Indica en la solicitud cuántas necesitan respaldo."
+      "answer": "Depende del recinto: de su superficie, de sus zonas de trabajo y de los recorridos que no deben quedar a oscuras. Lo define el proyecto eléctrico según la normativa que aplique; como la ficha no indica que el kit cumpla una norma de alumbrado de emergencia o de evacuación, el proyectista debe confirmar si sirve para ese fin. Para naves y bodegas completas, eLIGHTS puede hacer un estudio lumínico DIALux que ayuda a ubicar las luminarias. Indica en la solicitud cuántas necesitan respaldo."
     },
     {
       "question": "¿Qué tensión de alimentación necesita?",
@@ -38,7 +38,7 @@
     },
     {
       "question": "¿Cómo se cotiza y despacha?",
-      "answer": "Indica la cantidad de kits y la potencia de las campanas o proyectores que llevarán respaldo; con eso te enviamos una cotización formal y la compra se emite con factura. El despacho a todo Chile es en hasta 2 días hábiles, y dentro de la Provincia de Santiago lo hacemos con camiones propios."
+      "answer": "Indica la cantidad de kits y la potencia de las campanas o proyectores que llevarán respaldo; con eso te enviamos una cotización formal, y la compra se factura. El despacho a todo Chile es en hasta 2 días hábiles, y dentro de la Provincia de Santiago lo hacemos con camiones propios."
     }
   ]
 }

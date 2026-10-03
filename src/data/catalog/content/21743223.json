@@ -1,10 +1,10 @@
 {
   "metaTitle": "Kit de Emergencia LED Universal 50W para panel o tubo | eLIGHTS",
   "metaDescription": "Kit de emergencia LED universal para paneles o tubos LED de 3 a 50W, con al menos 90 minutos de autonomía y entrada de 85 a 265V. Cotiza en eLIGHTS.",
-  "description": "El Kit de Emergencia LED Universal 50W (SKU SS50W) se distingue por su versatilidad: la ficha lo indica como **universal para paneles o tubos LED de 3 a 50W**. Si se corta la energía, la luminaria con kit sigue encendida desde la batería durante **al menos 90 minutos**. Tiene 1 año de garantía.\n\n**Un mismo kit para paneles y tubos**\n\nEn muchos edificios conviven dos tipos de iluminación: paneles en oficinas y recepciones, y tubos LED en bodegas, estacionamientos subterráneos, salas técnicas o talleres. Un kit universal simplifica la compra y el mantenimiento, porque el mismo modelo sirve para respaldar ambos tipos de luminaria dentro del rango de 3 a 50W.\n\n**Dónde conviene usarlo**\n\nLos tubos LED son habituales en recintos de circulación y trabajo, donde un corte deja a las personas sin referencia visual: pasillos de servicio, escaleras de estacionamientos, bodegas o salas de bombas. Con kits en algunas de esas luminarias, una parte de ellas sigue encendida mientras dura el respaldo. La ficha no informa con qué potencia lo hacen, de modo que, si el recinto exige un nivel mínimo de luz durante el corte, conviene definirlo con el proyecto eléctrico.\n\n**Alimentación y batería**\n\nAcepta de 85 a 265V, 50-60Hz, de modo que sirve tanto en instalaciones domiciliarias como comerciales, y trabaja con una batería de 3,7V que el kit mantiene cargada mientras está conectado a la red.\n\n**Cotización**\n\nCuéntanos cuántas luminarias quieres respaldar, si son paneles o tubos y su potencia. Con esos datos te enviamos una cotización formal; la compra se factura y los pedidos salen a cualquier región del país, con llegada en hasta 2 días hábiles.",
+  "description": "El Kit de Emergencia LED Universal 50W (SKU SS50W) se distingue por su versatilidad: la ficha lo indica como **universal para paneles o tubos LED de 3 a 50W**. Si se corta la energía, la luminaria con kit enciende con una fracción de su potencia normal, alimentada por la batería, durante **al menos 90 minutos**. Tiene 1 año de garantía.\n\n**Un mismo kit para paneles y tubos**\n\nEn muchos edificios conviven dos tipos de iluminación: paneles en oficinas y recepciones, y tubos LED en bodegas, estacionamientos subterráneos, salas técnicas o talleres. Un kit universal simplifica la compra y el mantenimiento, porque el mismo modelo sirve para respaldar ambos tipos de luminaria dentro del rango de 3 a 50W, siempre que se confirme la compatibilidad de cada una.\n\n**Dónde conviene usarlo**\n\nLos tubos LED son habituales en recintos de circulación y trabajo, donde un corte deja a las personas sin referencia visual: pasillos de servicio, escaleras de estacionamientos, bodegas o salas de bombas. Con kits en algunas de esas luminarias, una parte de ellas entrega luz de respaldo mientras dura la batería. La ficha no informa cuánta luz entrega la luminaria en modo de emergencia, ni declara cumplimiento de normas de alumbrado de emergencia. Si esas luminarias forman parte de la iluminación de evacuación del edificio, la instalación debe seguir la normativa aplicable y el estudio lumínico del proyecto, que también fija el nivel mínimo de luz durante el corte.\n\n**Alimentación y batería**\n\nAcepta de 85 a 265V, 50-60Hz, de modo que sirve tanto en instalaciones domiciliarias como comerciales, y trabaja con una batería de 3,7V que el kit mantiene cargada mientras está conectado a la red.\n\n**Cotización**\n\nCuéntanos cuántas luminarias quieres respaldar, si son paneles o tubos y su potencia, y menciona el nombre completo del producto (kit universal para panel o tubo, con al menos 90 minutos de autonomía), no solo el SKU. Con esos datos te enviamos una cotización formal; la compra se factura y los pedidos salen a cualquier región del país, con llegada en hasta 2 días hábiles.",
   "keyBenefits": [
     "Universal: un mismo modelo para paneles o tubos LED de 3 a 50W",
-    "Al menos 90 minutos de autonomía durante un corte",
+    "Al menos 90 minutos de luz de respaldo, a potencia reducida, durante un corte",
     "Entrada de 85 a 265V, 50-60Hz, que cubre la red domiciliaria y comercial",
     "Funciona con una batería de 3,7V; 1 año de garantía",
     "Simplifica la mantención en edificios que combinan paneles y tubos"
@@ -13,11 +13,10 @@
     "Estacionamientos subterráneos con tubos LED",
     "Bodegas y salas técnicas",
     "Oficinas y recepciones con paneles LED",
-    "Escaleras y pasillos de servicio",
+    "Luz de respaldo en escaleras y pasillos de servicio",
     "Talleres y salas de bombas",
     "Edificios con paneles y tubos en distintos pisos"
   ],
-  "installationInfo": "Se conecta a un **panel LED o un tubo LED** de 3 a 50W y a la red, con una tensión de entrada de 85 a 265V, 50-60Hz.\n\n- La ficha no detalla el esquema de conexión. En muchos kits la alimentación va directa desde el tablero, sin pasar por el interruptor, para que un apagado no se confunda con un corte de energía; el instalador debe confirmarlo para este modelo.\n- Marca las luminarias que llevan kit: facilita las pruebas periódicas y la mantención.\n- Revisa que cada luminaria esté dentro del rango de 3 a 50W.\n\nEl trabajo debe hacerlo un instalador eléctrico, idealmente el mismo que mantiene la instalación del edificio.",
   "faq": [
     {
       "question": "¿Qué significa que sea universal?",
@@ -25,11 +24,15 @@
     },
     {
       "question": "¿Qué autonomía tiene?",
-      "answer": "Como mínimo 90 minutos, según la ficha, si la batería de 3,7V está completamente cargada. Para que el respaldo esté listo cuando se necesite, el kit debe permanecer conectado a la red."
+      "answer": "Como mínimo 90 minutos, según la ficha, si la batería de 3,7V está completamente cargada. En ese modo la luminaria funciona con una fracción de su potencia normal, y la ficha no informa cuánta luz entrega. Para que el respaldo esté listo cuando se necesite, el kit debe permanecer conectado a la red."
     },
     {
       "question": "¿Tengo que cambiar mis tubos o paneles para agregar el kit?",
-      "answer": "No necesariamente, pero depende de cada luminaria. La ficha lo indica para paneles o tubos LED de 3 a 50W, sin detallar el tipo de driver ni la forma de conexión, así que antes de comprar envíanos el modelo y la potencia de tus luminarias para revisarlas. Además, un instalador eléctrico debe revisar el cableado de cada una antes de incorporar el kit."
+      "answer": "No necesariamente, pero depende de cada luminaria. La ficha lo indica para paneles o tubos LED de 3 a 50W, sin detallar el tipo de driver ni la forma de conexión, así que antes de comprar envíanos el modelo y la potencia de tus luminarias para revisarlas."
+    },
+    {
+      "question": "¿Cómo se conecta el kit a la luminaria?",
+      "answer": "La ficha no detalla el esquema de conexión de este modelo, así que el trabajo debe hacerlo un instalador eléctrico que revise el cableado de cada luminaria. En muchos kits la alimentación va directa desde el tablero, sin pasar por el interruptor, para que un apagado no se confunda con un corte de energía y la batería se mantenga cargada; el instalador debe confirmarlo para este kit. Conviene además marcar las luminarias que llevan kit, para facilitar las pruebas periódicas."
     },
     {
       "question": "¿Cómo cotizo kits para un estacionamiento o una bodega?",

@@ -7,12 +7,12 @@
     "Haz de 90°: concentra la luz sobre pasillos, mesones y estanterías",
     "Luz cálida de 3000K, neutra de 4000K o fría de 6000K según la zona",
     "CRI de 80 o más para una reproducción del color fiel",
-    "Cuerpo de aluminio IP65, hermético al polvo y al aserrín",
+    "Cuerpo de aluminio IP65, hermético al polvo y protegido contra chorros de agua",
     "Protector contra sobretensiones de 3 kV y gancho para colgarla"
   ],
   "useCases": [
     "Galpones medianos de producción",
-    "Carpinterías y mueblerías",
+    "Ferreterías y salas de venta de doble altura",
     "Showrooms de muebles y decoración",
     "Bodegas con estanterías (luz fría)",
     "Plantas de envasado y packings"
@@ -24,8 +24,8 @@
       "answer": "En salas de venta y showrooms se suele preferir la luz neutra (4000K), que muestra los productos con naturalidad, o la cálida (3000K), que crea un ambiente más acogedor. Con un CRI de 80 o más, la mercadería se ve con colores cercanos a los reales. La fría (6000K) queda mejor en la bodega o el área de carga."
     },
     {
-      "question": "¿Sirve para una carpintería o un taller con polvo?",
-      "answer": "Sí, es una opción. Su grado IP65 impide que entren al equipo partículas como el aserrín o la viruta fina, y lo protege de chorros de agua, algo útil en carpinterías, mueblerías y talleres metalmecánicos. Limpia la cara del disco de vez en cuando para que la acumulación de polvo no reste luz."
+      "question": "¿Sirve para un taller o un galpón con polvo?",
+      "answer": "Sí. Su grado IP65 la hace hermética al polvo y la protege de chorros de agua, por lo que sirve en ambientes con polvo como talleres mecánicos, de mantención o de armado. Limpia la cara del disco de vez en cuando para que la acumulación de polvo no reste luz. Hermética al polvo no significa antiexplosiva: no es una luminaria para atmósferas explosivas ni para zonas con polvo combustible, que requieren equipos certificados para esa zona."
     },
     {
       "question": "¿Cuántas campanas necesito?",

@@ -1,17 +1,17 @@
 {
   "metaTitle": "Fuente de Poder Switching 12V 120W 10A Interior | eLIGHTS",
   "metaDescription": "Fuente de poder switching de 12V, 120W y 10A para interior, con carcasa perforada y certificación CE. Para letreros, vitrinas y cinta LED. Pide tu cotización.",
-  "description": "La Fuente de Poder Switching 120W 12V (SKU FU120I) entrega **12V de corriente continua con 10A**, es decir, 120W para alimentar cinta LED, módulos LED y letreros luminosos de 12V instalados bajo techo. Es una fuente AC/DC de carcasa perforada, con grado de protección IP20 y certificación CE, que mide 199 x 98 x 38 mm.\n\n**Watts y amperes: cómo leer su capacidad**\n\nEn una fuente de 12V, potencia y corriente son dos maneras de expresar la misma capacidad: 10A a 12V equivalen a los 120W de su ficha. Los fabricantes de módulos y cintas a veces informan el consumo en watts y otras en amperes. En cualquiera de los dos casos, la suma de lo conectado tiene que quedar bajo la capacidad de la fuente, con holgura, porque una fuente que pasa muchas horas cerca de su máximo trabaja más caliente.\n\n**Dentro del letrero o la vitrina**\n\nEn cajas de luz, letreros de interior, vitrinas y góndolas, la fuente suele quedar dentro de la misma estructura. Conviene prever una tapa registrable para llegar a ella sin desarmar el letrero, y dejarle aire alrededor para que el calor salga por las perforaciones. Como su grado IP20 no la protege del agua, el letrero o mueble que la contiene debe estar bajo techo.\n\n**Conexión**\n\n- Entrada: 100 a 120V a 60 Hz o 200 a 220V a 50 Hz; el segundo rango es el de la red chilena.\n- Salida: 12V de corriente continua; respeta la polaridad de cada módulo o tramo.\n- Conductores de salida acordes con la corriente que lleva cada línea.\n- Empalme con la red a cargo de un instalador eléctrico.\n\n**Cotización**\n\nIndica la cantidad y, si quieres, el letrero o mueble en que la usarás. Te enviaremos la cotización formal con factura, y la entrega en cualquier región de Chile toma hasta 2 días hábiles.",
+  "description": "La Fuente de Poder Switching 120W 12V (SKU FU120I) entrega **12V de corriente continua con 10A**, es decir, 120W para alimentar cinta LED, módulos LED y letreros luminosos de 12V instalados en interior. Es una fuente AC/DC de carcasa perforada, con grado de protección IP20 y certificación CE, que mide 199 x 98 x 38 mm.\n\n**Watts y amperes: cómo leer su capacidad**\n\nEn una fuente de 12V, potencia y corriente son dos maneras de expresar la misma capacidad: 10A a 12V equivalen a los 120W de su ficha. Los fabricantes de módulos y cintas a veces informan el consumo en watts y otras en amperes. En cualquiera de los dos casos, la suma de lo conectado tiene que quedar bajo la capacidad de la fuente, con holgura, porque una fuente que pasa muchas horas cerca de su máximo trabaja más caliente.\n\n**Dentro del letrero o la vitrina**\n\nEn cajas de luz, letreros de interior, vitrinas y góndolas, la fuente suele quedar dentro de la misma estructura. Conviene prever una tapa registrable para llegar a ella sin desarmar el letrero, y dejarle aire alrededor para que el calor salga por las perforaciones. Como su grado IP20 no la protege del agua ni del polvo, el letrero o mueble que la contiene debe estar en interior, en un lugar seco.\n\n**Conexión**\n\n- Entrada, según la ficha: 100 a 120V a 60 Hz o 200 a 220V a 50 Hz; la red domiciliaria chilena, de 50 Hz, corresponde al segundo rango.\n- Salida: 12V de corriente continua; respeta la polaridad de cada módulo o tramo.\n- Conductores de salida acordes con la corriente que lleva cada línea.\n- Conexión a la red eléctrica a cargo de un instalador eléctrico.\n\n**Cotización**\n\nIndica la cantidad y, si quieres, el letrero o mueble en que la usarás. Te enviaremos la cotización formal con factura, y la entrega en cualquier región de Chile toma hasta 2 días hábiles.",
   "keyBenefits": [
     "10A a 12V: 120W de capacidad para letreros, cinta y módulos LED",
     "Medidas de 199 x 98 x 38 mm, para cajas de luz, letreros y muebles",
     "Carcasa perforada que disipa el calor cuando tiene aire alrededor",
-    "IP20: el letrero o la vitrina que la contiene debe estar bajo techo",
-    "Compras por mayor en cajas de 30 fuentes de 34 x 33 x 23,5 cm"
+    "IP20, para interior: el letrero o la vitrina que la contiene debe estar en un recinto cerrado y seco",
+    "Por mayor: caja de 30 unidades (34 x 33 x 23,5 cm y 11 kg por caja)"
   ],
   "useCases": [
     "Cajas de luz y letreros de interior",
-    "Talleres de fabricación de letreros",
+    "Letreros retroiluminados en el interior de locales comerciales",
     "Vitrinas y muebles de exhibición iluminados",
     "Góndolas de supermercados y tiendas",
     "Menús luminosos y letreros de cafeterías",
@@ -24,7 +24,7 @@
     },
     {
       "question": "¿Sirve para un letrero de exterior?",
-      "answer": "Solo si la fuente queda bajo techo y protegida. Su grado IP20 no ofrece protección contra el agua y la carcasa perforada deja entrar la humedad, así que no puede ir dentro de un letrero expuesto a la lluvia. En ese caso corresponde una fuente estanca; al cotizar, cuéntanos cómo está construido el letrero y te orientamos."
+      "answer": "No dentro del letrero. La fuente es para interior: su grado IP20 no la protege del agua ni del polvo, y la carcasa perforada deja entrar la humedad, así que no puede ir en un letrero exterior ni en un lugar techado pero abierto, como un alero o una marquesina. Puede alimentar un letrero exterior solo si queda en un recinto interior seco y desde ahí se lleva la línea de 12V; en baja tensión la caída de voltaje crece con la distancia, así que ese tramo debe ser corto o con conductores de sección adecuada. Si la fuente tiene que ir dentro del letrero, corresponde una fuente estanca; al cotizar, cuéntanos cómo está construido y te orientamos."
     },
     {
       "question": "¿Venden por mayor a talleres de letreros?",

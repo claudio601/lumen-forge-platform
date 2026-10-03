@@ -5,7 +5,7 @@
   "keyBenefits": [
     "15.000 lm con solo 100W, gracias a una eficacia de 150 lm/W",
     "Compacta y liviana: Ø290 x 85 mm y 1,20 kg, fácil de manipular en altura",
-    "Grado IP66 para talleres y bodegas con polvo o humedad",
+    "Grado IP66 para talleres y bodegas en ambientes con polvo o humedad",
     "Opera de -35 °C a +70 °C, en galpones fríos o bajo techos calurosos",
     "Luz neutra de 4500K o fría de 6500K, con CRI de 80 o más",
     "LED Lumileds, driver Mean Well, certificación CE y RoHS y 3 años de garantía"
@@ -28,7 +28,7 @@
     },
     {
       "question": "¿La protección IP66 permite usarla en cualquier ambiente industrial?",
-      "answer": "Sirve para recintos con polvo, humedad o lavado con agua: el polvo no ingresa al equipo y la carcasa resiste chorros potentes. Pero el grado IP no la hace apta para áreas con riesgo de explosión por gases o polvo combustible, como bodegas de solventes; para esos recintos se usan luminarias antiexplosivas, que también podemos cotizarte."
+      "answer": "Sirve para ambientes con polvo, humedad o lavado con agua: el polvo no ingresa al equipo y la carcasa resiste chorros potentes. Pero el grado IP no la convierte en una luminaria para atmósferas explosivas ni para recintos con polvo combustible o gases inflamables, como una bodega de solventes: esas zonas requieren equipos certificados para ellas."
     },
     {
       "question": "¿Venden por caja para proyectos?",

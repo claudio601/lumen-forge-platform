@@ -13,7 +13,7 @@
     "Oficinas pequeñas y espacios de cowork",
     "Consultas médicas y dentales",
     "Salas de espera y recepciones",
-    "Pasillos de edificios residenciales",
+    "Halls y accesos de edificios residenciales",
     "Locales comerciales con paneles LED"
   ],
   "installationInfo": "Se conecta a la red de **220V, 50Hz** y a un panel LED de 3 a 30W con **driver externo**.\n\n- Revisa la potencia del panel en la etiqueta de su driver antes de instalar.\n- Ubica el kit cerca del driver, sobre el cielo, donde quede accesible para la mantención.\n- La ficha no detalla el esquema de conexión. Por lo común, si la alimentación del kit se corta cada vez que alguien apaga la luz, su batería no se mantiene cargada, por lo que suele dejarse en una línea sin interruptor; tu instalador debe confirmarlo para este modelo.\n\nConfía el trabajo a un instalador eléctrico. Para obras en la Región Metropolitana, también podemos cotizarte la instalación.",
@@ -28,11 +28,11 @@
     },
     {
       "question": "¿Qué paneles conviene respaldar y por cuánto tiempo?",
-      "answer": "Son 90 minutos de respaldo a partir del corte, siempre que la batería de 3,7V esté cargada. Durante ese tiempo solo siguen encendidos los paneles que llevan kit, así que suele convenir elegir los que iluminan pasillos y puertas; cuántos y cuáles, lo define el proyecto eléctrico del recinto."
+      "answer": "Son 90 minutos de respaldo a partir del corte, siempre que la batería de 3,7V esté cargada, y a una potencia que la ficha no precisa. Durante ese tiempo solo siguen encendidos los paneles que llevan kit, por lo que suelen elegirse los de zonas de paso y accesos; cuántos y cuáles, lo define el proyecto eléctrico según la normativa que aplique al recinto."
     },
     {
       "question": "¿Cómo pido la cotización para varios paneles?",
-      "answer": "Escríbenos la cantidad de paneles que llevarán respaldo y su potencia. Para volumen, el kit viene en cajas de 100 unidades de 9 kg, y la compra se emite con factura, algo útil para empresas e instaladores eléctricos."
+      "answer": "Escríbenos la cantidad de paneles que llevarán respaldo y su potencia. Para volumen, el kit viene en cajas de 100 unidades de 9 kg, y la compra se factura, algo útil para empresas e instaladores eléctricos."
     }
   ]
 }
