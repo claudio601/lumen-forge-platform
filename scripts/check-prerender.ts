@@ -149,14 +149,14 @@ export function structuralIssues(
 }
 
 /**
- * Frases conocidas que se corrigen en otra PR: se informan, sin bloquear. Cada una con
- * su motivo; se borran cuando se corrige el texto.
+ * Frases que la regla marca pero son correctas en esa página: se informan, sin bloquear.
+ * Cada una con su motivo.
  */
 export const KNOWN_PHRASES: { routes: string[]; phrase: RegExp; reason: string }[] = [
   {
     routes: ['/', '/estudio-luminico'],
     phrase: /^entrega en 48 horas$/i,
-    reason: 'plazo del informe DIALux, no de despacho: pregunta 3 abierta del dueño, se resuelve en la PR 11',
+    reason: 'plazo del informe del estudio DIALux, no de despacho; confirmado por el dueño el 2026-10-03',
   },
 ];
 
@@ -224,7 +224,7 @@ function main() {
   else blocking.push(...content.map(c => `${c}: contradice las reglas del sitio (stock o plazos de despacho)`));
 
   console.log(`[check-prerender] ${pageFacts.size} de ${routes.length} páginas revisadas, más spa.html y 404.html`);
-  for (const k of known) console.log(`  conocida (no bloquea): ${k}`);
+  for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);
   if (blocking.length) {
     for (const b of blocking) console.log(`::error title=Página estática::${b}`);
