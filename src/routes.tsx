@@ -6,6 +6,7 @@
 
 import { lazy, type ComponentType, type ReactElement } from 'react';
 import { matchRoutes, Navigate, useLocation, useParams, useRoutes, type Params, type RouteObject } from 'react-router-dom';
+import { NOT_FOUND_ATTR, NOT_FOUND_URL } from './lib/notFound';
 
 type PageModule = { default: ComponentType };
 
@@ -102,8 +103,15 @@ const appRoutes: AppRoute[] = [
 
 const routeObjects: RouteObject[] = appRoutes.map(({ path, element }) => ({ path, element }));
 
-export function AppRoutes() {
-  return useRoutes(routeObjects);
+/**
+ * Las rutas de la app. notFoundPath: URL en la que el servidor respondió con 404.html
+ * (ver lib/notFound.ts); ahí se dibuja la página "no encontrada" aunque la URL coincida
+ * con una ruta, igual que el HTML que llegó. Al navegar a otra URL, rutas normales.
+ */
+export function AppRoutes({ notFoundPath }: { notFoundPath?: string }) {
+  const { pathname } = useLocation();
+  const element = useRoutes(routeObjects);
+  return pathname === notFoundPath ? <pages.NotFound /> : element;
 }
 
 /** La ruta que atiende una URL (siempre hay una: '*' atiende las desconocidas). */
@@ -120,4 +128,14 @@ export async function preloadRoute(pathname: string): Promise<string[]> {
   const { route, params } = matchAppRoute(pathname);
   const [, data] = await Promise.all([route.page?.preload(), route.preload?.(params)]);
   return [...(route.page ? [route.page.file] : []), ...(data ?? [])];
+}
+
+/**
+ * Qué hidratar en una página estática (src/main.tsx). Si el HTML es 404.html (#root con
+ * NOT_FOUND_ATTR), la página "no encontrada" en esa URL; si no, la ruta de la URL.
+ * preload: el trozo y los datos que el primer render necesita para no suspender.
+ */
+export function staticPage(root: Element, pathname: string): { notFoundPath?: string; preload: Promise<string[]> } {
+  const notFoundPath = root.hasAttribute(NOT_FOUND_ATTR) ? pathname : undefined;
+  return { notFoundPath, preload: preloadRoute(notFoundPath ? NOT_FOUND_URL : pathname) };
 }

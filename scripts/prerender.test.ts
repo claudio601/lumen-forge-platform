@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fillTemplate, HEAD_MARK, HTML_MARK, outputPath, preloadLinks, type Manifest } from './prerender';
+import { fillTemplate, HEAD_MARK, HTML_MARK, markNotFound, outputPath, preloadLinks, type Manifest } from './prerender';
 
 const TEMPLATE = `<!doctype html><html lang="es"><head><meta charset="UTF-8" />${HEAD_MARK}<script type="module" src="/assets/index-a.js"></script></head><body><div id="root">${HTML_MARK}</div></body></html>`;
 
@@ -47,5 +47,12 @@ describe('prerender', () => {
         '<link rel="modulepreload" crossorigin href="/assets/123-e.js">',
     );
     expect(() => preloadLinks(manifest, ['src/pages/NoExiste.tsx'])).toThrow('manifiesto');
+  });
+
+  it('404.html: marca #root una sola vez para que el navegador hidrate la página "no encontrada"', () => {
+    const html = fillTemplate(TEMPLATE, '<title>Página no encontrada</title>', '<main><h1>404</h1></main>');
+    expect(markNotFound(html)).toContain('<div id="root" data-not-found=""><main><h1>404</h1></main></div>');
+    expect(() => markNotFound(html.replace('<div id="root">', '<div>'))).toThrow('se esperaba');
+    expect(() => markNotFound(html + '<div id="root">')).toThrow('hay 2');
   });
 });

@@ -34,11 +34,15 @@ export function AppProviders({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Todo lo que va dentro del router. onMounted corre una vez, después del primer render
- * (en una página estática, después de hidratarla).
- */
-export function AppLayout({ onMounted }: { onMounted?: () => void }) {
+interface LayoutProps {
+  /** Corre una vez, después del primer render (en una página estática, después de hidratarla). */
+  onMounted?: () => void;
+  /** URL en la que el servidor respondió con 404.html (ver lib/notFound.ts). */
+  notFoundPath?: string;
+}
+
+/** Todo lo que va dentro del router. */
+export function AppLayout({ onMounted, notFoundPath }: LayoutProps) {
   useEffect(() => {
     onMounted?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,7 +60,7 @@ export function AppLayout({ onMounted }: { onMounted?: () => void }) {
               </div>
             }
           >
-            <AppRoutes />
+            <AppRoutes notFoundPath={notFoundPath} />
           </Suspense>
         </main>
         <Footer />
@@ -66,10 +70,10 @@ export function AppLayout({ onMounted }: { onMounted?: () => void }) {
   );
 }
 
-const App = ({ onMounted }: { onMounted?: () => void }) => (
+const App = ({ onMounted, notFoundPath }: LayoutProps) => (
   <AppProviders>
     <BrowserRouter>
-      <AppLayout onMounted={onMounted} />
+      <AppLayout onMounted={onMounted} notFoundPath={notFoundPath} />
     </BrowserRouter>
   </AppProviders>
 );
