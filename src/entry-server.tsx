@@ -13,7 +13,8 @@ export { indexableRoutes } from './lib/seo/routes';
 
 /**
  * Cabecera de spa.html, la app vacía para las páginas que dependen de la sesión o de la
- * búsqueda y las URLs desconocidas. La página la reemplaza al dibujarse (data-rh: Helmet).
+ * búsqueda (/buscar, /cotizacion, /solicitar-pedido). La página la reemplaza al dibujarse
+ * (data-rh: Helmet). Las URLs desconocidas reciben 404.html (PR 05).
  */
 export const SPA_HEAD =
   '<title>eLIGHTS — Iluminación LED Profesional Chile</title><meta data-rh="true" name="robots" content="noindex, follow"/>';

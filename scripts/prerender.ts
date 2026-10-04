@@ -9,22 +9,23 @@
 //   vite build --ssr src/entry-server.tsx --outDir dist-ssr
 // Además escribe:
 //   dist/spa.html: la app vacía, para las páginas que dependen de la sesión o de la
-//     búsqueda (/buscar, /cotizacion, /solicitar-pedido) y las URLs desconocidas (vercel.json).
-//   dist/404.html: la página "no encontrada" (la usará la PR 05).
+//     búsqueda (/buscar, /cotizacion, /solicitar-pedido; reescritura en vercel.json).
+//   dist/404.html: la página "no encontrada". Vercel la sirve con estado 404 en toda URL
+//     sin archivo ni regla (PR 05). Lleva NOT_FOUND_ATTR en #root (ver src/lib/notFound.ts).
 // Las dos llevan noindex. Si una página falla al dibujarse, el build falla: Vercel
 // mantiene el despliegue anterior.
 
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { NOT_FOUND_ATTR, NOT_FOUND_URL } from '../src/lib/notFound';
+
+export { NOT_FOUND_URL };
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const HEAD_MARK = '<!--app-head-->';
 export const HTML_MARK = '<!--app-html-->';
-
-/** URL de la página con la que se genera 404.html (no existe ninguna ruta así). */
-export const NOT_FOUND_URL = '/__no-encontrada__';
 
 export interface ManifestChunk {
   file: string;
@@ -100,6 +101,14 @@ export function fillTemplate(template: string, head: string, html: string, prelo
     .replace('</head>', () => `${preload}</head>`);
 }
 
+/** Marca el HTML de 404.html para que el navegador hidrate la página "no encontrada". */
+export function markNotFound(html: string): string {
+  const tag = '<div id="root">';
+  const count = html.split(tag).length - 1;
+  if (count !== 1) throw new Error(`404.html: se esperaba un ${tag} y hay ${count}`);
+  return html.replace(tag, () => `<div id="root" ${NOT_FOUND_ATTR}="">`);
+}
+
 async function main() {
   const dist = resolve(ROOT, process.argv[2] ?? 'dist');
   const ssrEntry = resolve(ROOT, process.argv[3] ?? 'dist-ssr/entry-server.js');
@@ -126,7 +135,7 @@ async function main() {
   const started = Date.now();
   // spa.html antes que nada: index.html se sobrescribe con la portada.
   write('spa.html', fillTemplate(template, SPA_HEAD, ''));
-  write('404.html', await page(NOT_FOUND_URL));
+  write('404.html', markNotFound(await page(NOT_FOUND_URL)));
   const routes = indexableRoutes();
   for (const route of routes) {
     try {

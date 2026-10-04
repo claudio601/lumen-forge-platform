@@ -97,6 +97,7 @@ gh pr create --fill               # revisar la preview de Vercel antes de mergea
 npm test                                        # frontend (src/)
 npx vitest run --config vitest.api.config.ts    # funciones api/ y scripts/
 npm run build && npm run check:prerender        # páginas estáticas (dist/)
+npm run smoke -- https://nuevo.elights.cl --all # después de cada merge: todas las páginas y assets
 ```
 
 ---
@@ -186,6 +187,8 @@ usa 5 subagentes para explorar la base de código:
 
 **Cómo se actualiza**
 - Automático: workflow "Sincronizar catálogo Jumpseller" (`.github/workflows/sync-jumpseller.yml`), de lunes a viernes a las 11:00 UTC. Si hay cambios, abre o actualiza la PR `bot/jumpseller-sync` con el informe; se revisa y se fusiona como cualquier PR. Si no hay cambios, no abre nada.
+- Para fusionar la PR del bot: cerrarla y reabrirla (`gh pr close N && gh pr reopen N`). El CI que el bot lanza con `workflow_dispatch` pasa, pero GitHub no lo asocia a la PR y `main` exige "Run tsc --noEmit". Al reabrirla con la cuenta del dueño, el CI corre como evento de la PR.
+- Desde la PR 05 las URLs sin página dan 404: un producto que sale del catálogo deja de tener `/producto/<id>`. Revisar en el informe de la PR del bot qué productos salen.
 - A mano: `gh workflow run sync-jumpseller.yml` (o Actions → Run workflow).
 - Local: `npm run sync:catalog` (solo informe, en `reports/jumpseller-sync/diff.md`); `-- --write` escribe los generados. Necesita `.env.local`.
 - Guardas (abortan sin escribir): cae más del 15% de productos, ids duplicados, precio ≤ 0, categoría sin mapear, datos que no pasan la validación, campos prohibidos.
@@ -212,18 +215,33 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
   - `/api/(.*)` sigue siendo la primera reescritura, sin cambios, y la región sigue en `iad1`.
   - Ninguna redirección ni cabecera alcanza `/api`, y no hay redirecciones por dominio.
   - Sin `cleanUrls` ni `trailingSlash`: convertirían los POST de los webhooks en redirecciones.
-- **Chequeo de humo** (`npm run smoke -- <url> [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`). Solo hace GET; los webhooks responden 405 antes de procesar nada.
-  - Se corre en cada preview, comparando con producción, y después de cada merge.
-  - Falla si una ruta da 5xx, o si una función de `api/` o un archivo cambia de estado o de tipo.
+  - **404 reales (PR 05):** no hay comodín fuera de `/api`. Una URL sin archivo ni regla recibe `dist/404.html` con estado 404.
+  - Las páginas de `NOINDEX_ROUTES` (`/buscar`, `/cotizacion`, `/solicitar-pedido`) se reescriben a `spa.html`. Las de `REDIRECT_ROUTES` (`/carro`) redirigen con 307 al mismo destino que su `<Navigate>` en `src/routes.tsx`.
+  - Las fuentes terminan en `{/}?`: Vercel compara en modo estricto y sin eso `/cotizacion/` daría 404.
+  - Una ruta fija nueva que no se prerenderiza va en `NOINDEX_ROUTES` o `REDIRECT_ROUTES` (`src/lib/seo/routes.ts`) **y** en vercel.json: los tests exigen que coincidan.
+  - Una ruta con parámetros (como `/producto/:id`) solo funciona si se generan sus páginas; si no, da 404. Una que no se pueda prerenderizar (p. ej. un panel de pedidos de la Fase 3) necesita una regla nueva en vercel.json, revisada aparte: hoy el test solo acepta fuentes de un segmento fijo.
+- **Chequeo de humo** (`npm run smoke -- <url> [--all] [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`). Solo hace GET; los webhooks responden 405 antes de procesar nada.
+  - Se corre en cada preview, comparando con producción, y después de cada merge (con `--all`: todas las páginas del sitemap y sus assets).
+  - Juzga cada fila según su tipo:
+    - página: 200 con canonical y sin noindex;
+    - spa: 200 con noindex;
+    - 404: estado 404, noindex y la marca de 404.html;
+    - `/carro`: 307 a `/solicitar-pedido`;
+    - archivo: 200 y no HTML;
+    - `api/`: 405.
+  - También falla si una función de `api/` o un archivo cambia de estado o de tipo frente a la base comparada.
+  - Las vistas previas piden inicio de sesión en Vercel. El chequeo marca ese 302 como falla, en vez de darlo por bueno.
+  - Para correrlo en una vista previa, el dueño puede crear el secreto "Protection Bypass for Automation" y dejarlo en `VERCEL_AUTOMATION_BYPASS_SECRET` (`.env.local`). Si no, Claude prueba desde el navegador integrado.
 - **nuevo.elights.cl está fuera de Google** hasta el cambio de dominio: cabecera `X-Robots-Tag: noindex` solo para ese host. Así no compite con elights.cl. Deja de aplicarse sola cuando el sitio se sirva como elights.cl.
 - Claude prueba cada preview y publica el resultado en la PR. El dueño aprueba la fusión.
 
 **Páginas estáticas (prerender, PR 04)**
-- `npm run build` = `vite build` + `vite build --ssr src/entry-server.tsx --outDir dist-ssr` + sitemap + `scripts/prerender.ts`. Escribe el HTML completo de cada página indexable en `dist/<ruta>/index.html` (título, descripción, canonical, Open Graph, JSON-LD y contenido), más `dist/spa.html` (app vacía, noindex: `/buscar`, `/cotizacion`, `/solicitar-pedido` y URLs desconocidas, vía la última reescritura de vercel.json) y `dist/404.html` (para la PR 05). Si una página falla al dibujarse, el build falla y Vercel mantiene el despliegue anterior.
+- `npm run build` = `vite build` + `vite build --ssr src/entry-server.tsx --outDir dist-ssr` + sitemap + `scripts/prerender.ts`. Escribe el HTML completo de cada página indexable en `dist/<ruta>/index.html` (título, descripción, canonical, Open Graph, JSON-LD y contenido), más `dist/spa.html` (app vacía, noindex: `/buscar`, `/cotizacion`, `/solicitar-pedido`) y `dist/404.html` (la página "no encontrada", que Vercel sirve con estado 404). Si una página falla al dibujarse, el build falla y Vercel mantiene el despliegue anterior.
 - `src/routes.tsx` es la tabla única de rutas (la usan `App.tsx` y `entry-server.tsx`). Una página nueva va ahí y en `src/lib/seo/routes.ts` (lo vigila `scripts/site-routes.test.ts`). Si la página lee datos de forma síncrona en su primer render (como el contenido SEO de la ficha), la ruta los carga en `preload`.
 - `src/main.tsx` hidrata (`hydrateRoot`) cuando `#root` trae HTML, después de precargar el trozo de la página y sus datos; si no, dibuja desde cero (`createRoot`).
+- `404.html` lleva `data-not-found` en `#root` (`src/lib/notFound.ts`). Con esa marca, el navegador hidrata la página "no encontrada" en esa URL (`staticPage` y `AppRoutes` en `src/routes.tsx`), aunque coincida con una ruta de la app. Si no, en `/producto/<id que ya no existe>` dibujaría la ficha encima del HTML de la 404.
 - Reglas para que la hidratación no falle (lo vigila `src/ssr-hydration.test.tsx`): el primer render no puede depender del navegador (sesión, `window`, fecha, parámetros de la URL); eso va en efectos. `<Seo>` dibuja `<Helmet>` recién después de montarse en el navegador: Helmet registra cada etiqueta durante el render y un render que React descarta al hidratar dejaba etiquetas de una página en las siguientes.
-- `npm run check:prerender` (también en CI, trabajo "Build + páginas estáticas") revisa el HTML: un título, un h1 visible, canonical igual a la URL, og:image en formato de foto, JSON-LD que se lee y precio igual al catálogo; noindex en spa.html y 404.html; sitemap igual a las páginas. Además busca frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" (en la PR del robot solo avisa). Las frases que la regla marca pero son correctas (p. ej. "Entrega en 48 horas" del informe DIALux, confirmado por el dueño), con su motivo, están en `KNOWN_PHRASES`.
+- `npm run check:prerender` (también en CI, trabajo "Build + páginas estáticas") revisa el HTML: un título, un h1 visible, canonical igual a la URL, og:image en formato de foto, JSON-LD que se lee y precio igual al catálogo; noindex en spa.html y 404.html; la marca `data-not-found` solo en 404.html (con h1 "404"); sitemap igual a las páginas. Además busca frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" (en la PR del robot solo avisa). Las frases que la regla marca pero son correctas (p. ej. "Entrega en 48 horas" del informe DIALux, confirmado por el dueño), con su motivo, están en `KNOWN_PHRASES`.
 - Fotos: si una falla en el CDN antes de que React hidrate, `retryBrokenImages` (`src/lib/brokenImages.ts`) le reenvía el error al terminar de hidratar, para que pase a la foto original.
 
 ---

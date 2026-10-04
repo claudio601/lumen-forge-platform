@@ -7,7 +7,8 @@
 //     (las redes no muestran SVG);
 //   - el JSON-LD se lee, y en las fichas el precio coincide con el catálogo;
 //   - nada quedó "para dibujar en el navegador";
-//   - spa.html y 404.html llevan noindex, y el sitemap lista justo las páginas generadas.
+//   - spa.html y 404.html llevan noindex, y el sitemap lista justo las páginas generadas;
+//   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404".
 // Contenido (bloquea, salvo en la PR diaria del robot de Jumpseller, donde solo avisa):
 //   - frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" en el texto
 //     visible. Las reglas miran el contexto: "48 horas" de un ensayo de niebla salina no
@@ -23,6 +24,7 @@ import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
 import { indexableRoutes } from '../src/lib/seo/routes';
 import { findPolicyBreaking } from './jumpseller/descriptions';
+import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
 
 interface HtmlNode {
@@ -171,6 +173,19 @@ export function contentIssues(text: string): string[] {
   return found;
 }
 
+/**
+ * La marca de 404.html (src/lib/notFound.ts): el navegador la usa para hidratar la página
+ * "no encontrada". Solo 404.html la lleva, una vez y en #root, y su h1 es "404".
+ */
+export function notFoundMarkerIssues(html: string, isNotFoundPage: boolean, h1s: { text: string }[] = []): string[] {
+  const marks = html.split(`${NOT_FOUND_ATTR}=`).length - 1;
+  if (!isNotFoundPage) return marks ? ['lleva la marca de la página 404'] : [];
+  const issues: string[] = [];
+  if (marks !== 1 || !html.includes(`<div id="root" ${NOT_FOUND_ATTR}=""`)) issues.push(`la marca ${NOT_FOUND_ATTR} debe estar una vez, en #root`);
+  if (h1s.map(h => h.text.trim()).join('|') !== '404') issues.push(`el h1 debería ser "404" (es ${JSON.stringify(h1s.map(h => h.text))})`);
+  return issues;
+}
+
 export const isSyncBotBranch = (env: NodeJS.ProcessEnv = process.env) =>
   [env.GITHUB_HEAD_REF, env.GITHUB_REF_NAME].includes('bot/jumpseller-sync');
 
@@ -193,11 +208,17 @@ function main() {
     const facts = inspectHtml(html);
     pageFacts.set(route, facts);
     for (const issue of structuralIssues(route, facts, { indexable: true, price: prices.get(route) })) blocking.push(`${route}: ${issue}`);
+    for (const issue of notFoundMarkerIssues(html, false)) blocking.push(`${route}: ${issue}`);
   }
   for (const [file, url] of [['spa.html', '/buscar'], ['404.html', NOT_FOUND_URL]] as const) {
     const html = read(file);
-    if (!html) blocking.push(`${file}: no se generó`);
-    else for (const issue of structuralIssues(url, inspectHtml(html), { indexable: false })) blocking.push(`${file}: ${issue}`);
+    if (!html) {
+      blocking.push(`${file}: no se generó`);
+      continue;
+    }
+    const facts = inspectHtml(html);
+    for (const issue of structuralIssues(url, facts, { indexable: false })) blocking.push(`${file}: ${issue}`);
+    for (const issue of notFoundMarkerIssues(html, file === '404.html', facts.h1s)) blocking.push(`${file}: ${issue}`);
   }
   if (read('spa.html') && !inspectHtml(read('spa.html')!).rootEmpty) blocking.push('spa.html: la app debería venir vacía');
 

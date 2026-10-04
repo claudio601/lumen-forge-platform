@@ -3,6 +3,7 @@
 // clasificada ahí, para que ninguna página nueva quede fuera de Google sin querer.
 
 import { existsSync, readFileSync } from 'node:fs';
+import { matchPath } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import {
   DYNAMIC_ROUTE_PATTERNS,
@@ -42,6 +43,20 @@ describe('rutas del sitio', () => {
     expect(xml.match(/<loc>/g)).toHaveLength(indexableRoutes().length);
     expect(buildRobots()).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`);
     expect(buildRobots()).toContain('Disallow: /api/');
+  });
+
+  it('cada ruta dinámica tiene sus páginas generadas: sin la regla comodín (PR 05), una ruta sin página da 404', () => {
+    // Una ruta con parámetros nueva (p. ej. un panel de pedidos) necesita prerender o una regla
+    // revisada en vercel.json: vercel-config.test.ts solo acepta fuentes de un segmento fijo.
+    const routes = indexableRoutes();
+    for (const pattern of DYNAMIC_ROUTE_PATTERNS) {
+      expect(routes.some(r => matchPath(pattern, r)), `${pattern} no tiene páginas generadas`).toBe(true);
+    }
+  });
+
+  it('las listas no se pisan: una ruta es indexable, noindex o redirección, nunca dos (vercel.json se arma con ellas)', () => {
+    const all = [...STATIC_ROUTES, ...NOINDEX_ROUTES, ...REDIRECT_ROUTES];
+    expect(new Set(all).size).toBe(all.length);
   });
 
   it('cada página carga su propio archivo (el prerender lo precarga por ese nombre)', () => {
