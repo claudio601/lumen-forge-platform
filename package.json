@@ -9,6 +9,7 @@
     "sync:catalog": "tsx scripts/sync-jumpseller.ts",
     "warm:images": "tsx scripts/warm-images.ts",
     "smoke": "tsx scripts/smoke.ts",
+    "redirects:write": "tsx scripts/redirects/write.ts",
     "build": "vite build && vite build --ssr src/entry-server.tsx --outDir dist-ssr && npm run generate-sitemap && npm run prerender",
     "prerender": "tsx scripts/prerender.ts",
     "check:prerender": "tsx scripts/check-prerender.ts",

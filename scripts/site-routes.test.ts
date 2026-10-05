@@ -47,7 +47,8 @@ describe('rutas del sitio', () => {
 
   it('cada ruta dinámica tiene sus páginas generadas: sin la regla comodín (PR 05), una ruta sin página da 404', () => {
     // Una ruta con parámetros nueva (p. ej. un panel de pedidos) necesita prerender o una regla
-    // revisada en vercel.json: vercel-config.test.ts solo acepta fuentes de un segmento fijo.
+    // revisada en vercel.json: vercel-config.test.ts solo acepta fuentes de un segmento fijo y
+    // los 301 de ids de producto renombrados ('/producto/<id literal>{/}?', generados).
     const routes = indexableRoutes();
     for (const pattern of DYNAMIC_ROUTE_PATTERNS) {
       expect(routes.some(r => matchPath(pattern, r)), `${pattern} no tiene páginas generadas`).toBe(true);

@@ -13,6 +13,7 @@ import { findForbiddenKeys, OUTPUT_PATHS } from './jumpseller/write';
 import type { BaselineEntry } from './jumpseller/diff';
 import type { ProductImageFacts, SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import type { ImageFetch } from './jumpseller/og-images';
+import { baseFromSnapshot, newSiteId, slugifySiteId } from '../src/data/catalog/build';
 
 const FIX = join(__dirname, 'fixtures/jumpseller');
 const fixture = (f: string) => JSON.parse(readFileSync(join(FIX, f), 'utf8'));
@@ -349,6 +350,22 @@ describe('sincronización completa', () => {
     expect(idsFile()).toContain('"999001": "panel-nuevo-30w"');
   });
 
+  it('un producto nuevo nunca recibe un id renombrado ni uno retirado (su 301 taparía la página)', async () => {
+    const nuevo = (id: number, permalink: string) => ({ product: { id, name: `PANEL LED NUEVO ${id}`, permalink, price: 9990, status: 'available', sku: null, brand: null, featured: false, categories: [{ id: 286969, name: 'PANEL LED', parent_id: null }], images: [{ id: 1, url: 'https://images.jumpseller.com/x.png', position: 1 }], variants: [] } });
+    const base = fixture('products-available.json');
+    const products = [
+      ...base,
+      nuevo(999002, 'w-ip66'), // retirado en la PR 07 (hoy redirige a la campana NF3)
+      nuevo(999003, 'campana-led-ufo-nf3-150w-150-lm/w-ip66'), // el id vigente de esa campana
+      nuevo(999004, 'alumbrado-p%C3%BAblico-x/control-remoto-2.0'),
+    ];
+    expect(await run(root, ['--write', '--baseline', 'legacy'], { fetchImpl: apiFromFixtures(products).fn }).then(r => r.code)).toBe(0);
+    const idsFile = readFileSync(join(root, OUTPUT_PATHS.siteIds), 'utf8');
+    expect(idsFile).toContain('"999002": "w-ip66-999002"');
+    expect(idsFile).toContain('"999003": "campana-led-ufo-nf3-150w-150-lm-w-ip66-999003"');
+    expect(idsFile).toContain('"999004": "alumbrado-publico-x-control-remoto-2-0"');
+  });
+
   it('el informe lista los SKU repetidos entre productos distintos', async () => {
     const dup = fixture('products-available.json') as { product: Record<string, unknown> }[];
     dup[1].product.sku = 'APB40N'; // mismo SKU que una variante del BESTLED 40W
@@ -541,5 +558,35 @@ describe('resguardos: abortan sin tocar archivos', () => {
   it('caída de más de 15% respecto a la línea base', async () => {
     const big: BaselineEntry[] = Array.from({ length: 20 }, (_, i) => ({ jumpseller_id: i + 1, name: `P${i}`, price: 1000 }));
     await expectAbort('% menos', apiFromFixtures().fn, { loadLegacyBaseline: async () => big });
+  });
+});
+
+describe('id de un producto nuevo (newSiteId)', () => {
+  const none = new Set<string>();
+
+  it('sale del permalink sin %XX ni tildes: React Router decodifica :id y no lo encontraría', () => {
+    expect(newSiteId('alumbrado-p%C3%BAblico-x/control-remoto', 1, none)).toBe('alumbrado-publico-x-control-remoto');
+    expect(slugifySiteId('Iluminación/Señalética')).toBe('iluminacion-senaletica');
+  });
+
+  it('puntos, comas y barras pasan a "-", sin guiones repetidos ni en los extremos', () => {
+    expect(newSiteId('tubo-led-opal-vidrio-18w-120cm.-220v.-c/sensor-6500k', 1, none)).toBe('tubo-led-opal-vidrio-18w-120cm-220v-c-sensor-6500k');
+    expect(newSiteId('cinta-led-led-verde-14,4w/m-72-leds/m-ip67-100-mt-220v', 1, none)).toBe('cinta-led-led-verde-14-4w-m-72-leds-m-ip67-100-mt-220v');
+    expect(newSiteId('/-panel--100%-led-/', 1, none)).toBe('panel-100-led');
+    expect(newSiteId('panel/nuevo-30w', 1, none)).toBe('panel-nuevo-30w'); // un permalink limpio queda igual que antes
+  });
+
+  it('un permalink sin letras ni números da producto-<id>', () => {
+    expect(newSiteId('///', 77, none)).toBe('producto-77');
+  });
+
+  it('si el id está ocupado (también uno retirado), agrega el id de Jumpseller', () => {
+    expect(newSiteId('w-ip66', 999002, new Set(['w-ip66']))).toBe('w-ip66-999002');
+  });
+
+  it('el catálogo tampoco asigna un id retirado a un producto todavía sin registrar', () => {
+    const snap: SnapshotProduct = { jumpseller_id: 999002, name: 'PANEL NUEVO', permalink: 'w-ip66', sku: '', price: 1000, brand: null, featured: false, categories: ['paneles-led'], images: [], variants: [] };
+    expect(baseFromSnapshot([snap], {}, {}, [])[0].id).toBe('w-ip66');
+    expect(baseFromSnapshot([snap], {}, {}, [], new Set(['w-ip66']))[0].id).toBe('w-ip66-999002');
   });
 });

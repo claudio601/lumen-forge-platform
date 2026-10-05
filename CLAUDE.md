@@ -1,7 +1,7 @@
 # CLAUDE.md — lumen-forge-platform (nuevo.elights.cl)
 
 > Archivo de memoria del proyecto. Actualizar después de cada corrección relevante.
-> Última revisión: 2026-10-03
+> Última revisión: 2026-10-05
 
 ---
 
@@ -172,6 +172,13 @@ usa 5 subagentes para explorar la base de código:
 - `src/data/catalog/categories.config.ts`: las 15 categorías del sitio y el mapa desde Jumpseller (`JUMPSELLER_TOP_CATEGORY_TO_SLUG`).
 - `scripts/jumpseller/denylist.json`: productos de Jumpseller que nunca se publican. Tampoco se publican los no disponibles ni los sin categoría.
 
+**Ids del sitio (URLs `/producto/:id`)**
+- Orden: `src/data/catalog/renamed-ids.ts` (renombrados a mano) gana sobre `site-ids.generated.ts` (productos nuevos) y `legacy-ids.ts` (catálogo legado, congelado: no editarlo; `scripts/migrate/extract-overrides.ts` lo reescribiría).
+- `renamed-ids.ts` (PR 07: los 50 ids que el catálogo legado cortó en la última '/' del permalink, como `w-ip66`): se mantiene a mano y **solo crece**. Nunca borrar una fila (las URLs nuevas darían 404). Cada id anterior redirige con 301 al vigente y **nunca se reutiliza**: la sincronización y `build.ts` lo tratan como ocupado. El robot nunca escribe este archivo ni `vercel.json`.
+- Renombrar otro id: agregar su fila (en un segundo renombre, el id actual pasa al final de `previous`), correr `npm run redirects:write` y revisar `git diff vercel.json`. El id nuevo se escribe literal, nunca se recalcula desde el permalink.
+- Ids de productos nuevos (`newSiteId`): el permalink sin %XX, tildes, puntos ni comas (solo `[a-z0-9-]`); si está ocupado, se agrega `-<jumpseller_id>`.
+- No limpiar permalinks en Jumpseller para que coincidan con estos ids antes del cambio de dominio: son las URLs vivas de elights.cl (Ads y SEO).
+
 **Archivos generados: NUNCA editarlos a mano** (los escribe `npm run sync:catalog -- --write`)
 - `src/data/catalog/jumpseller-snapshot.generated.ts`
 - `src/data/catalog/categories.generated.ts`
@@ -220,7 +227,12 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
   - Las páginas de `NOINDEX_ROUTES` (`/buscar`, `/cotizacion`, `/solicitar-pedido`) se reescriben a `spa.html`. Las de `REDIRECT_ROUTES` (`/carro`) redirigen con 307 al mismo destino que su `<Navigate>` en `src/routes.tsx`.
   - Las fuentes terminan en `{/}?`: Vercel compara en modo estricto y sin eso `/cotizacion/` daría 404.
   - Una ruta fija nueva que no se prerenderiza va en `NOINDEX_ROUTES` o `REDIRECT_ROUTES` (`src/lib/seo/routes.ts`) **y** en vercel.json: los tests exigen que coincidan.
-  - Una ruta con parámetros (como `/producto/:id`) solo funciona si se generan sus páginas; si no, da 404. Una que no se pueda prerenderizar (p. ej. un panel de pedidos de la Fase 3) necesita una regla nueva en vercel.json, revisada aparte: hoy el test solo acepta fuentes de un segmento fijo.
+  - Una ruta con parámetros (como `/producto/:id`) solo funciona si se generan sus páginas; si no, da 404. Una que no se pueda prerenderizar (p. ej. un panel de pedidos de la Fase 3) necesita una regla nueva en vercel.json, revisada aparte: hoy el test solo acepta fuentes de un segmento fijo y los 301 `/producto/<id literal>{/}?`.
+  - **Redirecciones generadas (PR 07):** `npm run redirects:write` (`scripts/redirects/build.ts`) escribe `redirects` en vercel.json y no toca nada más. Nunca editarlas a mano: el test exige que sean iguales a las generadas.
+    - Ids de producto renombrados (`src/data/catalog/renamed-ids.ts`): una regla por id anterior, `/producto/<id viejo>{/}?` → `/producto/<id vigente>`, con `statusCode: 301` y sin `permanent` (`permanent: true` daría 308). Vercel conserva la consulta (`?gclid=…`).
+    - No dependen de qué productos se publican (si no, la PR del robot fallaría al despublicar uno): un 301 a un producto no publicado da 404, como antes, y `check:prerender` lo informa.
+    - Vercel aplica las redirecciones antes que los archivos: por eso un id retirado nunca vuelve a usarse. Máximo propio: 1.000 redirecciones (Vercel acepta 2.048).
+    - Dentro de la app (enlaces viejos, Atrás, `vite dev`/`preview`) `ProductRoute` (`src/routes.tsx`) lleva al id vigente; el carrito de pedido y la cotización guardados pasan al id vigente al cargarse.
 - **Chequeo de humo** (`npm run smoke -- <url> [--all] [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`). Solo hace GET; los webhooks responden 405 antes de procesar nada.
   - Se corre en cada preview, comparando con producción, y después de cada merge (con `--all`: todas las páginas del sitemap y sus assets).
   - Juzga cada fila según su tipo:
@@ -228,6 +240,7 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
     - spa: 200 con noindex;
     - 404: estado 404, noindex y la marca de 404.html;
     - `/carro`: 307 a `/solicitar-pedido`;
+    - ids renombrados (2, con y sin barra final y con `?gclid=smoke`): 301 al id vigente, conservando la consulta. Antes del merge, producción todavía responde 200 en esas URLs: con `--compare` no cuenta (solo compara `api/` y archivos);
     - archivo: 200 y no HTML;
     - `api/`: 405.
   - También falla si una función de `api/` o un archivo cambia de estado o de tipo frente a la base comparada.

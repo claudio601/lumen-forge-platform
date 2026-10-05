@@ -89,7 +89,8 @@ const PAGES: [string, string, string][] = [
 const NOT_FOUND_URLS: [string, string][] = [
   ['URL desconocida', '/una/url/que/no/existe'],
   ['producto que no existe', '/producto/no-existe'],
-  ['producto que salió del catálogo (id publicado antes)', '/producto/w-ip65-24043701?gclid=abc'],
+  // 2325754 no se publica y no se renombró: su URL da 404 (un id renombrado da 301, PR 07)
+  ['producto que salió del catálogo (id publicado antes)', '/producto/lineal-led-flat-40w-120-cm-ip20-6500k?gclid=abc'],
   ['categoría que no existe, página 2', '/catalogo/no-existe?page=2'],
   ['ruta de la app con otras mayúsculas', '/Cotizador'],
 ];

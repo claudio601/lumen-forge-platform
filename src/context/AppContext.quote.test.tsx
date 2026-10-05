@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { AppProvider, useApp, quoteLineKey } from './AppContext';
 import { buildVariantSku } from '@/lib/variantSku';
@@ -97,5 +97,30 @@ describe('sesión leída después de montar (páginas estáticas)', () => {
     unmount();
     expect(sessionStorage.getItem('elights_b2b')).toBe('true');
     expect(JSON.parse(sessionStorage.getItem('elights_quote')!)).toHaveLength(1);
+  });
+
+  it('una cotización guardada con un id renombrado (PR 07) se carga con el id vigente', async () => {
+    const nf3 = products.find(p => p.jumpseller_id === 4122715)!; // antes /producto/w-ip66
+    sessionStorage.setItem('elights_quote', JSON.stringify([{ product: { ...nf3, id: 'w-ip66' }, quantity: 2 }]));
+    const { result } = renderHook(() => useApp(), { wrapper });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.quoteCart.map(i => i.product.id)).toEqual([nf3.id]);
+    // El mismo producto agregado después de la PR 07 se suma a esa línea, no abre otra
+    act(() => { result.current.addToQuote(nf3, 1); });
+    expect(result.current.quoteCart).toHaveLength(1);
+    expect(result.current.quoteCount).toBe(3);
+    expect(JSON.parse(sessionStorage.getItem('elights_quote')!)[0].product.id).toBe(nf3.id);
+  });
+
+  it('las líneas con el id viejo y el nuevo del mismo producto se juntan al cargar', async () => {
+    const nf3 = products.find(p => p.jumpseller_id === 4122715)!;
+    sessionStorage.setItem('elights_quote', JSON.stringify([
+      { product: { ...nf3, id: 'w-ip66' }, quantity: 2 },
+      { product: nf3, quantity: 1 },
+    ]));
+    const { result } = renderHook(() => useApp(), { wrapper });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.quoteCart).toHaveLength(1);
+    expect(result.current.quoteCart[0]).toMatchObject({ quantity: 3, product: { id: nf3.id } });
   });
 });

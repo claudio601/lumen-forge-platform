@@ -15,7 +15,8 @@
 //   page      200, HTML con canonical y sin noindex
 //   spa       200, HTML con noindex (spa.html: /buscar, /cotizacion, /solicitar-pedido)
 //   notfound  404, HTML con noindex y la marca de 404.html
-//   redirect  307 al destino de la regla (/carro → /solicitar-pedido)
+//   redirect  307 al destino de la regla (/carro → /solicitar-pedido); 301 en los ids de
+//             producto renombrados (PR 07). Con '?' en la URL, Location conserva la consulta
 //   file      200, no HTML
 //   api       405
 //   observe   se informa sin juzgar (salvo un 5xx): variantes de URL a mirar a mano
@@ -37,6 +38,7 @@ import { parse as parseDotenv } from 'dotenv';
 import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
+import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 
 export type Kind = 'page' | 'spa' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
 
@@ -45,7 +47,12 @@ export interface Target {
   kind: Kind;
   /** redirect: ruta a la que debe llevar. */
   to?: string;
+  /** redirect: estado esperado (307 si no se indica). No se llama `status`: Row lo usa para el recibido. */
+  expectedStatus?: number;
 }
+
+/** Productos renombrados que revisa el chequeo (PR 07): la campana NF3 ("w-ip66") y el alumbrado solar 150W ("control-remoto"). */
+const RENAMED_SMOKE_IDS = [4122715, 25888711];
 
 export interface PageInfo {
   title: string;
@@ -89,6 +96,12 @@ export function buildTargets(): Target[] {
     // Con y sin barra final: la regla de vercel.json acepta las dos (son los formularios de venta)
     ...['/buscar', '/buscar?q=panel', '/cotizacion', '/solicitar-pedido', '/cotizacion/', '/solicitar-pedido/'].map(as('spa')),
     ...['/carro', '/carro/'].map(path => ({ path, kind: 'redirect' as const, to: '/solicitar-pedido' })),
+    // Ids renombrados: 301 al id vigente, con o sin barra final, y la consulta (gclid) se conserva
+    ...RENAMED_SMOKE_IDS.flatMap(jid => {
+      const { id, previous } = RENAMED_SITE_IDS[jid];
+      const old = `/producto/${previous[0]}`;
+      return [old, `${old}/`, `${old}?gclid=smoke`].map(path => ({ path, kind: 'redirect' as const, to: `/producto/${id}`, expectedStatus: 301 }));
+    }),
     ...['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y'].map(as('notfound')),
     ...['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico', ...(datasheet ? [new URL(datasheet, 'https://x').pathname] : [])].map(
       as('file'),
@@ -165,10 +178,14 @@ export function rowIssues(r: Row): string[] {
       want(noindex, 'sin noindex');
       want(r.notFoundMark, 'no es 404.html');
       break;
-    case 'redirect':
-      status(307);
-      want(!!r.location && new URL(r.location, 'https://x').pathname === r.to, `lleva a "${r.location}", se esperaba ${r.to}`);
+    case 'redirect': {
+      status(r.expectedStatus ?? 307);
+      const location = r.location ? new URL(r.location, 'https://x') : undefined;
+      want(location?.pathname === r.to, `lleva a "${r.location}", se esperaba ${r.to}`);
+      const query = r.path.includes('?') ? r.path.slice(r.path.indexOf('?')) : '';
+      if (query) want(location?.search === query, `"${r.location}" no conserva la consulta ${query}`);
       break;
+    }
     case 'file':
       status(200);
       want(!html, 'devuelve HTML en vez del archivo');

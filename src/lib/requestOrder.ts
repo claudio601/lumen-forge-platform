@@ -4,6 +4,8 @@
 
 import type { RequestCartItem, RequestOrderItem } from '@/types/request-order';
 import type { Product } from '@/data/catalog/types';
+// Tabla chica y sin imports: este archivo va en el bundle principal (no importar el catálogo)
+import { RENAMED_FROM } from '@/data/catalog/renamed-ids';
 
 // ── Hash djb2 ────────────────────────────────────────────────────────────────
 /** Genera un hash djb2 del string input y retorna en base36 */
@@ -71,18 +73,25 @@ export interface ReconcileResult {
 
 /**
  * Pone al día un carrito guardado en la sesión contra el catálogo vigente: quita
- * productos que ya no se publican, completa ids de Jumpseller (carritos viejos) y
- * actualiza precio y nombre. El precio se muestra en el modo en que se agregó
- * (neto = sin IVA, como en el toggle de empresa). El servidor igual recalcula.
+ * productos que ya no se publican, completa ids de Jumpseller (carritos viejos),
+ * pasa al id vigente del sitio (ids renombrados, PR 07) y actualiza precio y nombre.
+ * El precio se muestra en el modo en que se agregó (neto = sin IVA, como en el toggle
+ * de empresa). El servidor igual recalcula.
  */
 export function reconcileRequestItems(items: RequestCartItem[], catalog: readonly Product[]): ReconcileResult {
   const byId = new Map(catalog.map((p) => [p.id, p]));
+  const byJumpsellerId = new Map(catalog.map((p) => [p.jumpseller_id, p]));
   const removed: string[] = [];
   let repriced = 0;
   let changed = false;
   const next: RequestCartItem[] = [];
   for (const item of items) {
-    const product = byId.get(item.productId);
+    // Primero por el id de Jumpseller (no cambia); los carritos de antes de 2026-10 no lo
+    // traen: por el id del sitio, también si es uno anterior a un renombre.
+    const product =
+      (item.jumpsellerId !== undefined ? byJumpsellerId.get(item.jumpsellerId) : undefined) ??
+      byId.get(item.productId) ??
+      byId.get(RENAMED_FROM.get(item.productId) ?? '');
     if (!product) {
       removed.push(item.name);
       changed = true;
@@ -100,6 +109,8 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
     const keptVariantId = item.variantId && validVariantIds.has(item.variantId) ? item.variantId : undefined;
     const updated: RequestCartItem = {
       ...item,
+      productId: product.id,
+      url: `/producto/${product.id}`,
       jumpsellerId: product.jumpseller_id,
       variantId: variant?.jumpseller_variant_id ?? keptVariantId ?? product.jumpseller_variant_id,
       name: product.name,
@@ -108,7 +119,7 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
     if (updated.variantId === undefined) delete updated.variantId;
     if (unitPrice !== item.unitPrice) repriced++;
     if (JSON.stringify(updated) !== JSON.stringify(item)) changed = true;
-    // Al completar ids, una línea vieja puede quedar igual a otra nueva: se juntan.
+    // Al completar ids (o pasar al id vigente), una línea vieja puede quedar igual a otra nueva: se juntan.
     const twin = next.find((i) => requestLineKey(i) === requestLineKey(updated));
     if (twin) {
       twin.quantity += updated.quantity;

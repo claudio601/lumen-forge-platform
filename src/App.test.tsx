@@ -35,6 +35,25 @@ describe('rutas: modelo cotización → link de pago', () => {
   });
 });
 
+describe('rutas: ids de producto renombrados (PR 07)', () => {
+  beforeEach(() => sessionStorage.clear());
+  const NF3 = '/producto/campana-led-ufo-nf3-150w-150-lm-w-ip66'; // antes /producto/w-ip66
+
+  it('un enlace con el id viejo lleva a la ficha con el id vigente y conserva la consulta', async () => {
+    renderAt('/producto/w-ip66?gclid=x');
+    await waitFor(() => expect(window.location.pathname).toBe(NF3), WAIT);
+    expect(window.location.search).toBe('?gclid=x');
+    expect(await screen.findByRole('heading', { level: 1, name: /CAMPANA LED UFO NF3 150W/ }, WAIT)).toBeInTheDocument();
+  });
+
+  it('navegar dentro de la app a un id viejo (Atrás, enlace guardado) también llega a la ficha vigente', async () => {
+    renderAt('/catalogo');
+    navigate('/producto/control-remoto');
+    await waitFor(() => expect(window.location.pathname).toBe('/producto/alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto'), WAIT);
+    expect(await screen.findByRole('heading', { level: 1, name: /ALUMBRADO/i }, WAIT)).toBeInTheDocument();
+  });
+});
+
 describe('catálogo: la categoría sigue a la URL', () => {
   beforeEach(() => sessionStorage.clear());
 

@@ -29,4 +29,20 @@ describe('/solicitar-pedido como primera página', () => {
     await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0].unitPrice).toBe(p.price));
     expect(toast.info).toHaveBeenCalledTimes(1);
   });
+
+  it('un carrito guardado con un id renombrado (PR 07) no avisa "ya no están disponibles": pasa al id vigente', async () => {
+    vi.mocked(toast.warning).mockClear();
+    const p = products.find(x => x.jumpseller_id === 4122715)!; // antes /producto/w-ip66
+    sessionStorage.setItem('elights_request_cart', JSON.stringify([
+      { productId: 'w-ip66', jumpsellerId: 4122715, sku: p.sku, name: p.name, quantity: 1, unitPrice: p.price, priceMode: 'iva', url: '/producto/w-ip66', attributes: {} },
+    ]));
+    render(
+      <HelmetProvider><AppProvider><RequestCartProvider>
+        <MemoryRouter initialEntries={['/solicitar-pedido']}><RequestOrderPage /></MemoryRouter>
+      </RequestCartProvider></AppProvider></HelmetProvider>,
+    );
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0]).toMatchObject({ productId: p.id, url: `/producto/${p.id}` }));
+    expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)).toHaveLength(1);
+    expect(toast.warning).not.toHaveBeenCalled();
+  });
 });

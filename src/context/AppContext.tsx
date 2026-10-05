@@ -1,5 +1,7 @@
 import { createContext, startTransition, useContext, useState, useEffect, ReactNode } from 'react';
 import type { Product } from '@/data/catalog/types';
+// Tabla chica y sin imports: este archivo va en el bundle principal (no importar el catálogo)
+import { RENAMED_FROM } from '@/data/catalog/renamed-ids';
 
 // Selección de variante de color al cotizar. unitPrice es CON IVA (base);
 // displayPrice aplica el toggle B2B (÷1,19) al renderizar.
@@ -42,6 +44,25 @@ function loadFromSession<T>(key: string, fallback: T): T {
   } catch { return fallback; }
 }
 
+/**
+ * Una cotización guardada antes de renombrar ids (PR 07) guarda el producto con su id
+ * viejo: pasa al id vigente y junta las líneas que quedan iguales (si no, el mismo
+ * producto agregado otra vez llegaría a Pipedrive en dos líneas).
+ */
+function withCurrentIds(items: QuoteItem[]): QuoteItem[] {
+  if (!Array.isArray(items)) return [];
+  const out: QuoteItem[] = [];
+  for (const item of items) {
+    const current = RENAMED_FROM.get(item?.product?.id ?? '');
+    const next = current ? { ...item, product: { ...item.product, id: current } } : item;
+    const key = quoteLineKey(next.product?.id ?? '', next.cct);
+    const twin = out.findIndex(i => quoteLineKey(i.product?.id ?? '', i.cct) === key);
+    if (twin >= 0) out[twin] = { ...out[twin], quantity: out[twin].quantity + next.quantity };
+    else out.push(next);
+  }
+  return out;
+}
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   // La sesión se lee después de montar: así el HTML generado en el servidor
   // (cotización vacía, precios con IVA) coincide con el primer render del navegador.
@@ -53,7 +74,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     startTransition(() => {
-      setQuoteCart(loadFromSession('elights_quote', []));
+      setQuoteCart(withCurrentIds(loadFromSession('elights_quote', [])));
       setIsB2B(loadFromSession('elights_b2b', false));
       setLoaded(true);
     });
