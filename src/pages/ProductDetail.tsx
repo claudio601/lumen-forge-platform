@@ -32,6 +32,8 @@ import Seo from '@/components/Seo';
 import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from '@/lib/seo/jsonld';
 import { categoryPath, productPath } from '@/lib/seo/routes';
 import { productDescriptions } from '@/data/catalog/descriptions.generated';
+import { productImageFacts } from '@/data/catalog/og-images.generated';
+import { productOgImage } from '@/lib/seo/ogImage';
 import SpecGroups, { type SpecGroupsProps } from '@/components/catalog/SpecGroups';
 import type { SpecRow } from '@/data/catalog/jumpseller.types';
 import { htmlToText } from '@/lib/html';
@@ -133,8 +135,9 @@ const ProductDetail = () => {
 
     const product = withContent(found, content);
     const productUrlPath = productPath(product.id);
-    // Imagen para compartir: la primera foto original de Jumpseller (PNG/JPG); sin foto, la de la marca.
-    const ogImage = (product.images && product.images[0]) || product.image || undefined;
+    // Imagen para compartir: la primera foto original de Jumpseller si es PNG o JPEG de menos de
+    // 600 KB (revisada en la sincronización); si no, la de la marca (undefined → DEFAULT_OG).
+    const ogImage = productOgImage(product.images?.[0], productImageFacts[product.jumpseller_id], product.name);
     const seoTitle = product.metaTitle || `${product.name} | eLIGHTS.cl`;
     const seoDescription =
       product.metaDescription ||

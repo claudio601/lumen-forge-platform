@@ -3,8 +3,9 @@
 //
 // Estructura (siempre bloquea):
 //   - cada página indexable existe, en español, con un solo título y un solo h1 visible;
-//   - canonical igual a su URL, sin noindex, e imagen para compartir en formato de foto
-//     (las redes no muestran SVG);
+//   - canonical igual a su URL, sin noindex, e imagen para compartir JPEG o PNG https, ya
+//     codificada, igual a la que da src/lib/seo/ogImage.ts (la foto de la ficha o la de la
+//     marca), con sus medidas y su texto alternativo, y la misma en twitter:image;
 //   - el JSON-LD se lee, y en las fichas el precio coincide con el catálogo;
 //   - nada quedó "para dibujar en el navegador";
 //   - spa.html y 404.html llevan noindex, y el sitemap lista justo las páginas generadas;
@@ -22,6 +23,8 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'parse5';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
+import { productImageFacts } from '../src/data/catalog/og-images.generated';
+import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
 import { indexableRoutes } from '../src/lib/seo/routes';
 import { findPolicyBreaking } from './jumpseller/descriptions';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
@@ -43,6 +46,10 @@ export interface PageFacts {
   canonicals: string[];
   robots: string[];
   ogImages: string[];
+  ogImageWidths: string[];
+  ogImageHeights: string[];
+  ogImageAlts: string[];
+  twitterImages: string[];
   jsonLd: string[];
   /** Texto de <main> (incluye las respuestas de las preguntas frecuentes, cerradas). */
   mainText: string;
@@ -72,6 +79,10 @@ export function inspectHtml(html: string): PageFacts {
     canonicals: [],
     robots: [],
     ogImages: [],
+    ogImageWidths: [],
+    ogImageHeights: [],
+    ogImageAlts: [],
+    twitterImages: [],
     jsonLd: [],
     mainText: '',
     chromeText: '',
@@ -87,7 +98,15 @@ export function inspectHtml(html: string): PageFacts {
     if (tag === 'h1') facts.h1s.push({ text: squash(textOf(n)), visible: !hiddenHere });
     if (tag === 'link' && attr(n, 'rel') === 'canonical') facts.canonicals.push(attr(n, 'href') ?? '');
     if (tag === 'meta' && attr(n, 'name') === 'robots') facts.robots.push(attr(n, 'content') ?? '');
-    if (tag === 'meta' && attr(n, 'property') === 'og:image') facts.ogImages.push(attr(n, 'content') ?? '');
+    if (tag === 'meta') {
+      const content = attr(n, 'content') ?? '';
+      const property = attr(n, 'property');
+      if (property === 'og:image') facts.ogImages.push(content);
+      if (property === 'og:image:width') facts.ogImageWidths.push(content);
+      if (property === 'og:image:height') facts.ogImageHeights.push(content);
+      if (property === 'og:image:alt') facts.ogImageAlts.push(content);
+      if (attr(n, 'name') === 'twitter:image') facts.twitterImages.push(content);
+    }
     if (tag === 'script' && attr(n, 'type') === 'application/ld+json') facts.jsonLd.push((n.childNodes ?? []).map(c => c.value ?? '').join(''));
     if (tag === 'div' && attr(n, 'id') === 'root') facts.rootEmpty = !(n.childNodes ?? []).some(c => c.tagName);
     if (tag === 'main') facts.mainText = squash(textOf(n));
@@ -99,13 +118,25 @@ export function inspectHtml(html: string): PageFacts {
   return facts;
 }
 
-const RASTER = /\.(jpe?g|png|webp|gif)$/i;
+const RASTER = /\.(jpe?g|png)$/i;
+
+/** Imagen para compartir esperada: URL absoluta y codificada, con sus medidas (si se conocen). */
+export interface ExpectedOg {
+  url: string;
+  width?: number;
+  height?: number;
+}
+
+/** La que da la regla de src/lib/seo/ogImage.ts (la misma que usa la ficha). */
+export function expectedOg(img: OgImage): ExpectedOg {
+  return { url: ogImageUrl(img), ...(img.width && img.height ? { width: img.width, height: img.height } : {}) };
+}
 
 /** Problemas de estructura de una página indexable (o de spa.html / 404.html). */
 export function structuralIssues(
   route: string,
   f: PageFacts,
-  expect: { indexable: boolean; price?: number; siteUrl?: string },
+  expect: { indexable: boolean; price?: number; siteUrl?: string; og?: ExpectedOg },
 ): string[] {
   const issues: string[] = [];
   const site = expect.siteUrl ?? SITE_URL;
@@ -132,7 +163,19 @@ export function structuralIssues(
     } catch {
       /* no es una URL absoluta */
     }
-    if (!RASTER.test(path)) issues.push(`og:image no es una foto https (JPEG, PNG, WebP o GIF): ${img}`);
+    if (!RASTER.test(path)) issues.push(`og:image no es JPEG ni PNG https: ${img}`);
+    else if (img !== new URL(img).href) issues.push(`og:image sin codificar: ${img}`);
+  }
+  if (f.twitterImages.length !== 1 || f.twitterImages[0] !== f.ogImages[0]) {
+    issues.push(`twitter:image ${JSON.stringify(f.twitterImages)} distinta de og:image`);
+  }
+  if (f.ogImageAlts.length !== 1 || !f.ogImageAlts[0].trim()) issues.push('og:image:alt falta o está vacío');
+  if (expect.og) {
+    if (f.ogImages.length === 1 && f.ogImages[0] !== expect.og.url) issues.push(`og:image ${f.ogImages[0]} en vez de ${expect.og.url}`);
+    // Las dos medidas o ninguna, iguales a las esperadas
+    const got = f.ogImageWidths.length || f.ogImageHeights.length ? `${f.ogImageWidths.join(',')}×${f.ogImageHeights.join(',')}` : 'sin medidas';
+    const want = expect.og.width && expect.og.height ? `${expect.og.width}×${expect.og.height}` : 'sin medidas';
+    if (got !== want) issues.push(`og:image:width/height ${got} en vez de ${want}`);
   }
   const parsed: unknown[] = [];
   for (const raw of f.jsonLd) {
@@ -196,6 +239,11 @@ function main() {
   const warnings: string[] = [];
   const contentOnlyWarns = isSyncBotBranch();
   const prices = new Map(products.map(p => [`/producto/${p.id}`, p.price]));
+  // Imagen para compartir de cada ficha, con la misma regla que la página; el resto, la de la marca
+  const productOg = new Map<string, OgImage | undefined>(
+    products.map(p => [`/producto/${p.id}`, productOgImage(p.images?.[0], productImageFacts[p.jumpseller_id], p.name)]),
+  );
+  const ownPhotos = [...productOg.values()].filter(Boolean).length;
 
   const routes = indexableRoutes();
   const pageFacts = new Map<string, PageFacts>();
@@ -207,7 +255,8 @@ function main() {
     }
     const facts = inspectHtml(html);
     pageFacts.set(route, facts);
-    for (const issue of structuralIssues(route, facts, { indexable: true, price: prices.get(route) })) blocking.push(`${route}: ${issue}`);
+    const og = expectedOg(productOg.get(route) ?? DEFAULT_OG);
+    for (const issue of structuralIssues(route, facts, { indexable: true, price: prices.get(route), og })) blocking.push(`${route}: ${issue}`);
     for (const issue of notFoundMarkerIssues(html, false)) blocking.push(`${route}: ${issue}`);
   }
   for (const [file, url] of [['spa.html', '/buscar'], ['404.html', NOT_FOUND_URL]] as const) {
@@ -245,6 +294,7 @@ function main() {
   else blocking.push(...content.map(c => `${c}: contradice las reglas del sitio (stock o plazos de despacho)`));
 
   console.log(`[check-prerender] ${pageFacts.size} de ${routes.length} páginas revisadas, más spa.html y 404.html`);
+  console.log(`[check-prerender] Imagen para compartir: ${ownPhotos} fichas con su foto, ${productOg.size - ownPhotos} con la imagen de la marca`);
   for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);
   if (blocking.length) {

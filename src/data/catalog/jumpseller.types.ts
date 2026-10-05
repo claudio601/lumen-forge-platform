@@ -40,6 +40,22 @@ export interface SnapshotProduct {
   variants: SnapshotVariant[];
 }
 
+/**
+ * Primera foto de un producto, revisada en la sincronización (scripts/jumpseller/og-images.ts)
+ * para decidir si sirve como imagen para compartir (src/lib/seo/ogImage.ts).
+ */
+export interface ProductImageFacts {
+  /** URL de la primera foto tal como viene en el snapshot (sin codificar). */
+  url: string;
+  /** Formato según los primeros bytes del archivo (no según Content-Type ni la extensión). */
+  format: 'png' | 'jpeg' | 'webp' | 'gif' | 'other';
+  /** Peso del archivo original en bytes. */
+  bytes: number;
+  /** Medidas en píxeles, cuando se pudieron leer del comienzo del archivo. */
+  width?: number;
+  height?: number;
+}
+
 /** Fila de especificación técnica: etiqueta y valor en texto plano (los saltos de línea van como \n). */
 export interface SpecRow {
   label: string;

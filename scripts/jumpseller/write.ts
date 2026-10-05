@@ -5,9 +5,9 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, renameSync, writeFileSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { ProductDescription, SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
+import type { ProductDescription, ProductImageFacts, SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
 
-export type { ProductDescription };
+export type { ProductDescription, ProductImageFacts };
 
 export const OUTPUT_PATHS = {
   snapshot: 'src/data/catalog/jumpseller-snapshot.generated.ts',
@@ -15,6 +15,7 @@ export const OUTPUT_PATHS = {
   priceIndex: 'api/_lib/catalog/price-index.generated.ts',
   siteIds: 'src/data/catalog/site-ids.generated.ts',
   descriptions: 'src/data/catalog/descriptions.generated.ts',
+  ogImages: 'src/data/catalog/og-images.generated.ts',
 } as const;
 
 /** Claves que nunca pueden aparecer en un archivo generado (defensa en profundidad). */
@@ -117,6 +118,32 @@ import type { ProductDescription } from './jumpseller.types';
 export const SNAPSHOT_HASH = '${hash}';
 
 export const productDescriptions: Readonly<Record<number, ProductDescription>> = {
+${body}
+};
+`;
+}
+
+/**
+ * Primera foto de cada producto (formato según sus bytes, peso y medidas), por
+ * jumpseller_id y un producto por línea: decide la imagen para compartir de la ficha
+ * (src/lib/seo/ogImage.ts). Archivo aparte: solo lo importa la ficha de producto.
+ */
+export function renderOgImagesFile(facts: Record<number, ProductImageFacts>, hash: string): string {
+  const ids = Object.keys(facts).map(Number).sort((a, b) => a - b);
+  const line = (f: ProductImageFacts) =>
+    JSON.stringify({
+      url: f.url,
+      format: f.format,
+      bytes: f.bytes,
+      ...(f.width !== undefined && f.height !== undefined ? { width: f.width, height: f.height } : {}),
+    });
+  const body = ids.map(id => `  "${id}": ${line(facts[id])},`).join('\n');
+  return `${HEADER('Primera foto de cada producto: formato real, peso y medidas, revisados en la sincronización (imagen para compartir en WhatsApp y Facebook).')}
+import type { ProductImageFacts } from './jumpseller.types';
+
+export const SNAPSHOT_HASH = '${hash}';
+
+export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
 ${body}
 };
 `;

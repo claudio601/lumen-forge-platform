@@ -24,6 +24,15 @@ describe('JSON-LD', () => {
     expect(JSON.stringify(ld)).not.toMatch(/availability|InStock|OutOfStock/);
   });
 
+  it('producto: todas las fotos originales (también WebP y pesadas), codificadas como og:image', () => {
+    const p = { ...products[0], images: ['https://images.jumpseller.com/store/elights-cl/1/FOCO-MONOFÁSICO.png?1', 'https://images.jumpseller.com/store/elights-cl/1/b%2Cc.webp?2'] };
+    const ld = productJsonLd(p, 'desc') as { image: string[] };
+    expect(ld.image).toEqual([
+      'https://images.jumpseller.com/store/elights-cl/1/FOCO-MONOF%C3%81SICO.png?1',
+      'https://images.jumpseller.com/store/elights-cl/1/b%2Cc.webp?2',
+    ]);
+  });
+
   it('organización con la razón social y Santiago, sin calle', () => {
     expect(organizationJsonLd()).toMatchObject({
       legalName: 'eLIGHTS.CL SpA',

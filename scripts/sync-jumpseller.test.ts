@@ -1,6 +1,7 @@
 // scripts/sync-jumpseller.test.ts
 // Pruebas de la sincronización con Jumpseller, sin red: la API se simula con fixtures
-// que tienen la forma real de las respuestas (incluido un cost_per_item falso).
+// que tienen la forma real de las respuestas (incluido un cost_per_item falso), y el
+// servidor de fotos (imagen para compartir) con un PNG de 600×600.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -10,7 +11,8 @@ import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './ju
 import { runSync } from './sync-jumpseller';
 import { findForbiddenKeys, OUTPUT_PATHS } from './jumpseller/write';
 import type { BaselineEntry } from './jumpseller/diff';
-import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
+import type { ProductImageFacts, SnapshotProduct } from '../src/data/catalog/jumpseller.types';
+import type { ImageFetch } from './jumpseller/og-images';
 
 const FIX = join(__dirname, 'fixtures/jumpseller');
 const fixture = (f: string) => JSON.parse(readFileSync(join(FIX, f), 'utf8'));
@@ -51,6 +53,28 @@ function apiFromFixtures(products = fixture('products-available.json'), categori
   });
 }
 
+/**
+ * Servidor de fotos simulado: un PNG de 600×600 y 98.765 bytes (206 con Content-Range).
+ * `status` permite que una foto responda con error.
+ */
+function fakeImages(status: (url: string) => number = () => 206) {
+  const calls: string[] = [];
+  const png = new Uint8Array(33);
+  png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+  new DataView(png.buffer).setUint32(16, 600);
+  new DataView(png.buffer).setUint32(20, 600);
+  const fn: ImageFetch = async url => {
+    calls.push(url);
+    const code = status(url);
+    return {
+      status: code,
+      headers: { get: (n: string) => (code === 206 && n.toLowerCase() === 'content-range' ? 'bytes 0-32/98765' : null) },
+      arrayBuffer: async () => png.slice().buffer,
+    };
+  };
+  return { fn, calls };
+}
+
 /** Raíz temporal con los archivos de config que lee la sincronización. */
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'sync-js-'));
@@ -71,17 +95,21 @@ const legacy4: BaselineEntry[] = [
 async function run(root: string, argv: string[], extra: Partial<Parameters<typeof runSync>[0]> = {}) {
   const logs: string[] = [];
   const api = extra.fetchImpl ? null : apiFromFixtures();
+  // Siempre un servidor de fotos simulado: sin él, cada prueba haría pedidos reales
+  const images = extra.imageFetch ? null : fakeImages();
   const code = await runSync({
     argv,
     env: { JUMPSELLER_LOGIN: LOGIN, JUMPSELLER_TOKEN: TOKEN },
     root,
     log: m => logs.push(m),
     fetchImpl: api?.fn,
+    imageFetch: images?.fn,
     sleep: noSleep,
+    random: () => 0,
     loadLegacyBaseline: async () => legacy4,
     ...extra,
   });
-  return { code, logs, api };
+  return { code, logs, api, images };
 }
 
 function readGenerated(root: string) {
@@ -95,6 +123,10 @@ function parseExport<T>(file: string, name: string): T {
   const eq = file.indexOf('= ', start) + 2;
   return JSON.parse(file.slice(eq, file.lastIndexOf(';')));
 }
+
+/** Datos de las fotos (un producto por línea, con coma final). */
+const ogFacts = (root: string) =>
+  JSON.parse(readGenerated(root).ogImages!.replace(/^[\s\S]*?= \{/, '{').replace(/,\n\};\n$/, '\n}')) as Record<string, ProductImageFacts>;
 
 describe('cliente Jumpseller', () => {
   it('pagina hasta recibir una página corta', async () => {
@@ -326,12 +358,73 @@ describe('sincronización completa', () => {
     expect(readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8')).toContain('SKU repetidos en Jumpseller');
   });
 
-  it('--from-dir usa páginas guardadas sin llamar a la API', async () => {
+  it('--from-dir usa páginas guardadas sin llamar a la API (las fotos se revisan aparte, sin credenciales)', async () => {
     const fetchImpl = vi.fn();
-    const { code } = await run(root, ['--from-dir', FIX, '--baseline', 'legacy', '--write'], { fetchImpl });
+    const { code, images } = await run(root, ['--from-dir', FIX, '--baseline', 'legacy', '--write'], { fetchImpl });
     expect(code).toBe(0);
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(readGenerated(root).snapshot).toContain('2301098');
+    expect(images!.calls).toHaveLength(4);
+  });
+
+  it('--write escribe la primera foto de cada producto (formato, peso y medidas) para la imagen para compartir', async () => {
+    const { code, images } = await run(root, ['--write', '--baseline', 'legacy']);
+    expect(code).toBe(0);
+    const facts = ogFacts(root);
+    expect(Object.keys(facts)).toEqual(['2254290', '2301098', '2502343', '14582065']);
+    // la primera por posición, no la primera de la lista
+    expect(facts['2301098']).toEqual({
+      url: 'https://images.jumpseller.com/store/elights-cl/2301098/ALUMBRADO-PUBLICO-LED-SOLAR-eLIGHTS.cl.png?1653224159',
+      format: 'png',
+      bytes: 98_765,
+      width: 600,
+      height: 600,
+    });
+    expect(images!.calls).toHaveLength(4);
+    const summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.ogImages).toEqual({ own: 4, fallback: 0, probed: 4, reused: 0, failed: [], heavy: [], otherFormat: [] });
+    expect(readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8')).toContain('- Foto propia: 4 · imagen de la marca: 0');
+  });
+
+  it('la segunda sincronización no vuelve a pedir fotos que no cambiaron', async () => {
+    await run(root, ['--write', '--baseline', 'legacy']);
+    const first = readGenerated(root).ogImages;
+    const again = await run(root, ['--write', '--baseline', 'legacy']);
+    expect(again.code).toBe(0);
+    expect(again.images!.calls).toHaveLength(0);
+    expect(readGenerated(root).ogImages).toBe(first);
+    const summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.ogImages).toMatchObject({ probed: 0, reused: 4 });
+  });
+
+  it('--recheck-images vuelve a pedir todas las fotos; si una falla, se mantiene su dato anterior', async () => {
+    await run(root, ['--write', '--baseline', 'legacy']);
+    const before = ogFacts(root);
+    const again = await run(root, ['--write', '--baseline', 'legacy', '--recheck-images']);
+    expect(again.code).toBe(0);
+    expect(again.images!.calls).toHaveLength(4);
+    let summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.ogImages).toMatchObject({ probed: 4, reused: 0 });
+    const failing = fakeImages(url => (url.includes('/2502343/') ? 404 : 206));
+    const third = await run(root, ['--write', '--baseline', 'legacy', '--recheck-images'], { imageFetch: failing.fn });
+    expect(third.code).toBe(0);
+    expect(ogFacts(root)['2502343']).toEqual(before['2502343']);
+    summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.ogImages.failed.map((f: { id: number }) => f.id)).toEqual([2502343]);
+  });
+
+  it('una foto que da 404 no bloquea: sin dato, en el informe y en summary.json', async () => {
+    const images = fakeImages(url => (url.includes('/2502343/') ? 404 : 206));
+    const { code, logs } = await run(root, ['--write', '--baseline', 'legacy'], { imageFetch: images.fn });
+    expect(code, logs.join('\n')).toBe(0);
+    const facts = ogFacts(root);
+    expect(facts['2502343']).toBeUndefined();
+    expect(Object.keys(facts)).toHaveLength(3);
+    const summary = JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+    expect(summary.ogImages.failed).toEqual([{ id: 2502343, reason: 'HTTP 404' }]);
+    expect(summary.ogImages).toMatchObject({ own: 3, fallback: 1 });
+    expect(readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8')).toContain('⚠️ No se pudieron revisar: 2502343');
+    expect(logs.join('\n')).toContain('2502343 (HTTP 404)');
   });
 });
 
@@ -429,6 +522,20 @@ describe('resguardos: abortan sin tocar archivos', () => {
     const zero = products();
     zero[0].product.price = 0;
     await expectAbort('precio 0', apiFromFixtures(zero).fn, oneEntryBaseline);
+  });
+
+  it('una sincronización abortada no pide fotos, aunque haya fotos nuevas', async () => {
+    const changed = products();
+    for (const img of changed[0].product.images as { url: string }[]) img.url = img.url.replace('?', '-nueva?');
+    // Control: sin el resguardo, la foto nueva sí se pide (simulación: no escribe los generados)
+    const ok = await run(root, ['--baseline', 'legacy'], { fetchImpl: apiFromFixtures(changed).fn });
+    expect(ok.code, ok.logs.join('\n')).toBe(0);
+    expect(ok.images!.calls).toHaveLength(1);
+    const big: BaselineEntry[] = Array.from({ length: 20 }, (_, i) => ({ jumpseller_id: i + 1, name: `P${i}`, price: 1000 }));
+    const aborted = await run(root, ['--write', '--baseline', 'legacy'], { fetchImpl: apiFromFixtures(changed).fn, loadLegacyBaseline: async () => big });
+    expect(aborted.code).toBe(1);
+    expect(aborted.images!.calls).toHaveLength(0);
+    expect(readGenerated(root)).toEqual(before);
   });
 
   it('caída de más de 15% respecto a la línea base', async () => {

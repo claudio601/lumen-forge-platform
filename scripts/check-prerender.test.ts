@@ -1,21 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { contentIssues, inspectHtml, isSyncBotBranch, notFoundMarkerIssues, structuralIssues } from './check-prerender';
+import {
+  contentIssues,
+  expectedOg,
+  inspectHtml,
+  isSyncBotBranch,
+  notFoundMarkerIssues,
+  structuralIssues,
+  type ExpectedOg,
+} from './check-prerender';
+import { DEFAULT_OG } from '../src/lib/seo/ogImage';
 
 const SITE = 'https://sitio.test';
 const ROUTE = '/producto/x';
+// Foto con tilde en el nombre, ya codificada (como la emite <Seo>)
+const OG = 'https://images.jumpseller.com/store/elights-cl/1/Foto_%C3%81rea.png?1582811881';
+const EXPECTED_OG: ExpectedOg = { url: OG, width: 600, height: 600 };
 
 function page(opts: { head?: string; body?: string; lang?: string } = {}) {
   const head =
     opts.head ??
     `<title>Proyector | eLIGHTS</title><link rel="canonical" href="${SITE}${ROUTE}"/>` +
-      `<meta property="og:image" content="https://images.jumpseller.com/store/elights-cl/1/Foto_Área.png?1582811881"/>` +
+      `<meta property="og:image" content="${OG}"/><meta property="og:image:width" content="600"/>` +
+      `<meta property="og:image:height" content="600"/><meta property="og:image:alt" content="PROYECTOR LED"/>` +
+      `<meta name="twitter:image" content="${OG}"/>` +
       `<script type="application/ld+json">{"@type":"Product","offers":{"@type":"Offer","price":19900}}</script>`;
   const body = opts.body ?? '<header>eLIGHTS</header><main><h1>PROYECTOR LED</h1><p>Despacho en hasta 2 días hábiles.</p></main><footer>Pie</footer>';
   return `<!doctype html><html lang="${opts.lang ?? 'es'}"><head>${head}</head><body><div id="root">${body}</div></body></html>`;
 }
 
-const check = (html: string, price: number | undefined = 19900) =>
-  structuralIssues(ROUTE, inspectHtml(html), { indexable: true, price, siteUrl: SITE });
+const check = (html: string, price: number | undefined = 19900, og: ExpectedOg = EXPECTED_OG) =>
+  structuralIssues(ROUTE, inspectHtml(html), { indexable: true, price, siteUrl: SITE, og });
 
 describe('check-prerender: estructura', () => {
   it('una ficha completa no tiene problemas', () => {
@@ -40,8 +54,30 @@ describe('check-prerender: estructura', () => {
     const head = page().match(/<head>(.*)<\/head>/)![1];
     expect(check(page({ head: head.replace(ROUTE, '/producto/y') }))[0]).toMatch(/^canonical/);
     expect(check(page({ head: head + '<meta name="robots" content="noindex, follow"/>' }))).toEqual(['tiene noindex']);
-    expect(check(page({ head: head.replace(/Foto_Área\.png\?1582811881/, 'logo.svg') }))[0]).toMatch(/^og:image no es una foto/);
-    expect(check(page({ head: head.replace('https://images', 'http://images') }))[0]).toMatch(/^og:image no es una foto/);
+    expect(check(page({ head: head.replace(/Foto_%C3%81rea\.png\?1582811881/, 'logo.svg') }))[0]).toMatch(/^og:image no es JPEG ni PNG https/);
+    expect(check(page({ head: head.replace('https://images', 'http://images') }))[0]).toMatch(/^og:image no es JPEG ni PNG https/);
+  });
+
+  it('imagen para compartir: JPEG o PNG https, ya codificada, la esperada, con sus medidas, texto alternativo y la misma en twitter:image', () => {
+    const head = page().match(/<head>(.*)<\/head>/)![1];
+    const withOg = (url: string) => page({ head: head.split(OG).join(url) });
+    const webp = OG.replace('.png', '.webp');
+    expect(check(withOg(webp), 19900, { ...EXPECTED_OG, url: webp })).toEqual([`og:image no es JPEG ni PNG https: ${webp}`]);
+    const raw = OG.replace('%C3%81', 'Á');
+    expect(check(withOg(raw), 19900, { ...EXPECTED_OG, url: raw })).toEqual([`og:image sin codificar: ${raw}`]);
+    // distinta de la que da la regla (p. ej. la foto pesada en vez de la imagen de la marca)
+    const brand = expectedOg(DEFAULT_OG);
+    expect(check(page(), 19900, brand)).toEqual([`og:image ${OG} en vez de ${brand.url}`, 'og:image:width/height 600×600 en vez de 1200×630']);
+    expect(check(page(), 19900, { url: OG })).toEqual(['og:image:width/height 600×600 en vez de sin medidas']);
+    expect(check(page({ head: head.replace(/<meta property="og:image:(width|height)"[^>]*>/g, '') }))).toEqual([
+      'og:image:width/height sin medidas en vez de 600×600',
+    ]);
+    expect(check(page({ head: head.replace(/<meta property="og:image:height"[^>]*>/, '') }))).toEqual(['og:image:width/height 600× en vez de 600×600']);
+    expect(check(page({ head: head.replace(`name="twitter:image" content="${OG}"`, 'name="twitter:image" content="https://otra.test/x.png"') }))).toEqual([
+      'twitter:image ["https://otra.test/x.png"] distinta de og:image',
+    ]);
+    expect(check(page({ head: head.replace(/<meta property="og:image:alt"[^>]*>/, '') }))).toEqual(['og:image:alt falta o está vacío']);
+    expect(check(page({ head: head.replace('content="PROYECTOR LED"', 'content=" "') }))).toEqual(['og:image:alt falta o está vacío']);
   });
 
   it('detecta JSON-LD que no se lee y precios distintos del catálogo', () => {

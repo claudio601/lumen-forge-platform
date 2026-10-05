@@ -7,6 +7,11 @@
 //   npm run sync:catalog -- --baseline legacy # compara contra src/data/products.ts
 //   npm run sync:catalog -- --from-dir <dir>  # usa páginas guardadas, sin llamar a la API
 //   npm run sync:catalog -- --save-raw <dir>  # guarda lo recibido (solo campos validados) bajo reports/
+//   npm run sync:catalog -- --recheck-images  # vuelve a revisar todas las fotos para compartir
+//
+// En todos los modos (también --from-dir y la simulación) revisa la primera foto de los
+// productos nuevos o con foto cambiada: GET públicos con Range a images.jumpseller.com,
+// sin credenciales (scripts/jumpseller/og-images.ts).
 //
 // Credenciales: JUMPSELLER_LOGIN y JUMPSELLER_TOKEN en el entorno (GitHub Secrets) o
 // en .env.local. Nunca se imprimen.
@@ -22,6 +27,7 @@ import { createJumpsellerClient, JumpsellerApiError, type FetchLike } from './ju
 import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/schema';
 import { normalizeCatalog } from './jumpseller/normalize';
 import { buildDescriptions, diffDescriptions, renderDescriptionsReport } from './jumpseller/descriptions';
+import { buildOgImageFacts, createImageProbe, renderOgImagesReport, summarizeOgImages, type ImageFetch } from './jumpseller/og-images';
 import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
 import {
@@ -29,7 +35,9 @@ import {
   findForbiddenKeys,
   renderCategoriesFile,
   renderDescriptionsFile,
+  renderOgImagesFile,
   type ProductDescription,
+  type ProductImageFacts,
   renderPriceIndexFile,
   renderSiteIdsFile,
   renderSnapshotFile,
@@ -57,7 +65,10 @@ export interface SyncOptions {
   root: string;
   log?: (msg: string) => void;
   fetchImpl?: FetchLike;
+  /** fetch para revisar las fotos (por defecto, el global): aparte de la API, sin credenciales. */
+  imageFetch?: ImageFetch;
   sleep?: (ms: number) => Promise<void>;
+  random?: () => number;
   loadLegacyBaseline?: () => Promise<BaselineEntry[]>;
 }
 
@@ -66,13 +77,15 @@ interface Args {
   baseline?: 'legacy' | 'snapshot';
   fromDir?: string;
   saveRaw?: string;
+  recheckImages: boolean;
 }
 
 function parseArgs(argv: string[]): Args | string {
-  const args: Args = { write: false };
+  const args: Args = { write: false, recheckImages: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--write') args.write = true;
+    else if (a === '--recheck-images') args.recheckImages = true;
     else if (a === '--baseline') {
       const v = argv[++i];
       if (v !== 'legacy' && v !== 'snapshot') return `--baseline debe ser "legacy" o "snapshot"`;
@@ -155,6 +168,13 @@ async function loadPreviousDescriptions(root: string): Promise<Record<number, Pr
   if (!existsSync(file)) return null;
   const mod = (await import(pathToFileURL(resolve(file)).href)) as { productDescriptions: Record<number, ProductDescription> };
   return { ...mod.productDescriptions };
+}
+
+async function loadPreviousOgImages(root: string): Promise<Record<number, ProductImageFacts> | null> {
+  const file = join(root, OUTPUT_PATHS.ogImages);
+  if (!existsSync(file)) return null;
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { productImageFacts: Record<number, ProductImageFacts> };
+  return { ...mod.productImageFacts };
 }
 
 async function loadSiteIds(root: string): Promise<Record<number, string>> {
@@ -337,6 +357,18 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   if (desc.warnings.length) log(`Descripciones con textos a corregir en Jumpseller: ${desc.warnings.map(w => `${w.id} ("${w.phrase}")`).join(', ')}`);
   if (desc.unknownLabels.length) log(`Etiquetas de especificación sin grupo: ${desc.unknownLabels.join(', ')}`);
 
+  // Imagen para compartir: formato real, peso y medidas de la primera foto de cada producto.
+  // Solo se piden las fotos nuevas o cambiadas (después de todos los resguardos, así una
+  // sincronización abortada no hace pedidos). Una que no se pudo revisar usa la imagen de
+  // la marca y se reintenta la próxima vez: nunca cambia el código de salida.
+  const probe = createImageProbe({
+    fetchImpl: opts.imageFetch ?? (globalThis.fetch as unknown as ImageFetch),
+    sleep: opts.sleep,
+    random: opts.random,
+  });
+  const og = await buildOgImageFacts(next, await loadPreviousOgImages(root), probe, { recheck: args.recheckImages });
+  if (og.failed.length) log(`Fotos para compartir sin revisar (usan la imagen de la marca): ${og.failed.map(f => `${f.id} (${f.reason})`).join(', ')}`);
+
   // 6. Generar archivos y verificar que no filtren campos prohibidos
   const hash = snapshotHash(next);
   const files = {
@@ -345,6 +377,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     [OUTPUT_PATHS.priceIndex]: renderPriceIndexFile(next, hash),
     [OUTPUT_PATHS.siteIds]: renderSiteIdsFile(siteIds, hash),
     ...(desc.available ? { [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(desc.descriptions, hash) } : {}),
+    [OUTPUT_PATHS.ogImages]: renderOgImagesFile(og.facts, hash),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
@@ -368,6 +401,8 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     hasEditorial: id => !!editorialOverlay[id]?.description,
   });
   const contentReport = renderContentReport(contentReview, new Map(next.map(p => [p.jumpseller_id, p.name])));
+  const ogReport = renderOgImagesReport(next, og, new Map(next.map(p => [p.jumpseller_id, p.name])));
+  const ogSummary = summarizeOgImages(next, og);
   if (contentReview.mismatched.length) log(`Contenido SEO a corregir: ${contentReview.mismatched.map(m => m.id).join(', ')}`);
   const summary = {
     snapshotHash: hash,
@@ -394,10 +429,19 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     contentMismatched: contentReview.mismatched,
     contentOrphans: contentReview.orphans,
     duplicateSkus,
+    ogImages: {
+      own: ogSummary.own,
+      fallback: ogSummary.fallback,
+      probed: ogSummary.probed,
+      reused: ogSummary.reused,
+      failed: ogSummary.failed,
+      heavy: ogSummary.heavy,
+      otherFormat: ogSummary.otherFormat,
+    },
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
-  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${contentReport}\n`, 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${ogReport}\n\n${contentReport}\n`, 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
   // 8. Escribir (solo con --write)
