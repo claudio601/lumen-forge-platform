@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contentIssues, inspectHtml, isSyncBotBranch, structuralIssues } from './check-prerender';
+import { contentIssues, inspectHtml, isSyncBotBranch, notFoundMarkerIssues, structuralIssues } from './check-prerender';
 
 const SITE = 'https://sitio.test';
 const ROUTE = '/producto/x';
@@ -64,6 +64,23 @@ describe('check-prerender: estructura', () => {
     const noindex = page({ head: '<title>x</title><meta name="robots" content="noindex, follow"/>', body: '' });
     expect(structuralIssues('/buscar', inspectHtml(noindex), { indexable: false })).toEqual([]);
     expect(structuralIssues('/buscar', inspectHtml(page()), { indexable: false })).toEqual(['sin noindex']);
+  });
+});
+
+describe('check-prerender: marca de 404.html', () => {
+  const marked = (h1 = '404') => `<html><body><div id="root" data-not-found=""><main><h1>${h1}</h1></main></div></body></html>`;
+
+  it('404.html lleva la marca en #root y su h1 es "404"', () => {
+    expect(notFoundMarkerIssues(marked(), true, inspectHtml(marked()).h1s)).toEqual([]);
+    expect(notFoundMarkerIssues(page(), true, inspectHtml(page()).h1s)).toEqual([
+      'la marca data-not-found debe estar una vez, en #root',
+      'el h1 debería ser "404" (es ["PROYECTOR LED"])',
+    ]);
+  });
+
+  it('ninguna otra página la lleva (se hidrataría como "no encontrada")', () => {
+    expect(notFoundMarkerIssues(page(), false)).toEqual([]);
+    expect(notFoundMarkerIssues(marked('Panel'), false)).toEqual(['lleva la marca de la página 404']);
   });
 });
 

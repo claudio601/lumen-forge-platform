@@ -2,13 +2,20 @@
   "regions": [
     "iad1"
   ],
+  "redirects": [
+    {
+      "source": "/carro{/}?",
+      "destination": "/solicitar-pedido",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/(buscar|cotizacion|solicitar-pedido){/}?",
       "destination": "/spa.html"
     }
   ],
