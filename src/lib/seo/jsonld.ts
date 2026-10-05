@@ -7,6 +7,7 @@
 import { absoluteUrl, LEGAL_NAME, SITE_NAME, SITE_URL } from '@/config/site';
 import { contactEmail, whatsappNumber } from '@/config/business';
 import type { Product } from '@/data/catalog/types';
+import { encodeImageUrl } from './ogImage';
 
 export type JsonLd = Record<string, unknown>;
 
@@ -83,7 +84,8 @@ export function productJsonLd(product: Product, description: string): JsonLd {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     name: product.name,
-    image: images,
+    // Todas las fotos originales (Google acepta WebP y archivos pesados), codificadas como og:image
+    image: images.map(encodeImageUrl),
     description,
     sku: product.sku || product.id,
     mpn: product.sku || product.id,

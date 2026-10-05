@@ -11,8 +11,9 @@
 
 import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { absoluteUrl, DEFAULT_OG_IMAGE, SITE_NAME } from '@/config/site';
+import { absoluteUrl, SITE_NAME } from '@/config/site';
 import { serializeJsonLd, type JsonLd } from '@/lib/seo/jsonld';
+import { DEFAULT_OG, ogImageUrl, type OgImage } from '@/lib/seo/ogImage';
 
 export interface SeoProps {
   title: string;
@@ -20,8 +21,11 @@ export interface SeoProps {
   /** Ruta canónica ('/catalogo/paneles-led', con ?page=N solo si N > 1). Se ignora con noindex. */
   path?: string;
   noindex?: boolean;
-  /** Imagen para compartir (ruta del sitio o URL absoluta). Por defecto, el PNG de la marca. */
-  image?: string;
+  /**
+   * Imagen para compartir (solo la ficha de producto la pasa: productOgImage). Por defecto,
+   * el JPEG de la marca (DEFAULT_OG), con sus medidas.
+   */
+  image?: OgImage;
   type?: 'website' | 'product';
   jsonLd?: JsonLd[];
 }
@@ -39,7 +43,10 @@ const Seo = ({ title, description, path, noindex = false, image, type = 'website
   const mounted = useMounted();
   if (!mounted) return null;
   const url = path && !noindex ? absoluteUrl(path) : undefined;
-  const ogImage = absoluteUrl(image || DEFAULT_OG_IMAGE);
+  const img = image ?? DEFAULT_OG;
+  // Absoluta y codificada (una foto con tildes en el nombre): og:image y twitter:image iguales
+  const ogImage = ogImageUrl(img);
+  const sized = !!(img.width && img.height);
   return (
     <Helmet>
       <title>{title}</title>
@@ -53,6 +60,9 @@ const Seo = ({ title, description, path, noindex = false, image, type = 'website
       <meta property="og:description" content={description} />
       {url && <meta property="og:url" content={url} />}
       <meta property="og:image" content={ogImage} />
+      {sized && <meta property="og:image:width" content={String(img.width)} />}
+      {sized && <meta property="og:image:height" content={String(img.height)} />}
+      <meta property="og:image:alt" content={img.alt} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />

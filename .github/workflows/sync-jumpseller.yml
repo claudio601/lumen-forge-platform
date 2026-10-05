@@ -77,6 +77,9 @@ jobs:
         run: npm run typecheck
 
       - name: Tests (frontend + api)
+        env:
+          # Los tests de cobertura de los datos generados solo informan en la sincronización
+          CATALOG_SYNC_JOB: '1'
         run: |
           npm test
           npx vitest run --config vitest.api.config.ts
@@ -98,6 +101,7 @@ jobs:
             api/_lib/catalog/price-index.generated.ts
             src/data/catalog/site-ids.generated.ts
             src/data/catalog/descriptions.generated.ts
+            src/data/catalog/og-images.generated.ts
           commit-message: 'chore(catalog): sincronización con Jumpseller'
           title: 'Catálogo: sincronización con Jumpseller'
           body-path: reports/jumpseller-sync/diff.md

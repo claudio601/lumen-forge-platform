@@ -14,7 +14,11 @@ const htmlParts = entries.flatMap(([id, d]) => [d.text, d.tables].filter((h): h 
 const rows = entries.flatMap(([, d]) => [...(d.electricos ?? []), ...(d.construccion ?? []), ...(d.componentes ?? [])]);
 
 // En la PR diaria del robot, lo que depende de cuántas tablas trae Jumpseller solo se informa.
-const isSyncBot = (process.env.GITHUB_REF_NAME ?? process.env.GITHUB_HEAD_REF ?? '') === 'bot/jumpseller-sync';
+// CATALOG_SYNC_JOB: la tarea de sincronización (corre desde main, antes de abrir la PR).
+// En la PR, GITHUB_REF_NAME es 'N/merge' y la rama viene en GITHUB_HEAD_REF.
+const isSyncBot =
+  process.env.CATALOG_SYNC_JOB === '1' ||
+  [process.env.GITHUB_HEAD_REF, process.env.GITHUB_REF_NAME].includes('bot/jumpseller-sync');
 
 describe('descripciones de Jumpseller (archivo generado)', () => {
   it.skipIf(isSyncBot)('solo de productos publicados, y casi todos con especificaciones agrupadas', () => {
