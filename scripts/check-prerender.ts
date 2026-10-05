@@ -9,7 +9,10 @@
 //   - el JSON-LD se lee, y en las fichas el precio coincide con el catálogo;
 //   - nada quedó "para dibujar en el navegador";
 //   - spa.html y 404.html llevan noindex, y el sitemap lista justo las páginas generadas;
-//   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404".
+//   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404";
+//   - ningún id retirado (src/data/catalog/renamed-ids.ts) tiene página: Vercel aplica su
+//     301 antes que los archivos, así que nunca se vería. Un 301 que llega a un producto no
+//     publicado (da 404) solo se informa.
 // Contenido (bloquea, salvo en la PR diaria del robot de Jumpseller, donde solo avisa):
 //   - frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" en el texto
 //     visible. Las reglas miran el contexto: "48 horas" de un ensayo de niebla salina no
@@ -23,9 +26,10 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'parse5';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
+import { RENAMED_FROM } from '../src/data/catalog/renamed-ids';
 import { productImageFacts } from '../src/data/catalog/og-images.generated';
 import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
-import { indexableRoutes } from '../src/lib/seo/routes';
+import { indexableRoutes, productPath } from '../src/lib/seo/routes';
 import { findPolicyBreaking } from './jumpseller/descriptions';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
@@ -277,6 +281,13 @@ function main() {
   const extra = locs.filter(l => !pageFacts.has(l));
   if (missing.length || extra.length) blocking.push(`sitemap: faltan ${JSON.stringify(missing)}, sobran ${JSON.stringify(extra)}`);
 
+  // Ids renombrados (PR 07)
+  const published = new Set(products.map(p => p.id));
+  for (const old of RENAMED_FROM.keys()) {
+    if (read(outputPath(productPath(old)))) blocking.push(`${productPath(old)}: tiene página, pero su 301 (id retirado) la tapa`);
+  }
+  const toUnpublished = [...RENAMED_FROM].filter(([, id]) => !published.has(id));
+
   // Contenido: el texto de cada página, y una vez la cabecera y el pie (se repiten en todas)
   const content: string[] = [];
   const known: string[] = [];
@@ -295,6 +306,10 @@ function main() {
 
   console.log(`[check-prerender] ${pageFacts.size} de ${routes.length} páginas revisadas, más spa.html y 404.html`);
   console.log(`[check-prerender] Imagen para compartir: ${ownPhotos} fichas con su foto, ${productOg.size - ownPhotos} con la imagen de la marca`);
+  console.log(
+    `[check-prerender] Ids renombrados: ${RENAMED_FROM.size} redirecciones 301; ${toUnpublished.length} llegan a productos no publicados (dan 404)` +
+      (toUnpublished.length ? `: ${toUnpublished.map(([old, id]) => `${old} → ${id}`).join(', ')}` : ''),
+  );
   for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);
   if (blocking.length) {

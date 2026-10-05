@@ -15,6 +15,7 @@ import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { baseOverrides } from '../src/data/catalog/overlay/overrides';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
+import { RENAMED_FROM, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts, skuOwners } from '../src/data/catalog/build';
 import { cleanSku } from './jumpseller/normalize';
 import type { Product } from '../src/data/catalog/types';
@@ -25,6 +26,9 @@ const legacyById = new Map(legacy.map(p => [p.jumpseller_id, p]));
 const snapById = new Map(jumpsellerSnapshot.map(p => [p.jumpseller_id, p]));
 const siteSlugs = categories.map(c => c.slug);
 const BESTLED = [2301098, 2301101, 2301105, 2301110, 2301114, 4156930, 15021313];
+const SITE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/** Id del sitio de un producto: el renombrado gana sobre el legado y el de la sincronización. */
+const registeredId = (jid: number) => RENAMED_SITE_IDS[jid]?.id ?? LEGACY_SITE_IDS[jid] ?? SITE_IDS[jid];
 
 describe('lectura de specs desde el nombre', () => {
   it('potencia, incluidos decimales con coma', () => {
@@ -41,12 +45,27 @@ describe('lectura de specs desde el nombre', () => {
 });
 
 describe('catálogo desde Jumpseller', () => {
-  it('cada producto tiene su id registrado (legado o asignado por la sincronización)', () => {
+  it('cada producto tiene su id registrado (renombrado, legado o asignado por la sincronización)', () => {
     for (const p of products) {
-      expect(p.id).toBe(LEGACY_SITE_IDS[p.jumpseller_id] ?? SITE_IDS[p.jumpseller_id]);
+      expect(p.id).toBe(registeredId(p.jumpseller_id));
     }
-    const all = [...Object.values(LEGACY_SITE_IDS), ...Object.values(SITE_IDS)];
+    // Todos los ids usados alguna vez: ninguno se repite (previous[0] es el legado o el de la sincronización)
+    const all = [
+      ...Object.values(LEGACY_SITE_IDS),
+      ...Object.values(SITE_IDS),
+      ...Object.values(RENAMED_SITE_IDS).flatMap(r => [r.id, ...r.previous.slice(1)]),
+    ];
     expect(new Set(all).size).toBe(all.length);
+  });
+
+  it('cada id es un slug limpio: [a-z0-9] separados por "-" (sin %, puntos, comas ni tildes)', () => {
+    const ids = [
+      ...Object.values(LEGACY_SITE_IDS),
+      ...Object.values(SITE_IDS),
+      ...Object.values(RENAMED_SITE_IDS).flatMap(r => [r.id, ...r.previous]),
+      ...products.map(p => p.id),
+    ];
+    expect(ids.filter(id => !SITE_ID.test(id))).toEqual([]);
   });
 
   it('publica exactamente los productos del snapshot, con ids únicos', () => {
@@ -95,9 +114,9 @@ describe('catálogo desde Jumpseller', () => {
 describe('se conserva lo que no viene de Jumpseller', () => {
   const kept = products.filter(p => legacyById.has(p.jumpseller_id));
 
-  it('los productos que siguen publicados mantienen su id (URLs /producto/:id)', () => {
+  it('los productos que siguen publicados mantienen su id (URLs /producto/:id), salvo los renombrados', () => {
     expect(kept.length).toBeGreaterThan(0);
-    for (const p of kept) expect(p.id).toBe(LEGACY_SITE_IDS[p.jumpseller_id]);
+    for (const p of kept) expect(p.id).toBe(RENAMED_SITE_IDS[p.jumpseller_id]?.id ?? LEGACY_SITE_IDS[p.jumpseller_id]);
   });
 
   it('temperatura e IP salen del nombre; los lúmenes legados se conservan', () => {
@@ -170,6 +189,101 @@ describe('se conserva lo que no viene de Jumpseller', () => {
         expect(v.price).toBe(s.price);
         expect(v.sku).toBe(s.sku || v.sku);
       }
+    }
+  });
+});
+
+// PR 07: ids que el catálogo legado cortó en la última '/' del permalink. Esta lista no se
+// edita: borrar o cambiar una fila de renamed-ids.ts dejaría en 404 las URLs nuevas.
+const PR07_RENAMES: [number, string, string][] = [
+  [2300837, 'sensor-6500k', 'tubo-led-opal-vidrio-18w-120cm-220v-c-sensor-6500k'],
+  [2312822, 'm-5mt-12v-luz-calida-2312822', 'cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-luz-calida'],
+  [2313541, 'm-5mt-12v-luz-fria', 'cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-luz-fria'],
+  [2313620, 'm-5mt-12v-rojo-2313620', 'cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-rojo'],
+  [2313626, 'm-5mt-12v-azul', 'cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-azul'],
+  [2313647, 'm-5mt-12v-verde-2313647', 'cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-verde'],
+  [2313648, 'm-5mt-12v-amarillo', 'cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-amarillo'],
+  [2313769, 'm-5mt-12v-luz-calida', 'cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-luz-calida'],
+  [2313836, 'm-5mt-12v-rojo', 'cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-rojo'],
+  [2313842, 'm-5mt-12v-azul-2313842', 'cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-azul'],
+  [2313858, 'm-5mt-12v-verde', 'cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-verde'],
+  [2313868, 'm-5mt-12v-amarillo-2313868', 'cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-amarillo'],
+  [2345320, 'rejilla-e27-ip54-blanca', 'tortuga-aluminio-oval-c-rejilla-e27-ip54-blanca'],
+  [3952758, 'mt-ip67-100mt-220v', 'cinta-led-exterior-14-4w-5730-72-leds-mt-ip67-100mt-220v'],
+  [3954845, 'm-ip67-100-mt-220v', 'cinta-led-exterior-verde-14-4w-m-72-leds-m-ip67-100-mt-220v'],
+  [4122715, 'w-ip66', 'campana-led-ufo-nf3-150w-150-lm-w-ip66'],
+  [20610994, 'w-ip65', 'campana-led-ufo-nf6-300w-110lm-w-ip65'],
+  [21809432, 'm-100mt-220v-rgb', 'cinta-led-exterior-6-5w-smd-2835-48leds-m-100mt-220v-rgb'],
+  [22672906, 'm-100mt-220v-amarillo', 'cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-amarillo'],
+  [22679546, 'm-100mt-220v-azul', 'cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-azul'],
+  [22679578, 'm-100mt-220v-rojo', 'cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-rojo'],
+  [24031164, 'w-ip65-24031164', 'campana-led-ufo-nf8-100w-110lm-w-ip65'],
+  [24040212, 'w-ip65-24040212', 'campana-led-ufo-nf8-150w-110lm-w-ip65'],
+  [24040292, 'w-ip65-24040292', 'campana-led-ufo-nf8-200w-110lm-w-ip65'],
+  [24043701, 'w-ip65-24043701', 'campana-led-ufo-nf8-300w-110lm-w-ip65'],
+  [24043822, 'w-ip65-24043822', 'campana-led-ufo-nf8-pro-300w-150lm-w-ip65'],
+  [24192756, 'sensor-de-movimiento', 'proyector-led-ultra-slim-50w-ip66-negro-c-sensor-de-movimiento'],
+  [24192873, 'sensor-de-movimiento-24192873', 'proyector-led-ultra-slim-100w-ip66-negro-c-sensor-de-movimiento'],
+  [24256942, 'sensor-de-movimiento-24256942', 'proyector-led-ultra-slim-150w-ip66-negro-c-sensor-de-movimiento'],
+  [24257068, 'sensor-de-movimiento-24257068', 'proyector-led-ultra-slim-200w-ip66-negro-c-sensor-de-movimiento'],
+  [25818717, 'control-remoto-1', 'alumbrado-publico-led-solar-200w-all-in-one-c-control-remoto'],
+  [25885210, 'control-remoto-1-25885210', 'alumbrado-publico-led-solar-100w-all-in-one-c-control-remoto'],
+  [25888711, 'control-remoto', 'alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto'],
+  [25888760, 'control-remoto-1-25888760', 'alumbrado-publico-led-solar-60w-all-in-one-c-control-remoto'],
+  [25891192, 'control-remoto-25891192', 'proyector-led-solar-100w-ip65-c-panel-solar-c-control-remoto'],
+  [25891958, 'control-remoto-25891958', 'proyector-led-solar-150w-ip65-c-panel-solar-c-control-remoto'],
+  [25892132, 'control-remoto-25892132', 'proyector-led-solar-200w-ip65-c-panel-solar-c-control-remoto'],
+  [28648231, 'control-remoto-gris', 'proyector-led-solar-200w-ip66-c-panel-solar-c-control-remoto-gris'],
+  [28651673, 'control-remoto-28651673', 'proyector-led-solar-100w-ip66-c-panel-solar-c-control-remoto'],
+  [28666518, 'control-remoto-28666518', 'proyector-led-solar-300w-ip66-c-panel-solar-c-control-remoto'],
+  [28668257, 'control-remoto-28668257', 'proyector-led-solar-150w-ip66-c-panel-solar-c-control-remoto'],
+  [31518788, 'w-ip66-ik10', 'campana-led-ufo-regulable-200w-150lm-w-ip66-ik10'],
+  [32954808, 'ip65-44000-lm', 'campana-led-ufo-nf9-400w-110-lm-ip65-44000-lm'],
+  [33554875, 'w-ip65-33554875', 'campana-led-ufo-nf7-100w-120lm-w-ip65'],
+  [33597212, 'w-ip65-33597212', 'campana-led-ufo-nf7-150w-120lm-w-ip65'],
+  [33610052, 'w-ip65-33610052', 'campana-led-ufo-nf7-200w-120lm-w-ip65'],
+  [33736073, 'w-ip65-11000-lm', 'campana-led-ufo-nf9-100w-110lm-w-ip65-11000-lm'],
+  [33748536, 'w-ip65-16500-lm', 'campana-led-ufo-nf9-150w-110lm-w-ip65-16500-lm'],
+  [33748560, 'w-ip65-22000-lm', 'campana-led-ufo-nf9-200w-110lm-w-ip65-22000-lm'],
+  [34057374, 'control-remoto-34057374', 'proyector-led-solar-500w-ip65-c-panel-solar-c-control-remoto'],
+];
+
+describe('ids renombrados (src/data/catalog/renamed-ids.ts)', () => {
+  const renamed = Object.entries(RENAMED_SITE_IDS).map(([jid, r]) => ({ jid: Number(jid), ...r }));
+
+  it('cada renombre parte del id registrado (legado o de la sincronización)', () => {
+    for (const r of renamed) {
+      expect(r.previous.length, String(r.jid)).toBeGreaterThan(0);
+      expect(r.previous[0], String(r.jid)).toBe(LEGACY_SITE_IDS[r.jid] ?? SITE_IDS[r.jid]);
+      expect(r.previous, String(r.jid)).not.toContain(r.id);
+    }
+  });
+
+  it('solo crece: los 50 de la PR 07 siguen ahí, con su id nuevo vigente o como id anterior', () => {
+    expect(PR07_RENAMES).toHaveLength(50);
+    for (const [jid, old, id] of PR07_RENAMES) {
+      const r = RENAMED_SITE_IDS[jid];
+      expect(r, String(jid)).toBeDefined();
+      expect(r.previous, String(jid)).toContain(old);
+      expect([r.id, ...r.previous], String(jid)).toContain(id);
+      expect(RENAMED_FROM.get(old), old).toBe(r.id);
+    }
+  });
+
+  it('ningún producto se publica con un id retirado (su 301 taparía la página)', () => {
+    expect(RETIRED_SITE_IDS.size).toBe(renamed.reduce((n, r) => n + r.previous.length, 0));
+    expect(products.filter(p => RETIRED_SITE_IDS.has(p.id)).map(p => p.id)).toEqual([]);
+    for (const r of renamed) expect(RETIRED_SITE_IDS.has(r.id), r.id).toBe(false);
+    // Un Map: /producto/constructor no encuentra nada heredado de Object.prototype
+    expect(RENAMED_FROM.get('constructor')).toBeUndefined();
+  });
+
+  it('la tabla no importa nada, y el carrito y la cotización no cargan el catálogo completo (bundle principal)', () => {
+    const read = (f: string) => readFileSync(join(__dirname, '..', f), 'utf8');
+    expect(read('src/data/catalog/renamed-ids.ts')).not.toMatch(/^\s*import\b/m);
+    for (const f of ['src/lib/requestOrder.ts', 'src/context/AppContext.tsx', 'src/routes.tsx']) {
+      const staticImports = [...read(f).matchAll(/^import\s[^;]*?from\s+'([^']+)'/gms)].map(m => m[1]);
+      expect(staticImports.filter(i => /seo\/routes|data\/catalog\/index|data\/products/.test(i)), f).toEqual([]);
     }
   });
 });

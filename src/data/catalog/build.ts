@@ -81,9 +81,32 @@ export function parseIp(name: string): string | undefined {
   return m ? `IP${m[1]}` : undefined;
 }
 
-/** Id de sitio para un producto nuevo: desde el permalink, sin repetir ids existentes. */
+/**
+ * Texto → id del sitio: sin %XX, sin tildes, en minúsculas y solo [a-z0-9] separados por '-'.
+ * "alumbrado-p%C3%BAblico-led-14.4w/control-remoto" → "alumbrado-publico-led-14-4w-control-remoto".
+ * Un id con '%', '.' o ',' fallaría: React Router decodifica :id y no lo encontraría.
+ */
+export function slugifySiteId(text: string): string {
+  let decoded = text;
+  try {
+    decoded = decodeURIComponent(text);
+  } catch {
+    // '%' suelto: se deja como está (luego pasa a '-')
+  }
+  return decoded
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Id de sitio para un producto nuevo: desde el permalink, sin repetir ids existentes.
+ * `taken` incluye los ids retirados (renamed-ids.ts): su 301 taparía la página nueva.
+ */
 export function newSiteId(permalink: string, jumpsellerId: number, taken: ReadonlySet<string>): string {
-  const id = permalink.replace(/\//g, '-');
+  const id = slugifySiteId(permalink) || `producto-${jumpsellerId}`;
   return taken.has(id) ? `${id}-${jumpsellerId}` : id;
 }
 
@@ -115,23 +138,26 @@ export function skuOwners(snapshot: readonly SnapshotProduct[]): Map<string, Set
 
 /**
  * Arma la base del catálogo desde el snapshot de Jumpseller.
- * - id: el registrado para el producto (legado o asignado por la sincronización la
- *   primera vez que se publicó): las URLs /producto/:id nunca cambian.
+ * - id: el registrado para el producto (legado, asignado por la sincronización la
+ *   primera vez que se publicó, o renombrado a mano con su 301 en renamed-ids.ts): las
+ *   URLs /producto/:id no cambian solas.
  * - SKU: el de Jumpseller; si no tiene, el legado; si no, el de su única variante,
  *   pero solo si ningún otro producto usa ese SKU (en Jumpseller hay SKUs repetidos).
  * - orden: el del catálogo legado ("Relevancia"); los productos nuevos van al final.
+ * alsoReserved: ids que ya no están en siteIds pero nunca se reutilizan (los retirados).
  */
 export function baseFromSnapshot(
   snapshot: readonly SnapshotProduct[],
   overrides: Readonly<Record<number, BaseOverrides>>,
   siteIds: Readonly<Record<number, string>>,
   legacyOrder: readonly number[],
+  alsoReserved: ReadonlySet<string> = new Set(),
 ): BaseProduct[] {
   const rank = new Map(legacyOrder.map((id, i) => [id, i]));
   const ordered = [...snapshot].sort(
     (a, b) => (rank.get(a.jumpseller_id) ?? Infinity) - (rank.get(b.jumpseller_id) ?? Infinity) || a.jumpseller_id - b.jumpseller_id,
   );
-  const reserved = new Set(Object.values(siteIds));
+  const reserved = new Set([...Object.values(siteIds), ...alsoReserved]);
   const used = new Set<string>();
   const owners = skuOwners(snapshot);
 

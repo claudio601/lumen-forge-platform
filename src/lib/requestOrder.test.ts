@@ -54,6 +54,42 @@ describe('reconcileRequestItems: carritos guardados antes de una sincronización
   });
 });
 
+describe('reconcileRequestItems: ids renombrados (PR 07)', () => {
+  const nf3 = products.find(p => p.jumpseller_id === 4122715)!; // antes /producto/w-ip66
+  const solar150 = products.find(p => p.jumpseller_id === 25888711)!; // antes /producto/control-remoto
+
+  it('una línea con el id viejo y su id de Jumpseller se conserva, con el id y la URL vigentes', () => {
+    const r = reconcileRequestItems([item({ productId: 'w-ip66', jumpsellerId: 4122715, sku: nf3.sku, url: '/producto/w-ip66' })], products);
+    expect(nf3.id).toBe('campana-led-ufo-nf3-150w-150-lm-w-ip66');
+    expect(r.removed).toEqual([]);
+    expect(r.changed).toBe(true);
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0]).toMatchObject({ productId: nf3.id, url: `/producto/${nf3.id}`, jumpsellerId: 4122715, name: nf3.name });
+  });
+
+  it('con el id de Jumpseller basta: un id del sitio que no está en ninguna tabla igual encuentra el producto', () => {
+    const r = reconcileRequestItems([item({ productId: 'id-desconocido', jumpsellerId: 4122715, sku: nf3.sku, url: '/producto/id-desconocido' })], products);
+    expect(r.removed).toEqual([]);
+    expect(r.items[0]).toMatchObject({ productId: nf3.id, url: `/producto/${nf3.id}`, jumpsellerId: 4122715 });
+  });
+
+  it('un carrito viejo sin id de Jumpseller pasa al id vigente por la tabla de renombres', () => {
+    const r = reconcileRequestItems([item({ productId: 'control-remoto', sku: solar150.sku, url: '/producto/control-remoto' })], products);
+    expect(solar150.id).toBe('alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto');
+    expect(r.removed).toEqual([]);
+    expect(r.items[0]).toMatchObject({ productId: solar150.id, url: `/producto/${solar150.id}`, jumpsellerId: 25888711 });
+  });
+
+  it('la línea vieja y la agregada después con el id nuevo se juntan en una', () => {
+    const vieja = item({ productId: 'w-ip66', sku: nf3.sku, quantity: 2, url: '/producto/w-ip66' });
+    const nueva = item({ productId: nf3.id, jumpsellerId: 4122715, sku: nf3.sku, quantity: 1, url: `/producto/${nf3.id}` });
+    const r = reconcileRequestItems([vieja, nueva], products);
+    expect(r.removed).toEqual([]);
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0]).toMatchObject({ productId: nf3.id, quantity: 3 });
+  });
+});
+
 describe('payload y referencia', () => {
   it('el payload lleva los ids de Jumpseller y el modo de precio', () => {
     const o = cartItemToOrderItem(item({ jumpsellerId: 3305420, variantId: 7, priceMode: 'neto' }));

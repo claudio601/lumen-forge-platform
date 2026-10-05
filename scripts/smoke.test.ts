@@ -30,14 +30,23 @@ describe('chequeo de humo', () => {
     expect(inspectHtml('<div id="root" data-not-found=""><h1>404</h1></div>').notFoundMark).toBe(true);
   });
 
-  it('revisa páginas, rutas sin prerender (con y sin barra final), /carro, 404, archivos y las funciones de api/ (solo GET)', () => {
+  it('revisa páginas, rutas sin prerender (con y sin barra final), /carro, ids renombrados, 404, archivos y las funciones de api/ (solo GET)', () => {
     const t = buildTargets();
     const paths = (k: string) => t.filter(x => x.kind === k).map(x => x.path);
     expect(paths('page')).toHaveLength(12);
     expect(paths('spa')).toEqual(expect.arrayContaining(['/cotizacion', '/cotizacion/', '/solicitar-pedido', '/solicitar-pedido/', '/buscar']));
+    const nf3 = '/producto/campana-led-ufo-nf3-150w-150-lm-w-ip66';
+    const solar = '/producto/alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto';
     expect(t.filter(x => x.kind === 'redirect')).toEqual([
       { path: '/carro', kind: 'redirect', to: '/solicitar-pedido' },
       { path: '/carro/', kind: 'redirect', to: '/solicitar-pedido' },
+      // PR 07: 301 de ids renombrados, con barra final y con la consulta de Google Ads
+      { path: '/producto/w-ip66', kind: 'redirect', to: nf3, expectedStatus: 301 },
+      { path: '/producto/w-ip66/', kind: 'redirect', to: nf3, expectedStatus: 301 },
+      { path: '/producto/w-ip66?gclid=smoke', kind: 'redirect', to: nf3, expectedStatus: 301 },
+      { path: '/producto/control-remoto', kind: 'redirect', to: solar, expectedStatus: 301 },
+      { path: '/producto/control-remoto/', kind: 'redirect', to: solar, expectedStatus: 301 },
+      { path: '/producto/control-remoto?gclid=smoke', kind: 'redirect', to: solar, expectedStatus: 301 },
     ]);
     expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y']);
     expect(paths('api')).toHaveLength(7);
@@ -69,6 +78,18 @@ describe('chequeo de humo', () => {
     expect(rowIssues(row('/carro', 'redirect', 200, 'text/html', { to: '/solicitar-pedido' }))).toEqual([
       'estado 200, se esperaba 307',
       'lleva a "", se esperaba /solicitar-pedido',
+    ]);
+    // Ids renombrados (PR 07): 301 al id vigente, conservando la consulta
+    const moved = { to: '/producto/nuevo', expectedStatus: 301 };
+    expect(rowIssues(row('/producto/viejo', 'redirect', 301, '', { ...moved, location: '/producto/nuevo' }))).toEqual([]);
+    expect(rowIssues(row('/producto/viejo/', 'redirect', 301, '', { ...moved, location: 'https://nuevo.elights.cl/producto/nuevo' }))).toEqual([]);
+    expect(rowIssues(row('/producto/viejo?gclid=smoke', 'redirect', 301, '', { ...moved, location: '/producto/nuevo?gclid=smoke' }))).toEqual([]);
+    // Lo que da producción antes de la PR 07: la ficha vieja con 200
+    expect(rowIssues(row('/producto/viejo', 'redirect', 200, 'text/html', moved))).toEqual(['estado 200, se esperaba 301', 'lleva a "", se esperaba /producto/nuevo']);
+    // permanent: true en vercel.json daría 308
+    expect(rowIssues(row('/producto/viejo', 'redirect', 308, '', { ...moved, location: '/producto/nuevo' }))).toEqual(['estado 308, se esperaba 301']);
+    expect(rowIssues(row('/producto/viejo?gclid=smoke', 'redirect', 301, '', { ...moved, location: '/producto/nuevo' }))).toEqual([
+      '"/producto/nuevo" no conserva la consulta ?gclid=smoke',
     ]);
     expect(rowIssues(row('/robots.txt', 'file', 200, 'text/plain'))).toEqual([]);
     expect(rowIssues(row('/fichas/x.pdf', 'file', 200, 'text/html'))).toEqual(['devuelve HTML en vez del archivo']);

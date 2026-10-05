@@ -46,6 +46,7 @@ import {
 } from './jumpseller/write';
 import type { SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
+import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { newSiteId, siteSku, skuOwners } from '../src/data/catalog/build';
 import {
   categories as siteCategories,
@@ -329,12 +330,15 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     );
   }
 
-  // 5. Registrar ids de productos nuevos (una sola vez: después nunca cambian)
+  // 5. Registrar ids de productos nuevos (una sola vez: después nunca cambian). Los ids
+  //    renombrados a mano (src/data/catalog/renamed-ids.ts), vigentes y anteriores, también
+  //    están ocupados: un id anterior tiene su 301 en vercel.json, que taparía la página nueva.
   const siteIds = await loadSiteIds(root);
-  const taken = new Set([...Object.values(LEGACY_SITE_IDS), ...Object.values(siteIds)]);
+  const renamed = Object.values(RENAMED_SITE_IDS).flatMap(r => [r.id, ...r.previous]);
+  const taken = new Set([...Object.values(LEGACY_SITE_IDS), ...Object.values(siteIds), ...renamed]);
   const newIds: number[] = [];
   for (const p of next) {
-    if (LEGACY_SITE_IDS[p.jumpseller_id] || siteIds[p.jumpseller_id]) continue;
+    if (LEGACY_SITE_IDS[p.jumpseller_id] || siteIds[p.jumpseller_id] || RENAMED_SITE_IDS[p.jumpseller_id]) continue;
     const id = newSiteId(p.permalink, p.jumpseller_id, taken);
     siteIds[p.jumpseller_id] = id;
     taken.add(id);

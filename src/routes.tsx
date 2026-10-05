@@ -7,6 +7,7 @@
 import { lazy, type ComponentType, type ReactElement } from 'react';
 import { matchRoutes, Navigate, useLocation, useParams, useRoutes, type Params, type RouteObject } from 'react-router-dom';
 import { NOT_FOUND_ATTR, NOT_FOUND_URL } from './lib/notFound';
+import { RENAMED_FROM } from './data/catalog/renamed-ids';
 
 type PageModule = { default: ComponentType };
 
@@ -60,6 +61,11 @@ function CatalogRoute() {
 
 function ProductRoute() {
   const { id } = useParams();
+  const { search, hash } = useLocation();
+  // Id anterior a un renombre (PR 07). En Vercel lo atiende el 301 de vercel.json; esto
+  // cubre la navegación dentro de la app (enlaces viejos, Atrás) y vite dev/preview.
+  const current = id ? RENAMED_FROM.get(id) : undefined;
+  if (current) return <Navigate to={`/producto/${current}${search}${hash}`} replace />;
   return <pages.ProductDetail key={id} />;
 }
 
