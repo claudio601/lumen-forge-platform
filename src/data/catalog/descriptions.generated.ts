@@ -4,7 +4,7 @@
 
 import type { ProductDescription } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'e94494c8c631';
+export const SNAPSHOT_HASH = '60bd699dc821';
 
 export const productDescriptions: Readonly<Record<number, ProductDescription>> = {
   "2251059": {"electricos":[{"label":"Consumo","value":"9W"},{"label":"Equivalencia con incandescentes","value":"60W"},{"label":"Tensión","value":"220-240V"},{"label":"Frecuencia","value":"50/60 Hz"},{"label":"Factor de potencia","value":"0,5"},{"label":"Flujo luminoso","value":"810 Lm. (CD) 122,1"},{"label":"Temperatura color (°K)","value":"6500K 3000K"},{"label":"Índice cromático (CRI)","value":"80"},{"label":"Código fotométrico","value":"Luz fría - 865 Luz cálida - 835"},{"label":"Ángulo de apertura","value":"220°"}],"construccion":[{"label":"Modelo","value":"Antares 9W"},{"label":"Largo producto (mm.)","value":"108 mm."},{"label":"Diámetro (mm.)","value":"60 mm."},{"label":"Vida útil (hrs.)","value":"15.000 hrs."},{"label":"Garantía","value":"1 año"},{"label":"Certificación","value":"SEC"},{"label":"Packaging por mayor","value":"100 unidades por caja\n62 X 31,5 X 24 CM\n4,4 KG"}],"componentes":[{"label":"Base","value":"E27"},{"label":"Regulable","value":"No"}]},

@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'e94494c8c631';
+export const SNAPSHOT_HASH = '60bd699dc821';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -13129,7 +13129,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
     "jumpseller_id": 25818717,
     "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE C/CONTROL REMOTO",
-    "permalink": "alumbrado-p%C3%BAblico-led-solar-200w-all-in-one-c/control-remoto-1",
+    "permalink": "alumbrado-publico-led-solar-200w-all-in-one-c-control-remoto",
     "sku": "",
     "price": 106800,
     "brand": "JIE",
@@ -13162,13 +13162,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103097356,
+        "id": 122798073,
         "sku": "",
         "price": 106800,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
