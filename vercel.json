@@ -257,6 +257,2246 @@
       "source": "/producto/w-ip66{/}?",
       "destination": "/producto/campana-led-ufo-nf3-150w-150-lm-w-ip66",
       "statusCode": 301
+    },
+    {
+      "source": "/120x15-marco-para-sobreponer-panel-led-cielo-americano{/}?",
+      "destination": "/producto/120x15-marco-para-sobreponer-panel-led-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/120x60-marco-para-sobreponer-panel-led-cielo-americano{/}?",
+      "destination": "/producto/120x60-marco-para-sobreponer-panel-led-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/60x60-marco-para-sobreponer-panel-led-cielo-americano{/}?",
+      "destination": "/producto/60x60-marco-para-sobreponer-panel-led-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-100w-all-in-one-c/control-remoto-1{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-100w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-100w-all-in-one-c/control-remoto{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-100w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-150w-all-in-one-c/control-remoto{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-200w-all-in-one-c/control-remoto-1{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-200w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-300w-all-in-one-industrial-c/control-remoto{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-300w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-60w-all-in-one-c/control-remoto-1{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-60w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-p%C3%BAblico-led-solar-60w-all-in-one-c/control-remoto{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-60w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-120w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-120w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-150w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-150w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-200w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-200w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-250w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-250w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-40w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-40w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-60w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-60w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-bestled-90w-ip66-ik08{/}?",
+      "destination": "/producto/alumbrado-publico-bestled-90w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-200w-all-in-one-c-control-remoto{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-200w-all-in-one-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-200w-all-in-one-industrial{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-200w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-300w-all-in-one-industrial{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-300w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-300w-con-panel-solar{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-400w-all-in-one-industrial{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-400w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-600w-all-in-one-industrial{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-600w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-90w-all-in-one{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-90w-all-in-one",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-flyhawk-40-80w{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-flyhawk-40-80w",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-flyhawk-80w{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-flyhawk-40-80w",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-solar{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico/bestled{/}?",
+      "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico/solar/all-in-one{/}?",
+      "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico/solar{/}?",
+      "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico{/}?",
+      "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
+      "source": "/amp-led-ar111-15-150w{/}?",
+      "destination": "/producto/amp-led-ar111-15-150w",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolleta-led-ar111-12-120w-opal-concentrica-40-1100-lm-ip44{/}?",
+      "destination": "/producto/ampolleta-led-ar111-12-120w-opal-concentrica-40-1100-lm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolleta-led-bola-15w-e27{/}?",
+      "destination": "/producto/ampolleta-led-bola-15w-e27",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolleta-led-bola-9w-e27{/}?",
+      "destination": "/producto/ampolleta-led-bola-9w-e27",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolleta-led-dicroica-6w-gu10-opal{/}?",
+      "destination": "/producto/ampolleta-led-dicroica-6w-gu10-opal",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolleta-led-dicroico-4w-gu10{/}?",
+      "destination": "/producto/ampolleta-led-dicroico-4w-gu10",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas-led{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas_led/ar111{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas_led/bola{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas_led/gu10{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas_led{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-decorativo-bazuca-bidireccional-2x10w-ip65-negro{/}?",
+      "destination": "/producto/aplique-decorativo-bazuca-bidireccional-2x10w-ip65-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-decorativo-bazuca-mini-bidireccional-2x5w-ip65-negro{/}?",
+      "destination": "/producto/aplique-decorativo-bazuca-mini-bidireccional-2x5w-ip65-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-decorativo-bidireccional-semi-curculo-2x5w-ip65-negro{/}?",
+      "destination": "/producto/aplique-decorativo-bidireccional-semi-curculo-2x5w-ip65-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-decorativo-ovalado-muro-10w-ip65-negro{/}?",
+      "destination": "/producto/aplique-decorativo-ovalado-muro-10w-ip65-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-led-20w-de-pared-moderna-3000k{/}?",
+      "destination": "/producto/aplique-led-20w-de-pared-moderna-3000k",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-led-30w-de-pared-moderna-ip65{/}?",
+      "destination": "/producto/aplique-led-30w-de-pared-moderna-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-led-de-muro-2x6w-ip65{/}?",
+      "destination": "/producto/aplique-led-de-muro-2x6w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-led-muro-5w-ip65-gris{/}?",
+      "destination": "/producto/aplique-led-muro-5w-ip65-gris",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-led-solar-10w-luz-fria-500-lm-ip65{/}?",
+      "destination": "/producto/aplique-led-solar-10w-luz-fria-500-lm-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-led-solar-5w-luz-fria-500-lm-ip65{/}?",
+      "destination": "/producto/aplique-led-solar-5w-luz-fria-500-lm-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-muro-bidireccional-16w-ip54-negro{/}?",
+      "destination": "/producto/aplique-muro-bidireccional-16w-ip54-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-muro-exterior-led-5w-ip65-negro{/}?",
+      "destination": "/producto/aplique-muro-exterior-led-5w-ip65-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-muro-exterior-led-5w-s/rejilla-ip65-grande{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-muro-vertical-led-5w-ip65-negro{/}?",
+      "destination": "/producto/aplique-muro-vertical-led-5w-ip65-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/aplique-solar{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/aro-de-luz-led-colgante-48w-ip44-negro{/}?",
+      "destination": "/producto/aro-de-luz-led-colgante-48w-ip44-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/barra-de-emergencia-60-leds-recargable-autonomia-3-6-hrs{/}?",
+      "destination": "/producto/barra-de-emergencia-60-leds-recargable-autonomia-3-6-hrs",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-industrial-led-smd-bridgelux-200w-6500k-ip44{/}?",
+      "destination": "/producto/campana-industrial-led-smd-bridgelux-200w-6500k-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-a-prueba-de-explosion-100w{/}?",
+      "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-100w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-a-prueba-de-explosion-150w{/}?",
+      "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-150w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-a-prueba-de-explosion-200w{/}?",
+      "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-200w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-a-prueba-de-explosion-300w{/}?",
+      "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-300w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-a-prueba-de-explosion-50w{/}?",
+      "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-50w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-ip65-premium-gris-150w{/}?",
+      "destination": "/producto/campana-led-ufo-ip65-premium-gris-150w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf3-100w{/}?",
+      "destination": "/producto/campana-led-ufo-nf3-100w",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf3-150w-150-lm/w-ip66{/}?",
+      "destination": "/producto/campana-led-ufo-nf3-150w-150-lm-w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf3-200w-150lmw-ip66{/}?",
+      "destination": "/producto/campana-led-ufo-nf3-200w-150lmw-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf3-250w-150lmw-ip66{/}?",
+      "destination": "/producto/campana-led-ufo-nf3-250w-150lmw-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf3-300w-150lmw-ip66{/}?",
+      "destination": "/producto/campana-led-ufo-nf3-300w-150lmw-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf6-100w-110lmw-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf6-100w-110lmw-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf6-150w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf6-150w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf6-200w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf6-200w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf6-300w-110lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf6-300w-110lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf7-100w-120lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf7-100w-120lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf7-150w-120lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf7-150w-120lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf7-200w-120lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf7-200w-120lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf8-100w-110lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf8-100w-110lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf8-150w-110lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf8-150w-110lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf8-200w-110lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf8-200w-110lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf8-300w-110lm/w-ip65{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf8-pro-300w-150lm/w-ip65{/}?",
+      "destination": "/producto/campana-led-ufo-nf8-pro-300w-150lm-w-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf9-100w-110lm/w-ip65-11000-lm{/}?",
+      "destination": "/producto/campana-led-ufo-nf9-100w-110lm-w-ip65-11000-lm",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf9-150w-110lm/w-ip65-16500-lm{/}?",
+      "destination": "/producto/campana-led-ufo-nf9-150w-110lm-w-ip65-16500-lm",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf9-200w-110lm/w-ip65-22000-lm{/}?",
+      "destination": "/producto/campana-led-ufo-nf9-200w-110lm-w-ip65-22000-lm",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-nf9-400w-110-lm/ip65-44000-lm{/}?",
+      "destination": "/producto/campana-led-ufo-nf9-400w-110-lm-ip65-44000-lm",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-regulable-200w-150lm/w-ip66-ik10{/}?",
+      "destination": "/producto/campana-led-ufo-regulable-200w-150lm-w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led/industrial-smd-philips{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led/ufo-premium{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana_led/nf6{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana_led/ufo-lumileds{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana_led/ufo-nf7{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana_led/ufo-nf8{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana_led/ufo-nf9{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana_led{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-doble-para-tubo-led-1200-mm{/}?",
+      "destination": "/producto/canoa-doble-para-tubo-led-1200-mm",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-led-hermetica-1x18w-ip65-ik07-1200-mm-pmma{/}?",
+      "destination": "/producto/canoa-led-hermetica-1x18w-ip65-ik07-1200-mm-pmma",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-led-hermetica-1x9w-ip65-ik07-60-cm-pmma{/}?",
+      "destination": "/producto/canoa-led-hermetica-1x9w-ip65-ik07-60-cm-pmma",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-led-hermetica-2x18w-ip65-ik07-1200-mm-pmma-4{/}?",
+      "destination": "/producto/canoa-led-hermetica-2x18w-ip65-ik07-1200-mm-pmma-4",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-led-hermetica-2x18w-ip65-ik07-1200-mm-pmma{/}?",
+      "destination": "/producto/canoa-led-hermetica-2x18w-ip65-ik07-1200-mm-pmma-4",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-led-hermetica-2x9w-ip65-ik07-600-mm-pmma{/}?",
+      "destination": "/producto/canoa-led-hermetica-2x9w-ip65-ik07-600-mm-pmma",
+      "statusCode": 301
+    },
+    {
+      "source": "/canoa-simple-para-tubo-led-1200-mm{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14,4w-smd-5730-72leds/m-100mt-220v-amarillo{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-amarillo",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14,4w-smd-5730-72leds/m-100mt-220v-azul{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-azul",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14,4w-smd-5730-72leds/m-100mt-220v-rojo{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-rojo",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-5730-72-leds/mt-ip67-100mt-220v{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-5730-72-leds-mt-ip67-100mt-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-amarillo{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-amarillo",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-azul{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-azul",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-luz-calida{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-luz-calida",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-luz-fria{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-luz-fria",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-rojo{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-rojo",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-14.4w-smd-5050-60leds/m-5mt-12v-verde{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-smd-5050-60leds-m-5mt-12v-verde",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-144w-smd-5050-60ledsm-5mt-12v-luz-fria{/}?",
+      "destination": "/producto/cinta-led-exterior-144w-smd-5050-60ledsm-5mt-12v-luz-fria",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-15w-5730-72-leds-ip67-100mt-220v{/}?",
+      "destination": "/producto/cinta-led-exterior-14-4w-5730-72-leds-mt-ip67-100mt-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-exterior-6,5w-smd-2835-48leds/m-100mt-220v-rgb{/}?",
+      "destination": "/producto/cinta-led-exterior-6-5w-smd-2835-48leds-m-100mt-220v-rgb",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-amarillo{/}?",
+      "destination": "/producto/cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-amarillo",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-azul{/}?",
+      "destination": "/producto/cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-azul",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-luz-calida{/}?",
+      "destination": "/producto/cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-luz-calida",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-rojo{/}?",
+      "destination": "/producto/cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-rojo",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-interior-14.4w-smd-5050-60leds/m-5mt-12v-verde{/}?",
+      "destination": "/producto/cinta-led-interior-14-4w-smd-5050-60leds-m-5mt-12v-verde",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led-led-verde-14,4w/m-72-leds/m-ip67-100-mt-220v{/}?",
+      "destination": "/producto/cinta-led-exterior-verde-14-4w-m-72-leds-m-ip67-100-mt-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led/exterior/cinta-led-220v{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led/exterior{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led/interior{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta-led{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta_led/perfil{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/cinta_led{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/colgante-c/accesorios{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/contactos{/}?",
+      "destination": "/cotizador",
+      "statusCode": 301
+    },
+    {
+      "source": "/contact{/}?",
+      "destination": "/cotizador",
+      "statusCode": 301
+    },
+    {
+      "source": "/downlight-led-redondo-embutido-16w-luz-fria-niquel{/}?",
+      "destination": "/producto/downlight-led-redondo-embutido-16w-luz-fria-niquel",
+      "statusCode": 301
+    },
+    {
+      "source": "/downlight-led-sobrepuesto-7w-lavadora-slim-ip20{/}?",
+      "destination": "/producto/downlight-led-sobrepuesto-7w-lavadora-slim-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/downlight-led-sobrepuesto-cilindro-7w-ip20{/}?",
+      "destination": "/producto/downlight-led-sobrepuesto-cilindro-7w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/emergencia-led/kit-emergencia{/}?",
+      "destination": "/catalogo/emergencia-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/emergencia-led/senaleticas-led{/}?",
+      "destination": "/catalogo/emergencia-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/emergencia-led{/}?",
+      "destination": "/catalogo/emergencia-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/emergencia_led/equipo-de-emergencia{/}?",
+      "destination": "/catalogo/emergencia-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/emergencia_led{/}?",
+      "destination": "/catalogo/emergencia-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/equipo-led-de-emergencia-2x12{/}?",
+      "destination": "/producto/equipo-led-de-emergencia-2x12",
+      "statusCode": 301
+    },
+    {
+      "source": "/estaca-led-cob-2w-jardin-ip65{/}?",
+      "destination": "/producto/estaca-led-cob-2w-jardin-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/estaca-led-cob-5w-jardin-ip65{/}?",
+      "destination": "/producto/estaca-led-cob-5w-jardin-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/estaca-mini-led-cob-5w-jardin-ip65{/}?",
+      "destination": "/producto/estaca-mini-led-cob-5w-jardin-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/estanca-led-40w-120cm-ip65{/}?",
+      "destination": "/producto/estanca-led-40w-120cm-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/farol-ornamental-freya-10w-ip65-60-cm{/}?",
+      "destination": "/producto/farol-ornamental-freya-10w-ip65-60-cm",
+      "statusCode": 301
+    },
+    {
+      "source": "/flat-c/accesorios{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-a-riel-trifasico{/}?",
+      "destination": "/catalogo/focos-a-riel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-a-riel{/}?",
+      "destination": "/catalogo/focos-a-riel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-12w-blanco{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-12w-blanco",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-12w-niquel{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-12w-niquel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-15w-niquel{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-15w-niquel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-18w-niquel{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-18w-niquel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-24w-niquel{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-24w-niquel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-30w-niquel{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-30w-niquel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-smd-9w-blanco{/}?",
+      "destination": "/producto/foco-dicroico-led-embutido-smd-9w-blanco",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-a-riel-monofasico-10w{/}?",
+      "destination": "/producto/foco-led-a-riel-monofasico-10w",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-a-riel-monofasico-30w-negro-todos-los-colores{/}?",
+      "destination": "/producto/foco-led-a-riel-monofasico-30w-negro-todos-los-colores",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-a-riel-monofasico-blanco-40w{/}?",
+      "destination": "/producto/foco-led-a-riel-monofasico-blanco-40w",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-a-riel-monofasico-negro-40w{/}?",
+      "destination": "/producto/foco-led-a-riel-monofasico-negro-40w",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-a-riel-trifasico-40w-blanco-2{/}?",
+      "destination": "/producto/foco-led-a-riel-trifasico-40w-blanco-2",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-a-riel-trifasico-40w-negro{/}?",
+      "destination": "/producto/foco-led-a-riel-trifasico-40w-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-cob-basculante-5w-ip44-marco-blanco{/}?",
+      "destination": "/producto/foco-led-cob-basculante-5w-ip44-marco-blanco",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-cob-basculante-codo-30w-ip33{/}?",
+      "destination": "/producto/foco-led-cob-basculante-codo-30w-ip33",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-12w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-12w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-18w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-18w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-1w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-1w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-36w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-36w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-3w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-3w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-5w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-5w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-9w-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-9w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-led-embutido-en-piso-gu10-ip67{/}?",
+      "destination": "/producto/foco-led-embutido-en-piso-gu10-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-sumergible-piscina-sobrepuesto-18w-ip68-12v{/}?",
+      "destination": "/producto/foco-sumergible-piscina-sobrepuesto-18w-ip68-12v",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-para-foco-piscina-60w-12v-ip20{/}?",
+      "destination": "/producto/fuente-de-poder-para-foco-piscina-60w-12v-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-100w-12v-85a-exterior-ip67{/}?",
+      "destination": "/producto/fuente-de-poder-switching-100w-12v-85a-exterior-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-100w-12v-8a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-100w-12v-8a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-120w-12v-10a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-120w-12v-10a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-150w-12v-125a-exterior-ip67{/}?",
+      "destination": "/producto/fuente-de-poder-switching-150w-12v-125a-exterior-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-150w-12v-125a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-150w-12v-125a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-200w-12v-165a-exterior-ip67{/}?",
+      "destination": "/producto/fuente-de-poder-switching-200w-12v-165a-exterior-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-200w-12v-166a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-200w-12v-166a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-30w-12v-25a-exterior-ip67{/}?",
+      "destination": "/producto/fuente-de-poder-switching-30w-12v-25a-exterior-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-30w-12v-25a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-30w-12v-25a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-360w-12v-30a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-360w-12v-30a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-400w-12v-33a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-400w-12v-33a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-60w-12v-5a-exterior-ip67{/}?",
+      "destination": "/producto/fuente-de-poder-switching-60w-12v-5a-exterior-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-switching-60w-12v-5a-interior-perforada{/}?",
+      "destination": "/producto/fuente-de-poder-switching-60w-12v-5a-interior-perforada",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-poder/12v-exterior{/}?",
+      "destination": "/catalogo/fuentes-de-poder",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-poder/12v-interior{/}?",
+      "destination": "/catalogo/fuentes-de-poder",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuentes-de-poder{/}?",
+      "destination": "/catalogo/fuentes-de-poder",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuentes-poder/12v-piscina{/}?",
+      "destination": "/catalogo/fuentes-de-poder",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuentes_de_poder{/}?",
+      "destination": "/catalogo/fuentes-de-poder",
+      "statusCode": 301
+    },
+    {
+      "source": "/home{/}?",
+      "destination": "/",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-exterior/canoas{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-exterior/ornamental{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-interior/aplique{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-interior/dowlight-led{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-interior/foco-riel-mono{/}?",
+      "destination": "/catalogo/focos-a-riel",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-interior/led-ultra-delgados{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ilumin-interior/panel-led{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-antiexplosiva/led-tri-proof-antiexplosivo{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-antiexplosiva{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-exterior/muro-o-escala{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-exterior/piso{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-exterior/tortuga{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-exterior{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-interior/concentrico-led{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-interior/dicroico{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-interior{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_antiexplosiva/campana-led-ufo-antiexplosiva{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_antiexplosiva/emergencia-antiexplosiva{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_antiexplosiva/senaletica-de-emergencia-apex{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_antiexplosiva{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_exterior/estadio{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_exterior/foco-led-piscina{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_exterior/ornamental-solar{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_exterior{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_interior/accesorios{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_interior/cielo-americano{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_interior/panel-led-colgante{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion_interior{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-20w-90-minutos-autonomia-2{/}?",
+      "destination": "/producto/kit-de-emergencia-led-20w-90-minutos-autonomia-2",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-20w-90-minutos-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-20w-90-minutos-autonomia-2",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-3-48w-120-minutos-de-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-3-48w-120-minutos-de-autonomia",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-300w-120-minutos-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-300w-120-minutos-autonomia",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-50w-90-120-minutos-de-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-50w-90-120-minutos-de-autonomia",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-50w-universal-90-minutos-de-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-50w-universal-90-minutos-de-autonomia",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-ss30w-90-minutos-de-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-ss30w-90-minutos-de-autonomia",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-ss36w-90-minutos-de-autonomia-1{/}?",
+      "destination": "/producto/kit-de-emergencia-led-ss36w-90-minutos-de-autonomia-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-emergencia-led-ss36w-90-minutos-de-autonomia{/}?",
+      "destination": "/producto/kit-de-emergencia-led-ss36w-90-minutos-de-autonomia-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/kit-de-instalacion-cables-suspendidos-1mt-para-paneles{/}?",
+      "destination": "/producto/kit-de-instalacion-cables-suspendidos-1mt-para-paneles",
+      "statusCode": 301
+    },
+    {
+      "source": "/lampara-de-emergencia-led-2x4w-ip67{/}?",
+      "destination": "/producto/lampara-de-emergencia-led-2x4w-ip67",
+      "statusCode": 301
+    },
+    {
+      "source": "/lampara-de-emergencia-led-antiexplosiva-2x3w-ip65-ik10{/}?",
+      "destination": "/producto/lampara-de-emergencia-led-antiexplosiva-2x3w-ip65-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-embutida-40w-120-cm{/}?",
+      "destination": "/producto/lineal-led-embutida-40w-120-cm",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-embutido-en-piso-28w{/}?",
+      "destination": "/producto/lineal-led-embutido-en-piso-28w",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-flat-54w-120-cm-ip44{/}?",
+      "destination": "/producto/lineal-led-flat-54w-120-cm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-multifuncion-40w-120-cm-ip44{/}?",
+      "destination": "/producto/lineal-led-multifuncion-40w-120-cm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-office-40w-120-cm-ip20-blanco{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-office-40w-120-cm-ip20-negro{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-suspendida-36w-120-cm-blanca{/}?",
+      "destination": "/producto/lineal-led-suspendida-36w-120-cm-blanca",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-suspendida-36w-120-cm-negra{/}?",
+      "destination": "/producto/lineal-led-suspendida-36w-120-cm-negra",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-suspendida-supermarket-40w-120-cm-blanca{/}?",
+      "destination": "/producto/lineal-led-suspendida-supermarket-40w-120-cm-blanca",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-suspendida-supermarket-40w-120-cm-gris{/}?",
+      "destination": "/producto/lineal-led-suspendida-supermarket-40w-120-cm-gris",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-suspendida-supermarket-40w-120-cm-negra{/}?",
+      "destination": "/producto/lineal-led-suspendida-supermarket-40w-120-cm-negra",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineales-led/regleta-led{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineales-led{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineales_led/embutida{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineales_led/wall-washer{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineales_led{/}?",
+      "destination": "/catalogo/lineales-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-de-emergencia-led-1000-lumenes-2-faros{/}?",
+      "destination": "/producto/luminaria-de-emergencia-led-1000-lumenes-2-faros",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-de-emergencia-led-6w-2-faros-410-lumenes{/}?",
+      "destination": "/producto/luminaria-de-emergencia-led-6w-2-faros-410-lumenes",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w{/}?",
+      "destination": "/producto/luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-led-tri-proof-a-prueba-de-explosion-atex-60w{/}?",
+      "destination": "/producto/luminaria-led-tri-proof-a-prueba-de-explosion-atex-60w",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-ornamental-island-60w-ip66-ik08{/}?",
+      "destination": "/producto/luminaria-ornamental-island-60w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-ornamental-island-90w-ip66-ik08{/}?",
+      "destination": "/producto/luminaria-ornamental-island-90w-ip66-ik08",
+      "statusCode": 301
+    },
+    {
+      "source": "/marco-para-sobreponer-panel-led-cielo-americano{/}?",
+      "destination": "/producto/marco-para-sobreponer-panel-led-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/ofertas_flash{/}?",
+      "destination": "/catalogo",
+      "statusCode": 301
+    },
+    {
+      "source": "/pagoda-led-solar-ufo-300w-all-in-one{/}?",
+      "destination": "/producto/pagoda-led-solar-ufo-300w-all-in-one",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x15-cm-36w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-120x15-cm-36w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x30-cm-40w-embutido-o-suspendido-regulable{/}?",
+      "destination": "/producto/panel-led-120x30-cm-40w-embutido-o-suspendido-regulable",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x30-cm-40w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-120x30-cm-40w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x60-cm-80w-embutido-o-suspendido-regulable-1{/}?",
+      "destination": "/producto/panel-led-120x60-cm-80w-embutido-o-suspendido-regulable-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x60-cm-80w-embutido-o-suspendido-regulable{/}?",
+      "destination": "/producto/panel-led-120x60-cm-80w-embutido-o-suspendido-regulable-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x60-cm-80w-embutido-o-suspendido{/}?",
+      "destination": "/producto/panel-led-120x60-cm-80w-embutido-o-suspendido",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-120x60-cm-96w-backlight-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-120x60-cm-96w-backlight-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-60-30-cm-36w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-60-30-cm-36w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-60x60-slim-40w-dimerizable{/}?",
+      "destination": "/producto/panel-led-60x60-slim-40w-dimerizable",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-backlight-120x30-cm-48w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-backlight-120x30-cm-48w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-backlight-60x30-cm-40w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-backlight-60x30-cm-40w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-backlight-60x60-cm-48w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-backlight-60x60-cm-48w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-colgante-redondo-48w-ip44-negro{/}?",
+      "destination": "/producto/panel-led-colgante-redondo-48w-ip44-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-concentrico-opal-10w-ip20-1{/}?",
+      "destination": "/producto/panel-led-concentrico-opal-10w-ip20-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-concentrico-opal-15w-ip33{/}?",
+      "destination": "/producto/panel-led-concentrico-opal-15w-ip33",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-concentrico-opal-25w-ip33-3{/}?",
+      "destination": "/producto/panel-led-concentrico-opal-25w-ip33-3",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-concentrico-opal-30w-ip33{/}?",
+      "destination": "/producto/panel-led-concentrico-opal-30w-ip33",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-concentrico-opal-40w-ip33{/}?",
+      "destination": "/producto/panel-led-concentrico-opal-40w-ip33",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-concentrico-opal-5w-ip20{/}?",
+      "destination": "/producto/panel-led-concentrico-opal-5w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-12w-ip20{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-12w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-18w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-18w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-24w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-24w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-3w-ip20{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-3w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-4w-ip20{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-4w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-sobrepuesto-12w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-sobrepuesto-12w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-sobrepuesto-18w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-sobrepuesto-18w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-sobrepuesto-24w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-sobrepuesto-24w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-sobrepuesto-6w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-sobrepuesto-6w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-12w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-12w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-15w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-15w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-18w-con-sensor-movimiento-ip33-blanco{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-18w-con-sensor-movimiento-ip33-blanco",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-18w-ip44-regulable{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-18w-ip44-regulable",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-18w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-18w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-24w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-24w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-3w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-3w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-6w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-6w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-9w-ip20{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-9w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-embutido-9w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-embutido-9w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-12w-ip44-negro{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-12w-ip44-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-12w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-12w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-18w-con-sensor-movimiento-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-18w-con-sensor-movimiento-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-18w-ip44-negro{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-18w-ip44-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-18w-ip44-regulable{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-18w-ip44-regulable",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-18w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-18w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-24w-ip44-negro{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-24w-ip44-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-24w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-24w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-6w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-6w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-redondo-sobrepuesto-9w-ip44{/}?",
+      "destination": "/producto/panel-led-redondo-sobrepuesto-9w-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-retraido-concentrico-opal-24w-ip40{/}?",
+      "destination": "/producto/panel-led-retraido-concentrico-opal-24w-ip40",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-retraido-concentrico-opal-40w-ip40{/}?",
+      "destination": "/producto/panel-led-retraido-concentrico-opal-40w-ip40",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-retraido-concentrico-opal-6w-ip40{/}?",
+      "destination": "/producto/panel-led-retraido-concentrico-opal-6w-ip40",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-slim-60x60-cm-40w-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-slim-60x60-cm-40w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/perfil-de-aluminio-sobrepuesto-para-cinta-led{/}?",
+      "destination": "/producto/perfil-de-aluminio-sobrepuesto-para-cinta-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/poste-tubular-galvanizado-4mts{/}?",
+      "destination": "/producto/poste-tubular-galvanizado-4mts",
+      "statusCode": 301
+    },
+    {
+      "source": "/poste-tubular-galvanizado-5mts{/}?",
+      "destination": "/producto/poste-tubular-galvanizado-5mts",
+      "statusCode": 301
+    },
+    {
+      "source": "/poste-tubular-galvanizado-6mts{/}?",
+      "destination": "/producto/poste-tubular-galvanizado-6mts",
+      "statusCode": 301
+    },
+    {
+      "source": "/poste{/}?",
+      "destination": "/catalogo/poste",
+      "statusCode": 301
+    },
+    {
+      "source": "/productos{/}?",
+      "destination": "/catalogo",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-a-prueba-de-explosion-square-100w{/}?",
+      "destination": "/producto/proyector-led-a-prueba-de-explosion-square-100w",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-a-prueba-de-explosion-square-200w{/}?",
+      "destination": "/producto/proyector-led-a-prueba-de-explosion-square-200w",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-a-prueba-de-explosion-square-50w{/}?",
+      "destination": "/producto/proyector-led-a-prueba-de-explosion-square-50w",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-antiexplosivo{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-antivandalico-100w-ip66{/}?",
+      "destination": "/producto/proyector-led-antivandalico-100w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-antivandalico-150w-ip66{/}?",
+      "destination": "/producto/proyector-led-antivandalico-150w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-antivandalico-200w-ip66{/}?",
+      "destination": "/producto/proyector-led-antivandalico-200w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-antivandalico-50w-ip66{/}?",
+      "destination": "/producto/proyector-led-antivandalico-50w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-antivandalico-70w-ip66{/}?",
+      "destination": "/producto/proyector-led-antivandalico-70w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-canopy-200w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-canopy-200w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-cob-120w-gris-ip65{/}?",
+      "destination": "/producto/proyector-led-cob-120w-gris-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-cob-20w-gris-ip65{/}?",
+      "destination": "/producto/proyector-led-cob-20w-gris-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-cob-30w-gris-ip65{/}?",
+      "destination": "/producto/proyector-led-cob-30w-gris-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-cob-50w-gris-ip65-con-sensor-movimiento{/}?",
+      "destination": "/producto/proyector-led-cob-50w-gris-ip65-con-sensor-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-cob-70w-gris-ip65{/}?",
+      "destination": "/producto/proyector-led-cob-70w-gris-ip65",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-cob-rgb-20w-ip66{/}?",
+      "destination": "/producto/proyector-led-cob-rgb-20w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-emergencia-recargable-smd-100w-ip66{/}?",
+      "destination": "/producto/proyector-led-de-emergencia-recargable-smd-100w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-emergencia-recargable-smd-20w-ip66{/}?",
+      "destination": "/producto/proyector-led-de-emergencia-recargable-smd-20w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-emergencia-recargable-smd-30w-ip66{/}?",
+      "destination": "/producto/proyector-led-de-emergencia-recargable-smd-30w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-emergencia-recargable-smd-50w-ip66{/}?",
+      "destination": "/producto/proyector-led-de-emergencia-recargable-smd-50w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-300w-ip66-ik09{/}?",
+      "destination": "/producto/proyector-led-de-estadio-300w-ip66-ik09",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-500w-ip66-ik09{/}?",
+      "destination": "/producto/proyector-led-de-estadio-500w-ip66-ik09",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-600w-ip66-ik09{/}?",
+      "destination": "/producto/proyector-led-de-estadio-600w-ip66-ik09",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-1000w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-1000w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-100w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-100w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-150w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-150w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-200w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-200w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-300w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-300w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-400w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-400w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-500w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-500w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-50w-ip66-ik10{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-600w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-600w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-modular-800w-ip66-ik10{/}?",
+      "destination": "/producto/proyector-led-de-estadio-modular-800w-ip66-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-de-estadio-redondo-1000w-ip66-ik09{/}?",
+      "destination": "/producto/proyector-led-de-estadio-redondo-1000w-ip66-ik09",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-empotrado-a-muro-35w-muro-ip44{/}?",
+      "destination": "/producto/proyector-led-empotrado-a-muro-35w-muro-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-portatil-a-prueba-de-explosion-30w{/}?",
+      "destination": "/producto/proyector-led-portatil-a-prueba-de-explosion-30w",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-rgb-30w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-rgb-30w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-rgb-50w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-rgb-50w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-100w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-100w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-150w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-150w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-200w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-200w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-300w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-300w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-30w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-30w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-400w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-400w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-500w-ip66{/}?",
+      "destination": "/producto/proyector-led-slim-smd-500w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-50w-ip66-luz-fria{/}?",
+      "destination": "/producto/proyector-led-slim-smd-50w-ip66-luz-fria",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-100w-ip65-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-100w-ip65-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-100w-ip66-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-100w-ip66-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-150w-ip65-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-150w-ip65-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-150w-ip66-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-150w-ip66-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-200w-ip65-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-200w-ip65-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-200w-ip66-c/panel-solar-c/control-remoto-gris{/}?",
+      "destination": "/producto/proyector-led-solar-200w-ip66-c-panel-solar-c-control-remoto-gris",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-300w-ip66-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-300w-ip66-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-solar-500w-ip65-c/panel-solar-c/control-remoto{/}?",
+      "destination": "/producto/proyector-led-solar-500w-ip65-c-panel-solar-c-control-remoto",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-1000w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-1000w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-100w-ip66-negro-c/sensor-de-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-100w-ip66-negro-c-sensor-de-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-100w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-100w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-10w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-10w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-150w-ip66-negro-c/sensor-de-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-150w-ip66-negro-c-sensor-de-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-150w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-150w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-200w-ip66-negro-c/sensor-de-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-200w-ip66-negro-c-sensor-de-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-200w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-200w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-20w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-20w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-300w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-300w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-30w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-30w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-400w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-400w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-500w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-500w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-50w-ip66-negro-c/sensor-de-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-50w-ip66-negro-c-sensor-de-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-50w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-50w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-slim-600w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-slim-600w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-smd-10w-ip66-luz-fria-c-sensor-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-thin-smd-10w-ip66-luz-fria-c-sensor-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-smd-10w-ip66-negro{/}?",
+      "destination": "/producto/proyector-led-ultra-thin-smd-10w-ip66-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-smd-20w-ip66-luz-fria-c-sensor-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-thin-smd-20w-ip66-luz-fria-c-sensor-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-smd-30w-ip66-luz-fria-c-sensor-movimiento{/}?",
+      "destination": "/producto/proyector-led-ultra-thin-smd-30w-ip66-luz-fria-c-sensor-movimiento",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/antivandalico{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/c-sensor-mov{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/cob-gris{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/emergencia{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/rgb{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/slim-smd{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led/ultra-thin{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-solar{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector_led/estadio-modular{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector_led/ultra-slim{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector_led{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/puzzle-led-simple-embutido-12w-integrado-blanco-ip33{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/regleta-led-t5-18w-120-cm-ip44{/}?",
+      "destination": "/producto/regleta-led-t5-18w-120-cm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/regleta-led-t5-9w-60-cm-ip44{/}?",
+      "destination": "/producto/regleta-led-t5-9w-60-cm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/regleta-led-t8-18w-120-cm-ip44{/}?",
+      "destination": "/producto/regleta-led-t8-18w-120-cm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/regleta-led-t8-9w-60-cm-ip44{/}?",
+      "destination": "/producto/regleta-led-t8-9w-60-cm-ip44",
+      "statusCode": 301
+    },
+    {
+      "source": "/riel-monofasico-1-mt{/}?",
+      "destination": "/producto/riel-monofasico-1-mt",
+      "statusCode": 301
+    },
+    {
+      "source": "/riel-monofasico-2-mt{/}?",
+      "destination": "/producto/riel-monofasico-2-mt",
+      "statusCode": 301
+    },
+    {
+      "source": "/riel-trifasico-1-mt{/}?",
+      "destination": "/producto/riel-trifasico-1-mt",
+      "statusCode": 301
+    },
+    {
+      "source": "/riel-trifasico-2-mt{/}?",
+      "destination": "/producto/riel-trifasico-2-mt",
+      "statusCode": 301
+    },
+    {
+      "source": "/rieles{/}?",
+      "destination": "/catalogo/focos-a-riel",
+      "statusCode": 301
+    },
+    {
+      "source": "/search{/}?",
+      "destination": "/buscar",
+      "statusCode": 301
+    },
+    {
+      "source": "/senaletica-de-emergencia-led-salida-3w-4-hrs-autonomia{/}?",
+      "destination": "/producto/senaletica-de-emergencia-led-salida-3w-4-hrs-autonomia",
+      "statusCode": 301
+    },
+    {
+      "source": "/senaletica-de-emergencia-led-slim-24-x-18-cm-salida{/}?",
+      "destination": "/producto/senaletica-de-emergencia-led-slim-24-x-18-cm-salida",
+      "statusCode": 301
+    },
+    {
+      "source": "/senaletica-de-emergencia-salida-a-prueba-de-explosion{/}?",
+      "destination": "/producto/senaletica-de-emergencia-salida-a-prueba-de-explosion",
+      "statusCode": 301
+    },
+    {
+      "source": "/solar/proyector-solar{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/solar{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/tortuga-aluminio-oval-c-rejilla-e27-ip54-negra{/}?",
+      "destination": "/producto/tortuga-aluminio-oval-c-rejilla-e27-ip54-negra",
+      "statusCode": 301
+    },
+    {
+      "source": "/tortuga-aluminio-oval-c/rejilla-e27-ip54-blanca{/}?",
+      "destination": "/producto/tortuga-aluminio-oval-c-rejilla-e27-ip54-blanca",
+      "statusCode": 301
+    },
+    {
+      "source": "/tortuga-led-16w-opal-blanca-lisa{/}?",
+      "destination": "/producto/tortuga-led-16w-opal-blanca-lisa",
+      "statusCode": 301
+    },
+    {
+      "source": "/tripode-para-proyector-led{/}?",
+      "destination": "/producto/tripode-para-proyector-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-18w-120-cm-220v{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-18w-120-cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-18w-120cm-12v{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-18w-120cm-12v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-24w-150cm-220v{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-24w-150cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-9w-60cm-12v{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-9w-60cm-12v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-9w-60cm-220v{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-9w-60cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-9w-60cm-24v-6500k-1{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-9w-60cm-24v-6500k-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-aluminio-9w-60cm-24v-6500k{/}?",
+      "destination": "/producto/tubo-led-opal-aluminio-9w-60cm-24v-6500k-1",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-vidrio-18w-120cm.-220v.-c/sensor-6500k{/}?",
+      "destination": "/producto/tubo-led-opal-vidrio-18w-120cm-220v-c-sensor-6500k",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-opal-vidrio-9w-60cm-220v{/}?",
+      "destination": "/producto/tubo-led-t8-opal-vidrio-9w-60cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-t5-opal-vidrio-18w-220v{/}?",
+      "destination": "/producto/tubo-led-t5-opal-vidrio-18w-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-t5-opal-vidrio-9w-220v{/}?",
+      "destination": "/producto/tubo-led-t5-opal-vidrio-9w-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-t8-opal-vidrio-18w-120cm-220v{/}?",
+      "destination": "/producto/tubo-led-t8-opal-vidrio-18w-120cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-t8-opal-vidrio-24w-150cm-220v{/}?",
+      "destination": "/producto/tubo-led-t8-opal-vidrio-24w-150cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-t8-opal-vidrio-9w-60cm-220v{/}?",
+      "destination": "/producto/tubo-led-t8-opal-vidrio-9w-60cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led-vidrio-transparente-9w-60cm-220v{/}?",
+      "destination": "/producto/tubo-led-vidrio-transparente-9w-60cm-220v",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led/12v{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led/con-sensor-de-movimiento{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led/opal-aluminio-y-policarbonato{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led/opal-vidrio{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubo-led{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubos_led/regletas{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/tubos_led{/}?",
+      "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/wall-washer-36w-ip65{/}?",
+      "destination": "/producto/wall-washer-36w-ip65",
+      "statusCode": 301
     }
   ],
   "rewrites": [

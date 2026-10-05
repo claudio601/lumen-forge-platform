@@ -7,16 +7,19 @@
 //   npm run smoke -- https://nuevo.elights.cl --all   (además, todas las páginas del sitemap y sus assets)
 //   npm run smoke -- <url-preview> --compare https://nuevo.elights.cl
 //   npm run smoke -- <url> --json reports/smoke/produccion.json
+//   npm run smoke -- https://nuevo.elights.cl --legacy   (cada fila de scripts/redirects/legacy-urls.json
+//                                                         y cada destino, de a una cada 500 ms: ~7 min)
 //
 // Solo hace GET. Los webhooks (Jumpseller, WhatsApp, Pipedrive) responden 405
-// antes de procesar nada, así que el chequeo no tiene efectos.
+// antes de procesar nada, así que el chequeo no tiene efectos. Nunca sigue redirecciones.
 //
 // Cada fila se juzga según su tipo (PR 05, 404 reales):
 //   page      200, HTML con canonical y sin noindex
 //   spa       200, HTML con noindex (spa.html: /buscar, /cotizacion, /solicitar-pedido)
 //   notfound  404, HTML con noindex y la marca de 404.html
 //   redirect  307 al destino de la regla (/carro → /solicitar-pedido); 301 en los ids de
-//             producto renombrados (PR 07). Con '?' en la URL, Location conserva la consulta
+//             producto renombrados (PR 07) y en las URLs de elights.cl (PR 08). Con '?' en la
+//             URL, Location conserva la consulta
 //   file      200, no HTML
 //   api       405
 //   observe   se informa sin juzgar (salvo un 5xx): variantes de URL a mirar a mano
@@ -39,6 +42,8 @@ import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
+import { NOINDEX_ROUTES } from '../src/lib/seo/routes';
+import { LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
 
 export type Kind = 'page' | 'spa' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
 
@@ -53,6 +58,50 @@ export interface Target {
 
 /** Productos renombrados que revisa el chequeo (PR 07): la campana NF3 ("w-ip66") y el alumbrado solar 150W ("control-remoto"). */
 const RENAMED_SMOKE_IDS = [4122715, 25888711];
+
+/**
+ * URLs de elights.cl que revisa el chequeo (PR 08), con el destino de legacy-urls.json: una
+ * ficha con el mismo id (y la consulta de Google Ads), una categoría (con barra final), fichas
+ * renombradas con %C3%BA, con coma y con puntos, /home y /search (conserva ?q=).
+ */
+const LEGACY_SMOKE = [
+  '/alumbrado-publico-bestled-120w-ip66-ik08?gclid=smoke',
+  '/campana_led',
+  '/campana_led/',
+  '/alumbrado-p%C3%BAblico-led-solar-150w-all-in-one-c/control-remoto',
+  '/cinta-led-led-verde-14,4w/m-72-leds/m-ip67-100-mt-220v',
+  '/tubo-led-opal-vidrio-18w-120cm.-220v.-c/sensor-6500k',
+  '/home',
+  '/search?q=panel',
+];
+/** URLs de elights.cl sin regla a propósito (404): un producto de prueba y el blog. */
+const LEGACY_SMOKE_NOT_FOUND = ['/producto-test-checkout', '/blog'];
+
+/** Fila de una URL de elights.cl: 301 al destino que le da legacy-urls.json. */
+function legacyRedirectTarget(path: string): Target {
+  const source = path.split('?')[0].replace(/(.)\/$/, '$1');
+  const entry = LEGACY_URLS.find(u => u.source === source);
+  const to = entry ? legacyDestination(entry) : null;
+  if (!to) throw new Error(`smoke: ${source} no tiene regla en scripts/redirects/legacy-urls.json`);
+  return { path, kind: 'redirect', to, expectedStatus: 301 };
+}
+
+const pageKind = (path: string): Kind => ((NOINDEX_ROUTES as readonly string[]).includes(path) ? 'spa' : 'page');
+
+/**
+ * --legacy: cada fila de legacy-urls.json según lo que declara (301 a su destino, la página
+ * que ya se sirve o 404) y después cada destino una vez (200).
+ */
+export function legacyTargets(urls: readonly LegacyUrl[] = LEGACY_URLS): Target[] {
+  const rows = urls.map((u): Target => {
+    const to = legacyDestination(u);
+    if (to) return { path: u.source, kind: 'redirect', to, expectedStatus: 301 };
+    return { path: u.source, kind: u.served ? pageKind(u.source) : 'notfound' };
+  });
+  const listed = new Set(rows.map(r => r.path));
+  const destinations = [...new Set(rows.flatMap(r => (r.to ? [r.to] : [])))].filter(d => !listed.has(d)).sort();
+  return [...rows, ...destinations.map((path): Target => ({ path, kind: pageKind(path) }))];
+}
 
 export interface PageInfo {
   title: string;
@@ -102,7 +151,9 @@ export function buildTargets(): Target[] {
       const old = `/producto/${previous[0]}`;
       return [old, `${old}/`, `${old}?gclid=smoke`].map(path => ({ path, kind: 'redirect' as const, to: `/producto/${id}`, expectedStatus: 301 }));
     }),
-    ...['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y'].map(as('notfound')),
+    // URLs de elights.cl (PR 08): 301 al destino de legacy-urls.json, conservando la consulta
+    ...LEGACY_SMOKE.map(legacyRedirectTarget),
+    ...['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', ...LEGACY_SMOKE_NOT_FOUND].map(as('notfound')),
     ...['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico', ...(datasheet ? [new URL(datasheet, 'https://x').pathname] : [])].map(
       as('file'),
     ),
@@ -266,7 +317,10 @@ async function inPool<T, R>(items: T[], size: number, fn: (item: T) => Promise<R
   return out;
 }
 
-export async function runSmoke(base: string, opts: { all?: boolean } = {}): Promise<Row[]> {
+/** --legacy: pausa entre una URL y la siguiente (2 por segundo como máximo). */
+const LEGACY_DELAY_MS = 500;
+
+export async function runSmoke(base: string, opts: { all?: boolean; legacy?: boolean } = {}): Promise<Row[]> {
   const headers = bypassHeaders(base);
   const assets = new Set<string>();
   const safeRow = async (t: Target): Promise<Row> => {
@@ -276,6 +330,15 @@ export async function runSmoke(base: string, opts: { all?: boolean } = {}): Prom
       return { ...t, ...EMPTY, status: 0, type: `ERROR ${redact((err as Error).message, headers)}`, location: '', xRobots: '', bytes: 0 };
     }
   };
+  if (opts.legacy) {
+    // De a una URL, sin sitemap ni assets: son unas 800 (las filas de legacy-urls.json y sus destinos)
+    const rows: Row[] = [];
+    for (const t of legacyTargets()) {
+      rows.push(await safeRow(t));
+      await new Promise(resolve => setTimeout(resolve, LEGACY_DELAY_MS));
+    }
+    return rows;
+  }
   let targets = buildTargets();
   if (opts.all) {
     const known = new Set(targets.map(t => t.path));
@@ -307,13 +370,15 @@ export function compareStable(a: Row[], b: Row[]): string[] {
   return diffs;
 }
 
-function printRows(label: string, rows: Row[], all: boolean) {
+function printRows(label: string, rows: Row[], all: boolean, legacy = false) {
   console.log(`\n${label}`);
   const fixed = new Set(buildTargets().map(t => t.path));
   for (const r of rows) {
     const issues = rowIssues(r);
     // Con --all, las páginas del sitemap y los assets que están bien no se listan (se resumen abajo)
     if (all && !issues.length && ((r.kind === 'page' && !fixed.has(r.path)) || r.path.startsWith('/assets/'))) continue;
+    // Con --legacy, solo las filas que fallan
+    if (legacy && !issues.length) continue;
     const seo =
       r.type === 'text/html'
         ? ` · title="${r.title.slice(0, 50)}" h1=${r.h1} jsonld=${r.jsonLd}` +
@@ -331,6 +396,13 @@ function printRows(label: string, rows: Row[], all: boolean) {
     const assets = rows.filter(r => r.path.startsWith('/assets/')).length;
     console.log(`  (--all: ${pages} páginas y ${assets} assets revisados; arriba, las filas fijas y las que fallan)`);
   }
+  if (legacy) {
+    const count = (kind: Kind) => rows.filter(r => r.kind === kind).length;
+    console.log(
+      `  (--legacy: ${rows.length} URLs revisadas: ${count('redirect')} redirecciones 301, ${count('notfound')} 404, ` +
+        `${count('page') + count('spa')} páginas servidas o de destino; arriba, solo las que fallan)`,
+    );
+  }
 }
 
 async function main() {
@@ -338,19 +410,22 @@ async function main() {
   const compareIdx = args.indexOf('--compare');
   const jsonIdx = args.indexOf('--json');
   const all = args.includes('--all');
+  const legacy = args.includes('--legacy');
   const compareBase = compareIdx >= 0 ? args[compareIdx + 1] : undefined;
   const jsonOut = jsonIdx >= 0 ? args[jsonIdx + 1] : undefined;
   // La URL a revisar es el único argumento que no es una opción ni el valor de una
   const values = new Set([compareIdx, jsonIdx].filter(i => i >= 0).map(i => i + 1));
   const positional = args.filter((a, i) => !a.startsWith('--') && !values.has(i));
   const base = positional.length === 1 && /^https?:\/\//.test(positional[0]) ? positional[0] : undefined;
-  if (!base || (compareIdx >= 0 && !/^https?:\/\//.test(compareBase ?? '')) || (jsonIdx >= 0 && !jsonOut) || base === compareBase) {
+  const badCombo = legacy && (all || compareIdx >= 0);
+  if (!base || (compareIdx >= 0 && !/^https?:\/\//.test(compareBase ?? '')) || (jsonIdx >= 0 && !jsonOut) || base === compareBase || badCombo) {
     console.error('Uso: npm run smoke -- <url> [--all] [--compare <url>] [--json <archivo>]');
+    console.error('     npm run smoke -- <url> --legacy [--json <archivo>]');
     process.exit(2);
   }
 
-  const rows = await runSmoke(base, { all });
-  printRows(base, rows, all);
+  const rows = await runSmoke(base, { all, legacy });
+  printRows(base, rows, all, legacy);
   if (jsonOut) {
     mkdirSync(dirname(jsonOut), { recursive: true });
     writeFileSync(jsonOut, JSON.stringify({ base, at: new Date().toISOString(), rows }, null, 2));

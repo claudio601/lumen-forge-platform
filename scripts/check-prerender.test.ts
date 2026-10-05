@@ -4,6 +4,7 @@ import {
   expectedOg,
   inspectHtml,
   isSyncBotBranch,
+  legacyRedirectIssues,
   notFoundMarkerIssues,
   structuralIssues,
   type ExpectedOg,
@@ -142,5 +143,57 @@ describe('check-prerender: contenido', () => {
     expect(isSyncBotBranch({ GITHUB_REF_NAME: '61/merge', GITHUB_HEAD_REF: 'bot/jumpseller-sync' })).toBe(true);
     expect(isSyncBotBranch({ GITHUB_REF_NAME: '61/merge', GITHUB_HEAD_REF: 'stage2/04-prerender' })).toBe(false);
     expect(isSyncBotBranch({})).toBe(false);
+  });
+});
+
+describe('check-prerender: URLs de elights.cl (PR 08)', () => {
+  // Productos reales de las tablas congeladas: 2251059 (id del catálogo legado) y 4122715 (renombrado en la PR 07)
+  const bola = { id: 'ampolleta-led-bola-9w-e27', jumpseller_id: 2251059, permalink: 'ampolleta-led-bola-9w-e27' };
+  const nf3 = { id: 'campana-led-ufo-nf3-150w-150-lm-w-ip66', jumpseller_id: 4122715, permalink: 'campana-led-ufo-nf3-150w-150-lm/w-ip66' };
+  const urls = [
+    { source: '/', served: true as const },
+    { source: '/ampolleta-led-bola-9w-e27', product: 2251059 },
+    { source: '/campana-led-ufo-nf3-150w-150-lm/w-ip66', product: 4122715 },
+    { source: '/campana_led', category: 'campanas-led' },
+    { source: '/search', path: '/buscar' },
+    { source: '/blog', pending: 'blog' },
+    { source: '/pagina-basica', gone: 'relleno' },
+  ];
+  const built = new Set(['index.html', 'spa.html', 'catalogo/campanas-led/index.html']);
+  const exists = (file: string) => built.has(file);
+
+  it('todo en orden: sin bloqueos ni avisos, y el resumen cuenta cada tipo de fila', () => {
+    const r = legacyRedirectIssues(urls, [bola, nf3], exists);
+    expect(r.blocking).toEqual([]);
+    expect(r.warnings).toEqual([]);
+    expect(r.summary).toBe(
+      'URLs de elights.cl: 4 redirecciones 301 (2 a fichas, 1 a categorías, 1 a páginas), 1 servidas, 1 404 definitivas, 1 pendientes; ' +
+        '0 llegan a productos no publicados; 0 permalinks publicados sin fila',
+    );
+  });
+
+  it('un producto que sale del catálogo solo avisa (también en la PR del robot): su fila pasa a la categoría a mano', () => {
+    const r = legacyRedirectIssues(urls, [bola], exists);
+    expect(r.blocking).toEqual([]);
+    expect(r.warnings).toEqual([
+      '/campana-led-ufo-nf3-150w-150-lm/w-ip66 → /producto/campana-led-ufo-nf3-150w-150-lm-w-ip66: llega a un producto no publicado (da 404); cambiar su fila de legacy-urls.json a la categoría del producto',
+    ]);
+  });
+
+  it('avisa de un producto publicado cuyo permalink de Jumpseller no tiene fila', () => {
+    const nuevo = { id: 'panel-nuevo', jumpseller_id: 1, permalink: 'panel-nuevo' };
+    expect(legacyRedirectIssues(urls, [bola, nf3, nuevo], exists).warnings).toEqual([
+      '/panel-nuevo (Jumpseller 1): permalink publicado sin fila en legacy-urls.json; agregarla antes de la Etapa 3',
+    ]);
+  });
+
+  it('bloquea si una fuente tapa un archivo de la build o si falta la página de un destino fijo', () => {
+    const r = legacyRedirectIssues(urls, [bola, nf3], f => (f === 'campana_led/index.html' ? true : f === 'spa.html' ? false : exists(f)));
+    expect(r.blocking).toEqual(['/campana_led: su 301 tapa el archivo dist/campana_led/index.html', '/search → /buscar: esa página no se generó']);
+    // Una fuente con %XX se busca decodificada, como sirve Vercel los archivos
+    const encoded = [{ source: '/p%C3%BAblico', category: 'solar' }];
+    expect(legacyRedirectIssues(encoded, [], f => f === 'público' || f === 'catalogo/solar/index.html').blocking).toEqual([
+      '/p%C3%BAblico: su 301 tapa el archivo dist/público',
+    ]);
   });
 });

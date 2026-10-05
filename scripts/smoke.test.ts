@@ -2,7 +2,8 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assetRefs, buildTargets, bypassHeaders, compareStable, inspectHtml, rowIssues, type Row } from './smoke';
+import { assetRefs, buildTargets, bypassHeaders, compareStable, inspectHtml, legacyTargets, rowIssues, type Row } from './smoke';
+import { LEGACY_URLS } from './redirects/build';
 
 const row = (path: string, kind: Row['kind'], status: number, type = 'application/json', extra: Partial<Row> = {}): Row => ({
   path, kind, status, type, location: '', xRobots: '', bytes: 0,
@@ -30,7 +31,7 @@ describe('chequeo de humo', () => {
     expect(inspectHtml('<div id="root" data-not-found=""><h1>404</h1></div>').notFoundMark).toBe(true);
   });
 
-  it('revisa páginas, rutas sin prerender (con y sin barra final), /carro, ids renombrados, 404, archivos y las funciones de api/ (solo GET)', () => {
+  it('revisa páginas, rutas sin prerender (con y sin barra final), /carro, ids renombrados, URLs de elights.cl, 404, archivos y las funciones de api/ (solo GET)', () => {
     const t = buildTargets();
     const paths = (k: string) => t.filter(x => x.kind === k).map(x => x.path);
     expect(paths('page')).toHaveLength(12);
@@ -47,12 +48,61 @@ describe('chequeo de humo', () => {
       { path: '/producto/control-remoto', kind: 'redirect', to: solar, expectedStatus: 301 },
       { path: '/producto/control-remoto/', kind: 'redirect', to: solar, expectedStatus: 301 },
       { path: '/producto/control-remoto?gclid=smoke', kind: 'redirect', to: solar, expectedStatus: 301 },
+      // PR 08: URLs de elights.cl, con el destino de legacy-urls.json (ficha con el mismo id, categoría,
+      // fichas renombradas con %C3%BA, coma y puntos, /home y /search, que conserva ?q=)
+      { path: '/alumbrado-publico-bestled-120w-ip66-ik08?gclid=smoke', kind: 'redirect', to: '/producto/alumbrado-publico-bestled-120w-ip66-ik08', expectedStatus: 301 },
+      { path: '/campana_led', kind: 'redirect', to: '/catalogo/campanas-led', expectedStatus: 301 },
+      { path: '/campana_led/', kind: 'redirect', to: '/catalogo/campanas-led', expectedStatus: 301 },
+      { path: '/alumbrado-p%C3%BAblico-led-solar-150w-all-in-one-c/control-remoto', kind: 'redirect', to: solar, expectedStatus: 301 },
+      {
+        path: '/cinta-led-led-verde-14,4w/m-72-leds/m-ip67-100-mt-220v',
+        kind: 'redirect',
+        to: '/producto/cinta-led-exterior-verde-14-4w-m-72-leds-m-ip67-100-mt-220v',
+        expectedStatus: 301,
+      },
+      {
+        path: '/tubo-led-opal-vidrio-18w-120cm.-220v.-c/sensor-6500k',
+        kind: 'redirect',
+        to: '/producto/tubo-led-opal-vidrio-18w-120cm-220v-c-sensor-6500k',
+        expectedStatus: 301,
+      },
+      { path: '/home', kind: 'redirect', to: '/', expectedStatus: 301 },
+      { path: '/search?q=panel', kind: 'redirect', to: '/buscar', expectedStatus: 301 },
     ]);
-    expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y']);
+    expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/producto-test-checkout', '/blog']);
+    // Las dos últimas no tienen regla a propósito
+    for (const path of ['/producto-test-checkout', '/blog']) {
+      const row = LEGACY_URLS.find(u => u.source === path);
+      expect(row?.gone ?? row?.pending, path).toBeTruthy();
+    }
     expect(paths('api')).toHaveLength(7);
     expect(paths('api')).not.toContain('/api/cron/followups'); // responde 501: no es una falla
     expect(paths('file')).toEqual(expect.arrayContaining(['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico']));
     expect(new Set(t.map(x => x.path)).size).toBe(t.length);
+  });
+
+  it('--legacy: cada fila de legacy-urls.json según lo que declara, y cada destino una vez', () => {
+    const t = legacyTargets();
+    const kinds = (k: string) => t.filter(x => x.kind === k);
+    const rules = LEGACY_URLS.filter(u => u.product !== undefined || u.category !== undefined || u.path !== undefined);
+    expect(kinds('redirect')).toHaveLength(rules.length);
+    for (const r of kinds('redirect')) expect(r.expectedStatus, r.path).toBe(301);
+    expect(kinds('notfound').map(x => x.path)).toEqual(LEGACY_URLS.filter(u => u.gone || u.pending).map(u => u.source));
+    expect(t.slice(0, LEGACY_URLS.length).map(x => x.path)).toEqual(LEGACY_URLS.map(u => u.source));
+    // Cada destino se revisa una vez: '/' y '/catalogo' ya están como filas servidas; /buscar es spa.html
+    const checked = new Map(t.map(x => [x.path, x.kind]));
+    for (const r of kinds('redirect')) expect(['page', 'spa'], `${r.path} → ${r.to}`).toContain(checked.get(r.to!));
+    expect(checked.get('/buscar')).toBe('spa');
+    expect(checked.get('/')).toBe('page');
+    expect(new Set(t.map(x => x.path)).size).toBe(t.length);
+    // Con un archivo mínimo
+    expect(legacyTargets([{ source: '/', served: true }, { source: '/home', path: '/' }, { source: '/search', path: '/buscar' }, { source: '/blog', pending: 'blog' }])).toEqual([
+      { path: '/', kind: 'page' },
+      { path: '/home', kind: 'redirect', to: '/', expectedStatus: 301 },
+      { path: '/search', kind: 'redirect', to: '/buscar', expectedStatus: 301 },
+      { path: '/blog', kind: 'notfound' },
+      { path: '/buscar', kind: 'spa' },
+    ]);
   });
 
   it('juzga cada fila según su tipo', () => {
@@ -90,6 +140,14 @@ describe('chequeo de humo', () => {
     expect(rowIssues(row('/producto/viejo', 'redirect', 308, '', { ...moved, location: '/producto/nuevo' }))).toEqual(['estado 308, se esperaba 301']);
     expect(rowIssues(row('/producto/viejo?gclid=smoke', 'redirect', 301, '', { ...moved, location: '/producto/nuevo' }))).toEqual([
       '"/producto/nuevo" no conserva la consulta ?gclid=smoke',
+    ]);
+    // URLs de elights.cl (PR 08): /search conserva ?q=; antes del merge, nuevo responde 404
+    const search = { to: '/buscar', expectedStatus: 301 };
+    expect(rowIssues(row('/search?q=panel', 'redirect', 301, '', { ...search, location: '/buscar?q=panel' }))).toEqual([]);
+    expect(rowIssues(row('/search?q=panel', 'redirect', 404, 'text/html', search))).toEqual([
+      'estado 404, se esperaba 301',
+      'lleva a "", se esperaba /buscar',
+      '"" no conserva la consulta ?q=panel',
     ]);
     expect(rowIssues(row('/robots.txt', 'file', 200, 'text/plain'))).toEqual([]);
     expect(rowIssues(row('/fichas/x.pdf', 'file', 200, 'text/html'))).toEqual(['devuelve HTML en vez del archivo']);

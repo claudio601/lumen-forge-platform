@@ -12,7 +12,13 @@
 //   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404";
 //   - ningún id retirado (src/data/catalog/renamed-ids.ts) tiene página: Vercel aplica su
 //     301 antes que los archivos, así que nunca se vería. Un 301 que llega a un producto no
-//     publicado (da 404) solo se informa.
+//     publicado (da 404) solo se informa;
+//   - URLs de elights.cl (scripts/redirects/legacy-urls.json, PR 08): ninguna fuente con regla
+//     es un archivo de dist/ (su 301 lo taparía), y cada destino de categoría o página fija
+//     se generó (o es /buscar, que sirve spa.html).
+// Avisos (nunca bloquean): un 301 de elights.cl que llega a un producto no publicado (da 404:
+// cambiar su fila a la categoría), y un producto publicado cuyo permalink de Jumpseller no
+// tiene fila en legacy-urls.json (agregarla antes de la Etapa 3). Sin red: solo datos locales.
 // Contenido (bloquea, salvo en la PR diaria del robot de Jumpseller, donde solo avisa):
 //   - frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" en el texto
 //     visible. Las reglas miran el contexto: "48 horas" de un ensayo de niebla salina no
@@ -33,6 +39,7 @@ import { indexableRoutes, productPath } from '../src/lib/seo/routes';
 import { findPolicyBreaking } from './jumpseller/descriptions';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
+import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
 
 interface HtmlNode {
   nodeName: string;
@@ -233,6 +240,57 @@ export function notFoundMarkerIssues(html: string, isNotFoundPage: boolean, h1s:
   return issues;
 }
 
+/** Revisión de las URLs de elights.cl (PR 08) contra la build. */
+export interface LegacyCheck {
+  /** Bloquea: una fuente tapa un archivo, o falta la página de un destino fijo. */
+  blocking: string[];
+  /** Solo avisa: destinos en productos no publicados y permalinks publicados sin fila. */
+  warnings: string[];
+  summary: string;
+}
+
+/**
+ * Cruza legacy-urls.json con los productos publicados y los archivos de la build (`exists`
+ * recibe una ruta relativa a dist/). Los productos no publicados solo avisan: las reglas no
+ * dependen del catálogo y la PR del robot de Jumpseller nunca falla por ellas.
+ */
+export function legacyRedirectIssues(
+  urls: readonly LegacyUrl[],
+  published: readonly { id: string; jumpseller_id: number; permalink: string }[],
+  exists: (file: string) => boolean,
+): LegacyCheck {
+  const blocking: string[] = [];
+  const toUnpublished: string[] = [];
+  const publishedPaths = new Set(published.map(p => productPath(p.id)));
+  const counts: Record<(typeof LEGACY_TARGET_KEYS)[number], number> = { product: 0, category: 0, path: 0, served: 0, gone: 0, pending: 0 };
+  for (const u of urls) {
+    counts[LEGACY_TARGET_KEYS.find(k => u[k] !== undefined)]++; // el esquema exige exactamente uno
+    const destination = legacyDestination(u);
+    if (!destination) continue;
+    // Vercel aplica las redirecciones antes que los archivos: el archivo no se vería nunca.
+    // (No se usa outputPath(): rechaza las ',' que traen algunas URLs de Jumpseller.)
+    const file = decodeURI(u.source).slice(1);
+    for (const f of [file, `${file}/index.html`]) if (exists(f)) blocking.push(`${u.source}: su 301 tapa el archivo dist/${f}`);
+    if (u.product !== undefined) {
+      if (!publishedPaths.has(destination)) toUnpublished.push(`${u.source} → ${destination}`);
+    } else if (!exists(destination === '/buscar' ? 'spa.html' : outputPath(destination))) {
+      blocking.push(`${u.source} → ${destination}: esa página no se generó`);
+    }
+  }
+  const sources = new Set(urls.map(u => u.source));
+  const withoutRow = published.filter(p => !sources.has(`/${p.permalink}`));
+  const warnings = [
+    ...toUnpublished.map(t => `${t}: llega a un producto no publicado (da 404); cambiar su fila de legacy-urls.json a la categoría del producto`),
+    ...withoutRow.map(p => `/${p.permalink} (Jumpseller ${p.jumpseller_id}): permalink publicado sin fila en legacy-urls.json; agregarla antes de la Etapa 3`),
+  ];
+  const rules = counts.product + counts.category + counts.path;
+  const summary =
+    `URLs de elights.cl: ${rules} redirecciones 301 (${counts.product} a fichas, ${counts.category} a categorías, ${counts.path} a páginas), ` +
+    `${counts.served} servidas, ${counts.gone} 404 definitivas, ${counts.pending} pendientes; ` +
+    `${toUnpublished.length} llegan a productos no publicados; ${withoutRow.length} permalinks publicados sin fila`;
+  return { blocking, warnings, summary };
+}
+
 export const isSyncBotBranch = (env: NodeJS.ProcessEnv = process.env) =>
   [env.GITHUB_HEAD_REF, env.GITHUB_REF_NAME].includes('bot/jumpseller-sync');
 
@@ -288,6 +346,10 @@ function main() {
   }
   const toUnpublished = [...RENAMED_FROM].filter(([, id]) => !published.has(id));
 
+  // URLs de elights.cl (PR 08)
+  const legacy = legacyRedirectIssues(LEGACY_URLS, products, file => existsSync(join(dist, file)));
+  blocking.push(...legacy.blocking);
+
   // Contenido: el texto de cada página, y una vez la cabecera y el pie (se repiten en todas)
   const content: string[] = [];
   const known: string[] = [];
@@ -310,8 +372,10 @@ function main() {
     `[check-prerender] Ids renombrados: ${RENAMED_FROM.size} redirecciones 301; ${toUnpublished.length} llegan a productos no publicados (dan 404)` +
       (toUnpublished.length ? `: ${toUnpublished.map(([old, id]) => `${old} → ${id}`).join(', ')}` : ''),
   );
+  console.log(`[check-prerender] ${legacy.summary}`);
   for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);
+  for (const w of legacy.warnings) console.log(`::warning title=URLs de elights.cl::${w}`);
   if (blocking.length) {
     for (const b of blocking) console.log(`::error title=Página estática::${b}`);
     console.error(`[check-prerender] ${blocking.length} problema(s)`);
