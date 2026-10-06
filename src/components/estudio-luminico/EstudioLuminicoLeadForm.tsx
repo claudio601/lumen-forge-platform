@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { contactEmail } from '@/config/business';
+import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────
@@ -91,43 +91,55 @@ const EMPTY_FORM = {
 type FormValues = typeof EMPTY_FORM;
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
-// ── Envio a Pipedrive via endpoint dedicado ───────────────────────────────────
+// ── Envio al endpoint (correo a ventas + Pipedrive en el servidor) ────────────
 
-async function sendToPipedrive(payload: EstudioLuminicoFormPayload): Promise<void> {
-  const res = await fetch('/api/estudio-luminico/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    let errBody = '';
-    try {
-      const ct = res.headers.get('content-type') ?? '';
-      errBody = ct.includes('json') ? JSON.stringify(await res.json()) : await res.text();
-    } catch { /* ignored */ }
-    // 502 = Pipedrive fallo — lanzar error para que el usuario vea el mensaje
-    if (res.status === 502) {
-      throw new Error('CRM_FAIL: ' + errBody);
-    }
-    // Otros errores HTTP no bloquean al usuario (log y continuar)
-    console.warn('[EstudioForm] HTTP error', { status: res.status, body: errBody });
-    return;
+/** Envio no confirmado por el servidor. httpStatus 0 = sin respuesta (red caida). */
+class SubmitError extends Error {
+  reason: string;
+  httpStatus: number;
+  constructor(reason: string, httpStatus: number) {
+    super(reason + ' (HTTP ' + httpStatus + ')');
+    this.reason = reason;
+    this.httpStatus = httpStatus;
   }
+}
 
+/** Solo es exito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError. */
+async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<void> {
+  let res: Response;
   try {
-    const data = await res.json();
-    if (data.success) {
-      console.log('[EstudioForm] Deal creado/actualizado:', {
-        dealId: data.dealId,
-        dealAction: data.dealAction,
-      });
-    } else {
-      console.warn('[EstudioForm] Respuesta no exitosa:', data);
-    }
+    res = await fetch('/api/estudio-luminico/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
   } catch {
-    console.warn('[EstudioForm] No se pudo parsear respuesta del endpoint');
+    throw new SubmitError('network', 0);
   }
+
+  // Una pagina de error de Vercel (504, 500) llega en HTML, no en JSON
+  let data: { success?: unknown } | null = null;
+  try {
+    data = JSON.parse(await res.text());
+  } catch { /* cuerpo no JSON */ }
+
+  if (!res.ok) throw new SubmitError('api_error', res.status);
+  if (!data) throw new SubmitError('invalid_body', res.status);
+  if (data.success !== true) throw new SubmitError('not_success', res.status);
+}
+
+// Tope de la descripcion: el mismo que api/estudio-luminico/validation.ts
+// (MAX_DESCRIPCION_PROYECTO), para que la nota completa quepa en el correo a ventas.
+const MAX_DESCRIPCION = 2000;
+
+/** Mensaje para el visitante segun el estado HTTP de la respuesta. */
+function submitErrorMessage(httpStatus: number): string {
+  if (httpStatus === 400) return 'Revisa los datos (teléfono de 8 a 15 dígitos) e inténtalo de nuevo.';
+  if (httpStatus === 429) return 'Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
+  return (
+    'No pudimos registrar tu solicitud en este momento. Escríbenos por WhatsApp al ' +
+    whatsappDisplayNumber + ' o a ' + contactEmail + ', o inténtalo de nuevo.'
+  );
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -136,6 +148,7 @@ const EstudioLuminicoLeadForm = () => {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -161,6 +174,7 @@ const EstudioLuminicoLeadForm = () => {
     origen: 'estudio_luminico_web',
     fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
     landingPath: '/estudio-luminico',
+    website,
   });
 
   const validateForm = (): string | null => {
@@ -168,12 +182,18 @@ const EstudioLuminicoLeadForm = () => {
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       return 'Ingresa un correo electronico valido.';
     if (!form.telefono.trim()) return 'El teléfono es requerido.';
+    // Misma regla que el servidor (api/estudio-luminico/validation.ts)
+    const phoneDigits = form.telefono.replace(/\D/g, '').length;
+    if (phoneDigits < 8 || phoneDigits > 15) return 'El teléfono debe tener entre 8 y 15 dígitos.';
     if (!form.tipoProyecto) return 'Selecciona el tipo de proyecto.';
     if (!form.comunaCiudad.trim()) return 'La comuna o ciudad es requerida.';
     if (!form.tienePlanos) return 'Indica si tienes planos disponibles.';
     if (!form.dimensionesAproximadas.trim()) return 'Las dimensiones aproximadas son requeridas.';
     if (!form.alturaMontaje.trim()) return 'La altura de montaje es requerida.';
     if (!form.objetivoProyecto) return 'Selecciona el objetivo del proyecto.';
+    // Mismo tope que el servidor (MAX_DESCRIPCION_PROYECTO); el textarea ya lo impone
+    if ((form.descripcionProyecto ?? '').trim().length > MAX_DESCRIPCION)
+      return 'La descripción admite hasta ' + MAX_DESCRIPCION + ' caracteres.';
     return null;
   };
 
@@ -200,9 +220,9 @@ const EstudioLuminicoLeadForm = () => {
 
     try {
       const payload = buildPayload();
-      await sendToPipedrive(payload);
+      await submitEstudioLead(payload);
 
-      // GA4: lead enviado (conversión)
+      // GA4: lead enviado (conversión), solo cuando el servidor lo confirmó
       trackLead('estudio_luminico', {
         tipo_proyecto: form.tipoProyecto,
         tiene_planos: form.tienePlanos,
@@ -214,14 +234,13 @@ const EstudioLuminicoLeadForm = () => {
       setStatus('success');
       setForm(EMPTY_FORM);
     } catch (err) {
+      // Los datos quedan en el formulario para reintentar
       console.error('[EstudioLuminicoLeadForm]', err);
+      const reason = err instanceof SubmitError ? err.reason : 'exception';
+      const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
+      sendEvent('estudio_luminico_form_submit_error', { reason, httpStatus });
       setStatus('error');
-      const isCrmFail = err instanceof Error && err.message.startsWith('CRM_FAIL');
-      setErrorMsg(
-        isCrmFail
-          ? 'No pudimos registrar tu solicitud en este momento. Por favor escribenos directamente por WhatsApp o intentalo de nuevo.'
-          : 'Ocurrio un error inesperado. Por favor intentalo de nuevo o escribenos por WhatsApp.'
-      );
+      setErrorMsg(submitErrorMessage(httpStatus));
     }
   };
 
@@ -259,23 +278,13 @@ const EstudioLuminicoLeadForm = () => {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      {/* Honeypot anti-bot */}
-      <input
-        type="text"
-        name="website"
-        style={{ display: 'none' }}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-      />
-
-      {/* Error banner */}
-      {(status === 'error' || errorMsg) && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-6 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{errorMsg || 'Ocurrio un error. Intentalo de nuevo.'}</span>
-        </div>
-      )}
+      {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
+      <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+        <label>
+          No completar
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        </label>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Nombre completo */}
@@ -498,6 +507,7 @@ const EstudioLuminicoLeadForm = () => {
             value={form.descripcionProyecto}
             onChange={handleChange}
             rows={3}
+            maxLength={MAX_DESCRIPCION}
             placeholder="Describa brevemente su proyecto, contexto o requerimientos adicionales..."
             className={inputClass + ' resize-none'}
           />
@@ -506,6 +516,13 @@ const EstudioLuminicoLeadForm = () => {
 
       {/* Submit */}
       <div className="mt-8">
+        {/* Error junto al boton, donde el visitante esta mirando */}
+        {(status === 'error' || errorMsg) && (
+          <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <span>{errorMsg || 'Ocurrio un error. Intentalo de nuevo.'}</span>
+          </div>
+        )}
         <Button
           type="submit"
           size="lg"

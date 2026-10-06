@@ -51,6 +51,15 @@ const VALID_URGENCIA = [
 
 const VALID_ORIGEN = ['estudio_luminico_web', 'manual'] as const;
 
+// Tope de la descripcion: asi la nota completa (y el correo a ventas, que la lleva)
+// cabe siempre bajo el maximo del relay. El textarea del formulario usa el mismo.
+export const MAX_DESCRIPCION_PROYECTO = 2000;
+
+/** Opcional de texto: ausente (undefined/null) o string. Un numero romperia el correo. */
+function isOptionalText(val: unknown): boolean {
+  return val === undefined || val === null || typeof val === 'string';
+}
+
 function isStr(val: unknown): val is string {
   return typeof val === 'string' && val.trim().length > 0;
 }
@@ -91,6 +100,17 @@ export function validateEstudioPayload(payload: unknown): EstudioValidationResul
   if (!isStr(p.dimensionesAproximadas)) errors.push('dimensionesAproximadas is required');
   if (!isStr(p.alturaMontaje)) errors.push('alturaMontaje is required');
   if (!isStr(p.objetivoProyecto)) errors.push('objetivoProyecto is required');
+
+  // Opcionales de texto (van a la nota y al correo)
+  if (!isOptionalText(p.empresa)) errors.push('empresa must be a string');
+  if (!isOptionalText(p.descripcionProyecto)) {
+    errors.push('descripcionProyecto must be a string');
+  } else if (
+    typeof p.descripcionProyecto === 'string' &&
+    p.descripcionProyecto.length > MAX_DESCRIPCION_PROYECTO
+  ) {
+    errors.push('descripcionProyecto max ' + MAX_DESCRIPCION_PROYECTO + ' characters');
+  }
 
   // Enum validations (requeridos)
   if (

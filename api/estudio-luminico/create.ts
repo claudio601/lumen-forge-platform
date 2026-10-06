@@ -10,12 +10,14 @@
 // 3. Validar Origin/Referer (VERCEL_ENV fix — no NODE_ENV)
 // 4. Honeypot anti-bot
 // 5. Validar payload (server-side estricto)
-// 6. Crear/actualizar deal en Pipedrive (BLOQUEANTE — source of truth)
-//    -> Si falla: retornar 502 con error visible al usuario
-// 7. Adjuntar nota estructurada al deal (BLOQUEANTE — misma importancia)
-// 8. Enviar email GAS (FIRE-AND-FORGET — no bloquea la respuesta)
-//    -> Si falla: loggear warn, retornar exito al usuario
-// 9. Retornar 201 { success, dealId, dealAction }
+// 6. Referencia ESTL- unica: la misma en el correo, la nota y el deal
+// 7. Correo a ventas via GAS ANTES de Pipedrive (waitUntil, no bloquea)
+// 8. Crear/actualizar deal en Pipedrive + nota estructurada
+//    -> Nota fallida: console.error con dealId y ref (no bloquea: el correo ya lleva los datos)
+//    -> Pipedrive falla y el correo salio: 200 { success, dealId: null, leadRef, crm: 'failed' }
+//       + segundo correo "ATENCIÓN ... Crear el negocio a mano."
+//    -> Fallan ambos: 502 con error visible al usuario
+// 9. Retornar 201/200 { success, personId, dealId, dealAction, leadRef }
 //
 // DECISION V1: Reutiliza PIPEDRIVE_PIPELINE_ID + PIPEDRIVE_STAGE_NEW_LEAD_ID
 // (pipeline "Ventas eLIGHTS" existente). El campo tipo_servicio = "Estudio Luminico"
@@ -23,7 +25,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { waitUntil } from '@vercel/functions';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
@@ -31,10 +32,12 @@ import type { PipedriveDeal } from '../_lib/crm/types.js';
 import {
   mapEstudioPayloadToDealParams,
   buildEstudioLeadRef,
+  buildEstudioDealNote,
 } from '../_lib/crm/estudio-luminico-mapping.js';
 import type {
   EstudioLuminicoPayload,
   EstudioLuminicoResponse,
+  EstudioLuminicoSuccessResponse,
   CreateEstudioDealParams,
 } from '../_lib/crm/estudio-luminico-types.js';
 import {
@@ -43,6 +46,7 @@ import {
   isHoneypotTriggered,
   getClientIp,
 } from '../_lib/auth.js';
+import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { validateEstudioPayload } from './validation.js';
 
 const LOG = '[api/estudio-luminico/create]';
@@ -138,67 +142,26 @@ async function createEstudioDeal(
   return { dealId: res.data.id, dealAction: 'created' };
 }
 
-// ── Adjuntar nota al deal (siempre, para garantizar trazabilidad) ─────────────
+// ── Adjuntar nota al deal (no bloquea: el correo ya lleva los mismos datos) ───
 
-async function addNoteToDeal(dealId: number, noteContent: string): Promise<void> {
-  const res = await pipedrivePost<{ id: number }>('/notes', {
-    content: noteContent,
-    deal_id: dealId,
-  });
-  if (!res.success) {
-    console.warn(LOG + ' Failed to add note to deal ' + dealId + ': ' + res.error);
-  } else {
-    console.log(LOG + ' Note added to deal ' + dealId);
+async function addNoteToDeal(dealId: number, leadRef: string, noteContent: string): Promise<void> {
+  try {
+    const res = await pipedrivePost<{ id: number }>('/notes', {
+      content: noteContent,
+      deal_id: dealId,
+    });
+    if (!res.success) {
+      console.error(LOG + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + res.error);
+    } else {
+      console.log(LOG + ' Note added to deal ' + dealId);
+    }
+  } catch (err) {
+    console.error(LOG + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + errorMessage(err));
   }
 }
 
-// ── GAS email relay (fire-and-forget) ────────────────────────────────────────
-
-const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec';
-
-async function sendGasEmail(payload: EstudioLuminicoPayload): Promise<void> {
-  console.log(`${LOG} GAS email starting for ${payload.email}`);
-  const ventas = process.env.SALES_EMAIL ?? 'ventas@elights.cl';
-
-  const response = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      to_email: ventas,
-      reply_to: payload.email,
-      from_name: payload.nombreCompleto,
-      subject_override:
-        'Nueva solicitud Estudio Luminico DIALux — ' +
-        payload.tipoProyecto +
-        ' — ' +
-        payload.comunaCiudad,
-      nombre: payload.nombreCompleto,
-      telefono: payload.telefono,
-      comuna: payload.comunaCiudad,
-      tipo_proyecto: payload.tipoProyecto,
-      tiene_planos: payload.tienePlanos,
-      dimensiones: payload.dimensionesAproximadas,
-      altura_montaje: payload.alturaMontaje,
-      objetivo: payload.objetivoProyecto,
-      normativa: payload.normativaObjetivo ?? '-',
-      urgencia: payload.urgenciaProyecto ?? '-',
-      empresa: payload.empresa ?? '-',
-      descripcion: payload.descripcionProyecto ?? '-',
-      fecha: payload.fecha ?? new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
-      items_lista:
-        'Estudio Luminico DIALux | ' +
-        payload.tipoProyecto +
-        ' | ' +
-        payload.comunaCiudad,
-      total: '-',
-    }),
-  });
-
-  const result = (await response.json()) as { status: string; message?: string };
-  if (result.status !== 'ok') {
-    throw new Error(result.message ?? 'GAS relay: status not ok');
-  }
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -260,17 +223,27 @@ export default async function handler(
 
   const payload = body as EstudioLuminicoPayload;
 
-  console.log(
-    LOG +
-      ' Processing: ' +
-      payload.email +
-      ' | ' +
-      payload.tipoProyecto +
-      ' | ' +
-      payload.comunaCiudad
-  );
+  // Una sola referencia para el correo, la nota y el campo del deal: calcularla
+  // dos veces podria separarlas si cambia la hora entre ambas.
+  const leadRef = buildEstudioLeadRef(payload);
+  const note = buildEstudioDealNote(payload, leadRef);
+  const ref = LOG + ' ' + leadRef;
 
-  // ── PASO 1: Pipedrive (BLOQUEANTE) ────────────────────────────────────────
+  console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto + ' | comuna: ' + payload.comunaCiudad);
+
+  // ── PASO 1: correo a ventas ANTES de Pipedrive (si el CRM falla, el lead no se pierde) ──
+  const email: SalesEmail = {
+    modo: 'Estudio lumínico DIALux',
+    nombre: payload.nombreCompleto,
+    email: payload.email,
+    telefono: payload.telefono,
+    razonSocial: payload.empresa,
+    cuerpo: note,
+    asunto: 'Estudio lumínico ' + leadRef,
+  };
+  const mail = notifySales(email, ref);
+
+  // ── PASO 2: Pipedrive ─────────────────────────────────────────────────────
   let dealId: number;
   let dealAction: 'created' | 'updated';
   let personId: number;
@@ -278,26 +251,51 @@ export default async function handler(
   try {
     await initFieldOptions();
 
+    // Ojo: persons.ts (protegido) escribe el nombre en el log cuando corrige uno malo
+    // en Pipedrive ("Patched person name"). Pendiente, con OK del dueño: dejar solo el id.
     const person = await findOrCreatePerson({
       name: payload.nombreCompleto.trim(),
       email: payload.email.trim(),
       phone: payload.telefono.trim(),
     });
 
-    console.log(LOG + ' Person: ' + person.personId + ' (' + person.action + ')');
+    console.log(ref + ' Person: ' + person.personId + ' (' + person.action + ')');
 
-    const dealParams = mapEstudioPayloadToDealParams(payload, person.personId);
+    // La nota y el campo de referencia llevan la misma ESTL- que el correo
+    const mapped = mapEstudioPayloadToDealParams(payload, person.personId);
+    const refField = process.env.PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF;
+    const dealParams: CreateEstudioDealParams = {
+      ...mapped,
+      customFields: refField ? { ...mapped.customFields, [refField]: leadRef } : mapped.customFields,
+      noteContent: note,
+    };
     const result = await createEstudioDeal(dealParams);
     dealId = result.dealId;
     dealAction = result.dealAction;
     personId = person.personId;
 
     // Adjuntar nota estructurada (datos completos, incluso los sin custom field)
-    await addNoteToDeal(dealId, dealParams.noteContent);
+    await addNoteToDeal(dealId, leadRef, dealParams.noteContent);
 
-    console.log(LOG + ' Deal: ' + dealId + ' (' + dealAction + ')');
+    console.log(ref + ' Deal: ' + dealId + ' (' + dealAction + ')');
   } catch (err) {
-    console.error(LOG + ' Pipedrive FAIL:', err);
+    console.error(LOG + ' LEAD SIN CRM ' + leadRef + ' | Pipedrive FAIL: ' + errorMessage(err));
+
+    if (await mail) {
+      // El correo salio: el lead no se pierde. Segundo correo para crear el negocio a mano.
+      notifySales(
+        {
+          ...email,
+          cuerpo:
+            'ATENCIÓN: la solicitud ' + leadRef + ' NO quedó en Pipedrive. Crear el negocio a mano.\n\n' + note,
+          asunto: 'ATENCIÓN ' + leadRef + ' sin Pipedrive',
+        },
+        ref
+      );
+      res.status(200).json({ success: true, dealId: null, leadRef, crm: 'failed' });
+      return;
+    }
+
     res.status(502).json({
       success: false,
       error:
@@ -306,22 +304,12 @@ export default async function handler(
     return;
   }
 
-  // ── PASO 2: GAS email (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ──
-  waitUntil(
-    sendGasEmail(payload)
-      .then(() => {
-        console.log(LOG + ' GAS email OK');
-      })
-      .catch((err: unknown) => {
-        console.warn(LOG + ' GAS email FAIL:', err);
-      })
-  );
-
   // ── PASO 3: Respuesta exitosa ─────────────────────────────────────────────
   res.status(dealAction === 'created' ? 201 : 200).json({
     success: true,
     personId,
     dealId,
     dealAction,
-  } satisfies EstudioLuminicoResponse);
+    leadRef,
+  } satisfies EstudioLuminicoSuccessResponse & { leadRef: string });
 }
