@@ -4,8 +4,8 @@
 //
 //   npm run redirects:write
 //
-// Correrlo después de cada cambio en src/data/catalog/renamed-ids.ts y revisar
-// `git diff vercel.json` antes del commit.
+// Correrlo después de cada cambio en src/data/catalog/renamed-ids.ts o en
+// scripts/redirects/legacy-urls.json, y revisar `git diff vercel.json` antes del commit.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

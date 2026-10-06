@@ -179,6 +179,19 @@ usa 5 subagentes para explorar la base de código:
 - Ids de productos nuevos (`newSiteId`): el permalink sin %XX, tildes, puntos ni comas (solo `[a-z0-9-]`); si está ocupado, se agrega `-<jumpseller_id>`.
 - No limpiar permalinks en Jumpseller para que coincidan con estos ids antes del cambio de dominio: son las URLs vivas de elights.cl (Ads y SEO).
 
+**URLs de elights.cl (PR 08): `scripts/redirects/legacy-urls.json`**
+- Una fila por URL vieja de elights.cl: el sitemap del 2026-10-05, el borrador de la auditoría, los permalinks anteriores que Jumpseller todavía redirige, `/search` y una página oculta del blog (473 filas). Se mantiene **a mano** y **solo crece**: el robot nunca lo escribe y nunca se borra una fila (`legacy-sources.baseline.txt` congela las 473 del 2026-10-05; la prueba exige que sigan y que las que tenían regla la conserven). Ordenada por `source`, una fila por línea.
+- Cada fila lleva `source`, exactamente uno de estos campos y, si hace falta, `note`:
+  - `product: <jumpseller_id>`: 301 a `/producto/<id vigente>` (el mismo orden de §Ids del sitio; sin cadenas);
+  - `category: <slug>`: 301 a `/catalogo/<slug>`. También los productos que ya no se venden (fijos en su categoría, p. ej. el Puzzle LED 12W);
+  - `path`: 301 a una página fija de `LEGACY_PAGE_DESTINATIONS` en `build.ts`: `STATIC_ROUTES` (incluye `/`) o `/buscar`, nunca `/cotizacion` ni `/solicitar-pedido`. Ejemplos: `/home` → `/`, `/contact` y `/contactos` → `/cotizador`, `/search` → `/buscar` (conserva `?q=`);
+  - `served: true`: el sitio nuevo sirve esa misma URL (`/`, `/catalogo`), sin regla;
+  - `gone: "<motivo>"`: 404 definitiva y aprobada (productos de prueba, páginas de relleno de Jumpseller);
+  - `pending: "<motivo>"`: 404 por ahora (blog, páginas de la PR 12, `/quieres-ser-nuestro-proveedor`, `/trabaja-con-nosotros`). **Antes de la Etapa 3 no puede quedar ninguna.**
+- `source` es exactamente lo que manda el navegador (la canónica de Jumpseller): minúsculas, sin barra final, `.` `,` `_` tal cual y lo no ASCII en `%XX` mayúscula (`p%C3%BAblico`). Vercel compara la ruta sin decodificar y distingue mayúsculas: `/CAMPANA_LED`, `%c3%ba` o una `ú` sin codificar dan 404 (Jumpseller las aceptaba; navegadores y Google usan la canónica).
+- Un permalink nuevo o cambiado en Jumpseller (producto o categoría) necesita su fila antes de la Etapa 3: `check:prerender` avisa de los productos publicados sin fila. Si un producto sale del catálogo, su 301 lleva a una 404: `check:prerender` avisa y su fila se cambia a mano a `category`.
+- Después de editar: `npm run redirects:write` y revisar `git diff vercel.json`.
+
 **Archivos generados: NUNCA editarlos a mano** (los escribe `npm run sync:catalog -- --write`)
 - `src/data/catalog/jumpseller-snapshot.generated.ts`
 - `src/data/catalog/categories.generated.ts`
@@ -227,13 +240,18 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
   - Las páginas de `NOINDEX_ROUTES` (`/buscar`, `/cotizacion`, `/solicitar-pedido`) se reescriben a `spa.html`. Las de `REDIRECT_ROUTES` (`/carro`) redirigen con 307 al mismo destino que su `<Navigate>` en `src/routes.tsx`.
   - Las fuentes terminan en `{/}?`: Vercel compara en modo estricto y sin eso `/cotizacion/` daría 404.
   - Una ruta fija nueva que no se prerenderiza va en `NOINDEX_ROUTES` o `REDIRECT_ROUTES` (`src/lib/seo/routes.ts`) **y** en vercel.json: los tests exigen que coincidan.
-  - Una ruta con parámetros (como `/producto/:id`) solo funciona si se generan sus páginas; si no, da 404. Una que no se pueda prerenderizar (p. ej. un panel de pedidos de la Fase 3) necesita una regla nueva en vercel.json, revisada aparte: hoy el test solo acepta fuentes de un segmento fijo y los 301 `/producto/<id literal>{/}?`.
+  - Una ruta con parámetros (como `/producto/:id`) solo funciona si se generan sus páginas; si no, da 404. Una que no se pueda prerenderizar (p. ej. un panel de pedidos de la Fase 3) necesita una regla nueva en vercel.json, revisada aparte: hoy el test solo acepta fuentes literales (un segmento fijo, los 301 `/producto/<id literal>{/}?` y las URLs de elights.cl de `legacy-urls.json`), siempre con `{/}?`.
   - **Redirecciones generadas (PR 07):** `npm run redirects:write` (`scripts/redirects/build.ts`) escribe `redirects` en vercel.json y no toca nada más. Nunca editarlas a mano: el test exige que sean iguales a las generadas.
     - Ids de producto renombrados (`src/data/catalog/renamed-ids.ts`): una regla por id anterior, `/producto/<id viejo>{/}?` → `/producto/<id vigente>`, con `statusCode: 301` y sin `permanent` (`permanent: true` daría 308). Vercel conserva la consulta (`?gclid=…`).
     - No dependen de qué productos se publican (si no, la PR del robot fallaría al despublicar uno): un 301 a un producto no publicado da 404, como antes, y `check:prerender` lo informa.
     - Vercel aplica las redirecciones antes que los archivos: por eso un id retirado nunca vuelve a usarse. Máximo propio: 1.000 redirecciones (Vercel acepta 2.048).
     - Dentro de la app (enlaces viejos, Atrás, `vite dev`/`preview`) `ProductRoute` (`src/routes.tsx`) lleva al id vigente; el carrito de pedido y la cotización guardados pasan al id vigente al cargarse.
-- **Chequeo de humo** (`npm run smoke -- <url> [--all] [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`). Solo hace GET; los webhooks responden 405 antes de procesar nada.
+    - **URLs de elights.cl (PR 08, `scripts/redirects/legacy-urls.json`, ver §14):** una regla por fila con destino, `<url vieja>{/}?` → destino, con `statusCode: 301`, después del bloque de la PR 07, que no cambia (hoy 448; 499 en total). Salen de tablas congeladas o a mano, nunca del catálogo publicado: la PR del robot no las cambia.
+    - Guardas de `vercel-config.test.ts`: fuente literal con la gramática estricta; compilada con el `path-to-regexp` de Vercel (6.1.0 y 6.3.0, fijados en devDependencies), sin parámetros; sin duplicados al normalizar mayúsculas, codificación y barra final; ningún primer segmento reservado (`RESERVED_FIRST_SEGMENTS` en `build.ts`: api, producto, catalogo, la app, `public/`, la build, las páginas de la PR 12 en `PLANNED_ROUTES` y las rutas de sistema de Jumpseller); una URL que la app sirve es `served`; destinos prerenderizados o `/buscar`; sin cadenas ni bucles.
+    - PR 12: al crear cada página, sacarla de `PLANNED_ROUTES`, pasar `/medios-de-pago` a `served` y dar destino a las filas `pending` de las páginas legales.
+    - `check:prerender` bloquea si una fuente tapa un archivo de `dist/` o si falta la página de un destino de categoría o página fija; avisa, sin bloquear, de los 301 a productos no publicados y de los permalinks publicados sin fila.
+    - Compuerta de la Etapa 3: ninguna fila `pending`; el sitemap vivo de elights.cl no tiene URLs fuera del archivo; y `npm run smoke -- <url> --legacy` pasa después del cambio de dominio.
+- **Chequeo de humo** (`npm run smoke -- <url> [--all] [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`, o `npm run smoke -- <url> --legacy`). Solo hace GET y nunca sigue redirecciones; los webhooks responden 405 antes de procesar nada.
   - Se corre en cada preview, comparando con producción, y después de cada merge (con `--all`: todas las páginas del sitemap y sus assets).
   - Juzga cada fila según su tipo:
     - página: 200 con canonical y sin noindex;
@@ -241,11 +259,13 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
     - 404: estado 404, noindex y la marca de 404.html;
     - `/carro`: 307 a `/solicitar-pedido`;
     - ids renombrados (2, con y sin barra final y con `?gclid=smoke`): 301 al id vigente, conservando la consulta. Antes del merge, producción todavía responde 200 en esas URLs: con `--compare` no cuenta (solo compara `api/` y archivos);
+    - URLs de elights.cl (PR 08, destino tomado de `legacy-urls.json`): una ficha con `?gclid=smoke`, `/campana_led` con y sin barra final, fichas renombradas con `%C3%BA`, coma y puntos, `/home` y `/search?q=panel` (→ `/buscar?q=panel`): 301; `/producto-test-checkout` y `/blog`: 404. Antes del merge, producción responde 404 en las que redirigen;
     - archivo: 200 y no HTML;
     - `api/`: 405.
   - También falla si una función de `api/` o un archivo cambia de estado o de tipo frente a la base comparada.
   - Las vistas previas piden inicio de sesión en Vercel. El chequeo marca ese 302 como falla, en vez de darlo por bueno.
   - Para correrlo en una vista previa, el dueño puede crear el secreto "Protection Bypass for Automation" y dejarlo en `VERCEL_AUTOMATION_BYPASS_SECRET` (`.env.local`). Si no, Claude prueba desde el navegador integrado.
+  - `--legacy`: cada fila de `legacy-urls.json` según lo que declara (301 exacto a su destino, la página servida o 404) y cada destino una vez (200), de a una URL cada 500 ms (~7 min). Se corre en nuevo.elights.cl después de cada merge que cambia la tabla: en las vistas previas el navegador integrado ve el destino final, no el código 301.
 - **nuevo.elights.cl está fuera de Google** hasta el cambio de dominio: cabecera `X-Robots-Tag: noindex` solo para ese host. Así no compite con elights.cl. Deja de aplicarse sola cuando el sitio se sirva como elights.cl.
 - Claude prueba cada preview y publica el resultado en la PR. El dueño aprueba la fusión.
 
