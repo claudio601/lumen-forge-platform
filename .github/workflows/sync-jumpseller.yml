@@ -117,10 +117,19 @@ jobs:
       - name: Resultado
         if: always()
         env:
+          # 'success' solo si todos los pasos anteriores pasaron ('failure'/'cancelled' si no)
+          JOB_STATUS: ${{ job.status }}
           OPERATION: ${{ steps.cpr.outputs.pull-request-operation }}
           PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
         run: |
-          case "$OPERATION" in
-            created|updated) echo "PR de sincronización: $PR_URL" >> "$GITHUB_STEP_SUMMARY" ;;
-            *) echo "Sin cambios en el catálogo: no se abrió PR." >> "$GITHUB_STEP_SUMMARY" ;;
-          esac
+          if [ "$JOB_STATUS" != "success" ]; then
+            case "$OPERATION" in
+              created|updated) echo "La sincronización falló después de abrir la PR $PR_URL (ver el paso con error)." ;;
+              *) echo "La sincronización falló: no se abrió PR (ver el paso con error)." ;;
+            esac
+          else
+            case "$OPERATION" in
+              created|updated) echo "PR de sincronización: $PR_URL" ;;
+              *) echo "Sin cambios en el catálogo: no se abrió PR." ;;
+            esac
+          fi >> "$GITHUB_STEP_SUMMARY"

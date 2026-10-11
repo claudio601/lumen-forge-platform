@@ -1,7 +1,7 @@
 # CLAUDE.md — lumen-forge-platform (nuevo.elights.cl)
 
 > Archivo de memoria del proyecto. Actualizar después de cada corrección relevante.
-> Última revisión: 2026-10-05
+> Última revisión: 2026-10-11
 
 ---
 
@@ -178,6 +178,7 @@ usa 5 subagentes para explorar la base de código:
 - Renombrar otro id: agregar su fila (en un segundo renombre, el id actual pasa al final de `previous`), correr `npm run redirects:write` y revisar `git diff vercel.json`. El id nuevo se escribe literal, nunca se recalcula desde el permalink.
 - Ids de productos nuevos (`newSiteId`): el permalink sin %XX, tildes, puntos ni comas (solo `[a-z0-9-]`); si está ocupado, se agrega `-<jumpseller_id>`.
 - No limpiar permalinks en Jumpseller para que coincidan con estos ids antes del cambio de dominio: son las URLs vivas de elights.cl (Ads y SEO).
+- Si un producto cambia de nombre en Jumpseller, su permalink **no se cambia**, aunque quede desfasado (el 2026-10-08 "PANEL LED CUADRADO EMBUTIDO 3W IP20" pasó a "…IP44" y su permalink sigue en `-ip20`). El permalink es la URL viva de elights.cl (Ads y SEO) y un cambio obliga a agregar su fila en `scripts/redirects/legacy-urls.json`. Claude nunca lo cambia ni lo propone.
 
 **URLs de elights.cl (PR 08): `scripts/redirects/legacy-urls.json`**
 - Una fila por URL vieja de elights.cl: el sitemap del 2026-10-05, el borrador de la auditoría, los permalinks anteriores que Jumpseller todavía redirige, `/search` y una página oculta del blog (473 filas). Se mantiene **a mano** y **solo crece**: el robot nunca lo escribe y nunca se borra una fila (`legacy-sources.baseline.txt` congela las 473 del 2026-10-05; la prueba exige que sigan y que las que tenían regla la conserven). Ordenada por `source`, una fila por línea.
@@ -205,9 +206,16 @@ usa 5 subagentes para explorar la base de código:
 - Se escribe **solo con datos de Jumpseller**: `npm run content -- export` deja los datos de cada producto en `reports/content/facts/`; la guía de redacción está en `scripts/content/GUIDE.md`.
 - `npm run content -- check [id…]` verifica formato, reglas del sitio (sin stock, sin precios, despacho solo "hasta 2 días hábiles", sin "gratis") y que **cada cifra, certificación, grado IP/IK y marca esté en Jumpseller**. Correrlo antes de cada commit de contenido.
 - La sincronización diaria revisa el contenido contra los datos nuevos: si Jumpseller cambia un dato que un texto menciona, el informe de la PR del robot lo lista en "Contenido SEO → A corregir" (no bloquea precios).
+- Las pruebas que dependen de los datos del día (`content.test.ts`: productos publicados y cifras; `descriptions.test.ts`; `og-images.test.ts`) **se saltan solo en el robot**: con `CATALOG_SYNC_JOB=1` (la tarea de sincronización, que corre desde `main`) o en la rama `bot/jumpseller-sync` (en la PR llega en `GITHUB_HEAD_REF`; `GITHUB_REF_NAME` es `N/merge`). La condición vive en un solo lugar, `src/test/syncBot.ts` (`isSyncBot`): toda prueba nueva que dependa de los datos de Jumpseller la importa, nunca la copia. (El 2026-10-08 y el 2026-10-09 una copia vieja de la condición en `content.test.ts` hizo fallar la sincronización y no se abrió PR.)
+- En `main` y en las PR de personas esas pruebas **sí corren**. Si el informe del robot trae "Contenido SEO → A corregir", fusionar solo la PR del robot deja `main` en rojo. Por eso Claude:
+  1. crea una rama desde `bot/jumpseller-sync` (o, si el robot no abrió PR, regenera localmente con `npm run sync:catalog -- --write` sobre `main` actualizado);
+  2. corrige el contenido de cada id de la lista con los datos nuevos (`npm run content -- export <id>`, `scripts/content/GUIDE.md`, `npm run content -- check`), sin editar a mano los generados;
+  3. abre **una sola PR a `main`** con los datos nuevos y el contenido corregido, que pasa todas las pruebas sin saltos (typecheck, `npm test`, pruebas de `api/`, build y `check:prerender`), y publica en ella el resultado de la preview;
+  4. cuando el dueño la fusiona, cierra la PR del robot sin fusionar (sus datos ya van incluidos).
 
 **Cómo se actualiza**
 - Automático: workflow "Sincronizar catálogo Jumpseller" (`.github/workflows/sync-jumpseller.yml`), de lunes a viernes a las 11:00 UTC. Si hay cambios, abre o actualiza la PR `bot/jumpseller-sync` con el informe; se revisa y se fusiona como cualquier PR. Si no hay cambios, no abre nada.
+- Si la tarea falla, el resumen de la ejecución dice "La sincronización falló: no se abrió PR" (antes decía "Sin cambios" también al fallar): revisar el paso con error en Actions.
 - Para fusionar la PR del bot: cerrarla y reabrirla (`gh pr close N && gh pr reopen N`). El CI que el bot lanza con `workflow_dispatch` pasa, pero GitHub no lo asocia a la PR y `main` exige "Run tsc --noEmit". Al reabrirla con la cuenta del dueño, el CI corre como evento de la PR.
 - Desde la PR 05 las URLs sin página dan 404: un producto que sale del catálogo deja de tener `/producto/<id>`. Revisar en el informe de la PR del bot qué productos salen.
 - A mano: `gh workflow run sync-jumpseller.yml` (o Actions → Run workflow).
