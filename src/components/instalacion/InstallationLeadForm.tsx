@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { contactEmail } from '@/config/business';
+import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
 
 export interface InstallationLeadPayload {
@@ -15,62 +15,50 @@ export interface InstallationLeadPayload {
   preferenciaContacto?: 'whatsapp' | 'llamada' | 'email' | '';
   aceptaContacto: boolean;
   origen: 'instalacion_web';
-  fecha: string;
-  website?: string;
+  website: string;
 }
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec';
-
-async function sendLeadEmail(payload: InstallationLeadPayload): Promise<void> {
-  const asunto = 'Nueva solicitud de instalacion - ' + payload.comuna + ' - ' + payload.tipoProyecto;
-  const cuerpo = 'NUEVA SOLICITUD | ' + payload.nombre + ' | ' + payload.telefono + ' | ' + payload.email + ' | ' + payload.comuna + ' | ' + payload.tipoProyecto + ' | ' + payload.descripcion;
-  const response = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({
-      to_email: contactEmail,
-      reply_to: payload.email,
-      from_name: payload.nombre,
-      subject_override: asunto,
-      nombre: payload.nombre,
-      telefono: payload.telefono,
-      comuna: payload.comuna,
-      tipo_proyecto: payload.tipoProyecto,
-      tipo_cliente: payload.tipoCliente || '-',
-      preferencia_contacto: payload.preferenciaContacto || '-',
-      descripcion: payload.descripcion,
-      items_lista: cuerpo,
-      fecha: payload.fecha,
-      total: '-',
-    }),
-  });
-  const result = await response.json();
-  if (result.status !== 'ok') throw new Error(result.message || 'Error enviando solicitud');
-}
-
-async function sendToPipedrive(payload: InstallationLeadPayload): Promise<void> {
-  const res = await fetch('/api/installation-leads/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    let errBody = '';
-    try {
-      const ct = res.headers.get('content-type') ?? '';
-      errBody = ct.includes('json') ? JSON.stringify(await res.json()) : await res.text();
-    } catch { /* ignored */ }
-    console.warn('[Pipedrive] HTTP error', { status: res.status, email: payload.email, body: errBody });
-    return;
+/** Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). */
+class SubmitError extends Error {
+  httpStatus: number;
+  constructor(httpStatus: number) {
+    super('HTTP ' + httpStatus);
+    this.httpStatus = httpStatus;
   }
+}
+
+/**
+ * El servidor envía el correo a ventas y crea el negocio en Pipedrive.
+ * Solo es éxito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError.
+ */
+async function submitLead(payload: InstallationLeadPayload): Promise<void> {
+  let res: Response;
   try {
-    const data = await res.json();
-    if (data.success)
-      console.log('[Pipedrive] Lead creado/actualizado:', { dealId: data.dealId, dealAction: data.dealAction, leadScore: data.leadScore, priorityTier: data.priorityTier });
-    else console.warn('[Pipedrive] Respuesta no exitosa:', data);
+    res = await fetch('/api/installation-leads/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
   } catch {
-    console.warn('[Pipedrive] No se pudo parsear respuesta del endpoint');
+    throw new SubmitError(0);
   }
+  // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
+  let data: { success?: unknown } | null = null;
+  try {
+    data = JSON.parse(await res.text());
+  } catch { /* cuerpo no JSON */ }
+  if (!res.ok || data?.success !== true) throw new SubmitError(res.status);
+}
+
+// Topes: los mismos que api/installation-leads/validation.ts (MAX_LENGTHS)
+const MAX_LENGTHS = { nombre: 120, email: 254, telefono: 30, comuna: 80, descripcion: 2000 } as const;
+const FIELD_NAMES: Record<keyof typeof MAX_LENGTHS, string> = { nombre: 'El nombre', email: 'El correo', telefono: 'El teléfono', comuna: 'La comuna', descripcion: 'La descripción' };
+
+/** Mensaje para el visitante según el estado HTTP de la respuesta. */
+function submitErrorMessage(httpStatus: number): string {
+  if (httpStatus === 400) return 'Revisa los datos (teléfono de 8 a 12 dígitos y un correo válido) e inténtalo de nuevo.';
+  if (httpStatus === 429) return 'Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
+  return 'No pudimos registrar tu solicitud en este momento. Escríbenos por WhatsApp al ' + whatsappDisplayNumber + ' o a ' + contactEmail + ', o inténtalo de nuevo.';
 }
 
 const TIPOS_PROYECTO = ['Casa / departamento', 'Oficina', 'Local comercial', 'Bodega', 'Condominio / edificio', 'Proyecto industrial', 'Paneles solares', 'Otro'] as const;
@@ -92,6 +80,14 @@ const InstallationLeadForm = () => {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
+  // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
     sendEvent('instalacion_form_view');
@@ -107,42 +103,52 @@ const InstallationLeadForm = () => {
     nombre: form.nombre.trim(), telefono: form.telefono.trim(), email: form.email.trim(),
     comuna: form.comuna.trim(), tipoProyecto: form.tipoProyecto, descripcion: form.descripcion.trim(),
     tipoCliente: form.tipoCliente, preferenciaContacto: form.preferenciaContacto,
-    aceptaContacto: form.aceptaContacto, origen: 'instalacion_web',
-    fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
+    aceptaContacto: form.aceptaContacto, origen: 'instalacion_web', website,
   });
+
+  const validateForm = (): string | null => {
+    if (!form.nombre.trim() || !form.telefono.trim() || !form.email.trim() || !form.comuna.trim() || !form.tipoProyecto || !form.descripcion.trim())
+      return 'Por favor completa todos los campos requeridos (*).';
+    // Mismas reglas que el servidor (api/installation-leads/validation.ts)
+    const phoneDigits = form.telefono.replace(/\D/g, '').length;
+    if (phoneDigits < 8 || phoneDigits > 12) return 'El teléfono debe tener entre 8 y 12 dígitos.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Ingresa un correo electrónico válido.';
+    for (const field of Object.keys(MAX_LENGTHS) as (keyof typeof MAX_LENGTHS)[]) {
+      if (form[field].trim().length > MAX_LENGTHS[field]) return FIELD_NAMES[field] + ' admite hasta ' + MAX_LENGTHS[field] + ' caracteres.';
+    }
+    if (!form.aceptaContacto) return 'Debes aceptar que te contactemos para continuar.';
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const tipoProyecto = form.tipoProyecto;
     const comuna = form.comuna.trim();
     sendEvent('instalacion_form_submit_attempt', { tipoProyecto, comuna });
-    if (!form.nombre || !form.telefono || !form.email || !form.comuna || !form.tipoProyecto || !form.descripcion) {
-      setErrorMsg('Por favor completa todos los campos requeridos (*).');
-      return;
-    }
-    if (!form.aceptaContacto) {
-      setErrorMsg('Debes aceptar que te contactemos para continuar.');
+    const invalid = validateForm();
+    if (invalid) {
+      setErrorMsg(invalid);
       return;
     }
     setErrorMsg('');
     setStatus('sending');
     try {
-      const payload = buildPayload();
-      await sendLeadEmail(payload);
+      await submitLead(buildPayload());
+      // GA4: conversión solo cuando el servidor confirmó la solicitud
       trackLead('instalacion', { tipo_proyecto: tipoProyecto, comuna });
-      sendToPipedrive(payload).catch(err => { console.warn('[Pipedrive] Error inesperado:', err); });
       setStatus('success');
       setForm(EMPTY_FORM);
     } catch (err) {
+      // Los datos quedan en el formulario para reintentar
       console.error('[InstallationLeadForm]', err);
-      const errorMessage = err instanceof Error ? err.message : String(err);
+      const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
       sendEvent('instalacion_form_submit_failure', {
         tipoProyecto,
         comuna,
-        error_message: errorMessage.slice(0, 100),
+        error_message: 'http_' + httpStatus,
       });
       setStatus('error');
-      setErrorMsg('No pudimos enviar tu solicitud. Por favor escribenos por WhatsApp o intentalo de nuevo.');
+      setErrorMsg(submitErrorMessage(httpStatus));
     }
   };
 
@@ -161,26 +167,39 @@ const InstallationLeadForm = () => {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <input type="text" name="website" style={{ display: 'none' }} tabIndex={-1} autoComplete="off" aria-hidden="true" />
-      {errorMsg && (<div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-6 text-sm text-red-700"><AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />{errorMsg}</div>)}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div><label htmlFor="ilf-nombre" className={labelClass}>Nombre completo <span className="text-red-500">*</span></label><input id="ilf-nombre" name="nombre" type="text" value={form.nombre} onChange={handleChange} placeholder="Juan Perez" className={inputClass} autoComplete="name" /></div>
-        <div><label htmlFor="ilf-telefono" className={labelClass}>Telefono <span className="text-red-500">*</span></label><input id="ilf-telefono" name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="+56 9 XXXX XXXX" className={inputClass} autoComplete="tel" /></div>
-        <div><label htmlFor="ilf-email" className={labelClass}>Correo electronico <span className="text-red-500">*</span></label><input id="ilf-email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="correo@ejemplo.com" className={inputClass} autoComplete="email" /></div>
-        <div><label htmlFor="ilf-comuna" className={labelClass}>Comuna <span className="text-red-500">*</span></label><input id="ilf-comuna" name="comuna" type="text" value={form.comuna} onChange={handleChange} placeholder="Ej: Las Condes, Maipu, Quilicura..." className={inputClass} /></div>
-        <div className="sm:col-span-2"><label htmlFor="ilf-tipoProyecto" className={labelClass}>Tipo de proyecto <span className="text-red-500">*</span></label><select id="ilf-tipoProyecto" name="tipoProyecto" value={form.tipoProyecto} onChange={handleChange} className={inputClass}><option value="">Selecciona el tipo de proyecto...</option>{TIPOS_PROYECTO.map(t => (<option key={t} value={t}>{t}</option>))}</select></div>
-        <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripcion breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} placeholder="Cuentanos el espacio..." className={inputClass + ' resize-none'} /></div>
-        <div><label htmlFor="ilf-tipoCliente" className={labelClass}>Tipo de cliente <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-tipoCliente" name="tipoCliente" value={form.tipoCliente} onChange={handleChange} className={inputClass}>{TIPOS_CLIENTE.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
-        <div><label htmlFor="ilf-preferenciaContacto" className={labelClass}>Preferencia de contacto <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-preferenciaContacto" name="preferenciaContacto" value={form.preferenciaContacto} onChange={handleChange} className={inputClass}>{PREFS_CONTACTO.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
-        <div className="sm:col-span-2"><label className="flex items-start gap-3 cursor-pointer select-none"><input type="checkbox" name="aceptaContacto" checked={form.aceptaContacto} onChange={handleChange} className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-primary cursor-pointer" /><span className="text-sm text-gray-600 leading-snug">Acepto que eLIGHTS me contacte para responder a esta solicitud. No compartiremos tus datos con terceros. <span className="text-red-500">*</span></span></label></div>
-      </div>
-      <div className="mt-8">
-        <Button type="submit" size="lg" disabled={status === 'sending'} className="w-full h-14 text-base font-bold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all">
-          {status === 'sending' ? (<><Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...</>) : (<><Send className="h-5 w-5" /> SOLICITAR EVALUACION</>)}
-        </Button>
-        <p className="text-center text-xs text-gray-400 mt-3">Te respondemos en menos de 24 horas habiles - Sin compromiso</p>
-      </div>
+    // Sin JavaScript, o con la página a medio cargar, el navegador enviaría el formulario por su
+    // cuenta: la solicitud se perdería y, con GET, nombre, teléfono y correo quedarían en la URL
+    // (historial, registros de Vercel, Analytics). method="post" saca los datos de la URL y el
+    // fieldset deshabilitado impide escribir y enviar hasta que React toma el formulario.
+    <form method="post" onSubmit={handleSubmit} noValidate>
+      <fieldset disabled={!hydrated} className="min-w-0">
+        {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
+        <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+          <label>
+            No completar
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+          </label>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div><label htmlFor="ilf-nombre" className={labelClass}>Nombre completo <span className="text-red-500">*</span></label><input id="ilf-nombre" name="nombre" type="text" value={form.nombre} onChange={handleChange} placeholder="Juan Perez" maxLength={MAX_LENGTHS.nombre} className={inputClass} autoComplete="name" /></div>
+          <div><label htmlFor="ilf-telefono" className={labelClass}>Telefono <span className="text-red-500">*</span></label><input id="ilf-telefono" name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="+56 9 XXXX XXXX" maxLength={MAX_LENGTHS.telefono} className={inputClass} autoComplete="tel" /></div>
+          <div><label htmlFor="ilf-email" className={labelClass}>Correo electronico <span className="text-red-500">*</span></label><input id="ilf-email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="correo@ejemplo.com" maxLength={MAX_LENGTHS.email} className={inputClass} autoComplete="email" /></div>
+          <div><label htmlFor="ilf-comuna" className={labelClass}>Comuna <span className="text-red-500">*</span></label><input id="ilf-comuna" name="comuna" type="text" value={form.comuna} onChange={handleChange} placeholder="Ej: Las Condes, Maipu, Quilicura..." maxLength={MAX_LENGTHS.comuna} className={inputClass} /></div>
+          <div className="sm:col-span-2"><label htmlFor="ilf-tipoProyecto" className={labelClass}>Tipo de proyecto <span className="text-red-500">*</span></label><select id="ilf-tipoProyecto" name="tipoProyecto" value={form.tipoProyecto} onChange={handleChange} className={inputClass}><option value="">Selecciona el tipo de proyecto...</option>{TIPOS_PROYECTO.map(t => (<option key={t} value={t}>{t}</option>))}</select></div>
+          <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripcion breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} maxLength={MAX_LENGTHS.descripcion} placeholder="Cuentanos el espacio..." className={inputClass + ' resize-none'} /></div>
+          <div><label htmlFor="ilf-tipoCliente" className={labelClass}>Tipo de cliente <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-tipoCliente" name="tipoCliente" value={form.tipoCliente} onChange={handleChange} className={inputClass}>{TIPOS_CLIENTE.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
+          <div><label htmlFor="ilf-preferenciaContacto" className={labelClass}>Preferencia de contacto <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-preferenciaContacto" name="preferenciaContacto" value={form.preferenciaContacto} onChange={handleChange} className={inputClass}>{PREFS_CONTACTO.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
+          <div className="sm:col-span-2"><label className="flex items-start gap-3 cursor-pointer select-none"><input type="checkbox" name="aceptaContacto" checked={form.aceptaContacto} onChange={handleChange} aria-describedby="ilf-consent-note" className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-primary cursor-pointer" /><span className="text-sm text-gray-600 leading-snug">Acepto que eLIGHTS me contacte por teléfono, WhatsApp o correo para responder esta solicitud. <span className="text-red-500">*</span></span></label><p id="ilf-consent-note" className="mt-2 pl-7 text-xs text-gray-600 leading-snug">Usamos estos datos para responder y dar seguimiento a tu solicitud. Quedan registrados en los servicios con que trabajamos: Vercel (sitio web), Google (correo) y Pipedrive (gestión de clientes).</p></div>
+        </div>
+        <div className="mt-8">
+          {/* Error junto al botón, donde el visitante está mirando */}
+          {errorMsg && (<div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700"><AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" /><span>{errorMsg}</span></div>)}
+          <Button type="submit" size="lg" disabled={!hydrated || status === 'sending'} className="w-full h-14 text-base font-bold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all">
+            {status === 'sending' ? (<><Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...</>) : (<><Send className="h-5 w-5" /> SOLICITAR EVALUACION</>)}
+          </Button>
+          <p className="text-center text-xs text-gray-400 mt-3">Te respondemos en menos de 24 horas habiles - Sin compromiso</p>
+        </div>
+      </fieldset>
     </form>
   );
 };

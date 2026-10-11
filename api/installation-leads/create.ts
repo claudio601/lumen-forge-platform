@@ -5,14 +5,18 @@
 // Endpoint dedicado para leads del pipeline de Instalacion Profesional.
 //
 // Flujo:
-//  1. Auth (INSTALLATION_API_SECRET server-only, nunca expuesta al cliente)
-//  2. Rate limiting por IP (10 req / 15 min por IP)
-//  3. Validacion de Origin/Referer (solo nuevo.elights.cl en produccion)h
+//  1. Rate limiting por IP (10 req / 15 min por IP)
+//  2. Validacion de Origin/Referer (solo nuevo.elights.cl en produccion)
+//  3. Auth (INSTALLATION_API_SECRET server-only, nunca expuesta al cliente)
 //  4. Honeypot anti-bot (campo website debe estar vacio)
 //  5. Validacion del InstallationLeadPayload
-//  6. findOrCreatePerson
-//  7. createInstallationDeal
-//  8. Retorna IDs para trazabilidad
+//  6. Referencia INST- unica: la misma en el correo, la nota y el campo del deal
+//  7. Correo a ventas via GAS ANTES de Pipedrive (waitUntil, no bloquea)
+//  8. findOrCreatePerson + createInstallationDeal + nota con todos los datos
+//     -> Pipedrive falla y el correo salio: 200 { success, dealId: null, leadRef, crm: 'failed' }
+//        + segundo correo "ATENCIÓN ... Crear el negocio a mano."
+//     -> Fallan ambos: 502 con error visible al usuario
+//  9. Retorna 201/200 con los IDs y la referencia para trazabilidad
 // ─────────────────────────────────────────────────────────────────────────────
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
@@ -25,7 +29,8 @@ import {
 } from '../_lib/crm/installation-mapping.js';
 import type {
   InstallationLeadPayload,
-  InstallationLeadResponse,
+  InstallationLeadSuccessResponse,
+  InstallationLeadErrorResponse,
   CreateInstallationDealParams,
   InstallationCrmResult,
 } from '../_lib/crm/installation-types.js';
@@ -35,9 +40,16 @@ import {
   isHoneypotTriggered,
   getClientIp,
 } from '../_lib/auth.js';
+import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { validateInstallationPayload } from './validation.js';
 
 const LOG_PREFIX = '[api/installation-leads/create]';
+
+/** Respuestas del endpoint (installation-types.ts está protegido: aquí se agregan leadRef y crm). */
+type InstallationLeadApiResponse =
+  | (InstallationLeadSuccessResponse & { leadRef: string })
+  | { success: true; dealId: null; leadRef: string; crm: 'failed' }
+  | InstallationLeadErrorResponse;
 
 function isAuthorized(req: VercelRequest): boolean {
   const installSecret = process.env.INSTALLATION_API_SECRET;
@@ -64,10 +76,9 @@ async function findExistingInstallationDeal(leadRef: string, pipelineId: number)
   const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>('/deals/search', { term: leadRef, fields: 'custom_fields', exact_match: 'true', limit: '5' });
   if (!res.success || !res.data?.items) return null;
   for (const { item } of res.data.items) {
-    if (item.pipeline_id === pipelineId && item.status === 'open') {
-      const full = await pipedriveGet<PipedriveDeal>('/deals/' + item.id);
-      if (full.success && full.data && String(full.data[fieldKey]) === leadRef) return full.data;
-    }
+    // /deals/search no trae pipeline_id: el pipeline y el estado se miran en el deal completo
+    const full = await pipedriveGet<PipedriveDeal>('/deals/' + item.id);
+    if (full.success && full.data && full.data.pipeline_id === pipelineId && full.data.status === 'open' && String(full.data[fieldKey]) === leadRef) return full.data;
   }
   return null;
 }
@@ -85,12 +96,60 @@ async function createInstallationDeal(params: CreateInstallationDealParams): Pro
   return { dealId: res.data.id, dealAction: 'created' };
 }
 
-async function processInstallationLead(payload: InstallationLeadPayload): Promise<InstallationCrmResult> {
+// ── Correo y nota: los mismos datos, con la referencia en la primera línea ────
+
+const CLIENT_TYPE_LABELS: Record<string, string> = { hogar: 'Hogar / Particular', empresa: 'Empresa', condominio: 'Condominio / Edificio' };
+const CONTACT_PREF_LABELS: Record<string, string> = { whatsapp: 'WhatsApp', llamada: 'Llamada telefónica', email: 'Correo electrónico' };
+
+function installationDetailLines(payload: InstallationLeadPayload): string[] {
+  return [
+    'Tipo de proyecto: ' + payload.tipoProyecto,
+    'Tipo de cliente: ' + (CLIENT_TYPE_LABELS[payload.tipoCliente ?? ''] ?? 'No indicado'),
+    'Comuna: ' + payload.comuna.trim(),
+    'Preferencia de contacto: ' + (CONTACT_PREF_LABELS[payload.preferenciaContacto ?? ''] ?? 'Sin preferencia'),
+    'Teléfono: ' + payload.telefono.trim(),
+    'Correo: ' + payload.email.trim(),
+    '',
+    'Descripción:',
+    payload.descripcion.trim(),
+  ];
+}
+
+/** Bloque PRODUCTOS SOLICITADOS del correo a ventas. */
+function buildInstallationEmailBody(payload: InstallationLeadPayload, leadRef: string): string {
+  return ['Solicitud de instalación ' + leadRef + ' (buscar la referencia en Pipedrive)', '', ...installationDetailLines(payload)].join('\n');
+}
+
+/** Nota del deal: todos los datos, incluso los que no tienen campo propio en Pipedrive. */
+function buildInstallationNote(payload: InstallationLeadPayload, leadRef: string, score: number, tier: string): string {
+  return ['Solicitud de instalación ' + leadRef, '', ...installationDetailLines(payload), '', 'Puntaje: ' + score + ' / 100 (prioridad ' + tier + ')'].join('\n');
+}
+
+/** La nota no bloquea: el correo a ventas ya lleva los mismos datos. */
+async function addNoteToDeal(dealId: number, leadRef: string, content: string): Promise<void> {
+  try {
+    const res = await pipedrivePost<{ id: number }>('/notes', { content, deal_id: dealId });
+    if (!res.success) console.warn(LOG_PREFIX + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + res.error);
+    else console.log(LOG_PREFIX + ' Note added to deal ' + dealId);
+  } catch (err) {
+    console.warn(LOG_PREFIX + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + errorMessage(err));
+  }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+async function processInstallationLead(payload: InstallationLeadPayload, leadRef: string): Promise<InstallationCrmResult> {
   await initFieldOptions();
   const person = await findOrCreatePerson({ name: payload.nombre.trim(), email: payload.email.trim() || undefined, phone: payload.telefono.trim() || undefined, preferredChannel: payload.preferenciaContacto === 'whatsapp' ? 'WhatsApp' : payload.preferenciaContacto === 'llamada' ? 'Telefono' : 'Email', commune: payload.comuna.trim() || undefined });
-  console.log(LOG_PREFIX + ' Person: ' + person.personId + ' (' + person.action + ')');
-  const dealParams = mapInstallationPayloadToDealParams(payload, person.personId);
+  console.log(LOG_PREFIX + ' ' + leadRef + ' Person: ' + person.personId + ' (' + person.action + ')');
+  const mapped = mapInstallationPayloadToDealParams(payload, person.personId);
+  // El campo de referencia lleva la misma INST- que el correo y la nota
+  const refField = process.env.PIPEDRIVE_INSTALL_FIELD_LEAD_REF;
+  const dealParams: CreateInstallationDealParams = refField ? { ...mapped, customFields: { ...mapped.customFields, [refField]: leadRef } } : mapped;
   const { dealId, dealAction } = await createInstallationDeal(dealParams);
+  await addNoteToDeal(dealId, leadRef, buildInstallationNote(payload, leadRef, dealParams.leadScore, dealParams.priorityTier));
   return { personId: person.personId, personAction: person.action, dealId, dealAction, leadScore: dealParams.leadScore, priorityTier: dealParams.priorityTier };
 }
 
@@ -109,16 +168,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (isHoneypotTriggered(body)) { console.warn(LOG_PREFIX + ' Honeypot triggered'); res.status(200).json({ success: true }); return; }
 
   const validation = validateInstallationPayload(body);
-  if (!validation.valid) { console.warn(LOG_PREFIX + ' Validation failed:', validation.errors); res.status(400).json({ success: false, error: 'Validation failed', details: { errors: validation.errors } } satisfies InstallationLeadResponse); return; }
+  if (!validation.valid) { console.warn(LOG_PREFIX + ' Validation failed:', validation.errors); res.status(400).json({ success: false, error: 'Validation failed', details: { errors: validation.errors } } satisfies InstallationLeadApiResponse); return; }
 
   const payload = body as InstallationLeadPayload;
+
+  // Una sola referencia para el correo, la nota y el campo del deal: calcularla
+  // dos veces podría separarlas si cambia la hora entre ambas.
+  const leadRef = buildInstallationLeadRef(payload);
+  const ref = LOG_PREFIX + ' ' + leadRef;
+  console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto + ' | comuna: ' + payload.comuna);
+
+  // Correo a ventas ANTES de Pipedrive: si el CRM falla, el lead no se pierde
+  const cuerpo = buildInstallationEmailBody(payload, leadRef);
+  const email: SalesEmail = {
+    modo: 'Instalación profesional (sin monto)',
+    nombre: payload.nombre,
+    email: payload.email,
+    telefono: payload.telefono,
+    cuerpo,
+    total: '-',
+    asunto: 'Nueva solicitud de instalación — ' + leadRef,
+  };
+  const mail = notifySales(email, ref);
+
   try {
-    console.log(LOG_PREFIX + ' Processing lead: ' + payload.email + ' | ' + payload.tipoProyecto + ' | ' + payload.comuna);
-    const result = await processInstallationLead(payload);
-    console.log(LOG_PREFIX + ' Done — deal: ' + result.dealId + ' (' + result.dealAction + ') score: ' + result.leadScore);
-    res.status(result.dealAction === 'created' ? 201 : 200).json({ success: true, personId: result.personId, dealId: result.dealId, dealAction: result.dealAction, leadScore: result.leadScore, priorityTier: result.priorityTier } satisfies InstallationLeadResponse);
+    const result = await processInstallationLead(payload, leadRef);
+    console.log(ref + ' Done — deal: ' + result.dealId + ' (' + result.dealAction + ') score: ' + result.leadScore);
+    res.status(result.dealAction === 'created' ? 201 : 200).json({ success: true, personId: result.personId, dealId: result.dealId, dealAction: result.dealAction, leadScore: result.leadScore, priorityTier: result.priorityTier, leadRef } satisfies InstallationLeadApiResponse);
   } catch (err) {
-    console.error(LOG_PREFIX + ' Error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' } satisfies InstallationLeadResponse);
+    console.error(LOG_PREFIX + ' LEAD SIN CRM ' + leadRef + ' | Pipedrive FAIL: ' + errorMessage(err));
+
+    if (await mail) {
+      // El correo salió: el lead no se pierde. Segundo correo para crear el negocio a mano.
+      notifySales({ ...email, cuerpo: 'ATENCIÓN: la solicitud ' + leadRef + ' NO quedó en Pipedrive. Crear el negocio a mano.\n\n' + cuerpo, asunto: 'ATENCIÓN ' + leadRef + ' sin Pipedrive' }, ref);
+      res.status(200).json({ success: true, dealId: null, leadRef, crm: 'failed' } satisfies InstallationLeadApiResponse);
+      return;
+    }
+
+    res.status(502).json({ success: false, error: 'No se pudo registrar tu solicitud en el sistema. Por favor inténtalo de nuevo o escríbenos por WhatsApp.' } satisfies InstallationLeadApiResponse);
   }
 }
