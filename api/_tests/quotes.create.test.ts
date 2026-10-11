@@ -1,10 +1,11 @@
-// api/quotes/create.test.ts
+// api/_tests/quotes.create.test.ts
 // Cotizaciones del sitio (sourceSystem nuevo_elights): precios CON IVA desde el catálogo,
 // persona o empresa, y el correo a ventas ANTES de Pipedrive con la misma referencia NE-
 // que la nota. Si Pipedrive falla pero el correo salió, el lead no se pierde (200 + correo
 // de ATENCIÓN); 502 solo si fallan los dos. Sin API key solo entran cotizaciones del sitio.
 // Un producto que el catálogo no identifica queda fuera del monto del negocio (REVISAR).
-// Pipedrive y el relay están simulados.
+// Pipedrive y el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue
+// como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -15,7 +16,7 @@ vi.mock('../_lib/crm/dedupe.js', () => ({
 vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn() }));
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn((p: Promise<unknown>) => p) }));
 
-import handler from './create';
+import handler from '../quotes/create';
 import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';

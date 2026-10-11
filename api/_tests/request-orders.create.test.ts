@@ -1,6 +1,7 @@
-// api/request-orders/create.test.ts
+// api/_tests/request-orders.create.test.ts
 // "Solicitar pedido": el servidor recalcula precios CON IVA desde el catálogo, acepta
 // productos sin SKU y se protege de spam. Pipedrive y el correo están simulados.
+// Vive en api/_tests/ para que Vercel no lo despliegue como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -11,7 +12,7 @@ vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(as
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn((p: Promise<unknown>) => p) }));
 vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(async () => ({ success: true, data: { id: 1 } })) }));
 
-import handler from './create';
+import handler from '../request-orders/create';
 import { createDeal } from '../_lib/pipedrive/deals.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 
