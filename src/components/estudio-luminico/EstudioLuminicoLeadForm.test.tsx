@@ -3,7 +3,9 @@
 // botón (role="alert") y deja los datos escritos para reintentar.
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
+import { hydrateRoot } from 'react-dom/client';
 import EstudioLuminicoLeadForm from './EstudioLuminicoLeadForm';
 
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
@@ -95,5 +97,78 @@ describe('EstudioLuminicoLeadForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('entre 8 y 15 dígitos');
     expect(fetch).not.toHaveBeenCalled();
     expect(trackLead).not.toHaveBeenCalled();
+  });
+});
+
+// El HTML de /estudio-luminico es estático (prerender). Hasta que React hidrata, el formulario
+// no tiene onSubmit: un envío nativo con GET pondría nombre, teléfono y correo en la URL y la
+// solicitud se perdería sin aviso.
+describe('EstudioLuminicoLeadForm antes de hidratar (HTML del prerender)', () => {
+  let root: ReturnType<typeof hydrateRoot> | undefined;
+  afterEach(() => {
+    act(() => root?.unmount()); // también si una aserción falló a mitad de la prueba
+    root = undefined;
+    document.body.innerHTML = '';
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const serverContainer = () => {
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(<EstudioLuminicoLeadForm />);
+    document.body.appendChild(container);
+    return container;
+  };
+
+  it('el formulario usa method="post" (nunca GET con los datos en la URL) y todo está deshabilitado', () => {
+    const container = serverContainer();
+    const form = container.querySelector('form')!;
+    expect(form.getAttribute('method')).toBe('post');
+    expect(form.hasAttribute('action')).toBe(false);
+    expect(container.querySelector('fieldset')).toHaveAttribute('disabled');
+    const button = within(container).getByRole('button', { name: /SOLICITAR COTIZACION/ });
+    expect(button).toHaveAttribute('disabled');
+    expect(button).toBeDisabled();
+    const controls = [...form.querySelectorAll('input, select, textarea')];
+    expect(controls.map((c) => c.getAttribute('name'))).toEqual(expect.arrayContaining([
+      'nombreCompleto', 'email', 'telefono', 'empresa', 'tipoProyecto', 'comunaCiudad', 'tienePlanos',
+      'dimensionesAproximadas', 'alturaMontaje', 'objetivoProyecto', 'normativaObjetivo', 'urgenciaProyecto',
+      'descripcionProyecto', 'website',
+    ]));
+    for (const control of controls) expect(control).toBeDisabled();
+  });
+
+  it('al hidratar se habilita, sin descartar el HTML del servidor', async () => {
+    const consoleErrors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const container = serverContainer();
+    const serverButton = container.querySelector('button[type="submit"]');
+    const errors: unknown[] = [];
+    await act(async () => {
+      root = hydrateRoot(container, <EstudioLuminicoLeadForm />, { onRecoverableError: (e) => errors.push(e) });
+    });
+    expect(errors).toEqual([]);
+    expect(consoleErrors.mock.calls.map((args) => args.map(String).join(' ')).filter((m) => /did not match|server HTML|hydrat/i.test(m))).toEqual([]);
+    expect(container.contains(serverButton)).toBe(true); // React reutilizó el nodo
+    expect(container.querySelector('fieldset')).not.toHaveAttribute('disabled');
+    expect(within(container).getByRole('button', { name: /SOLICITAR COTIZACION/ })).toBeEnabled();
+    expect(within(container).getByLabelText(/Nombre completo/)).toBeEnabled();
+    expect(within(container).getByLabelText(/Tipo de proyecto/)).toBeEnabled();
+    expect(within(container).getByLabelText(/Descripción del proyecto/)).toBeEnabled();
+  });
+
+  it('ya hidratado, el envío va por fetch (React) y no por el navegador', async () => {
+    const consoleErrors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    const container = serverContainer();
+    await act(async () => { root = hydrateRoot(container, <EstudioLuminicoLeadForm />); });
+    const urlBefore = window.location.href;
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/estudio-luminico/create');
+    expect(window.location.href).toBe(urlBefore); // sin datos en la URL
+    // jsdom avisa "Not implemented: HTMLFormElement.prototype.requestSubmit" si el envío nativo no se frena
+    expect(consoleErrors.mock.calls.map((args) => args.map(String).join(' ')).filter((m) => /Not implemented/i.test(m))).toEqual([]);
   });
 });
