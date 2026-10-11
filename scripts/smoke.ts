@@ -131,6 +131,7 @@ export const API_FUNCTIONS = [
   '/api/quotes/create',
   '/api/installation-leads/create',
   '/api/estudio-luminico/create',
+  '/api/project-quotes/create',
 ];
 
 /** Rutas a revisar: las mismas en cada ejecución para poder comparar. */
