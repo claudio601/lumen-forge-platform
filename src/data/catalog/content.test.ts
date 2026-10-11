@@ -1,9 +1,10 @@
 // Contenido SEO por producto (./content/<id>.json): formato que la ficha sabe mostrar,
 // reglas del sitio y que cada cifra, certificación y marca esté en Jumpseller.
 //
-// En la PR diaria del robot (rama bot/jumpseller-sync) lo que depende de los datos de
-// Jumpseller (cifras, productos que dejaron de publicarse) solo se informa en el informe
-// de la sincronización: un texto desactualizado nunca debe bloquear los precios.
+// En la sincronización del robot (tarea con CATALOG_SYNC_JOB y su PR, rama bot/jumpseller-sync)
+// lo que depende de los datos de Jumpseller (cifras, productos que dejaron de publicarse) solo
+// se informa en el informe de la sincronización: un texto desactualizado nunca debe bloquear
+// los precios (ver ../../test/syncBot.ts).
 import { describe, expect, it } from 'vitest';
 import { checkFacts, checkFormat, checkRules } from '../../../scripts/content/check';
 import { productFacts } from '../../../scripts/content/facts';
@@ -13,10 +14,10 @@ import { products } from './index';
 import { jumpsellerSnapshot } from './jumpseller-snapshot.generated';
 import { editorialOverlay } from './overlay/editorial';
 import type { ProductContent } from './types';
+import { isSyncBot } from '../../test/syncBot';
 
 const files = import.meta.glob<ProductContent>('./content/*.json', { eager: true, import: 'default' });
 const entries = Object.entries(files).map(([path, c]) => [Number(path.match(/(\d+)\.json$/)?.[1]), c] as const);
-const isSyncBot = (process.env.GITHUB_REF_NAME ?? process.env.GITHUB_HEAD_REF ?? '') === 'bot/jumpseller-sync';
 
 describe('contenido SEO por producto', () => {
   it('los archivos se llaman <jumpseller_id>.json', () => {

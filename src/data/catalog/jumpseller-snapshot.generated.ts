@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '60bd699dc821';
+export const SNAPSHOT_HASH = '09115feec812';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -667,7 +667,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PANEL LED REDONDO EMBUTIDO 9W IP44",
     "permalink": "panel-led-redondo-embutido-9w-ip44",
     "sku": "",
-    "price": 2490,
+    "price": 2290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -699,7 +699,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 120885493,
         "sku": "PLRE9N",
-        "price": 2490,
+        "price": 2290,
         "options": [
           {
             "name": "Color de temperatura",
@@ -710,7 +710,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 120885496,
         "sku": "PLRE9F",
-        "price": 2490,
+        "price": 2290,
         "options": [
           {
             "name": "Color de temperatura",
@@ -721,7 +721,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 94980570,
         "sku": "PLRE9C",
-        "price": 2490,
+        "price": 2290,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1330,10 +1330,10 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 2269646,
-    "name": "PANEL LED CUADRADO EMBUTIDO 3W IP20",
+    "name": "PANEL LED CUADRADO EMBUTIDO 3W IP44",
     "permalink": "panel-led-cuadrado-embutido-3w-ip20",
     "sku": "",
-    "price": 1990,
+    "price": 1390,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -1384,8 +1384,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 120885597,
-        "sku": "",
-        "price": 1990,
+        "sku": "PLCE3N",
+        "price": 1390,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1395,8 +1395,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885599,
-        "sku": "",
-        "price": 1990,
+        "sku": "PLCE3F",
+        "price": 1390,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1406,8 +1406,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 95288390,
-        "sku": "",
-        "price": 1990,
+        "sku": "PLCE3C",
+        "price": 1390,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1419,10 +1419,10 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 2270107,
-    "name": "PANEL LED CUADRADO EMBUTIDO 4W IP20",
+    "name": "PANEL LED CUADRADO EMBUTIDO 4W IP44",
     "permalink": "panel-led-cuadrado-embutido-4w-ip20",
     "sku": "",
-    "price": 2200,
+    "price": 1590,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -1473,8 +1473,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 120885601,
-        "sku": "",
-        "price": 2200,
+        "sku": "PLCE4N",
+        "price": 1590,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1484,8 +1484,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885603,
-        "sku": "",
-        "price": 2200,
+        "sku": "PLCE4F",
+        "price": 1590,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1495,8 +1495,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 4160970,
-        "sku": "PLCE4F",
-        "price": 2200,
+        "sku": "PLCE4C",
+        "price": 1590,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1507,11 +1507,100 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ]
   },
   {
+    "jumpseller_id": 2270122,
+    "name": "PANEL LED CUADRADO EMBUTIDO 6W IP44",
+    "permalink": "panel-led-cuadrado-embutido-6w-ip20",
+    "sku": "",
+    "price": 1890,
+    "brand": "JIE",
+    "featured": false,
+    "categories": [
+      "paneles-led"
+    ],
+    "images": [
+      {
+        "id": 4102017,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_1.png?1640611939",
+        "position": 7
+      },
+      {
+        "id": 4102018,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_2.png?1640611939",
+        "position": 8
+      },
+      {
+        "id": 4102019,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_3.png?1640611939",
+        "position": 9
+      },
+      {
+        "id": 4102020,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_4.png?1640611939",
+        "position": 10
+      },
+      {
+        "id": 4102021,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_7.png?1640611939",
+        "position": 11
+      },
+      {
+        "id": 4102022,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_5.png?1640611939",
+        "position": 12
+      },
+      {
+        "id": 4102023,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_6.png?1640611939",
+        "position": 13
+      },
+      {
+        "id": 4102024,
+        "url": "https://images.jumpseller.com/store/elights-cl/2270122/4W_8.png?1640611939",
+        "position": 14
+      }
+    ],
+    "variants": [
+      {
+        "id": 13706525,
+        "sku": "PLCE6C",
+        "price": 1890,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
+        "id": 120885605,
+        "sku": "PLCE6N",
+        "price": 1890,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Neutra - 4000K"
+          }
+        ]
+      },
+      {
+        "id": 120885608,
+        "sku": "PLCE6F",
+        "price": 1890,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Fría - 6500K"
+          }
+        ]
+      }
+    ]
+  },
+  {
     "jumpseller_id": 2270155,
-    "name": "PANEL LED CUADRADO EMBUTIDO 12W IP20",
+    "name": "PANEL LED CUADRADO EMBUTIDO 12W IP44",
     "permalink": "panel-led-cuadrado-embutido-12w-ip20",
     "sku": "",
-    "price": 3497,
+    "price": 2390,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -1557,8 +1646,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 4163193,
-        "sku": "PLCE12F",
-        "price": 3497,
+        "sku": "PLCE12C",
+        "price": 2390,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1568,8 +1657,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885498,
-        "sku": "",
-        "price": 3497,
+        "sku": "PLCE12N",
+        "price": 2390,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1579,8 +1668,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885501,
-        "sku": "",
-        "price": 3497,
+        "sku": "PLCE12F",
+        "price": 2390,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1595,7 +1684,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PANEL LED CUADRADO EMBUTIDO 18W IP44",
     "permalink": "panel-led-cuadrado-embutido-18w-ip44",
     "sku": "",
-    "price": 3600,
+    "price": 3150,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -1641,8 +1730,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 120885610,
-        "sku": "",
-        "price": 3600,
+        "sku": "PLCE18N",
+        "price": 3150,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1652,8 +1741,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885613,
-        "sku": "",
-        "price": 3600,
+        "sku": "PLCE18F",
+        "price": 3150,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1663,8 +1752,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 95091077,
-        "sku": "",
-        "price": 3600,
+        "sku": "PLCE18C",
+        "price": 3150,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1679,7 +1768,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PANEL LED CUADRADO EMBUTIDO 24W IP44",
     "permalink": "panel-led-cuadrado-embutido-24w-ip44",
     "sku": "",
-    "price": 6300,
+    "price": 5020,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -1700,8 +1789,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 120885618,
-        "sku": "",
-        "price": 6300,
+        "sku": "PLCE24N",
+        "price": 5020,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1711,8 +1800,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885621,
-        "sku": "",
-        "price": 6300,
+        "sku": "PLCE24F",
+        "price": 5020,
         "options": [
           {
             "name": "Color de temperatura",
@@ -1722,8 +1811,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 95236943,
-        "sku": "",
-        "price": 6300,
+        "sku": "PLCE24C",
+        "price": 5020,
         "options": [
           {
             "name": "Color de temperatura",
@@ -4812,28 +4901,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 100857181,
-        "sku": "",
-        "price": 61750,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Fría 6000 - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 96644410,
-        "sku": "",
-        "price": 61750,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
-          }
-        ]
-      },
-      {
         "id": 121250275,
         "sku": "",
         "price": 61750,
@@ -4845,13 +4912,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 121250276,
+        "id": 122872218,
         "sku": "",
         "price": 61750,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -15299,6 +15366,110 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "id": 81839746,
         "url": "https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_2_eLIGHTS.cl.png?1790864686",
         "position": 4
+      }
+    ],
+    "variants": []
+  },
+  {
+    "jumpseller_id": 37625224,
+    "name": "PANEL LED CUADRADO EMBUTIDO 9W IP44",
+    "permalink": "panel-led-cuadrado-embutido-9w-ip44",
+    "sku": "",
+    "price": 2190,
+    "brand": "JIE",
+    "featured": false,
+    "categories": [
+      "paneles-led"
+    ],
+    "images": [
+      {
+        "id": 82301424,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_1.png?1791485046",
+        "position": 1
+      },
+      {
+        "id": 82301428,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_2.png?1791485046",
+        "position": 2
+      },
+      {
+        "id": 82301430,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_3.png?1791485047",
+        "position": 3
+      },
+      {
+        "id": 82301433,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_4.png?1791485047",
+        "position": 4
+      },
+      {
+        "id": 82301435,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_6.png?1791485047",
+        "position": 5
+      },
+      {
+        "id": 82301437,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_5.png?1791485047",
+        "position": 6
+      },
+      {
+        "id": 82301440,
+        "url": "https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_7.png?1791485047",
+        "position": 7
+      }
+    ],
+    "variants": [
+      {
+        "id": 122880398,
+        "sku": "PLCE9C",
+        "price": 2190,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
+        "id": 122880399,
+        "sku": "PLCE9N",
+        "price": 2190,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Neutra - 4000K"
+          }
+        ]
+      },
+      {
+        "id": 122880400,
+        "sku": "PLCE9F",
+        "price": 2190,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Fría - 6500K"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "jumpseller_id": 37656341,
+    "name": "LUMINARIA LED VIAL A PRUEBA DE EXPLOSIÓN 125W IP66 CLASE I DIV. 2",
+    "permalink": "luminaria-led-vial-a-prueba-de-explosion-125w-ip66-clase-i-div-2",
+    "sku": "EX-125W STA1",
+    "price": 1199880,
+    "brand": "VENAS",
+    "featured": false,
+    "categories": [
+      "iluminacion-antiexplosiva"
+    ],
+    "images": [
+      {
+        "id": 82366062,
+        "url": "https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733",
+        "position": 1
       }
     ],
     "variants": []
