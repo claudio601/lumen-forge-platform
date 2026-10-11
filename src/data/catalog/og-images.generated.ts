@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '60bd699dc821';
+export const SNAPSHOT_HASH = '09115feec812';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -38,6 +38,7 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2269544": {"url":"https://images.jumpseller.com/store/elights-cl/2269544/Panel_LED_Circular_Sobrepuesto_18-24W_.png?1640613435","format":"png","bytes":119176,"width":600,"height":600},
   "2269646": {"url":"https://images.jumpseller.com/store/elights-cl/2269646/4W_1.png?1640611434","format":"png","bytes":117513,"width":595,"height":590},
   "2270107": {"url":"https://images.jumpseller.com/store/elights-cl/2270107/4W_1.png?1640611502","format":"png","bytes":117513,"width":595,"height":590},
+  "2270122": {"url":"https://images.jumpseller.com/store/elights-cl/2270122/4W_1.png?1640611939","format":"png","bytes":117513,"width":595,"height":590},
   "2270155": {"url":"https://images.jumpseller.com/store/elights-cl/2270155/12W_1.png?1640612723","format":"png","bytes":66458,"width":600,"height":600},
   "2270214": {"url":"https://images.jumpseller.com/store/elights-cl/2270214/12W_1.png?1640613133","format":"png","bytes":66458,"width":600,"height":600},
   "2270233": {"url":"https://images.jumpseller.com/store/elights-cl/2270233/1.png?1640613479","format":"png","bytes":153986,"width":753,"height":746},
@@ -330,4 +331,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "35808441": {"url":"https://images.jumpseller.com/store/elights-cl/35808441/foto-producto-30146.jpg?1781576239","format":"jpeg","bytes":65678,"width":1254,"height":1254},
   "37039738": {"url":"https://images.jumpseller.com/store/elights-cl/37039738/media/696376_2e12c4f686f74c5aa1cfa4b4e5822763~mv2.png?1788980660","format":"png","bytes":1020888,"width":1890,"height":2126},
   "37404730": {"url":"https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_eLIGHTS.cl.png?1790864686","format":"png","bytes":222937,"width":500,"height":500},
+  "37625224": {"url":"https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_1.png?1791485046","format":"png","bytes":66458,"width":600,"height":600},
+  "37656341": {"url":"https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733","format":"png","bytes":90456,"width":500,"height":403},
 };

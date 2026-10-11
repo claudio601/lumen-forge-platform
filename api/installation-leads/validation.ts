@@ -31,6 +31,16 @@ const VALID_PROJECT_TYPES = [
 const VALID_CLIENT_TYPES = ['hogar', 'empresa', 'condominio', ''] as const;
 const VALID_CONTACT_PREFS = ['whatsapp', 'llamada', 'email', ''] as const;
 
+// Largos máximos: estos textos van completos al correo a ventas y a la nota del deal.
+// El formulario (InstallationLeadForm) usa los mismos topes.
+export const MAX_LENGTHS = {
+  nombre: 120,
+  email: 254,
+  telefono: 30,
+  comuna: 80,
+  descripcion: 2000,
+} as const;
+
 function isStr(val: unknown): val is string {
   return typeof val === 'string' && val.trim().length > 0;
 }
@@ -73,6 +83,12 @@ export function validateInstallationPayload(payload: unknown): InstallationValid
   if (!isStr(p.tipoProyecto)) errors.push('tipoProyecto is required');
   if (!isStr(p.descripcion)) errors.push('descripcion is required');
   if (p.aceptaContacto !== true) errors.push('aceptaContacto must be true');
+
+  // Largos máximos
+  for (const [field, max] of Object.entries(MAX_LENGTHS)) {
+    const value = p[field];
+    if (typeof value === 'string' && value.length > max) errors.push(field + ' max ' + max + ' characters');
+  }
 
   // Enum validations
   if (p.origen !== undefined && !(VALID_SOURCES as readonly string[]).includes(p.origen as string)) {
