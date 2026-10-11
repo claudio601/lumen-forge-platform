@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '60bd699dc821';
+export const SNAPSHOT_HASH = '09115feec812';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -197,19 +197,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2256011": {
     "name": "PANEL LED REDONDO EMBUTIDO 9W IP44",
     "sku": "",
-    "price": 2490,
+    "price": 2290,
     "variants": {
       "94980570": {
         "sku": "PLRE9C",
-        "price": 2490
+        "price": 2290
       },
       "120885493": {
         "sku": "PLRE9N",
-        "price": 2490
+        "price": 2290
       },
       "120885496": {
         "sku": "PLRE9F",
-        "price": 2490
+        "price": 2290
       }
     }
   },
@@ -366,97 +366,116 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "2269646": {
-    "name": "PANEL LED CUADRADO EMBUTIDO 3W IP20",
+    "name": "PANEL LED CUADRADO EMBUTIDO 3W IP44",
     "sku": "",
-    "price": 1990,
+    "price": 1390,
     "variants": {
       "95288390": {
-        "sku": "",
-        "price": 1990
+        "sku": "PLCE3C",
+        "price": 1390
       },
       "120885597": {
-        "sku": "",
-        "price": 1990
+        "sku": "PLCE3N",
+        "price": 1390
       },
       "120885599": {
-        "sku": "",
-        "price": 1990
+        "sku": "PLCE3F",
+        "price": 1390
       }
     }
   },
   "2270107": {
-    "name": "PANEL LED CUADRADO EMBUTIDO 4W IP20",
+    "name": "PANEL LED CUADRADO EMBUTIDO 4W IP44",
     "sku": "",
-    "price": 2200,
+    "price": 1590,
     "variants": {
       "4160970": {
-        "sku": "PLCE4F",
-        "price": 2200
+        "sku": "PLCE4C",
+        "price": 1590
       },
       "120885601": {
-        "sku": "",
-        "price": 2200
+        "sku": "PLCE4N",
+        "price": 1590
       },
       "120885603": {
-        "sku": "",
-        "price": 2200
+        "sku": "PLCE4F",
+        "price": 1590
+      }
+    }
+  },
+  "2270122": {
+    "name": "PANEL LED CUADRADO EMBUTIDO 6W IP44",
+    "sku": "",
+    "price": 1890,
+    "variants": {
+      "13706525": {
+        "sku": "PLCE6C",
+        "price": 1890
+      },
+      "120885605": {
+        "sku": "PLCE6N",
+        "price": 1890
+      },
+      "120885608": {
+        "sku": "PLCE6F",
+        "price": 1890
       }
     }
   },
   "2270155": {
-    "name": "PANEL LED CUADRADO EMBUTIDO 12W IP20",
+    "name": "PANEL LED CUADRADO EMBUTIDO 12W IP44",
     "sku": "",
-    "price": 3497,
+    "price": 2390,
     "variants": {
       "4163193": {
-        "sku": "PLCE12F",
-        "price": 3497
+        "sku": "PLCE12C",
+        "price": 2390
       },
       "120885498": {
-        "sku": "",
-        "price": 3497
+        "sku": "PLCE12N",
+        "price": 2390
       },
       "120885501": {
-        "sku": "",
-        "price": 3497
+        "sku": "PLCE12F",
+        "price": 2390
       }
     }
   },
   "2270214": {
     "name": "PANEL LED CUADRADO EMBUTIDO 18W IP44",
     "sku": "",
-    "price": 3600,
+    "price": 3150,
     "variants": {
       "95091077": {
-        "sku": "",
-        "price": 3600
+        "sku": "PLCE18C",
+        "price": 3150
       },
       "120885610": {
-        "sku": "",
-        "price": 3600
+        "sku": "PLCE18N",
+        "price": 3150
       },
       "120885613": {
-        "sku": "",
-        "price": 3600
+        "sku": "PLCE18F",
+        "price": 3150
       }
     }
   },
   "2270233": {
     "name": "PANEL LED CUADRADO EMBUTIDO 24W IP44",
     "sku": "",
-    "price": 6300,
+    "price": 5020,
     "variants": {
       "95236943": {
-        "sku": "",
-        "price": 6300
+        "sku": "PLCE24C",
+        "price": 5020
       },
       "120885618": {
-        "sku": "",
-        "price": 6300
+        "sku": "PLCE24N",
+        "price": 5020
       },
       "120885621": {
-        "sku": "",
-        "price": 6300
+        "sku": "PLCE24F",
+        "price": 5020
       }
     }
   },
@@ -1276,19 +1295,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 61750,
     "variants": {
-      "96644410": {
-        "sku": "",
-        "price": 61750
-      },
-      "100857181": {
-        "sku": "",
-        "price": 61750
-      },
       "121250275": {
         "sku": "",
         "price": 61750
       },
-      "121250276": {
+      "122872218": {
         "sku": "",
         "price": 61750
       }
@@ -4275,6 +4286,31 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 300W",
     "sku": "PLAPEX300F",
     "price": 321600,
+    "variants": {}
+  },
+  "37625224": {
+    "name": "PANEL LED CUADRADO EMBUTIDO 9W IP44",
+    "sku": "",
+    "price": 2190,
+    "variants": {
+      "122880398": {
+        "sku": "PLCE9C",
+        "price": 2190
+      },
+      "122880399": {
+        "sku": "PLCE9N",
+        "price": 2190
+      },
+      "122880400": {
+        "sku": "PLCE9F",
+        "price": 2190
+      }
+    }
+  },
+  "37656341": {
+    "name": "LUMINARIA LED VIAL A PRUEBA DE EXPLOSIÓN 125W IP66 CLASE I DIV. 2",
+    "sku": "EX-125W STA1",
+    "price": 1199880,
     "variants": {}
   }
 };
