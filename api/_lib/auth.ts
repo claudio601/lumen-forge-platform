@@ -8,40 +8,68 @@
 //   - checkRateLimit(ip, opts?)        -> in-memory rolling-window limiter
 //   - isHoneypotTriggered(body, field?) -> bot trap on a hidden form field
 //
-// Rate-limit state is module-level on purpose: the three endpoints share a
-// single bucket so an attacker cannot round-robin them to multiply quota.
-// In-memory store is per serverless instance — acceptable for V1, TODO migrar
-// a Upstash Redis cuando el volumen lo justifique.
+// Rate-limit state is module-level, but each api/ file deploys as its own
+// Vercel function: the bucket is per function and per warm instance (it is
+// NOT shared across endpoints) and starts empty on a cold start — acceptable
+// for V1, TODO migrar a Upstash Redis cuando el volumen lo justifique.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest } from '@vercel/node';
 
 // ── Origin check ──────────────────────────────────────────────────────────────
 
-const DEFAULT_ALLOWED_ORIGINS = [
+/**
+ * The site's exact origins. www.elights.cl is where Google Ads land, and after
+ * the Stage 3 domain switch the site is served from elights.cl and www.
+ */
+export const SITE_ORIGINS: readonly string[] = [
   'https://nuevo.elights.cl',
   'https://elights.cl',
+  'https://www.elights.cl',
 ];
+
+/**
+ * scheme://host[:port] of an https URL; null for anything else ('', 'null',
+ * other schemes, values that do not parse). URL parsing lowercases the host,
+ * drops the default port and turns 'https://elights.cl@evil.com' into
+ * 'https://evil.com', so look-alike hosts cannot pass.
+ */
+function toOrigin(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Allow when:
  *  - we are not on Vercel production (covers preview + local dev), OR
- *  - Origin or Referer starts with one of the allowed origins.
+ *  - the request's origin is exactly one of the allowed origins.
+ *
+ * A sent Origin header decides alone, whatever the Referer says: a foreign,
+ * http:, extension or unparsable Origin (Node joins a repeated Origin header
+ * with ', ') is rejected. The Referer counts only when Origin is missing,
+ * empty or 'null'.
  */
 export function isAllowedOrigin(
   req: VercelRequest,
-  allowedOrigins: readonly string[] = DEFAULT_ALLOWED_ORIGINS
+  allowedOrigins: readonly string[] = SITE_ORIGINS
 ): boolean {
   if (process.env.VERCEL_ENV !== 'production') return true;
-  const origin = (req.headers['origin'] as string | undefined) ?? '';
-  const referer = (req.headers['referer'] as string | undefined) ?? '';
-  return (
-    allowedOrigins.some((o) => origin.startsWith(o)) ||
-    allowedOrigins.some((o) => referer.startsWith(o))
-  );
+  const header = req.headers['origin'];
+  const originSent =
+    typeof header === 'string' ? !['', 'null'].includes(header.trim()) : header !== undefined;
+  const origin = toOrigin(originSent ? header : req.headers['referer']);
+  if (origin !== null && allowedOrigins.includes(origin)) return true;
+  // Parsed origin only: never the raw header nor the Referer's path or query string.
+  console.warn('[auth] Origen rechazado:', origin ?? (originSent ? 'origen no válido' : 'sin origen'));
+  return false;
 }
 
-// ── Rate limit (shared across all endpoints that import this module) ──────────
+// ── Rate limit (per function and per warm instance, see header) ───────────────
 
 export interface RateLimitOptions {
   windowMs?: number;
