@@ -229,7 +229,8 @@ export default async function handler(
   const note = buildEstudioDealNote(payload, leadRef);
   const ref = LOG + ' ' + leadRef;
 
-  console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto + ' | comuna: ' + payload.comunaCiudad);
+  // Solo un campo de lista cerrada: la comuna es texto libre y podría traer datos personales
+  console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto);
 
   // ── PASO 1: correo a ventas ANTES de Pipedrive (si el CRM falla, el lead no se pierde) ──
   const email: SalesEmail = {
