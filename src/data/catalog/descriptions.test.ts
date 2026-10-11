@@ -7,20 +7,15 @@ import { productDescriptions } from './descriptions.generated';
 import { jumpsellerSnapshot } from './jumpseller-snapshot.generated';
 import { editorialOverlay } from './overlay/editorial';
 import { unsafeHtmlReasons } from '../../../scripts/jumpseller/sanitize-description';
+import { isSyncBot } from '../../test/syncBot';
 
 const entries = Object.entries(productDescriptions);
 // Las partes en HTML: el texto (Descripción) y las tablas que se conservan tal cual
 const htmlParts = entries.flatMap(([id, d]) => [d.text, d.tables].filter((h): h is string => !!h).map(html => [id, html] as const));
 const rows = entries.flatMap(([, d]) => [...(d.electricos ?? []), ...(d.construccion ?? []), ...(d.componentes ?? [])]);
 
-// En la PR diaria del robot, lo que depende de cuántas tablas trae Jumpseller solo se informa.
-// CATALOG_SYNC_JOB: la tarea de sincronización (corre desde main, antes de abrir la PR).
-// En la PR, GITHUB_REF_NAME es 'N/merge' y la rama viene en GITHUB_HEAD_REF.
-const isSyncBot =
-  process.env.CATALOG_SYNC_JOB === '1' ||
-  [process.env.GITHUB_HEAD_REF, process.env.GITHUB_REF_NAME].includes('bot/jumpseller-sync');
-
 describe('descripciones de Jumpseller (archivo generado)', () => {
+  // En la PR diaria del robot, lo que depende de cuántas tablas trae Jumpseller solo se informa.
   it.skipIf(isSyncBot)('solo de productos publicados, y casi todos con especificaciones agrupadas', () => {
     const published = new Set(jumpsellerSnapshot.map(p => String(p.jumpseller_id)));
     expect(entries.filter(([id]) => !published.has(id)).map(([id]) => id)).toEqual([]);

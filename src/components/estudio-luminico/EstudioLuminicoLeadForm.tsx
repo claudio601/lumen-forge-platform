@@ -1,5 +1,5 @@
 // src/components/estudio-luminico/EstudioLuminicoLeadForm.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
@@ -149,6 +149,13 @@ const EstudioLuminicoLeadForm = () => {
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
+  // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -277,273 +284,279 @@ const EstudioLuminicoLeadForm = () => {
   // ── Formulario ────────────────────────────────────────────────────────────
 
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
-      <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
-        <label>
-          No completar
-          <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        {/* Nombre completo */}
-        <div>
-          <label htmlFor="elf-nombre" className={labelClass}>
-            Nombre completo {reqStar}
+    // Sin JavaScript, o con la página a medio cargar, el navegador enviaría el formulario por su
+    // cuenta: la solicitud se perdería y, con GET, nombre, teléfono y correo quedarían en la URL
+    // (historial, registros de Vercel, Analytics). method="post" saca los datos de la URL y el
+    // fieldset deshabilitado impide escribir y enviar hasta que React toma el formulario.
+    <form method="post" onSubmit={handleSubmit} noValidate>
+      <fieldset disabled={!hydrated} className="min-w-0">
+        {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
+        <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+          <label>
+            No completar
+            <input type="text" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
           </label>
-          <input
-            id="elf-nombre"
-            name="nombreCompleto"
-            type="text"
-            value={form.nombreCompleto}
-            onChange={handleChange}
-            placeholder="Juan Perez"
-            className={inputClass}
-            autoComplete="name"
-          />
         </div>
 
-        {/* Email */}
-        <div>
-          <label htmlFor="elf-email" className={labelClass}>
-            Correo electronico {reqStar}
-          </label>
-          <input
-            id="elf-email"
-            name="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange}
-            placeholder="juan@empresa.cl"
-            className={inputClass}
-            autoComplete="email"
-          />
-        </div>
-
-        {/* Telefono */}
-        <div>
-          <label htmlFor="elf-telefono" className={labelClass}>
-            Teléfono {reqStar}
-          </label>
-          <input
-            id="elf-telefono"
-            name="telefono"
-            type="tel"
-            value={form.telefono}
-            onChange={handleChange}
-            placeholder="+56 9 1234 5678"
-            className={inputClass}
-            autoComplete="tel"
-          />
-        </div>
-
-        {/* Empresa (opcional) */}
-        <div>
-          <label htmlFor="elf-empresa" className={labelClass}>
-            Empresa {optLabel}
-          </label>
-          <input
-            id="elf-empresa"
-            name="empresa"
-            type="text"
-            value={form.empresa}
-            onChange={handleChange}
-            placeholder="Mi Empresa Ltda."
-            className={inputClass}
-            autoComplete="organization"
-          />
-        </div>
-
-        {/* Tipo de proyecto */}
-        <div className="sm:col-span-2">
-          <label htmlFor="elf-tipo" className={labelClass}>
-            Tipo de proyecto {reqStar}
-          </label>
-          <select
-            id="elf-tipo"
-            name="tipoProyecto"
-            value={form.tipoProyecto}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            <option value="">Selecciona el tipo de proyecto...</option>
-            {TIPOS_PROYECTO.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Comuna / Ciudad */}
-        <div>
-          <label htmlFor="elf-comuna" className={labelClass}>
-            Comuna / Ciudad {reqStar}
-          </label>
-          <input
-            id="elf-comuna"
-            name="comunaCiudad"
-            type="text"
-            value={form.comunaCiudad}
-            onChange={handleChange}
-            placeholder="Tome, Region del Biobio"
-            className={inputClass}
-          />
-        </div>
-
-        {/* Tiene planos */}
-        <div>
-          <label htmlFor="elf-planos" className={labelClass}>
-            Tienes planos .dwg o PDF? {reqStar}
-          </label>
-          <select
-            id="elf-planos"
-            name="tienePlanos"
-            value={form.tienePlanos}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            <option value="">Selecciona una opcion...</option>
-            {TIENE_PLANOS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Dimensiones aproximadas */}
-        <div>
-          <label htmlFor="elf-dim" className={labelClass}>
-            Dimensiones aproximadas {reqStar}
-          </label>
-          <input
-            id="elf-dim"
-            name="dimensionesAproximadas"
-            type="text"
-            value={form.dimensionesAproximadas}
-            onChange={handleChange}
-            placeholder="105 x 65 m, postes 25 m"
-            className={inputClass}
-          />
-        </div>
-
-        {/* Altura de montaje */}
-        <div>
-          <label htmlFor="elf-altura" className={labelClass}>
-            Altura de montaje {reqStar}
-          </label>
-          <input
-            id="elf-altura"
-            name="alturaMontaje"
-            type="text"
-            value={form.alturaMontaje}
-            onChange={handleChange}
-            placeholder="25 metros (postes existentes)"
-            className={inputClass}
-          />
-        </div>
-
-        {/* Objetivo del proyecto */}
-        <div className="sm:col-span-2">
-          <label htmlFor="elf-objetivo" className={labelClass}>
-            Objetivo del proyecto {reqStar}
-          </label>
-          <select
-            id="elf-objetivo"
-            name="objetivoProyecto"
-            value={form.objetivoProyecto}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            <option value="">Selecciona el objetivo principal...</option>
-            {OBJETIVOS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Normativa objetivo (opcional) */}
-        <div>
-          <label htmlFor="elf-norma" className={labelClass}>
-            Normativa objetivo {optLabel}
-          </label>
-          <select
-            id="elf-norma"
-            name="normativaObjetivo"
-            value={form.normativaObjetivo}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            {NORMATIVAS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Urgencia (opcional) */}
-        <div>
-          <label htmlFor="elf-urgencia" className={labelClass}>
-            Urgencia {optLabel}
-          </label>
-          <select
-            id="elf-urgencia"
-            name="urgenciaProyecto"
-            value={form.urgenciaProyecto}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            {URGENCIAS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Descripcion (opcional) */}
-        <div className="sm:col-span-2">
-          <label htmlFor="elf-desc" className={labelClass}>
-            Descripción del proyecto {optLabel}
-          </label>
-          <textarea
-            id="elf-desc"
-            name="descripcionProyecto"
-            value={form.descripcionProyecto}
-            onChange={handleChange}
-            rows={3}
-            maxLength={MAX_DESCRIPCION}
-            placeholder="Describa brevemente su proyecto, contexto o requerimientos adicionales..."
-            className={inputClass + ' resize-none'}
-          />
-        </div>
-      </div>
-
-      {/* Submit */}
-      <div className="mt-8">
-        {/* Error junto al boton, donde el visitante esta mirando */}
-        {(status === 'error' || errorMsg) && (
-          <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">
-            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <span>{errorMsg || 'Ocurrio un error. Intentalo de nuevo.'}</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {/* Nombre completo */}
+          <div>
+            <label htmlFor="elf-nombre" className={labelClass}>
+              Nombre completo {reqStar}
+            </label>
+            <input
+              id="elf-nombre"
+              name="nombreCompleto"
+              type="text"
+              value={form.nombreCompleto}
+              onChange={handleChange}
+              placeholder="Juan Perez"
+              className={inputClass}
+              autoComplete="name"
+            />
           </div>
-        )}
-        <Button
-          type="submit"
-          size="lg"
-          disabled={status === 'sending'}
-          className="w-full h-14 text-base font-bold gap-2 rounded-xl text-white transition-all"
-          style={{ background: 'linear-gradient(135deg, #0891B2, #06B6D4)' }}
-        >
-          {status === 'sending' ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...
-            </>
-          ) : (
-            <>
-              <Send className="h-5 w-5" /> SOLICITAR COTIZACION
-            </>
+
+          {/* Email */}
+          <div>
+            <label htmlFor="elf-email" className={labelClass}>
+              Correo electronico {reqStar}
+            </label>
+            <input
+              id="elf-email"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              placeholder="juan@empresa.cl"
+              className={inputClass}
+              autoComplete="email"
+            />
+          </div>
+
+          {/* Telefono */}
+          <div>
+            <label htmlFor="elf-telefono" className={labelClass}>
+              Teléfono {reqStar}
+            </label>
+            <input
+              id="elf-telefono"
+              name="telefono"
+              type="tel"
+              value={form.telefono}
+              onChange={handleChange}
+              placeholder="+56 9 1234 5678"
+              className={inputClass}
+              autoComplete="tel"
+            />
+          </div>
+
+          {/* Empresa (opcional) */}
+          <div>
+            <label htmlFor="elf-empresa" className={labelClass}>
+              Empresa {optLabel}
+            </label>
+            <input
+              id="elf-empresa"
+              name="empresa"
+              type="text"
+              value={form.empresa}
+              onChange={handleChange}
+              placeholder="Mi Empresa Ltda."
+              className={inputClass}
+              autoComplete="organization"
+            />
+          </div>
+
+          {/* Tipo de proyecto */}
+          <div className="sm:col-span-2">
+            <label htmlFor="elf-tipo" className={labelClass}>
+              Tipo de proyecto {reqStar}
+            </label>
+            <select
+              id="elf-tipo"
+              name="tipoProyecto"
+              value={form.tipoProyecto}
+              onChange={handleChange}
+              className={inputClass}
+            >
+              <option value="">Selecciona el tipo de proyecto...</option>
+              {TIPOS_PROYECTO.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Comuna / Ciudad */}
+          <div>
+            <label htmlFor="elf-comuna" className={labelClass}>
+              Comuna / Ciudad {reqStar}
+            </label>
+            <input
+              id="elf-comuna"
+              name="comunaCiudad"
+              type="text"
+              value={form.comunaCiudad}
+              onChange={handleChange}
+              placeholder="Tome, Region del Biobio"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Tiene planos */}
+          <div>
+            <label htmlFor="elf-planos" className={labelClass}>
+              Tienes planos .dwg o PDF? {reqStar}
+            </label>
+            <select
+              id="elf-planos"
+              name="tienePlanos"
+              value={form.tienePlanos}
+              onChange={handleChange}
+              className={inputClass}
+            >
+              <option value="">Selecciona una opcion...</option>
+              {TIENE_PLANOS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dimensiones aproximadas */}
+          <div>
+            <label htmlFor="elf-dim" className={labelClass}>
+              Dimensiones aproximadas {reqStar}
+            </label>
+            <input
+              id="elf-dim"
+              name="dimensionesAproximadas"
+              type="text"
+              value={form.dimensionesAproximadas}
+              onChange={handleChange}
+              placeholder="105 x 65 m, postes 25 m"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Altura de montaje */}
+          <div>
+            <label htmlFor="elf-altura" className={labelClass}>
+              Altura de montaje {reqStar}
+            </label>
+            <input
+              id="elf-altura"
+              name="alturaMontaje"
+              type="text"
+              value={form.alturaMontaje}
+              onChange={handleChange}
+              placeholder="25 metros (postes existentes)"
+              className={inputClass}
+            />
+          </div>
+
+          {/* Objetivo del proyecto */}
+          <div className="sm:col-span-2">
+            <label htmlFor="elf-objetivo" className={labelClass}>
+              Objetivo del proyecto {reqStar}
+            </label>
+            <select
+              id="elf-objetivo"
+              name="objetivoProyecto"
+              value={form.objetivoProyecto}
+              onChange={handleChange}
+              className={inputClass}
+            >
+              <option value="">Selecciona el objetivo principal...</option>
+              {OBJETIVOS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Normativa objetivo (opcional) */}
+          <div>
+            <label htmlFor="elf-norma" className={labelClass}>
+              Normativa objetivo {optLabel}
+            </label>
+            <select
+              id="elf-norma"
+              name="normativaObjetivo"
+              value={form.normativaObjetivo}
+              onChange={handleChange}
+              className={inputClass}
+            >
+              {NORMATIVAS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Urgencia (opcional) */}
+          <div>
+            <label htmlFor="elf-urgencia" className={labelClass}>
+              Urgencia {optLabel}
+            </label>
+            <select
+              id="elf-urgencia"
+              name="urgenciaProyecto"
+              value={form.urgenciaProyecto}
+              onChange={handleChange}
+              className={inputClass}
+            >
+              {URGENCIAS.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Descripcion (opcional) */}
+          <div className="sm:col-span-2">
+            <label htmlFor="elf-desc" className={labelClass}>
+              Descripción del proyecto {optLabel}
+            </label>
+            <textarea
+              id="elf-desc"
+              name="descripcionProyecto"
+              value={form.descripcionProyecto}
+              onChange={handleChange}
+              rows={3}
+              maxLength={MAX_DESCRIPCION}
+              placeholder="Describa brevemente su proyecto, contexto o requerimientos adicionales..."
+              className={inputClass + ' resize-none'}
+            />
+          </div>
+        </div>
+
+        {/* Submit */}
+        <div className="mt-8">
+          {/* Error junto al boton, donde el visitante esta mirando */}
+          {(status === 'error' || errorMsg) && (
+            <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{errorMsg || 'Ocurrio un error. Intentalo de nuevo.'}</span>
+            </div>
           )}
-        </Button>
-        <p className="text-center text-xs text-gray-400 mt-3">
-          Entrega en 48 horas desde la recepción de todos los antecedentes
-        </p>
-      </div>
+          <Button
+            type="submit"
+            size="lg"
+            disabled={!hydrated || status === 'sending'}
+            className="w-full h-14 text-base font-bold gap-2 rounded-xl text-white transition-all"
+            style={{ background: 'linear-gradient(135deg, #0891B2, #06B6D4)' }}
+          >
+            {status === 'sending' ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...
+              </>
+            ) : (
+              <>
+                <Send className="h-5 w-5" /> SOLICITAR COTIZACION
+              </>
+            )}
+          </Button>
+          <p className="text-center text-xs text-gray-400 mt-3">
+            Entrega en 48 horas desde la recepción de todos los antecedentes
+          </p>
+        </div>
+      </fieldset>
     </form>
   );
 };

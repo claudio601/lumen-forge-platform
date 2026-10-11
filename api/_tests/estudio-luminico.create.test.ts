@@ -238,4 +238,12 @@ describe('POST /api/estudio-luminico/create', () => {
     expect(text).not.toContain(PHONE);
     expect(text).not.toContain(NAME);
   });
+
+  it('la comuna (texto libre) no llega al log', async () => {
+    const comuna = 'Santiago juan.perez@correo.cl +56911112222';
+    await call({ ...base, comunaCiudad: comuna });
+    await mailsSettled();
+    expect(logged()).not.toContain(comuna);
+    expect(logged()).not.toContain('juan.perez@correo.cl');
+  });
 });
