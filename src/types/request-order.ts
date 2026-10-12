@@ -1,6 +1,8 @@
 // src/types/request-order.ts
 // Tipos para el flujo de Solicitud de Pedido (Request Order)
 
+import type { Attribution } from '@/lib/attribution';
+
 // Item individual en el Request Cart
 export interface RequestOrderItem {
     /** Id del producto en Jumpseller: el servidor recalcula el precio CON IVA con él. */
@@ -41,6 +43,8 @@ export interface RequestOrderPayload {
     requestReference: string;
     /** Honeypot anti-bots: campo oculto que las personas dejan vacío. */
     website?: string;
+    /** Origen de la visita (src/lib/attribution.ts); sin origen la clave no viaja. */
+    attribution?: Attribution;
 }
 
 // Respuesta exitosa del endpoint

@@ -21,6 +21,7 @@ import { buildRequestRef, cartItemToOrderItem, formatCLP, reconcileRequestItems,
 import { products } from '@/data/products';
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
+import { getAttribution } from '@/lib/attribution';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
 import Seo from '@/components/Seo';
 
@@ -188,6 +189,7 @@ const RequestOrderPage = () => {
                         notes: form.notes.trim() || undefined,
                         requestReference,
                         website,
+                        attribution: getAttribution(),
               };
           
               try {

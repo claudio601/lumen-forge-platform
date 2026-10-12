@@ -17,6 +17,10 @@
 //        + segundo correo "ATENCIÓN ... Crear el negocio a mano."
 //     -> Fallan ambos: 502 con error visible al usuario
 //  9. Retorna 201/200 con los IDs y la referencia para trazabilidad
+//
+// El correo y la nota terminan con el origen de la visita (clave `attribution`, distinta
+// del campo `origen` del formulario; api/_lib/forms/attribution.ts). Informativo: un origen
+// raro se descarta, nunca da 400, y no entra en la referencia ni en el log.
 // ─────────────────────────────────────────────────────────────────────────────
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
@@ -42,6 +46,7 @@ import {
 } from '../_lib/auth.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { validateInstallationPayload } from './validation.js';
+import { origenFromBody } from '../_lib/forms/attribution.js';
 
 const LOG_PREFIX = '[api/installation-leads/create]';
 
@@ -115,14 +120,14 @@ function installationDetailLines(payload: InstallationLeadPayload): string[] {
   ];
 }
 
-/** Bloque PRODUCTOS SOLICITADOS del correo a ventas. */
-function buildInstallationEmailBody(payload: InstallationLeadPayload, leadRef: string): string {
-  return ['Solicitud de instalación ' + leadRef + ' (buscar la referencia en Pipedrive)', '', ...installationDetailLines(payload)].join('\n');
+/** Bloque PRODUCTOS SOLICITADOS del correo a ventas; `origen`: sección ORIGEN DE LA VISITA. */
+function buildInstallationEmailBody(payload: InstallationLeadPayload, leadRef: string, origen: string[]): string {
+  return ['Solicitud de instalación ' + leadRef + ' (buscar la referencia en Pipedrive)', '', ...installationDetailLines(payload), '', ...origen].join('\n');
 }
 
-/** Nota del deal: todos los datos, incluso los que no tienen campo propio en Pipedrive. */
-function buildInstallationNote(payload: InstallationLeadPayload, leadRef: string, score: number, tier: string): string {
-  return ['Solicitud de instalación ' + leadRef, '', ...installationDetailLines(payload), '', 'Puntaje: ' + score + ' / 100 (prioridad ' + tier + ')'].join('\n');
+/** Nota del deal: todos los datos, incluso los que no tienen campo propio en Pipedrive, y el origen. */
+function buildInstallationNote(payload: InstallationLeadPayload, leadRef: string, score: number, tier: string, origen: string[]): string {
+  return ['Solicitud de instalación ' + leadRef, '', ...installationDetailLines(payload), '', 'Puntaje: ' + score + ' / 100 (prioridad ' + tier + ')', '', ...origen].join('\n');
 }
 
 /** La nota no bloquea: el correo a ventas ya lleva los mismos datos. */
@@ -140,7 +145,7 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-async function processInstallationLead(payload: InstallationLeadPayload, leadRef: string): Promise<InstallationCrmResult> {
+async function processInstallationLead(payload: InstallationLeadPayload, leadRef: string, origen: string[]): Promise<InstallationCrmResult> {
   await initFieldOptions();
   const person = await findOrCreatePerson({ name: payload.nombre.trim(), email: payload.email.trim() || undefined, phone: payload.telefono.trim() || undefined, preferredChannel: payload.preferenciaContacto === 'whatsapp' ? 'WhatsApp' : payload.preferenciaContacto === 'llamada' ? 'Telefono' : 'Email', commune: payload.comuna.trim() || undefined });
   console.log(LOG_PREFIX + ' ' + leadRef + ' Person: ' + person.personId + ' (' + person.action + ')');
@@ -149,7 +154,7 @@ async function processInstallationLead(payload: InstallationLeadPayload, leadRef
   const refField = process.env.PIPEDRIVE_INSTALL_FIELD_LEAD_REF;
   const dealParams: CreateInstallationDealParams = refField ? { ...mapped, customFields: { ...mapped.customFields, [refField]: leadRef } } : mapped;
   const { dealId, dealAction } = await createInstallationDeal(dealParams);
-  await addNoteToDeal(dealId, leadRef, buildInstallationNote(payload, leadRef, dealParams.leadScore, dealParams.priorityTier));
+  await addNoteToDeal(dealId, leadRef, buildInstallationNote(payload, leadRef, dealParams.leadScore, dealParams.priorityTier, origen));
   return { personId: person.personId, personAction: person.action, dealId, dealAction, leadScore: dealParams.leadScore, priorityTier: dealParams.priorityTier };
 }
 
@@ -171,6 +176,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (!validation.valid) { console.warn(LOG_PREFIX + ' Validation failed:', validation.errors); res.status(400).json({ success: false, error: 'Validation failed', details: { errors: validation.errors } } satisfies InstallationLeadApiResponse); return; }
 
   const payload = body as InstallationLeadPayload;
+  // Origen de la visita (clave attribution): informativo, nunca rechaza ni va al log
+  const origen = origenFromBody(body);
 
   // Una sola referencia para el correo, la nota y el campo del deal: calcularla
   // dos veces podría separarlas si cambia la hora entre ambas.
@@ -179,7 +186,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto + ' | comuna: ' + payload.comuna);
 
   // Correo a ventas ANTES de Pipedrive: si el CRM falla, el lead no se pierde
-  const cuerpo = buildInstallationEmailBody(payload, leadRef);
+  const cuerpo = buildInstallationEmailBody(payload, leadRef, origen);
   const email: SalesEmail = {
     modo: 'Instalación profesional (sin monto)',
     nombre: payload.nombre,
@@ -192,7 +199,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const mail = notifySales(email, ref);
 
   try {
-    const result = await processInstallationLead(payload, leadRef);
+    const result = await processInstallationLead(payload, leadRef, origen);
     console.log(ref + ' Done — deal: ' + result.dealId + ' (' + result.dealAction + ') score: ' + result.leadScore);
     res.status(result.dealAction === 'created' ? 201 : 200).json({ success: true, personId: result.personId, dealId: result.dealId, dealAction: result.dealAction, leadScore: result.leadScore, priorityTier: result.priorityTier, leadRef } satisfies InstallationLeadApiResponse);
   } catch (err) {

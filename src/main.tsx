@@ -9,7 +9,12 @@ import "@fontsource/ibm-plex-mono/500.css";
 import App from "./App.tsx";
 import { staticPage } from "./routes";
 import { retryBrokenImages } from "./lib/brokenImages";
+import { captureAttribution } from "./lib/attribution";
 import "./index.css";
+
+// Origen de la visita (anuncio, campaña, sitio anterior): una vez por carga, antes de que
+// React Router pueda redirigir y botar los parámetros. Nunca lanza.
+captureAttribution();
 
 const container = document.getElementById("root")!;
 
