@@ -5,7 +5,7 @@
 // El modo empresa del encabezado solo preselecciona el tipo de cliente.
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider, useApp } from '@/context/AppContext';
@@ -70,6 +70,39 @@ describe('/cotizacion', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('antes del botón, el aviso: no es una compra, derecho a retracto, garantía legal y los textos en otra pestaña (PR 12)', async () => {
+    await renderPage();
+    const notice = screen.getByRole('note', { name: 'Información antes de enviar' });
+    const button = screen.getByRole('button', { name: /ENVIAR SOLICITUD/ });
+    expect(notice.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notice).toHaveTextContent('Esta solicitud de presupuesto no es una compra y no genera ningún cobro.');
+    expect(notice).toHaveTextContent(/derecho a retracto/i);
+    expect(notice).toHaveTextContent('10 días corridos');
+    expect(notice).toHaveTextContent('6 meses');
+    // Párrafo 2 con el texto exacto del diseño (exclusiones del DS 52), en letra no más chica que el total (DS 52 art. 6)
+    const retracto = within(notice).getByText('Derecho a retracto:').closest('p')!;
+    expect(retracto).toHaveTextContent('Derecho a retracto: puedes arrepentirte de tu compra dentro de 10 días corridos desde que recibes el producto. No aplica a productos ya instalados o usados más allá de lo necesario para revisarlos, ni a los fabricados o adaptados según tus especificaciones; si tu pedido incluye alguno, la cotización lo indicará junto a su precio, antes de que pagues.');
+    expect(retracto).toHaveClass('text-base');
+    expect(screen.getByText('Total referencial:').nextElementSibling!.className).not.toMatch(/\btext-(?:lg|\d?xl)\b/);
+    const links = within(notice).getAllByRole('link');
+    expect(links.map(a => a.getAttribute('href'))).toEqual(['/terminos-y-condiciones', '/cambios-devoluciones-y-garantia', '/politica-de-privacidad']);
+    for (const a of links) {
+      expect(a).toHaveAttribute('target', '_blank');
+      expect(a.getAttribute('rel')).toContain('noopener');
+    }
+  });
+
+  it('con el aviso, el error sigue justo antes del botón (donde el visitante está mirando)', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    await renderPage();
+    fillContact('212 3456');
+    submit();
+    const alert = await screen.findByRole('alert');
+    const notice = screen.getByRole('note', { name: 'Información antes de enviar' });
+    expect(alert.nextElementSibling).toBe(screen.getByRole('button', { name: /ENVIAR SOLICITUD/ }));
+    expect(notice.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 
   it('persona por defecto: no pide RUT, razón social, giro ni dirección', async () => {
     await renderPage();

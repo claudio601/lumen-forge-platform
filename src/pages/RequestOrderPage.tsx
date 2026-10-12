@@ -24,6 +24,7 @@ import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
 import Seo from '@/components/Seo';
+import PreSubmitNotice from '@/components/legal/PreSubmitNotice';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 const REGIONS = [
@@ -502,7 +503,8 @@ const RequestOrderPage = () => {
                                                                   />
                                       </div>
                             </div>
-                    
+                            <PreSubmitNotice kind="pedido" />
+
                             <Button
                                           type="submit"
                                           size="lg"

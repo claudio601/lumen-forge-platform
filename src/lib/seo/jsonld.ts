@@ -4,7 +4,7 @@
 // Reglas del dueño: precios CON IVA (los de Jumpseller) y nunca disponibilidad
 // (no hay control de stock: "Consultar disponibilidad").
 
-import { absoluteUrl, LEGAL_NAME, SITE_NAME, SITE_URL } from '@/config/site';
+import { absoluteUrl, LEGAL_NAME, LEGAL_RUT, SITE_NAME, SITE_URL } from '@/config/site';
 import { contactEmail, whatsappNumber } from '@/config/business';
 import type { Product } from '@/data/catalog/types';
 import { encodeImageUrl } from './ogImage';
@@ -26,6 +26,7 @@ export function organizationJsonLd(): JsonLd {
     '@type': 'Organization',
     name: SITE_NAME,
     legalName: LEGAL_NAME,
+    taxID: LEGAL_RUT,
     url: SITE_URL + '/',
     // Isotipo cuadrado de la marca (Google pide mínimo 112×112; logo.svg es apaisado).
     logo: { '@type': 'ImageObject', url: absoluteUrl('/logo-square.png'), width: 512, height: 512 },

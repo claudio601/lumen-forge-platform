@@ -48,6 +48,13 @@ const pages = {
   InstalacionPage: lazyPage('InstalacionPage', () => import('./pages/InstalacionPage')),
   EstudioLuminicoPage: lazyPage('EstudioLuminicoPage', () => import('./pages/EstudioLuminicoPage')),
   RequestOrderPage: lazyPage('RequestOrderPage', () => import('./pages/RequestOrderPage')),
+  // Páginas legales y de compra (PR 12)
+  EmpresaPage: lazyPage('EmpresaPage', () => import('./pages/EmpresaPage')),
+  TerminosPage: lazyPage('TerminosPage', () => import('./pages/TerminosPage')),
+  CambiosGarantiaPage: lazyPage('CambiosGarantiaPage', () => import('./pages/CambiosGarantiaPage')),
+  DespachoPage: lazyPage('DespachoPage', () => import('./pages/DespachoPage')),
+  MediosPagoPage: lazyPage('MediosPagoPage', () => import('./pages/MediosPagoPage')),
+  PrivacidadPage: lazyPage('PrivacidadPage', () => import('./pages/PrivacidadPage')),
   NotFound: lazyPage('NotFound', () => import('./pages/NotFound')),
 };
 
@@ -104,6 +111,12 @@ const appRoutes: AppRoute[] = [
   { path: '/instalacion', element: <pages.InstalacionPage />, page: pages.InstalacionPage },
   { path: '/estudio-luminico', element: <pages.EstudioLuminicoPage />, page: pages.EstudioLuminicoPage },
   { path: '/solicitar-pedido', element: <pages.RequestOrderPage />, page: pages.RequestOrderPage },
+  { path: '/empresa', element: <pages.EmpresaPage />, page: pages.EmpresaPage },
+  { path: '/terminos-y-condiciones', element: <pages.TerminosPage />, page: pages.TerminosPage },
+  { path: '/cambios-devoluciones-y-garantia', element: <pages.CambiosGarantiaPage />, page: pages.CambiosGarantiaPage },
+  { path: '/despacho', element: <pages.DespachoPage />, page: pages.DespachoPage },
+  { path: '/medios-de-pago', element: <pages.MediosPagoPage />, page: pages.MediosPagoPage },
+  { path: '/politica-de-privacidad', element: <pages.PrivacidadPage />, page: pages.PrivacidadPage },
   { path: '*', element: <pages.NotFound />, page: pages.NotFound },
 ];
 

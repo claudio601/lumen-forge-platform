@@ -42,7 +42,7 @@ import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
-import { NOINDEX_ROUTES } from '../src/lib/seo/routes';
+import { NOINDEX_ROUTES, STATIC_ROUTES } from '../src/lib/seo/routes';
 import { LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
 
 export type Kind = 'page' | 'spa' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
@@ -62,7 +62,8 @@ const RENAMED_SMOKE_IDS = [4122715, 25888711];
 /**
  * URLs de elights.cl que revisa el chequeo (PR 08), con el destino de legacy-urls.json: una
  * ficha con el mismo id (y la consulta de Google Ads), una categoría (con barra final), fichas
- * renombradas con %C3%BA, con coma y con puntos, /home y /search (conserva ?q=).
+ * renombradas con %C3%BA, con coma y con puntos, /home, /search (conserva ?q=) y una página
+ * legal (PR 12).
  */
 const LEGACY_SMOKE = [
   '/alumbrado-publico-bestled-120w-ip66-ik08?gclid=smoke',
@@ -73,6 +74,7 @@ const LEGACY_SMOKE = [
   '/tubo-led-opal-vidrio-18w-120cm.-220v.-c/sensor-6500k',
   '/home',
   '/search?q=panel',
+  '/terms-and-conditions',
 ];
 /** URLs de elights.cl sin regla a propósito (404): un producto de prueba y el blog. */
 const LEGACY_SMOKE_NOT_FOUND = ['/producto-test-checkout', '/blog'];
@@ -136,7 +138,8 @@ export const API_FUNCTIONS = [
 
 /** Rutas a revisar: las mismas en cada ejecución para poder comparar. */
 export function buildTargets(): Target[] {
-  const pages = ['/', '/catalogo', '/instalacion', '/estudio-luminico', '/instaladores', '/cotizador'];
+  // Todas las páginas fijas (desde la PR 12 incluye las legales): ninguna queda sin revisar
+  const pages = [...STATIC_ROUTES];
   const productPaths = products.slice(0, 3).map(p => `/producto/${p.id}`);
   const categoryPaths = categories.slice(0, 3).map(c => `/catalogo/${c.slug}`);
   const datasheet = products.find(p => p.datasheetUrl)?.datasheetUrl;

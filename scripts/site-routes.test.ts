@@ -16,6 +16,7 @@ import { buildRobots, buildSitemap } from './generate-sitemap';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
+import { LEGAL_PAGES } from '../src/config/legal';
 
 const routesSource = readFileSync(new URL('../src/routes.tsx', import.meta.url), 'utf-8');
 const appRoutes = [...routesSource.matchAll(/\{ path: '([^']+)', element:/g)].map(m => m[1]);
@@ -27,7 +28,7 @@ describe('rutas del sitio', () => {
     expect(appRoutes.filter(r => !known.has(r))).toEqual([]);
   });
 
-  it('indexables: 6 fijas + todas las categorías + todos los productos, sin duplicados ni parámetros', () => {
+  it('indexables: las páginas fijas + todas las categorías + todos los productos, sin duplicados ni parámetros', () => {
     const routes = indexableRoutes();
     expect(routes).toHaveLength(STATIC_ROUTES.length + categories.length + products.length);
     expect(new Set(routes).size).toBe(routes.length);
@@ -39,6 +40,7 @@ describe('rutas del sitio', () => {
     const xml = buildSitemap(indexableRoutes());
     expect(xml).toContain(`<loc>${SITE_URL}/</loc>`);
     expect(xml).toContain(`<loc>${SITE_URL}/cotizador</loc>`);
+    expect(xml).toContain(`<loc>${SITE_URL}/terminos-y-condiciones</loc>`);
     expect(xml).not.toContain('/buscar');
     expect(xml.match(/<loc>/g)).toHaveLength(indexableRoutes().length);
     expect(buildRobots()).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`);
@@ -53,6 +55,11 @@ describe('rutas del sitio', () => {
     for (const pattern of DYNAMIC_ROUTE_PATTERNS) {
       expect(routes.some(r => matchPath(pattern, r)), `${pattern} no tiene páginas generadas`).toBe(true);
     }
+  });
+
+  it('las páginas legales y de compra (LEGAL_PAGES: pie, aviso de los formularios) son páginas fijas indexables', () => {
+    expect(LEGAL_PAGES).toHaveLength(6);
+    for (const { path } of LEGAL_PAGES) expect(STATIC_ROUTES as readonly string[], path).toContain(path);
   });
 
   it('las listas no se pisan: una ruta es indexable, noindex o redirección, nunca dos (vercel.json se arma con ellas)', () => {
