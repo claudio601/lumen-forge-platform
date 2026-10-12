@@ -268,8 +268,8 @@ const EstudioLuminicoLeadForm = () => {
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
         <p className="text-gray-500 max-w-sm text-sm leading-relaxed">
           Revisaremos tu proyecto y te enviaremos la cotización del estudio con propuesta de
-          luminarias eLIGHTS. Entrega en 48 horas desde la recepción de todos los
-          antecedentes.
+          luminarias eLIGHTS. El informe se entrega en 48 horas desde la recepción de todos
+          los antecedentes.
         </p>
         <button
           onClick={() => setStatus('idle')}

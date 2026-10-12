@@ -22,7 +22,7 @@ const DualPathCards = () => (
         </div>
         <h3 className="text-xl font-bold mb-2">Cotización para empresas / proyectos</h3>
         <p className="text-muted-foreground text-sm mb-4">
-          Solicita cotización personalizada con precios especiales para empresas, proyectos y volúmenes.
+          Solicita una cotización personalizada para empresas, proyectos y volúmenes.
         </p>
         <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary group-hover:gap-2 transition-all">
           Cotizar ahora <ArrowRight className="h-4 w-4" />

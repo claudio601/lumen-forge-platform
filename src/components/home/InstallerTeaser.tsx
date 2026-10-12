@@ -14,7 +14,7 @@ const InstallerTeaser = () => (
           </div>
           <h2 className="text-2xl font-bold mb-3">Instalación profesional de iluminación y paneles solares</h2>
           <p className="text-muted-foreground mb-6">
-            Productos + instalación eléctrica en un solo lugar. Visita técnica, cotización y ejecución por electricistas certificados. {installationCoverageShort}
+            Productos + instalación eléctrica en un solo lugar. Visita técnica, cotización y ejecución de la instalación. {installationCoverageShort}
           </p>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[

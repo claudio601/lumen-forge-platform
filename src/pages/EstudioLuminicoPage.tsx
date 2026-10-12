@@ -22,27 +22,27 @@ const APLICACIONES = [
   {
     icon: <Globe className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Estadios y canchas deportivas',
-    desc: 'Canchas de futbol, rugby, tenis, atletismo y recintos multideporte. Simulación orientada a criterios FIFA aplicables y normas internacionales de iluminación deportiva.',
+    desc: 'Canchas de fútbol, rugby, tenis, atletismo y recintos multideporte. Simulación orientada a criterios FIFA aplicables y normas internacionales de iluminación deportiva.',
   },
   {
     icon: <Building2 className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Industria y bodegas',
-    desc: 'Naves industriales, plantas de producción y centros de distribución. Verificación segun EN 12464-1/2 y criterios SEC/RIC aplicables al tipo de tarea.',
+    desc: 'Naves industriales, plantas de producción y centros de distribución. Verificación según EN 12464-1/2 y criterios SEC/RIC aplicables al tipo de tarea.',
   },
   {
     icon: <Truck className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Estacionamientos',
-    desc: 'Recintos cubiertos y al aire libre. Definicion de uniformidades, cotas de seguridad y propuesta de luminarias de alta eficiencia.',
+    desc: 'Recintos cubiertos y al aire libre. Definición de uniformidades, cotas de seguridad y propuesta de luminarias de alta eficiencia.',
   },
   {
     icon: <Lightbulb className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Edificios comerciales',
-    desc: 'Oficinas, retail, centros comerciales y locales. Cálculo de planos de trabajo, uniformidades y eficiencia energetica.',
+    desc: 'Oficinas, retail, centros comerciales y locales. Cálculo de planos de trabajo, uniformidades y eficiencia energética.',
   },
   {
     icon: <MapPin className="h-7 w-7" style={{ color: '#06B6D4' }} />,
     title: 'Vialidad y exteriores',
-    desc: 'Calles, avenidas, plazas y circuitos peatonales. Verificación segun EN 13201 y requisitos SEC de producto e instalación.',
+    desc: 'Calles, avenidas, plazas y circuitos peatonales. Verificación según EN 13201 y requisitos SEC de producto e instalación.',
   },
   {
     icon: <GraduationCap className="h-7 w-7" style={{ color: '#06B6D4' }} />,
@@ -54,18 +54,18 @@ const APLICACIONES = [
 const ENTREGABLES = [
   {
     num: '01',
-    title: 'Datos de planificacion',
+    title: 'Datos de planificación',
     desc: 'Factor de mantenimiento, potencias instaladas y flujo luminoso total del sistema.',
   },
   {
     num: '02',
     title: 'Coordenadas de luminarias',
-    desc: 'Posicion X/Y/Z de cada luminaria, ángulos de apunte y datos de montaje.',
+    desc: 'Posición X/Y/Z de cada luminaria, ángulos de apunte y datos de montaje.',
   },
   {
     num: '03',
     title: 'Renders 3D y colores falsos',
-    desc: 'Visualizacion fotorrealista del recinto con representación de niveles de iluminancia.',
+    desc: 'Visualización fotorrealista del recinto con representación de niveles de iluminancia.',
   },
   {
     num: '04',
@@ -88,7 +88,7 @@ const PROCESO = [
   {
     num: '1',
     title: 'Solicita tu estudio',
-    desc: 'Completa el formulario con los datos del proyecto. Mientras mas información, mas precisa la cotización.',
+    desc: 'Completa el formulario con los datos del proyecto. Mientras más información, más precisa la cotización.',
   },
   {
     num: '2',
@@ -98,7 +98,7 @@ const PROCESO = [
   {
     num: '3',
     title: 'Simulación DIALux',
-    desc: 'Nuestro ingeniero modela el recinto con archivos .IES reales de las luminarias propuestas.',
+    desc: 'Modelamos el recinto con archivos .IES reales de las luminarias propuestas.',
   },
   {
     num: '4',
@@ -113,7 +113,7 @@ const NORMATIVAS = [
     items: [
       'Criterios FIFA aplicables al proyecto',
       'EN 12193 — Iluminación de instalaciones deportivas',
-      'Guias CIE de iluminación deportiva',
+      'Guías CIE de iluminación deportiva',
     ],
     color: '#06B6D4',
   },
@@ -130,7 +130,7 @@ const NORMATIVAS = [
     categoria: 'Vialidad y exterior',
     items: [
       'EN 13201 — Iluminación de carreteras',
-      'SEC — Requisitos de producto e instalacion',
+      'SEC — Requisitos de producto e instalación',
     ],
     color: '#0E7490',
   },
@@ -138,28 +138,28 @@ const NORMATIVAS = [
 
 const FAQ = [
   {
-    q: 'Sirve para licitaciones?',
-    a: 'Si. El informe PDF incluye la verificación normativa, tablas de resultados y memorias de cálculo que pueden adjuntarse como respaldo técnico en una licitación o ingeniería.',
+    q: '¿Sirve para licitaciones?',
+    a: 'Sí. El informe PDF incluye la verificación normativa, tablas de resultados y memorias de cálculo que pueden adjuntarse como respaldo técnico en una licitación o ingeniería.',
   },
   {
-    q: 'Puedo solicitar el estudio sin planos DWG?',
-    a: 'Si. Con medidas aproximadas del recinto y fotos del lugar podemos realizar la simulación. Los resultados seran orientativos; un plano DWG permite mayor precision.',
+    q: '¿Puedo solicitar el estudio sin planos DWG?',
+    a: 'Sí. Con medidas aproximadas del recinto y fotos del lugar podemos realizar la simulación. Los resultados serán orientativos; un plano DWG permite mayor precisión.',
   },
   {
-    q: 'El estudio incluye propuesta de luminarias?',
-    a: 'Si. El estudio siempre incluye la propuesta de luminarias eLIGHTS que se usaron en la simulación, con ficha técnica y cotización. El valor del estudio no se descuenta de la compra.',
+    q: '¿El estudio incluye propuesta de luminarias?',
+    a: 'Sí. El estudio siempre incluye la propuesta de luminarias eLIGHTS que se usaron en la simulación, con ficha técnica y cotización.',
   },
   {
-    q: 'Cuanto demora la entrega?',
+    q: '¿Cuánto demora la entrega?',
     a: 'El informe se entrega en 48 horas desde la recepción de todos los antecedentes del proyecto (planos o medidas, altura de montaje, normativa objetivo).',
   },
   {
-    q: 'En que formato se entrega el informe?',
-    a: 'El informe se entrega en formato PDF con renders 3D, mapas de isolíneas, tablas punto a punto y resumen de cumplimiento normativo. Aproximadamente 20 páginas.',
+    q: '¿En qué formato se entrega el informe?',
+    a: 'El informe se entrega en formato PDF con renders 3D, mapas de isolíneas, tablas punto a punto y resumen de cumplimiento normativo.',
   },
   {
-    q: 'Que normativas se pueden verificar?',
-    a: 'Verificamos segun EN 12193, EN 12464-1/2, EN 13201, criterios FIFA aplicables y criterios SEC/RIC. Si tienes una normativa específica, indicalaa en el formulario.',
+    q: '¿Qué normativas se pueden verificar?',
+    a: 'Verificamos según EN 12193, EN 12464-1/2, EN 13201, criterios FIFA aplicables y criterios SEC/RIC. Si tienes una normativa específica, indícala en el formulario.',
   },
 ];
 
@@ -302,9 +302,9 @@ const EstudioLuminicoPage = () => {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
             {[
-              { value: 'DIALux', label: 'Software profesional de modelacion' },
+              { value: 'DIALux', label: 'Software profesional de modelación' },
               { value: '48h', label: 'Con antecedentes completos' },
-              { value: '~20 pag', label: 'Informe PDF con renders y tablas' },
+              { value: 'PDF', label: 'Informe con renders y tablas' },
             ].map(({ value, label }) => (
               <div
                 key={label}
@@ -340,7 +340,7 @@ const EstudioLuminicoPage = () => {
             {
               icon: <Shield className="h-5 w-5" style={{ color: '#06B6D4' }} />,
               title: 'Evita subiluminación y sobredimensionamiento',
-              desc: 'Detecta si el sistema propuesto entrega la iluminancia real que necesitas o si estas pagando de mas por potencia innecesaria.',
+              desc: 'Detecta si el sistema propuesto entrega la iluminancia real que necesitas o si estás pagando de más por potencia innecesaria.',
             },
             {
               icon: <CheckCircle className="h-5 w-5" style={{ color: '#06B6D4' }} />,
@@ -354,8 +354,8 @@ const EstudioLuminicoPage = () => {
             },
             {
               icon: <BarChart3 className="h-5 w-5" style={{ color: '#06B6D4' }} />,
-              title: 'Define la propuesta técnica optima',
-              desc: 'Determina cantidad, potencia, óptica y disposición de luminarias especificamente para tu recinto y uso.',
+              title: 'Define la propuesta técnica óptima',
+              desc: 'Determina cantidad, potencia, óptica y disposición de luminarias específicamente para tu recinto y uso.',
             },
           ].map(({ icon, title, desc }) => (
             <div
@@ -418,7 +418,7 @@ const EstudioLuminicoPage = () => {
           Tipos de proyecto
         </h2>
         <p className="text-center text-muted-foreground mb-10">
-          Experiencia en recintos deportivos, industriales, comerciales y de vialidad.
+          Estos son los tipos de proyecto que estudiamos.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {APLICACIONES.map(({ icon, title, desc }) => (
@@ -453,7 +453,7 @@ const EstudioLuminicoPage = () => {
             Contenido del informe
           </h2>
           <p className="text-center text-muted-foreground mb-10">
-            Seis componentes que forman el informe técnico de aproximadamente 20 páginas.
+            Seis componentes que forman el informe técnico.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
             {ENTREGABLES.map(({ num, title, desc }) => (
@@ -558,8 +558,8 @@ const EstudioLuminicoPage = () => {
           Normativas por vertical
         </h2>
         <p className="text-center text-muted-foreground mb-10 max-w-xl mx-auto">
-          El estudio verifica segun la normativa objetivo del proyecto. No hacemos
-          promesas absolutas de cumplimiento; aplicamos criterios tecnicos rigurosos
+          El estudio verifica según la normativa objetivo del proyecto. No hacemos
+          promesas absolutas de cumplimiento; aplicamos criterios técnicos rigurosos
           de verificación.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -623,7 +623,7 @@ const EstudioLuminicoPage = () => {
               Solicita tu cotización
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              Cuantame tu proyecto
+              Cuéntanos tu proyecto
             </h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
               Completa el formulario con los datos del recinto. Te enviamos la cotización
@@ -637,7 +637,7 @@ const EstudioLuminicoPage = () => {
 
           {/* 11. CTA alternativo WhatsApp */}
           <p className="text-center text-gray-400 text-xs mt-5">
-            Prefieres consultar directamente?{' '}
+            ¿Prefieres consultar directamente?{' '}
             <a
               href={waEstudioLuminico}
               target="_blank"

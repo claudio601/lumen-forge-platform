@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Mail, Phone, MessageCircle } from 'lucide-react';
 import { categories } from '@/data/catalog/categories.config';
 import Logo from '@/components/Logo';
-import { waBase, whatsappDisplayNumber, contactEmail } from '@/config/business';
+import { waBase, whatsappDisplayNumber, contactEmail, businessHours } from '@/config/business';
 
 const Footer = () => {
   const topCats = [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, 6);
@@ -46,8 +46,8 @@ const Footer = () => {
             <nav className="space-y-1.5">
               {[
                 { label: 'Solicitar cotización', to: '/cotizacion' },
-                { label: 'Área Instaladores', to: '/instaladores' },
-                { label: 'Cotizador inteligente', to: '/cotizador' },
+                { label: 'Instaladores y profesionales', to: '/instaladores' },
+                { label: 'Cotizador de proyectos', to: '/cotizador' },
                 { label: 'Términos y condiciones', to: '/' },
                 { label: 'Política de privacidad', to: '/' },
               ].map(({ label, to }) => (
@@ -78,7 +78,7 @@ const Footer = () => {
               </a>
             </div>
             <div className="mt-5 p-3 bg-background/5 rounded-lg border border-background/10">
-              <p className="text-xs text-background/50 leading-relaxed">Lunes a viernes 9:00-18:00 hrs.<br />Santiago, Chile</p>
+              <p className="text-xs text-background/50 leading-relaxed">{businessHours}<br />Santiago, Chile</p>
             </div>
           </div>
         </div>

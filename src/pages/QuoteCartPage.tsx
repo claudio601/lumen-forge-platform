@@ -69,7 +69,7 @@ async function submitQuote(payload: object): Promise<void> {
 }
 
 const SEO_TITLE = 'Solicitud de Cotización | eLIGHTS Chile';
-const SEO_DESCRIPTION = 'Revisa los productos de tu cotización y envíanos tus datos: un asesor te responde con precios especiales.';
+const SEO_DESCRIPTION = 'Revisa los productos de tu cotización y envíanos tus datos: un asesor te responde con la cotización formal.';
 
 /** Mensaje para el visitante según el estado HTTP de la respuesta. */
 function submitErrorMessage(httpStatus: number): string {
@@ -237,7 +237,7 @@ const QuoteCartPage = () => {
       </Link>
       <h1 className="text-2xl font-bold mb-2">Solicitud de cotización</h1>
       <p className="text-muted-foreground text-sm mb-6">
-        Un asesor comercial revisará tu solicitud y te enviará una cotización personalizada con precios especiales.
+        Un asesor comercial revisará tu solicitud y te enviará una cotización personalizada.
       </p>
 
       <div className="border rounded-xl overflow-hidden mb-8">

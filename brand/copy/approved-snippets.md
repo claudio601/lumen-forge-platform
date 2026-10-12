@@ -2,6 +2,8 @@
 
 Fragmentos de texto listos para reutilizar, validados por Claudio. Actualizar cuando haya cambios.
 
+> **Actualización 2026-10 (PR 11).** Varios textos de 2026-04 quedaron reemplazados por decisiones posteriores de Claudio: el modelo cotización → link de pago, sin mostrar stock y con "Despacho en hasta 2 días hábiles" (2026-09-29), y la garantía, que varía según el producto (2026-10-01). Lo que no está confirmado quedó marcado **pendiente de confirmar (PR 11, 2026-10)**: no usarlo hasta que Claudio lo confirme.
+
 ## Hero principal (home)
 
 **Título:** Iluminación LED profesional para proyectos, empresas y hogar
@@ -16,21 +18,30 @@ Catálogo técnico de iluminación LED profesional. Despacho a todo Chile, preci
 
 ## Trust bar
 
-- Envío gratis Santiago +$250k
-- Despacho 48-72 hrs hábiles
-- Garantía 1 año
-- Soporte técnico incluido
-- Productos certificados SEC
-- Catálogo técnico actualizado
+- Despacho en hasta 2 días hábiles
+- Garantía según ficha (mín. 6 meses)
+- Asesoría técnica por WhatsApp
+- Despacho desde Santiago
+
+Pendientes de confirmar (PR 11, 2026-10):
+
+- Envío gratis en Santiago: ¿el umbral es $200.000 (página de envíos de elights.cl) o $250.000 (banner de su inicio)? ¿Con IVA? ¿Qué comunas son "Santiago urbano"? Si se confirma, vuelve como "Despacho gratis en Santiago urbano sobre $X".
+- Certificaciones: no van como promesa general del catálogo. Cada ficha muestra las suyas.
 
 ## Bloque "¿Por qué elegir eLIGHTS.cl?"
 
-- **Catálogo técnico amplio:** Amplia variedad de productos técnicos con reposición continua. Consulta disponibilidad antes de grandes proyectos.
-- **Garantía 1 año:** Todos nuestros productos incluyen garantía base de 1 año.
+Los textos vigentes están en `src/config/business.ts` (`trustClaims`):
+
+- **Catálogo técnico amplio:** Amplia variedad de productos técnicos. Consulta disponibilidad antes de grandes proyectos.
+- **Garantía según producto:** Todos los productos tienen la garantía legal de 6 meses desde la recepción. Si un producto tiene una garantía mayor, su ficha la indica.
 - **Despacho a todo Chile:** Enviamos por Starken, Cruz del Sur, PDQ, ECOEx y otros. También despachamos con el operador logístico que prefiera el cliente.
-- **Productos certificados:** Certificación SEC, DS1, CE, IEC y normas eléctricas chilenas.
-- **Despacho 48-72 hrs hábiles:** Entrega directa con camiones propios en Provincia de Santiago. Envío a regiones en 48-72 hrs hábiles al operador logístico.
-- **+8 años en el mercado:** Experiencia y confianza en iluminación LED industrial.
+- **Certificaciones por producto:** Cada ficha indica las certificaciones del producto (SEC, DS1, CE u otras) cuando las tiene.
+- **Despacho en hasta 2 días hábiles:** Despachamos en hasta 2 días hábiles, y a veces el mismo día; a regiones, vía operador logístico.
+
+Pendientes de confirmar (PR 11, 2026-10):
+
+- Años en el mercado: ¿en qué año empezó eLIGHTS.cl? Con el año confirmado puede volver como "Desde AAAA".
+- Despacho con vehículos propios en la Provincia de Santiago: ¿eLIGHTS.cl los tiene? elights.cl no lo menciona.
 
 ## Footer descripción
 

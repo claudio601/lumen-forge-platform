@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, CheckCircle2, Upload, Zap, AlertCircle } from 'lucide-react';
+import { Send, CheckCircle2, Zap, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
@@ -200,7 +200,7 @@ const SmartQuotePage = () => {
           </p>
         )}
         <p className="text-muted-foreground mb-2">
-          Nuestro equipo técnico preparara una propuesta personalizada y te contactará en menos de 24 horas hábiles.
+          Nuestro equipo técnico preparará una propuesta personalizada y te contactará.
         </p>
         <p className="text-sm text-muted-foreground mb-8">
           También puedes escribirnos a{' '}
@@ -222,11 +222,11 @@ const SmartQuotePage = () => {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-accent text-accent-foreground text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
             <Zap className="h-3.5 w-3.5" />
-            Cotizador Inteligente
+            Cotización de proyectos
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Solicitar propuesta tecnica</h1>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Solicitar propuesta técnica</h1>
           <p className="text-muted-foreground">
-            Describe tu proyecto y nuestro equipo preparara una propuesta integral con productos, cantidades y precios especiales.
+            Describe tu proyecto y nuestro equipo preparará una propuesta integral con productos, cantidades y precios.
           </p>
         </div>
         {/* /cotizador es HTML estático (prerender) y es donde llegan /contact y /contactos (301).
@@ -280,10 +280,6 @@ const SmartQuotePage = () => {
                 <label htmlFor="sq-comentarios" className="text-sm font-medium mb-1 block">Comentarios adicionales</label>
                 <textarea id="sq-comentarios" name="comentarios" value={form.comentarios} onChange={handleChange} rows={3} maxLength={MAX_COMENTARIOS} className={inputClass + ' resize-none'} />
               </div>
-              <div className="border-2 border-dashed rounded-xl p-6 text-center text-muted-foreground">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                <p className="text-sm">Adjuntar planos o especificaciones (proximamente)</p>
-              </div>
             </div>
             <div className="border rounded-xl p-6 space-y-4">
               <h2 className="font-bold">Datos de contacto</h2>
@@ -330,7 +326,7 @@ const SmartQuotePage = () => {
               {sending ? (
                 <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Enviando...</>
               ) : (
-                <><Send className="h-5 w-5" /> Solicitar propuesta tecnica</>
+                <><Send className="h-5 w-5" /> Solicitar propuesta técnica</>
               )}
             </Button>
             {/* Campo trampa: fuera de la pantalla; si llega con texto, el servidor no crea nada.

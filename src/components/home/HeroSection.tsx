@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, FileText, Zap, Shield, Truck } from 'lucide-react';
+import { ArrowRight, FileText, Zap, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 
@@ -59,8 +59,7 @@ const HeroSection = () => (
 
           <div className="flex flex-wrap gap-5">
             {[
-              { icon: Truck, text: 'Envío gratis Santiago +$250k' },
-              { icon: Shield, text: 'Garantía de fábrica' },
+              { icon: Shield, text: 'Garantía según ficha (mín. 6 meses)' },
               { icon: Zap, text: 'Despacho en hasta 2 días hábiles' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center gap-1.5 text-gray-300 text-sm">

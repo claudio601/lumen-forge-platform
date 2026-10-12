@@ -160,7 +160,7 @@ const InstallationLeadForm = () => {
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
         <CheckCircle2 className="h-14 w-14 text-green-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
-        <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisara tu solicitud y te contactara en menos de 24 horas habiles con una propuesta personalizada.</p>
+        <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisará tu solicitud y te contactará con una propuesta personalizada.</p>
         <button onClick={() => setStatus('idle')} className="mt-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">Enviar otra solicitud</button>
       </div>
     );
@@ -197,7 +197,6 @@ const InstallationLeadForm = () => {
           <Button type="submit" size="lg" disabled={!hydrated || status === 'sending'} className="w-full h-14 text-base font-bold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all">
             {status === 'sending' ? (<><Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...</>) : (<><Send className="h-5 w-5" /> SOLICITAR EVALUACION</>)}
           </Button>
-          <p className="text-center text-xs text-gray-400 mt-3">Te respondemos en menos de 24 horas habiles - Sin compromiso</p>
         </div>
       </fieldset>
     </form>

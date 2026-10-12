@@ -1,5 +1,7 @@
 # Terminología oficial eLIGHTS.cl
 
+> **Actualización 2026-10 (PR 11).** Varios textos de 2026-04 quedaron reemplazados por decisiones posteriores de Claudio: el modelo cotización → link de pago, sin mostrar stock y con "Despacho en hasta 2 días hábiles" (2026-09-29), y la garantía, que varía según el producto (2026-10-01). Lo que no está confirmado quedó marcado **pendiente de confirmar (PR 11, 2026-10)**: no usarlo hasta que Claudio lo confirme.
+
 ## Nombre de marca (REGLA CRÍTICA)
 
 La marca es **`eLIGHTS.cl`** — con el `.cl` integrado como parte inseparable del nombre.
@@ -44,10 +46,10 @@ El error más frecuente al generar contenido para esta marca es omitir el `.cl` 
 | Catálogo de productos | Catálogo / Productos LED | Core del negocio |
 | Solicitud de productos sin pago directo | Solicitud de Pedido | Flujo bridge hasta sistema de inventario real |
 | Paraguas de servicios de instalación | Instalación Profesional | Cobertura: Región Metropolitana |
-| Visita del electricista al domicilio | Visita Técnica | ~$20.000 descontables del proyecto final |
+| Visita del electricista al domicilio | Visita Técnica | Precio: pendiente de confirmar (PR 11, 2026-10). No publicar precio ni "descontable" |
 | Instalación LED completa | Instalación Completa | Subservicio de Instalación Profesional |
 | Paneles solares | Paneles Solares (Net Billing) | Subservicio de Instalación Profesional |
-| Simulación fotométrica | Estudio Lumínico DIALux | Servicio B2B, 48h SLA, luminarias eLIGHTS.cl, criterios FIFA aplicables |
+| Simulación fotométrica | Estudio Lumínico DIALux | Servicio B2B: el informe se entrega en 48 horas desde la recepción de todos los antecedentes (confirmado 2026-10-03). El estudio se cotiza: no prometer "gratis" ni "descontable". Luminarias eLIGHTS.cl, criterios FIFA aplicables |
 
 ## Correcciones de negocio obligatorias
 
@@ -55,13 +57,13 @@ Estas son promesas que **deben** aparecer correctas en cualquier material y cuya
 
 | Correcto | NO decir |
 |---|---|
-| 8 años de trayectoria | 10 años · década · más de 10 años |
-| Garantía base 1 año | Garantía de por vida · garantía extendida sin especificar |
-| Certificaciones SEC y DS1 | CE/IEC como principales (son secundarias) |
+| Años en el mercado: pendiente de confirmar (PR 11, 2026-10), sin cifra hasta saber el año de inicio | +8 años · 10 años · década · más de 10 años |
+| Garantía legal de 6 meses + la de cada ficha (varía según el producto) | Una sola garantía para todo el catálogo (1 año, 12 meses, "de fábrica") · garantía de por vida · garantía extendida sin especificar |
+| Certificaciones por producto (SEC, DS1, CE u otras), según su ficha | Certificaciones para todo el catálogo · CE/IEC como principales (son secundarias) |
 | Cobertura instalación: Región Metropolitana | Cobertura nacional para instalación |
-| Catálogo técnico con stock actualizado | Stock permanente · siempre en stock · ilimitado |
-| Despacho 48h camiones propios (Provincia de Santiago) | Despacho inmediato nacional |
-| Despacho 48h operador logístico (resto del país) | Despacho inmediato nacional |
+| Consultar disponibilidad (nunca mostrar stock: no hay control de bodega) | En stock · sin stock · stock actualizado · stock permanente · siempre en stock · ilimitado |
+| Despacho en hasta 2 días hábiles (versión larga: "y a veces el mismo día") | 24–48 h · 48-72 h · muchas veces · despacho inmediato · camiones propios (pendiente de confirmar, PR 11) |
+| A regiones, por operador logístico | "Llega a cualquier región en hasta 2 días hábiles" · despacho inmediato nacional |
 
 ## Promesas prohibidas
 
@@ -72,6 +74,7 @@ Estas son promesas que **deben** aparecer correctas en cualquier material y cuya
 - "El precio más bajo de Chile" (no validable)
 - "100% certificado" (ambiguo)
 - Certificaciones que no tenemos (UL, ETL, ENERGY STAR, etc.)
+- Pendientes de confirmar (PR 11, 2026-10), no usar: envío gratis con umbral, "precios especiales" para todos, plazos de respuesta ("en menos de 24 horas"), "técnicos certificados SEC", "100+ proyectos", precio de la visita técnica
 
 ## Tono de voz
 
@@ -87,7 +90,7 @@ Estas son promesas que **deben** aparecer correctas en cualquier material y cuya
 - **WhatsApp / Teléfono:** +56 9 9127 3128
 - **Sitio:** https://elights.cl · https://nuevo.elights.cl
 - **Ubicación:** La Florida, Santiago
-- **Horario:** Lunes a viernes 9:00-18:00 hrs
+- **Horario:** Lunes a viernes 9:30-14:00 y 15:00-17:30 hrs. (el de elights.cl; en el sitio, la constante `businessHours` de `src/config/business.ts`)
 
 ## Para agentes de IA
 

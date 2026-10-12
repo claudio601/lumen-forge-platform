@@ -1,6 +1,6 @@
 import { MessageCircle, X } from 'lucide-react';
 import { useState } from 'react';
-import { waBase, whatsappDisplayNumber } from '@/config/business';
+import { waBase, whatsappDisplayNumber, businessHours } from '@/config/business';
 
 const WhatsAppButton = () => {
   const [expanded, setExpanded] = useState(false);
@@ -10,10 +10,10 @@ const WhatsAppButton = () => {
       {expanded && (
         <div className="bg-background border rounded-xl shadow-lg p-4 w-64 animate-fade-in">
           <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-sm">Escribenos por WhatsApp</span>
+            <span className="font-semibold text-sm">Escríbenos por WhatsApp</span>
             <button onClick={() => setExpanded(false)}><X className="h-4 w-4" /></button>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">Lunes a viernes 9:00-18:00 hrs.</p>
+          <p className="text-xs text-muted-foreground mb-3">{businessHours}</p>
           <a
             href={waBase}
             target="_blank"
