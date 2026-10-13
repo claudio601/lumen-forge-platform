@@ -27,7 +27,6 @@ import {
   legacyRedirects,
   loadLegacyUrls,
   MAX_REDIRECTS,
-  PLANNED_ROUTES,
   renamedIdRedirects,
   RESERVED_FIRST_SEGMENTS,
 } from './redirects/build';
@@ -280,7 +279,6 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
   const file = readFileSync(new URL('./redirects/legacy-urls.json', import.meta.url), 'utf-8');
   const urls = LEGACY_URLS;
   const appRoutes = new Set<string>([...STATIC_ROUTES, ...NOINDEX_ROUTES, ...REDIRECT_ROUTES]);
-  const planned = new Set<string>(PLANNED_ROUTES);
 
   it('una fila por URL y por línea, ordenadas por fuente', () => {
     const sources = urls.map(u => u.source);
@@ -294,17 +292,17 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
       .filter(line => line && !line.startsWith('#'));
     expect(baseline).toHaveLength(473);
     const bySource = new Map(urls.map(u => [u.source, u]));
-    // Las únicas sin regla el 2026-10-05; una pendiente puede ganar regla, nunca al revés
+    // Las únicas sin regla (el 2026-10-05 eran 25; la PR 12 dio regla a 6 páginas legales y
+    // /medios-de-pago pasó a served). Una pendiente puede ganar regla, nunca al revés.
     const withoutRule = new Set([
-      ...['/', '/catalogo'], // served
+      ...['/', '/catalogo', '/medios-de-pago'], // served
       ...['/pagina-basica', '/producto-test-checkout', '/producto-test-checkout-1', '/producto-test-checkout-2', '/test-search'], // gone
       ...['/5-tips-para-iluminar-tus-noches-de-verano', '/5-tips-para-iluminar-una-oficina', '/blog', '/blog-post-1', '/como-comprar-en-elights'],
       ...['/como-comprar-en-nuestro-e-commerce', '/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno', '/las-ventajas-de-comprar-en-elightscl'],
       ...['/virginia-implementara-cambios-al-alumbrado-publico-introduciendo-iluminacion-led-luz-calida'], // blog: pending
-      ...['/cambios-y-devoluciones', '/medios-de-pago', '/metodos-y-costos-de-envio', '/nuestra-empresa', '/privacy-policy', '/refund-policy'],
-      ...['/terms-and-conditions', '/quieres-ser-nuestro-proveedor', '/trabaja-con-nosotros'], // PR 12: pending
+      ...['/quieres-ser-nuestro-proveedor', '/trabaja-con-nosotros'], // pending: 404 por decisión del dueño (2026-10-05)
     ]);
-    expect(withoutRule.size).toBe(25);
+    expect(withoutRule.size).toBe(19);
     for (const source of baseline) {
       const row = bySource.get(source);
       expect(row, `${source} desapareció de legacy-urls.json`).toBeDefined();
@@ -315,6 +313,18 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     for (const source of ['/contact', '/contactos']) expect(legacyDestination(bySource.get(source)!), source).toBe('/cotizador');
     expect(legacyDestination(bySource.get('/puzzle-led-simple-embutido-12w-integrado-blanco-ip33')!)).toBe(categoryPath('paneles-led'));
     expect(bySource.get('/blog')?.pending).toBeDefined();
+    // Páginas legales y de compra (PR 12): cada URL vieja a su página nueva; /medios-de-pago es la misma URL
+    const legalPages: Record<string, string> = {
+      '/cambios-y-devoluciones': '/cambios-devoluciones-y-garantia',
+      '/refund-policy': '/cambios-devoluciones-y-garantia',
+      '/metodos-y-costos-de-envio': '/despacho',
+      '/nuestra-empresa': '/empresa',
+      '/privacy-policy': '/politica-de-privacidad',
+      '/terms-and-conditions': '/terminos-y-condiciones',
+    };
+    for (const [source, destination] of Object.entries(legalPages)) expect(legacyDestination(bySource.get(source)!), source).toBe(destination);
+    expect(bySource.get('/medios-de-pago')?.served).toBe(true);
+    for (const source of ['/quieres-ser-nuestro-proveedor', '/trabaja-con-nosotros']) expect(bySource.get(source)?.pending, source).toBeDefined();
   });
 
   it('el esquema exige exactamente un destino por fila, sin campos desconocidos ni motivos vacíos', () => {
@@ -346,7 +356,7 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     expect(repeated(covered.map(normalized))).toEqual([]);
   });
 
-  it('ninguna regla empieza por un segmento reservado: api, la app, public/, la build, la PR 12 o Jumpseller', () => {
+  it('ninguna regla empieza por un segmento reservado: api, la app (también las páginas legales), public/, la build o Jumpseller', () => {
     for (const segment of ['api', 'producto', 'catalogo', 'assets', '.well-known', 'fichas', 'robots.txt', 'sitemap.xml', 'spa.html', '404.html']) {
       expect(RESERVED_FIRST_SEGMENTS.has(segment), segment).toBe(true);
     }
@@ -366,11 +376,9 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     expect(legacyRedirects([{ source: '/checkout', gone: 'sistema de Jumpseller' }])).toEqual([]); // sin regla, no tapa nada
   });
 
-  it('una URL que la app ya sirve queda como served; las páginas de la PR 12 esperan (pending)', () => {
-    for (const p of planned) expect(appRoutes.has(p), `${p} ya es una ruta de la app: sacarla de PLANNED_ROUTES`).toBe(false);
+  it('una URL que la app ya sirve queda como served', () => {
     for (const u of urls) {
       if (appRoutes.has(u.source)) expect(u.served, `${u.source} es una ruta de la app`).toBe(true);
-      if (planned.has(u.source)) expect(u.pending, `${u.source} es una página de la PR 12`).toBeDefined();
       if (u.served) expect(appRoutes.has(u.source), `${u.source} es served, pero la app no tiene esa ruta`).toBe(true);
     }
   });

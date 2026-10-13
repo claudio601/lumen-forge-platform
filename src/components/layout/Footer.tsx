@@ -3,6 +3,22 @@ import { Mail, Phone, MessageCircle } from 'lucide-react';
 import { categories } from '@/data/catalog/categories.config';
 import Logo from '@/components/Logo';
 import { waBase, whatsappDisplayNumber, contactEmail, businessHours } from '@/config/business';
+import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_RUT } from '@/config/site';
+import { LEGAL_PAGES, legalPage } from '@/config/legal';
+
+/** Columna "Empresa": quiénes somos y las páginas de venta. */
+const companyLinks = [
+  { label: legalPage('/empresa').label, to: '/empresa' },
+  { label: 'Solicitar cotización', to: '/cotizacion' },
+  { label: 'Instaladores y profesionales', to: '/instaladores' },
+  { label: 'Cotizador de proyectos', to: '/cotizador' },
+];
+
+/** Columna "Ayuda": las demás páginas legales y de compra (PR 12). */
+const helpLinks = LEGAL_PAGES.filter(p => p.path !== '/empresa').map(p => ({ label: p.label, to: p.path }));
+
+const linkClass = 'block text-sm text-background/60 hover:text-primary transition-colors';
+const headingClass = 'font-semibold text-background mb-3 text-sm uppercase tracking-wider';
 
 const Footer = () => {
   const topCats = [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, 6);
@@ -10,7 +26,7 @@ const Footer = () => {
   return (
     <footer className="gradient-dark text-muted mt-16">
       <div className="container py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
           <div>
             <div className="mb-4">
               <Logo />
@@ -42,16 +58,18 @@ const Footer = () => {
             </nav>
           </div>
           <div>
-            <h4 className="font-semibold text-background mb-3 text-sm uppercase tracking-wider">Empresa</h4>
-            <nav className="space-y-1.5">
-              {[
-                { label: 'Solicitar cotización', to: '/cotizacion' },
-                { label: 'Instaladores y profesionales', to: '/instaladores' },
-                { label: 'Cotizador de proyectos', to: '/cotizador' },
-                { label: 'Términos y condiciones', to: '/' },
-                { label: 'Política de privacidad', to: '/' },
-              ].map(({ label, to }) => (
-                <Link key={label} to={to} className="block text-sm text-background/60 hover:text-primary transition-colors">{label}</Link>
+            <h4 className={headingClass}>Empresa</h4>
+            <nav aria-label="Empresa" className="space-y-1.5">
+              {companyLinks.map(({ label, to }) => (
+                <Link key={to} to={to} className={linkClass}>{label}</Link>
+              ))}
+            </nav>
+          </div>
+          <div>
+            <h4 className={headingClass}>Ayuda</h4>
+            <nav aria-label="Ayuda" className="space-y-1.5">
+              {helpLinks.map(({ label, to }) => (
+                <Link key={to} to={to} className={linkClass}>{label}</Link>
               ))}
             </nav>
           </div>
@@ -78,13 +96,22 @@ const Footer = () => {
               </a>
             </div>
             <div className="mt-5 p-3 bg-background/5 rounded-lg border border-background/10">
-              <p className="text-xs text-background/50 leading-relaxed">{businessHours}<br />Santiago, Chile</p>
+              <p className="text-xs text-background/50 leading-relaxed">{businessHours}<br />{LEGAL_COMUNA}, Chile</p>
             </div>
           </div>
         </div>
-        <div className="border-t border-background/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40">
-          {/* El año de la build y el del navegador pueden diferir en Año Nuevo: sin aviso de hidratación. */}
-          <span suppressHydrationWarning>© {new Date().getFullYear()} eLIGHTS - Todos los derechos reservados</span>
+        <div className="border-t border-background/10 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40 text-center sm:text-left">
+          {/* En el teléfono no cabe en una línea (360 px): la comuna baja a su propia línea, sin un "·" colgando. */}
+          <p>
+            {/* El año de la build y el del navegador pueden diferir en Año Nuevo: sin aviso de hidratación. */}
+            <span className="whitespace-nowrap" suppressHydrationWarning>
+              © {new Date().getFullYear()} {LEGAL_NAME}
+            </span>
+            <span className="whitespace-nowrap"> · RUT {LEGAL_RUT}</span>
+            <span className="hidden sm:inline"> · </span>
+            <br className="sm:hidden" />
+            <span className="whitespace-nowrap">{LEGAL_COMUNA}, Chile</span>
+          </p>
           <span>Iluminación al alcance de tus proyectos.</span>
         </div>
       </div>

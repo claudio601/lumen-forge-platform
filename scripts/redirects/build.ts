@@ -49,26 +49,12 @@ export function renamedIdRedirects(): RedirectRule[] {
 
 // --- URLs de elights.cl (PR 08) ---------------------------------------------------------
 
-/**
- * Páginas que crea la PR 12. Mientras tanto ninguna URL vieja redirige desde ahí. Al crear
- * cada una: sacarla de aquí, agregarla a STATIC_ROUTES y pasar su fila de legacy-urls.json a
- * `served` (/medios-de-pago) o darle destino a las que esperan esa página.
- */
-export const PLANNED_ROUTES = [
-  '/empresa',
-  '/terminos-y-condiciones',
-  '/cambios-devoluciones-y-garantia',
-  '/despacho',
-  '/medios-de-pago',
-  '/politica-de-privacidad',
-] as const;
-
 /** Rutas de sistema de Jumpseller (carro, pago, cuentas, adjuntos): las resuelve la Etapa 3. */
 const JUMPSELLER_SYSTEM_SEGMENTS = ['cart', 'checkout', 'v2', 'customer', 'orders', 'admin', 'attachments', 'quote'];
 
 /**
  * Primeros segmentos desde los que una URL vieja nunca redirige: las funciones (api), las
- * páginas de la app y las planeadas, los archivos de public/ y de la build, lo reservado por
+ * páginas de la app, los archivos de public/ y de la build, lo reservado por
  * Vercel y las rutas de sistema de Jumpseller. Vercel aplica las redirecciones antes que los
  * archivos: una regla ahí taparía una página, un archivo o un webhook.
  */
@@ -85,7 +71,7 @@ export const RESERVED_FIRST_SEGMENTS: ReadonlySet<string> = new Set([
   'robots.txt',
   'sitemap.xml',
   ...readdirSync(new URL('../../public', import.meta.url)),
-  ...[...STATIC_ROUTES, ...NOINDEX_ROUTES, ...REDIRECT_ROUTES, ...DYNAMIC_ROUTE_PATTERNS, ...PLANNED_ROUTES]
+  ...[...STATIC_ROUTES, ...NOINDEX_ROUTES, ...REDIRECT_ROUTES, ...DYNAMIC_ROUTE_PATTERNS]
     .map(route => route.split('/')[1])
     .filter(Boolean),
   ...JUMPSELLER_SYSTEM_SEGMENTS,
