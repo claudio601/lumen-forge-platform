@@ -26,6 +26,9 @@
 //      segundo correo "ATENCIÓN ... Crear el negocio a mano.". Fallan ambos: 502.
 //  10. Nota del deal (HTML escapado), también en un reenvío con la misma referencia: tipo de
 //      cliente, datos de facturación, productos, total CON IVA y comentarios.
+//  11. Origen de la visita (clave `attribution`, api/_lib/forms/attribution.ts): sección
+//      "ORIGEN DE LA VISITA" al final de la nota y del correo. Informativo: un origen raro
+//      se descarta, nunca da 400, y no entra en la referencia ni en el log.
 // Los logs llevan la referencia, el tipo de cliente y los ids: nunca nombre, correo,
 // teléfono ni RUT.
 
@@ -42,6 +45,7 @@ import {
 import { priceItems } from '../_lib/catalog/pricing.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
+import { formatOrigenSection, parseAttribution } from '../_lib/forms/attribution.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
@@ -99,6 +103,8 @@ interface SiteQuote {
   compact: string[];
   /** Productos que el catálogo no identificó: fuera del total, REVISAR. */
   pending: number;
+  /** Sección "ORIGEN DE LA VISITA" para la nota y el correo. */
+  origen: string[];
 }
 
 /** Una línea: sin saltos de línea ni espacios repetidos. */
@@ -141,10 +147,11 @@ const pendingText = (n: number) =>
  * organización. El RUT solo se exige presente (sin validar su formato).
  */
 function prepareSiteQuote(body: Record<string, unknown>): { site: SiteQuote; errors: string[] } {
-  const { customerType, priceMode, company } = body;
+  const { customerType, priceMode, company, attribution } = body;
   delete body.customerType;
   delete body.priceMode;
   delete body.company;
+  delete body.attribution;
   // Campos de los pedidos de Jumpseller: una cotización del sitio no los lleva
   delete body.jumpsellerOrderId;
   delete body.jumpsellerEventType;
@@ -199,7 +206,8 @@ function prepareSiteQuote(body: Record<string, unknown>): { site: SiteQuote; err
   }
 
   const type = customerType === 'empresa' || customerType === 'persona' ? customerType : undefined;
-  return { site: { customerType: type, net, billing, detail: [], compact: [], pending: 0 }, errors };
+  const origen = formatOrigenSection(parseAttribution(attribution));
+  return { site: { customerType: type, net, billing, detail: [], compact: [], pending: 0, origen }, errors };
 }
 
 /**
@@ -295,7 +303,7 @@ function fitEmailBody(head: string[], site: SiteQuote, tail: string[]): string {
 /**
  * Correo a ventas: la primera línea lleva la referencia para encontrar el deal. El campo
  * COMENTARIOS admite 500 caracteres; un comentario más largo va completo al final del cuerpo
- * y el campo lleva el comienzo con un aviso.
+ * y el campo lleva el comienzo con un aviso. El origen de la visita va siempre al final.
  */
 function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
   const notes = typeof payload.notes === 'string' ? payload.notes.trim() : '';
@@ -304,7 +312,7 @@ function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
     `Cotización web ${payload.quoteReference} (buscar la referencia en Pipedrive)`,
     `Tipo de cliente: ${customerTypeLabel(site.customerType)}`,
   ];
-  const tail = longNotes ? ['', 'Comentarios del cliente (completos):', notes] : [];
+  const tail = [...(longNotes ? ['', 'Comentarios del cliente (completos):', notes] : []), '', ...site.origen];
   const pending = site.pending ? pendingText(site.pending) : '';
   return {
     modo: site.net ? 'Con IVA (el cliente veía precios netos, modo empresa)' : 'Con IVA',
@@ -330,7 +338,7 @@ function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
 /** La nota de Pipedrive es HTML: el texto del cliente no puede agregar etiquetas ni enlaces. */
 const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Nota del deal: tipo de cliente, datos de facturación, productos, total y comentarios. */
+/** Nota del deal: tipo de cliente, datos de facturación, productos, total, comentarios y origen. */
 function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: boolean): string {
   const ref = payload.quoteReference;
   return escapeHtml([
@@ -352,6 +360,8 @@ function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: b
       : 'TOTAL CON IVA: por confirmar (REVISAR)',
     ...(site.net ? ['El cliente veía precios netos (modo empresa del sitio); los montos de esta nota son CON IVA.'] : []),
     ...(payload.notes ? [`Comentarios del cliente: ${payload.notes}`] : []),
+    '',
+    ...site.origen,
   ].join('\n'));
 }
 

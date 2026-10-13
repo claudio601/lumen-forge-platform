@@ -486,3 +486,124 @@ describe('POST /api/quotes/create', () => {
     expect(mail.razon_social).toBe('Razon Segunda linea');
   });
 });
+
+// --- Origen de la visita (Etapa 2 · PR 10) ---
+// La cotización manda `attribution`; el servidor la quita del cuerpo antes del CRM, la limpia
+// y agrega la sección "ORIGEN DE LA VISITA" al final de la nota (HTML escapado) y del correo
+// (en la cola, que nunca se recorta). Un origen raro se descarta: nunca da 400.
+
+const GCLID = 'Cj0KCQjwEJEMPLO123';
+const ATTRIBUTION = {
+  gclid: GCLID, utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'campanas-led-industriales',
+  landing: '/catalogo/campanas-led?q=PRUEBA', referrer: 'https://www.google.com/search?q=campanas+led',
+};
+const ORIGEN_GADS = [
+  '--- ORIGEN DE LA VISITA ---',
+  'Canal: Google Ads (clic en anuncio)',
+  'gclid: ' + GCLID,
+  'utm_source: google',
+  'utm_medium: cpc',
+  'utm_campaign: campanas-led-industriales',
+  'Página de entrada: /catalogo/campanas-led',
+  'Sitio anterior: https://www.google.com',
+].join('\n');
+const SIN_DATOS = '--- ORIGEN DE LA VISITA ---\nCanal: Sin datos (el formulario no envió el origen)';
+const BAD_ATTRIBUTIONS: [string, unknown, string][] = [
+  ['un texto', 'gclid=' + GCLID, SIN_DATOS],
+  ['una lista', [GCLID], SIN_DATOS],
+  ['un número', 42, SIN_DATOS],
+  ['valores enormes', { gclid: 'g'.repeat(10_000), utm_source: 's'.repeat(10_000) }, 'gclid: ' + 'g'.repeat(200) + '\nutm_source: ' + 's'.repeat(200)],
+  ['una etiqueta script', { utm_campaign: '<script>alert(1)</script>', landing: '/<script>' }, 'utm_campaign: scriptalert(1)/script\nPágina de entrada: /script'],
+  ['claves email o rut', { email: EMAIL, rut: 'RUT-PRUEBA', nombre: NAME }, SIN_DATOS],
+];
+
+describe('POST /api/quotes/create: origen de la visita', () => {
+  beforeEach(() => {
+    vi.mocked(processQuoteToCrm).mockReset().mockResolvedValue(crmResult(77, 'created') as never);
+    vi.mocked(buildSuccessResponse).mockReset().mockImplementation(((r: ReturnType<typeof crmResult>) =>
+      ({ success: true, personId: 11, organizationId: null, dealId: r.deal.dealId, dealStatus: r.deal.status })) as never);
+    vi.mocked(pipedrivePost).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it('la nota y el correo terminan con la sección; attribution no llega al CRM', async () => {
+    const res = await call({ ...empresa(), attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    expect(notes()[0].content.endsWith('\n\n' + ORIGEN_GADS)).toBe(true);
+    expect(gasBodies()[0].items_lista.endsWith('\n\n' + ORIGEN_GADS)).toBe(true);
+    expect(crmPayload()).not.toHaveProperty('attribution');
+    expect(notes()[0].content).not.toContain('q=');
+  });
+
+  it('sin origen (formulario anterior): la sección dice "Sin datos"', async () => {
+    await call(persona());
+    expect(notes()[0].content.endsWith(SIN_DATOS)).toBe(true);
+    expect(gasBodies()[0].items_lista.endsWith(SIN_DATOS)).toBe(true);
+  });
+
+  it('Pipedrive caído: el correo de ATENCIÓN también lleva la sección', async () => {
+    vi.mocked(processQuoteToCrm).mockRejectedValue(new Error('[Pipedrive] down'));
+    const res = await call({ ...persona(), attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(200);
+    await mailsSettled();
+    const mails = gasBodies();
+    expect(mails).toHaveLength(2);
+    expect(mails[1].items_lista.startsWith('ATENCIÓN')).toBe(true);
+    expect(mails[1].items_lista.endsWith(ORIGEN_GADS)).toBe(true);
+  });
+
+  it('reenvío con la misma referencia (skipped_duplicate): la nota "Reenvío" lleva la sección', async () => {
+    vi.mocked(processQuoteToCrm).mockResolvedValue(crmResult(55, 'skipped_duplicate') as never);
+    await call({ ...empresa(), attribution: ATTRIBUTION });
+    const [note] = notes();
+    expect(note.content.startsWith('Reenvío de la cotización NE-abc123')).toBe(true);
+    expect(note.content.endsWith(ORIGEN_GADS)).toBe(true);
+  });
+
+  it('comentario largo: el correo lleva completos los comentarios y la sección', async () => {
+    const longNotes = 'Proyecto bodega 3000 m2. ' + 'x'.repeat(1900) + ' FIN-DEL-COMENTARIO';
+    const MAX = Object.fromEntries(['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].map((k) => [k, k[0].repeat(200)]));
+    await call({ ...persona(), notes: longNotes, attribution: { ...MAX, landing: '/' + 'p'.repeat(199) } });
+    const [mail] = gasBodies();
+    expect(mail.items_lista).toContain('Comentarios del cliente (completos):\n' + longNotes + '\n\n--- ORIGEN DE LA VISITA ---');
+    expect(mail.items_lista).toContain('Página de entrada: /' + 'p'.repeat(199));
+    expect(mail.items_lista).not.toContain('recortado');
+  });
+
+  it.each(BAD_ATTRIBUTIONS)('origen inválido (%s): nunca 400, y solo lo limpio llega a la nota y al correo', async (_name, attribution, expected) => {
+    const res = await call({ ...persona(), attribution });
+    expect(res.statusCode).toBe(201);
+    for (const text of [notes()[0].content, gasBodies()[0].items_lista]) {
+      expect(text).toContain(expected);
+      expect(text).not.toMatch(/<script|&lt;script|g{201}|s{201}|RUT-PRUEBA/);
+    }
+  });
+
+  it('el origen no cambia la referencia ni lo que recibe el CRM', async () => {
+    await call({ ...persona(), attribution: ATTRIBUTION });
+    await call({ ...persona(), attribution: { fbclid: 'IwAREJEMPLO', landing: '/' } });
+    const [a, b] = vi.mocked(processQuoteToCrm).mock.calls.map(([payload]) => payload);
+    expect(a.quoteReference).toBe('NE-abc123');
+    expect(b).toEqual(a);
+  });
+
+  it('el log no lleva el origen ni datos del cliente', async () => {
+    await call({ ...empresa(), attribution: ATTRIBUTION });
+    vi.mocked(processQuoteToCrm).mockRejectedValue(new Error('[Pipedrive] down'));
+    await call({ ...persona(), attribution: ATTRIBUTION });
+    vi.stubGlobal('fetch', relay(JSON.stringify({ status: 'error', message: 'Invalid: ' + EMAIL + ' ' + GCLID })));
+    await call({ ...persona(), attribution: ATTRIBUTION });
+    await call({ ...persona(), attribution: { utm_source: 'x'.repeat(5000) } });
+    await mailsSettled();
+    const text = logged();
+    expect(text).toContain('LEAD SIN CRM');
+    for (const secret of [GCLID, 'campanas-led-industriales', '/catalogo/campanas-led', 'www.google.com', EMAIL, NAME, PHONE]) {
+      expect(text).not.toContain(secret);
+    }
+  });
+});

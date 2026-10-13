@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sendEvent, trackLead } from '@/lib/analytics';
+import { getAttribution } from '@/lib/attribution';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import Seo from '@/components/Seo';
 
@@ -192,6 +193,7 @@ const QuoteCartPage = () => {
         quoteAmountClp: totalDisplay,
         notes: form.comentarios.trim() || undefined,
         website,
+        attribution: getAttribution(),
       });
 
       // GA4: lead enviado (conversión), solo cuando el servidor lo confirmó

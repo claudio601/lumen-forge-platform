@@ -21,6 +21,10 @@
 //         + segundo correo "ATENCIÓN ... Crear el negocio a mano."
 //      -> Fallan ambos: 502
 //
+// El correo y la nota terminan con el origen de la visita (clave `attribution`,
+// api/_lib/forms/attribution.ts). Informativo: un origen raro se descarta, nunca da 400, y
+// no entra en la referencia ni en el log.
+//
 // Los logs llevan solo la referencia, el tipo de proyecto (una de las opciones de la lista:
 // otro valor da 400), los m², si hay empresa y los ids: nunca el correo, el teléfono, el
 // nombre ni el RUT.
@@ -47,6 +51,7 @@ import {
   type IlluminationLevel,
   type ProjectType,
 } from '../_lib/forms/projectQuote.js';
+import { origenFromBody } from '../_lib/forms/attribution.js';
 
 const LOG = '[ProjectQuote]';
 const ALLOWED_METHODS = ['POST'];
@@ -278,9 +283,10 @@ function projectLines(q: ProjectQuote): string[] {
 /**
  * Correo a ventas. La plantilla es fija: el tipo de solicitud va en "Modo:" y la primera
  * línea de PRODUCTOS SOLICITADOS lleva la referencia para encontrar el negocio. Razón
- * social, RUT, giro, dirección y comentarios solo viajan si el cliente los dejó.
+ * social, RUT, giro, dirección y comentarios solo viajan si el cliente los dejó. `origen`:
+ * la sección ORIGEN DE LA VISITA, al final.
  */
-export function buildProjectQuoteEmail(q: ProjectQuote, ref: string): SalesEmail {
+export function buildProjectQuoteEmail(q: ProjectQuote, ref: string, origen: string[] = []): SalesEmail {
   const comentarios = q.comentarios ?? '';
   const longComment = comentarios.length > EMAIL_COMMENT_FIELD;
   return {
@@ -292,6 +298,7 @@ export function buildProjectQuoteEmail(q: ProjectQuote, ref: string): SalesEmail
       `Cotizador de proyecto ${ref} (nuevo.elights.cl/cotizador)`,
       ...projectLines(q),
       ...(longComment ? ['', 'Comentarios del cliente (completos):', comentarios] : []),
+      ...(origen.length ? ['', ...origen] : []),
     ].join('\n'),
     total: '-',
     razonSocial: q.razonSocial,
@@ -312,11 +319,11 @@ const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '
 const chileDateTime = (date: Date) =>
   date.toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Santiago' });
 
-/** Nota del deal con todos los datos; un reenvío del mismo formulario lo dice al comienzo. */
+/** Nota del deal con todos los datos y el origen; un reenvío del mismo formulario lo dice al comienzo. */
 export function buildProjectQuoteNote(
   q: ProjectQuote,
   ref: string,
-  { resend = false, now = new Date() }: { resend?: boolean; now?: Date } = {}
+  { resend = false, now = new Date(), origen = [] }: { resend?: boolean; now?: Date; origen?: string[] } = {}
 ): string {
   const fecha = chileDateTime(now);
   return escapeHtml([
@@ -345,6 +352,7 @@ export function buildProjectQuoteNote(
     '',
     'Sin productos ni precios: preparar propuesta y responder con link de pago de Jumpseller.',
     'source: cotizador | landingPath: /cotizador',
+    ...(origen.length ? ['', ...origen] : []),
   ].join('\n'));
 }
 
@@ -399,6 +407,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const quote = validation.quote;
+  // validateProjectQuote arma un objeto limpio: el origen se lee del cuerpo. Informativo,
+  // nunca rechaza ni va al log.
+  const origen = origenFromBody(body);
   // Una sola referencia para el correo, la nota y el deal: calcularla dos veces podría
   // separarlas si cambia la hora entre ambas.
   const reference = buildProjectQuoteRef(quote);
@@ -407,7 +418,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   console.log(`${ref} Procesando | tipo: ${quote.tipoProyecto} | m2: ${quote.m2} | hasCompany: ${hasCompany}`);
 
   // ── Paso 1: correo a ventas ANTES de Pipedrive (si el CRM falla, el lead no se pierde) ──
-  const email = buildProjectQuoteEmail(quote, reference);
+  const email = buildProjectQuoteEmail(quote, reference, origen);
   const mail = notifySales(email, ref);
 
   // ── Paso 2: Pipedrive ───────────────────────────────────────────────────────
@@ -467,7 +478,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     status = result.status;
 
     // createDeal no guarda notas: el detalle va aparte, también en un reenvío.
-    await addNote(dealId, buildProjectQuoteNote(quote, reference, { resend: status !== 'created' }), ref);
+    await addNote(dealId, buildProjectQuoteNote(quote, reference, { resend: status !== 'created', origen }), ref);
 
     console.log(
       `${ref} Deal: ${dealId} (${status}) | person: ${person.personId}` +

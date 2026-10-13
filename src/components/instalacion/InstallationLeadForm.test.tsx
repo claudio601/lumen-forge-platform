@@ -198,3 +198,33 @@ describe('InstallationLeadForm antes de hidratar (HTML del prerender)', () => {
     act(() => root?.unmount());
   });
 });
+
+// Origen de la visita (Etapa 2 · PR 10): lo guarda src/lib/attribution.ts en la sesión y el
+// formulario lo manda como `attribution`, aparte de su campo `origen` (instalacion_web).
+describe('InstallationLeadForm: origen de la visita', () => {
+  const ATTRIBUTION = { gclid: 'Cj0KCQjwEJEMPLO123', utm_source: 'google', utm_medium: 'cpc', landing: '/catalogo/campanas-led', referrer: 'https://www.google.com' };
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { sessionStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('con un origen guardado en la sesión, el envío lo lleva en attribution y origen sigue igual', async () => {
+    sessionStorage.setItem('elights_attribution', JSON.stringify(ATTRIBUTION));
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":777,"dealAction":"created","leadRef":"INST-x"}'));
+    render(<InstallationLeadForm />);
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(sentBody()).toMatchObject({ origen: 'instalacion_web', attribution: ATTRIBUTION });
+  });
+
+  it('sin origen guardado, la clave attribution no viaja', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":777,"dealAction":"created","leadRef":"INST-x"}'));
+    render(<InstallationLeadForm />);
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(sentBody()).not.toHaveProperty('attribution');
+  });
+});

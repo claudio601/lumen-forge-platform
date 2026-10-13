@@ -290,3 +290,24 @@ describe('SmartQuotePage antes de hidratar (HTML del prerender)', () => {
     act(() => root?.unmount());
   });
 });
+
+// Origen de la visita (Etapa 2 · PR 10): lo guarda src/lib/attribution.ts en la sesión y el
+// cotizador lo manda como `attribution` (sin origen, el cuerpo queda exacto como arriba).
+describe('SmartQuotePage: origen de la visita', () => {
+  const ATTRIBUTION = { gclid: 'Cj0KCQjwEJEMPLO123', utm_source: 'google', utm_medium: 'cpc', landing: '/catalogo/campanas-led', referrer: 'https://www.google.com' };
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { sessionStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('con un origen guardado en la sesión, el envío lo lleva en attribution', async () => {
+    sessionStorage.setItem('elights_attribution', JSON.stringify(ATTRIBUTION));
+    vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-test9', dealId: 9 })));
+    renderPage();
+    fillForm();
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-test9')).toBeInTheDocument();
+    expect(sentBodies()[0].attribution).toEqual(ATTRIBUTION);
+  });
+});

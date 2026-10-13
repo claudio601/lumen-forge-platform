@@ -172,3 +172,34 @@ describe('EstudioLuminicoLeadForm antes de hidratar (HTML del prerender)', () =>
     expect(consoleErrors.mock.calls.map((args) => args.map(String).join(' ')).filter((m) => /Not implemented/i.test(m))).toEqual([]);
   });
 });
+
+// Origen de la visita (Etapa 2 · PR 10): lo guarda src/lib/attribution.ts en la sesión y el
+// formulario lo manda como `attribution`, aparte de su campo `origen` (estudio_luminico_web).
+describe('EstudioLuminicoLeadForm: origen de la visita', () => {
+  const ATTRIBUTION = { gclid: 'Cj0KCQjwEJEMPLO123', utm_source: 'google', utm_medium: 'cpc', landing: '/catalogo/campanas-led', referrer: 'https://www.google.com' };
+  const sentBody = () => JSON.parse((vi.mocked(fetch).mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { sessionStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('con un origen guardado en la sesión, el envío lo lleva en attribution y origen sigue igual', async () => {
+    sessionStorage.setItem('elights_attribution', JSON.stringify(ATTRIBUTION));
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":555,"leadRef":"ESTL-x"}'));
+    render(<EstudioLuminicoLeadForm />);
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(sentBody()).toMatchObject({ origen: 'estudio_luminico_web', attribution: ATTRIBUTION });
+  });
+
+  it('sin origen guardado, la clave attribution no viaja', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":555,"leadRef":"ESTL-x"}'));
+    render(<EstudioLuminicoLeadForm />);
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(sentBody()).not.toHaveProperty('attribution');
+  });
+});

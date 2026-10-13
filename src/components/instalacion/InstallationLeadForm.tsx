@@ -3,6 +3,7 @@ import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
+import { getAttribution, type Attribution } from '@/lib/attribution';
 
 export interface InstallationLeadPayload {
   nombre: string;
@@ -16,6 +17,8 @@ export interface InstallationLeadPayload {
   aceptaContacto: boolean;
   origen: 'instalacion_web';
   website: string;
+  /** Origen de la visita (src/lib/attribution.ts); sin origen la clave no viaja. */
+  attribution?: Attribution;
 }
 
 /** Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). */
@@ -104,6 +107,7 @@ const InstallationLeadForm = () => {
     comuna: form.comuna.trim(), tipoProyecto: form.tipoProyecto, descripcion: form.descripcion.trim(),
     tipoCliente: form.tipoCliente, preferenciaContacto: form.preferenciaContacto,
     aceptaContacto: form.aceptaContacto, origen: 'instalacion_web', website,
+    attribution: getAttribution(),
   });
 
   const validateForm = (): string | null => {

@@ -4,6 +4,7 @@ import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
+import { getAttribution, type Attribution } from '@/lib/attribution';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ export interface EstudioLuminicoFormPayload {
   fecha: string;
   landingPath: '/estudio-luminico';
   website?: string;
+  /** Origen de la visita (src/lib/attribution.ts); sin origen la clave no viaja. */
+  attribution?: Attribution;
 }
 
 // ── Opciones de selects ───────────────────────────────────────────────────────
@@ -182,6 +185,7 @@ const EstudioLuminicoLeadForm = () => {
     fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
     landingPath: '/estudio-luminico',
     website,
+    attribution: getAttribution(),
   });
 
   const validateForm = (): string | null => {

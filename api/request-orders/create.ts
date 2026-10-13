@@ -10,8 +10,10 @@
 //       navegador se ignoran. Un producto que no se puede identificar NO rechaza la
 //       solicitud: se marca "REVISAR: precio por confirmar" (nunca se pierde un lead).
 //   2. Crear deal en Pipedrive -> BLOQUEANTE. 502 si falla. Luego una nota con el
-//      detalle de productos (no bloqueante): createDeal no guarda las notas.
-//   3. Enviar email GAS -> FIRE-AND-FORGET. Log warn si falla.
+//      detalle de productos y el origen de la visita (no bloqueante): createDeal no guarda
+//      las notas. Un reenvío con la misma referencia RC- (sin negocio nuevo) también deja
+//      su nota "Reenvío de la solicitud ...".
+//   3. Enviar email GAS -> FIRE-AND-FORGET. Log warn si falla (sin datos del cliente).
 //   4. Retornar 201 { success, requestReference, dealId }
 //
 // El deal en Pipedrive es la fuente de verdad.
@@ -29,6 +31,7 @@ import type { QuotePayload, SourceSystem } from '../_lib/crm/types.js';
 import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } from '../_lib/auth.js';
 import { netOf, priceItems } from '../_lib/catalog/pricing.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
+import { origenFromBody } from '../_lib/forms/attribution.js';
 
 const LOG = '[RequestOrder]';
 const ALLOWED_METHODS = ['POST'];
@@ -170,9 +173,16 @@ function toQuotePayload(p: RequestOrderPayload): QuotePayload {
   };
 }
 
-function buildNotes(p: RequestOrderPayload): string {
+/**
+ * Nota del deal. `origen`: la sección "ORIGEN DE LA VISITA" (api/_lib/forms/attribution.ts),
+ * antes de requested_items_json, que sigue siendo la última línea (se lee a máquina).
+ * `resend`: la misma referencia llegó de nuevo y no se creó un negocio nuevo.
+ */
+function buildNotes(p: RequestOrderPayload, origen: string[] = [], { resend = false } = {}): string {
   const lines: string[] = [
-    `Solicitud de pedido ${p.requestReference}`,
+    resend
+      ? `Reenvío de la solicitud ${p.requestReference} (misma referencia; no se creó un negocio nuevo)`
+      : `Solicitud de pedido ${p.requestReference}`,
     `Region: ${p.region} | Comuna: ${p.commune}`,
   ];
   if (p.rut) lines.push(`RUT: ${p.rut}`);
@@ -194,6 +204,7 @@ function buildNotes(p: RequestOrderPayload): string {
   if (p.items.some((i) => i.priceMode === 'neto')) {
     lines.push('Nota: el cliente veía precios netos (modo empresa) en el sitio.');
   }
+  if (origen.length) lines.push('', ...origen);
   lines.push(`requested_items_json: ${JSON.stringify(p.items)}`);
   return lines.join('\n');
 }
@@ -255,6 +266,8 @@ export default async function handler(
   const raw = body as RequestOrderPayload;
   const requestReference = raw.requestReference;
   console.log(`${LOG} Validacion OK | requestReference: ${requestReference}`);
+  // Origen de la visita: informativo, nunca rechaza la solicitud ni va al log
+  const origen = origenFromBody(body);
 
   // ── Paso 1b: Precios CON IVA desde el catálogo (se ignoran los del navegador) ──
   const pricing = priceItems(raw.items);
@@ -345,7 +358,7 @@ export default async function handler(
       leadType,
       priorityTier,
       quoteReference: requestReference,
-      notes: buildNotes(payload),
+      notes: buildNotes(payload, origen),
       tipoServicio: TIPO_SERVICIO.COTIZACION_WEB,
     });
 
@@ -356,10 +369,12 @@ export default async function handler(
     dealId = dealResult.dealId;
 
     // createDeal no guarda las notas: el detalle de productos (con ids de Jumpseller para
-    // el link de pago) se agrega aparte. No bloquea: el deal ya existe.
-    if (dealResult.status === 'created') {
+    // el link de pago) y el origen se agregan aparte, también en un reenvío con la misma
+    // referencia (sin negocio nuevo). No bloquea: el deal ya existe.
+    if (dealResult.status === 'created' || dealResult.status === 'skipped_duplicate') {
       try {
-        await pipedrivePost('/notes', { content: buildNotes(payload), deal_id: dealId });
+        const resend = dealResult.status === 'skipped_duplicate';
+        await pipedrivePost('/notes', { content: buildNotes(payload, origen, { resend }), deal_id: dealId });
       } catch (err) {
         console.warn(`${LOG} Nota de productos en Pipedrive FAIL | dealId: ${dealId}`, err);
       }
@@ -379,7 +394,7 @@ export default async function handler(
   // ── Paso 3: Enviar email GAS (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ─────────────────
   console.log(`${LOG} GAS relay iniciado`);
   waitUntil(
-    sendGasEmail(payload, requestReference, dealId)
+    sendGasEmail(payload, requestReference, dealId, origen)
       .then(() => {
         console.log(`${LOG} GAS relay OK`);
       })
@@ -404,9 +419,11 @@ const GAS_URL =
 async function sendGasEmail(
   payload: RequestOrderPayload,
   ref: string,
-  dealId: number
+  dealId: number,
+  origen: string[]
 ): Promise<void> {
-  console.log(`${LOG} GAS email starting for ${payload.email} | ref: ${ref}`);
+  // Sin el correo del cliente: los logs nunca llevan datos personales
+  console.log(`${LOG} GAS email starting | ref: ${ref}`);
   const itemLines = payload.items.map((i) => {
     const name = i.attributes?.colorLuz ? `${i.name} \u2014 ${i.attributes.colorLuz}` : i.name;
     return i.jumpsellerId
@@ -423,6 +440,8 @@ async function sendGasEmail(
     ...(payload.notes ? [`Notas del cliente: ${payload.notes}`] : []),
     '',
     ...itemLines,
+    '',
+    ...origen,
   ].join('\n');
 
   const ventas = process.env.SALES_EMAIL ?? 'ventas@elights.cl';
@@ -452,9 +471,17 @@ async function sendGasEmail(
     }),
   });
 
-  const result = await response.json() as { status: string; message?: string };
-  if (result.status !== 'ok') {
-    throw new Error(result.message ?? 'GAS relay: status not ok');
+  // Solo motivos clasificados: el texto del relay puede repetir datos del cliente y este
+  // error va al log (GAS relay FAIL).
+  let result: { status?: unknown };
+  try {
+    result = (await response.json()) as { status?: unknown };
+  } catch {
+    throw new Error('GAS relay: HTTP ' + response.status + ', respuesta no JSON');
+  }
+  if (result?.status !== 'ok') {
+    const status = typeof result?.status === 'string' && /^[a-z_-]{1,20}$/i.test(result.status) ? result.status : 'no reconocido';
+    throw new Error('GAS relay: status ' + status);
   }
 }
 
