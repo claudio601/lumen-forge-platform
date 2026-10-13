@@ -19,6 +19,11 @@
 //    -> Fallan ambos: 502 con error visible al usuario
 // 9. Retornar 201/200 { success, personId, dealId, dealAction, leadRef }
 //
+// La nota (y el correo, que lleva el mismo texto) termina con el origen de la visita
+// (clave `attribution`, distinta del campo `origen` del formulario;
+// api/_lib/forms/attribution.ts), agregado después de buildEstudioDealNote. Informativo: un
+// origen raro se descarta, nunca da 400, y no entra en la referencia ni en el log.
+//
 // DECISION V1: Reutiliza PIPEDRIVE_PIPELINE_ID + PIPEDRIVE_STAGE_NEW_LEAD_ID
 // (pipeline "Ventas eLIGHTS" existente). El campo tipo_servicio = "Estudio Luminico"
 // diferencia este flujo. Ver TODO en estudio-luminico-mapping.ts.
@@ -48,6 +53,7 @@ import {
 } from '../_lib/auth.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { validateEstudioPayload } from './validation.js';
+import { origenFromBody } from '../_lib/forms/attribution.js';
 
 const LOG = '[api/estudio-luminico/create]';
 
@@ -226,7 +232,7 @@ export default async function handler(
   // Una sola referencia para el correo, la nota y el campo del deal: calcularla
   // dos veces podria separarlas si cambia la hora entre ambas.
   const leadRef = buildEstudioLeadRef(payload);
-  const note = buildEstudioDealNote(payload, leadRef);
+  const note = [buildEstudioDealNote(payload, leadRef), '', ...origenFromBody(body)].join('\n');
   const ref = LOG + ' ' + leadRef;
 
   // Solo un campo de lista cerrada: la comuna es texto libre y podría traer datos personales

@@ -4,6 +4,7 @@ import { Send, CheckCircle2, Upload, Zap, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
+import { getAttribution } from '@/lib/attribution';
 import { waBase, contactEmail, whatsappDisplayNumber } from '@/config/business';
 import Seo from '@/components/Seo';
 // Las listas, los topes y la lectura de los m² son los mismos del servidor (api/project-quotes/create.ts)
@@ -153,6 +154,7 @@ const SmartQuotePage = () => {
     giro: optional(form.giro),
     direccion: optional(form.direccion),
     website,
+    attribution: getAttribution(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

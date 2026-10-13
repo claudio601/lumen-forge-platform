@@ -18,10 +18,18 @@ import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
 
-/** Sesión de un cliente en modo empresa con productos en la cotización y en la solicitud. */
+/**
+ * Sesión de un cliente en modo empresa con productos en la cotización y en la solicitud, y
+ * con el origen de la visita guardado (src/lib/attribution.ts: ningún componente lo lee al
+ * dibujar, solo al enviar un formulario).
+ */
 function seedSession() {
   const p = products[0];
   sessionStorage.setItem('elights_b2b', 'true');
+  sessionStorage.setItem(
+    'elights_attribution',
+    JSON.stringify({ gclid: 'Cj0KCQjwEJEMPLO123', utm_source: 'google', utm_medium: 'cpc', landing: '/catalogo', referrer: 'https://www.google.com' }),
+  );
   sessionStorage.setItem('elights_quote', JSON.stringify([{ product: p, quantity: 3 }]));
   sessionStorage.setItem(
     'elights_request_cart',
