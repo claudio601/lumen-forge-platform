@@ -4,7 +4,6 @@ import {
   waInstalacion,
   contactEmailInstalacion,
   installationCoverage,
-  installationVisitLabel,
   installationVisitDescription,
 } from '@/config/business';
 import InstallationLeadForm from '@/components/instalacion/InstallationLeadForm';
@@ -13,7 +12,10 @@ import Seo from '@/components/Seo';
 
 // Hero copy: Variante A implementada, Variante B documentada.
 // Variante A: titulo con cobertura RM explicita, subcopy orientado a propuesta
-// clara y tecnicos SEC. CTA principal: Solicitar evaluacion.
+// clara. CTA principal: Solicitar evaluacion.
+// Sin cifras ni credenciales no confirmadas (PR 11): ni cantidad de proyectos, ni licencia
+// SEC del equipo, ni una cifra única de garantía, ni precio de la visita, ni plazos de
+// respuesta. src/config/contentTruth.test.ts vigila las frases retiradas.
 // Variante B descartada: titulo poetico con ambiguedad y compromiso 48h.
 
 const scrollToFormulario = (e: React.MouseEvent) => {
@@ -29,7 +31,7 @@ const InstalacionPage = () => {
 
   return (
     <div className="bg-[#FAFAF7]">
-    <Seo title="Instalación Profesional de Iluminación LED y Paneles Solares | eLIGHTS" description="Servicio de instalación eléctrica profesional de iluminación LED y paneles solares en la Región Metropolitana. Visita técnica, cotización y ejecución por técnicos certificados SEC." path="/instalacion" />
+    <Seo title="Instalación Profesional de Iluminación LED y Paneles Solares | eLIGHTS" description="Servicio de instalación eléctrica profesional de iluminación LED y paneles solares en la Región Metropolitana. Visita técnica, cotización y ejecución de la instalación." path="/instalacion" />
 
       {/* Hero */}
       <section
@@ -56,9 +58,9 @@ const InstalacionPage = () => {
             </em>
           </h1>
           <p className="text-gray-300 text-lg max-w-xl mx-auto mb-10 leading-relaxed">
-            Evaluamos tu espacio, te enviamos una propuesta clara y coordinamos la instalación con técnicos certificados SEC. Atendemos hogares, oficinas, locales y proyectos comerciales.
+            Evaluamos tu espacio, te enviamos una propuesta clara y coordinamos la instalación. Atendemos hogares, oficinas, locales y proyectos comerciales.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-14">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
               href="#formulario"
               onClick={(e) => {
@@ -80,23 +82,6 @@ const InstalacionPage = () => {
               Hablar por WhatsApp
             </a>
           </div>
-          <div className="grid grid-cols-3 gap-4 max-w-xl mx-auto">
-            {[
-              { value: '100+', label: 'Proyectos' },
-              { value: 'SEC', label: 'Certificados' },
-              { value: '12 meses', label: 'Garantia' },
-            ].map(({ value, label }) => (
-              <div
-                key={label}
-                className="rounded-2xl px-4 py-5 bg-primary/20 border border-primary/40"
-              >
-                <p className="text-2xl font-extrabold text-white">
-                  {value}
-                </p>
-                <p className="text-xs text-gray-300 mt-0.5">{label}</p>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -115,7 +100,7 @@ const InstalacionPage = () => {
             <h3 className="text-xl font-bold mb-2">Visita Técnica</h3>
             <p className="text-muted-foreground text-sm mb-5">{installationVisitDescription}</p>
             <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary">
-              {installationVisitLabel}
+              Informe con recomendaciones
             </span>
           </div>
           <div className="group relative rounded-2xl p-7 border-2 border-transparent bg-white shadow-sm hover:border-primary hover:shadow-lg transition-all duration-300 overflow-hidden">
@@ -125,7 +110,7 @@ const InstalacionPage = () => {
             </div>
             <h3 className="text-xl font-bold mb-2">Instalación Completa</h3>
             <p className="text-muted-foreground text-sm mb-5">
-              Nos encargamos de todo: provisión de luminarias, cableado, fijaciones y puesta en marcha. Trabajo limpio, garantizado y con certificación de instalación eléctrica cuando aplique.
+              Nos encargamos de todo: provisión de luminarias, cableado, fijaciones y puesta en marcha.
             </p>
             <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary">
               Producto + Mano de obra incluida
@@ -138,10 +123,10 @@ const InstalacionPage = () => {
             </div>
             <h3 className="text-xl font-bold mb-2">Paneles Solares</h3>
             <p className="text-muted-foreground text-sm mb-5">
-              Instalación de sistemas fotovoltaicos para hogares y empresas. Evaluamos tu consumo, diseñamos el sistema y lo instalamos con conexión a la red (Net Billing).
+              Instalación de sistemas fotovoltaicos para hogares y empresas. Evaluamos tu consumo, diseñamos el sistema y lo instalamos.
             </p>
             <span className="inline-block text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary">
-              Ahorro desde el primer mes
+              Conexión a la red (Net Billing)
             </span>
           </div>
         </div>
@@ -150,12 +135,12 @@ const InstalacionPage = () => {
       {/* Cómo funciona */}
       <section className="py-16" style={{ background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)' }}>
         <div className="container">
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Cómo funciona?</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">¿Cómo funciona?</h2>
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-center gap-0">
             <div className="hidden md:block absolute top-8 left-[calc(16.67%+2rem)] right-[calc(16.67%+2rem)] h-0.5 bg-primary/60" />
             {[
-              { num: '1', title: 'Cuentanos tu proyecto', desc: 'Escribenos por WhatsApp, correo o usa el formulario de esta página.' },
-              { num: '2', title: 'Recibe tu propuesta', desc: 'En 24 horas hábiles recibirás una propuesta detallada con productos, mano de obra y plazos.' },
+              { num: '1', title: 'Cuéntanos tu proyecto', desc: 'Escríbenos por WhatsApp o correo, o usa el formulario de esta página.' },
+              { num: '2', title: 'Recibe tu propuesta', desc: 'Recibirás una propuesta detallada con productos, mano de obra y plazos.' },
               { num: '3', title: 'Instalamos todo', desc: 'Nuestro equipo se encarga de la instalación profesional y te entrega el proyecto terminado.' },
             ].map(({ num, title, desc }) => (
               <div key={num} className="relative flex flex-col items-center text-center flex-1 px-6 mb-8 md:mb-0">
@@ -173,12 +158,12 @@ const InstalacionPage = () => {
       {/* Tipos de proyecto */}
       <section className="container py-16">
         <h2 className="text-2xl md:text-3xl font-bold text-center mb-2">Tipos de proyecto</h2>
-        <p className="text-center text-muted-foreground mb-10">Experiencia en todo tipo de instalaciones.</p>
+        <p className="text-center text-muted-foreground mb-10">Estos son los tipos de proyecto que atendemos.</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
             { emoji: '🏠', label: 'Casa completa' },
             { emoji: '🏢', label: 'Oficinas y locales' },
-            { emoji: '🌿', label: 'Jardin y terraza' },
+            { emoji: '🌿', label: 'Jardín y terraza' },
             { emoji: '🏗️', label: 'Obra nueva' },
             { emoji: '🏬', label: 'Bodegas e industrial' },
             { emoji: '🔄', label: 'Recambio LED' },
@@ -201,14 +186,14 @@ const InstalacionPage = () => {
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Solicita tu evaluación</h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
-              Completa el formulario y te contactaremos en menos de 24 horas hábiles para revisar tu proyecto y definir la mejor propuesta.
+              Completa el formulario y te contactaremos para revisar tu proyecto y definir la mejor propuesta.
             </p>
           </div>
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl">
             <InstallationLeadForm />
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">
-            Prefieres escribir directo?{' '}
+            ¿Prefieres escribir directo?{' '}
             <a
               href={waInstalacion}
               target="_blank"
@@ -240,11 +225,7 @@ const InstalacionPage = () => {
       <section className="container py-20 text-center">
         <h2 className="text-2xl md:text-3xl font-bold mb-3">Agenda una visita técnica</h2>
         <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Visita técnica desde{' '}
-          <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
-            $20.000 descontables
-          </span>{' '}
-          si contratas la instalación. Técnicos certificados SEC, propuesta detallada y sin letra chica.
+          Evaluamos tu espacio y te enviamos una propuesta detallada.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a

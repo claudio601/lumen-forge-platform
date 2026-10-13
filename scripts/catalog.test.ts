@@ -27,6 +27,25 @@ const snapById = new Map(jumpsellerSnapshot.map(p => [p.jumpseller_id, p]));
 const siteSlugs = categories.map(c => c.slug);
 const BESTLED = [2301098, 2301101, 2301105, 2301110, 2301114, 4156930, 15021313];
 const SITE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/**
+ * Cambios intencionales al texto editorial de los BESTLED después del 2026-09-30 (el fixture
+ * es el catálogo legado de ese día y no se edita). PR 11 (2026-10): el estudio DIALux sin
+ * promesa de precio, la FAQ de garantía según la Ley 19.496 (arts. 20-21) y la cotización
+ * sin promesa de rapidez.
+ */
+const EDITORIAL_EDITS: [string, string][] = [
+  ['asesoría técnica gratuita para selección de variante CCT', 'asesoría técnica para la selección de variante CCT'],
+  ['estudio fotométrico DIALux gratuito que valida', 'estudio fotométrico DIALux que valida'],
+  ['asesoría técnica gratuita y estudio fotométrico DIALux', 'asesoría técnica y estudio fotométrico DIALux'],
+  ['Cotización rápida para empresas', 'Cotización formal para empresas'],
+  [
+    'Reposición o reparación a criterio del fabricante.',
+    'Pasados los 6 meses de garantía legal, la reposición o reparación queda a criterio del fabricante; durante esos 6 meses el cliente elige entre reparación, cambio o devolución.',
+  ],
+];
+/** Valor editorial del fixture con los cambios intencionales aplicados. */
+const withEditorialEdits = <T,>(value: T): T =>
+  value === undefined ? value : JSON.parse(EDITORIAL_EDITS.reduce((s, [from, to]) => s.split(from).join(to), JSON.stringify(value)));
 /** Id del sitio de un producto: el renombrado gana sobre el legado y el de la sincronización. */
 const registeredId = (jid: number) => RENAMED_SITE_IDS[jid]?.id ?? LEGACY_SITE_IDS[jid] ?? SITE_IDS[jid];
 
@@ -172,10 +191,19 @@ describe('se conserva lo que no viene de Jumpseller', () => {
       expect(p, String(id)).toBeDefined();
       for (const k of EDITORIAL_KEYS) {
         if (k === 'cctVariants') continue;
-        expect(p[k], `${id}.${k}`).toEqual(l[k]);
+        expect(p[k], `${id}.${k}`).toEqual(withEditorialEdits(l[k]));
       }
     }
     for (const id of Object.keys(editorialOverlay)) expect(snapById.has(Number(id))).toBe(true);
+  });
+
+  it('los cambios intencionales al editorial se aplicaron en los 7 BESTLED (y nada más cambió)', () => {
+    const text = JSON.stringify(BESTLED.map(id => products.find(x => x.jumpseller_id === id)));
+    for (const [from, to] of EDITORIAL_EDITS) {
+      expect(text).not.toContain(from);
+      expect(text.split(to).length - 1, to).toBe(7);
+    }
+    expect(text).not.toMatch(/gratuit|cotizaci[oó]n r[aá]pida/i);
   });
 
   it('las variantes CCT de BESTLED toman precio y SKU de Jumpseller', () => {

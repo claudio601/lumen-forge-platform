@@ -17,9 +17,6 @@ import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
-    Tooltip, TooltipContent, TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     FileText, Minus, Plus, Download, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
@@ -36,6 +33,7 @@ import { productImageFacts } from '@/data/catalog/og-images.generated';
 import { productOgImage } from '@/lib/seo/ogImage';
 import SpecGroups, { type SpecGroupsProps } from '@/components/catalog/SpecGroups';
 import type { SpecRow } from '@/data/catalog/jumpseller.types';
+import { warrantyNote } from '@/lib/productWarranty';
 import { htmlToText } from '@/lib/html';
 
 // Mapping CCT -> etiqueta visible en UI / Pipedrive
@@ -385,6 +383,7 @@ const ProductDetail = () => {
                                                 Consultar disponibilidad
                                               </a>
                                               <span className="text-xs text-muted-foreground">Despacho en hasta 2 días hábiles</span>
+                                              <span className="text-xs text-muted-foreground">{warrantyNote(specGroups)}</span>
                                   </div>
                         
                                   <div className="flex items-baseline gap-2 mb-2">
@@ -404,7 +403,7 @@ const ProductDetail = () => {
                         
                           {product.categories.some(c => PROJECT_CATEGORIES.includes(c)) ? (
                         <p className="text-xs text-muted-foreground mb-6">
-                                      Precio referencial - Contactanos para descuentos por volumen y proyecto
+                                      Precio referencial
                         </p>
                       ) : (
                         <div className="mb-4" />
@@ -482,7 +481,7 @@ const ProductDetail = () => {
                         
                           {/* Acciones secundarias */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                              {product.datasheetUrl ? (
+                                              {product.datasheetUrl && (
                                                             <a
                                                               href={product.datasheetUrl}
                                                               target="_blank"
@@ -494,23 +493,6 @@ const ProductDetail = () => {
                                                                 Ficha técnica
                                                               </Button>
                                                             </a>
-                                              ) : (
-                                                            <Tooltip>
-                                                              <TooltipTrigger asChild>
-                                                                <span tabIndex={0}>
-                                                                  <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    disabled
-                                                                    className="gap-1.5 text-xs text-muted-foreground"
-                                                                  >
-                                                                    <Download className="h-3.5 w-3.5" />
-                                                                    Ficha técnica
-                                                                  </Button>
-                                                                </span>
-                                                              </TooltipTrigger>
-                                                              <TooltipContent>Ficha técnica próximamente</TooltipContent>
-                                                            </Tooltip>
                                               )}
                                               <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">

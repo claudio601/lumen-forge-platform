@@ -100,7 +100,7 @@ const ProductCard = ({ product }: Props) => {
                         <p className="text-[10px] text-muted-foreground">Consultar disponibilidad</p>
                   {product.categories.some(c => PROJECT_CATEGORIES.includes(c)) && (
                       <p className="text-[10px] text-muted-foreground">
-                                  Precio referencial · Descuentos por proyecto
+                                  Precio referencial
                       </p>
                         )}
                         <div className="flex flex-wrap gap-2 pt-1">

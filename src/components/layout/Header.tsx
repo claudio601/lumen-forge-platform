@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    Search, FileText, User, Menu, X, ChevronDown,
+    Search, FileText, Menu, X, ChevronDown,
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium,
     RadioTower, AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
     TestTube, Ruler, TrainTrack, UtilityPole, Wrench,
@@ -136,9 +136,6 @@ const Header = () => {
                             )}
                         </Link>
                         <RequestCartDrawer />
-                        <Link to="/instaladores" className="hidden sm:flex p-2 hover:bg-accent rounded-lg transition-colors" title="Mi cuenta">
-                            <User className="h-5 w-5" />
-                        </Link>
                     </div>
                 </div>
                 <form onSubmit={handleSearch} className="mt-3 md:hidden">
@@ -209,7 +206,7 @@ const Header = () => {
                             className="block py-2 px-3 text-sm font-medium hover:bg-accent rounded-md"
                             onClick={() => setMenuOpen(false)}
                         >
-                            Área Instaladores
+                            Instaladores y profesionales
                         </Link>
                     </div>
                 </div>
