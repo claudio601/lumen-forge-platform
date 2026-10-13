@@ -559,6 +559,11 @@
       "statusCode": 301
     },
     {
+      "source": "/cambios-y-devoluciones{/}?",
+      "destination": "/cambios-devoluciones-y-garantia",
+      "statusCode": 301
+    },
+    {
       "source": "/campana-industrial-led-smd-bridgelux-200w-6500k-ip44{/}?",
       "destination": "/producto/campana-industrial-led-smd-bridgelux-200w-6500k-ip44",
       "statusCode": 301
@@ -1529,6 +1534,11 @@
       "statusCode": 301
     },
     {
+      "source": "/luminaria-led-vial-a-prueba-de-explosion-125w-ip66-clase-i-div-2{/}?",
+      "destination": "/producto/luminaria-led-vial-a-prueba-de-explosion-125w-ip66-clase-i-div-2",
+      "statusCode": 301
+    },
+    {
       "source": "/luminaria-ornamental-island-60w-ip66-ik08{/}?",
       "destination": "/producto/luminaria-ornamental-island-60w-ip66-ik08",
       "statusCode": 301
@@ -1541,6 +1551,16 @@
     {
       "source": "/marco-para-sobreponer-panel-led-cielo-americano{/}?",
       "destination": "/producto/marco-para-sobreponer-panel-led-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/metodos-y-costos-de-envio{/}?",
+      "destination": "/despacho",
+      "statusCode": 301
+    },
+    {
+      "source": "/nuestra-empresa{/}?",
+      "destination": "/empresa",
       "statusCode": 301
     },
     {
@@ -1676,6 +1696,16 @@
     {
       "source": "/panel-led-cuadrado-embutido-4w-ip20{/}?",
       "destination": "/producto/panel-led-cuadrado-embutido-4w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-6w-ip20{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-6w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-9w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-9w-ip44",
       "statusCode": 301
     },
     {
@@ -1846,6 +1876,11 @@
     {
       "source": "/poste{/}?",
       "destination": "/catalogo/poste",
+      "statusCode": 301
+    },
+    {
+      "source": "/privacy-policy{/}?",
+      "destination": "/politica-de-privacidad",
       "statusCode": 301
     },
     {
@@ -2289,6 +2324,11 @@
       "statusCode": 301
     },
     {
+      "source": "/refund-policy{/}?",
+      "destination": "/cambios-devoluciones-y-garantia",
+      "statusCode": 301
+    },
+    {
       "source": "/regleta-led-t5-18w-120-cm-ip44{/}?",
       "destination": "/producto/regleta-led-t5-18w-120-cm-ip44",
       "statusCode": 301
@@ -2361,6 +2401,11 @@
     {
       "source": "/solar{/}?",
       "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/terms-and-conditions{/}?",
+      "destination": "/terminos-y-condiciones",
       "statusCode": 301
     },
     {

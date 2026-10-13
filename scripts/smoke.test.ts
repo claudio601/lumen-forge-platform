@@ -34,7 +34,8 @@ describe('chequeo de humo', () => {
   it('revisa páginas, rutas sin prerender (con y sin barra final), /carro, ids renombrados, URLs de elights.cl, 404, archivos y las funciones de api/ (solo GET)', () => {
     const t = buildTargets();
     const paths = (k: string) => t.filter(x => x.kind === k).map(x => x.path);
-    expect(paths('page')).toHaveLength(12);
+    expect(paths('page')).toHaveLength(18); // 12 fijas (STATIC_ROUTES), 3 fichas y 3 categorías
+    expect(paths('page')).toEqual(expect.arrayContaining(['/empresa', '/medios-de-pago', '/politica-de-privacidad']));
     expect(paths('spa')).toEqual(expect.arrayContaining(['/cotizacion', '/cotizacion/', '/solicitar-pedido', '/solicitar-pedido/', '/buscar']));
     const nf3 = '/producto/campana-led-ufo-nf3-150w-150-lm-w-ip66';
     const solar = '/producto/alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto';
@@ -68,6 +69,8 @@ describe('chequeo de humo', () => {
       },
       { path: '/home', kind: 'redirect', to: '/', expectedStatus: 301 },
       { path: '/search?q=panel', kind: 'redirect', to: '/buscar', expectedStatus: 301 },
+      // PR 12: página legal de Jumpseller a su página nueva
+      { path: '/terms-and-conditions', kind: 'redirect', to: '/terminos-y-condiciones', expectedStatus: 301 },
     ]);
     expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/producto-test-checkout', '/blog']);
     // Las dos últimas no tienen regla a propósito

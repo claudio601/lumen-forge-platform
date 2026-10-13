@@ -190,7 +190,8 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
 
   it('/instalacion: sin cifras del hero ni precio de la visita', async () => {
     const { root } = await page('/instalacion');
-    const text = root.textContent ?? '';
+    // Solo la página: desde la PR 12 el pie enlaza "Cambios, devoluciones y garantía" en todas
+    const text = root.querySelector('main')?.textContent ?? '';
     expect(text).not.toMatch(/\$\s?20\.000|Proyectos\s*SEC|SEC\s*Certificados|Garant[ií]a|garantizad/i);
     expect(text).not.toMatch(/certificaci[oó]n/i); // ni la de la instalación eléctrica (licencia SEC sin confirmar)
     expect(text).toContain('Evaluamos tu espacio y te enviamos una propuesta detallada.');

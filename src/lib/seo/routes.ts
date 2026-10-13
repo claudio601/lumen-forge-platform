@@ -1,13 +1,29 @@
 // src/lib/seo/routes.ts
-// Qué rutas se indexan. Es la única lista: la usan el sitemap y, desde la PR 04, el
-// prerender. scripts/site-routes.test.ts verifica que cada <Route> de App.tsx esté
-// clasificada aquí.
+// Qué rutas se indexan. Es la única lista: de STATIC_ROUTES salen el sitemap, el prerender
+// (desde la PR 04), check-prerender, la prueba de hidratación, el chequeo de humo, los
+// destinos `path` de las URLs de elights.cl y los primeros segmentos reservados
+// (scripts/redirects/build.ts). scripts/site-routes.test.ts verifica que cada ruta de
+// src/routes.tsx esté clasificada aquí.
 
 import { products } from '../../data/catalog/index';
 import { categories } from '../../data/catalog/categories.config';
 
 /** Páginas fijas que van a Google. */
-export const STATIC_ROUTES = ['/', '/catalogo', '/instalacion', '/estudio-luminico', '/instaladores', '/cotizador'] as const;
+export const STATIC_ROUTES = [
+  '/',
+  '/catalogo',
+  '/instalacion',
+  '/estudio-luminico',
+  '/instaladores',
+  '/cotizador',
+  // Páginas legales y de compra (PR 12, LEGAL_PAGES en src/config/legal.ts)
+  '/empresa',
+  '/terminos-y-condiciones',
+  '/cambios-devoluciones-y-garantia',
+  '/despacho',
+  '/medios-de-pago',
+  '/politica-de-privacidad',
+] as const;
 
 /** Páginas que dependen de la sesión o de una búsqueda: noindex, sin sitemap. */
 export const NOINDEX_ROUTES = ['/buscar', '/cotizacion', '/solicitar-pedido'] as const;

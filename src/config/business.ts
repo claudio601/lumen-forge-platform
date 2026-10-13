@@ -22,6 +22,28 @@ export const contactEmailInstalacion = 'contacto@elights.cl';
 /** Horario de atención, el mismo de elights.cl. Lo usan el pie de página y el popup de WhatsApp. */
 export const businessHours = 'Lunes a viernes 9:30-14:00 y 15:00-17:30 hrs.';
 
+/**
+ * El mismo horario, para una frase ("de lunes a viernes, …"): lo usan las páginas legales.
+ * Cambiar los dos juntos (src/pages/legal.test.tsx exige que tengan las mismas horas).
+ */
+export const businessHoursLong = 'lunes a viernes, de 9:30 a 14:00 y de 15:00 a 17:30 hrs.';
+
+/** Días sin atención (elights.cl: fines de semana cerrado; festivos, decisión del dueño). */
+export const businessClosedDays = 'Sábados, domingos y festivos, cerrado.';
+
+// ── Condiciones de venta (páginas legales, PR 12) ───────────
+
+/**
+ * Monto (CLP, IVA incluido) sobre el que el despacho en Santiago urbano no tiene costo, o
+ * null si no se publica. Hoy null: elights.cl se contradice (su página de envíos y el banner
+ * de su inicio dan montos distintos) y el dueño no lo ha confirmado. Con un número, /despacho
+ * muestra la condición; sin él, dice que el costo va en la cotización.
+ */
+export const FREE_SHIPPING_THRESHOLD_CLP: number | null = null;
+
+/** Días hábiles que vale una cotización desde su fecha (términos y condiciones, §5). */
+export const quoteValidityBusinessDays = 10;
+
 // ── Helpers de URL ───────────────────────────────────────────
 
 /** URL base de WhatsApp sin mensaje */

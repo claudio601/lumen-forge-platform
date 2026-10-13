@@ -33,9 +33,10 @@ describe('JSON-LD', () => {
     ]);
   });
 
-  it('organización con la razón social y Santiago, sin calle', () => {
+  it('organización con la razón social, el RUT de la empresa y Santiago, sin calle', () => {
     expect(organizationJsonLd()).toMatchObject({
       legalName: 'eLIGHTS.CL SpA',
+      taxID: '76.947.784-6',
       address: { addressLocality: 'Santiago', addressCountry: 'CL' },
     });
     expect(JSON.stringify(organizationJsonLd())).not.toContain('streetAddress');

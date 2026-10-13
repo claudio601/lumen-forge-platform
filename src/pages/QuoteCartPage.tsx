@@ -9,6 +9,7 @@ import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import Seo from '@/components/Seo';
+import PreSubmitNotice from '@/components/legal/PreSubmitNotice';
 
 type CustomerType = 'persona' | 'empresa';
 
@@ -351,6 +352,7 @@ const QuoteCartPage = () => {
             <textarea id="qc-comentarios" name="comentarios" value={form.comentarios} onChange={handleChange} rows={3} maxLength={MAX_COMENTARIOS} className={inputClass + ' resize-none'} />
           </div>
         </div>
+        <PreSubmitNotice kind="cotizacion" />
         {/* Error junto al botón, donde el visitante está mirando */}
         {errorMsg && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">
