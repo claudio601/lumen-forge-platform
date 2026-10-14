@@ -29,6 +29,12 @@
 // se manda lo decidido y no lo viejo. Cada lectura y escritura va en try/catch: nunca
 // rompe el arranque.
 //
+// Oposición (PR 13): el interruptor «Origen de la visita» de «Configurar cookies» guarda
+// origin: false en la decisión de cookies (src/lib/cookieConsent.ts). Desde ese momento no
+// se captura ni se envía nada, y clearAttribution() borra lo ya anotado en esta pestaña.
+// La oposición no vence. Sin decisión, o con «Rechazar» (que solo apaga las cookies de
+// Google), se sigue capturando.
+//
 // Hidratación: ningún componente lo lee al dibujar; getAttribution() solo se llama al
 // enviar un formulario.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,6 +45,7 @@ import {
   parseAttribution,
   type Attribution,
 } from '../../api/_lib/forms/attribution';
+import { isOriginOptedOut } from './cookieConsent';
 
 export type { Attribution };
 
@@ -97,18 +104,29 @@ function readStored(): Attribution | undefined {
 }
 
 /**
- * Origen de la visita para el formulario; undefined si no hay (la clave no viaja).
- * Primero lo que decidió esta carga (memoria): si la escritura falló, lo guardado es el
- * registro anterior. Sin captura en esta carga, lo guardado en la sesión.
+ * Origen de la visita para el formulario; undefined si no hay o si el visitante se opuso (la
+ * clave no viaja). Primero lo que decidió esta carga (memoria): si la escritura falló, lo
+ * guardado es el registro anterior. Sin captura en esta carga, lo guardado en la sesión.
  */
 export function getAttribution(): Attribution | undefined {
-  if (typeof window === 'undefined') return undefined;
+  if (typeof window === 'undefined' || isOriginOptedOut()) return undefined;
   return memory ?? readStored();
+}
+
+/** Borra el origen anotado en esta pestaña (sesión y memoria). Nunca lanza. */
+export function clearAttribution(): void {
+  memory = undefined;
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(ATTRIBUTION_STORAGE_KEY);
+  } catch {
+    // Almacenamiento bloqueado: no había nada guardado
+  }
 }
 
 /** Captura el origen de esta carga de página (ver las reglas arriba). Nunca lanza. */
 export function captureAttribution(href?: string, referrer?: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isOriginOptedOut()) return;
   try {
     const current = attributionFromUrl(href ?? window.location.href, referrer ?? document.referrer);
     const stored = getAttribution();

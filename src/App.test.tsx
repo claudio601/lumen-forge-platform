@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, waitFor, act, fireEvent, within } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import { sendPageView } from '@/lib/analytics';
@@ -76,15 +76,45 @@ describe('catálogo: la categoría sigue a la URL', () => {
 });
 
 describe('catálogo: GA sin page_view falsos', () => {
-  beforeEach(() => sessionStorage.clear());
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+  afterEach(() => localStorage.clear());
 
-  it('cambiar un filtro sin ?page no envía otro page_view', async () => {
+  it.each([
+    ['sin decisión de cookies', null],
+    ['con la medición aceptada (decisión sembrada)', { analytics: true, ads: true, origin: true }],
+  ])('cambiar un filtro sin ?page no envía otro page_view (%s)', async (_, choice) => {
+    if (choice) localStorage.setItem('elights_cookie_consent', JSON.stringify({ v: 1, at: new Date().toISOString(), ...choice }));
     renderAt('/catalogo/paneles-led');
     await screen.findByText(`${count('paneles-led')} productos encontrados`, undefined, WAIT);
     vi.mocked(sendPageView).mockClear();
     fireEvent.click(screen.getAllByRole('checkbox', { name: 'IP65' })[0]);
     await new Promise(r => setTimeout(r, 50));
     expect(sendPageView).not.toHaveBeenCalled();
+  });
+});
+
+describe('aviso de cookies (PR 13)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+  afterEach(() => localStorage.clear());
+
+  it('fuera de elights.cl no aparece solo, nada carga Google y el pie abre el panel informativo', async () => {
+    renderAt('/');
+    const footer = screen.getByRole('contentinfo');
+    await new Promise(r => setTimeout(r, 50));
+    expect(screen.queryByRole('region', { name: 'Aviso de cookies' })).toBeNull();
+    expect(document.querySelector('script[src*="googletagmanager"]')).toBeNull();
+    fireEvent.click(within(footer).getByRole('button', { name: 'Configurar cookies' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Configurar cookies' }, WAIT);
+    expect(dialog).toHaveTextContent('En esta dirección del sitio no usamos cookies, Google Analytics ni medición de anuncios');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), WAIT);
+    expect(localStorage.getItem('elights_cookie_consent')).toBeNull();
   });
 });
 

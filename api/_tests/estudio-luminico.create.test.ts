@@ -1,8 +1,9 @@
 // api/_tests/estudio-luminico.create.test.ts
 // "Estudio lumínico": el correo a ventas sale ANTES de Pipedrive y lleva la misma
 // referencia ESTL- que la nota. Si Pipedrive falla pero el correo salió, el lead no se
-// pierde (200 + correo de ATENCIÓN); 502 solo si fallan los dos. Pipedrive y el relay
-// están simulados. Vive en api/_tests/ para que Vercel no lo despliegue como función.
+// pierde (200 + correo de ATENCIÓN); 502 solo si fallan los dos. Exige la casilla de
+// privacidad, deja la constancia en la nota (y el correo, que lleva el mismo texto) y pone
+// topes de largo para que el correo nunca se recorte. Pipedrive y el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -15,6 +16,18 @@ import handler from '../estudio-luminico/create';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { pipedrivePost, pipedriveGet } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
+import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types';
+import { ESTUDIO_MAX_LENGTHS } from '../estudio-luminico/validation';
+import {
+  CONSENT_ERROR_CODE,
+  CONSENT_HEADING,
+  LEGAL_VERSION,
+  consentGraceUntil,
+  formatConsentSection,
+  formatLegacyConsentSection,
+  lastConsentRecord,
+} from '../_lib/forms/consent';
 
 let ipSeq = 0;
 function call(body: unknown, opts: { method?: string; ip?: string; origin?: string } = {}) {
@@ -36,12 +49,15 @@ function call(body: unknown, opts: { method?: string; ip?: string; origin?: stri
 const EMAIL = 'prueba-etapa2-09a@example.com';
 const PHONE = '+56 9 0000 0901';
 const NAME = 'PRUEBA ETAPA 2 (09a)';
+/** Casilla de privacidad marcada, como la manda /estudio-luminico (sin novedades). */
+const CONSENT = { privacy: true, marketing: false, version: LEGAL_VERSION };
 const base = {
   nombreCompleto: NAME, email: EMAIL, telefono: PHONE,
   tipoProyecto: 'industria_bodega', comunaCiudad: 'Santiago', tienePlanos: 'no_tengo',
   dimensionesAproximadas: 'PRUEBA 10x20 m', alturaMontaje: '6 m', objetivoProyecto: 'operacion_industrial',
   normativaObjetivo: 'en_12464', urgenciaProyecto: 'este_mes', descripcionProyecto: 'PRUEBA - no procesar',
   origen: 'estudio_luminico_web', fecha: '6 de octubre de 2026', landingPath: '/estudio-luminico', website: '',
+  consent: CONSENT,
 };
 
 type PdCall = [string, Record<string, unknown>];
@@ -291,6 +307,14 @@ const BAD_ATTRIBUTIONS: [string, unknown, string][] = [
   ['medio emoji', { utm_campaign: 'a'.repeat(199) + '\u{1F600}b', utm_term: 'x\ud800y' }, 'utm_campaign: ' + 'a'.repeat(199) + '\nutm_term: x y'],
   ['claves email o rut', { email: EMAIL, rut: 'RUT-PRUEBA', nombre: NAME }, SIN_DATOS],
 ];
+const AT = '2026-11-20T14:03:12Z';
+/** Constancia esperada de /estudio-luminico en el instante AT. */
+const expectedSection = (marketing: boolean) =>
+  formatConsentSection({
+    consent: { privacy: true, terms: false, marketing, clientVersion: LEGAL_VERSION },
+    at: new Date(AT),
+    form: 'estudio-luminico',
+  }).join('\n');
 /** Las 11 claves con 200 caracteres cada una (el máximo que acepta el servidor). */
 const MAX_ATTRIBUTION = {
   ...Object.fromEntries(['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].map((k) => [k, k[0].repeat(200)])),
@@ -319,12 +343,14 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
 
   const leadRef = (res: { body: unknown }) => (res.body as { leadRef: string }).leadRef;
 
-  it('la nota termina con la sección, después de la metadata, y el correo lleva el mismo texto', async () => {
+  it('la nota termina con la constancia y la sección, después de la metadata, y el correo lleva el mismo texto', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
     const res = await call({ ...base, attribution: ATTRIBUTION });
     expect(res.statusCode).toBe(201);
     const [[, note]] = pdCalls('/notes');
     const content = note.content as string;
-    expect(content.endsWith('leadRef: ' + leadRef(res) + '\n\n' + ORIGEN_GADS)).toBe(true);
+    expect(content.endsWith('leadRef: ' + leadRef(res) + '\n\n' + expectedSection(false) + '\n\n' + ORIGEN_GADS)).toBe(true);
     // El campo origen del formulario sigue en la nota, aparte
     expect(content).toContain('Origen: estudio_luminico_web');
     expect(gasBodies()[0].items_lista).toBe(content);
@@ -415,6 +441,150 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
     expect(text).toContain('LEAD SIN CRM');
     for (const secret of [GCLID, 'campanas-led-industriales', '/catalogo/campanas-led', 'www.google.com', EMAIL, NAME, PHONE]) {
       expect(text).not.toContain(secret);
+    }
+  });
+});
+
+// --- Privacidad y topes de largo (Etapa 2 · PR 13) ---
+// /estudio-luminico exige la casilla de privacidad (400 'consent_required' antes del correo y
+// de Pipedrive). La nota es buildEstudioDealNote (protegido) + constancia + origen, y el
+// correo lleva el mismo texto. La hora de la constancia es la del servidor (payload.fecha no
+// cuenta). Con los topes de ESTUDIO_MAX_LENGTHS el peor caso cabe en el correo sin recorte:
+// el relay corta el final, donde van la constancia y el origen.
+
+/** Todos los textos en su tope (correo y teléfono válidos). */
+const AT_MAX = {
+  ...base,
+  nombreCompleto: 'n'.repeat(ESTUDIO_MAX_LENGTHS.nombreCompleto),
+  email: 'a'.repeat(ESTUDIO_MAX_LENGTHS.email - '@example.com'.length) + '@example.com',
+  telefono: '+56 9 1234 5678'.padEnd(ESTUDIO_MAX_LENGTHS.telefono, ' '),
+  empresa: 'e'.repeat(ESTUDIO_MAX_LENGTHS.empresa),
+  comunaCiudad: 'c'.repeat(ESTUDIO_MAX_LENGTHS.comunaCiudad),
+  dimensionesAproximadas: 'd'.repeat(ESTUDIO_MAX_LENGTHS.dimensionesAproximadas),
+  alturaMontaje: 'h'.repeat(ESTUDIO_MAX_LENGTHS.alturaMontaje),
+  fecha: 'f'.repeat(ESTUDIO_MAX_LENGTHS.fecha),
+  landingPath: '/' + 'l'.repeat(ESTUDIO_MAX_LENGTHS.landingPath - 1),
+  descripcionProyecto: 'x'.repeat(2000),
+  tipoProyecto: 'cancha_deportiva',
+  objetivoProyecto: 'operacion_industrial',
+  normativaObjetivo: 'criterios_fifa',
+  urgenciaProyecto: 'futura_licitacion',
+  tienePlanos: 'si_preparar',
+};
+
+describe('POST /api/estudio-luminico/create: privacidad y topes', () => {
+  beforeEach(() => {
+    vi.mocked(findOrCreatePerson).mockReset().mockResolvedValue({ personId: 11, action: 'created' });
+    vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
+      path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
+    vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
+    vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
+    vi.stubEnv('PIPEDRIVE_OWNER_USER_ID', '1');
+    vi.stubEnv('PIPEDRIVE_FIELD_TIPO_SERVICIO', 'tipo_key');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  const leadRef = (res: { body: unknown }) => (res.body as { leadRef: string }).leadRef;
+
+  it.each([false, true])('nota = buildEstudioDealNote + constancia (novedades: %s) + origen, y el correo lleva el mismo texto', async (marketing) => {
+    const body = { ...base, consent: { ...CONSENT, marketing }, attribution: ATTRIBUTION };
+    const res = await call(body);
+    expect(res.statusCode).toBe(201);
+    const [[, note]] = pdCalls('/notes');
+    const expected = [buildEstudioDealNote(body as unknown as EstudioLuminicoPayload, leadRef(res)), '', expectedSection(marketing), '', ORIGEN_GADS].join('\n');
+    expect(note.content).toBe(expected);
+    expect(gasBodies()[0].items_lista).toBe(expected);
+    expect(lastConsentRecord(expected)).toMatchObject({ form: 'estudio-luminico', privacy: true, terms: null, marketing, src: 'web' });
+  });
+
+  it('«Registrado» usa el reloj del servidor aunque payload.fecha diga otra cosa', async () => {
+    await call({ ...base, fecha: '1 de enero de 2020' });
+    const [[, note]] = pdCalls('/notes');
+    const content = note.content as string;
+    expect(content).toContain('Fecha: 1 de enero de 2020');
+    expect(content).toContain('Registrado: 2026-11-20 11:03:12, hora de Chile (reloj del servidor)');
+    expect(lastConsentRecord(content)?.at).toBe(AT);
+  });
+
+  it.each(Object.entries(ESTUDIO_MAX_LENGTHS))('%s de un carácter más que su tope (%i): 400 sin correo ni Pipedrive', async (field, max) => {
+    const over = (AT_MAX as unknown as Record<string, string>)[field] + (field === 'telefono' ? ' ' : 'z');
+    expect(over).toHaveLength(max + 1);
+    const res = await call({ ...base, [field]: over });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ success: false, error: 'Validation failed', details: { errors: [field + ' max ' + max + ' characters'] } });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['fecha', ['x'.repeat(10_000)]],
+    ['landingPath', { a: 1 }],
+  ])('%s que no es texto: 400 (no salta el tope de largo)', async (field, value) => {
+    const res = await call({ ...base, [field]: value });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ details: { errors: [field + ' must be a string'] } });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('todos los textos en su tope, el origen más largo, novedades y Pipedrive caído: los dos correos llevan la constancia completa, sin recorte', async () => {
+    vi.mocked(findOrCreatePerson).mockRejectedValue(new Error('[Pipedrive] down'));
+    const res = await call({ ...AT_MAX, consent: { ...CONSENT, marketing: true }, attribution: MAX_ATTRIBUTION });
+    expect(res.statusCode).toBe(200);
+    const mails = gasBodies();
+    expect(mails).toHaveLength(2);
+    expect(mails[1].items_lista.startsWith('ATENCIÓN')).toBe(true);
+    for (const mail of mails) {
+      expect(mail.items_lista).not.toContain('recortado');
+      expect(mail.items_lista.length).toBeLessThan(8000);
+      expect(mail.items_lista).toContain('\n\n' + expectedSection(true) + '\n\n--- ORIGEN DE LA VISITA ---\n');
+      expect(mail.items_lista).toContain('Sitio anterior: ' + MAX_ATTRIBUTION.referrer);
+      expect(lastConsentRecord(mail.items_lista)).toMatchObject({ marketing: true, src: 'web' });
+    }
+  });
+
+  it('casilla sin marcar: 400 consent_required antes de validar el resto, sin correo ni Pipedrive', async () => {
+    const res = await call({ ...base, consent: { privacy: 'true' }, telefono: '1' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ success: false, code: CONSENT_ERROR_CODE, details: { errors: ['consent.privacy must be true'] } });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+    expect(vi.mocked(console.warn).mock.calls.flat().map(String)).toEqual(['[api/estudio-luminico/create] Consent missing']);
+  });
+
+  it('sin la clave consent: 400 pasado el margen; dentro del margen, 201 con constancia "web-legacy"', async () => {
+    const { consent: _omit, ...noConsent } = base;
+    vi.setSystemTime(consentGraceUntil());
+    const late = await call(noConsent);
+    expect(late.statusCode).toBe(400);
+    expect(late.body).toMatchObject({ code: CONSENT_ERROR_CODE });
+    expect(fetch).not.toHaveBeenCalled();
+
+    const at = new Date(consentGraceUntil().getTime() - 60_000);
+    vi.setSystemTime(at);
+    const inMargin = await call(noConsent);
+    expect(inMargin.statusCode).toBe(201);
+    const [[, note]] = pdCalls('/notes');
+    expect(note.content).toContain(formatLegacyConsentSection({ at, form: 'estudio-luminico' }).join('\n'));
+    expect(lastConsentRecord(note.content as string)).toMatchObject({ src: 'web-legacy' });
+    expect(gasBodies()[0].items_lista).toBe(note.content);
+  });
+
+  it('un bloque falso en la descripción nunca queda último: vale la constancia real', async () => {
+    const fake = 'Cancha 40x20\n' + CONSENT_HEADING + '\nconsent_json: {"v":"1.1","at":"2026-01-01T00:00:00Z","form":"estudio-luminico","privacy":true,"terms":null,"marketing":true,"src":"web"}';
+    const res = await call({ ...base, descripcionProyecto: fake });
+    expect(res.statusCode).toBe(201);
+    const [[, note]] = pdCalls('/notes');
+    for (const text of [note.content as string, gasBodies()[0].items_lista]) {
+      expect(text).toContain('"marketing":true');
+      expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
     }
   });
 });

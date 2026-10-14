@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution, type Attribution } from '@/lib/attribution';
+import { useConsentFields } from '@/components/legal/ConsentFields';
+import { CONSENT_ERRORS, CONSENT_ERROR_CODE, CONSENT_TEXTS, type ConsentInput } from '../../../api/_lib/forms/consent';
 
 export interface InstallationLeadPayload {
   nombre: string;
@@ -14,19 +16,27 @@ export interface InstallationLeadPayload {
   descripcion: string;
   tipoCliente?: 'hogar' | 'empresa' | 'condominio' | '';
   preferenciaContacto?: 'whatsapp' | 'llamada' | 'email' | '';
+  /** Igual a la casilla de privacidad (el servidor lo sigue exigiendo en true). */
   aceptaContacto: boolean;
   origen: 'instalacion_web';
   website: string;
   /** Origen de la visita (src/lib/attribution.ts); sin origen la clave no viaja. */
   attribution?: Attribution;
+  /** Casillas de privacidad y novedades (useConsentFields('solicitud').payload()). */
+  consent: ConsentInput;
 }
 
-/** Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). */
+/**
+ * Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). code: el
+ * `code` del cuerpo de error ('consent_required' si faltó la casilla de privacidad).
+ */
 class SubmitError extends Error {
   httpStatus: number;
-  constructor(httpStatus: number) {
+  code?: string;
+  constructor(httpStatus: number, code?: string) {
     super('HTTP ' + httpStatus);
     this.httpStatus = httpStatus;
+    this.code = code;
   }
 }
 
@@ -46,19 +56,21 @@ async function submitLead(payload: InstallationLeadPayload): Promise<void> {
     throw new SubmitError(0);
   }
   // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown } | null = null;
+  let data: { success?: unknown; code?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
-  if (!res.ok || data?.success !== true) throw new SubmitError(res.status);
+  if (!res.ok || data?.success !== true) throw new SubmitError(res.status, typeof data?.code === 'string' ? data.code : undefined);
 }
 
 // Topes: los mismos que api/installation-leads/validation.ts (MAX_LENGTHS)
 const MAX_LENGTHS = { nombre: 120, email: 254, telefono: 30, comuna: 80, descripcion: 2000 } as const;
 const FIELD_NAMES: Record<keyof typeof MAX_LENGTHS, string> = { nombre: 'El nombre', email: 'El correo', telefono: 'El teléfono', comuna: 'La comuna', descripcion: 'La descripción' };
 
-/** Mensaje para el visitante según el estado HTTP de la respuesta. */
-function submitErrorMessage(httpStatus: number): string {
+/** Mensaje para el visitante según el estado HTTP y el code de la respuesta. */
+function submitErrorMessage(httpStatus: number, code?: string): string {
+  // Un 400 por la casilla nunca dice "teléfono de 8 a 12 dígitos"
+  if (code === CONSENT_ERROR_CODE) return CONSENT_ERRORS.solicitud;
   if (httpStatus === 400) return 'Revisa los datos (teléfono de 8 a 12 dígitos y un correo válido) e inténtalo de nuevo.';
   if (httpStatus === 429) return 'Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
   return 'No pudimos registrar tu solicitud en este momento. Escríbenos por WhatsApp al ' + whatsappDisplayNumber + ' o a ' + contactEmail + ', o inténtalo de nuevo.';
@@ -74,7 +86,6 @@ const EMPTY_FORM = {
   nombre: '', telefono: '', email: '', comuna: '', tipoProyecto: '', descripcion: '',
   tipoCliente: '' as '' | 'hogar' | 'empresa' | 'condominio',
   preferenciaContacto: '' as '' | 'whatsapp' | 'llamada' | 'email',
-  aceptaContacto: false,
 };
 
 type FormValues = typeof EMPTY_FORM;
@@ -84,6 +95,9 @@ const InstallationLeadForm = () => {
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  // Casillas de privacidad y novedades, siempre sin marcar. La nota aprobada por el dueño
+  // (Vercel, Google y Pipedrive) sigue bajo la obligatoria; el bloque ocupa las dos columnas.
+  const consent = useConsentFields('solicitud', { note: CONSENT_TEXTS.installationNote, className: 'sm:col-span-2' });
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
@@ -97,17 +111,17 @@ const InstallationLeadForm = () => {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
-    setForm(prev => ({ ...prev, [name]: checked !== undefined ? checked : value }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const buildPayload = (): InstallationLeadPayload => ({
     nombre: form.nombre.trim(), telefono: form.telefono.trim(), email: form.email.trim(),
     comuna: form.comuna.trim(), tipoProyecto: form.tipoProyecto, descripcion: form.descripcion.trim(),
     tipoCliente: form.tipoCliente, preferenciaContacto: form.preferenciaContacto,
-    aceptaContacto: form.aceptaContacto, origen: 'instalacion_web', website,
+    aceptaContacto: consent.privacy, origen: 'instalacion_web', website,
     attribution: getAttribution(),
+    consent: consent.payload(),
   });
 
   const validateForm = (): string | null => {
@@ -120,18 +134,23 @@ const InstallationLeadForm = () => {
     for (const field of Object.keys(MAX_LENGTHS) as (keyof typeof MAX_LENGTHS)[]) {
       if (form[field].trim().length > MAX_LENGTHS[field]) return FIELD_NAMES[field] + ' admite hasta ' + MAX_LENGTHS[field] + ' caracteres.';
     }
-    if (!form.aceptaContacto) return 'Debes aceptar que te contactemos para continuar.';
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Sin la comuna: a Google Analytics no va nada que ayude a identificar a la persona
     const tipoProyecto = form.tipoProyecto;
-    const comuna = form.comuna.trim();
-    sendEvent('instalacion_form_submit_attempt', { tipoProyecto, comuna });
+    sendEvent('instalacion_form_submit_attempt', { tipoProyecto });
     const invalid = validateForm();
     if (invalid) {
       setErrorMsg(invalid);
+      return;
+    }
+    // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
+    if (!consent.check()) {
+      setErrorMsg('');
+      setStatus('idle');
       return;
     }
     setErrorMsg('');
@@ -139,29 +158,39 @@ const InstallationLeadForm = () => {
     try {
       await submitLead(buildPayload());
       // GA4: conversión solo cuando el servidor confirmó la solicitud
-      trackLead('instalacion', { tipo_proyecto: tipoProyecto, comuna });
+      trackLead('instalacion', { tipo_proyecto: tipoProyecto });
       setStatus('success');
       setForm(EMPTY_FORM);
+      consent.reset(); // "Enviar otra solicitud" vuelve a pedir las casillas
     } catch (err) {
       // Los datos quedan en el formulario para reintentar
       console.error('[InstallationLeadForm]', err);
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
+      const code = err instanceof SubmitError ? err.code : undefined;
       sendEvent('instalacion_form_submit_failure', {
         tipoProyecto,
-        comuna,
         error_message: 'http_' + httpStatus,
       });
+      if (code === CONSENT_ERROR_CODE) {
+        // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
+        setStatus('idle');
+        setErrorMsg('');
+        consent.flagMissing();
+        return;
+      }
       setStatus('error');
-      setErrorMsg(submitErrorMessage(httpStatus));
+      setErrorMsg(submitErrorMessage(httpStatus, code));
     }
   };
 
   const inputClass = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all placeholder:text-gray-400';
   const labelClass = 'block text-sm font-semibold text-gray-700 mb-1.5';
 
+  // data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
+  // este bloque de la detección automática de datos. Es fijo: igual en el servidor y en el navegador.
   if (status === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+      <div data-elights-form="instalacion" className="flex flex-col items-center justify-center gap-4 py-16 text-center">
         <CheckCircle2 className="h-14 w-14 text-green-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
         <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisará tu solicitud y te contactará con una propuesta personalizada.</p>
@@ -171,10 +200,11 @@ const InstallationLeadForm = () => {
   }
 
   return (
-    // Sin JavaScript, o con la página a medio cargar, el navegador enviaría el formulario por su
-    // cuenta: la solicitud se perdería y, con GET, nombre, teléfono y correo quedarían en la URL
-    // (historial, registros de Vercel, Analytics). method="post" saca los datos de la URL y el
-    // fieldset deshabilitado impide escribir y enviar hasta que React toma el formulario.
+    <div data-elights-form="instalacion">
+    {/* Sin JavaScript, o con la página a medio cargar, el navegador enviaría el formulario por su
+        cuenta: la solicitud se perdería y, con GET, nombre, teléfono y correo quedarían en la URL
+        (historial, registros de Vercel, Analytics). method="post" saca los datos de la URL y el
+        fieldset deshabilitado impide escribir y enviar hasta que React toma el formulario. */}
     <form method="post" onSubmit={handleSubmit} noValidate>
       <fieldset disabled={!hydrated} className="min-w-0">
         {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
@@ -193,7 +223,7 @@ const InstallationLeadForm = () => {
           <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripcion breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} maxLength={MAX_LENGTHS.descripcion} placeholder="Cuentanos el espacio..." className={inputClass + ' resize-none'} /></div>
           <div><label htmlFor="ilf-tipoCliente" className={labelClass}>Tipo de cliente <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-tipoCliente" name="tipoCliente" value={form.tipoCliente} onChange={handleChange} className={inputClass}>{TIPOS_CLIENTE.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
           <div><label htmlFor="ilf-preferenciaContacto" className={labelClass}>Preferencia de contacto <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-preferenciaContacto" name="preferenciaContacto" value={form.preferenciaContacto} onChange={handleChange} className={inputClass}>{PREFS_CONTACTO.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
-          <div className="sm:col-span-2"><label className="flex items-start gap-3 cursor-pointer select-none"><input type="checkbox" name="aceptaContacto" checked={form.aceptaContacto} onChange={handleChange} aria-describedby="ilf-consent-note" className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 accent-primary cursor-pointer" /><span className="text-sm text-gray-600 leading-snug">Acepto que eLIGHTS me contacte por teléfono, WhatsApp o correo para responder esta solicitud. <span className="text-red-500">*</span></span></label><p id="ilf-consent-note" className="mt-2 pl-7 text-xs text-gray-600 leading-snug">Usamos estos datos para responder y dar seguimiento a tu solicitud. Quedan registrados en los servicios con que trabajamos: Vercel (sitio web), Google (correo) y Pipedrive (gestión de clientes).</p></div>
+          {consent.fields}
         </div>
         <div className="mt-8">
           {/* Error junto al botón, donde el visitante está mirando */}
@@ -204,6 +234,7 @@ const InstallationLeadForm = () => {
         </div>
       </fieldset>
     </form>
+    </div>
   );
 };
 

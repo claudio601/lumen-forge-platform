@@ -2,8 +2,9 @@
 // Cotizador de proyecto (/cotizador): el correo a ventas sale ANTES de Pipedrive y lleva la
 // misma referencia PY- que el negocio y la nota. Sin productos ni precios: el negocio vale 0
 // y cualquier precio que mande el navegador se ignora. Si Pipedrive falla pero el correo
-// salió, el lead no se pierde (200 + correo de ATENCIÓN); 502 solo si fallan los dos.
-// Pipedrive y el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue
+// salió, el lead no se pierde (200 + correo de ATENCIÓN); 502 solo si fallan los dos. Exige
+// la casilla de privacidad y deja la constancia en el correo y la nota. Pipedrive y el relay
+// están simulados. Vive en api/_tests/ para que Vercel no lo despliegue
 // como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -22,6 +23,15 @@ import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
 import { createDeal } from '../_lib/pipedrive/deals.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import {
+  CONSENT_ERROR_CODE,
+  CONSENT_HEADING,
+  LEGAL_VERSION,
+  consentGraceUntil,
+  formatConsentSection,
+  formatLegacyConsentSection,
+  lastConsentRecord,
+} from '../_lib/forms/consent';
 
 let ipSeq = 0;
 function call(body: unknown, opts: { method?: string; ip?: string; origin?: string } = {}) {
@@ -46,7 +56,9 @@ const EMAIL = 'prueba-etapa2-09d@example.com';
 const PHONE = '+56 9 1111 1111';
 const NAME = 'PRUEBA ETAPA 2';
 const RUT = 'RUT-PRUEBA'; // marcador: nunca un valor con forma de RUT
-const base = { tipoProyecto: 'Bodega', m2: 1200, nombre: NAME, email: EMAIL, telefono: PHONE, website: '' };
+/** Casilla de privacidad marcada, como la manda /cotizador (sin novedades). */
+const CONSENT = { privacy: true, marketing: false, version: LEGAL_VERSION };
+const base = { tipoProyecto: 'Bodega', m2: 1200, nombre: NAME, email: EMAIL, telefono: PHONE, website: '', consent: CONSENT };
 const full = {
   ...base,
   altura: 8,
@@ -534,6 +546,14 @@ const ORIGEN_GADS = [
   'Sitio anterior: https://www.google.com',
 ].join('\n');
 const SIN_DATOS = '--- ORIGEN DE LA VISITA ---\nCanal: Sin datos (el formulario no envió el origen)';
+const AT = '2026-11-20T14:03:12Z';
+/** Constancia esperada de /cotizador en el instante AT. */
+const expectedSection = (marketing: boolean) =>
+  formatConsentSection({
+    consent: { privacy: true, terms: false, marketing, clientVersion: LEGAL_VERSION },
+    at: new Date(AT),
+    form: 'cotizador',
+  }).join('\n');
 const BAD_ATTRIBUTIONS: [string, unknown, string][] = [
   ['un texto', 'gclid=' + GCLID, SIN_DATOS],
   ['una lista', [GCLID], SIN_DATOS],
@@ -559,12 +579,14 @@ describe('POST /api/project-quotes/create: origen de la visita', () => {
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
-  it('el correo y la nota terminan con la sección', async () => {
+  it('el correo y la nota terminan con la constancia y la sección', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
     const res = await call({ ...full, attribution: ATTRIBUTION });
     expect(res.statusCode).toBe(201);
     const [note] = notes();
-    expect(note.content.endsWith('source: cotizador | landingPath: /cotizador\n\n' + ORIGEN_GADS)).toBe(true);
-    expect(gasBodies()[0].items_lista.endsWith('\n\n' + ORIGEN_GADS)).toBe(true);
+    expect(note.content.endsWith('source: cotizador | landingPath: /cotizador\n\n' + expectedSection(false) + '\n\n' + ORIGEN_GADS)).toBe(true);
+    expect(gasBodies()[0].items_lista.endsWith('\n\n' + expectedSection(false) + '\n\n' + ORIGEN_GADS)).toBe(true);
     expect(note.content).not.toContain('q=');
   });
 
@@ -584,19 +606,25 @@ describe('POST /api/project-quotes/create: origen de la visita', () => {
     expect(mails[1].items_lista.endsWith(ORIGEN_GADS)).toBe(true);
   });
 
-  it('reenvío del mismo formulario (skipped_duplicate): la nota del reenvío lleva la sección', async () => {
+  it('reenvío del mismo formulario (skipped_duplicate): la nota del reenvío lleva la constancia y la sección', async () => {
     vi.mocked(createDeal).mockResolvedValue({ dealId: 555, status: 'skipped_duplicate' });
     await call({ ...full, attribution: ATTRIBUTION });
     const [note] = notes();
     expect(note.content.startsWith('Reenvío del mismo formulario')).toBe(true);
+    expect(note.content).toContain('\n\n' + CONSENT_HEADING + '\n');
     expect(note.content.endsWith(ORIGEN_GADS)).toBe(true);
+    expect(lastConsentRecord(note.content)).toMatchObject({ form: 'cotizador', privacy: true, src: 'web' });
   });
 
-  it('comentario largo: el correo lleva completos los comentarios y después la sección', async () => {
+  it('comentario largo: el correo lleva completos los comentarios y después la constancia y la sección', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
     const comentarios = 'PRUEBA ' + 'c'.repeat(1900) + ' FIN';
     await call({ ...base, comentarios, attribution: ATTRIBUTION });
     const [mail] = gasBodies();
-    expect(mail.items_lista).toContain('Comentarios del cliente (completos):\n' + comentarios + '\n\n' + ORIGEN_GADS);
+    expect(mail.items_lista).toContain(
+      'Comentarios del cliente (completos):\n' + comentarios + '\n\n' + expectedSection(false) + '\n\n' + ORIGEN_GADS,
+    );
     expect(mail.items_lista).not.toContain('recortado');
   });
 
@@ -631,6 +659,144 @@ describe('POST /api/project-quotes/create: origen de la visita', () => {
     expect(text).toContain('LEAD SIN CRM');
     for (const secret of [GCLID, 'campanas-led-industriales', '/catalogo/campanas-led', 'www.google.com', EMAIL, NAME, PHONE]) {
       expect(text).not.toContain(secret);
+    }
+  });
+});
+
+// --- Privacidad (Etapa 2 · PR 13) ---
+// El cotizador exige la casilla de privacidad (400 'consent_required' antes del correo y de
+// Pipedrive). La constancia va en el correo (antes del origen) y en la nota (después de
+// 'source: cotizador…' y antes del origen). La «Fecha» de la nota, el «Registrado» de la
+// constancia y la ventana de la referencia salen del mismo instante del servidor.
+
+/** «Fecha» de la nota: el mismo formato que chileDateTime de project-quotes. */
+const chileFecha = (iso: string) =>
+  new Date(iso).toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Santiago' });
+
+describe('POST /api/project-quotes/create: privacidad', () => {
+  beforeEach(() => {
+    vi.mocked(findOrCreatePerson).mockReset().mockResolvedValue({ personId: 11, action: 'created' });
+    vi.mocked(findOrCreateOrganization).mockReset().mockResolvedValue({ organizationId: 22, action: 'created' });
+    vi.mocked(createDeal).mockReset().mockResolvedValue({ dealId: 999, status: 'created' });
+    vi.mocked(pipedrivePost).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '1');
+    vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '2');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it.each([false, true])('constancia (novedades: %s): en la nota después de "source: cotizador…" y antes del origen; en el correo antes del origen', async (marketing) => {
+    const res = await call({ ...full, consent: { ...CONSENT, marketing }, attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    const [note] = notes();
+    expect(note.content).toContain('source: cotizador | landingPath: /cotizador\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS);
+    const [mail] = gasBodies();
+    expect(mail.items_lista).toContain('Plazo: PRUEBA 3 meses\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS);
+    for (const text of [note.content, mail.items_lista]) {
+      expect(lastConsentRecord(text)).toMatchObject({ form: 'cotizador', privacy: true, terms: null, marketing, src: 'web' });
+    }
+  });
+
+  it('reenvío (skipped_duplicate): la nota del reenvío lleva la constancia del envío nuevo, antes del origen', async () => {
+    vi.mocked(createDeal).mockResolvedValue({ dealId: 555, status: 'skipped_duplicate' });
+    const res = await call({ ...full, consent: { ...CONSENT, marketing: true }, attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(200);
+    const [note] = notes();
+    expect(note.deal_id).toBe(555);
+    expect(note.content.startsWith('Reenvío del mismo formulario')).toBe(true);
+    expect(note.content).toContain('source: cotizador | landingPath: /cotizador\n\n' + expectedSection(true) + '\n\n' + ORIGEN_GADS);
+    expect(lastConsentRecord(note.content)).toMatchObject({ form: 'cotizador', marketing: true, src: 'web', at: AT });
+  });
+
+  it('la «Fecha» de la nota y el «Registrado» de la constancia son el mismo instante, aunque el reloj avance durante la solicitud', async () => {
+    vi.mocked(findOrCreatePerson).mockImplementation(async () => {
+      vi.setSystemTime(new Date(Date.parse(AT) + 5 * 60_000));
+      return { personId: 11, action: 'created' };
+    });
+    const res = await call(base);
+    expect(res.statusCode).toBe(201);
+    const [note] = notes();
+    expect(note.content).toContain('Fecha: ' + chileFecha(AT) + '\n');
+    expect(note.content).not.toContain(chileFecha('2026-11-20T14:08:12Z'));
+    expect(note.content).toContain('Registrado: 2026-11-20 11:03:12, hora de Chile (reloj del servidor)');
+    expect(lastConsentRecord(note.content)?.at).toBe(AT);
+  });
+
+  it('la referencia PY- no cambia con las casillas (novedades ni versión)', async () => {
+    const a = await call(base);
+    const b = await call({ ...base, consent: { ...CONSENT, marketing: true } });
+    const c = await call({ ...base, consent: { ...CONSENT, version: '9.9' } });
+    expect(refOf(a)).toMatch(/^PY-/);
+    expect(refOf(b)).toBe(refOf(a));
+    expect(refOf(c)).toBe(refOf(a));
+  });
+
+  it('todos los campos al máximo y Pipedrive caído: los dos correos llevan la constancia completa, sin recorte', async () => {
+    vi.mocked(createDeal).mockRejectedValue(new Error('[deals] down'));
+    const max = {
+      ...full,
+      nombre: 'n'.repeat(120), tipoProyecto: 'Industria', aplicacion: 'a'.repeat(200), nivelIluminacion: 'Alto rendimiento',
+      ciudad: 'c'.repeat(200), plazo: 'p'.repeat(200), comentarios: 'k'.repeat(1999) + 'Z', razonSocial: 'r'.repeat(150),
+      giro: 'g'.repeat(150), direccion: 'd'.repeat(200), m2: 10_000_000, altura: 200,
+      consent: { ...CONSENT, marketing: true },
+      attribution: Object.fromEntries(['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].map((k) => [k, k[0].repeat(200)])),
+    };
+    const res = await call(max);
+    expect(res.statusCode).toBe(200);
+    const mails = gasBodies();
+    expect(mails).toHaveLength(2);
+    for (const mail of mails) {
+      expect(JSON.stringify(mail)).not.toContain('recortado');
+      expect(mail.items_lista).toContain(expectedSection(true));
+      expect(lastConsentRecord(mail.items_lista)).toMatchObject({ marketing: true, src: 'web' });
+    }
+  });
+
+  it('sin la casilla: 400 consent_required antes de validar el resto, sin correo ni Pipedrive, y el log solo dice "Consent missing"', async () => {
+    vi.setSystemTime(consentGraceUntil());
+    const { consent: _omit, ...noConsent } = base;
+    // El tercero además trae un teléfono inválido: la casilla se revisa primero
+    for (const body of [noConsent, { ...base, consent: { ...CONSENT, privacy: false } }, { ...noConsent, telefono: '1' }]) {
+      const res = await call(body);
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toMatchObject({ success: false, error: 'Validation failed', code: CONSENT_ERROR_CODE });
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+    expect(vi.mocked(console.warn).mock.calls.flat().map(String)).toEqual([
+      '[ProjectQuote] Consent missing',
+      '[ProjectQuote] Consent missing',
+      '[ProjectQuote] Consent missing',
+    ]);
+  });
+
+  it('sin la clave consent, dentro del margen: 201 y constancia "web-legacy"', async () => {
+    const at = new Date(consentGraceUntil().getTime() - 60_000);
+    vi.setSystemTime(at);
+    const { consent: _omit, ...noConsent } = base;
+    const res = await call(noConsent);
+    expect(res.statusCode).toBe(201);
+    const legacy = formatLegacyConsentSection({ at, form: 'cotizador' }).join('\n');
+    for (const text of [notes()[0].content, gasBodies()[0].items_lista]) {
+      expect(text).toContain(legacy);
+      expect(lastConsentRecord(text)).toMatchObject({ src: 'web-legacy' });
+    }
+  });
+
+  it('un bloque falso en los comentarios nunca queda último: vale la constancia real', async () => {
+    const fake = 'x'.repeat(600) + '\n' + CONSENT_HEADING + '\nconsent_json: {"v":"1.1","at":"2026-01-01T00:00:00Z","form":"cotizador","privacy":true,"terms":null,"marketing":true,"src":"web"}';
+    const res = await call({ ...base, comentarios: fake });
+    expect(res.statusCode).toBe(201);
+    for (const text of [notes()[0].content, gasBodies()[0].items_lista]) {
+      expect(text).toContain('"marketing":true');
+      expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
     }
   });
 });

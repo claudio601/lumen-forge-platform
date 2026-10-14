@@ -29,6 +29,11 @@
 //  11. Origen de la visita (clave `attribution`, api/_lib/forms/attribution.ts): sección
 //      "ORIGEN DE LA VISITA" al final de la nota y del correo. Informativo: un origen raro
 //      se descarta, nunca da 400, y no entra en la referencia ni en el log.
+//  12. Privacidad (clave `consent`, api/_lib/forms/consent.ts): toda cotización del sitio,
+//      con o sin API key, exige la casilla obligatoria: sin ella, 400 con code
+//      'consent_required' antes del correo y de Pipedrive. La constancia "PRIVACIDAD Y
+//      AUTORIZACIONES" va en la nota y en el correo, antes del origen. `consent` se quita
+//      del cuerpo de todas las fuentes: nunca llega al CRM.
 // Los logs llevan la referencia, el tipo de cliente y los ids: nunca nombre, correo,
 // teléfono ni RUT.
 
@@ -46,6 +51,7 @@ import { priceItems } from '../_lib/catalog/pricing.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { formatOrigenSection, parseAttribution } from '../_lib/forms/attribution.js';
+import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
@@ -105,6 +111,8 @@ interface SiteQuote {
   pending: number;
   /** Sección "ORIGEN DE LA VISITA" para la nota y el correo. */
   origen: string[];
+  /** Constancia "PRIVACIDAD Y AUTORIZACIONES" (resolveConsent) para la nota y el correo. */
+  consent: string[];
 }
 
 /** Una línea: sin saltos de línea ni espacios repetidos. */
@@ -146,7 +154,10 @@ const pendingText = (n: number) =>
  * cliente: empresa → B2B con su razón social como organización; persona → B2C, sin
  * organización. El RUT solo se exige presente (sin validar su formato).
  */
-function prepareSiteQuote(body: Record<string, unknown>): { site: SiteQuote; errors: string[] } {
+function prepareSiteQuote(
+  body: Record<string, unknown>,
+  consent: string[]
+): { site: SiteQuote; errors: string[] } {
   const { customerType, priceMode, company, attribution } = body;
   delete body.customerType;
   delete body.priceMode;
@@ -207,7 +218,7 @@ function prepareSiteQuote(body: Record<string, unknown>): { site: SiteQuote; err
 
   const type = customerType === 'empresa' || customerType === 'persona' ? customerType : undefined;
   const origen = formatOrigenSection(parseAttribution(attribution));
-  return { site: { customerType: type, net, billing, detail: [], compact: [], pending: 0, origen }, errors };
+  return { site: { customerType: type, net, billing, detail: [], compact: [], pending: 0, origen, consent }, errors };
 }
 
 /**
@@ -303,7 +314,8 @@ function fitEmailBody(head: string[], site: SiteQuote, tail: string[]): string {
 /**
  * Correo a ventas: la primera línea lleva la referencia para encontrar el deal. El campo
  * COMENTARIOS admite 500 caracteres; un comentario más largo va completo al final del cuerpo
- * y el campo lleva el comienzo con un aviso. El origen de la visita va siempre al final.
+ * y el campo lleva el comienzo con un aviso. Después van la constancia de privacidad y el
+ * origen de la visita, siempre al final (la cola nunca se recorta).
  */
 function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
   const notes = typeof payload.notes === 'string' ? payload.notes.trim() : '';
@@ -312,7 +324,12 @@ function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
     `Cotización web ${payload.quoteReference} (buscar la referencia en Pipedrive)`,
     `Tipo de cliente: ${customerTypeLabel(site.customerType)}`,
   ];
-  const tail = [...(longNotes ? ['', 'Comentarios del cliente (completos):', notes] : []), '', ...site.origen];
+  const tail = [
+    ...(longNotes ? ['', 'Comentarios del cliente (completos):', notes] : []),
+    ...(site.consent.length ? ['', ...site.consent] : []),
+    '',
+    ...site.origen,
+  ];
   const pending = site.pending ? pendingText(site.pending) : '';
   return {
     modo: site.net ? 'Con IVA (el cliente veía precios netos, modo empresa)' : 'Con IVA',
@@ -338,7 +355,7 @@ function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
 /** La nota de Pipedrive es HTML: el texto del cliente no puede agregar etiquetas ni enlaces. */
 const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Nota del deal: tipo de cliente, datos de facturación, productos, total, comentarios y origen. */
+/** Nota del deal: tipo de cliente, datos de facturación, productos, total, comentarios, constancia y origen. */
 function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: boolean): string {
   const ref = payload.quoteReference;
   return escapeHtml([
@@ -360,6 +377,7 @@ function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: b
       : 'TOTAL CON IVA: por confirmar (REVISAR)',
     ...(site.net ? ['El cliente veía precios netos (modo empresa del sitio); los montos de esta nota son CON IVA.'] : []),
     ...(payload.notes ? [`Comentarios del cliente: ${payload.notes}`] : []),
+    ...(site.consent.length ? ['', ...site.consent] : []),
     '',
     ...site.origen,
   ].join('\n'));
@@ -445,6 +463,9 @@ export default async function handler(
     return;
   }
 
+  // Un solo reloj por solicitud: la hora de la constancia es la del servidor.
+  const at = new Date();
+
   // Sin API key, solo cotizaciones del sitio: el Origin se puede falsificar, y una fuente
   // 'jumpseller' con el id de un pedido real haría que el webhook lo diera por repetido.
   if (auth !== 'key' && !(body && typeof body === 'object' && body.sourceSystem === 'nuevo_elights')) {
@@ -454,12 +475,36 @@ export default async function handler(
     return;
   }
 
+  // Privacidad: `consent` sale del cuerpo de TODAS las fuentes (nunca llega al CRM). Toda
+  // cotización del sitio la exige, también con API key; las otras fuentes (solo con API
+  // key, no son formularios del sitio) no llevan constancia.
+  let consentSection: string[] = [];
+  if (body && typeof body === 'object') {
+    const consentRaw: unknown = body.consent;
+    delete body.consent;
+    if (body.sourceSystem === 'nuevo_elights') {
+      const consent = resolveConsent({ consent: consentRaw }, { form: 'cotizacion', requireTerms: false, at });
+      // `=== false`: con strictNullChecks apagado, `if (!consent.ok)` no estrecha el tipo.
+      if (consent.ok === false) {
+        console.warn(`${LOG_PREFIX} Consent missing`);
+        res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          code: CONSENT_ERROR_CODE,
+          details: { errors: consent.errors },
+        });
+        return;
+      }
+      consentSection = consent.section;
+    }
+  }
+
   // Cotizaciones del sitio: persona o empresa, y precios CON IVA recalculados desde el
   // catálogo de Jumpseller (el navegador puede mandar precios netos del modo empresa o
   // desactualizados). Las otras fuentes (solo con API key) no se tocan.
   let site: SiteQuote | undefined;
   if (body && typeof body === 'object' && body.sourceSystem === 'nuevo_elights' && Array.isArray(body.products)) {
-    const prepared = prepareSiteQuote(body as Record<string, unknown>);
+    const prepared = prepareSiteQuote(body as Record<string, unknown>, consentSection);
     const errors = prepared.errors.length
       ? prepared.errors
       : repriceSiteQuote(body as Record<string, unknown>, prepared.site);

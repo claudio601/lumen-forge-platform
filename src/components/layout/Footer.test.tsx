@@ -1,13 +1,17 @@
 // Pie de página (PR 12): las 6 páginas legales y de compra (LEGAL_PAGES), ningún enlace legal
-// a '/', la razón social y el RUT de la empresa y el horario de businessHours. El popup de
+// a '/', la razón social y el RUT de la empresa y el horario de businessHours. PR 13: el botón
+// «Configurar cookies». El popup de
 // WhatsApp con el mismo horario lo revisa src/config/contentTruth.test.ts.
 
-import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
+import { StaticRouter } from 'react-router-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import Footer from './Footer';
 import { LEGAL_PAGES } from '@/config/legal';
 import { businessHours } from '@/config/business';
+import { OPEN_COOKIE_SETTINGS_EVENT } from '@/lib/cookieConsent';
 
 function renderFooter() {
   render(
@@ -29,6 +33,26 @@ describe('pie de página', () => {
     expect(within(help).getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(LEGAL_PAGES.filter(p => p.path !== '/empresa').map(p => p.path));
     const company = within(footer).getByRole('navigation', { name: 'Empresa' });
     expect(within(company).getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(['/empresa', '/cotizacion', '/instaladores', '/cotizador']);
+  });
+
+  it('«Configurar cookies» (PR 13): un botón al final de "Ayuda", estático, que abre el diálogo de cookies', () => {
+    const footer = renderFooter();
+    const help = within(footer).getByRole('navigation', { name: 'Ayuda' });
+    const button = within(help).getByRole('button', { name: 'Configurar cookies' });
+    expect(button).toHaveAttribute('type', 'button');
+    expect(help.lastElementChild).toBe(button);
+    const onOpen = vi.fn();
+    window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpen);
+    fireEvent.click(button);
+    window.removeEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpen);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    // En el HTML del servidor (páginas estáticas) también está
+    const html = renderToString(
+      <StaticRouter location="/">
+        <Footer />
+      </StaticRouter>,
+    );
+    expect(html).toContain('>Configurar cookies</button>');
   });
 
   it('ningún enlace con texto legal apunta a la portada', () => {
