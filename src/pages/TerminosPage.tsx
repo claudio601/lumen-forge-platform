@@ -3,12 +3,14 @@
 // compradores (personas y empresas), cualquiera sea el medio de pago; en los servicios,
 // retracto hasta que comienzan; la compra queda hecha al pagar (con transferencia, cuando el
 // pago se acredita; con crédito acordado, cuando el cliente acepta por escrito la cotización).
+// Despacho sin costo y retiro en bodega (dueño, 2026-10-14, PR 12b): monto, zona y lugar desde
+// src/config/business.ts; el detalle está en /despacho.
 // Versión y fecha: LEGAL_VERSION y LEGAL_UPDATED_LABEL (src/config/site.ts).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { CompanyFacts, EmailLink, WhatsAppLink } from '@/components/legal/CompanyFacts';
-import { quoteValidityBusinessDays } from '@/config/business';
+import { clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, PICKUP_PLACE, quoteValidityBusinessDays } from '@/config/business';
 
 const TerminosPage = () => (
   <LegalLayout
@@ -52,8 +54,8 @@ const TerminosPage = () => (
       </li>
       <li>
         <strong>Cotización y link de pago.</strong> Te respondemos con una cotización que indica los productos, las cantidades, el
-        precio unitario y el total con IVA, el costo del despacho por separado o si va por pagar, el plazo, las condiciones
-        especiales (por ejemplo, productos sin derecho a retracto) y un link de pago.
+        precio unitario y el total con IVA, el costo del despacho por separado (o si va sin costo o por pagar), el plazo, las
+        condiciones especiales (por ejemplo, productos sin derecho a retracto) y un link de pago.
       </li>
       <li>
         <strong>Revisión.</strong> Si ves un error en la cotización, avísanos antes de pagar y te mandamos una corregida.
@@ -83,7 +85,9 @@ const TerminosPage = () => (
       </li>
       <li>
         El costo del despacho no está incluido en el precio de los productos. Va por separado en la cotización, o la cotización
-        indica que va por pagar (ver <Link to="/despacho">Despacho</Link>).
+        indica que va sin costo (compras sobre {clp(FREE_SHIPPING_THRESHOLD_CLP)} con IVA, con entrega en la{' '}
+        {FREE_SHIPPING_AREA.name}) o por pagar. Las comunas que no entran y las demás condiciones están en{' '}
+        <Link to="/despacho">Despacho</Link>.
       </li>
       <li>
         Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente.
@@ -133,7 +137,8 @@ const TerminosPage = () => (
       Despacho en hasta 2 días hábiles desde que el pago está confirmado (ver <Link to="/medios-de-pago">Medios de pago</Link>), y
       a veces el mismo día. En regiones, es el plazo para entregar tu pedido al transportista; a eso se suma el tiempo de viaje,
       que te informamos en la cotización antes de que pagues. El costo y las condiciones de despacho a cada destino están en{' '}
-      <Link to="/despacho">Despacho</Link> y en tu cotización.
+      <Link to="/despacho">Despacho</Link> y en tu cotización. También puedes retirar tu pedido en {PICKUP_PLACE}: la dirección
+      exacta te la damos cuando tu pago está acreditado.
     </p>
     <p>
       Al recibir, revisa el embalaje frente al transportista. Si viene dañado, déjalo anotado en el comprobante del transportista

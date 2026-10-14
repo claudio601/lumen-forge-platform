@@ -27,9 +27,9 @@ export const LEGAL_REPRESENTATIVE: string | null = null;
  * Al cambiar un texto legal se actualizan las tres constantes. La PR 13 guarda {version, at}
  * con cada envío.
  */
-export const LEGAL_VERSION = '1.0';
-export const LEGAL_UPDATED = '2026-10-12';
-export const LEGAL_UPDATED_LABEL = '12 de octubre de 2026';
+export const LEGAL_VERSION = '1.1';
+export const LEGAL_UPDATED = '2026-10-14';
+export const LEGAL_UPDATED_LABEL = '14 de octubre de 2026';
 
 /**
  * Imagen por defecto para compartir enlaces: JPEG de 1200×630 y 82.683 bytes (las redes no

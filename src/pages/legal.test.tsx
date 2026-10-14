@@ -3,7 +3,10 @@
 // Se dibujan como en el prerender (entry-server, sin sesión) y se revisan: un solo h1, la
 // regla de contenido de check-prerender (sin stock ni plazos de despacho distintos de "hasta 2
 // días hábiles"), los datos de la empresa desde site.ts, lo que la ley pide que digan y los
-// defaults del dueño (despacho sin monto publicado, sin orden de compra, sin representante).
+// defaults del dueño (sin orden de compra, sin representante). Despacho sin costo y retiro en
+// bodega: confirmados por el dueño el 2026-10-14 (PR 12b), desde src/config/business.ts. La
+// lista de comunas que no entran está completa (las 20 de la RM fuera de la Provincia de
+// Santiago, src/test/freeShipping.ts) y los transportistas son los mismos en todas las páginas.
 // Las frases retiradas de la PR 11 las revisa src/config/contentTruth.test.ts en todas las
 // páginas fijas, también estas.
 
@@ -20,17 +23,23 @@ import {
   businessClosedDays,
   businessHours,
   businessHoursLong,
+  clp,
   contactEmail,
+  FREE_SHIPPING_AREA,
   FREE_SHIPPING_THRESHOLD_CLP,
+  freeShippingExcludedList,
+  PICKUP_PLACE,
   quoteValidityBusinessDays,
+  REGION_CARRIERS,
   waBase,
 } from '@/config/business';
 import { NOINDEX_ROUTES, STATIC_ROUTES } from '@/lib/seo/routes';
 import { findPolicyBreaking } from '../../scripts/jumpseller/descriptions';
+import { claimIssues, FREE_RE, namedIn, RM_OUTSIDE_SANTIAGO, RM_PROVINCES } from '@/test/freeShipping';
 import EmpresaPage from './EmpresaPage';
 import TerminosPage from './TerminosPage';
 import CambiosGarantiaPage from './CambiosGarantiaPage';
-import DespachoPage, { UrbanShipping } from './DespachoPage';
+import DespachoPage from './DespachoPage';
 import MediosPagoPage from './MediosPagoPage';
 import PrivacidadPage from './PrivacidadPage';
 
@@ -62,8 +71,38 @@ function section(main: Element, heading: string) {
   return { els, text: els.map(el => el.textContent ?? '').join(' ').replace(/\s+/g, ' ').trim() };
 }
 
-/** Frases que ninguna página legal ni su descripción pueden decir (reglas del dueño y PR 11). */
-const FORBIDDEN = ['3 meses', '1 año base', 'stock', 'existencias', 'camiones propios', '9:00', '$250.000', 'Axiom'];
+/**
+ * Frases que ninguna página legal ni su descripción pueden decir (reglas del dueño, PR 11 y
+ * PR 12b: la zona es la Provincia de Santiago, la lista de comunas que no entran no se presenta
+ * como "las excluidas", sí hay retiro en bodega y los transportistas son los de REGION_CARRIERS).
+ */
+const FORBIDDEN = [
+  '3 meses',
+  '1 año base',
+  'stock',
+  'existencias',
+  'camiones propios',
+  '9:00',
+  'Axiom',
+  'gratis',
+  'Santiago urbano',
+  'área urbana',
+  'Quedan excluidas',
+  'comunas excluidas',
+  'No tenemos',
+  'retiro en oficina',
+  'Chilexpress',
+  'Cruz del Sur',
+  'ECOEx',
+];
+
+/** El único monto que dicen las páginas legales: el del despacho sin costo, desde la constante. */
+const THRESHOLD = clp(FREE_SHIPPING_THRESHOLD_CLP);
+const amountsIn = (s: string) => s.match(/\$\s?\d[\d.]*\d/g) ?? [];
+
+/** Lo que confirmó el dueño el 2026-10-14 (README de la lista de precios por mayor), con sus palabras. */
+const OWNER_EXCLUDED =
+  'San Bernardo, Puente Alto, Colina y el resto de la Provincia de Chacabuco; Talagante, Peñaflor y Padre Hurtado; Melipilla y Alhué; Buin, Paine y Pirque';
 
 /** Todo plazo en días u horas de un texto ("2 días hábiles", "3 a 5 días", "48 hrs"). */
 const DAY_COUNTS = /\d+(?:\s*(?:a|-|y)\s*\d+)?\s*(?:d[ií]as?(?:\s+(?:h[aá]biles|corridos))?|h(?:oras|rs)?|semanas?)(?![\p{L}\p{N}])/giu;
@@ -103,6 +142,7 @@ describe('páginas legales y de compra: todas', () => {
       expect(policyIssues(spaced)).toEqual([]);
       expect(policyIssues(text)).toEqual([]);
       for (const phrase of FORBIDDEN) expect(html, phrase).not.toContain(phrase);
+      for (const amount of amountsIn(text)) expect(amount, `${path}: monto`).toBe(THRESHOLD);
       expect(text).not.toMatch(/\[C\d+\]|\[nombre|LEGAL_UPDATED|TODO/); // sin marcadores del borrador
       // Enlaces: internos a páginas de la app; externos solo correo, teléfono, WhatsApp y SERNAC
       for (const a of main.querySelectorAll('a')) {
@@ -148,10 +188,15 @@ describe('páginas legales y de compra: todas', () => {
       expect(meta('meta[name="twitter:description"]')).toBe(description);
       expect(policyIssues(description), `${path}: description`).toEqual([]);
       for (const phrase of FORBIDDEN) expect(description, `${path}: description`).not.toContain(phrase);
+      for (const amount of amountsIn(description)) expect(amount, `${path}: monto en la descripción`).toBe(THRESHOLD);
+      if (FREE_RE.test(description)) expect(claimIssues(description), `${path}: description`).toEqual([]);
       if (path === '/despacho') {
         expect([...description.matchAll(DAY_COUNTS)].map(m => m[0])).toEqual(['2 días hábiles']);
         expect(description).toContain('Despacho en hasta 2 días hábiles');
+        expect(description).toContain(`Sin costo sobre ${THRESHOLD} con IVA en la ${FREE_SHIPPING_AREA.name}.`);
+        expect(description).toContain('También retiro en bodega.');
         expect(description).not.toContain('a todo Chile'); // en regiones se suma el viaje
+        expect(description.length).toBeLessThanOrEqual(160); // lo que muestra Google sin cortar
       }
       unmount();
     }
@@ -206,8 +251,17 @@ describe('páginas legales y de compra: contenido', () => {
     expect(text).not.toContain('que pagues con el link de pago o por transferencia');
     // §3.5: cuándo queda hecha la compra también con crédito acordado
     expect(section(main, '3.').text).toContain('Si acordamos pago con crédito (ver Medios de pago), queda hecha cuando aceptas por escrito la cotización con esas condiciones de pago.');
-    // §9: en regiones, los 2 días hábiles son hasta la entrega al transportista
-    expect(section(main, '9.').text).toContain('En regiones, es el plazo para entregar tu pedido al transportista; a eso se suma el tiempo de viaje');
+    // §3 y §4: el despacho puede ir sin costo (monto y zona desde business.ts, PR 12b)
+    expect(section(main, '3.').text).toContain('el costo del despacho por separado (o si va sin costo o por pagar)');
+    const precios = section(main, '4.');
+    expect(precios.text).toContain(
+      `la cotización indica que va sin costo (compras sobre ${THRESHOLD} con IVA, con entrega en la ${FREE_SHIPPING_AREA.name}) o por pagar. Las comunas que no entran y las demás condiciones están en Despacho.`,
+    );
+    expect(precios.els.some(el => el.querySelector('a[href="/despacho"]'))).toBe(true);
+    // §9: en regiones, los 2 días hábiles son hasta la entrega al transportista; retiro en bodega sin dirección
+    const despacho = section(main, '9.').text;
+    expect(despacho).toContain('En regiones, es el plazo para entregar tu pedido al transportista; a eso se suma el tiempo de viaje');
+    expect(despacho).toContain(`También puedes retirar tu pedido en ${PICKUP_PLACE}: la dirección exacta te la damos cuando tu pago está acreditado.`);
     // §10: las exclusiones del retracto (DS 52) y que lo conseguido a pedido sí lo tiene
     const retracto = section(main, '10.').text;
     for (const s of [
@@ -262,7 +316,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(fabricante).toContain('tienes los mismos derechos de la garantía legal (reparación sin costo, cambio o devolución de lo pagado, a tu elección)');
   });
 
-  it('/despacho: hasta 2 días hábiles; el monto del despacho sin costo solo con FREE_SHIPPING_THRESHOLD_CLP; regiones sin plazo publicado', async () => {
+  it('/despacho: hasta 2 días hábiles; regiones por pagar sin plazo publicado', async () => {
     const { main, text } = await page('/despacho');
     expect(main.querySelector('h1')?.textContent).toBe('Despacho');
     expect(text).toContain('Despacho en hasta 2 días hábiles');
@@ -270,25 +324,70 @@ describe('páginas legales y de compra: contenido', () => {
     expect(text).toContain('En regiones, es el plazo para entregar tu pedido al transportista; a eso se suma el tiempo de viaje');
     // El único plazo de la página es "2 días hábiles": ningún tiempo de viaje a regiones publicado
     expect([...text.matchAll(DAY_COUNTS)].map(m => m[0])).toEqual(['2 días hábiles']);
-    expect(text).toContain('Starken, Cruz del Sur o PDQ');
-    expect(text).not.toMatch(/ECOEx|retiro en tienda/i);
-    if (FREE_SHIPPING_THRESHOLD_CLP === null) {
-      expect(text).not.toMatch(/\$\s?\d/);
-      expect(text).toContain('El costo del despacho te lo informamos en la cotización, antes de que pagues.');
-    } else {
-      expect(text).toContain('(IVA incluido): despacho a domicilio sin costo.');
-    }
+    expect([...main.querySelectorAll('h2')].map(h => h.textContent).slice(0, 4)).toEqual([
+      FREE_SHIPPING_AREA.name,
+      'Regiones',
+      'Costo del despacho',
+      'Retiro en bodega',
+    ]);
+    // Regiones: con las palabras del dueño (sin los transportistas de la versión anterior)
+    expect(REGION_CARRIERS).toBe('Starken, PDQ u otro operador');
+    const regiones = section(main, 'Regiones').text;
+    expect(regiones).toContain('El despacho a regiones va por pagar, vía Starken, PDQ u otro operador.');
+    expect(text).not.toMatch(/Cruz del Sur|Chilexpress|ECOEx|retiro en tienda/i);
+    expect(section(main, 'Costo del despacho').text).toContain('lo muestran por separado, o indican que va sin costo o por pagar.');
   });
 
-  it('/despacho: con monto publicado, las dos franjas en pesos (sin Intl); sin monto, nada de montos', () => {
-    const { container, rerender } = render(<UrbanShipping thresholdClp={200000} />);
-    expect(container.textContent).toContain('Compras sobre $200.000 (IVA incluido): despacho a domicilio sin costo.');
-    expect(container.textContent).toContain('Compras de $200.000 o menos: el despacho va por pagar con Starken o Chilexpress');
-    expect(container.textContent).toContain('condición permanente de venta');
-    expect(policyIssues(spacedText(container))).toEqual([]);
-    rerender(<UrbanShipping thresholdClp={null} />);
-    expect(container.textContent).not.toMatch(/\$|sin costo/);
-    expect(container.textContent).toContain('eliges entre Starken y Chilexpress');
+  it('/despacho: sin costo sobre el monto (con IVA) en la Provincia de Santiago, con las comunas excluidas', async () => {
+    // Lo que confirmó el dueño: si cambia, cambia en business.ts y aquí
+    expect(FREE_SHIPPING_THRESHOLD_CLP).toBe(250000);
+    expect(FREE_SHIPPING_AREA.name).toBe('Provincia de Santiago');
+    expect(FREE_SHIPPING_AREA.excluded.join('; ')).toBe(OWNER_EXCLUDED);
+    const { main, text, spaced } = await page('/despacho');
+    const zona = section(main, FREE_SHIPPING_AREA.name).text;
+    expect(zona).toContain(`Despacho sin costo si el total de tu compra, con IVA, es mayor a ${THRESHOLD} y la entrega es en la Provincia de Santiago.`);
+    // Las comunas del dueño, con sus palabras, y después las 7 que su lista no nombra: no es una lista de ejemplos
+    expect(zona).toContain(
+      `No entran las comunas de otras provincias de la Región Metropolitana: ${OWNER_EXCLUDED}; Calera de Tango, San José de Maipo, Isla de Maipo, El Monte, Curacaví, María Pinto y San Pedro.`,
+    );
+    expect(freeShippingExcludedList.startsWith(OWNER_EXCLUDED)).toBe(true);
+    // El monto exacto o menos (la condición es "mayor a"), o fuera de la zona: el costo va en la cotización o por pagar
+    expect(zona).toContain(`En compras de ${THRESHOLD} o menos con IVA, o con entrega fuera de esta zona, el costo del despacho te lo informamos en la cotización`);
+    expect(zona).toContain('o la cotización indica que va por pagar');
+    expect(zona).toContain('Si no sabes si tu comuna está en la Provincia de Santiago, te lo confirmamos en la cotización.');
+    expect(zona).toContain('condición permanente de venta, no una promoción');
+    expect(amountsIn(text)).toEqual([THRESHOLD, THRESHOLD]); // escrito desde la constante, con clp()
+    expect(THRESHOLD).toBe('$250.000');
+    expect(policyIssues(spaced)).toEqual([]);
+  });
+
+  it('/despacho: la lista de comunas que no entran está completa (las 20 de la RM fuera de la Provincia de Santiago)', async () => {
+    const { main } = await page('/despacho');
+    const item = section(main, FREE_SHIPPING_AREA.name).els.flatMap(el => [...el.querySelectorAll('li')]).find(li => li.textContent?.startsWith('No entran'));
+    const text = (item?.textContent ?? '').replace(/\s+/g, ' ');
+    expect(RM_OUTSIDE_SANTIAGO).toHaveLength(20);
+    expect(Object.values(RM_PROVINCES).flat()).toHaveLength(52);
+    // Lampa y Tiltil van como "el resto de la Provincia de Chacabuco" (palabras del dueño)
+    const missing = RM_OUTSIDE_SANTIAGO.filter(c => !namedIn(text, c) && !((RM_PROVINCES.Chacabuco as readonly string[]).includes(c) && text.includes('el resto de la Provincia de Chacabuco')));
+    expect(missing).toEqual([]);
+    // Ninguna comuna de la Provincia de Santiago aparece como excluida
+    expect(RM_PROVINCES.Santiago.filter(c => namedIn(text, c))).toEqual([]);
+  });
+
+  it('/despacho: retiro en la bodega de Quinta Normal, sin publicar la dirección', async () => {
+    const { main, text } = await page('/despacho');
+    expect(PICKUP_PLACE).toBe('nuestra bodega en Quinta Normal');
+    const retiro = section(main, 'Retiro en bodega').text;
+    expect(retiro).toContain('Si prefieres, retiras tu pedido en nuestra bodega en Quinta Normal, sin pagar despacho.');
+    expect(retiro).toContain('La dirección exacta te la damos solo cuando tu pago está acreditado');
+    // Ninguna dirección: ni números ni nombres de calle (la dirección se da solo con el pago acreditado)
+    expect(retiro).not.toMatch(/\d|\b(?:calle|avenida|av\.|pasaje|camino|n°|#)/i);
+    expect(text.match(/Quinta Normal/g)).toHaveLength(1);
+    expect(text).not.toMatch(/No tenemos|tienda abierta|retiro en oficina/i);
+  });
+
+  it('clp(): pesos con punto de miles, sin Intl (el servidor y el navegador dibujan lo mismo)', () => {
+    expect([0, 999, 1000, 250000, 249999.6, 1234567].map(clp)).toEqual(['$0', '$999', '$1.000', '$250.000', '$250.000', '$1.234.567']);
   });
 
   it('/medios-de-pago: link de pago (Webpay vía Flow o Mercado Pago), transferencia, crédito caso a caso; sin orden de compra', async () => {
@@ -308,6 +407,8 @@ describe('páginas legales y de compra: contenido', () => {
     }
     expect(text).not.toContain('Axiom');
     expect(text).toContain('no los subimos a Google Ads ni a Meta');
+    // §5: los transportistas de /despacho (REGION_CARRIERS), sin Chilexpress ni Cruz del Sur (PR 12b, versión 1.1)
+    expect(section(main, '5.').text).toContain(`Transportistas (${REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono`);
     expect(text).toContain('una persona de nuestro equipo revisa y responde cada solicitud');
     // §4: el aviso del asistente de WhatsApp con IA y el paso a una persona (default del dueño)
     const automated = section(main, '4.').text;
