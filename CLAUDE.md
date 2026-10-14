@@ -31,7 +31,7 @@
 - El sitio **no tiene checkout propio**. Todo flujo termina en una solicitud (pedido o cotización) que llega a Pipedrive + email; el vendedor responde con un **link de pago de Jumpseller**.
 - **Nunca mostrar stock** ("En stock" / "Sin stock"): no hay control de bodega y algunos productos se compran en plaza. Texto estándar: **"Consultar disponibilidad"**.
 - **Jumpseller es la única fuente de verdad** de precios, nombres, imágenes, categorías y productos activos. El contenido editorial (fichas BESTLED, FAQ, SEO) se mantiene aparte, asociado por `jumpseller_id`.
-- **Despacho**: "Despacho en hasta 2 días hábiles" (versión larga: "y a veces el mismo día"). Nunca "24–48 h" ni "muchas veces".
+- **Despacho**: "Despacho en hasta 2 días hábiles" (versión larga: "y a veces el mismo día"). Nunca "24–48 h" ni "muchas veces". En regiones, los 2 días hábiles son hasta entregar el pedido al transportista y el tiempo de viaje se informa en la cotización; no prometer flota propia (sin confirmar, PR 11b).
 - Ya eliminados en la Etapa 1: `api/create-order.ts`, `src/pages/CartPage.tsx`, `src/services/jumpsellerCart.ts` y el paso a `elights.cl/checkout` (`/carro` redirige a `/solicitar-pedido`).
 - **Montos en Pipedrive**: siempre CON IVA, calculados en el servidor desde el catálogo (`api/_lib/catalog/pricing.ts`); nunca se confía en el precio que manda el navegador.
 

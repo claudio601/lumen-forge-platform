@@ -1,8 +1,8 @@
 // scripts/content/check.ts
 // Verifica el contenido SEO de un producto (src/data/catalog/content/<id>.json):
 //   - formato y largos del formato BESTLED (lo que la ficha sabe mostrar),
-//   - reglas del sitio (sin stock, sin precios, despacho solo "hasta 2 días hábiles",
-//     sin promesas como "gratis" o "mismo día"),
+//   - reglas del sitio (sin stock, sin precios, despacho solo "hasta 2 días hábiles" y
+//     nunca como plazo de llegada, sin flota propia, sin promesas como "gratis" o "mismo día"),
 //   - que no invente datos: cada cifra con su unidad (W, lm, K, V, h, años, mm, °, %, A…)
 //     tiene que estar en los datos de Jumpseller del producto con esa misma unidad (o en
 //     una fila cuya etiqueta la implica, como "Garantía" o "Alto (mm)"); lo mismo cada
@@ -83,9 +83,88 @@ const LABEL_UNIT: [RegExp, string][] = [
   [/peso/i, 'kg'],
   [/[aá]ngulo/i, '°'],
 ];
+/** Bordes de palabra que entienden tildes ("\b" de JavaScript no reconoce "ó" como letra). */
+const W = String.raw`(?<![\p{L}\p{N}])`;
+const WE = String.raw`(?![\p{L}\p{N}])`;
+const anyOf = (patterns: string[]) => new RegExp(patterns.map(p => `${W}(?:${p})${WE}`).join('|'), 'iu');
+
+/**
+ * Flota propia: el dueño no ha confirmado que eLIGHTS tenga camiones (PR 11b). Nombrar
+ * camiones o flotas como lugar o cliente ("patios de camiones", "flotas de mantención") sí se puede.
+ */
+const VEHICLES = String.raw`cami[oó]n|camiones|camionetas?|furg[oó]n|furgones|furgonetas?|flotas?|veh[ií]culos?|repartidor(?:es)?|reparto`;
+const OWN_FLEET = anyOf([
+  String.raw`(?:${VEHICLES}|transporte|log[ií]stica)\s+propi[oa]s?`, // camiones propios, flota propia, reparto propio
+  String.raw`propi[oa]s?\s+(?:${VEHICLES}|transporte)`, // propios camiones, propia flota
+  String.raw`nuestr[oa]s?\s+(?:propi[oa]s?\s+)?(?:${VEHICLES})`, // nuestros camiones, nuestra flota, nuestro reparto
+  String.raw`(?:${VEHICLES})\s+(?:propi[oa]s?\s+)?de\s+eLIGHTS`, // camiones de eLIGHTS
+  String.raw`(?:l[oa]s?\s+)?(?:repartimos|llevamos|entregamos|transportamos)\s+nosotros`, // lo repartimos nosotros
+  String.raw`reparto\s+direct[oa]`,
+  String.raw`(?:reparto|repartimos)[^.;:\n]{0,80}${W}Santiago|Santiago[^.;:\n]{0,80}${W}(?:reparto|repartimos)`, // en Santiago el reparto…
+]);
+
+/**
+ * Llegada en 2 días hábiles: son de despacho (desde el pago confirmado; en regiones, hasta
+ * entregar el pedido al transportista, y el viaje se informa en la cotización). "Se despacha en
+ * hasta 2 días hábiles" y "despachamos a todo Chile en hasta 2 días hábiles" están bien; "el
+ * despacho a cualquier región toma (o se hace en) hasta 2 días hábiles", "el despacho alcanza todo
+ * el país en…" y "enviamos a cualquier región en…" no (se leen como plazo de llegada). La cifra
+ * también se reconoce en letras ("dos días hábiles"), que además se marca aparte.
+ */
+const TWO_DAYS = String.raw`(?:2|dos)\s+d[ií]as\s+h[aá]biles`;
+/** Un destino puntual ("cualquier región", "regiones", "tu obra"): con él, el plazo se lee como de llegada. */
+const POINT_DESTINATION = String.raw`(?:todas?\s+(?:las\s+)?(?:regiones|ciudades|comunas)|cualquier\s+(?:regi[oó]n|punto|ciudad|comuna|lugar|parte|destino|direcci[oó]n)|(?:las\s+|otras\s+)?regiones|(?:tu|su)\s+(?:obra|ciudad|regi[oó]n|comuna|domicilio|casa|empresa|bodega|local|puerta|destino|direcci[oó]n|proyecto)|Santiago|(?:el\s+)?resto\s+del\s+pa[ií]s)${WE}`;
+/** Cualquier destino, también el país entero ("el despacho a todo Chile se hace en…" solo dice que se despacha a todo el país). */
+const DESTINATION = String.raw`(?:todo\s+(?:Chile|el\s+pa[ií]s|el\s+territorio)|lo\s+(?:largo|ancho)\s+(?:del\s+pa[ií]s|de\s+(?:todo\s+)?Chile)|${POINT_DESTINATION})${WE}`;
+/**
+ * Salvo si la misma oración aclara el viaje y que se informa en la cotización ("…a regiones se
+ * suma el tiempo de viaje, que te informamos en la cotización"). Nombrar al transportista no basta.
+ */
+const UNLESS_TRAVEL_EXPLAINED = String.raw`(?!(?=[^.\n]*${W}(?:viaje|traslado|trayecto|tramo)${WE})(?=[^.\n]*${W}(?:cotiza|presupuesto)))`;
+/** Resto de la misma cláusula, sin pasar a un verbo de despacho ("…y se despacha en hasta 2 días hábiles"). */
+const DISPATCH_VERB = String.raw`${W}(?:se\s+despachan?|despachamos|despacharl[oa]s?|salen?|entregamos|se\s+entregan?)${WE}`;
+const SAME_CLAUSE = String.raw`(?:(?!${DISPATCH_VERB})[^.;:\n])*?`;
+/** Lo mismo, y sin hablar de lo que recibe quien cotiza ("recibirás la cotización…") ni del pago. */
+const RECEIPT_CLAUSE = String.raw`(?:(?!${DISPATCH_VERB}|${W}(?:cotizaci|propuesta|respuesta|presupuesto|pago|solicitud))[^.;:\n])*?`;
+const ARRIVAL = anyOf([
+  // "el pedido llega a cualquier región en hasta 2 días hábiles", "llevamos el pedido a todo Chile en…"
+  // "te lo entregamos en tu obra en hasta 2 días hábiles" ("lo entregamos al transportista" está bien)
+  String.raw`(?:llega|llegan|llegar[aá]n?|lleguen?|llegamos|viaja|viajan|viajar[aá]n?|llevamos|hacemos\s+llegar|har[eé]mos\s+llegar|reparten|repartimos|entregamos|tendr[aá]s|l[oa]s?\s+tienes)(?:\s+(?:el|la|los|las|tu|tus|su|sus)\s+\p{L}+)?\s+(?:a|al|hasta|hacia|en)\s+${DESTINATION}${SAME_CLAUSE}${TWO_DAYS}`,
+  // "sale a cualquier región y llega en hasta 2 días hábiles"
+  String.raw`(?:llega|llegan|llegar[aá]n?|lleguen?)\s+(?:en\s+)?(?:un\s+plazo\s+(?:m[aá]ximo\s+)?de\s+)?(?:hasta\s+)?${TWO_DAYS}`,
+  // "el despacho, en hasta 2 días hábiles, llega a todo Chile", "en hasta 2 días hábiles el pedido llega a…"
+  String.raw`${TWO_DAYS},?\s+(?:(?:el|la|los|las|tu|tus|su|sus)\s+\p{L}+\s+)?(?:te\s+)?(?:llega|llegan|llegar[aá]n?)\s+(?:a|al|hasta|en)\s+${DESTINATION}`,
+  // "el despacho alcanza todo el territorio nacional en hasta 2 días hábiles", "cubre todo Chile, en…"
+  String.raw`(?:alcanzan?|alcanzamos|cubren?|cubrimos)\s+(?:a\s+)?${DESTINATION}(?:\s+(?:nacional|de\s+Chile|del\s+pa[ií]s))?,?\s+(?:en\s+)?(?:un\s+plazo\s+(?:m[aá]ximo\s+)?de\s+)?(?:hasta\s+)?${TWO_DAYS}${UNLESS_TRAVEL_EXPLAINED}`,
+  // "el despacho a cualquier región se hace en hasta 2 días hábiles", "…es en hasta…" (a todo Chile sí se puede)
+  String.raw`(?:despachos?|env[ií]os?)\s*,?\s+(?:a|al|hacia|hasta|con\s+destino\s+a)\s+${POINT_DESTINATION}[^.;:\n]*?${W}(?:se\s+hacen?|se\s+realizan?|se\s+completan?|se\s+coordinan?|es|son)\s+(?:de\s+|en\s+)(?:un\s+plazo\s+de\s+)?(?:hasta\s+)?${TWO_DAYS}${UNLESS_TRAVEL_EXPLAINED}`,
+  // "el despacho es en hasta 2 días hábiles a cualquier región", "un despacho de hasta 2 días hábiles a cualquier punto"
+  String.raw`(?:despachos?|env[ií]os?)\s+(?:se\s+hacen?|se\s+realizan?|es|son|de)\s+(?:en\s+)?(?:un\s+plazo\s+de\s+)?(?:hasta\s+)?${TWO_DAYS},?\s+(?:a|al|hacia|hasta|en)\s+${POINT_DESTINATION}${UNLESS_TRAVEL_EXPLAINED}`,
+  // "enviamos el pedido a cualquier región en hasta 2 días hábiles", "con envío a todo Chile en…":
+  // enviar a un destino en un plazo se lee como puerta a puerta
+  String.raw`(?:enviamos|enviaremos|hacemos\s+env[ií]os|env[ií]os?)(?:\s+(?:el|la|los|las|tu|tus|su|sus)\s+\p{L}+)?\s+(?:a|al|hasta|hacia|en|con\s+destino\s+a)\s+${DESTINATION}${SAME_CLAUSE}${TWO_DAYS}${UNLESS_TRAVEL_EXPLAINED}`,
+  // "la entrega en cualquier región toma hasta 2 días hábiles", "con llegada en hasta 2 días hábiles"
+  String.raw`(?:llegada|entrega|recepci[oó]n)\s+(?:a|al|en|hasta)\s+${DESTINATION}${SAME_CLAUSE}${TWO_DAYS}${UNLESS_TRAVEL_EXPLAINED}`,
+  String.raw`(?:con|de)\s+(?:llegada|entrega)\s+(?:en\s+)?(?:un\s+plazo\s+de\s+)?(?:hasta\s+)?${TWO_DAYS}`,
+  String.raw`plazo\s+de\s+(?:entrega|llegada)(?!\s+al\s+transportista)${SAME_CLAUSE}${TWO_DAYS}`,
+  // "recibes tu pedido en hasta 2 días hábiles" (no "recibirás la cotización…, y se despacha en…")
+  String.raw`recib(?:es|e|en|ir[aá]s|ir[aá]|ir[aá]n|ir(?:l[oa]s?)?)${WE}${RECEIPT_CLAUSE}${TWO_DAYS}`,
+  // "el despacho a cualquier región toma hasta 2 días hábiles", "el envío sale a regiones y tarda…":
+  // destino más duración se lee como plazo de llegada (salvo si la oración aclara el viaje)
+  String.raw`(?:despachos?|env[ií]os?)\s*,?\s+(?:salen?\s+)?(?:(?:a|al|hacia|con\s+destino\s+a)\s+|cubren?\s+)${DESTINATION}[^.;:\n]*?${W}(?:toman?|tardan?|demoran?)\s+(?:un\s+plazo\s+de\s+)?(?:hasta\s+)?${TWO_DAYS}${UNLESS_TRAVEL_EXPLAINED}`,
+  // "tarda hasta 2 días hábiles y llega a todo el país"
+  String.raw`(?:toman?|tardan?|demoran?)\s+(?:hasta\s+)?${TWO_DAYS}\s+y\s+llegan?${UNLESS_TRAVEL_EXPLAINED}`,
+]);
+
 const FORBIDDEN: [RegExp, string][] = [
   [/gratis|gratuit[oa]s?/i, 'promete algo gratis'],
   [/\bmismo d[ií]a\b/i, 'promete despacho el mismo día'],
+  [new RegExp(`${W}dos\\s+d[ií]as\\s+h[aá]biles${WE}`, 'iu'), 'escribe el plazo en letras (va "hasta 2 días hábiles")'],
+  [OWN_FLEET, 'afirma que eLIGHTS tiene camiones, flota o reparto propio (no está confirmado)'],
+  [
+    ARRIVAL,
+    'promete que el pedido llega en 2 días hábiles: son de despacho (en regiones, hasta entregarlo al transportista; el viaje se informa en la cotización)',
+  ],
   [/mejor precio|precios? (?:bajos?|competitivos?|imbatibles?)|m[aá]s barat|oferta|descuento|liquidaci[oó]n|promoci[oó]n/i, 'habla de precios u ofertas'],
   [/de por vida/i, 'garantía de por vida'],
   [/\bn[°º]\s?1\b|n[uú]mero uno|l[ií]der (?:del|en el) mercado/i, 'se declara líder'],
@@ -171,7 +250,10 @@ export function checkFormat(c: ProductContent): string[] {
   return problems;
 }
 
-/** Reglas del sitio: sin stock, sin precios, despacho solo "hasta 2 días hábiles", sin promesas. */
+/** El plazo de despacho en una oración con dos o más ";": lo de regiones va en otra oración. */
+const CHAINED_DISPATCH = new RegExp(String.raw`${W}${TWO_DAYS}${WE}`, 'iu');
+
+/** Reglas del sitio: sin stock, sin precios, despacho solo "hasta 2 días hábiles" (no de llegada), sin flota propia ni promesas. */
 export function checkRules(c: ProductContent): string[] {
   const problems: string[] = [];
   const text = allText(c);
@@ -181,6 +263,8 @@ export function checkRules(c: ProductContent): string[] {
     const m = text.match(re);
     if (m) problems.push(`${why}: "${m[0]}"`);
   }
+  const chained = text.split(/(?<=[.!?])\s+|\n+/).find(s => CHAINED_DISPATCH.test(s) && s.split(';').length > 2);
+  if (chained) problems.push(`encadena el plazo de despacho con dos o más ";" (lo de regiones va en otra oración): "${chained.slice(0, 60)}…"`);
   return problems;
 }
 
