@@ -58,9 +58,19 @@ export const MSG4 = 'Listo! Tu solicitud quedo registrada en eLIGHTS.cl y ya la 
 export const MSG4_B2B = 'Listo! Tu requerimiento comercial quedo registrado en eLIGHTS.cl y ya lo derivamos a nuestro equipo de ventas.\n\nUn ejecutivo revisara tu proyecto y te enviara la cotizacion por correo.';
 
 // [INSTALL-FLOW] Mensaje de cierre para flujo de instalacion
-export const MSG4_INSTALL = 'Perfecto, tu solicitud de instalacion quedo registrada. Un ejecutivo de eLIGHTS te contactara a la brevedad para coordinar la visita y cotizacion.';
+export const MSG4_INSTALL = 'Perfecto, tu solicitud de instalaci\u00f3n qued\u00f3 registrada. Te vamos a escribir por correo para coordinar la visita y la cotizaci\u00f3n.';
+// [BOT-SOLO-CORREO] Cierre de instalacion sin correo (tras las repreguntas): no se crea el
+// negocio, asi que no se promete contacto; se pide el correo o escribir a ventas@.
+export const MSG4_INSTALL_NO_EMAIL = 'Gracias. Para cotizar tu instalaci\u00f3n necesitamos tu correo de contacto: escr\u00edbelo por aqu\u00ed o env\u00edanos tu solicitud a ventas@elights.cl.';
 
-export const MSG_HUMAN = 'Perfecto, voy a derivar tu solicitud a un ejecutivo de eLIGHTS para que te ayude directamente.\n\nTe contactaremos a la brevedad por este mismo canal o por correo.';
+/** Cierre del flujo de instalacion: solo promete el correo si lo tenemos. */
+export function installClosingMsg(captured: CapturedFields): string {
+  return captured.install_correo ? MSG4_INSTALL : MSG4_INSTALL_NO_EMAIL;
+}
+
+// [BOT-SOLO-CORREO] Dueno (2026-10-16): la atencion de una persona es por correo, nunca por este
+// canal (lo atiende solo el asistente). Solo se envia con correo (FIX-EMAIL-GATE).
+export const MSG_HUMAN = 'Perfecto, ya deriv\u00e9 tu solicitud a nuestro equipo de ventas. Te va a atender Claudio Quero directamente por correo.';
 export const MSG_MEDIA = 'Recibimos tu imagen/archivo, gracias. Por ahora atendemos mejor por texto: cuentanos que producto necesitas, para que proyecto y que cantidad aproximada, y te ayudamos de inmediato.';
 export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambien puedo ayudarte a dejar tu solicitud lista para cotizacion por ac\u00e1.';
 
@@ -295,7 +305,7 @@ export function processFlowStep(
   if (state.stage === 'closed') {
     if (!looksLikeNewRequest(body) && !INSTALL_INTENT_RE.test(body)) {
       return {
-        reply: state.wantsHuman ? MSG_HUMAN : state.isInstallFlow ? MSG4_INSTALL : state.leadType === 'B2B' ? MSG4_B2B : MSG4,
+        reply: state.wantsHuman ? MSG_HUMAN : state.isInstallFlow ? installClosingMsg(state.captured) : state.leadType === 'B2B' ? MSG4_B2B : MSG4,
         shouldCreateDeal: false,
         shouldNotify: false,
         captureStatus: state.captureStatus,
@@ -359,7 +369,7 @@ export function processFlowStep(
       const captureStatus: CaptureStatus = updatedCaptured.install_correo ? 'partial' : 'incomplete';
       saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true });
       console.log('[flowEngine] install_capture timeout — cerrando con status=' + captureStatus);
-      return { reply: MSG4_INSTALL, shouldCreateDeal: updatedCaptured.install_correo ? true : false, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
+      return { reply: installClosingMsg(updatedCaptured), shouldCreateDeal: updatedCaptured.install_correo ? true : false, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
     saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: repreg, isInstallFlow: true });
