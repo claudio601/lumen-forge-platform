@@ -348,7 +348,8 @@ describe('páginas legales y de compra: contenido', () => {
     for (const s of [
       'cualquiera sea el medio de pago',
       'Lo damos igual a personas y a empresas.',
-      'por WhatsApp o por teléfono al +56 9 9127 3128 (o por el mismo medio con que compraste)',
+      // Sin WhatsApp desde la versión 1.3: ahí atiende el asistente, que no reconoce el retracto (PR 13x)
+      'Avísanos por correo a ventas@elights.cl o por teléfono al +56 9 9127 3128 (o por el mismo medio con que compraste)',
       'Cuándo no aplica.',
       'productos ya instalados o usados más allá de lo necesario para revisarlos',
       'productos fabricados o adaptados según tus especificaciones',
@@ -465,10 +466,11 @@ describe('páginas legales y de compra: contenido', () => {
     expect(text).toContain('no los subimos a Google Ads ni a Meta');
     // §5: los transportistas de /despacho (REGION_CARRIERS), sin Chilexpress ni Cruz del Sur (PR 12b, versión 1.1)
     expect(section(main, '5.').text).toContain(`Transportistas (${REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono`);
-    expect(text).toContain('una persona de nuestro equipo revisa y responde cada solicitud');
-    // §4: el aviso del asistente de WhatsApp con IA y el paso a una persona (default del dueño)
+    // §4: una persona revisa y responde cada solicitud registrada (en WhatsApp, sin correo no hay registro: prueba de la PR 13x)
+    expect(text).toContain('una persona de nuestro equipo revisa y responde cada solicitud que queda registrada en nuestro sistema de seguimiento');
+    // §4: el aviso del asistente de WhatsApp con IA; si piden una persona, la respuesta va por correo (regla del dueño)
     const automated = section(main, '4.').text;
-    for (const s of ['Asistente de WhatsApp.', 'asistente automático', 'Claude, de Anthropic', 'puedes pedir hablar con una persona']) {
+    for (const s of ['Asistente de WhatsApp.', 'asistente automático', 'Claude, de Anthropic', 'una persona de nuestro equipo te responde por correo']) {
       expect(automated, s).toContain(s);
     }
     // §6: sin afirmar acuerdos de tratamiento de datos que el dueño no ha confirmado (C26 d)
@@ -494,6 +496,95 @@ describe('páginas legales y de compra: contenido', () => {
     expect(main.querySelectorAll('table tbody tr')).toHaveLength(10);
     expect(main.querySelector('table')?.parentElement?.className).toContain('overflow-x-auto'); // legible en el teléfono
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
+  });
+
+  it('/politica-de-privacidad (PR 13x, versión 1.3): el asistente de WhatsApp como funciona hoy en el código', async () => {
+    const { main, text } = await page('/politica-de-privacidad');
+    const clean = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const automated = section(main, '4.');
+    const bot = automated.els.map(clean).find(t => t.startsWith('Asistente de WhatsApp.'));
+    expect(bot, 'falta el párrafo «Asistente de WhatsApp.» del §4').toBeDefined();
+    for (const s of [
+      // En ese número siempre responde el asistente; sus respuestas son plantillas (flowEngine.ts)
+      'En nuestro WhatsApp te atiende un asistente automático.',
+      // buildRepregunta1 repite el proyecto y el tipo de luz que devolvió la IA
+      'Sus respuestas son mensajes predefinidos, que pueden repetir datos que reconoció en tus mensajes (como el proyecto o el tipo de luz); no las redacta una inteligencia artificial.',
+      // La IA (claudeAgent.ts) recibe los mensajes recientes y el ProfileName, extrae datos y resume
+      'El asistente envía tus mensajes recientes y el nombre de tu perfil a una inteligencia artificial (Claude, de Anthropic)',
+      'y escribe un resumen para nuestro equipo.',
+      // Paso a una persona: la respuesta va por correo (regla del dueño), así que hace falta el correo
+      'Si pides hablar con una persona, una persona de nuestro equipo te responde por correo, así que necesitamos tu correo.',
+      // flowEngine.ts no siempre lo pide: «necesito…» (COMMERCIAL_INTENT_RE) no deriva y, si nombran a
+      // Claudio o Constanza, MSG_EXECUTIVE da sus correos
+      'El asistente no siempre te lo pide; por ejemplo, si nombras a uno de nuestros ejecutivos, te da su correo para que le escribas.',
+      // Sin correo no se crea el negocio en Pipedrive (hasMinCommercial)
+      'Sin tu correo, tu solicitud no queda registrada en nuestro sistema de seguimiento y no llega a nuestro equipo',
+      // Aviso breve de la PR 13w (privacyNotice.ts)
+      'En su primera respuesta, el asistente te muestra un aviso breve con el enlace a esta política.',
+    ]) {
+      expect(bot, s).toContain(s);
+    }
+    // No promete que el asistente siempre pida el correo (la frase que el código no cumple)
+    expect(bot).not.toContain('el asistente te pide tu correo, si aún no lo tiene');
+    // Ya no dice que la IA responde, ni ofrece una persona «en cualquier momento», por WhatsApp o por teléfono
+    expect(text).not.toContain('para entender tu consulta y responderla');
+    expect(text).not.toMatch(/en cualquier momento puedes pedir hablar con una persona/i);
+    expect(text).not.toContain('Las primeras respuestas en nuestro WhatsApp');
+    for (const sentence of bot!.split(/(?<=[.;])\s+/)) {
+      if (/inteligencia artificial/.test(sentence)) expect(sentence).not.toMatch(/\brespond(e|er|erla|erte)\b/i);
+    }
+    expect(bot).not.toMatch(/en cualquier momento/i);
+    expect(bot).not.toMatch(/llam(ar|ada|aremos)|tel[eé]fono|por (este mismo canal|WhatsApp)/i);
+    // §4 Priorización: en WhatsApp no hay puntaje; «Alta» si pidió una persona (pipedriveLead.ts)
+    expect(automated.text).toContain(
+      'En WhatsApp no hay puntaje: tu solicitud queda en "Alta" si el asistente detecta que pides hablar con una persona y en "Normal" si no',
+    );
+    // §2: el número y el nombre del perfil llegan solos (webhook.ts: From y ProfileName); también los adjuntos (NumMedia)
+    expect(section(main, '2.').text).toContain(
+      'Si nos escribes por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp.',
+    );
+    expect(section(main, '2.').text).toContain(
+      'Tus mensajes: lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo o WhatsApp.',
+    );
+    // §7: memoria temporal; Twilio y Anthropic según las condiciones que aceptamos (encargados, §5), no
+    // «según sus propias políticas» ni «plazos breves»
+    const items = section(main, '7.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
+    const item = (start: string) => items.find(t => t.startsWith(start)) ?? '';
+    expect(item('Asistente de WhatsApp:')).toContain(
+      'guarda solo en memoria temporal el historial reciente de la conversación, los datos que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad.',
+    );
+    expect(item('Twilio y Anthropic')).toContain(
+      'conservan los registros de los mensajes que pasan por sus servicios según las condiciones de servicio que aceptamos al contratarlos.',
+    );
+    expect(item('Twilio y Anthropic')).not.toMatch(/breves|propias políticas/);
+    expect(item('Registros técnicos del sitio y del asistente de WhatsApp')).toContain('los plazos breves que define cada proveedor');
+  });
+
+  it('/cambios-devoluciones-y-garantia y /terminos-y-condiciones (PR 13x, versión 1.3): retracto, garantía y reclamos por correo, no por el WhatsApp del asistente', async () => {
+    // En el WhatsApp atiende el asistente, que no reconoce estos casos y sin correo no registra nada
+    // (flowEngine.ts, hasMinCommercial; Política §4). Respondemos por correo (regla del dueño).
+    const noWhatsApp = /por WhatsApp|al WhatsApp|wa\.me/;
+    const cambios = await page('/cambios-devoluciones-y-garantia');
+    const intro = [...cambios.main.querySelectorAll('p')].map(p => (p.textContent ?? '').replace(/\s+/g, ' ').trim()).find(t => t.startsWith('Para cualquiera de estos casos'));
+    expect(intro).toBe(
+      `Para cualquiera de estos casos, escríbenos a ventas@elights.cl, de ${businessHoursLong} En nuestro WhatsApp te atiende un asistente automático que no gestiona estos casos.`,
+    );
+    const paragraph = (sectionHeading: string, start: string) =>
+      section(cambios.main, sectionHeading).els.map(el => (el.textContent ?? '').replace(/\s+/g, ' ').trim()).find(t => t.startsWith(start)) ?? '';
+    const retracto = paragraph('1.', 'Cómo hacerlo.');
+    expect(retracto).toContain('Te confirmamos que recibimos tu aviso');
+    expect(retracto).not.toMatch(noWhatsApp);
+    expect(paragraph('2.', 'Cómo pedirla.')).toBe(
+      'Cómo pedirla. Escríbenos a ventas@elights.cl. Revisamos tu caso y coordinamos el retiro o la recepción del producto. El traslado del producto con falla, de ida y de vuelta, es de cargo de eLIGHTS.',
+    );
+    expect(cambios.main.querySelector('a[href^="https://wa.me/"]')).toBeNull();
+    const terminos = await page('/terminos-y-condiciones');
+    expect(section(terminos.main, '1.').text).toContain('Te respondemos por correo electrónico, al que indiques en tu solicitud.');
+    expect(terminos.text).not.toContain('Nos comunicaremos contigo por el correo electrónico, el teléfono o el WhatsApp');
+    const reclamos = section(terminos.main, '16.');
+    expect(reclamos.text).toContain('Si tienes un problema con tu compra, escríbenos a ventas@elights.cl y lo resolvemos contigo.');
+    expect(reclamos.text).not.toMatch(noWhatsApp);
+    expect(linksIn(reclamos.els)).not.toContain(waBase);
   });
 
   it('/politica-de-privacidad (PR 13): bases de la tabla, casillas, constancia y transición de la Ley 19.628', async () => {

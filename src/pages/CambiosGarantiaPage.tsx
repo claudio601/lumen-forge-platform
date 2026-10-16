@@ -4,10 +4,13 @@
 // devolución; en la garantía legal eLIGHTS paga el traslado de ida y vuelta; una garantía
 // del fabricante mayor que 6 meses da los mismos derechos durante todo su plazo (art. 21);
 // un producto sin plazo en su ficha tiene los 6 meses legales.
+// Versión 1.3 (PR 13x): el retracto, la garantía y los demás casos se piden por correo (o
+// teléfono, en el retracto), no por WhatsApp: en ese número atiende el asistente automático,
+// que no reconoce estos casos y, sin correo, no registra nada (Política de privacidad §4).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
-import { EmailLink, PhoneLink, WhatsAppLink } from '@/components/legal/CompanyFacts';
+import { EmailLink, PhoneLink } from '@/components/legal/CompanyFacts';
 import { businessHoursLong } from '@/config/business';
 
 const CambiosGarantiaPage = () => (
@@ -34,7 +37,8 @@ const CambiosGarantiaPage = () => (
       </li>
     </ul>
     <p>
-      Para cualquiera de estos casos, escríbenos a <EmailLink /> o al WhatsApp <WhatsAppLink />, de {businessHoursLong}
+      Para cualquiera de estos casos, escríbenos a <EmailLink />, de {businessHoursLong} En nuestro WhatsApp te atiende un
+      asistente automático que no gestiona estos casos.
     </p>
 
     <h2>1. Derecho a retracto</h2>
@@ -47,9 +51,9 @@ const CambiosGarantiaPage = () => (
       recibiste la confirmación escrita de tu compra, el plazo es de 90 días.
     </p>
     <p>
-      <strong>Cómo hacerlo.</strong> Avísanos por correo a <EmailLink />, por WhatsApp o por teléfono al <PhoneLink /> (o por el
-      mismo medio con que compraste), indicando tu número de cotización o de pedido y que quieres retractarte. No necesitas
-      explicar por qué. Te confirmamos que recibimos tu aviso y coordinamos contigo la devolución del producto.
+      <strong>Cómo hacerlo.</strong> Avísanos por correo a <EmailLink /> o por teléfono al <PhoneLink /> (o por el mismo medio
+      con que compraste), indicando tu número de cotización o de pedido y que quieres retractarte. No necesitas explicar por
+      qué. Te confirmamos que recibimos tu aviso y coordinamos contigo la devolución del producto.
     </p>
     <p>
       <strong>En qué estado debe volver.</strong> Puedes abrir el embalaje y revisar el producto. Debe volver sin daños causados
@@ -109,8 +113,8 @@ const CambiosGarantiaPage = () => (
       idealmente con fotos o un video corto.
     </p>
     <p>
-      <strong>Cómo pedirla.</strong> Escríbenos a <EmailLink /> o por WhatsApp. Revisamos tu caso y coordinamos el retiro o la
-      recepción del producto. El traslado del producto con falla, de ida y de vuelta, es de cargo de eLIGHTS.
+      <strong>Cómo pedirla.</strong> Escríbenos a <EmailLink />. Revisamos tu caso y coordinamos el retiro o la recepción del
+      producto. El traslado del producto con falla, de ida y de vuelta, es de cargo de eLIGHTS.
     </p>
     <p>
       <strong>Qué no cubre.</strong> Daños causados después de la recepción, por ti o por terceros: golpes, instalación o

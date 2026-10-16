@@ -59,18 +59,22 @@ const MAX_SECTION = 560;
 /**
  * Textos aprobados de las casillas por versión de los textos legales. Cambiar una casilla
  * sin subir LEGAL_VERSION, o subirla sin agregar aquí la entrada, hace fallar la prueba.
- * Las casillas se estrenan en la versión CONSENT_SINCE_VERSION (1.1). Al subir la versión
+ * Las casillas se estrenan en la versión CONSENT_SINCE_VERSION (1.2). Al subir la versión
  * sin cambiar las casillas, se agrega la entrada nueva con los mismos textos.
  */
+const CONSENT_TEXTS_SINCE_1_2: Readonly<Record<string, string>> = Object.freeze({
+  privacy: 'Leí la {privacidad} y autorizo a eLIGHTS a usar mis datos para responder esta solicitud.',
+  privacyWithTerms:
+    'Acepto los {terminos}, leí la {privacidad} y autorizo a eLIGHTS a usar mis datos para responder esta solicitud.',
+  marketing: 'Quiero recibir novedades y ofertas de eLIGHTS por correo (opcional). Puedo darme de baja cuando quiera.',
+  installationNote:
+    'Usamos estos datos para responder y dar seguimiento a tu solicitud. Quedan registrados en los servicios con que trabajamos: Vercel (sitio web), Google (correo) y Pipedrive (gestión de clientes).',
+});
 const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, string>>>> = Object.freeze({
-  '1.2': Object.freeze({
-    privacy: 'Leí la {privacidad} y autorizo a eLIGHTS a usar mis datos para responder esta solicitud.',
-    privacyWithTerms:
-      'Acepto los {terminos}, leí la {privacidad} y autorizo a eLIGHTS a usar mis datos para responder esta solicitud.',
-    marketing: 'Quiero recibir novedades y ofertas de eLIGHTS por correo (opcional). Puedo darme de baja cuando quiera.',
-    installationNote:
-      'Usamos estos datos para responder y dar seguimiento a tu solicitud. Quedan registrados en los servicios con que trabajamos: Vercel (sitio web), Google (correo) y Pipedrive (gestión de clientes).',
-  }),
+  '1.2': CONSENT_TEXTS_SINCE_1_2,
+  // 1.3 (PR 13x): cambian la Política (asistente de WhatsApp), los Términos §1 y §16 y Cambios
+  // (retracto, garantía y reclamos por correo); las casillas no cambian.
+  '1.3': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({
@@ -323,11 +327,24 @@ describe('consentGraceUntil', () => {
     expect(consentGraceUntil().getTime()).toBe(Date.parse(`${CONSENT_SINCE_DATE}T03:00:00Z`) + 8 * DAY_MS);
   });
 
-  it('CONSENT_SINCE_DATE es la fecha de la versión que estrenó las casillas: igual a LEGAL_UPDATED mientras esa sea la vigente, anterior después', () => {
+  it('CONSENT_SINCE_DATE es la fecha de la versión que estrenó las casillas: igual a LEGAL_UPDATED mientras esa sea la vigente; después, igual o anterior y fija a la fecha de su archivo permanente', () => {
     expect(CONSENT_SINCE_DATE).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(Number.isNaN(Date.parse(CONSENT_SINCE_DATE))).toBe(false);
     if (LEGAL_VERSION === CONSENT_SINCE_VERSION) expect(CONSENT_SINCE_DATE).toBe(LEGAL_UPDATED);
-    else expect(CONSENT_SINCE_DATE < LEGAL_UPDATED).toBe(true);
+    else {
+      // Una versión posterior no puede regir antes, pero sí el mismo día (dos versiones fusionadas
+      // el mismo día, o la fecha provisional de una PR que aún no se fusiona).
+      expect(CONSENT_SINCE_DATE <= LEGAL_UPDATED).toBe(true);
+      // Ancla que no se mueve: la fecha del archivo permanente de la versión que estrenó las
+      // casillas. Sin ella, subir la versión y mover CONSENT_SINCE_DATE junto con LEGAL_UPDATED
+      // pasaría la regla de arriba y reabriría el margen web-legacy para cuerpos sin consent.
+      const archive = `politica-de-privacidad-v${CONSENT_SINCE_VERSION}.html`;
+      const archived = readFileSync(new URL(`../../../public/legal/${archive}`, import.meta.url), 'utf-8').match(
+        /<time datetime="(\d{4}-\d{2}-\d{2})">/,
+      )?.[1];
+      expect(archived, `sin <time datetime> en public/legal/${archive}`).toBeDefined();
+      expect(CONSENT_SINCE_DATE).toBe(archived);
+    }
   });
 
   it('subir la versión (LEGAL_UPDATED nueva) no reabre el margen: consentGraceUntil no lee LEGAL_UPDATED', () => {

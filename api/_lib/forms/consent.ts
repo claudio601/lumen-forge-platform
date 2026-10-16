@@ -33,12 +33,12 @@
  * LEGAL_UPDATED no mueve el margen de CONSENT_GRACE_DAYS días: se cuenta desde
  * CONSENT_SINCE_DATE (consentGraceUntil), que no cambia al subir la versión.
  */
-export const LEGAL_VERSION: string = '1.2';
+export const LEGAL_VERSION: string = '1.3';
 export const LEGAL_UPDATED: string = '2026-10-16';
 export const LEGAL_UPDATED_LABEL: string = '16 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
-export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1'];
+export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2'];
 
 /** Páginas con versión y archivo permanente (LegalLayout con `updated`). */
 export const LEGAL_VERSIONED_PATHS = [
@@ -63,9 +63,11 @@ export const CONSENT_SINCE_VERSION = '1.2';
 /**
  * Fecha (AAAA-MM-DD) desde la que rige CONSENT_SINCE_VERSION: la de la fusión de la PR 13.
  * Mientras esa sea la versión vigente, es igual a LEGAL_UPDATED (consent.test.ts lo exige;
- * al fijar la fecha real de la fusión se cambian las dos). Fija el margen de
- * CONSENT_GRACE_DAYS días y NO se cambia al subir LEGAL_VERSION: una versión nueva no
- * vuelve a abrir el margen para cuerpos sin la clave consent.
+ * al fijar la fecha real de la fusión se cambian las dos); con una versión posterior,
+ * LEGAL_UPDATED es igual o posterior (dos versiones pueden salir el mismo día), y
+ * consent.test.ts la fija a la fecha del archivo permanente de CONSENT_SINCE_VERSION. Fija
+ * el margen de CONSENT_GRACE_DAYS días y NO se cambia al subir LEGAL_VERSION: una versión
+ * nueva no vuelve a abrir el margen para cuerpos sin la clave consent.
  */
 export const CONSENT_SINCE_DATE: string = '2026-10-16';
 
