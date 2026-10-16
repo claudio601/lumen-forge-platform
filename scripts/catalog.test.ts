@@ -18,6 +18,7 @@ import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
 import { RENAMED_FROM, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts, skuOwners } from '../src/data/catalog/build';
 import { cleanSku } from './jumpseller/normalize';
+import { buildVariantSku } from '../src/lib/variantSku';
 import type { Product } from '../src/data/catalog/types';
 
 type Legacy = Product & { stock?: boolean };
@@ -26,6 +27,8 @@ const legacyById = new Map(legacy.map(p => [p.jumpseller_id, p]));
 const snapById = new Map(jumpsellerSnapshot.map(p => [p.jumpseller_id, p]));
 const siteSlugs = categories.map(c => c.slug);
 const BESTLED = [2301098, 2301101, 2301105, 2301110, 2301114, 4156930, 15021313];
+/** Potencias de la familia BESTLED: su SKU base es APB{W} (APB40 … APB250). */
+const BESTLED_WATTS = [40, 60, 90, 120, 150, 200, 250];
 const SITE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 /** Recomendación para alumbrado exterior nuevo desde el 19-10-2026 (D.S. N°1/2022 en todo Chile). */
 const REC = 'Variantes recomendadas: 2700K Cálida, o 2200K Ámbar si la comuna está declarada como Área de Protección Especial.';
@@ -41,6 +44,10 @@ const DS1_2026 = 'que desde el 19 de octubre de 2026 debe cumplir el D.S. N°1/2
  *   bajo techo. Las Áreas de Protección Especial son comunas declaradas, no regiones; certifica
  *   un organismo autorizado por la SEC (Protocolo PCL N°1:2024 de la SMA), no el MMA; el % de
  *   luz azul es el límite de la clasificación de cada variante, no una equivalencia de la CCT.
+ * - PR 14a (2026-10-16): el texto nombra los SKU de variante como Jumpseller, que es la fuente
+ *   de verdad: 2200K = APB{W}1 y 2700K = APB{W}7 (antes APB{W}A y APB{W}C). 4000K (N) y
+ *   5000K (F) no cambian. En el fixture cada uno de esos 63 SKU va entre paréntesis, espacios
+ *   o puntuación, así que el reemplazo de texto no toca nada más.
  */
 const EDITORIAL_EDITS: [string, string][] = [
   ['asesoría técnica gratuita para selección de variante CCT', 'asesoría técnica para la selección de variante CCT'],
@@ -208,6 +215,10 @@ const EDITORIAL_EDITS: [string, string][] = [
   ],
   ['(1% luz azul)', '(luz azul ≤1%)'],
   ['(7% luz azul)', '(luz azul ≤7%)'],
+  ...BESTLED_WATTS.flatMap((w): [string, string][] => [
+    [`APB${w}A`, `APB${w}1`],
+    [`APB${w}C`, `APB${w}7`],
+  ]),
 ];
 /** Valor editorial del fixture con los cambios intencionales aplicados. */
 const withEditorialEdits = <T,>(value: T): T =>
@@ -395,6 +406,55 @@ describe('se conserva lo que no viene de Jumpseller', () => {
         expect(v.price).toBe(s.price);
         expect(v.sku).toBe(s.sku || v.sku);
       }
+    }
+  });
+});
+
+// PR 14a: el texto editorial (fichas, FAQ, certificaciones, SEO) nombra los SKU de los BESTLED.
+// Jumpseller es la fuente de verdad: 2200K → APB{W}1, 2700K → APB{W}7, 4000K → N, 5000K → F.
+describe('SKU de los BESTLED en el texto editorial', () => {
+  /** Todos los textos de un valor: strings de objetos y listas, a cualquier profundidad. */
+  const strings = (v: unknown): string[] =>
+    typeof v === 'string'
+      ? [v]
+      : Array.isArray(v)
+        ? v.flatMap(strings)
+        : v !== null && typeof v === 'object'
+          ? Object.values(v).flatMap(strings)
+          : [];
+  const editorialTexts = Object.values(editorialOverlay).flatMap(strings);
+  const mentioned = (re: RegExp) => [...new Set(editorialTexts.flatMap(t => t.match(re) ?? []))].sort();
+  const bestled = BESTLED.map(id => {
+    const p = products.find(x => x.jumpseller_id === id)!;
+    return { id, p, live: new Map(snapById.get(id)!.variants.map(v => [v.id, v.sku])) };
+  });
+
+  it('el SKU base del sitio + el sufijo de su color de luz da el SKU de variante de Jumpseller', () => {
+    for (const { id, p, live } of bestled) {
+      expect(p.cctVariants, String(id)).toHaveLength(4);
+      for (const v of p.cctVariants!) {
+        expect(buildVariantSku(p.sku, v.kelvin), `${id} ${v.kelvin}K`).toBe(live.get(v.jumpseller_variant_id!));
+      }
+    }
+  });
+
+  it('no quedan SKU con la convención antigua (A = 2200K, C = 2700K)', () => {
+    expect(mentioned(/\bAPB\d+[AC]\b/g)).toEqual([]);
+  });
+
+  it('cada SKU APB del texto existe en Jumpseller, como SKU de variante o como su base', () => {
+    const jumpsellerSkus = new Set(jumpsellerSnapshot.flatMap(s => [s.sku, ...s.variants.map(v => v.sku)]).filter(Boolean));
+    // El SKU base (APB40) Jumpseller no lo tiene: vale si con cada sufijo da sus SKU de variante.
+    for (const { p, live } of bestled) {
+      if (p.cctVariants!.every(v => buildVariantSku(p.sku, v.kelvin) === live.get(v.jumpseller_variant_id!))) {
+        jumpsellerSkus.add(p.sku);
+      }
+    }
+    const skus = mentioned(/\bAPB\w*/g);
+    expect(skus.filter(sku => !jumpsellerSkus.has(sku))).toEqual([]);
+    // La búsqueda sí ve los SKU: el texto nombra la base y las 4 variantes de cada BESTLED.
+    for (const { p } of bestled) {
+      for (const sku of [p.sku, ...p.cctVariants!.map(v => v.sku)]) expect(skus, sku).toContain(sku);
     }
   });
 });
