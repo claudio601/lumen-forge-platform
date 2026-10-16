@@ -1,6 +1,6 @@
 # Registro de autorizaciones: novedades, bajas y oposiciones
 
-Procedimiento de ventas desde la PR 13 (versión 1.2 de los textos legales). Lo que dice este documento tiene que coincidir con la Política de privacidad (§7 plazos, §8 derechos y §10 cookies) y con los Términos (§15 cambios). Si la política cambia, este documento cambia en la misma PR. La redacción legal la revisa el abogado (pregunta Q6 del plan).
+Procedimiento de ventas desde la PR 13 (versión 1.2 de los textos legales; vigente: 1.3, PR 13x, que corrige lo que la política dice del asistente de WhatsApp y pide por correo el retracto, la garantía y los reclamos). Lo que dice este documento tiene que coincidir con la Política de privacidad (§4 asistente de WhatsApp, §7 plazos, §8 derechos y §10 cookies) y con los Términos (§15 cambios). Si la política cambia, este documento cambia en la misma PR. La redacción legal la revisa el abogado (pregunta Q6 del plan).
 
 ## 1. Qué queda registrado y dónde
 
@@ -11,9 +11,9 @@ Cada envío de los 5 formularios del sitio (`/solicitar-pedido`, `/cotizacion`, 
 Privacidad: leída; autoriza usar sus datos para responder esta solicitud (casilla obligatoria)
 Términos y condiciones: aceptados (casilla obligatoria)
 Novedades y ofertas por correo: NO
-Versión de los textos legales: 1.2
+Versión de los textos legales: 1.3
 Registrado: 2026-11-20 11:03:12, hora de Chile (reloj del servidor)
-consent_json: {"v":"1.2","at":"2026-11-20T14:03:12Z","form":"solicitar-pedido","privacy":true,"terms":true,"marketing":false,"src":"web"}
+consent_json: {"v":"1.3","at":"2026-11-20T14:03:12Z","form":"solicitar-pedido","privacy":true,"terms":true,"marketing":false,"src":"web"}
 ```
 
 Variantes:
@@ -35,7 +35,7 @@ Dónde queda primero:
 - Vale **la última línea que empieza con `consent_json:`** de la nota o del correo. No te guíes por la línea legible: un cliente puede escribir un texto parecido en sus comentarios, pero lo que escribe el cliente queda siempre **antes** del bloque.
 - Campos del JSON: `v` (versión que vio el cliente; `null` si es un formulario anterior), `sv` (versión del servidor, solo si es distinta), `at` (instante UTC), `form`, `privacy`, `terms`, `marketing`, `src` (`web` o `web-legacy`).
 - Si una persona tiene varias solicitudes, manda la más reciente (`at` mayor). Una solicitud posterior **sin** la casilla de novedades cuenta como retiro (Política §7).
-- Para saber qué texto aceptó, abre el archivo de su versión: `https://nuevo.elights.cl/legal/politica-de-privacidad-v1.1.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`). Desde la Etapa 3, en elights.cl.
+- Para saber qué texto aceptó, abre el archivo de su versión (`v`): `https://nuevo.elights.cl/legal/politica-de-privacidad-v1.3.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`). Desde la Etapa 3, en elights.cl.
 
 ## 3. Novedades y ofertas por correo
 
@@ -77,7 +77,12 @@ Aplica a la oposición y a los demás derechos (acceso, rectificación, supresi�
 - **El asistente de WhatsApp** agrega un aviso breve de privacidad (responsable, uso, asistente con IA, registro en el sistema de seguimiento, enlace a la política y canal «Datos personales») al final de su primera respuesta a cada número (PR 13w, `api/_lib/whatsapp/privacyNotice.ts`).
   - **El perfil de WhatsApp Business mantiene el texto y el enlace a la política.** Es lo único que la persona ve antes de su primer mensaje, y el asistente procesa ese mensaje antes de enviar el aviso: lo manda a Anthropic, queda en los registros técnicos y, si trae correo y contexto, crea la persona, el negocio y la nota en Pipedrive. No lo quites del perfil.
   - El aviso puede repetirse: tras un reinicio o un deploy, si atiende otra instancia o cuando el registro llega a 5.000 números. Si la respuesta tarda más de 10 segundos (Twilio espera 15 y después no envía nada), la lleva igual, pero el número no se marca y la siguiente respuesta lo vuelve a llevar. Si Twilio o WhatsApp no entregan una respuesta enviada a tiempo, ese número no lo recibe de nuevo hasta un reinicio.
-  - No deja constancia en Pipedrive. La prueba es el código versionado y sus pruebas automáticas, igual que con las cookies. El registro de mensajes de Twilio sirve como evidencia adicional solo mientras Twilio lo guarde: el plazo real lo confirma el dueño en la consola de Twilio. Si es largo, se corrige en la versión 1.3 de la política lo que el §7 dice de los «plazos breves».
+  - No deja constancia en Pipedrive. La prueba es el código versionado y sus pruebas automáticas, igual que con las cookies. El registro de mensajes de Twilio sirve como evidencia adicional solo mientras Twilio lo guarde: el plazo real lo confirma el dueño en la consola de Twilio. Desde la versión 1.3, la política ya no les aplica los «plazos breves» a Twilio ni a Anthropic: dice que conservan los registros de los mensajes según las condiciones de servicio que aceptamos al contratarlos (§7), porque son encargados (§5). El plazo concreto queda pendiente: lo confirma el dueño en las consolas de Twilio y de Anthropic, y lo revisa el abogado (pregunta Q6). Los «plazos breves» quedan solo para los registros técnicos del sitio y del asistente.
+- **Lo que la política 1.3 dice del asistente** (§2, §4 y §7):
+  - **Lo que hace hoy el código.** En ese WhatsApp siempre responde el asistente, con mensajes predefinidos que pueden repetir datos que reconoció la IA. La IA (Claude) solo reconoce los datos y escribe el resumen. El número, el nombre del perfil de WhatsApp y los adjuntos llegan solos. **Sin correo no se crea el negocio en Pipedrive**, así que esa conversación no llega a ventas. En Pipedrive la prioridad es «Alta» si pidió una persona y «Normal» si no. Si piden una persona, el asistente **no siempre** pide el correo: si el mensaje dice «necesito», «busco», «cotizar» o «comprar», sigue con las preguntas de cotización; si nombran a Claudio o a Constanza, les da sus correos. Tampoco reconoce retractos, garantías ni reclamos: por eso, desde la 1.3, Cambios y los Términos §16 los piden por correo.
+  - **Regla del dueño.** La respuesta de una persona va siempre por correo, nunca por WhatsApp ni por teléfono. La política lo dice así, y la PR 13y (#85) ajustó a esa regla los mensajes `MSG_HUMAN` («Te va a atender Claudio Quero directamente por correo») y `MSG4_INSTALL`.
+  - **Diferencias pendientes con el bot** (PR aparte, con el OK del dueño): `MSG4` y `MSG4_B2B` dicen que la solicitud «quedó registrada» aunque no se cree el negocio: siempre que falta el correo y, en algunos cierres, cuando hay correo pero falta el producto o el proyecto (`hasMinCommercial`). Además, `MSG_HUMAN` («ya derivé tu solicitud a nuestro equipo de ventas») se repite en cada mensaje de un flujo cerrado en que la persona pidió un ejecutivo, aunque no haya correo ni negocio. Si alguien dice que el asistente le confirmó su solicitud y no tiene negocio en Pipedrive, búscalo en el registro de mensajes de Twilio y respóndele por correo si lo dio.
+  - Si el asistente cambia (por ejemplo, con la especificación nueva del bot), la política cambia en la misma PR y sube la versión.
 
 ## 8. Antes de cotizar: versión de los Términos (Términos §15)
 
@@ -85,5 +90,6 @@ Los Términos §15 prometen: «Tu compra se rige por la versión vigente cuando 
 
 - **Antes de mandar la cotización**, compara la línea `Versión de los textos legales` del bloque (o `"v"` en `consent_json`) con la versión vigente, que aparece bajo el título de `/terminos-y-condiciones` («Versión X.Y. Vigente desde el …») y en `LEGAL_VERSION` (`api/_lib/forms/consent.ts`).
 - **Si es distinta**, o si la constancia es `web-legacy` (`"v":null`), agrega en la cotización: «Los Términos y condiciones cambiaron desde tu solicitud. Tu compra se rige por la versión X.Y, vigente desde el <fecha>: <dominio>/legal/terminos-y-condiciones-vX.Y.html» (el dominio es el del punto 2).
+- **Versión 1.3** (PR 13x): además de la Política de privacidad, cambiaron los Términos §1 («Te respondemos por correo electrónico») y §16 (los problemas con la compra, por correo, sin WhatsApp). Una solicitud con `"v":"1.2"` lleva el aviso, como con cualquier versión distinta.
 - **Solicitudes por correo o WhatsApp** (sin bloque): compara la fecha de la solicitud con la fecha «Vigente desde» de los Términos. Si la solicitud es anterior, agrega el mismo aviso.
 - **Si sale una versión nueva entre la cotización y el pago**, manda el mismo aviso antes de enviar o renovar el link de pago.
