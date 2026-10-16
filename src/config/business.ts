@@ -31,15 +31,69 @@ export const businessHoursLong = 'lunes a viernes, de 9:30 a 14:00 y de 15:00 a 
 /** Días sin atención (elights.cl: fines de semana cerrado; festivos, decisión del dueño). */
 export const businessClosedDays = 'Sábados, domingos y festivos, cerrado.';
 
-// ── Condiciones de venta (páginas legales, PR 12) ───────────
+// ── Montos ──────────────────────────────────────────────────
 
 /**
- * Monto (CLP, IVA incluido) sobre el que el despacho en Santiago urbano no tiene costo, o
- * null si no se publica. Hoy null: elights.cl se contradice (su página de envíos y el banner
- * de su inicio dan montos distintos) y el dueño no lo ha confirmado. Con un número, /despacho
- * muestra la condición; sin él, dice que el costo va en la cotización.
+ * Pesos chilenos para mostrar: 1234567 → "$1.234.567". Sin Intl ni toLocaleString: el
+ * servidor (prerender) y el navegador dibujan lo mismo y la hidratación no falla.
  */
-export const FREE_SHIPPING_THRESHOLD_CLP: number | null = null;
+export function clp(amount: number): string {
+  return `$${String(Math.round(amount)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+}
+
+// ── Condiciones de venta (páginas legales, PR 12; despacho y retiro, PR 12b) ──
+// Despacho y retiro confirmados por el dueño el 2026-10-14 (reemplazan los defaults de la
+// PR 12, que no publicaban el monto ni ofrecían retiro). Las páginas leen estas constantes;
+// no escribir el monto, la zona ni el lugar de retiro a mano (src/config/contentTruth.test.ts).
+
+/**
+ * Despacho sin costo: cuando el TOTAL de la compra, CON IVA, es estrictamente mayor que este
+ * monto (CLP) y la entrega es en FREE_SHIPPING_AREA. Con este monto exacto o menos, o fuera
+ * de esa zona, el costo va en la cotización o el despacho va por pagar. Es la única vez que
+ * el monto se escribe en el código: las páginas lo muestran con clp().
+ */
+export const FREE_SHIPPING_THRESHOLD_CLP = 250_000;
+
+/**
+ * Zona del despacho sin costo: la Provincia de Santiago (sus 32 comunas). No entran las otras
+ * 20 comunas de la Región Metropolitana, que son de otras provincias:
+ * - excluded: las que nombra el dueño, con sus palabras (muchos clientes las cuentan como
+ *   Santiago). "El resto de la Provincia de Chacabuco" son Lampa y Tiltil.
+ * - alsoExcluded: las 7 que su lista no nombra. Quedan fuera por la misma regla (no son de la
+ *   Provincia de Santiago); se publican para que la lista de /despacho no parezca completa sin
+ *   serlo (src/pages/legal.test.tsx revisa que estén las 20).
+ */
+export const FREE_SHIPPING_AREA = {
+  name: 'Provincia de Santiago',
+  excluded: [
+    'San Bernardo, Puente Alto, Colina y el resto de la Provincia de Chacabuco',
+    'Talagante, Peñaflor y Padre Hurtado',
+    'Melipilla y Alhué',
+    'Buin, Paine y Pirque',
+  ],
+  alsoExcluded: ['Calera de Tango', 'San José de Maipo', 'Isla de Maipo', 'El Monte', 'Curacaví', 'María Pinto', 'San Pedro'],
+} as const;
+
+/**
+ * Las comunas de la Región Metropolitana que no entran en el despacho sin costo, en una frase:
+ * las del dueño y, al final, las 7 que su lista no nombra.
+ */
+export const freeShippingExcludedList = [
+  ...FREE_SHIPPING_AREA.excluded,
+  `${FREE_SHIPPING_AREA.alsoExcluded.slice(0, -1).join(', ')} y ${FREE_SHIPPING_AREA.alsoExcluded[FREE_SHIPPING_AREA.alsoExcluded.length - 1]}`,
+].join('; ');
+
+/** El despacho sin costo en pocas palabras (barra de confianza del inicio, que enlaza a /despacho). */
+export const freeShippingShort = `Despacho sin costo sobre ${clp(FREE_SHIPPING_THRESHOLD_CLP)} en la ${FREE_SHIPPING_AREA.name}`;
+
+/** Despacho a regiones: por pagar, con estos transportistas (palabras del dueño). */
+export const REGION_CARRIERS = 'Starken, PDQ u otro operador';
+
+/**
+ * Retiro en bodega, sin costo de despacho. La dirección exacta se entrega solo cuando el pago
+ * está acreditado: NUNCA publicarla, ni en el sitio ni en el repo (es público).
+ */
+export const PICKUP_PLACE = 'nuestra bodega en Quinta Normal';
 
 /** Días hábiles que vale una cotización desde su fecha (términos y condiciones, §5). */
 export const quoteValidityBusinessDays = 10;
@@ -113,6 +167,6 @@ export const trustClaims = {
   },
   dispatchChile: {
     title: 'Despacho a todo Chile',
-    desc: 'Enviamos por Starken, Cruz del Sur, PDQ, ECOEx y otros. También despachamos con el operador logístico que prefiera el cliente.',
+    desc: `A regiones, por pagar, vía ${REGION_CARRIERS}. También despachamos con el operador logístico que prefiera el cliente.`,
   },
 } as const;

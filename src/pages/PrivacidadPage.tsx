@@ -6,11 +6,13 @@
 // una persona revisa cada solicitud; novedades solo con consentimiento (casilla de la
 // PR 13); el origen de la visita (PR 10) solo para atribución interna, nunca se sube a
 // Google Ads ni a Meta. La sección 10 (cookies) se revisa con el aviso de cookies (PR 13).
+// Transportistas (§5): los mismos de /despacho, desde REGION_CARRIERS (PR 12b, versión 1.1).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { EmailLink } from '@/components/legal/CompanyFacts';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_REPRESENTATIVE, LEGAL_RUT } from '@/config/site';
+import { REGION_CARRIERS } from '@/config/business';
 
 const DATA_SUBJECT = 'Datos personales';
 
@@ -191,8 +193,8 @@ const PrivacidadPage = () => (
         <strong>Medios de pago</strong> (Flow y Transbank para Webpay, Mercado Pago): reciben los datos que ingresas al pagar.
       </li>
       <li>
-        <strong>Transportistas</strong> (Starken, Chilexpress, Cruz del Sur, PDQ u otro que elijas): reciben tu nombre, dirección y
-        teléfono para hacer la entrega.
+        <strong>Transportistas</strong> ({REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono para
+        hacer la entrega.
       </li>
       <li>
         <strong>WhatsApp (Meta):</strong> si nos escribes por WhatsApp, ese servicio trata tus mensajes según su propia política.

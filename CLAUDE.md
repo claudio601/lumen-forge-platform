@@ -32,6 +32,7 @@
 - **Nunca mostrar stock** ("En stock" / "Sin stock"): no hay control de bodega y algunos productos se compran en plaza. Texto estándar: **"Consultar disponibilidad"**.
 - **Jumpseller es la única fuente de verdad** de precios, nombres, imágenes, categorías y productos activos. El contenido editorial (fichas BESTLED, FAQ, SEO) se mantiene aparte, asociado por `jumpseller_id`.
 - **Despacho**: "Despacho en hasta 2 días hábiles" (versión larga: "y a veces el mismo día"). Nunca "24–48 h" ni "muchas veces". En regiones, los 2 días hábiles son hasta entregar el pedido al transportista y el tiempo de viaje se informa en la cotización; no prometer flota propia (sin confirmar, PR 11b).
+- **Despacho sin costo y retiro** (dueño, 2026-10-14; constantes en `src/config/business.ts`, PR 12b): sin costo si el TOTAL CON IVA es mayor a $250.000 y la entrega es en la Provincia de Santiago; excluidas San Bernardo, Puente Alto, Colina y el resto de la Provincia de Chacabuco; Talagante, Peñaflor y Padre Hurtado; Melipilla y Alhué; Buin, Paine y Pirque. Regiones: por pagar, vía Starken, PDQ u otro operador. Retiro en la bodega de Quinta Normal: la dirección exacta se da solo con el pago acreditado y **nunca se publica** (ni en el sitio ni en el repo).
 - Ya eliminados en la Etapa 1: `api/create-order.ts`, `src/pages/CartPage.tsx`, `src/services/jumpsellerCart.ts` y el paso a `elights.cl/checkout` (`/carro` redirige a `/solicitar-pedido`).
 - **Montos en Pipedrive**: siempre CON IVA, calculados en el servidor desde el catálogo (`api/_lib/catalog/pricing.ts`); nunca se confía en el precio que manda el navegador.
 
@@ -228,7 +229,7 @@ usa 5 subagentes para explorar la base de código:
 - Local: los mismos dos en `.env.local` (gitignored).
 
 **Reglas**
-- El repo es público: nunca deben llegar a archivos versionados `cost_per_item`, el stock ni la descripción **cruda** de Jumpseller (solo la limpia, en su archivo). `--save-raw` solo escribe en `reports/` (gitignored).
+- El repo es público: nunca deben llegar a archivos versionados `cost_per_item`, el stock ni la descripción **cruda** de Jumpseller (solo la limpia, en su archivo). `--save-raw` solo escribe en `reports/` (gitignored). Tampoco la lista de precios por mayor (P.MAYOR, lista del dueño del 2026-10-13): es interna; si el sitio la muestra, solo a clientes B2B con sesión (Fase 3), nunca en la ficha pública.
 - Si una descripción de Jumpseller menciona stock o plazos distintos de "hasta 2 días hábiles", el informe de la sincronización la lista en `descriptionWarnings` para corregirla en Jumpseller.
 - Si una etiqueta nueva de la tabla de Jumpseller no tiene regla en `spec-groups.ts`, queda en "Construcción y operación" y el informe la lista (`specLabelsWithoutGroup`): agregarle su regla.
 - Agentes: el MCP de Jumpseller es solo de lectura (`get_*`/`list_*`/`search_*`). Para sincronizar se usa `gh workflow run`; el sitio nunca escribe en Jumpseller.
