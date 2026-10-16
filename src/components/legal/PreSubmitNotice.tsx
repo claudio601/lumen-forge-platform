@@ -3,7 +3,9 @@
 // solicitud no es una compra, el derecho a retracto y la garantía legal, con enlaces a los
 // textos completos. La ley pide informar el retracto antes de contratar y de pagar, de
 // forma destacada: su párrafo va en text-base, el tamaño del total de la página. Los enlaces
-// abren en otra pestaña para no perder lo escrito. La PR 13 agrega aquí las casillas.
+// abren en otra pestaña para no perder lo escrito. Las casillas de privacidad (con los
+// términos en /solicitar-pedido) y de novedades no van aquí: las dibuja useConsentFields
+// (ConsentFields.tsx) debajo de este aviso, fuera del role="note", que conserva sus 3 enlaces.
 
 import { Link } from 'react-router-dom';
 import { legalPage, type LegalPath } from '@/config/legal';

@@ -7,6 +7,7 @@ import { RequestCartProvider } from "@/context/RequestCartContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import CookieConsent from "@/components/legal/CookieConsent";
 import { sendPageView } from "@/lib/analytics";
 import { AppRoutes } from "./routes";
 
@@ -50,6 +51,8 @@ export function AppLayout({ onMounted, notFoundPath }: LayoutProps) {
   return (
     <>
       <RouteTracker />
+      {/* Aviso de cookies (PR 13): null en el servidor y en el primer render del navegador. */}
+      <CookieConsent />
       <div className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1">

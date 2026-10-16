@@ -64,7 +64,11 @@ const RETIRED: Retired[] = [
   { re: /value: ['"]SEC['"]/, why: 'cifra "SEC / Certificados" del hero de /instalacion', sourceOnly: true },
   { re: /garantizad[oa]/i, why: '"garantizado" sin explicar la garantía (Ley 19.496, art. 33)' },
   { re: /productos certificados|certificaci[oó]n SEC, DS1, CE, IEC/i, why: 'una sola certificación para todo el catálogo' },
-  { re: /garant[ií]a de f[aá]brica|garant[ií]a (?:base )?(?:de )?1 año|12 meses/i, why: 'una sola garantía para todo el catálogo' },
+  // "12 meses" solo como garantía: la Política de privacidad dice que la decisión de cookies dura 12 meses (PR 13)
+  {
+    re: /garant[ií]a de f[aá]brica|garant[ií]a (?:base )?(?:de )?(?:1 año|12 meses)|12 meses(?: de)? garant[ií]a|'12 meses', label: 'Garant[ií]a'/i,
+    why: 'una sola garantía para todo el catálogo',
+  },
   { re: /camiones propios|flota propia|reparto propio|nuestros camiones|propios camiones|camiones de eLIGHTS/i, why: 'flota propia sin confirmar' },
   { re: /post-venta incluida|soporte t[eé]cnico incluido|certificados CE\/IEC|primer mes|letra chica|todo tipo de instalaciones/i, why: 'promesa general sin respaldo' },
   { re: /experiencia en (?:recintos|todo tipo)|nuestro ingeniero/i, why: 'experiencia o equipo sin respaldo' },

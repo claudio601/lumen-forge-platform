@@ -9,7 +9,11 @@
 // 2. Rate limiting por IP
 // 3. Validar Origin/Referer (VERCEL_ENV fix — no NODE_ENV)
 // 4. Honeypot anti-bot
-// 5. Validar payload (server-side estricto)
+// 4b. Privacidad (clave `consent`, api/_lib/forms/consent.ts): sin la casilla obligatoria,
+//     400 con code 'consent_required' antes del correo y de Pipedrive, también con
+//     INSTALLATION_API_SECRET. La hora de la constancia es la del servidor (payload.fecha
+//     no cuenta).
+// 5. Validar payload (server-side estricto, con topes de largo: validation.ts)
 // 6. Referencia ESTL- unica: la misma en el correo, la nota y el deal
 // 7. Correo a ventas via GAS ANTES de Pipedrive (waitUntil, no bloquea)
 // 8. Crear/actualizar deal en Pipedrive + nota estructurada
@@ -19,10 +23,12 @@
 //    -> Fallan ambos: 502 con error visible al usuario
 // 9. Retornar 201/200 { success, personId, dealId, dealAction, leadRef }
 //
-// La nota (y el correo, que lleva el mismo texto) termina con el origen de la visita
-// (clave `attribution`, distinta del campo `origen` del formulario;
-// api/_lib/forms/attribution.ts), agregado después de buildEstudioDealNote. Informativo: un
-// origen raro se descarta, nunca da 400, y no entra en la referencia ni en el log.
+// La nota (y el correo, que lleva el mismo texto) termina con la constancia "PRIVACIDAD Y
+// AUTORIZACIONES" y el origen de la visita (clave `attribution`, distinta del campo `origen`
+// del formulario; api/_lib/forms/attribution.ts), agregados después de buildEstudioDealNote
+// (protegido). El origen es informativo: un origen raro se descarta, nunca da 400, y no
+// entra en la referencia ni en el log. Los topes de validation.ts hacen que todo quepa en
+// el correo sin recorte (el relay corta el final, donde van la constancia y el origen).
 //
 // DECISION V1: Reutiliza PIPEDRIVE_PIPELINE_ID + PIPEDRIVE_STAGE_NEW_LEAD_ID
 // (pipeline "Ventas eLIGHTS" existente). El campo tipo_servicio = "Estudio Luminico"
@@ -54,6 +60,7 @@ import {
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { validateEstudioPayload } from './validation.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
+import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
 const LOG = '[api/estudio-luminico/create]';
 
@@ -213,6 +220,22 @@ export default async function handler(
     return;
   }
 
+  // Privacidad, antes del correo y de Pipedrive (sin excepción por la API key). Un solo reloj
+  // por solicitud: la hora de la constancia es la del servidor.
+  const at = new Date();
+  const consent = resolveConsent(body, { form: 'estudio-luminico', requireTerms: false, at });
+  // `=== false`: con strictNullChecks apagado, `if (!consent.ok)` no estrecha el tipo.
+  if (consent.ok === false) {
+    console.warn(LOG + ' Consent missing');
+    res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      code: CONSENT_ERROR_CODE,
+      details: { errors: consent.errors },
+    });
+    return;
+  }
+
   // Validacion server-side
   const validation = validateEstudioPayload(body);
   if (!validation.valid) {
@@ -232,7 +255,8 @@ export default async function handler(
   // Una sola referencia para el correo, la nota y el campo del deal: calcularla
   // dos veces podria separarlas si cambia la hora entre ambas.
   const leadRef = buildEstudioLeadRef(payload);
-  const note = [buildEstudioDealNote(payload, leadRef), '', ...origenFromBody(body)].join('\n');
+  // Los textos del cliente quedan antes de la constancia; después solo va el origen (saneado).
+  const note = [buildEstudioDealNote(payload, leadRef), '', ...consent.section, '', ...origenFromBody(body)].join('\n');
   const ref = LOG + ' ' + leadRef;
 
   // Solo un campo de lista cerrada: la comuna es texto libre y podría traer datos personales

@@ -2,6 +2,7 @@
 // Tipos para el flujo de Solicitud de Pedido (Request Order)
 
 import type { Attribution } from '@/lib/attribution';
+import type { ConsentInput } from '../../api/_lib/forms/consent';
 
 // Item individual en el Request Cart
 export interface RequestOrderItem {
@@ -45,6 +46,8 @@ export interface RequestOrderPayload {
     website?: string;
     /** Origen de la visita (src/lib/attribution.ts); sin origen la clave no viaja. */
     attribution?: Attribution;
+    /** Casillas de privacidad, términos y novedades (useConsentFields('pedido').payload()). */
+    consent: ConsentInput;
 }
 
 // Respuesta exitosa del endpoint
@@ -57,6 +60,8 @@ export interface RequestOrderSuccessResponse {
 export interface RequestOrderErrorResponse {
     success: false;
     error: string;
+    /** 'consent_required' cuando falta la casilla obligatoria (400). */
+    code?: string;
     details?: { errors: string[] };
 }
 

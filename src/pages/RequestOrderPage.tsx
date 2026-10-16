@@ -25,6 +25,8 @@ import { getAttribution } from '@/lib/attribution';
 import type { RequestOrderPayload, RequestOrderSuccessResponse } from '@/types/request-order';
 import Seo from '@/components/Seo';
 import PreSubmitNotice from '@/components/legal/PreSubmitNotice';
+import { useConsentFields } from '@/components/legal/ConsentFields';
+import { CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 const REGIONS = [
@@ -62,7 +64,7 @@ const EMPTY_FORM: FormValues = {
 // ── Confirmacion ────────────────────────────────────────────────────────────
 function ConfirmationScreen({ requestRef }: { requestRef: string }) {
       return (
-              <div className="flex flex-col items-center justify-center gap-5 py-20 text-center max-w-md mx-auto">
+              <div data-elights-form="solicitar-pedido" className="flex flex-col items-center justify-center gap-5 py-20 text-center max-w-md mx-auto">
     <Seo title="Solicitud de Pedido | eLIGHTS Chile" description="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." noindex />
 
                     <CheckCircle2 className="h-16 w-16 text-green-500" />
@@ -84,6 +86,8 @@ function ConfirmationScreen({ requestRef }: { requestRef: string }) {
 const RequestOrderPage = () => {
       const { items, updateQty, removeItem, clearCart, replaceItems, subtotal, loaded } = useRequestCart();
       const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+      // Casillas de privacidad (con los términos) y novedades: siempre sin marcar al entrar
+      const consent = useConsentFields('pedido');
 
       // Carritos guardados en la sesión pueden tener precios o productos de antes de la
       // última sincronización con Jumpseller: se ponen al día una vez, apenas se lee el
@@ -169,10 +173,17 @@ const RequestOrderPage = () => {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                         return;
               }
+
+              // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
+              if (!consent.check()) {
+                        setErrorMsg('');
+                        return;
+              }
           
               setErrorMsg('');
               setStatus('sending');
-              sendEvent('request_form_start', { commune: form.commune, customerType: form.customerType });
+              // Sin la comuna: a Google Analytics no va nada que ayude a identificar a la persona
+              sendEvent('request_form_start', { customerType: form.customerType });
           
               const requestReference = buildRequestRef(form.email, items);
           
@@ -191,6 +202,7 @@ const RequestOrderPage = () => {
                         requestReference,
                         website,
                         attribution: getAttribution(),
+                        consent: consent.payload(),
               };
           
               try {
@@ -201,17 +213,21 @@ const RequestOrderPage = () => {
                         });
                   
                         if (!res.ok) {
-                                    let errDetail = '';
-                                    try { errDetail = JSON.stringify(await res.json()); } catch { /* ignored */ }
-                                    console.error('[RequestOrder] Endpoint error', { status: res.status, detail: errDetail });
-                                    if (res.status === 400 && errDetail.includes('Products unavailable')) {
-                                              sendEvent('request_form_submit_error', { reason: 'products_unavailable' });
-                                              setStatus('error');
-                                              setErrorMsg('Algunos productos de tu solicitud ya no están disponibles. Recarga la página para actualizarla o escríbenos por WhatsApp.');
-                                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    let code: string | undefined;
+                                    try {
+                                              const body: unknown = await res.json();
+                                              const raw = body && typeof body === 'object' ? (body as { code?: unknown }).code : undefined;
+                                              if (typeof raw === 'string') code = raw;
+                                    } catch { /* cuerpo no JSON */ }
+                                    console.error('[RequestOrder] Endpoint error', { status: res.status, code });
+                                    sendEvent('request_form_submit_error', { reason: 'api_error', httpStatus: res.status });
+                                    // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje
+                                    // general, y el botón vuelve a estar disponible
+                                    if (res.status === 400 && code === CONSENT_ERROR_CODE) {
+                                              setStatus('idle');
+                                              consent.flagMissing();
                                               return;
                                     }
-                                    sendEvent('request_form_submit_error', { reason: 'api_error', httpStatus: res.status });
                                     throw new Error('Error al crear la solicitud en el servidor.');
                         }
                   
@@ -219,10 +235,9 @@ const RequestOrderPage = () => {
                   
                         // Email enviado solo desde backend (fire-and-forget).
                   
-                        trackLead('solicitud_pedido', {
-                                    request_reference: data.requestReference,
-                                    item_count: items.length,
-                        });
+                        // Sin la referencia RC-: uniría la medición de Google con el negocio en
+                        // Pipedrive (Política §10: solo páginas y botones, sin datos de contacto).
+                        trackLead('solicitud_pedido', { item_count: items.length });
                   
                         clearCart();
                         setConfirmedRef(data.requestReference);
@@ -238,8 +253,10 @@ const RequestOrderPage = () => {
               }
       };
     
+      // data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
+      // este bloque de la detección automática de datos. Es fijo: igual en el servidor y en el navegador.
       return (
-              <div className="container py-8 max-w-3xl">
+              <div className="container py-8 max-w-3xl" data-elights-form="solicitar-pedido">
                           <Seo title="Solicitud de Pedido | eLIGHTS Chile" description="Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización." noindex />
                     <Link
                                 to="/catalogo"
@@ -509,6 +526,7 @@ const RequestOrderPage = () => {
                                       </div>
                             </div>
                             <PreSubmitNotice kind="pedido" />
+                            {consent.fields}
 
                             <Button
                                           type="submit"

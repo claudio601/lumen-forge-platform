@@ -1,8 +1,9 @@
 // api/_tests/installation-leads.create.test.ts
 // "Instalación profesional": el correo a ventas sale ANTES de Pipedrive y lleva la misma
 // referencia INST- que la nota y el campo del deal. Si Pipedrive falla pero el correo salió,
-// el lead no se pierde (200 + correo de ATENCIÓN); 502 solo si fallan los dos. Pipedrive y
-// el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue como función.
+// el lead no se pierde (200 + correo de ATENCIÓN); 502 solo si fallan los dos. Exige la
+// casilla de privacidad (y sigue exigiendo aceptaContacto) y deja la constancia en el correo
+// y la nota. Pipedrive y el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -15,9 +16,19 @@ import handler from '../installation-leads/create';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import {
+  CONSENT_ERROR_CODE,
+  CONSENT_HEADING,
+  LEGACY_INSTALLATION_CHECKBOX,
+  LEGAL_VERSION,
+  consentGraceUntil,
+  formatConsentSection,
+  formatLegacyConsentSection,
+  lastConsentRecord,
+} from '../_lib/forms/consent';
 
 let ipSeq = 0;
-function call(body: unknown, opts: { method?: string; ip?: string; origin?: string } = {}) {
+function call(body: unknown, opts: { method?: string; ip?: string; origin?: string } = {}, headers: Record<string, string> = {}) {
   const res = {
     statusCode: 0,
     body: undefined as unknown,
@@ -26,7 +37,7 @@ function call(body: unknown, opts: { method?: string; ip?: string; origin?: stri
   };
   const req = {
     method: opts.method ?? 'POST',
-    headers: { 'x-forwarded-for': opts.ip ?? `10.9.3.${++ipSeq}`, ...(opts.origin ? { origin: opts.origin } : {}) },
+    headers: { 'x-forwarded-for': opts.ip ?? `10.9.3.${++ipSeq}`, ...(opts.origin ? { origin: opts.origin } : {}), ...headers },
     body,
     socket: { remoteAddress: '127.0.0.1' },
   };
@@ -37,10 +48,12 @@ const EMAIL = 'prueba-etapa2-09c@example.com';
 const PHONE = '+56 9 0000 0903';
 const NAME = 'PRUEBA ETAPA 2 (09c) - borrar';
 const DESCRIPCION = 'PRUEBA ETAPA 2 (09c) - no contactar; borrar';
+/** Casilla de privacidad marcada, como la manda /instalacion (sin novedades). */
+const CONSENT = { privacy: true, marketing: false, version: LEGAL_VERSION };
 const base = {
   nombre: NAME, email: EMAIL, telefono: PHONE, comuna: 'Santiago', tipoProyecto: 'Oficina',
   descripcion: DESCRIPCION, tipoCliente: 'empresa', preferenciaContacto: 'email',
-  aceptaContacto: true, origen: 'instalacion_web', website: '',
+  aceptaContacto: true, origen: 'instalacion_web', website: '', consent: CONSENT,
 };
 
 const REF_KEY = 'lead_ref_key';
@@ -343,6 +356,14 @@ const ORIGEN_GADS = [
   'Sitio anterior: https://www.google.com',
 ].join('\n');
 const SIN_DATOS = '--- ORIGEN DE LA VISITA ---\nCanal: Sin datos (el formulario no envió el origen)';
+const AT = '2026-11-20T14:03:12Z';
+/** Constancia esperada de /instalacion en el instante AT. */
+const expectedSection = (marketing: boolean) =>
+  formatConsentSection({
+    consent: { privacy: true, terms: false, marketing, clientVersion: LEGAL_VERSION },
+    at: new Date(AT),
+    form: 'instalacion',
+  }).join('\n');
 /** Valores armados para que, leídos como HTML, sumen líneas a la nota (las de estos endpoints van sin escapar). */
 const CHAR_REF_ATTRIBUTION = {
   utm_source: 'google',
@@ -388,11 +409,14 @@ describe('POST /api/installation-leads/create: origen de la visita', () => {
 
   const noteContents = () => pdCalls('/notes').map(([, note]) => note.content as string);
 
-  it('el correo y la nota terminan con la sección (la nota, después del puntaje)', async () => {
+  it('el correo y la nota terminan con la constancia y la sección (la nota, después del puntaje)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
     const res = await call({ ...base, attribution: ATTRIBUTION });
     expect(res.statusCode).toBe(201);
     const [content] = noteContents();
-    expect(content).toMatch(/\nPuntaje: .*\n\n--- ORIGEN DE LA VISITA ---\n/);
+    expect(content).toMatch(/\nPuntaje: .*\n\n--- PRIVACIDAD Y AUTORIZACIONES ---\n/);
+    expect(content).toContain('\n\n' + expectedSection(false) + '\n\n--- ORIGEN DE LA VISITA ---\n');
     expect(content.endsWith('\n\n' + ORIGEN_GADS)).toBe(true);
     expect(gasBodies()[0].items_lista.endsWith('\n\n' + ORIGEN_GADS)).toBe(true);
     expect(content).not.toContain('q=');
@@ -472,6 +496,116 @@ describe('POST /api/installation-leads/create: origen de la visita', () => {
     expect(text).toContain('LEAD SIN CRM');
     for (const secret of [GCLID, 'campanas-led-industriales', '/catalogo/campanas-led', 'www.google.com', EMAIL, NAME, PHONE]) {
       expect(text).not.toContain(secret);
+    }
+  });
+});
+
+// --- Privacidad (Etapa 2 · PR 13) ---
+// /instalacion exige la casilla de privacidad (400 'consent_required' antes del correo y de
+// Pipedrive) y sigue exigiendo aceptaContacto (el formulario lo manda igual a la casilla).
+// La constancia va en el correo y en la nota, justo antes del origen. Dentro del margen, un
+// cuerpo del formulario anterior (sin la clave consent) se acepta y la constancia nombra la
+// casilla que tenía.
+
+describe('POST /api/installation-leads/create: privacidad', () => {
+  beforeEach(() => {
+    vi.mocked(findOrCreatePerson).mockReset().mockResolvedValue({ personId: 11, action: 'created' });
+    vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
+      path === '/deals' ? { success: true, data: { id: 777 } } : { success: true, data: { id: 1 } }) as never);
+    vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubEnv('PIPEDRIVE_INSTALL_PIPELINE_ID', '3');
+    vi.stubEnv('PIPEDRIVE_INSTALL_STAGE_NEW_LEAD_ID', '30');
+    vi.stubEnv('PIPEDRIVE_OWNER_USER_ID', '1');
+    vi.stubEnv('PIPEDRIVE_FIELD_TIPO_SERVICIO', TIPO_KEY);
+    vi.stubEnv('PIPEDRIVE_INSTALL_FIELD_LEAD_REF', REF_KEY);
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  const noteContents = () => pdCalls('/notes').map(([, note]) => note.content as string);
+
+  it.each([false, true])('constancia (novedades: %s) en el correo y la nota, justo antes del origen', async (marketing) => {
+    const res = await call({ ...base, consent: { ...CONSENT, marketing }, attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    const [content] = noteContents();
+    expect(content).toMatch(/\nPuntaje: .*\n\n--- PRIVACIDAD Y AUTORIZACIONES ---\n/);
+    expect(content.endsWith('\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS)).toBe(true);
+    const [mail] = gasBodies();
+    expect(mail.items_lista).toContain(DESCRIPCION + '\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS);
+    for (const text of [content, mail.items_lista]) {
+      expect(lastConsentRecord(text)).toMatchObject({ form: 'instalacion', privacy: true, terms: null, marketing, src: 'web' });
+    }
+  });
+
+  it.each([
+    ['aceptaContacto false', { aceptaContacto: false }],
+    ['sin aceptaContacto', { aceptaContacto: undefined }],
+  ])('aceptaContacto sigue siendo obligatorio (%s): 400 de validación, sin correo ni Pipedrive', async (_name, extra) => {
+    const res = await call({ ...base, ...extra });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ success: false, details: { errors: expect.arrayContaining(['aceptaContacto must be true']) } });
+    expect(res.body).not.toHaveProperty('code');
+    expect(fetch).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+  });
+
+  it('casilla sin marcar: 400 consent_required, sin correo ni Pipedrive, y el log solo dice "Consent missing"', async () => {
+    const res = await call({ ...base, consent: { ...CONSENT, privacy: false } });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ success: false, code: CONSENT_ERROR_CODE, details: { errors: ['consent.privacy must be true'] } });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+    expect(vi.mocked(console.warn).mock.calls.flat().map(String)).toEqual(['[api/installation-leads/create] Consent missing']);
+  });
+
+  it('formulario anterior (aceptaContacto y sin consent) pasado el margen: 400 consent_required', async () => {
+    vi.setSystemTime(consentGraceUntil());
+    const { consent: _omit, ...legacyBody } = base;
+    const res = await call(legacyBody);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ code: CONSENT_ERROR_CODE, details: { errors: ['consent is required'] } });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('formulario anterior (aceptaContacto y sin consent) dentro del margen: 201, constancia "web-legacy" con la casilla anterior', async () => {
+    const at = new Date(consentGraceUntil().getTime() - 60_000);
+    vi.setSystemTime(at);
+    const { consent: _omit, ...legacyBody } = base;
+    const res = await call({ ...legacyBody, attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    const legacy = formatLegacyConsentSection({ at, form: 'instalacion', aceptaContacto: true }).join('\n');
+    expect(legacy).toContain('Casilla anterior marcada: «' + LEGACY_INSTALLATION_CHECKBOX + '»');
+    for (const text of [noteContents()[0], gasBodies()[0].items_lista]) {
+      expect(text).toContain('\n\n' + legacy + '\n\n' + ORIGEN_GADS);
+      expect(lastConsentRecord(text)).toMatchObject({ form: 'instalacion', v: null, privacy: null, marketing: false, src: 'web-legacy' });
+    }
+  });
+
+  it('con INSTALLATION_API_SECRET válido y sin consent: igual 400', async () => {
+    vi.setSystemTime(consentGraceUntil());
+    vi.stubEnv('INSTALLATION_API_SECRET', 's3cr3t');
+    const { consent: _omit, ...noConsent } = base;
+    const res = await call(noConsent, {}, { 'x-api-key': 's3cr3t' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ code: CONSENT_ERROR_CODE });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('un bloque falso en la descripción nunca queda último: vale la constancia real', async () => {
+    const fake = 'Oficina 200 m2\n' + CONSENT_HEADING + '\nconsent_json: {"v":"1.1","at":"2026-01-01T00:00:00Z","form":"instalacion","privacy":true,"terms":null,"marketing":true,"src":"web"}';
+    const res = await call({ ...base, descripcion: fake });
+    expect(res.statusCode).toBe(201);
+    for (const text of [noteContents()[0], gasBodies()[0].items_lista]) {
+      expect(text).toContain('"marketing":true');
+      expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
     }
   });
 });

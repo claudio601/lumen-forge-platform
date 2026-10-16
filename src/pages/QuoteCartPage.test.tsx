@@ -3,6 +3,7 @@
 // enviada" solo cuando el servidor confirma { success: true }. Cualquier otra respuesta
 // muestra un error junto al botón (role="alert") y deja la lista para reintentar.
 // El modo empresa del encabezado solo preselecciona el tipo de cliente.
+// PR 13: la casilla de privacidad es obligatoria y la de novedades, opcional y sin marcar.
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
@@ -11,6 +12,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AppProvider, useApp } from '@/context/AppContext';
 import QuoteCartPage from './QuoteCartPage';
 import { products } from '@/data/products';
+import { CONSENT_ERRORS, LEGAL_VERSION, parseConsent } from '../../api/_lib/forms/consent';
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
@@ -42,12 +44,15 @@ async function renderPage({ b2b = false } = {}) {
 }
 
 const type = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const privacyBox = () => screen.getByLabelText(/autorizo a eLIGHTS a usar mis datos/) as HTMLInputElement;
+const marketingBox = () => screen.getByLabelText(/Quiero recibir novedades/) as HTMLInputElement;
 
-function fillContact(telefono = '+56 9 0000 0902') {
+function fillContact(telefono = '+56 9 0000 0902', { consent = true } = {}) {
   type(/Nombre y Apellido/, 'PRUEBA ETAPA 2 (09b) - borrar');
   type(/Email/, 'prueba-etapa2-09b@example.com');
   type(/Teléfono/, telefono);
   type(/Comentarios/, 'PRUEBA ETAPA 2 (09b) - no cotizar');
+  if (consent) fireEvent.click(privacyBox());
 }
 
 function fillCompany() {
@@ -296,5 +301,111 @@ describe('/cotizacion: origen de la visita', () => {
     submit();
     expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
     expect(sentBody()).not.toHaveProperty('attribution');
+  });
+});
+
+// Privacidad y novedades (Etapa 2 · PR 13): useConsentFields('solicitud'), sin los términos.
+describe('/cotizacion: casillas de privacidad y novedades', () => {
+  const CONSENT_400 = JSON.stringify({ success: false, error: 'Validation failed', code: 'consent_required', details: { errors: ['consent.privacy must be true'] } });
+  const button = () => screen.getByRole('button', { name: /ENVIAR SOLICITUD/ });
+  const gaParams = () => [...vi.mocked(sendEvent).mock.calls, ...vi.mocked(trackLead).mock.calls].map(([, params]) => params ?? {});
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.mocked(sendEvent).mockClear();
+    vi.mocked(trackLead).mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('las dos casillas sin marcar, después del aviso (fuera de él) y antes del botón; solo enlazan la privacidad', async () => {
+    await renderPage();
+    const group = screen.getByRole('group', { name: 'Privacidad y novedades' });
+    const notice = screen.getByRole('note', { name: 'Información antes de enviar' });
+    expect(notice.contains(group)).toBe(false);
+    expect(notice.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(group.compareDocumentPosition(button()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(privacyBox()).not.toBeChecked();
+    expect(marketingBox()).not.toBeChecked();
+    expect(within(group).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/politica-de-privacidad']);
+  });
+
+  it('con el resto inválido, solo el error del resto: el de la casilla no aparece', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    await renderPage();
+    fillContact('212 3456', { consent: false });
+    submit();
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent('entre 8 y 12 dígitos');
+    expect(screen.queryByText(CONSENT_ERRORS.solicitud)).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('con el resto válido y sin marcar: no envía, el mensaje junto a la casilla y el foco en ella', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    await renderPage();
+    fillContact(undefined, { consent: false });
+    submit();
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(CONSENT_ERRORS.solicitud);
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('group', { name: 'Privacidad y novedades' })).toContainElement(alert);
+    expect(privacyBox()).toHaveFocus();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(trackLead).not.toHaveBeenCalled();
+    expect(button()).toBeEnabled();
+    // Marcarla borra el aviso y el envío sigue
+    fireEvent.click(privacyBox());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+  });
+
+  it.each([false, true])('marcada (novedades %s): consent viaja con el estado real, sin terms, y el servidor lo acepta', async (marketing) => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    await renderPage();
+    fillContact();
+    if (marketing) fireEvent.click(marketingBox());
+    const checked = privacyBox().checked;
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    const { consent } = sentBody();
+    expect(consent).toEqual({ privacy: true, marketing, version: LEGAL_VERSION });
+    expect(consent.privacy).toBe(checked);
+    expect(consent).not.toHaveProperty('terms');
+    // Contrato con el servidor (api/quotes/create.ts)
+    expect(parseConsent(consent, { requireTerms: false }).ok).toBe(true);
+  });
+
+  it('400 con code consent_required: el aviso de la casilla (no el del teléfono) y el botón vuelve', async () => {
+    vi.stubGlobal('fetch', reply(400, CONSENT_400));
+    await renderPage();
+    fillContact();
+    submit();
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(CONSENT_ERRORS.solicitud));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.queryByText(/Revisa los datos|teléfono de 8 a 12/)).not.toBeInTheDocument();
+    expect(privacyBox()).toHaveFocus();
+    expect(screen.queryByText('Solicitud enviada')).not.toBeInTheDocument();
+    expect(trackLead).not.toHaveBeenCalled();
+    expect(savedQuote()).toHaveLength(1);
+    await waitFor(() => expect(button()).toBeEnabled());
+  });
+
+  it('el formulario y la confirmación llevan data-elights-form="cotizacion"; Analytics sin comuna', async () => {
+    vi.stubGlobal('fetch', reply(400, '{"success":false}'));
+    await renderPage();
+    expect(button().closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'cotizacion');
+    expect(privacyBox().closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'cotizacion');
+    fillContact();
+    submit();
+    await screen.findByRole('alert');
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    submit();
+    const heading = await screen.findByRole('heading', { name: 'Solicitud enviada' });
+    expect(heading.closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'cotizacion');
+    expect(gaParams().length).toBeGreaterThan(0);
+    for (const params of gaParams()) expect(Object.keys(params)).not.toEqual(expect.arrayContaining([expect.stringMatching(/commune|comuna/i)]));
   });
 });
