@@ -255,12 +255,14 @@ const RequestOrderPage = () => {
                     </p>
               
                   {/* ── Tabla de productos ──────────────────────────────────────── */}
+                  {/* En el teléfono (bajo sm) cada fila se apila: foto, nombre y SKU arriba; precio,
+                      cantidad y quitar abajo. Desde sm, las cuatro columnas. */}
                     <div className="border rounded-xl overflow-hidden mb-8">
-                            <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto_auto] gap-4">
+                            <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid sm:grid-cols-[1fr_auto_auto_auto] gap-4">
                                       <span>Producto</span>
-                                      <span>Precio unit.</span>
-                                      <span>Cantidad</span>
-                                      <span />
+                                      <span className="hidden sm:block">Precio unit.</span>
+                                      <span className="hidden sm:block">Cantidad</span>
+                                      <span className="hidden sm:block" />
                             </div>
                     
                         {items.map((item) => {
@@ -271,46 +273,49 @@ const RequestOrderPage = () => {
                             return (
                                             <div
                                                               key={requestLineKey(item)}
-                                                              className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center"
+                                                              className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] gap-x-4 gap-y-2 items-center"
                                                             >
-                                                          <div className="flex items-center gap-3">
+                                                          <div className="col-span-3 sm:col-span-1 flex items-center gap-3 min-w-0">
                                                               {item.image && (
                                                                                   <img
                                                                                                           src={item.image}
                                                                                                           alt={item.name}
-                                                                                                          className="h-10 w-10 object-contain rounded-lg bg-surface"
+                                                                                                          className="h-10 w-10 flex-shrink-0 object-contain rounded-lg bg-surface"
                                                                                                           onError={(e) => {
                                                                                                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                                                                               }}
                                                                                                         />
                                                                                 )}
-                                                                          <div>
-                                                                                            <p className="font-semibold text-sm line-clamp-1">{item.name}</p>
+                                                                          <div className="min-w-0">
+                                                                                            <p className="font-semibold text-sm break-words sm:line-clamp-1">{item.name}</p>
                                                                                             <p className="text-[10px] text-muted-foreground font-mono">{item.sku}</p>
                                                                           </div>
                                                           </div>
-                                                          <div className="text-right">
+                                                          <div className="sm:text-right">
                                                                           <p className="text-sm font-medium">{formatCLP(item.unitPrice)}</p>
                                                                           <p className="text-[10px] text-muted-foreground normal-case">{priceModeLabel}</p>
                                                           </div>
                                                           <div className="flex items-center border rounded-lg">
                                                                           <button
-                                                                                                className="p-1.5 hover:bg-accent transition-colors"
+                                                                                                aria-label="Restar una unidad"
+                                                                                                className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
                                                                                                 onClick={() => updateQty(requestLineKey(item), item.quantity - 1)}
                                                                                               >
                                                                                             <Minus className="h-3 w-3" />
                                                                           </button>
                                                                           <span className="px-3 text-sm font-semibold">{item.quantity}</span>
                                                                           <button
-                                                                                                className="p-1.5 hover:bg-accent transition-colors"
+                                                                                                aria-label="Sumar una unidad"
+                                                                                                className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
                                                                                                 onClick={() => updateQty(requestLineKey(item), item.quantity + 1)}
                                                                                               >
                                                                                             <Plus className="h-3 w-3" />
                                                                           </button>
                                                           </div>
                                                           <button
+                                                                              aria-label="Quitar de la solicitud"
                                                                               onClick={() => removeItem(requestLineKey(item))}
-                                                                              className="text-muted-foreground hover:text-destructive transition-colors"
+                                                                              className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors"
                                                                             >
                                                                           <Trash2 className="h-4 w-4" />
                                                           </button>
@@ -318,7 +323,7 @@ const RequestOrderPage = () => {
                                           );
               })}
                     
-                            <div className="px-4 py-3 border-t bg-surface flex justify-end items-center gap-2">
+                            <div className="px-4 py-3 border-t bg-surface flex flex-wrap justify-end items-center gap-2">
                                       <span className="text-sm text-muted-foreground">Total referencial:</span>
                                       <span className="font-bold">{formatCLP(subtotal)}</span>
                                       <span className="text-xs text-muted-foreground">CLP</span>
