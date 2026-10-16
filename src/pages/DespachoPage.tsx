@@ -14,7 +14,7 @@
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
-import { EmailLink, WhatsAppLink } from '@/components/legal/CompanyFacts';
+import { EmailLink } from '@/components/legal/CompanyFacts';
 import { clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, freeShippingExcludedList, PICKUP_PLACE, REGION_CARRIERS } from '@/config/business';
 
 const threshold = clp(FREE_SHIPPING_THRESHOLD_CLP);
@@ -89,8 +89,8 @@ const DespachoPage = () => (
 
     <h2>Seguimiento</h2>
     <p>
-      Cuando tu pedido sale, te mandamos el nombre del transportista y el número de seguimiento. Si quieres saber en qué va tu
-      pedido, escríbenos a <EmailLink /> o al WhatsApp <WhatsAppLink />.
+      Cuando tu pedido sale, te mandamos por correo el nombre del transportista y el número de seguimiento. Si quieres saber en
+      qué va tu pedido, escríbenos a <EmailLink /> con tu número de pedido o de cotización.
     </p>
 
     <h2>Al recibir</h2>

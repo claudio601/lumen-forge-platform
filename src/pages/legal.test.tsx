@@ -393,6 +393,12 @@ describe('páginas legales y de compra: contenido', () => {
     expect(regiones).toContain('El despacho a regiones va por pagar, vía Starken, PDQ u otro operador.');
     expect(text).not.toMatch(/Cruz del Sur|Chilexpress|ECOEx|retiro en tienda/i);
     expect(section(main, 'Costo del despacho').text).toContain('lo muestran por separado, o indican que va sin costo o por pagar.');
+    // Seguimiento solo por correo (dueño, 2026-10-16): el WhatsApp lo atiende un asistente que no
+    // responde consultas de pedidos.
+    const seguimiento = section(main, 'Seguimiento').text;
+    expect(seguimiento).toContain('te mandamos por correo el nombre del transportista y el número de seguimiento');
+    expect(seguimiento).toContain('con tu número de pedido o de cotización');
+    expect(seguimiento).not.toMatch(/whatsapp/i);
   });
 
   it('/despacho: sin costo sobre el monto (con IVA) en la Provincia de Santiago, con las comunas excluidas', async () => {
