@@ -28,8 +28,8 @@ export const LEGAL_REPRESENTATIVE: string | null = null;
  * con cada envío.
  */
 export const LEGAL_VERSION = '1.1';
-export const LEGAL_UPDATED = '2026-10-14';
-export const LEGAL_UPDATED_LABEL = '14 de octubre de 2026';
+export const LEGAL_UPDATED = '2026-10-16';
+export const LEGAL_UPDATED_LABEL = '16 de octubre de 2026';
 
 /**
  * Imagen por defecto para compartir enlaces: JPEG de 1200×630 y 82.683 bytes (las redes no
