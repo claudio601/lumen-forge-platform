@@ -51,8 +51,17 @@ general** (220V de la red chilena, 200 °C de la clase T3, 24V): se escribe sin 
 ## Datos de eLIGHTS que sí se pueden usar
 
 - eLIGHTS.cl: iluminación LED profesional, industrial y solar, para empresas y personas en Chile.
-- Despacho a todo Chile en **hasta 2 días hábiles**. Camiones propios en la Provincia de
-  Santiago; a regiones, por operador logístico. (Nunca "mismo día", "24/48 horas" ni "inmediato".)
+- Despacho a todo Chile en **hasta 2 días hábiles**, contados desde que el pago está
+  confirmado. Es el plazo de despacho, no de llegada: en regiones, es el plazo para entregar
+  el pedido al transportista (u operador logístico), y a eso se suma el tiempo de viaje, que
+  se informa en la cotización antes de pagar. No se promete que el pedido llega o se recibe
+  en 2 días hábiles (tampoco "el despacho a cualquier región toma o se hace en 2 días
+  hábiles", "el despacho alcanza todo el país en…" ni "enviamos a cualquier región en…", que se
+  leen como plazo de llegada), ni se habla de camiones, flota o reparto propio (no está
+  confirmado). Para regiones se dice "regiones" ("si va a regiones"), no "una región", que
+  también incluye a Santiago. El plazo se escribe en cifra: "hasta 2 días hábiles". La oración
+  del plazo no lleva dos o más ";": lo de regiones va en una oración aparte.
+  (Nunca "mismo día", "24/48 horas" ni "inmediato".)
 - La compra es por pedido o cotización: el equipo comercial responde con la cotización
   formal. Atiende a empresas, instaladores eléctricos, constructoras, arquitectos,
   municipios y licitaciones. Se emite factura.
@@ -65,6 +74,7 @@ general** (220V de la red chilena, 200 °C de la clase T3, 24V): se escribe sin 
 
 Stock o disponibilidad ("Consultar disponibilidad" es el texto del sitio), precios,
 ofertas o descuentos, "gratis", plazos de entrega distintos de "hasta 2 días hábiles",
+la llegada del pedido en 2 días hábiles (es el plazo de despacho), camiones o flota propia,
 "líder"/"número uno", comparaciones con otras marcas o tiendas, URLs, HTML, emojis,
 mayúsculas sostenidas, signos de exclamación en serie.
 

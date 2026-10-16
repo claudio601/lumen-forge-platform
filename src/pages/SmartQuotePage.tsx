@@ -7,6 +7,8 @@ import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
 import { waBase, contactEmail, whatsappDisplayNumber } from '@/config/business';
 import Seo from '@/components/Seo';
+import { useConsentFields } from '@/components/legal/ConsentFields';
+import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 // Las listas, los topes y la lectura de los m² son los mismos del servidor (api/project-quotes/create.ts)
 import {
   ILLUMINATION_LEVELS,
@@ -21,14 +23,19 @@ const MAX_COMENTARIOS = 2000;
 
 // ── Envío al endpoint (correo a ventas + Pipedrive en el servidor) ────────────
 
-/** Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). */
+/**
+ * Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). code: el
+ * `code` del cuerpo de error ('consent_required' si faltó la casilla de privacidad).
+ */
 class SubmitError extends Error {
   reason: string;
   httpStatus: number;
-  constructor(reason: string, httpStatus: number) {
+  code?: string;
+  constructor(reason: string, httpStatus: number, code?: string) {
     super(reason + ' (HTTP ' + httpStatus + ')');
     this.reason = reason;
     this.httpStatus = httpStatus;
+    this.code = code;
   }
 }
 
@@ -46,19 +53,21 @@ async function submitProjectQuote(payload: Record<string, unknown>): Promise<str
   }
 
   // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown; reference?: unknown } | null = null;
+  let data: { success?: unknown; reference?: unknown; code?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
 
-  if (!res.ok) throw new SubmitError('api_error', res.status);
+  if (!res.ok) throw new SubmitError('api_error', res.status, typeof data?.code === 'string' ? data.code : undefined);
   if (!data) throw new SubmitError('invalid_body', res.status);
   if (data.success !== true) throw new SubmitError('not_success', res.status);
   return typeof data.reference === 'string' ? data.reference : '';
 }
 
-/** Mensaje para el visitante según el estado HTTP de la respuesta. */
-function submitErrorMessage(httpStatus: number): string {
+/** Mensaje para el visitante según el estado HTTP y el code de la respuesta. */
+function submitErrorMessage(httpStatus: number, code?: string): string {
+  // Un 400 por la casilla nunca dice "teléfono (8 a 12 dígitos)"
+  if (code === CONSENT_ERROR_CODE) return CONSENT_ERRORS.solicitud;
   if (httpStatus === 400) return 'Revisa email y teléfono (8 a 12 dígitos) e inténtalo de nuevo.';
   if (httpStatus === 429) {
     return 'Hiciste varios envíos seguidos. Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
@@ -80,6 +89,9 @@ const SmartQuotePage = () => {
   const [reference, setReference] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  // Casillas de privacidad y novedades: siempre sin marcar (también en el HTML del prerender).
+  // Sin el mb-5 por defecto: el fieldset del formulario ya separa los bloques con space-y-6.
+  const consent = useConsentFields('solicitud', { className: 'min-w-0' });
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
@@ -155,6 +167,7 @@ const SmartQuotePage = () => {
     direccion: optional(form.direccion),
     website,
     attribution: getAttribution(),
+    consent: consent.payload(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,6 +177,11 @@ const SmartQuotePage = () => {
     if (invalid) {
       setErrorMsg(invalid);
       toast.error(invalid);
+      return;
+    }
+    // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
+    if (!consent.check()) {
+      setErrorMsg('');
       return;
     }
     setErrorMsg('');
@@ -180,8 +198,15 @@ const SmartQuotePage = () => {
       console.error('[SmartQuotePage]', err);
       const reason = err instanceof SubmitError ? err.reason : 'exception';
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
+      const code = err instanceof SubmitError ? err.code : undefined;
       sendEvent('cotizador_submit_error', { reason, httpStatus });
-      const message = submitErrorMessage(httpStatus);
+      if (code === CONSENT_ERROR_CODE) {
+        // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
+        setErrorMsg('');
+        consent.flagMissing();
+        return;
+      }
+      const message = submitErrorMessage(httpStatus, code);
       setErrorMsg(message);
       toast.error(message);
     } finally {
@@ -191,7 +216,7 @@ const SmartQuotePage = () => {
 
   if (submitted) {
     return (
-      <div className="container py-16 text-center max-w-md mx-auto">
+      <div className="container py-16 text-center max-w-md mx-auto" data-elights-form="cotizador">
     <Seo title="Cotizar Iluminación LED | eLIGHTS Chile" description="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." path="/cotizador" />
 
         <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
@@ -220,7 +245,9 @@ const SmartQuotePage = () => {
   return (
     <div className="container py-8">
       <Seo title="Cotizar Iluminación LED | eLIGHTS Chile" description="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." path="/cotizador" />
-      <div className="max-w-2xl mx-auto">
+      {/* data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
+          este bloque de la detección automática de datos. Es fijo: igual en el servidor y en el navegador. */}
+      <div className="max-w-2xl mx-auto" data-elights-form="cotizador">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-accent text-accent-foreground text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
             <Zap className="h-3.5 w-3.5" />
@@ -317,6 +344,8 @@ const SmartQuotePage = () => {
                 </div>
               </div>
             </div>
+            {/* Dentro del fieldset: antes de hidratar, las casillas también quedan deshabilitadas */}
+            {consent.fields}
             {/* Error junto al botón, donde el visitante está mirando */}
             {errorMsg && (
               <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

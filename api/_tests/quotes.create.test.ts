@@ -4,7 +4,8 @@
 // que la nota. Si Pipedrive falla pero el correo salió, el lead no se pierde (200 + correo
 // de ATENCIÓN); 502 solo si fallan los dos. Sin API key solo entran cotizaciones del sitio.
 // Un producto que el catálogo no identifica queda fuera del monto del negocio (REVISAR).
-// Pipedrive y el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue
+// Toda cotización del sitio exige la casilla de privacidad (también con API key); `consent`
+// nunca llega al CRM. Pipedrive y el relay están simulados. Vive en api/_tests/ para que Vercel no lo despliegue
 // como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -20,6 +21,15 @@ import handler from '../quotes/create';
 import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import {
+  CONSENT_ERROR_CODE,
+  CONSENT_HEADING,
+  LEGAL_VERSION,
+  consentGraceUntil,
+  formatConsentSection,
+  formatLegacyConsentSection,
+  lastConsentRecord,
+} from '../_lib/forms/consent';
 
 let ipSeq = 0;
 function call(body: unknown, headers: Record<string, string> = {}) {
@@ -39,7 +49,10 @@ const PHONE = '+56 9 0000 0902';
 const RAZON_SOCIAL = 'PRUEBA ETAPA 2 (no procesar)';
 const COMENTARIO = 'PRUEBA ETAPA 2 (09b) - no cotizar';
 const customer = { name: NAME, email: EMAIL, phone: PHONE };
+/** Casilla de privacidad marcada, como la manda /cotizacion (sin novedades). */
+const CONSENT = { privacy: true, marketing: false, version: LEGAL_VERSION };
 
+/** Cuerpo base; las cotizaciones del sitio llevan las casillas (las otras fuentes, no). */
 const quote = (sourceSystem: string) => ({
   sourceSystem,
   quoteReference: 'NE-abc123',
@@ -47,6 +60,7 @@ const quote = (sourceSystem: string) => ({
   customer,
   products: [{ jumpsellerId: 3305420, sku: 'AR111OPC', name: 'AR111', quantity: 3, unitPriceClp: 13613 }],
   quoteAmountClp: 40839,
+  ...(sourceSystem === 'nuevo_elights' ? { consent: CONSENT } : {}),
 });
 const company = { rut: 'RUT-PRUEBA', giro: 'Prueba', address: 'Prueba 123, Santiago' };
 const empresa = () => ({
@@ -97,7 +111,7 @@ describe('POST /api/quotes/create', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
-  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
   it('cotización del sitio en modo neto: el negocio queda CON IVA desde el catálogo', async () => {
     const res = await call(quote('nuevo_elights'));
@@ -408,7 +422,11 @@ describe('POST /api/quotes/create', () => {
 
   it('formulario anterior con comentarios de 2500 caracteres: se acepta recortado y sin adivinar el tipo de cliente', async () => {
     const legacyNotes = 'c'.repeat(2490) + ' FIN-LEGACY';
-    const res = await call({ ...quote('nuevo_elights'), leadType: 'B2C', notes: legacyNotes });
+    // El formulario anterior no mandaba las casillas: solo se acepta dentro del margen
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(consentGraceUntil().getTime() - 60_000));
+    const { consent: _omit, ...noConsent } = quote('nuevo_elights');
+    const res = await call({ ...noConsent, leadType: 'B2C', notes: legacyNotes });
     expect(res.statusCode).toBe(201);
     expect(processQuoteToCrm).toHaveBeenCalledTimes(1);
     const sent = crmPayload().notes as string;
@@ -508,6 +526,14 @@ const ORIGEN_GADS = [
   'Sitio anterior: https://www.google.com',
 ].join('\n');
 const SIN_DATOS = '--- ORIGEN DE LA VISITA ---\nCanal: Sin datos (el formulario no envió el origen)';
+const AT = '2026-11-20T14:03:12Z';
+/** Constancia esperada de /cotizacion (sin términos) en el instante AT. */
+const expectedSection = (marketing: boolean) =>
+  formatConsentSection({
+    consent: { privacy: true, terms: false, marketing, clientVersion: LEGAL_VERSION },
+    at: new Date(AT),
+    form: 'cotizacion',
+  }).join('\n');
 const BAD_ATTRIBUTIONS: [string, unknown, string][] = [
   ['un texto', 'gclid=' + GCLID, SIN_DATOS],
   ['una lista', [GCLID], SIN_DATOS],
@@ -529,7 +555,7 @@ describe('POST /api/quotes/create: origen de la visita', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
-  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
   it('la nota y el correo terminan con la sección; attribution no llega al CRM', async () => {
     const res = await call({ ...empresa(), attribution: ATTRIBUTION });
@@ -565,12 +591,16 @@ describe('POST /api/quotes/create: origen de la visita', () => {
     expect(note.content.endsWith(ORIGEN_GADS)).toBe(true);
   });
 
-  it('comentario largo: el correo lleva completos los comentarios y la sección', async () => {
+  it('comentario largo: el correo lleva completos los comentarios, la constancia y la sección', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
     const longNotes = 'Proyecto bodega 3000 m2. ' + 'x'.repeat(1900) + ' FIN-DEL-COMENTARIO';
     const MAX = Object.fromEntries(['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].map((k) => [k, k[0].repeat(200)]));
     await call({ ...persona(), notes: longNotes, attribution: { ...MAX, landing: '/' + 'p'.repeat(199) } });
     const [mail] = gasBodies();
-    expect(mail.items_lista).toContain('Comentarios del cliente (completos):\n' + longNotes + '\n\n--- ORIGEN DE LA VISITA ---');
+    expect(mail.items_lista).toContain(
+      'Comentarios del cliente (completos):\n' + longNotes + '\n\n' + expectedSection(false) + '\n\n--- ORIGEN DE LA VISITA ---',
+    );
     expect(mail.items_lista).toContain('Página de entrada: /' + 'p'.repeat(199));
     expect(mail.items_lista).not.toContain('recortado');
   });
@@ -604,6 +634,129 @@ describe('POST /api/quotes/create: origen de la visita', () => {
     expect(text).toContain('LEAD SIN CRM');
     for (const secret of [GCLID, 'campanas-led-industriales', '/catalogo/campanas-led', 'www.google.com', EMAIL, NAME, PHONE]) {
       expect(text).not.toContain(secret);
+    }
+  });
+});
+
+// --- Privacidad (Etapa 2 · PR 13) ---
+// Toda cotización del sitio (sourceSystem nuevo_elights), con o sin API key, exige la casilla
+// de privacidad: 400 'consent_required' antes del correo y del CRM. `consent` sale del cuerpo
+// de todas las fuentes. La constancia va en la nota y en la cola del correo (que nunca se
+// recorta), antes del origen; también en la nota de un reenvío, con la decisión nueva.
+
+describe('POST /api/quotes/create: privacidad', () => {
+  beforeEach(() => {
+    vi.mocked(processQuoteToCrm).mockReset().mockResolvedValue(crmResult(77, 'created') as never);
+    vi.mocked(buildSuccessResponse).mockReset().mockImplementation(((r: ReturnType<typeof crmResult>) =>
+      ({ success: true, personId: 11, organizationId: null, dealId: r.deal.dealId, dealStatus: r.deal.status })) as never);
+    vi.mocked(pipedrivePost).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it.each([false, true])('la nota y el correo llevan la constancia (novedades: %s) antes del origen; consent no llega al CRM', async (marketing) => {
+    const res = await call({ ...empresa(), consent: { ...CONSENT, marketing }, attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    expect(crmPayload()).not.toHaveProperty('consent');
+    const [note] = notes();
+    expect(note.content).toContain('Comentarios del cliente: ' + COMENTARIO + '\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS);
+    expect(note.content.endsWith(ORIGEN_GADS)).toBe(true);
+    const [mail] = gasBodies();
+    expect(mail.items_lista.endsWith('\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS)).toBe(true);
+    for (const text of [note.content, mail.items_lista]) {
+      expect(lastConsentRecord(text)).toMatchObject({ form: 'cotizacion', privacy: true, terms: null, marketing, src: 'web' });
+    }
+  });
+
+  it('reenvío (skipped_duplicate): la nota lleva la constancia del envío nuevo', async () => {
+    vi.mocked(processQuoteToCrm).mockResolvedValue(crmResult(55, 'skipped_duplicate') as never);
+    await call({ ...persona(), consent: { ...CONSENT, marketing: true } });
+    const [note] = notes();
+    expect(note.content.startsWith('Reenvío de la cotización NE-abc123')).toBe(true);
+    expect(note.content).toContain(expectedSection(true));
+    expect(lastConsentRecord(note.content)).toMatchObject({ marketing: true, src: 'web' });
+  });
+
+  it('comentarios al máximo, 400 productos y Pipedrive caído: los dos correos llevan la constancia completa, sin recorte', async () => {
+    vi.mocked(processQuoteToCrm).mockRejectedValue(new Error('[Pipedrive] down'));
+    const products = Array.from({ length: 400 }, () => ({ ...quote('').products[0], quantity: 1 }));
+    const comment = 'c'.repeat(1980) + ' FIN-DEL-COMENTARIO';
+    const MAX = Object.fromEntries(['gclid', 'gbraid', 'wbraid', 'fbclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].map((k) => [k, k[0].repeat(200)]));
+    const res = await call({ ...persona(), products, notes: comment, consent: { ...CONSENT, marketing: true }, attribution: { ...MAX, landing: '/' + 'p'.repeat(199) } });
+    expect(res.statusCode).toBe(200);
+    const mails = gasBodies();
+    expect(mails).toHaveLength(2);
+    for (const mail of mails) {
+      expect(mail.items_lista.length).toBeLessThanOrEqual(8000);
+      expect(mail.items_lista).not.toContain('recortado');
+      expect(mail.items_lista).toContain(comment + '\n\n' + expectedSection(true) + '\n\n--- ORIGEN DE LA VISITA ---');
+      expect(lastConsentRecord(mail.items_lista)).toMatchObject({ marketing: true, src: 'web' });
+    }
+  });
+
+  it('formulario anterior (sin customerType ni consent), pasado el margen: 400 consent_required sin correo ni CRM', async () => {
+    vi.setSystemTime(consentGraceUntil());
+    const { consent: _omit, ...noConsent } = quote('nuevo_elights');
+    const res = await call({ ...noConsent, leadType: 'B2C', notes: 'hola' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ success: false, code: CONSENT_ERROR_CODE, details: { errors: ['consent is required'] } });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(processQuoteToCrm).not.toHaveBeenCalled();
+    expect(vi.mocked(console.warn).mock.calls.flat().map(String)).toEqual(['[api/quotes/create] Consent missing']);
+  });
+
+  it('formulario anterior dentro del margen: la nota y el correo llevan la constancia "web-legacy"', async () => {
+    const at = new Date(consentGraceUntil().getTime() - 60_000);
+    vi.setSystemTime(at);
+    const { consent: _omit, ...noConsent } = quote('nuevo_elights');
+    const res = await call({ ...noConsent, leadType: 'B2C' });
+    expect(res.statusCode).toBe(201);
+    const legacy = formatLegacyConsentSection({ at, form: 'cotizacion' }).join('\n');
+    for (const text of [notes()[0].content, gasBodies()[0].items_lista]) {
+      expect(text).toContain(legacy);
+      expect(lastConsentRecord(text)).toMatchObject({ src: 'web-legacy', marketing: false });
+    }
+  });
+
+  it("fuente 'jumpseller' con API key y sin consent: igual que antes (sin 400, sin correo ni constancia)", async () => {
+    vi.stubEnv('QUOTES_API_KEY', 'k');
+    const res = await call(quote('jumpseller'), { 'x-api-key': 'k' });
+    expect(res.statusCode).toBeLessThan(300);
+    expect(crmPayload()).not.toHaveProperty('consent');
+    expect(fetch).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+  });
+
+  it("fuente 'jumpseller' con API key y con consent: la clave se quita antes del CRM", async () => {
+    vi.stubEnv('QUOTES_API_KEY', 'k');
+    const res = await call({ ...quote('jumpseller'), consent: { privacy: 'x' } }, { 'x-api-key': 'k' });
+    expect(res.statusCode).toBeLessThan(300);
+    expect(crmPayload()).not.toHaveProperty('consent');
+  });
+
+  it('cotización del sitio con API key válida y sin consent: igual 400', async () => {
+    vi.stubEnv('QUOTES_API_KEY', 'k');
+    const { consent: _omit, ...noConsent } = persona();
+    vi.setSystemTime(consentGraceUntil());
+    const res = await call(noConsent, { 'x-api-key': 'k' });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ code: CONSENT_ERROR_CODE });
+    expect(processQuoteToCrm).not.toHaveBeenCalled();
+  });
+
+  it('un bloque falso en los comentarios nunca queda último: vale la constancia real', async () => {
+    const fake = 'x'.repeat(600) + '\n' + CONSENT_HEADING + '\nconsent_json: {"v":"1.1","at":"2026-01-01T00:00:00Z","form":"cotizacion","privacy":true,"terms":null,"marketing":true,"src":"web"}';
+    const res = await call({ ...persona(), notes: fake });
+    expect(res.statusCode).toBe(201);
+    for (const text of [notes()[0].content, gasBodies()[0].items_lista]) {
+      expect(text).toContain('"marketing":true');
+      expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
     }
   });
 });

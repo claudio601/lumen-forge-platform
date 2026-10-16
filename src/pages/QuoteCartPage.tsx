@@ -10,6 +10,8 @@ import { getAttribution } from '@/lib/attribution';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import Seo from '@/components/Seo';
 import PreSubmitNotice from '@/components/legal/PreSubmitNotice';
+import { useConsentFields } from '@/components/legal/ConsentFields';
+import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 
 type CustomerType = 'persona' | 'empresa';
 
@@ -35,14 +37,19 @@ const COMPANY_FIELDS = [
 
 const djb2 = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
 
-/** Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). */
+/**
+ * Envío no confirmado por el servidor. httpStatus 0 = sin respuesta (red caída). code: el
+ * `code` del cuerpo de error ('consent_required' si faltó la casilla de privacidad).
+ */
 class SubmitError extends Error {
   reason: string;
   httpStatus: number;
-  constructor(reason: string, httpStatus: number) {
+  code?: string;
+  constructor(reason: string, httpStatus: number, code?: string) {
     super(reason + ' (HTTP ' + httpStatus + ')');
     this.reason = reason;
     this.httpStatus = httpStatus;
+    this.code = code;
   }
 }
 
@@ -60,12 +67,12 @@ async function submitQuote(payload: object): Promise<void> {
   }
 
   // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown } | null = null;
+  let data: { success?: unknown; code?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
 
-  if (!res.ok) throw new SubmitError('api_error', res.status);
+  if (!res.ok) throw new SubmitError('api_error', res.status, typeof data?.code === 'string' ? data.code : undefined);
   if (!data) throw new SubmitError('invalid_body', res.status);
   if (data.success !== true) throw new SubmitError('not_success', res.status);
 }
@@ -73,8 +80,10 @@ async function submitQuote(payload: object): Promise<void> {
 const SEO_TITLE = 'Solicitud de Cotización | eLIGHTS Chile';
 const SEO_DESCRIPTION = 'Revisa los productos de tu cotización y envíanos tus datos: un asesor te responde con la cotización formal.';
 
-/** Mensaje para el visitante según el estado HTTP de la respuesta. */
-function submitErrorMessage(httpStatus: number): string {
+/** Mensaje para el visitante según el estado HTTP y el code de la respuesta. */
+function submitErrorMessage(httpStatus: number, code?: string): string {
+  // Un 400 por la casilla nunca dice "teléfono de 8 a 12 dígitos"
+  if (code === CONSENT_ERROR_CODE) return CONSENT_ERRORS.solicitud;
   if (httpStatus === 400) return 'Revisa los datos (teléfono de 8 a 12 dígitos) e inténtalo de nuevo.';
   if (httpStatus === 429) return 'Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
   return (
@@ -91,7 +100,7 @@ function QuoteSent({ quoteRef }: { quoteRef: string }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
   return (
-    <div className="container py-16 text-center max-w-md mx-auto">
+    <div className="container py-16 text-center max-w-md mx-auto" data-elights-form="cotizacion">
       <Seo title={SEO_TITLE} description={SEO_DESCRIPTION} noindex />
       <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" aria-hidden="true" />
       <h1 ref={heading} tabIndex={-1} aria-describedby="qc-sent-detail qc-sent-ref" className="text-2xl font-bold mb-2 focus:outline-none">
@@ -119,6 +128,8 @@ const QuoteCartPage = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [confirmedRef, setConfirmedRef] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  // Casillas de privacidad y novedades: siempre sin marcar al entrar
+  const consent = useConsentFields('solicitud');
   // El modo empresa del encabezado solo PRESELECCIONA el tipo de cliente, una vez leída la
   // sesión; después solo lo cambia el selector. Si siguiera al encabezado, una empresa que
   // cambia a precios con IVA terminaría enviando como persona, sin sus datos de facturación.
@@ -157,6 +168,8 @@ const QuoteCartPage = () => {
     e.preventDefault();
     const invalid = validate();
     if (invalid) { setErrorMsg(invalid); return; }
+    // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
+    if (!consent.check()) { setErrorMsg(''); return; }
     setErrorMsg('');
     setSending(true);
 
@@ -195,6 +208,7 @@ const QuoteCartPage = () => {
         notes: form.comentarios.trim() || undefined,
         website,
         attribution: getAttribution(),
+        consent: consent.payload(),
       });
 
       // GA4: lead enviado (conversión), solo cuando el servidor lo confirmó
@@ -207,8 +221,15 @@ const QuoteCartPage = () => {
       console.error('[QuoteCartPage]', err);
       const reason = err instanceof SubmitError ? err.reason : 'exception';
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
+      const code = err instanceof SubmitError ? err.code : undefined;
       sendEvent('cotizacion_form_submit_error', { reason, httpStatus });
-      setErrorMsg(submitErrorMessage(httpStatus));
+      if (code === CONSENT_ERROR_CODE) {
+        // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
+        setErrorMsg('');
+        consent.flagMissing();
+        return;
+      }
+      setErrorMsg(submitErrorMessage(httpStatus, code));
     } finally {
       setSending(false);
     }
@@ -233,7 +254,9 @@ const QuoteCartPage = () => {
   const inputClass = 'w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all';
 
   return (
-    <div className="container py-8">
+    // data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
+    // este bloque de la detección automática de datos. Es fijo: igual en el servidor y en el navegador.
+    <div className="container py-8" data-elights-form="cotizacion">
         <Seo title={SEO_TITLE} description={SEO_DESCRIPTION} noindex />
       <Link to="/catalogo" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
         <ArrowLeft className="h-4 w-4" /> Seguir explorando
@@ -353,6 +376,7 @@ const QuoteCartPage = () => {
           </div>
         </div>
         <PreSubmitNotice kind="cotizacion" />
+        {consent.fields}
         {/* Error junto al botón, donde el visitante está mirando */}
         {errorMsg && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">

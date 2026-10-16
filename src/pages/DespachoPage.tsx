@@ -1,48 +1,53 @@
-// /despacho: plazo, costo, transportistas y seguimiento (PR 12). Defaults del dueño: el
-// monto del despacho sin costo en Santiago urbano no se publica mientras
-// FREE_SHIPPING_THRESHOLD_CLP sea null (el costo va en la cotización); el tiempo de viaje a
-// regiones se informa en la cotización; transportistas de la página de envíos de
-// elights.cl; sin retiro en oficina. El único plazo publicado es "hasta 2 días hábiles":
-// check-prerender bloquea cualquier otro (scripts/jumpseller/descriptions.ts).
+// /despacho: plazo, despacho sin costo, regiones, retiro y seguimiento (PR 12; despacho y
+// retiro confirmados por el dueño el 2026-10-14, PR 12b). Todo sale de src/config/business.ts:
+// - FREE_SHIPPING_THRESHOLD_CLP: sin costo si el total de la compra CON IVA es mayor que el
+//   monto (estrictamente) y la entrega es en FREE_SHIPPING_AREA (Provincia de Santiago). La
+//   página nombra las 20 comunas de la Región Metropolitana que no entran: las del dueño, con
+//   sus palabras, y las 7 que su lista no nombra (freeShippingExcludedList), para que la lista
+//   no parezca completa sin serlo. Con el monto o menos, o fuera de esa zona, el costo va en la
+//   cotización o el despacho va por pagar.
+// - REGION_CARRIERS: a regiones, por pagar; el tiempo de viaje se informa en la cotización.
+// - PICKUP_PLACE: retiro en la bodega de Quinta Normal. La dirección exacta se da solo con el
+//   pago acreditado: nunca se publica.
+// El único plazo publicado es "hasta 2 días hábiles": check-prerender bloquea cualquier otro
+// (scripts/jumpseller/descriptions.ts). Montos con clp(), sin Intl (hidratación).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { EmailLink, WhatsAppLink } from '@/components/legal/CompanyFacts';
-import { FREE_SHIPPING_THRESHOLD_CLP } from '@/config/business';
+import { clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, freeShippingExcludedList, PICKUP_PLACE, REGION_CARRIERS } from '@/config/business';
 
-/** $200000 → "$200.000" (sin Intl: el servidor y el navegador dibujan lo mismo). */
-const clp = (amount: number) => `$${String(Math.round(amount)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+const threshold = clp(FREE_SHIPPING_THRESHOLD_CLP);
+const area = FREE_SHIPPING_AREA.name;
 
-/** Condición en Santiago urbano: con monto publicado, las dos franjas; si no, el costo va en la cotización. */
-export const UrbanShipping = ({ thresholdClp }: { thresholdClp: number | null }) =>
-  thresholdClp === null ? (
+/** Despacho sin costo: la condición, la zona y todas las comunas de la RM que no entran (desde business.ts). */
+const FreeShipping = () => (
+  <>
+    <ul>
+      <li>
+        <strong>Despacho sin costo</strong> si el total de tu compra, con IVA, es mayor a {threshold} y la entrega es en la {area}.
+      </li>
+      <li>
+        <strong>No entran</strong> las comunas de otras provincias de la Región Metropolitana: {`${freeShippingExcludedList}.`}
+      </li>
+    </ul>
     <p>
-      Despachamos a domicilio. El costo del despacho te lo informamos en la cotización, antes de que pagues. Si el despacho va por
-      pagar, eliges entre Starken y Chilexpress y pagas el flete directamente al transportista cuando recibes.
+      En compras de {threshold} o menos con IVA, o con entrega fuera de esta zona, el costo del despacho te lo informamos en la
+      cotización, antes de que pagues, o la cotización indica que va por pagar. Si va por pagar, pagas el flete directamente al
+      transportista cuando recibes.
     </p>
-  ) : (
-    <>
-      <ul>
-        <li>
-          <strong>Compras sobre {clp(thresholdClp)} (IVA incluido):</strong> despacho a domicilio sin costo.
-        </li>
-        <li>
-          <strong>Compras de {clp(thresholdClp)} o menos:</strong> el despacho va por pagar con Starken o Chilexpress, a tu
-          elección. Pagas el flete directamente al transportista cuando recibes.
-        </li>
-      </ul>
-      <p>Si tu dirección está en el límite del área urbana, te confirmamos en la cotización qué condición aplica.</p>
-      <p>
-        El despacho sin costo es una condición permanente de venta, no una promoción con fecha de término. Si la cambiamos, lo
-        publicaremos en esta página.
-      </p>
-    </>
-  );
+    <p>Si no sabes si tu comuna está en la {area}, te lo confirmamos en la cotización.</p>
+    <p>
+      El despacho sin costo es una condición permanente de venta, no una promoción con fecha de término. Si la cambiamos, lo
+      publicaremos en esta página.
+    </p>
+  </>
+);
 
 const DespachoPage = () => (
   <LegalLayout
     path="/despacho"
-    description="Despacho en hasta 2 días hábiles desde que tu pago está confirmado. Costo, transportista y tiempo de viaje a regiones en tu cotización, antes de pagar."
+    description={`Despacho en hasta 2 días hábiles desde que tu pago está confirmado. Sin costo sobre ${threshold} con IVA en la ${area}. También retiro en bodega.`}
   >
     <p>
       <strong>Despacho en hasta 2 días hábiles, y a veces el mismo día.</strong> El plazo corre desde que tu pago está
@@ -51,12 +56,15 @@ const DespachoPage = () => (
     </p>
     <p>Despachamos a todo Chile.</p>
 
-    <h2>Santiago urbano</h2>
-    <UrbanShipping thresholdClp={FREE_SHIPPING_THRESHOLD_CLP} />
+    <h2>{area}</h2>
+    <FreeShipping />
 
     <h2>Regiones</h2>
     <ul>
-      <li>El despacho a regiones va por pagar, con el transportista que prefieras. Te recomendamos Starken, Cruz del Sur o PDQ.</li>
+      <li>
+        El despacho a regiones va por pagar, vía {REGION_CARRIERS}. También podemos despachar con el transportista que
+        prefieras. Pagas el flete directamente al transportista cuando recibes.
+      </li>
       <li>
         El tiempo de viaje hasta tu ciudad depende del transportista y del destino. Te lo informamos en la cotización, antes de que
         pagues.
@@ -66,15 +74,18 @@ const DespachoPage = () => (
     <h2>Costo del despacho</h2>
     <p>
       El costo del despacho no está incluido en el precio de los productos. Antes de que pagues, la cotización y el link de pago
-      lo muestran por separado, o indican que va por pagar.
+      lo muestran por separado, o indican que va sin costo o por pagar.
     </p>
     <p>
       Para pedidos grandes o de proyecto (por ejemplo, entregas en obra o en varias partes), acordamos las condiciones en la
       cotización.
     </p>
 
-    <h2>Retiro</h2>
-    <p>No tenemos tienda abierta al público ni retiro en oficina: todos los pedidos se despachan.</p>
+    <h2>Retiro en bodega</h2>
+    <p>
+      Si prefieres, retiras tu pedido en {PICKUP_PLACE}, sin pagar despacho. La dirección exacta te la damos solo cuando tu pago
+      está acreditado, y ahí coordinamos contigo el retiro.
+    </p>
 
     <h2>Seguimiento</h2>
     <p>

@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution, type Attribution } from '@/lib/attribution';
+import { useConsentFields } from '@/components/legal/ConsentFields';
+import { CONSENT_ERRORS, CONSENT_ERROR_CODE, type ConsentInput } from '../../../api/_lib/forms/consent';
+// Topes de largo: los mismos del servidor (el correo a ventas lleva la nota completa)
+import { ESTUDIO_MAX_LENGTHS } from '../../../api/estudio-luminico/validation';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────
 
@@ -28,6 +32,8 @@ export interface EstudioLuminicoFormPayload {
   website?: string;
   /** Origen de la visita (src/lib/attribution.ts); sin origen la clave no viaja. */
   attribution?: Attribution;
+  /** Casillas de privacidad y novedades (useConsentFields('solicitud').payload()). */
+  consent: ConsentInput;
 }
 
 // ── Opciones de selects ───────────────────────────────────────────────────────
@@ -96,14 +102,19 @@ type FormState = 'idle' | 'sending' | 'success' | 'error';
 
 // ── Envio al endpoint (correo a ventas + Pipedrive en el servidor) ────────────
 
-/** Envio no confirmado por el servidor. httpStatus 0 = sin respuesta (red caida). */
+/**
+ * Envio no confirmado por el servidor. httpStatus 0 = sin respuesta (red caida). code: el
+ * `code` del cuerpo de error ('consent_required' si faltó la casilla de privacidad).
+ */
 class SubmitError extends Error {
   reason: string;
   httpStatus: number;
-  constructor(reason: string, httpStatus: number) {
+  code?: string;
+  constructor(reason: string, httpStatus: number, code?: string) {
     super(reason + ' (HTTP ' + httpStatus + ')');
     this.reason = reason;
     this.httpStatus = httpStatus;
+    this.code = code;
   }
 }
 
@@ -121,12 +132,12 @@ async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<v
   }
 
   // Una pagina de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown } | null = null;
+  let data: { success?: unknown; code?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
 
-  if (!res.ok) throw new SubmitError('api_error', res.status);
+  if (!res.ok) throw new SubmitError('api_error', res.status, typeof data?.code === 'string' ? data.code : undefined);
   if (!data) throw new SubmitError('invalid_body', res.status);
   if (data.success !== true) throw new SubmitError('not_success', res.status);
 }
@@ -135,8 +146,21 @@ async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<v
 // (MAX_DESCRIPCION_PROYECTO), para que la nota completa quepa en el correo a ventas.
 const MAX_DESCRIPCION = 2000;
 
-/** Mensaje para el visitante segun el estado HTTP de la respuesta. */
-function submitErrorMessage(httpStatus: number): string {
+/** Campos de texto con tope (ESTUDIO_MAX_LENGTHS) y su nombre en el mensaje de error. */
+const TEXT_FIELDS = [
+  ['nombreCompleto', 'El nombre'],
+  ['email', 'El correo'],
+  ['telefono', 'El teléfono'],
+  ['empresa', 'La empresa'],
+  ['comunaCiudad', 'La comuna o ciudad'],
+  ['dimensionesAproximadas', 'Las dimensiones'],
+  ['alturaMontaje', 'La altura de montaje'],
+] as const;
+
+/** Mensaje para el visitante segun el estado HTTP y el code de la respuesta. */
+function submitErrorMessage(httpStatus: number, code?: string): string {
+  // Un 400 por la casilla nunca dice "teléfono de 8 a 15 dígitos"
+  if (code === CONSENT_ERROR_CODE) return CONSENT_ERRORS.solicitud;
   if (httpStatus === 400) return 'Revisa los datos (teléfono de 8 a 15 dígitos) e inténtalo de nuevo.';
   if (httpStatus === 429) return 'Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
   return (
@@ -152,6 +176,8 @@ const EstudioLuminicoLeadForm = () => {
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  // Casillas de privacidad y novedades, siempre sin marcar; ocupan las dos columnas de la grilla
+  const consent = useConsentFields('solicitud', { className: 'sm:col-span-2' });
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
@@ -186,6 +212,7 @@ const EstudioLuminicoLeadForm = () => {
     landingPath: '/estudio-luminico',
     website,
     attribution: getAttribution(),
+    consent: consent.payload(),
   });
 
   const validateForm = (): string | null => {
@@ -202,6 +229,11 @@ const EstudioLuminicoLeadForm = () => {
     if (!form.dimensionesAproximadas.trim()) return 'Las dimensiones aproximadas son requeridas.';
     if (!form.alturaMontaje.trim()) return 'La altura de montaje es requerida.';
     if (!form.objetivoProyecto) return 'Selecciona el objetivo del proyecto.';
+    // Mismos topes que el servidor; los inputs ya los imponen al escribir
+    for (const [field, label] of TEXT_FIELDS) {
+      if (form[field].trim().length > ESTUDIO_MAX_LENGTHS[field])
+        return label + ' admite hasta ' + ESTUDIO_MAX_LENGTHS[field] + ' caracteres.';
+    }
     // Mismo tope que el servidor (MAX_DESCRIPCION_PROYECTO); el textarea ya lo impone
     if ((form.descripcionProyecto ?? '').trim().length > MAX_DESCRIPCION)
       return 'La descripción admite hasta ' + MAX_DESCRIPCION + ' caracteres.';
@@ -214,6 +246,13 @@ const EstudioLuminicoLeadForm = () => {
     const validationError = validateForm();
     if (validationError) {
       setErrorMsg(validationError);
+      return;
+    }
+
+    // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
+    if (!consent.check()) {
+      setErrorMsg('');
+      setStatus('idle');
       return;
     }
 
@@ -244,14 +283,23 @@ const EstudioLuminicoLeadForm = () => {
 
       setStatus('success');
       setForm(EMPTY_FORM);
+      consent.reset(); // "Enviar otra solicitud" vuelve a pedir las casillas
     } catch (err) {
       // Los datos quedan en el formulario para reintentar
       console.error('[EstudioLuminicoLeadForm]', err);
       const reason = err instanceof SubmitError ? err.reason : 'exception';
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
+      const code = err instanceof SubmitError ? err.code : undefined;
       sendEvent('estudio_luminico_form_submit_error', { reason, httpStatus });
+      if (code === CONSENT_ERROR_CODE) {
+        // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
+        setStatus('idle');
+        setErrorMsg('');
+        consent.flagMissing();
+        return;
+      }
       setStatus('error');
-      setErrorMsg(submitErrorMessage(httpStatus));
+      setErrorMsg(submitErrorMessage(httpStatus, code));
     }
   };
 
@@ -263,11 +311,14 @@ const EstudioLuminicoLeadForm = () => {
     <span className="text-xs font-normal text-gray-400">(opcional)</span>
   );
 
+  // data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
+  // este bloque de la detección automática de datos. Es fijo: igual en el servidor y en el navegador.
+
   // ── Estado de exito ───────────────────────────────────────────────────────
 
   if (status === 'success') {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+      <div data-elights-form="estudio-luminico" className="flex flex-col items-center justify-center gap-4 py-16 text-center">
         <CheckCircle2 className="h-14 w-14 text-cyan-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
         <p className="text-gray-500 max-w-sm text-sm leading-relaxed">
@@ -288,10 +339,11 @@ const EstudioLuminicoLeadForm = () => {
   // ── Formulario ────────────────────────────────────────────────────────────
 
   return (
-    // Sin JavaScript, o con la página a medio cargar, el navegador enviaría el formulario por su
-    // cuenta: la solicitud se perdería y, con GET, nombre, teléfono y correo quedarían en la URL
-    // (historial, registros de Vercel, Analytics). method="post" saca los datos de la URL y el
-    // fieldset deshabilitado impide escribir y enviar hasta que React toma el formulario.
+    <div data-elights-form="estudio-luminico">
+    {/* Sin JavaScript, o con la página a medio cargar, el navegador enviaría el formulario por su
+        cuenta: la solicitud se perdería y, con GET, nombre, teléfono y correo quedarían en la URL
+        (historial, registros de Vercel, Analytics). method="post" saca los datos de la URL y el
+        fieldset deshabilitado impide escribir y enviar hasta que React toma el formulario. */}
     <form method="post" onSubmit={handleSubmit} noValidate>
       <fieldset disabled={!hydrated} className="min-w-0">
         {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
@@ -315,6 +367,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.nombreCompleto}
               onChange={handleChange}
               placeholder="Juan Perez"
+              maxLength={ESTUDIO_MAX_LENGTHS.nombreCompleto}
               className={inputClass}
               autoComplete="name"
             />
@@ -332,6 +385,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.email}
               onChange={handleChange}
               placeholder="juan@empresa.cl"
+              maxLength={ESTUDIO_MAX_LENGTHS.email}
               className={inputClass}
               autoComplete="email"
             />
@@ -349,6 +403,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.telefono}
               onChange={handleChange}
               placeholder="+56 9 1234 5678"
+              maxLength={ESTUDIO_MAX_LENGTHS.telefono}
               className={inputClass}
               autoComplete="tel"
             />
@@ -366,6 +421,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.empresa}
               onChange={handleChange}
               placeholder="Mi Empresa Ltda."
+              maxLength={ESTUDIO_MAX_LENGTHS.empresa}
               className={inputClass}
               autoComplete="organization"
             />
@@ -402,6 +458,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.comunaCiudad}
               onChange={handleChange}
               placeholder="Tome, Region del Biobio"
+              maxLength={ESTUDIO_MAX_LENGTHS.comunaCiudad}
               className={inputClass}
             />
           </div>
@@ -437,6 +494,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.dimensionesAproximadas}
               onChange={handleChange}
               placeholder="105 x 65 m, postes 25 m"
+              maxLength={ESTUDIO_MAX_LENGTHS.dimensionesAproximadas}
               className={inputClass}
             />
           </div>
@@ -453,6 +511,7 @@ const EstudioLuminicoLeadForm = () => {
               value={form.alturaMontaje}
               onChange={handleChange}
               placeholder="25 metros (postes existentes)"
+              maxLength={ESTUDIO_MAX_LENGTHS.alturaMontaje}
               className={inputClass}
             />
           </div>
@@ -528,6 +587,9 @@ const EstudioLuminicoLeadForm = () => {
               className={inputClass + ' resize-none'}
             />
           </div>
+
+          {/* Casillas de privacidad y novedades (dentro del fieldset: antes de hidratar, deshabilitadas) */}
+          {consent.fields}
         </div>
 
         {/* Submit */}
@@ -562,6 +624,7 @@ const EstudioLuminicoLeadForm = () => {
         </div>
       </fieldset>
     </form>
+    </div>
   );
 };
 

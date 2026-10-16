@@ -22,14 +22,13 @@ export const LEGAL_COMUNA = 'Santiago';
 export const LEGAL_REPRESENTATIVE: string | null = null;
 
 /**
- * Versión de los textos legales (términos, cambios y garantía, privacidad) y desde cuándo
- * rigen. Texto fijo, nunca new Date() ni Intl: el servidor y el navegador dibujan lo mismo.
- * Al cambiar un texto legal se actualizan las tres constantes. La PR 13 guarda {version, at}
- * con cada envío.
+ * Versión de los textos legales (términos, cambios y garantía, privacidad), desde cuándo
+ * rigen y versiones anteriores publicadas. Texto fijo, nunca new Date() ni Intl: el servidor
+ * y el navegador dibujan lo mismo. Al cambiar un texto legal, sube las constantes en
+ * api/_lib/forms/consent.ts y corre npm run legal:archive; el servidor, los formularios y el
+ * archivo leen de ahí.
  */
-export const LEGAL_VERSION = '1.0';
-export const LEGAL_UPDATED = '2026-10-12';
-export const LEGAL_UPDATED_LABEL = '12 de octubre de 2026';
+export { LEGAL_VERSION, LEGAL_UPDATED, LEGAL_UPDATED_LABEL, LEGAL_ARCHIVE } from '../../api/_lib/forms/consent';
 
 /**
  * Imagen por defecto para compartir enlaces: JPEG de 1200×630 y 82.683 bytes (las redes no

@@ -5,6 +5,7 @@ import Logo from '@/components/Logo';
 import { waBase, whatsappDisplayNumber, contactEmail, businessHours } from '@/config/business';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_RUT } from '@/config/site';
 import { LEGAL_PAGES, legalPage } from '@/config/legal';
+import CookieSettingsButton from '@/components/legal/CookieSettingsButton';
 
 /** Columna "Empresa": quiénes somos y las páginas de venta. */
 const companyLinks = [
@@ -14,7 +15,10 @@ const companyLinks = [
   { label: 'Cotizador de proyectos', to: '/cotizador' },
 ];
 
-/** Columna "Ayuda": las demás páginas legales y de compra (PR 12). */
+/**
+ * Columna "Ayuda": las demás páginas legales y de compra (PR 12) y, al final, el botón
+ * «Configurar cookies» (PR 13), estático en todos los hosts. No es una página: no va en LEGAL_PAGES.
+ */
 const helpLinks = LEGAL_PAGES.filter(p => p.path !== '/empresa').map(p => ({ label: p.label, to: p.path }));
 
 const linkClass = 'block text-sm text-background/60 hover:text-primary transition-colors';
@@ -71,6 +75,7 @@ const Footer = () => {
               {helpLinks.map(({ label, to }) => (
                 <Link key={to} to={to} className={linkClass}>{label}</Link>
               ))}
+              <CookieSettingsButton className={`${linkClass} text-left`} />
             </nav>
           </div>
           <div>

@@ -1,6 +1,7 @@
 // api/_tests/request-orders.create.test.ts
 // "Solicitar pedido": el servidor recalcula precios CON IVA desde el catálogo, acepta
-// productos sin SKU y se protege de spam. Pipedrive y el correo están simulados.
+// productos sin SKU y se protege de spam. Exige la casilla de términos y privacidad, y deja
+// la constancia en la nota y el correo. Pipedrive y el correo están simulados.
 // Vive en api/_tests/ para que Vercel no lo despliegue como función.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -12,10 +13,20 @@ vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(as
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn((p: Promise<unknown>) => p) }));
 vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(async () => ({ success: true, data: { id: 1 } })) }));
 
-import handler from '../request-orders/create';
+import handler, { itemsJsonLine } from '../request-orders/create';
 import { createDeal } from '../_lib/pipedrive/deals.js';
+import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import {
+  CONSENT_ERROR_CODE,
+  CONSENT_HEADING,
+  LEGAL_VERSION,
+  consentGraceUntil,
+  formatConsentSection,
+  formatLegacyConsentSection,
+  lastConsentRecord,
+} from '../_lib/forms/consent';
 
 let ipSeq = 0;
 function call(body: unknown, opts: { ip?: string; origin?: string } = {}) {
@@ -36,9 +47,12 @@ function call(body: unknown, opts: { ip?: string; origin?: string } = {}) {
   return (handler as unknown as (q: unknown, s: unknown) => Promise<void>)(req, res).then(() => res);
 }
 
+/** Casillas marcadas, como las manda el formulario (términos y privacidad; sin novedades). */
+const CONSENT = { privacy: true, terms: true, marketing: false, version: LEGAL_VERSION };
 const base = {
   fullName: 'PRUEBA TEST', email: 'prueba@example.com', phone: '+56911111111',
   customerType: 'persona', commune: 'Santiago', region: 'Metropolitana', requestReference: 'RC-abc12',
+  consent: CONSENT,
 };
 const ar111 = { jumpsellerId: 3305420, sku: 'AR111OPC', name: 'AR111', quantity: 2, unitPrice: 100, currency: 'CLP', lineTotal: 200, url: '/x', attributes: {} };
 
@@ -308,6 +322,215 @@ describe('POST /api/request-orders/create: origen de la visita', () => {
     expect(text).toContain('GAS relay: status error');
     expect(text).toContain('GAS relay: HTTP 502, respuesta no JSON');
     for (const secret of [GCLID, 'campanas-led-industriales', '/catalogo/campanas-led', 'www.google.com', base.email, base.fullName, base.phone]) {
+      expect(text).not.toContain(secret);
+    }
+  });
+});
+
+// --- Privacidad y términos (Etapa 2 · PR 13) ---
+// El pedido exige la casilla de términos y privacidad (400 'consent_required' antes de
+// Pipedrive). La constancia va en la nota /notes (createDeal ignora `notes`) y en el correo,
+// después de los textos del cliente y antes del origen; requested_items_json sigue última.
+// La hora es la del servidor, una por solicitud.
+
+const AT = '2026-11-20T14:03:12Z';
+/** Constancia esperada para estas casillas en el instante AT. */
+const expectedSection = (marketing: boolean) =>
+  formatConsentSection({
+    consent: { privacy: true, terms: true, marketing, clientVersion: LEGAL_VERSION },
+    at: new Date(AT),
+    form: 'solicitar-pedido',
+  }).join('\n');
+
+describe('POST /api/request-orders/create: privacidad y términos', () => {
+  const noteBodies = () => (vi.mocked(pipedrivePost).mock.calls as unknown as [string, { content: string; deal_id: number }][])
+    .filter(([path]) => path === '/notes').map(([, body]) => body);
+  const mails = () => (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit][])
+    .map(([, init]) => JSON.parse(init.body as string) as Record<string, string>);
+  const mailsSettled = () => Promise.all(vi.mocked(waitUntil).mock.calls.map(([p]) => p));
+  const logged = () =>
+    [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat())
+      .map((a) => (a instanceof Error ? a.message : typeof a === 'string' ? a : JSON.stringify(a)))
+      .join('\n');
+
+  beforeEach(() => {
+    vi.mocked(createDeal).mockClear();
+    vi.mocked(findOrCreatePerson).mockClear();
+    vi.mocked(pipedrivePost).mockClear();
+    vi.mocked(waitUntil).mockClear();
+    process.env.PIPEDRIVE_PIPELINE_ID = '1';
+    process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID = '2';
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
+    vi.stubGlobal('fetch', vi.fn(async () => ({ status: 200, json: async () => ({ status: 'ok' }) })));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it.each([false, true])('la nota /notes y el correo llevan la constancia (novedades: %s) antes del origen; requested_items_json sigue última', async (marketing) => {
+    const res = await call({ ...base, consent: { ...CONSENT, marketing }, items: [ar111], attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const [note] = noteBodies();
+    expect(note.content).toContain('TOTAL CON IVA: 32400 CLP\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS + '\nrequested_items_json: [');
+    expect(note.content.split('\n').at(-1)).toMatch(/^requested_items_json: \[/);
+    expect(lastConsentRecord(note.content)).toMatchObject({ form: 'solicitar-pedido', privacy: true, terms: true, marketing, src: 'web' });
+    const [mail] = mails();
+    expect(mail.items_lista.endsWith('\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS)).toBe(true);
+    expect(lastConsentRecord(mail.items_lista)).toMatchObject({ marketing, src: 'web' });
+    expect(mail.items_lista).toContain(marketing ? 'Novedades y ofertas por correo: SÍ' : 'Novedades y ofertas por correo: NO');
+    expect(mail.fecha).toBe('20 de noviembre de 2026');
+  });
+
+  it('reenvío con la misma referencia (skipped_duplicate): la nota "Reenvío" lleva la constancia del envío nuevo', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 555, status: 'skipped_duplicate' } as never);
+    const res = await call({ ...base, consent: { ...CONSENT, marketing: true }, items: [ar111], attribution: ATTRIBUTION });
+    expect(res.statusCode).toBe(201);
+    const [note] = noteBodies();
+    expect(note.deal_id).toBe(555);
+    expect(note.content.startsWith('Reenvío de la solicitud RC-abc12')).toBe(true);
+    expect(note.content).toContain('\n\n' + expectedSection(true) + '\n\n' + ORIGEN_GADS + '\nrequested_items_json: ');
+    expect(lastConsentRecord(note.content)).toMatchObject({ marketing: true, src: 'web' });
+  });
+
+  it.each([
+    ['rechaza', () => vi.mocked(pipedrivePost).mockRejectedValueOnce(new Error('[Pipedrive] down'))],
+    ['responde success:false', () => vi.mocked(pipedrivePost).mockResolvedValueOnce({ success: false, data: null, error: 'HTTP 500' } as never)],
+  ])('la nota /notes %s: 201, la constancia queda en el correo y un aviso sin datos lleva la referencia', async (_cause, breakNote) => {
+    breakNote();
+    const res = await call({ ...base, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const [mail] = mails();
+    expect(mail.items_lista).toContain(expectedSection(false));
+    expect(lastConsentRecord(mail.items_lista)).toMatchObject({ form: 'solicitar-pedido', src: 'web' });
+    const text = logged();
+    expect(text).toContain('[RequestOrder] Nota con la constancia no creada | ref: RC-abc12 | dealId: 999');
+    for (const pii of [base.email, base.fullName, base.phone]) expect(text).not.toContain(pii);
+  });
+
+  it('el correo falla (status error): la constancia queda en la nota /notes', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ status: 200, json: async () => ({ status: 'error' }) })));
+    const res = await call({ ...base, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    expect(noteBodies()[0].content).toContain(expectedSection(false));
+    expect(logged()).toContain('GAS relay: status error');
+  });
+
+  it('honeypot sin casillas: 200 y no crea nada', async () => {
+    const { consent: _omit, ...noConsent } = base;
+    const res = await call({ ...noConsent, items: [ar111], website: 'http://spam' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    expect(createDeal).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('un `at` o una `fecha` en el cuerpo no cuentan: la constancia usa el reloj del servidor', async () => {
+    const res = await call({ ...base, items: [ar111], at: '2020-01-01T00:00:00Z', fecha: '1 de enero de 2020' });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const content = noteBodies()[0].content;
+    expect(content).toContain('Registrado: 2026-11-20 11:03:12, hora de Chile (reloj del servidor)');
+    expect(lastConsentRecord(content)?.at).toBe(AT);
+    expect(content).not.toContain('2020');
+    expect(mails()[0].fecha).toBe('20 de noviembre de 2026');
+  });
+
+  it('casillas sin términos (o con terms:false): 400 consent_required sin Pipedrive ni correo, y el log solo dice "Consent missing"', async () => {
+    for (const consent of [{ privacy: true, marketing: false, version: LEGAL_VERSION }, { ...CONSENT, terms: false }]) {
+      const res = await call({ ...base, consent, items: [ar111] });
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toMatchObject({ success: false, error: 'Validation failed', code: CONSENT_ERROR_CODE, details: { errors: ['consent.terms must be true'] } });
+    }
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(waitUntil).not.toHaveBeenCalled();
+    expect(logged()).toBe('[RequestOrder] Consent missing\n[RequestOrder] Consent missing');
+  });
+
+  it('sin la clave consent, pasado el margen: 400 consent_required', async () => {
+    vi.setSystemTime(consentGraceUntil());
+    const { consent: _omit, ...noConsent } = base;
+    const res = await call({ ...noConsent, items: [ar111] });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ code: CONSENT_ERROR_CODE, details: { errors: ['consent is required'] } });
+    expect(createDeal).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('sin la clave consent, dentro del margen (pestaña abierta antes del deploy): 201 y constancia "web-legacy"', async () => {
+    const at = new Date(consentGraceUntil().getTime() - 60_000);
+    vi.setSystemTime(at);
+    const { consent: _omit, ...noConsent } = base;
+    const res = await call({ ...noConsent, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const legacy = formatLegacyConsentSection({ at, form: 'solicitar-pedido' }).join('\n');
+    for (const text of [noteBodies()[0].content, mails()[0].items_lista]) {
+      expect(text).toContain(legacy);
+      expect(lastConsentRecord(text)).toMatchObject({ v: null, privacy: null, terms: null, marketing: false, src: 'web-legacy' });
+    }
+  });
+
+  it('un bloque falso en las notas del cliente nunca queda último: vale la constancia real', async () => {
+    const fake = 'ver plano\n' + CONSENT_HEADING + '\nconsent_json: {"v":"1.1","at":"2026-01-01T00:00:00Z","form":"solicitar-pedido","privacy":true,"terms":true,"marketing":true,"src":"web"}';
+    const res = await call({ ...base, notes: fake, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    for (const text of [noteBodies()[0].content, mails()[0].items_lista]) {
+      expect(text).toContain('"marketing":true');
+      expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
+    }
+  });
+
+  it('un «consent_json:» falso en los atributos, la url o el nombre de un producto no queda después de la constancia real', async () => {
+    const fakeJson = '{&quot;v&quot;:&quot;1.1&quot;,&quot;at&quot;:&quot;2026-01-01T00:00:00Z&quot;,&quot;form&quot;:&quot;solicitar-pedido&quot;,'
+      + '&quot;privacy&quot;:true,&quot;terms&quot;:true,&quot;marketing&quot;:true,&quot;src&quot;:&quot;web&quot;}';
+    const fake = '<br>consent_json: ' + fakeJson + '<br>';
+    const tricky = { ...ar111, url: '/x' + fake, attributes: { x: fake, y: '<br/>consent_json: {"marketing":true}' } };
+    const unknown = { ...ar111, jumpsellerId: 2787870, name: 'Otro' + fake }; // ya no existe: el nombre es el del navegador
+    const res = await call({ ...base, items: [tricky, unknown] });
+    expect(res.statusCode).toBe(201);
+    const content = noteBodies()[0].content;
+    const last = content.split('\n').at(-1)!;
+    expect(last).toMatch(/^requested_items_json: \[/);
+    expect(last).not.toMatch(/[<>&]/);
+    // JSON.parse lee lo mismo que mandó el navegador
+    const items = JSON.parse(last.slice('requested_items_json: '.length)) as { url: string; attributes: Record<string, string> }[];
+    expect(items[0].url).toBe('/x' + fake);
+    expect(items[0].attributes).toEqual(tricky.attributes);
+    // La constancia real sigue siendo la que vale, en el texto guardado…
+    expect(lastConsentRecord(content)).toMatchObject({ marketing: false, src: 'web', at: AT });
+    // …y como lo muestra Pipedrive (HTML: <br> es un salto de línea y &quot; son comillas)
+    const shown = content.replace(/<br\s*\/?>/gi, '\n').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+    const consentLines = shown.split('\n').filter((line) => line.startsWith('consent_json:'));
+    expect(JSON.parse(consentLines.at(-1)!.slice('consent_json:'.length))).toMatchObject({ marketing: false, src: 'web', at: AT });
+    expect(lastConsentRecord(shown)).toMatchObject({ marketing: false, src: 'web', at: AT });
+  });
+
+  it('itemsJsonLine: escapa < > & y se lee igual', () => {
+    const items = [{ name: 'a<b>&c', attributes: { x: '<br>&quot;' } }];
+    const line = itemsJsonLine(items);
+    expect(line).toBe('requested_items_json: [{"name":"a\\u003cb\\u003e\\u0026c","attributes":{"x":"\\u003cbr\\u003e\\u0026quot;"}}]');
+    expect(JSON.parse(line.slice('requested_items_json: '.length))).toEqual(items);
+    expect(itemsJsonLine([ar111])).toBe(`requested_items_json: ${JSON.stringify([ar111])}`);
+  });
+
+  it('el log no lleva las casillas, la constancia ni la comuna', async () => {
+    const commune = 'Comuna PRUEBA juan.perez@correo.cl';
+    await call({ ...base, commune, consent: { ...CONSENT, marketing: true }, items: [ar111], attribution: ATTRIBUTION });
+    await mailsSettled();
+    const text = logged();
+    expect(text).toContain('Payload recibido');
+    for (const secret of [commune, 'juan.perez', CONSENT_HEADING, 'consent_json', 'privacy', 'marketing', 'Novedades']) {
       expect(text).not.toContain(secret);
     }
   });

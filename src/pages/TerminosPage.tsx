@@ -3,12 +3,17 @@
 // compradores (personas y empresas), cualquiera sea el medio de pago; en los servicios,
 // retracto hasta que comienzan; la compra queda hecha al pagar (con transferencia, cuando el
 // pago se acredita; con crédito acordado, cuando el cliente acepta por escrito la cotización).
-// Versión y fecha: LEGAL_VERSION y LEGAL_UPDATED_LABEL (src/config/site.ts).
+// Despacho sin costo y retiro en bodega (dueño, 2026-10-14, PR 12b): monto, zona y lugar desde
+// src/config/business.ts; el detalle está en /despacho.
+// /solicitar-pedido pide aceptar estos términos en su casilla obligatoria (useConsentFields);
+// novedades por correo solo con la casilla opcional. Versión y fecha: LEGAL_VERSION y
+// LEGAL_UPDATED_LABEL (api/_lib/forms/consent.ts); cada versión queda en public/legal/
+// (npm run legal:archive), el enlace permanente que promete §3.6.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { CompanyFacts, EmailLink, WhatsAppLink } from '@/components/legal/CompanyFacts';
-import { quoteValidityBusinessDays } from '@/config/business';
+import { clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, PICKUP_PLACE, quoteValidityBusinessDays } from '@/config/business';
 
 const TerminosPage = () => (
   <LegalLayout
@@ -44,7 +49,7 @@ const TerminosPage = () => (
       <li>
         <strong>Solicitud.</strong> Eliges productos y envías una solicitud de pedido o de cotización desde el sitio, o nos pides
         una cotización por correo o WhatsApp. Antes de enviarla puedes revisar y corregir tus datos y los productos en el mismo
-        formulario.
+        formulario. Al enviar una solicitud de pedido marcas que aceptas estos términos y que leíste la Política de privacidad.
       </li>
       <li>
         <strong>La solicitud no es una compra.</strong> No te obliga a pagar ni genera ningún cobro. Tampoco es todavía una venta:
@@ -52,8 +57,8 @@ const TerminosPage = () => (
       </li>
       <li>
         <strong>Cotización y link de pago.</strong> Te respondemos con una cotización que indica los productos, las cantidades, el
-        precio unitario y el total con IVA, el costo del despacho por separado o si va por pagar, el plazo, las condiciones
-        especiales (por ejemplo, productos sin derecho a retracto) y un link de pago.
+        precio unitario y el total con IVA, el costo del despacho por separado (o si va sin costo o por pagar), el plazo, las
+        condiciones especiales (por ejemplo, productos sin derecho a retracto) y un link de pago.
       </li>
       <li>
         <strong>Revisión.</strong> Si ves un error en la cotización, avísanos antes de pagar y te mandamos una corregida.
@@ -66,8 +71,8 @@ const TerminosPage = () => (
         cotizado.
       </li>
       <li>
-        <strong>Confirmación.</strong> Después del pago te mandamos por correo una confirmación con el detalle de tu compra y un
-        enlace a la versión de estos términos vigente al pagar.
+        <strong>Confirmación.</strong> Después del pago te mandamos por correo una confirmación con el detalle de tu compra y una
+        copia de estos términos en la versión vigente al pagar (adjunta o en un enlace permanente que puedes guardar o imprimir).
       </li>
       <li>
         <strong>Respaldo.</strong> Guardamos tu cotización, tu pago y la confirmación. Si necesitas una copia, pídela a{' '}
@@ -83,7 +88,9 @@ const TerminosPage = () => (
       </li>
       <li>
         El costo del despacho no está incluido en el precio de los productos. Va por separado en la cotización, o la cotización
-        indica que va por pagar (ver <Link to="/despacho">Despacho</Link>).
+        indica que va sin costo (compras sobre {clp(FREE_SHIPPING_THRESHOLD_CLP)} con IVA, con entrega en la{' '}
+        {FREE_SHIPPING_AREA.name}) o por pagar. Las comunas que no entran y las demás condiciones están en{' '}
+        <Link to="/despacho">Despacho</Link>.
       </li>
       <li>
         Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente.
@@ -133,7 +140,8 @@ const TerminosPage = () => (
       Despacho en hasta 2 días hábiles desde que el pago está confirmado (ver <Link to="/medios-de-pago">Medios de pago</Link>), y
       a veces el mismo día. En regiones, es el plazo para entregar tu pedido al transportista; a eso se suma el tiempo de viaje,
       que te informamos en la cotización antes de que pagues. El costo y las condiciones de despacho a cada destino están en{' '}
-      <Link to="/despacho">Despacho</Link> y en tu cotización.
+      <Link to="/despacho">Despacho</Link> y en tu cotización. También puedes retirar tu pedido en {PICKUP_PLACE}: la dirección
+      exacta te la damos cuando tu pago está acreditado.
     </p>
     <p>
       Al recibir, revisa el embalaje frente al transportista. Si viene dañado, déjalo anotado en el comprobante del transportista
@@ -186,14 +194,16 @@ const TerminosPage = () => (
 
     <h2>14. Comunicaciones comerciales</h2>
     <p>
-      Solo te enviaremos novedades u ofertas si lo autorizas. En cada mensaje encontrarás cómo dejar de recibirlos, y también
-      puedes pedirlo en cualquier momento a <EmailLink />.
+      Solo te enviaremos novedades u ofertas por correo si marcas la casilla para recibirlas en un formulario: es opcional y
+      viene sin marcar. En cada correo encontrarás cómo dejar de recibirlos, y también puedes pedirlo en cualquier momento a{' '}
+      <EmailLink subject="Datos personales" />.
     </p>
 
     <h2>15. Cambios a estos términos</h2>
     <p>
-      Podemos actualizar estos términos. Cada versión indica su fecha. Tu compra se rige por la versión vigente cuando pagaste. Si
-      necesitas una versión anterior, pídela a <EmailLink />.
+      Podemos actualizar estos términos. Cada versión indica su fecha y queda publicada en un enlace permanente, junto con las
+      anteriores. Tu compra se rige por la versión vigente cuando pagaste; si cambió desde tu solicitud, la cotización te lo
+      indica.
     </p>
 
     <h2>16. Consultas, reclamos y ley aplicable</h2>

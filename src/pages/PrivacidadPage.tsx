@@ -1,16 +1,31 @@
-// /politica-de-privacidad: tratamiento de datos personales (PR 12). Base: Ley 19.628 con las
+// /politica-de-privacidad: tratamiento de datos personales. Base: Ley 19.628 con las
 // modificaciones de la Ley 21.719 (rigen desde el 2026-12-01), art. 14 ter. Defaults del
 // dueño: solicitudes a ventas@elights.cl con el asunto "Datos personales"; sin delegado de
 // protección de datos; encargados sin Axiom; 24 meses para solicitudes sin compra y 6 años
 // para documentos tributarios; asistente de WhatsApp con IA activo y con paso a una persona;
-// una persona revisa cada solicitud; novedades solo con consentimiento (casilla de la
-// PR 13); el origen de la visita (PR 10) solo para atribución interna, nunca se sube a
-// Google Ads ni a Meta. La sección 10 (cookies) se revisa con el aviso de cookies (PR 13).
+// una persona revisa cada solicitud.
+// El texto describe lo que hace el código; si cambia uno, cambia el otro:
+// - Casillas de los cinco formularios (useConsentFields, src/components/legal/ConsentFields.tsx):
+//   la de privacidad, obligatoria (con los términos en /solicitar-pedido), y la de novedades
+//   por correo, opcional y sin marcar.
+// - Constancia de las casillas, la versión y la hora del servidor en la nota de Pipedrive y
+//   en el correo a ventas@ (api/_lib/forms/consent.ts).
+// - Origen de la visita (src/lib/attribution.ts): solo para saber de dónde vienen las
+//   solicitudes, nunca se sube a Google Ads ni a Meta; oposición con su interruptor.
+// - Aviso de cookies básico (src/lib/cookieConsent.ts y CookieConsent.tsx) con 4 categorías:
+//   necesarias, origen de la visita, medición de visitas y medición de anuncios. Duraciones:
+//   decisión 12 meses, _ga 13 meses (src/lib/analytics.ts), _gcl_ 90 días.
+// - Transportistas (§5): los mismos de /despacho, desde REGION_CARRIERS (src/config/business.ts).
+// - Archivo de versiones: public/legal/<página>-v<X.Y>.html (npm run legal:archive).
+// Al cambiar este texto, sube LEGAL_VERSION (api/_lib/forms/consent.ts) y corre
+// npm run legal:archive.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { EmailLink } from '@/components/legal/CompanyFacts';
+import CookieSettingsButton from '@/components/legal/CookieSettingsButton';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_REPRESENTATIVE, LEGAL_RUT } from '@/config/site';
+import { REGION_CARRIERS } from '@/config/business';
 
 const DATA_SUBJECT = 'Datos personales';
 
@@ -24,11 +39,22 @@ const PURPOSES: [string, string][] = [
   ],
   [
     'Saber qué canales y campañas generan solicitudes (origen de la visita)',
-    'Interés legítimo de eLIGHTS en evaluar su publicidad; puedes oponerte',
+    'Interés legítimo de eLIGHTS en evaluar su publicidad; puedes oponerte desde «Configurar cookies», al pie de cada página, o escribiéndonos',
   ],
   ['Proteger el sitio y prevenir abusos y fraudes', 'Interés legítimo'],
-  ['Enviarte novedades y ofertas', 'Tu consentimiento, que puedes retirar cuando quieras'],
+  [
+    'Enviarte novedades y ofertas por correo, solo si marcas la casilla opcional de un formulario',
+    'Tu consentimiento, que puedes retirar cuando quieras',
+  ],
   ['Medir visitas con Google Analytics (solo en elights.cl)', 'Tu consentimiento, dado en el aviso de cookies'],
+  [
+    'Que Google Ads registre, con sus propias cookies, si una visita desde nuestros anuncios terminó en una solicitud o en un contacto con nosotros, como un clic para escribirnos por WhatsApp (solo en elights.cl)',
+    'Tu consentimiento, dado en el aviso de cookies',
+  ],
+  [
+    'Guardar la constancia de tus autorizaciones y decisiones para poder demostrarlas',
+    'Obligación legal de acreditar que tratamos tus datos de forma lícita',
+  ],
 ];
 
 const PrivacidadPage = () => (
@@ -90,6 +116,11 @@ const PrivacidadPage = () => (
         parámetros de campaña del enlace (por ejemplo utm_source, gclid o fbclid).
       </li>
       <li>
+        <strong>Tus autorizaciones y decisiones:</strong> que leíste esta política y autorizaste usar tus datos para responder
+        (y, en la solicitud de pedido, que aceptaste los términos), si quieres recibir novedades, la versión de los textos y la
+        fecha y hora del envío. En tu navegador guardamos tu decisión sobre cookies.
+      </li>
+      <li>
         <strong>Datos técnicos:</strong> dirección IP, tipo de navegador y registros de funcionamiento y seguridad del sitio y del
         asistente de WhatsApp. Estos registros pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu
         mensaje (ver punto 9).
@@ -123,16 +154,22 @@ const PrivacidadPage = () => (
     </div>
     <p>
       Hasta el 30 de noviembre de 2026 rige la Ley N° 19.628 en su texto anterior. Durante ese período tratamos tus datos con las
-      mismas finalidades, sobre la base de la autorización que nos das al enviarnos una solicitud y de las obligaciones legales que
-      nos aplican.
+      mismas finalidades, sobre la base de la autorización que nos das al enviarnos una solicitud (en el sitio, al marcar la
+      casilla «Leí la Política de privacidad y autorizo…»; por correo o WhatsApp, con tu mensaje escrito) y de las obligaciones
+      legales que nos aplican. Ordenar y priorizar tu solicitud es parte de responderla. Para saber de dónde vienen las
+      solicitudes usamos el origen de tu visita solo internamente, con fines estadísticos, como permite esa ley. Desde el 1 de
+      diciembre de 2026 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
+      pides, y la casilla queda como constancia de que leíste esta política.
     </p>
     <p>
       No usamos tus datos para fines distintos de los de esta tabla sin avisarte antes y, cuando corresponda, pedir tu
       consentimiento.
     </p>
     <p>
-      Los parámetros de campaña (como gclid o fbclid) los usamos solo para saber de dónde vienen nuestras solicitudes: no los
-      subimos a Google Ads ni a Meta.
+      Los parámetros de campaña (como gclid o fbclid) que van con tu solicitud los usamos solo para saber de dónde vienen nuestras
+      solicitudes: no los subimos a Google Ads ni a Meta. Si en elights.cl aceptas la medición de anuncios de Google en el aviso
+      de cookies, es Google quien registra, con sus propias cookies, si tu visita desde un anuncio terminó en una solicitud o en
+      un contacto con nosotros (por ejemplo, un clic para escribirnos por WhatsApp).
     </p>
 
     <h2>4. Priorización de solicitudes y respuestas automáticas</h2>
@@ -167,7 +204,8 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Google</strong> (Estados Unidos): correo electrónico y envío de los avisos de solicitudes a nuestro equipo (Gmail y
-        Google Apps Script).
+        Google Apps Script) y, solo en elights.cl y si lo aceptas en el aviso de cookies, Google Analytics, bajo los términos de
+        tratamiento de datos de Google.
       </li>
       <li>
         <strong>Twilio Inc.</strong> (Estados Unidos): conexión de nuestro número de WhatsApp.
@@ -191,11 +229,17 @@ const PrivacidadPage = () => (
         <strong>Medios de pago</strong> (Flow y Transbank para Webpay, Mercado Pago): reciben los datos que ingresas al pagar.
       </li>
       <li>
-        <strong>Transportistas</strong> (Starken, Chilexpress, Cruz del Sur, PDQ u otro que elijas): reciben tu nombre, dirección y
-        teléfono para hacer la entrega.
+        <strong>Transportistas</strong> ({REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono para
+        hacer la entrega.
       </li>
       <li>
         <strong>WhatsApp (Meta):</strong> si nos escribes por WhatsApp, ese servicio trata tus mensajes según su propia política.
+      </li>
+      <li>
+        <strong>Google (medición de anuncios):</strong> solo en elights.cl y si lo aceptas en el aviso de cookies, Google recibe con
+        sus cookies si tu visita desde uno de nuestros anuncios terminó en una solicitud o en un contacto con nosotros (por
+        ejemplo, un clic para escribirnos por WhatsApp), y lo trata también según su propia política. Desde nuestros formularios
+        no le enviamos tus datos de contacto.
       </li>
       <li>
         <strong>Autoridades, tribunales y asesores</strong> (por ejemplo, el Servicio de Impuestos Internos o nuestro contador),
@@ -224,11 +268,26 @@ const PrivacidadPage = () => (
         <strong>Boletas, facturas y respaldos contables:</strong> 6 años, por obligación tributaria.
       </li>
       <li>
-        <strong>Novedades y ofertas:</strong> hasta que retires tu consentimiento.
+        <strong>Novedades y ofertas:</strong> tu nombre, tu correo y la constancia de tu consentimiento, mientras no lo retires; si
+        se elimina tu solicitud, pasan a nuestro registro de novedades. Si en una solicitud posterior no marcas la casilla, lo
+        tomamos como retiro. Cuando lo retiras, guardamos solo tu correo y la constancia (versión y fechas) por 4 años, para
+        respetar tu baja y poder demostrar que tuvimos tu consentimiento.
+      </li>
+      <li>
+        <strong>Constancia de tus autorizaciones</strong> (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.
       </li>
       <li>
         <strong>Origen de tu visita:</strong> en tu navegador se borra al cerrar la pestaña; la copia que va con tu solicitud sigue
         el plazo de la solicitud.
+      </li>
+      <li>
+        <strong>Tu decisión sobre cookies:</strong> 12 meses en tu navegador; después te volvemos a preguntar. Si te opusiste al
+        registro del origen de tu visita, lo seguimos respetando en ese navegador.
+      </li>
+      <li>
+        <strong>Cookies de Google</strong> (si las aceptas): las de Google Analytics, hasta 13 meses; las de medición de anuncios,
+        hasta 90 días. Google Analytics conserva los datos de medición asociados a sus cookies por 2 meses; después solo quedan
+        informes agregados. Lo que registra Google Ads lo conserva Google según su propia política.
       </li>
       <li>
         <strong>Registro técnico de pedidos (Upstash):</strong> 30 días.
@@ -256,7 +315,8 @@ const PrivacidadPage = () => (
         <strong>supresión:</strong> pedir que eliminemos tus datos cuando ya no sean necesarios o no haya base para tratarlos;
       </li>
       <li>
-        <strong>oposición:</strong> oponerte a un tratamiento, incluidos el envío de novedades y la priorización automática;
+        <strong>oposición:</strong> oponerte a un tratamiento, incluidos el envío de novedades, el registro del origen de tu visita
+        (también desde «Configurar cookies») y la priorización automática;
       </li>
       <li>
         <strong>portabilidad:</strong> recibir tus datos en un formato de uso común;
@@ -306,25 +366,48 @@ const PrivacidadPage = () => (
     <h2>10. Cookies y almacenamiento en tu navegador</h2>
     <ul>
       <li>
-        <strong>Este sitio no instala cookies propias.</strong>
+        <strong>Sin tu consentimiento, este sitio no instala cookies en tu navegador.</strong>
       </li>
       <li>
         Usa el <strong>almacenamiento de sesión</strong> de tu navegador, que se borra al cerrar la pestaña, para recordar tu lista
-        de cotización, tu lista de pedido, si ves los precios con o sin IVA y el origen de tu visita. Son necesarios para que el
-        sitio funcione como pides, y solo salen de tu navegador cuando envías un formulario.
+        de cotización, tu lista de pedido y si ves los precios con o sin IVA. Es necesario para que el sitio funcione como pides.
+      </li>
+      <li>
+        También anota ahí el <strong>origen de tu visita</strong> (punto 2). No es una cookie y solo sale de tu navegador cuando
+        envías un formulario; esa copia no la enviamos a Google ni a Meta. Rechazar las cookies no lo desactiva. Si te opones con
+        el interruptor «Origen de la visita» en «Configurar cookies», lo borramos de este navegador y no lo volvemos a anotar aquí;
+        para que dejemos de usar el que ya enviaste con una solicitud, escríbenos a <EmailLink subject={DATA_SUBJECT} /> con el
+        asunto "{DATA_SUBJECT}".
+      </li>
+      <li>
+        Tu <strong>decisión sobre cookies</strong> se guarda 12 meses en el almacenamiento local de tu navegador. No es una cookie y
+        no la guardamos en nuestros sistemas; si aceptas Google Analytics, cada medición le informa a Google qué permitiste.
       </li>
       <li>
         <strong>Imágenes de productos:</strong> se cargan desde los servidores de Jumpseller, que reciben datos técnicos de tu
         conexión, como tu dirección IP.
       </li>
       <li>
-        <strong>Google Analytics:</strong> no se usa en nuevo.elights.cl. Cuando el sitio funcione en elights.cl, se activará solo
-        si lo aceptas en el aviso de cookies; usa cookies para medir visitas de forma agregada. Puedes cambiar tu decisión cuando
-        quieras desde ese mismo aviso.
+        <strong>Google Analytics</strong> (solo en elights.cl): se carga solo si aceptas la medición de visitas en el aviso de
+        cookies; antes de que decidas no se carga nada de Google. Instala las cookies _ga y _ga_… por hasta 13 meses para contar
+        visitas y saber qué páginas y botones se usan (por ejemplo, agregar productos a la lista, enviar un formulario o abrir
+        WhatsApp). Google registra por su cuenta la página por la que entraste, el sitio anterior y los parámetros de campaña,
+        sin tus datos de contacto.
       </li>
       <li>
-        Hoy no usamos el píxel de Meta ni etiquetas de publicidad de Google en este sitio. Si los agregamos, será solo con tu
-        consentimiento y actualizaremos esta política.
+        <strong>Medición de anuncios de Google</strong> (solo en elights.cl): solo si la aceptas, y requiere la medición de
+        visitas. Usa cookies de Google (_gcl_…, hasta 90 días) para saber si una visita desde nuestros anuncios terminó en una
+        solicitud o en un contacto con nosotros (por ejemplo, un clic para escribirnos por WhatsApp). No usamos anuncios
+        personalizados ni remarketing.
+      </li>
+      <li>
+        No usamos el píxel de Meta. Si lo agregamos, o si usamos anuncios personalizados, te pediremos tu consentimiento de nuevo y
+        actualizaremos esta política.
+      </li>
+      <li>
+        Puedes cambiar tu decisión cuando quieras con el botón{' '}
+        <CookieSettingsButton className="font-medium text-primary underline hover:no-underline" />, aquí o al pie de cada página. Si
+        retiras un permiso, dejamos de medir en esa misma página y borramos de tu navegador las cookies de Google de este sitio.
       </li>
       <li>Los enlaces a WhatsApp abren ese servicio, que se rige por su propia política.</li>
     </ul>
@@ -335,7 +418,11 @@ const PrivacidadPage = () => (
     <h2>12. Cambios a esta política</h2>
     <p>
       Si cambiamos esta política, publicaremos aquí la nueva versión con su fecha. Si el cambio afecta algo que depende de tu
-      consentimiento, te lo pediremos de nuevo. Puedes pedir las versiones anteriores a <EmailLink />.
+      consentimiento, te lo pediremos de nuevo. Si cambian las finalidades del aviso de cookies, te lo volveremos a mostrar.
+    </p>
+    <p>
+      Puedes guardar o imprimir cada versión desde el enlace al comienzo de esta página, donde también están las anteriores; o
+      pedirlas a <EmailLink />.
     </p>
     <p>
       La compra y sus condiciones están en <Link to="/terminos-y-condiciones">Términos y condiciones</Link>.

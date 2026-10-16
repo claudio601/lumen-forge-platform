@@ -3,6 +3,7 @@
 // confirmación y la conversión solo llegan cuando el servidor responde { success: true }.
 // Cualquier otra respuesta muestra un aviso junto al botón (role="alert") y deja los datos
 // escritos para reintentar.
+// PR 13: la casilla de privacidad es obligatoria y la de novedades, opcional y sin marcar.
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
@@ -12,6 +13,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import SmartQuotePage from './SmartQuotePage';
 import { ILLUMINATION_LEVELS, PROJECT_TYPES } from '../../api/_lib/forms/projectQuote';
+import { CONSENT_ERRORS, LEGAL_VERSION, parseConsent } from '../../api/_lib/forms/consent';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
@@ -29,13 +31,16 @@ const page = () => (
 const renderPage = () => render(page());
 
 const type = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
+const privacyBox = () => screen.getByLabelText(/autorizo a eLIGHTS a usar mis datos/) as HTMLInputElement;
+const marketingBox = () => screen.getByLabelText(/Quiero recibir novedades/) as HTMLInputElement;
 
-function fillForm(telefono = '+56 9 0000 0904', m2 = '1200') {
+function fillForm(telefono = '+56 9 0000 0904', m2 = '1200', { consent = true } = {}) {
   type(/Tipo de proyecto/, 'Bodega');
   type(/m2 aproximados/, m2);
   type(/Nombre y Apellido/, 'PRUEBA ETAPA 2 (09d)');
   type(/Email/, 'prueba-etapa2-09d@example.com');
   type(/Teléfono/, telefono);
+  if (consent) fireEvent.click(privacyBox());
 }
 
 const submitButton = () => screen.getByRole('button', { name: /Solicitar propuesta/ });
@@ -69,7 +74,8 @@ describe('SmartQuotePage (/cotizador)', () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('/api/project-quotes/create');
     expect(init.method).toBe('POST');
-    // m2 y altura como números; los opcionales vacíos no viajan; el campo trampa va vacío
+    // m2 y altura como números; los opcionales vacíos no viajan; el campo trampa va vacío;
+    // consent con la casilla marcada y novedades sin marcar
     expect(sentBodies()[0]).toEqual({
       tipoProyecto: 'Bodega',
       m2: 1200,
@@ -79,6 +85,7 @@ describe('SmartQuotePage (/cotizador)', () => {
       email: 'prueba-etapa2-09d@example.com',
       telefono: '+56 9 0000 0904',
       website: '',
+      consent: { privacy: true, marketing: false, version: LEGAL_VERSION },
     });
     expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes('emailjs'))).toBe(false);
 
@@ -218,7 +225,8 @@ describe('SmartQuotePage antes de hidratar (HTML del prerender)', () => {
 
   const CONTROLS = [
     'tipoProyecto', 'm2', 'altura', 'aplicacion', 'nivelIluminacion', 'ciudad', 'plazo',
-    'comentarios', 'nombre', 'email', 'telefono', 'rutEmpresa', 'razonSocial', 'giro', 'direccion', 'website',
+    'comentarios', 'nombre', 'email', 'telefono', 'rutEmpresa', 'razonSocial', 'giro', 'direccion',
+    'consentPrivacy', 'consentMarketing', 'website',
   ];
 
   const serverContainer = () => {
@@ -248,6 +256,13 @@ describe('SmartQuotePage antes de hidratar (HTML del prerender)', () => {
     // Todos los campos y el botón están dentro del fieldset deshabilitado
     for (const el of [...controls, ...form.querySelectorAll('button')]) expect(fieldset.contains(el)).toBe(true);
     for (const control of controls) expect(control).toBeDisabled();
+    // Las casillas, sin marcar en el HTML estático (PR 13), y el contenedor marcado para la etiqueta de Google
+    for (const name of ['consentPrivacy', 'consentMarketing']) {
+      expect(form.querySelector(`input[name="${name}"]`)).not.toBeChecked();
+      expect(form.querySelector(`input[name="${name}"]`)).not.toHaveAttribute('checked');
+    }
+    expect(html).toContain('data-elights-form="cotizador"');
+    expect(form.closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'cotizador');
   });
 
   // space-y-6 da margen arriba a todo hijo que tenga un hermano antes. Con el campo trampa
@@ -309,5 +324,109 @@ describe('SmartQuotePage: origen de la visita', () => {
     fireEvent.click(submitButton());
     expect(await screen.findByText('PY-test9')).toBeInTheDocument();
     expect(sentBodies()[0].attribution).toEqual(ATTRIBUTION);
+  });
+});
+
+// Privacidad y novedades (Etapa 2 · PR 13): useConsentFields('solicitud'), dentro del fieldset.
+describe('SmartQuotePage: casillas de privacidad y novedades', () => {
+  const CONSENT_400 = JSON.stringify({ success: false, error: 'Validation failed', code: 'consent_required', details: { errors: ['consent is required'] } });
+
+  beforeEach(() => {
+    vi.mocked(sendEvent).mockClear();
+    vi.mocked(trackLead).mockClear();
+    vi.mocked(toast.error).mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('las dos casillas sin marcar, dentro del fieldset y antes del botón; solo enlazan la privacidad', () => {
+    const { container } = renderPage();
+    const group = screen.getByRole('group', { name: 'Privacidad y novedades' });
+    expect(container.querySelector('form > fieldset')!.contains(group)).toBe(true);
+    expect(group.compareDocumentPosition(submitButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(group).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual(['/politica-de-privacidad']);
+    expect(privacyBox()).not.toBeChecked();
+    expect(marketingBox()).not.toBeChecked();
+  });
+
+  it('con el resto inválido, solo el error del resto: el de la casilla no aparece', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true}'));
+    renderPage();
+    fillForm('212 3456', undefined, { consent: false });
+    fireEvent.click(submitButton());
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent('entre 8 y 12 dígitos');
+    expect(screen.queryByText(CONSENT_ERRORS.solicitud)).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('con el resto válido y sin marcar: no envía, el mensaje junto a la casilla y el foco en ella', async () => {
+    vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-c1', dealId: 1 })));
+    renderPage();
+    fillForm(undefined, undefined, { consent: false });
+    fireEvent.click(submitButton());
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(CONSENT_ERRORS.solicitud);
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('group', { name: 'Privacidad y novedades' })).toContainElement(alert);
+    expect(privacyBox()).toHaveFocus();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(trackLead).not.toHaveBeenCalled();
+    expect(submitButton()).toBeEnabled();
+    fireEvent.click(privacyBox());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-c1')).toBeInTheDocument();
+  });
+
+  it.each([false, true])('marcada (novedades %s): consent viaja con el estado real, sin terms, y el servidor lo acepta', async (marketing) => {
+    vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-c2', dealId: 2 })));
+    renderPage();
+    fillForm();
+    if (marketing) fireEvent.click(marketingBox());
+    const checked = privacyBox().checked;
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-c2')).toBeInTheDocument();
+    const { consent } = sentBodies()[0];
+    expect(consent).toEqual({ privacy: true, marketing, version: LEGAL_VERSION });
+    expect(consent.privacy).toBe(checked);
+    // Contrato con el servidor (api/project-quotes/create.ts)
+    expect(parseConsent(consent, { requireTerms: false }).ok).toBe(true);
+  });
+
+  it('400 con code consent_required: el aviso de la casilla (no el de email y teléfono) y el botón vuelve', async () => {
+    vi.stubGlobal('fetch', reply(400, CONSENT_400));
+    renderPage();
+    fillForm();
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(CONSENT_ERRORS.solicitud));
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.queryByText(/Revisa email y teléfono/)).not.toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalledWith(expect.stringMatching(/Revisa email y teléfono/));
+    expect(privacyBox()).toHaveFocus();
+    expect(trackLead).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/Nombre y Apellido/)).toHaveValue('PRUEBA ETAPA 2 (09d)');
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+  });
+
+  it('el formulario y la confirmación llevan data-elights-form="cotizador"; Analytics sin comuna ni ciudad', async () => {
+    vi.stubGlobal('fetch', reply(502, '{"success":false}'));
+    renderPage();
+    expect(submitButton().closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'cotizador');
+    fillForm();
+    type(/Ciudad/, 'Santiago');
+    fireEvent.click(submitButton());
+    await screen.findByRole('alert');
+    vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-c3', dealId: 3 })));
+    fireEvent.click(submitButton());
+    const heading = await screen.findByRole('heading', { name: /Propuesta solicitada/ });
+    expect(heading.closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'cotizador');
+    const params = [...vi.mocked(sendEvent).mock.calls, ...vi.mocked(trackLead).mock.calls].map(([, p]) => p ?? {});
+    expect(params.length).toBeGreaterThan(0);
+    for (const p of params) {
+      expect(Object.keys(p)).not.toEqual(expect.arrayContaining([expect.stringMatching(/commune|comuna|ciudad/i)]));
+      expect(JSON.stringify(p)).not.toContain('Santiago');
+    }
   });
 });

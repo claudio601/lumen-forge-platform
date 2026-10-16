@@ -55,6 +55,22 @@ const VALID_ORIGEN = ['estudio_luminico_web', 'manual'] as const;
 // cabe siempre bajo el maximo del relay. El textarea del formulario usa el mismo.
 export const MAX_DESCRIPCION_PROYECTO = 2000;
 
+// Topes de los demas textos (mismo patron que instalacion). El correo a ventas lleva la
+// nota completa y el relay corta el FINAL (8.000 caracteres), donde van la constancia de
+// privacidad y el origen de la visita: con estos topes el peor caso cabe sin recorte.
+// Los inputs del formulario usan los mismos (maxLength).
+export const ESTUDIO_MAX_LENGTHS = {
+  nombreCompleto: 120,
+  email: 254,
+  telefono: 30,
+  empresa: 120,
+  comunaCiudad: 80,
+  dimensionesAproximadas: 200,
+  alturaMontaje: 60,
+  fecha: 40,
+  landingPath: 60,
+} as const;
+
 /** Opcional de texto: ausente (undefined/null) o string. Un numero romperia el correo. */
 function isOptionalText(val: unknown): boolean {
   return val === undefined || val === null || typeof val === 'string';
@@ -103,6 +119,10 @@ export function validateEstudioPayload(payload: unknown): EstudioValidationResul
 
   // Opcionales de texto (van a la nota y al correo)
   if (!isOptionalText(p.empresa)) errors.push('empresa must be a string');
+  // fecha y landingPath van a la nota: un valor que no es texto (una lista enorme) saltaria
+  // el tope de largo
+  if (!isOptionalText(p.fecha)) errors.push('fecha must be a string');
+  if (!isOptionalText(p.landingPath)) errors.push('landingPath must be a string');
   if (!isOptionalText(p.descripcionProyecto)) {
     errors.push('descripcionProyecto must be a string');
   } else if (
@@ -110,6 +130,12 @@ export function validateEstudioPayload(payload: unknown): EstudioValidationResul
     p.descripcionProyecto.length > MAX_DESCRIPCION_PROYECTO
   ) {
     errors.push('descripcionProyecto max ' + MAX_DESCRIPCION_PROYECTO + ' characters');
+  }
+
+  // Largos maximos
+  for (const [field, max] of Object.entries(ESTUDIO_MAX_LENGTHS)) {
+    const value = p[field];
+    if (typeof value === 'string' && value.length > max) errors.push(field + ' max ' + max + ' characters');
   }
 
   // Enum validations (requeridos)

@@ -1,0 +1,36 @@
+// Fixture sintético para scripts/check-ga-container.test.ts (Etapa 2 · PR 13).
+// Imita la forma del bloque `data` de https://www.googletagmanager.com/gtag/js?id=G-TEST000000
+// con las banderas que tenía el contenedor real el 2026-10-14 (design.consentMode): detección
+// automática de correo, teléfono y dirección sin exclusiones, page_view por historial, sin
+// redacción de correo, Google Signals LIMITED_EXTERNAL y 4 eventos clave. No es una copia del
+// script de Google: solo la estructura que lee el chequeo.
+(function(){
+
+var data = {
+"resource": {
+  "version":"1",
+  "macros":[{"function":"__e"},{"function":"__c","vtp_value":"google.cl"},{"vtp_signal":0,"function":"__c","vtp_value":0}],
+  "tags":[{"function":"__ogt_1p_data_v2","priority":12,"vtp_isAutoEnabled":true,"vtp_autoCollectExclusionSelectors":["list",["map","exclusionSelector",""]],"vtp_isEnabled":true,"vtp_autoEmailEnabled":true,"vtp_autoPhoneEnabled":true,"vtp_autoAddressEnabled":true,"vtp_manualEmailEnabled":false,"vtp_emailValue":"","vtp_isAutoCollectPiiEnabledFlag":false,"tag_id":13}
+  ,{"function":"__ccd_ga_first","priority":11,"vtp_instanceDestinationId":"G-TEST000000","tag_id":24}
+  ,{"function":"__ogt_google_signals","priority":8,"vtp_googleSignals":"LIMITED_EXTERNAL","vtp_instanceDestinationId":"G-TEST000000","vtp_serverMacroResult":["macro",2],"tag_id":21}
+  ,{"function":"__ccd_conversion_marking","priority":6,"vtp_conversionRules":["list",["map","matchingRules","{\"type\":5,\"args\":[{\"stringValue\":\"purchase\"},{\"contextValue\":{\"namespaceType\":1,\"keyParts\":[\"eventName\"]}}]}"],["map","matchingRules","{\"type\":5,\"args\":[{\"stringValue\":\"whatsapp_click\"},{\"contextValue\":{\"namespaceType\":1,\"keyParts\":[\"eventName\"]}}]}"],["map","matchingRules","{\"type\":5,\"args\":[{\"stringValue\":\"qualify_lead\"},{\"contextValue\":{\"namespaceType\":1,\"keyParts\":[\"eventName\"]}}]}"],["map","matchingRules","{\"type\":5,\"args\":[{\"stringValue\":\"close_convert_lead\"},{\"contextValue\":{\"namespaceType\":1,\"keyParts\":[\"eventName\"]}}]}"]],"vtp_instanceDestinationId":"G-TEST000000","tag_id":19}
+  ,{"function":"__ccd_em_page_view","priority":5,"vtp_historyEvents":true,"vtp_includeParams":true,"vtp_instanceDestinationId":"G-TEST000000","tag_id":18}
+  ,{"function":"__ccd_em_scroll","priority":4,"vtp_instanceDestinationId":"G-TEST000000","tag_id":17}
+  ,{"function":"__ccd_em_outbound_click","priority":4,"vtp_instanceDestinationId":"G-TEST000000","tag_id":16}
+  ,{"function":"__ccd_em_form","priority":4,"vtp_instanceDestinationId":"G-TEST000000","tag_id":15}
+  ,{"function":"__ccd_em_download","priority":4,"vtp_includeParams":true,"vtp_instanceDestinationId":"G-TEST000000","tag_id":14}
+  ,{"function":"__ccd_em_video","priority":4,"vtp_includeParams":true,"vtp_instanceDestinationId":"G-TEST000000","tag_id":12}
+  ,{"function":"__ccd_auto_redact","priority":2,"vtp_redactEmail":false,"vtp_instanceDestinationId":"G-TEST000000","tag_id":11}
+  ,{"function":"__gct","vtp_trackingId":"G-TEST000000","vtp_sessionDuration":0,"tag_id":7}
+  ,{"function":"__ccd_ga_last","priority":0,"vtp_instanceDestinationId":"G-TEST000000","tag_id":10}],
+  "predicates":[{"function":"_eq","arg0":["macro",0],"arg1":"gtm.js"}],
+  "rules":[[["if",0],["add",13,24,21,19,18,17,16,15,14,12,11,7,10]]]
+},
+"runtime":[[50,"__ccd_auto_redact",[46,"a"],[52,"b","texto con llaves } y { y comillas \" que no cierran nada"]]],
+"permissions":{"__ccd_auto_redact":{"read_event_data":{"eventDataAccess":"any"}}},
+"security_groups":{"google":["__ccd_auto_redact","__ccd_conversion_marking","__ogt_1p_data_v2","__ogt_google_signals"]}
+};
+
+// Código del cargador (minificado en el real): regex con llaves que no deben confundir al lector.
+var Ma=/^[{}\[]+$/;function Na(a){return String(a).replace(/[}{]/g,"")}
+})();
