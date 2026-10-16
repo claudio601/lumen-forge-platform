@@ -4,7 +4,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ConversationTurn } from './conversation.js';
 const LOG_PREFIX = '[claudeAgent]';
-export const FALLBACK_REPLY = 'Hola! Gracias por escribirnos. Un ejecutivo de eLights.cl te contactara pronto.';
+export const FALLBACK_REPLY = 'Hola! Gracias por escribirnos. Cu\u00e9ntanos qu\u00e9 necesitas y tu correo de contacto: la respuesta te llega por correo.';
 export interface ClaudeParsed {
   producto?: string;
   tipo_de_luz?: string;
