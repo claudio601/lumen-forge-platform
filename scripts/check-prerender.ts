@@ -16,6 +16,11 @@
 //   - URLs de elights.cl (scripts/redirects/legacy-urls.json, PR 08): ninguna fuente con regla
 //     es un archivo de dist/ (su 301 lo taparía), y cada destino de categoría o página fija
 //     se generó (o es /buscar, que sirve spa.html).
+//   - consentimiento (PR 13): ninguna página trae el aviso de cookies ni rastros de Google
+//     (googletagmanager, gtag, dataLayer): el aviso aparece solo en el navegador y GA se carga
+//     solo después de aceptar. Las páginas generadas y 404.html llevan un botón «Configurar
+//     cookies» en el pie (spa.html viene vacía: solo las ausencias). /cotizador, /instalacion y
+//     /estudio-luminico traen las dos casillas sin marcar dentro de su data-elights-form.
 // Avisos (nunca bloquean): un 301 de elights.cl que llega a un producto no publicado (da 404:
 // cambiar su fila a la categoría), y un producto publicado cuyo permalink de Jumpseller no
 // tiene fila en legacy-urls.json (agregarla antes de la Etapa 3). Sin red: solo datos locales.
@@ -40,6 +45,8 @@ import { findPolicyBreaking } from './jumpseller/descriptions';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
 import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
+import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
+import { CONSENT_FIELD_NAMES, type ConsentForm } from '../api/_lib/forms/consent';
 
 interface HtmlNode {
   nodeName: string;
@@ -291,6 +298,99 @@ export function legacyRedirectIssues(
   return { blocking, warnings, summary };
 }
 
+/**
+ * Formularios con página estática (PR 13). /solicitar-pedido y /cotizacion dependen de la
+ * sesión y usan spa.html: sus casillas las prueban sus propias pruebas.
+ */
+export const PRERENDERED_FORMS: Readonly<Record<string, ConsentForm>> = {
+  '/cotizador': 'cotizador',
+  '/instalacion': 'instalacion',
+  '/estudio-luminico': 'estudio-luminico',
+};
+
+/** Lo que el chequeo mira del aviso de cookies, de Google y de las casillas (PR 13). */
+export interface ConsentFacts {
+  /** Elementos con aria-label «Aviso de cookies» (el aviso). */
+  banners: number;
+  /** El texto del aviso aparece en la página. */
+  bannerText: boolean;
+  /** Rastros de Google en el HTML (googletagmanager, google-analytics.com, gtag/js, gtag(, dataLayer). */
+  google: string[];
+  /** Botones «Configurar cookies» dentro del pie. */
+  footerCookieButtons: number;
+  /** Casillas de consentimiento: nombre, si vienen marcadas y el data-elights-form que las envuelve. */
+  consentBoxes: { name: string; checked: boolean; form: string | undefined }[];
+  /** Valores de data-elights-form. */
+  forms: string[];
+}
+
+const GOOGLE_TRACES = /googletagmanager|google-analytics\.com|gtag\/js|\bgtag\(|dataLayer/gi;
+const CONSENT_BOX_NAMES: readonly string[] = [CONSENT_FIELD_NAMES.privacy, CONSENT_FIELD_NAMES.marketing];
+
+export function consentFacts(html: string): ConsentFacts {
+  const facts: ConsentFacts = {
+    banners: 0,
+    bannerText: false,
+    google: [...new Set([...html.matchAll(GOOGLE_TRACES)].map(m => m[0]))],
+    footerCookieButtons: 0,
+    consentBoxes: [],
+    forms: [],
+  };
+  const walk = (n: HtmlNode, form: string | undefined, inFooter: boolean) => {
+    const tag = n.tagName;
+    const formHere = attr(n, 'data-elights-form') ?? form;
+    if (attr(n, 'data-elights-form') !== undefined) facts.forms.push(attr(n, 'data-elights-form')!);
+    if (attr(n, 'aria-label') === COOKIE_TEXTS.bannerLabel) facts.banners++;
+    if (tag === 'button' && inFooter && squash(textOf(n)) === COOKIE_TEXTS.footerButton) facts.footerCookieButtons++;
+    if (tag === 'input' && attr(n, 'type') === 'checkbox' && CONSENT_BOX_NAMES.includes(attr(n, 'name') ?? '')) {
+      facts.consentBoxes.push({ name: attr(n, 'name')!, checked: attr(n, 'checked') !== undefined, form: formHere });
+    }
+    for (const c of n.childNodes ?? []) walk(c, formHere, inFooter || tag === 'footer');
+  };
+  const doc = parse(html) as unknown as HtmlNode;
+  walk(doc, undefined, false);
+  facts.bannerText = squash(textOf(doc)).includes(squash(COOKIE_TEXTS.banner));
+  return facts;
+}
+
+/**
+ * Problemas de consentimiento de una página. footer: la página trae el pie del sitio (todas
+ * menos spa.html). form: el formulario que debe traer sus casillas.
+ */
+export function consentIssues(f: ConsentFacts, expect: { footer: boolean; form?: ConsentForm }): string[] {
+  const issues: string[] = [];
+  if (f.banners || f.bannerText) issues.push('trae el aviso de cookies en el HTML (debe aparecer solo en el navegador, después de hidratar)');
+  if (f.google.length) issues.push(`trae Google Analytics antes del consentimiento: ${f.google.join(', ')}`);
+  if (expect.footer && f.footerCookieButtons !== 1) {
+    issues.push(`${f.footerCookieButtons} botones «${COOKIE_TEXTS.footerButton}» en el pie (debe haber uno)`);
+  }
+  for (const box of f.consentBoxes) {
+    if (box.checked) issues.push(`la casilla ${box.name} viene marcada`);
+    if (!box.form) issues.push(`la casilla ${box.name} está fuera de un data-elights-form`);
+  }
+  if (expect.form) {
+    if (!f.forms.includes(expect.form)) issues.push(`sin data-elights-form="${expect.form}"`);
+    for (const name of CONSENT_BOX_NAMES) {
+      const n = f.consentBoxes.filter(b => b.name === name && b.form === expect.form).length;
+      if (n !== 1) issues.push(`${n} casillas ${name} en el formulario ${expect.form} (debe haber una)`);
+    }
+  }
+  return issues;
+}
+
+/**
+ * Línea de resumen del consentimiento: dice que todo está bien solo si se revisaron todas las
+ * páginas y consentIssues no encontró nada; si no, cuántos problemas hubo (una página que no se
+ * generó cuenta como uno; el detalle va en las líneas ::error).
+ */
+export function consentSummary(problems: number, forms: readonly string[] = Object.keys(PRERENDERED_FORMS)): string {
+  if (problems > 0) return `[check-prerender] Consentimiento: ${problems} problema(s)`;
+  return (
+    `[check-prerender] Consentimiento: sin aviso de cookies ni Google en el HTML; «${COOKIE_TEXTS.footerButton}» en el pie; ` +
+    `casillas sin marcar en ${forms.join(', ')}`
+  );
+}
+
 export const isSyncBotBranch = (env: NodeJS.ProcessEnv = process.env) =>
   [env.GITHUB_HEAD_REF, env.GITHUB_REF_NAME].includes('bot/jumpseller-sync');
 
@@ -299,6 +399,7 @@ function main() {
   const read = (file: string) => (existsSync(join(dist, file)) ? readFileSync(join(dist, file), 'utf8') : undefined);
   const blocking: string[] = [];
   const warnings: string[] = [];
+  let consentProblems = 0;
   const contentOnlyWarns = isSyncBotBranch();
   const prices = new Map(products.map(p => [`/producto/${p.id}`, p.price]));
   // Imagen para compartir de cada ficha, con la misma regla que la página; el resto, la de la marca
@@ -312,6 +413,7 @@ function main() {
   for (const route of routes) {
     const html = read(outputPath(route));
     if (!html) {
+      consentProblems++; // sin HTML no se revisó: el resumen no puede decir que está bien
       blocking.push(`${route}: no se generó`);
       continue;
     }
@@ -320,16 +422,31 @@ function main() {
     const og = expectedOg(productOg.get(route) ?? DEFAULT_OG);
     for (const issue of structuralIssues(route, facts, { indexable: true, price: prices.get(route), og })) blocking.push(`${route}: ${issue}`);
     for (const issue of notFoundMarkerIssues(html, false)) blocking.push(`${route}: ${issue}`);
+    for (const issue of consentIssues(consentFacts(html), { footer: true, form: PRERENDERED_FORMS[route] })) {
+      consentProblems++;
+      blocking.push(`${route}: ${issue}`);
+    }
+  }
+  for (const route of Object.keys(PRERENDERED_FORMS)) {
+    if (routes.includes(route)) continue;
+    consentProblems++;
+    blocking.push(`${route}: el formulario ya no tiene página estática; actualizar PRERENDERED_FORMS`);
   }
   for (const [file, url] of [['spa.html', '/buscar'], ['404.html', NOT_FOUND_URL]] as const) {
     const html = read(file);
     if (!html) {
+      consentProblems++;
       blocking.push(`${file}: no se generó`);
       continue;
     }
     const facts = inspectHtml(html);
     for (const issue of structuralIssues(url, facts, { indexable: false })) blocking.push(`${file}: ${issue}`);
     for (const issue of notFoundMarkerIssues(html, file === '404.html', facts.h1s)) blocking.push(`${file}: ${issue}`);
+    // spa.html viene vacía (sin pie): solo las ausencias
+    for (const issue of consentIssues(consentFacts(html), { footer: file === '404.html' })) {
+      consentProblems++;
+      blocking.push(`${file}: ${issue}`);
+    }
   }
   if (read('spa.html') && !inspectHtml(read('spa.html')!).rootEmpty) blocking.push('spa.html: la app debería venir vacía');
 
@@ -373,6 +490,7 @@ function main() {
       (toUnpublished.length ? `: ${toUnpublished.map(([old, id]) => `${old} → ${id}`).join(', ')}` : ''),
   );
   console.log(`[check-prerender] ${legacy.summary}`);
+  console.log(consentSummary(consentProblems));
   for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);
   for (const w of legacy.warnings) console.log(`::warning title=URLs de elights.cl::${w}`);

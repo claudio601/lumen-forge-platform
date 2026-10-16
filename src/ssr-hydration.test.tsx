@@ -3,8 +3,14 @@
 // Si el primer render del navegador difiere del HTML, o si una actualización urgente
 // llega a la página antes de que termine de hidratarse, React descarta el HTML del
 // servidor y la vuelve a dibujar (onRecoverableError) o avisa por consola ("did not match").
+//
+// Aviso de cookies (PR 13): todas las hidrataciones corren con el aviso HABILITADO en este
+// host (VITE_COOKIE_BANNER_HOSTS=localhost, como en elights.cl), porque es el caso que puede
+// romper la página de llegada: el aviso lee la decisión del navegador. El HTML del servidor
+// nunca lo trae; después de hidratar aparece solo si no hay decisión (control positivo). La
+// decisión se siembra solo en el navegador, después de generar el HTML.
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, waitFor } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { hydrateRoot, type Root } from 'react-dom/client';
@@ -17,6 +23,8 @@ import { STATIC_ROUTES } from '@/lib/seo/routes';
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
+import { COOKIE_CONSENT_STORAGE_KEY, COOKIE_CONSENT_VERSION, COOKIE_TEXTS, __resetForTests, type CookieChoice } from '@/lib/cookieConsent';
+import { CONSENT_FIELD_NAMES } from '../api/_lib/forms/consent';
 
 /**
  * Sesión de un cliente en modo empresa con productos en la cotización y en la solicitud, y
@@ -37,25 +45,46 @@ function seedSession() {
   );
 }
 
+/** Decisiones de cookies que se siembran en el navegador (nunca en el HTML del servidor). */
+const ACCEPTED: CookieChoice = { analytics: true, ads: true, origin: true };
+const REJECTED_NO_ORIGIN: CookieChoice = { analytics: false, ads: false, origin: false };
+
+function seedDecision(choice: CookieChoice) {
+  localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify({ v: COOKIE_CONSENT_VERSION, at: new Date().toISOString(), ...choice }));
+}
+
+/** El aviso de cookies (CookieConsent): una región con su etiqueta. */
+const BANNER = `section[aria-label="${COOKIE_TEXTS.bannerLabel}"]`;
+
 let root: Root | undefined;
+beforeEach(() => {
+  // El aviso se abre solo en este host (jsdom: localhost), como en elights.cl
+  vi.stubEnv('VITE_COOKIE_BANNER_HOSTS', 'localhost');
+});
 afterEach(() => {
   act(() => root?.unmount());
   root = undefined;
   sessionStorage.clear();
+  localStorage.clear();
+  __resetForTests();
   document.body.innerHTML = '';
   window.history.replaceState({}, '', '/');
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 const MISMATCH = /did not match|did not expect server HTML|Expected server HTML|received an update before it finished hydrating|switch to client rendering/i;
 
 /**
  * Genera el HTML como el prerender (ruta sin parámetros, sin sesión) y lo hidrata con
- * la app del navegador en la URL del visitante, opcionalmente con una sesión activa.
+ * la app del navegador en la URL del visitante, opcionalmente con una sesión activa y con
+ * una decisión de cookies guardada (las dos, solo en el navegador).
  * notFound: el HTML es 404.html (Vercel lo sirve en cualquier URL sin archivo ni regla).
  */
-async function hydrate(serverPath: string, clientUrl: string, withSession: boolean, notFound = false) {
+async function hydrate(serverPath: string, clientUrl: string, withSession: boolean, notFound = false, decision: CookieChoice | null = null) {
   sessionStorage.clear();
+  localStorage.clear();
+  __resetForTests();
   const errors: unknown[] = [];
   const consoleErrors: string[] = [];
   // En jsdom, Radix usa useLayoutEffect también en el render del servidor y React avisa
@@ -64,6 +93,7 @@ async function hydrate(serverPath: string, clientUrl: string, withSession: boole
   await preloadRoute(serverPath);
   const html = renderToString(serverTree(serverPath));
   if (withSession) seedSession();
+  if (decision) seedDecision(decision);
   window.history.replaceState({}, '', clientUrl);
   const container = document.createElement('div');
   container.innerHTML = html;
@@ -77,7 +107,15 @@ async function hydrate(serverPath: string, clientUrl: string, withSession: boole
     await new Promise(r => setTimeout(r, 0));
   });
   await act(async () => { await new Promise(r => setTimeout(r, 0)); });
-  return { errors, mismatches: consoleErrors.filter(m => MISMATCH.test(m)), container, serverH1 };
+  return { errors, mismatches: consoleErrors.filter(m => MISMATCH.test(m)), container, serverH1, html };
+}
+
+/** El HTML del servidor no trae el aviso y sí el botón «Configurar cookies» del pie. */
+function expectServerHtmlWithoutBanner(html: string) {
+  expect(html).not.toContain(`aria-label="${COOKIE_TEXTS.bannerLabel}"`);
+  expect(html).not.toContain(COOKIE_TEXTS.banner);
+  expect(html).not.toMatch(/googletagmanager|dataLayer/);
+  expect(html).toContain(`>${COOKIE_TEXTS.footerButton}</button>`);
 }
 
 const withContent = products.find(p => hasProductContent(p.jumpseller_id) && !editorialOverlay[p.jumpseller_id])!;
@@ -110,13 +148,19 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
   ];
   for (const [name, serverPath, clientUrl, notFound] of cases) {
     for (const withSession of [false, true]) {
-      it(`${name}, ${withSession ? 'con sesión (modo empresa y carrito)' : 'visitante nuevo'}: conserva el HTML del servidor`, async () => {
-        const { errors, mismatches, container, serverH1 } = await hydrate(serverPath, clientUrl, withSession, notFound);
+      // Visitante nuevo: sin sesión y sin decisión de cookies. Con sesión: modo empresa,
+      // carrito, origen de la visita y cookies aceptadas.
+      it(`${name}, ${withSession ? 'con sesión (modo empresa, carrito y cookies aceptadas)' : 'visitante nuevo (sin decisión de cookies)'}: conserva el HTML del servidor`, async () => {
+        const { errors, mismatches, container, serverH1, html } = await hydrate(serverPath, clientUrl, withSession, notFound, withSession ? ACCEPTED : null);
         expect(errors).toEqual([]);
         expect(mismatches).toEqual([]);
         expect(serverH1).not.toBeNull();
         expect(container.contains(serverH1)).toBe(true); // React reutilizó el nodo: no lo volvió a dibujar
         expect(container.querySelector('main .animate-spin')).toBeNull(); // ni el indicador de carga
+        expectServerHtmlWithoutBanner(html);
+        // Control positivo: el aviso aparece después de hidratar solo si no hay decisión
+        if (withSession) expect(container.querySelector(BANNER)).toBeNull();
+        else await waitFor(() => expect(container.querySelector(BANNER)).not.toBeNull());
       });
     }
   }
@@ -163,5 +207,80 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     container.setAttribute(NOT_FOUND_ATTR, '');
     expect(staticPage(container, '/producto/no-existe').notFoundPath).toBe('/producto/no-existe');
     expect(await staticPage(container, '/producto/no-existe').preload).toEqual(await preloadRoute(NOT_FOUND_URL));
+  });
+});
+
+describe('aviso de cookies y casillas en la hidratación (PR 13)', () => {
+  const PAGES_WITH_BANNER = ['/', '/cotizador', '/instalacion', '/estudio-luminico', '/politica-de-privacidad'];
+
+  it('las páginas clave están entre las fijas (la prueba de arriba las hidrata sin decisión y con cookies aceptadas)', () => {
+    for (const page of PAGES_WITH_BANNER) expect(STATIC_ROUTES).toContain(page);
+  });
+
+  for (const page of PAGES_WITH_BANNER) {
+    it(`${page}, rechazó las cookies y se opuso al origen de la visita: conserva el HTML y no muestra el aviso`, async () => {
+      const { errors, mismatches, container, serverH1, html } = await hydrate(page, page, false, false, REJECTED_NO_ORIGIN);
+      expect(errors).toEqual([]);
+      expect(mismatches).toEqual([]);
+      expect(container.contains(serverH1)).toBe(true);
+      expectServerHtmlWithoutBanner(html);
+      expect(container.querySelector(BANNER)).toBeNull();
+    });
+  }
+
+  const FORMS: [string, string][] = [
+    ['/cotizador', 'cotizador'],
+    ['/instalacion', 'instalacion'],
+    ['/estudio-luminico', 'estudio-luminico'],
+  ];
+  for (const [page, form] of FORMS) {
+    it(`${page}: las casillas llegan sin marcar en el formulario deshabilitado y quedan sin marcar y habilitadas al hidratar`, async () => {
+      const { errors, mismatches, container, html } = await hydrate(page, page, false);
+      expect(errors).toEqual([]);
+      expect(mismatches).toEqual([]);
+      const server = document.createElement('div');
+      server.innerHTML = html;
+      for (const name of [CONSENT_FIELD_NAMES.privacy, CONSENT_FIELD_NAMES.marketing]) {
+        const box = server.querySelector<HTMLInputElement>(`input[type="checkbox"][name="${name}"]`);
+        expect(box).not.toBeNull();
+        expect(box!.hasAttribute('checked')).toBe(false);
+        expect(box!.closest('fieldset[disabled]')).not.toBeNull(); // puerta de hidratación
+        expect(box!.closest('[data-elights-form]')?.getAttribute('data-elights-form')).toBe(form);
+        const live = container.querySelector<HTMLInputElement>(`input[type="checkbox"][name="${name}"]`)!;
+        await waitFor(() => expect(live.closest('fieldset[disabled]')).toBeNull());
+        expect(live.checked).toBe(false);
+      }
+    });
+  }
+});
+
+// Va al final: analytics.ts recuerda en el módulo que GA ya se cargó (solo vi.resetModules
+// lo reinicia) y las pruebas de arriba comparten el módulo.
+describe('con Google Analytics activo en el host (elights.cl desde la Etapa 3)', () => {
+  it('página de llegada de Google Ads con cookies aceptadas: se hidrata sin desajustes y GA se carga después, fuera del HTML', async () => {
+    vi.stubEnv('VITE_ANALYTICS_HOSTS', 'localhost');
+    vi.stubEnv('VITE_GA4_ID', 'G-TEST123');
+    try {
+      const { errors, mismatches, container, serverH1, html } = await hydrate(
+        '/catalogo/paneles-led',
+        '/catalogo/paneles-led?gclid=abc&utm_source=google',
+        false,
+        false,
+        ACCEPTED,
+      );
+      expect(errors).toEqual([]);
+      expect(mismatches).toEqual([]);
+      expect(container.contains(serverH1)).toBe(true);
+      expectServerHtmlWithoutBanner(html);
+      // Control positivo: con la decisión guardada, el page_view de RouteTracker cargó GA
+      await waitFor(() => expect(document.head.querySelector('script[src*="googletagmanager.com/gtag/js?id=G-TEST123"]')).not.toBeNull());
+      expect(container.innerHTML).not.toContain('googletagmanager');
+      expect(container.querySelector(BANNER)).toBeNull();
+    } finally {
+      document.head.querySelectorAll('script[src*="googletagmanager"]').forEach(s => s.remove());
+      delete window.gtag;
+      delete window.dataLayer;
+      delete (window as unknown as Record<string, unknown>)['ga-disable-G-TEST123'];
+    }
   });
 });

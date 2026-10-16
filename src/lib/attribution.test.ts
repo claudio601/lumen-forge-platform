@@ -20,10 +20,14 @@ const stored = () => {
   return raw === null ? null : JSON.parse(raw);
 };
 
-beforeEach(() => sessionStorage.clear());
+beforeEach(() => {
+  sessionStorage.clear();
+  localStorage.clear();
+});
 afterEach(() => {
   vi.restoreAllMocks();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 describe('attributionFromUrl', () => {
@@ -209,5 +213,60 @@ describe('sessionStorage bloqueado o alterado', () => {
   it('sin nada capturado, getAttribution da undefined', async () => {
     const { getAttribution } = await load();
     expect(getAttribution()).toBeUndefined();
+  });
+});
+
+describe('oposición al origen de la visita (PR 13)', () => {
+  const CONSENT_KEY = 'elights_cookie_consent';
+  const decision = (origin: boolean, at = new Date().toISOString()) =>
+    localStorage.setItem(CONSENT_KEY, JSON.stringify({ v: 1, at, analytics: false, ads: false, origin }));
+
+  it('con origin=false guardado, captureAttribution no escribe y getAttribution devuelve undefined', async () => {
+    sessionStorage.setItem(KEY, JSON.stringify({ gclid: GCLID, landing: '/' })); // anotado antes de oponerse
+    decision(false);
+    const { captureAttribution, getAttribution } = await load();
+    captureAttribution(`${SITE}/catalogo?gclid=OTRO123&utm_source=google`, 'https://www.google.com/');
+    expect(stored()).toEqual({ gclid: GCLID, landing: '/' }); // no escribió
+    expect(getAttribution()).toBeUndefined();
+  });
+
+  it('la oposición no vence: tampoco con una decisión de hace 2 años', async () => {
+    decision(false, new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString());
+    const { captureAttribution, getAttribution } = await load();
+    captureAttribution(`${SITE}/?gclid=${GCLID}`, '');
+    expect(stored()).toBeNull();
+    expect(getAttribution()).toBeUndefined();
+  });
+
+  it('clearAttribution borra la clave de la sesión y la copia en memoria', async () => {
+    const { captureAttribution, clearAttribution, getAttribution } = await load();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+      throw new Error('QuotaExceededError'); // queda solo en memoria
+    });
+    captureAttribution(`${SITE}/?gclid=${GCLID}`, '');
+    expect(getAttribution()).toEqual({ gclid: GCLID, landing: '/' });
+    sessionStorage.setItem(KEY, JSON.stringify({ utm_source: 'news', landing: '/x' }));
+    clearAttribution();
+    expect(stored()).toBeNull();
+    expect(getAttribution()).toBeUndefined();
+  });
+
+  it('clearAttribution nunca lanza, aunque sessionStorage falle', async () => {
+    const { clearAttribution } = await load();
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+      throw new Error('SecurityError');
+    });
+    expect(() => clearAttribution()).not.toThrow();
+  });
+
+  it.each([
+    ['sin decisión', null],
+    ['con Rechazar (solo apaga las cookies de Google)', true],
+  ])('%s se sigue capturando', async (_, origin) => {
+    if (origin !== null) decision(origin);
+    const { captureAttribution, getAttribution } = await load();
+    captureAttribution(`${SITE}/?gclid=${GCLID}`, '');
+    expect(stored()).toEqual({ gclid: GCLID, landing: '/' });
+    expect(getAttribution()).toEqual({ gclid: GCLID, landing: '/' });
   });
 });

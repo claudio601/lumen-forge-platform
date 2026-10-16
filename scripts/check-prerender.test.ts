@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PRERENDERED_FORMS,
+  consentFacts,
+  consentSummary,
+  consentIssues,
   contentIssues,
   expectedOg,
   inspectHtml,
@@ -10,6 +14,9 @@ import {
   type ExpectedOg,
 } from './check-prerender';
 import { DEFAULT_OG } from '../src/lib/seo/ogImage';
+import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
+import { CONSENT_FORMS } from '../api/_lib/forms/consent';
+import { STATIC_ROUTES } from '../src/lib/seo/routes';
 
 const SITE = 'https://sitio.test';
 const ROUTE = '/producto/x';
@@ -195,5 +202,114 @@ describe('check-prerender: URLs de elights.cl (PR 08)', () => {
     expect(legacyRedirectIssues(encoded, [], f => f === 'público' || f === 'catalogo/solar/index.html').blocking).toEqual([
       '/p%C3%BAblico: su 301 tapa el archivo dist/público',
     ]);
+  });
+});
+
+describe('check-prerender: consentimiento (PR 13)', () => {
+  const footer = `<footer><h3>Ayuda</h3><button type="button" class="text-left">${COOKIE_TEXTS.footerButton}</button></footer>`;
+  const boxes = (checked = { privacy: false, marketing: false }) =>
+    `<fieldset disabled=""><fieldset class="mb-5"><legend class="sr-only">Privacidad y novedades</legend>` +
+    `<label><input id=":r1:" type="checkbox" name="consentPrivacy" aria-required="true"${checked.privacy ? ' checked=""' : ''}/> Leí la política</label>` +
+    `<label><input id=":r2:" type="checkbox" name="consentMarketing"${checked.marketing ? ' checked=""' : ''}/> Novedades</label></fieldset></fieldset>`;
+  const formPage = (inner = boxes(), form = 'cotizador') =>
+    `<!doctype html><html lang="es"><head><title>x</title></head><body><div id="root"><header>eLIGHTS</header>` +
+    `<main><h1>Cotizador</h1><div data-elights-form="${form}"><form>${inner}</form></div></main>${footer}</div></body></html>`;
+  const plain = (head = '', body = '<main><h1>Inicio</h1></main>') =>
+    `<!doctype html><html lang="es"><head><title>x</title>${head}</head><body><div id="root"><header>eLIGHTS</header>${body}${footer}</div></body></html>`;
+
+  it('una página sin aviso ni Google, con el botón del pie, no tiene problemas', () => {
+    const f = consentFacts(plain());
+    expect(f).toEqual({ banners: 0, bannerText: false, google: [], footerCookieButtons: 1, consentBoxes: [], forms: [] });
+    expect(consentIssues(f, { footer: true })).toEqual([]);
+  });
+
+  it('un formulario con las dos casillas sin marcar dentro de su data-elights-form pasa', () => {
+    const f = consentFacts(formPage());
+    expect(f.consentBoxes).toEqual([
+      { name: 'consentPrivacy', checked: false, form: 'cotizador' },
+      { name: 'consentMarketing', checked: false, form: 'cotizador' },
+    ]);
+    expect(consentIssues(f, { footer: true, form: 'cotizador' })).toEqual([]);
+  });
+
+  it('detecta el aviso en el HTML (por su etiqueta o por su texto)', () => {
+    const byLabel = plain('', `<section role="region" aria-label="${COOKIE_TEXTS.bannerLabel}"></section><main><h1>x</h1></main>`);
+    const byText = plain('', `<div><p>${COOKIE_TEXTS.banner} <a href="/politica-de-privacidad">Política</a></p></div><main><h1>x</h1></main>`);
+    for (const html of [byLabel, byText]) {
+      expect(consentIssues(consentFacts(html), { footer: true })).toEqual([
+        'trae el aviso de cookies en el HTML (debe aparecer solo en el navegador, después de hidratar)',
+      ]);
+    }
+    // Hablar del aviso en minúscula (Política de privacidad §10) no es el aviso
+    expect(consentIssues(consentFacts(plain('', '<main><h1>x</h1><p>Usa el aviso de cookies para decidir.</p></main>')), { footer: true })).toEqual([]);
+  });
+
+  it('detecta Google Analytics antes del consentimiento (script, preconexión o dataLayer)', () => {
+    const tag = plain('<script async src="https://www.googletagmanager.com/gtag/js?id=G-TEST"></script><script>window.dataLayer=[];function gtag(){dataLayer.push(arguments)}</script>');
+    expect(consentIssues(consentFacts(tag), { footer: true })).toEqual([
+      'trae Google Analytics antes del consentimiento: googletagmanager, gtag/js, dataLayer, gtag(',
+    ]);
+    const preconnect = plain('<link rel="preconnect" href="https://www.google-analytics.com"/>');
+    expect(consentIssues(consentFacts(preconnect), { footer: true })).toEqual(['trae Google Analytics antes del consentimiento: google-analytics.com']);
+  });
+
+  it('el botón «Configurar cookies» debe estar una vez en el pie (spa.html no lo exige)', () => {
+    const noFooter = '<!doctype html><html lang="es"><head><title>x</title></head><body><div id="root"></div></body></html>';
+    expect(consentIssues(consentFacts(noFooter), { footer: true })).toEqual(['0 botones «Configurar cookies» en el pie (debe haber uno)']);
+    expect(consentIssues(consentFacts(noFooter), { footer: false })).toEqual([]);
+    // El de la Política de privacidad §10 está en <main>: no cuenta como el del pie
+    const inMain = plain('', `<main><h1>Privacidad</h1><button type="button">${COOKIE_TEXTS.footerButton}</button></main>`);
+    expect(consentFacts(inMain).footerCookieButtons).toBe(1);
+    const twice = plain().replace('</footer>', `<button type="button">${COOKIE_TEXTS.footerButton}</button></footer>`);
+    expect(consentIssues(consentFacts(twice), { footer: true })).toEqual(['2 botones «Configurar cookies» en el pie (debe haber uno)']);
+  });
+
+  it('una casilla marcada, una que falta o un formulario sin data-elights-form bloquean', () => {
+    expect(consentIssues(consentFacts(formPage(boxes({ privacy: true, marketing: false }))), { footer: true, form: 'cotizador' })).toEqual([
+      'la casilla consentPrivacy viene marcada',
+    ]);
+    expect(consentIssues(consentFacts(formPage(boxes({ privacy: false, marketing: true }))), { footer: true, form: 'cotizador' })).toEqual([
+      'la casilla consentMarketing viene marcada',
+    ]);
+    const onlyPrivacy = formPage(boxes().replace(/<label><input id=":r2:"[^]*?<\/label>/, ''));
+    expect(consentIssues(consentFacts(onlyPrivacy), { footer: true, form: 'cotizador' })).toEqual([
+      '0 casillas consentMarketing en el formulario cotizador (debe haber una)',
+    ]);
+    expect(consentIssues(consentFacts(formPage()), { footer: true, form: 'instalacion' })).toEqual([
+      'sin data-elights-form="instalacion"',
+      '0 casillas consentPrivacy en el formulario instalacion (debe haber una)',
+      '0 casillas consentMarketing en el formulario instalacion (debe haber una)',
+    ]);
+    const outside = plain('', `<main><h1>x</h1>${boxes()}</main>`);
+    expect(consentIssues(consentFacts(outside), { footer: true })).toEqual([
+      'la casilla consentPrivacy está fuera de un data-elights-form',
+      'la casilla consentMarketing está fuera de un data-elights-form',
+    ]);
+  });
+
+  it('los formularios con página estática son páginas fijas y formularios del consentimiento', () => {
+    expect(Object.keys(PRERENDERED_FORMS)).toEqual(['/cotizador', '/instalacion', '/estudio-luminico']);
+    for (const [route, form] of Object.entries(PRERENDERED_FORMS)) {
+      expect(STATIC_ROUTES).toContain(route);
+      expect(CONSENT_FORMS).toContain(form);
+    }
+    // Los otros dos usan spa.html (dependen de la sesión)
+    expect(STATIC_ROUTES).not.toContain('/solicitar-pedido');
+    expect(STATIC_ROUTES).not.toContain('/cotizacion');
+  });
+
+  it('el resumen del registro dice «todo bien» solo si no hubo problemas de consentimiento', () => {
+    const ok = consentSummary(0);
+    expect(ok).toBe(
+      `[check-prerender] Consentimiento: sin aviso de cookies ni Google en el HTML; «${COOKIE_TEXTS.footerButton}» en el pie; ` +
+        'casillas sin marcar en /cotizador, /instalacion, /estudio-luminico',
+    );
+    // Con el aviso en el HTML (lo que encontró la mutación del aviso en el servidor): solo el conteo
+    const withBanner = `<html><body><div id="root"><section role="region" aria-label="${COOKIE_TEXTS.bannerLabel}"></section><main><h1>x</h1></main></div></body></html>`;
+    const problems = consentIssues(consentFacts(withBanner), { footer: true }).length;
+    expect(problems).toBeGreaterThan(0);
+    const bad = consentSummary(problems);
+    expect(bad).toBe(`[check-prerender] Consentimiento: ${problems} problema(s)`);
+    expect(bad).not.toMatch(/sin aviso|en el pie|sin marcar/);
   });
 });

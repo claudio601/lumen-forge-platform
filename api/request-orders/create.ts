@@ -5,15 +5,21 @@
 //
 // Orden de ejecucion (CRITICO — no modificar):
 //   0. Rate limit (429), origen (403) y honeypot (200 sin crear nada)
+//   0b. Privacidad y términos (api/_lib/forms/consent.ts): sin la casilla obligatoria,
+//       400 con code 'consent_required' antes de tocar Pipedrive o el correo. La hora de
+//       la constancia es la del servidor (un solo new Date() por solicitud).
 //   1. Validar payload  -> 400 si falla
 //   1b. Recalcular precios CON IVA desde el catálogo de Jumpseller. Los precios del
 //       navegador se ignoran. Un producto que no se puede identificar NO rechaza la
 //       solicitud: se marca "REVISAR: precio por confirmar" (nunca se pierde un lead).
 //   2. Crear deal en Pipedrive -> BLOQUEANTE. 502 si falla. Luego una nota con el
-//      detalle de productos y el origen de la visita (no bloqueante): createDeal no guarda
-//      las notas. Un reenvío con la misma referencia RC- (sin negocio nuevo) también deja
-//      su nota "Reenvío de la solicitud ...".
-//   3. Enviar email GAS -> FIRE-AND-FORGET. Log warn si falla (sin datos del cliente).
+//      detalle de productos, la constancia "PRIVACIDAD Y AUTORIZACIONES" y el origen de la
+//      visita (no bloqueante): createDeal no guarda las notas. Un reenvío con la misma
+//      referencia RC- (sin negocio nuevo) también deja su nota "Reenvío de la solicitud
+//      ...", con la constancia del envío nuevo.
+//   3. Enviar email GAS -> FIRE-AND-FORGET, con la misma constancia. Log warn si falla
+//      (sin datos del cliente). La constancia solo queda en la nota y en este correo, los
+//      dos después de crear el negocio: si fallan los dos, queda un aviso en el log.
 //   4. Retornar 201 { success, requestReference, dealId }
 //
 // El deal en Pipedrive es la fuente de verdad.
@@ -32,6 +38,7 @@ import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } fro
 import { netOf, priceItems } from '../_lib/catalog/pricing.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
+import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
 const LOG = '[RequestOrder]';
 const ALLOWED_METHODS = ['POST'];
@@ -74,6 +81,8 @@ interface RequestOrderPayload {
   region: string;
   notes?: string;
   requestReference: string;
+  /** Casillas de privacidad y términos: las lee resolveConsent; nunca van a requested_items_json. */
+  consent?: unknown;
 }
 
 // ── Validacion del payload ────────────────────────────────────────────────────
@@ -174,11 +183,30 @@ function toQuotePayload(p: RequestOrderPayload): QuotePayload {
 }
 
 /**
- * Nota del deal. `origen`: la sección "ORIGEN DE LA VISITA" (api/_lib/forms/attribution.ts),
- * antes de requested_items_json, que sigue siendo la última línea (se lee a máquina).
+ * Última línea de la nota: los productos en JSON. Pipedrive guarda la nota como HTML y
+ * JSON.stringify no escapa < > &: un atributo, una url o un nombre que manda el navegador
+ * podría abrir una línea nueva con <br> (o traer entidades como &quot;) y dejar un
+ * «consent_json:» falso DESPUÉS de la constancia real. Se escriben como \u003c, \u003e y
+ * \u0026, que JSON.parse lee igual.
+ */
+export function itemsJsonLine(items: unknown): string {
+  const json = JSON.stringify(items).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
+  return `requested_items_json: ${json}`;
+}
+
+/**
+ * Nota del deal. `consent`: la constancia "PRIVACIDAD Y AUTORIZACIONES"
+ * (api/_lib/forms/consent.ts), después de los textos del cliente. `origen`: la sección
+ * "ORIGEN DE LA VISITA" (api/_lib/forms/attribution.ts). Las dos van antes de
+ * requested_items_json, que sigue siendo la última línea (se lee a máquina; ver itemsJsonLine).
  * `resend`: la misma referencia llegó de nuevo y no se creó un negocio nuevo.
  */
-function buildNotes(p: RequestOrderPayload, origen: string[] = [], { resend = false } = {}): string {
+function buildNotes(
+  p: RequestOrderPayload,
+  origen: string[] = [],
+  consent: string[] = [],
+  { resend = false } = {}
+): string {
   const lines: string[] = [
     resend
       ? `Reenvío de la solicitud ${p.requestReference} (misma referencia; no se creó un negocio nuevo)`
@@ -204,8 +232,9 @@ function buildNotes(p: RequestOrderPayload, origen: string[] = [], { resend = fa
   if (p.items.some((i) => i.priceMode === 'neto')) {
     lines.push('Nota: el cliente veía precios netos (modo empresa) en el sitio.');
   }
+  if (consent.length) lines.push('', ...consent);
   if (origen.length) lines.push('', ...origen);
-  lines.push(`requested_items_json: ${JSON.stringify(p.items)}`);
+  lines.push(itemsJsonLine(p.items));
   return lines.join('\n');
 }
 
@@ -241,12 +270,28 @@ export default async function handler(
     return;
   }
 
-  // ── LOG: Payload recibido (sin PII) ────────────────────────────
+  // ── Paso 0b: Privacidad y términos (antes de Pipedrive y del correo) ──
+  // Un solo reloj por solicitud: la hora de la constancia es la del servidor; lo que mande
+  // el navegador en `at` o `fecha` no cuenta.
+  const at = new Date();
+  const consent = resolveConsent(body, { form: 'solicitar-pedido', requireTerms: true, at });
+  // `=== false`: con strictNullChecks apagado, `if (!consent.ok)` no estrecha el tipo.
+  if (consent.ok === false) {
+    console.warn(`${LOG} Consent missing`);
+    res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      code: CONSENT_ERROR_CODE,
+      details: { errors: consent.errors },
+    });
+    return;
+  }
+
+  // ── LOG: Payload recibido (sin PII; la comuna es texto libre y no va) ──
   const safeLog = {
     itemCount: Array.isArray(body?.items) ? body.items.length : 0,
     subtotal: body?.subtotal,
     customerType: body?.customerType,
-    commune: body?.commune,
     requestReference: body?.requestReference,
   };
   console.log(`${LOG} Payload recibido`, safeLog);
@@ -358,7 +403,7 @@ export default async function handler(
       leadType,
       priorityTier,
       quoteReference: requestReference,
-      notes: buildNotes(payload, origen),
+      notes: buildNotes(payload, origen, consent.section),
       tipoServicio: TIPO_SERVICIO.COTIZACION_WEB,
     });
 
@@ -369,14 +414,20 @@ export default async function handler(
     dealId = dealResult.dealId;
 
     // createDeal no guarda las notas: el detalle de productos (con ids de Jumpseller para
-    // el link de pago) y el origen se agregan aparte, también en un reenvío con la misma
-    // referencia (sin negocio nuevo). No bloquea: el deal ya existe.
+    // el link de pago), la constancia y el origen se agregan aparte, también en un reenvío
+    // con la misma referencia (sin negocio nuevo). No bloquea: el deal ya existe. Si falla,
+    // la constancia queda solo en el correo: el aviso lleva la referencia, nunca datos.
     if (dealResult.status === 'created' || dealResult.status === 'skipped_duplicate') {
+      const noteFailed = `${LOG} Nota con la constancia no creada | ref: ${requestReference} | dealId: ${dealId}`;
       try {
         const resend = dealResult.status === 'skipped_duplicate';
-        await pipedrivePost('/notes', { content: buildNotes(payload, origen, { resend }), deal_id: dealId });
+        const note = await pipedrivePost('/notes', {
+          content: buildNotes(payload, origen, consent.section, { resend }),
+          deal_id: dealId,
+        });
+        if (!note?.success) console.warn(noteFailed);
       } catch (err) {
-        console.warn(`${LOG} Nota de productos en Pipedrive FAIL | dealId: ${dealId}`, err);
+        console.warn(`${noteFailed} | ${err instanceof Error ? err.message : 'error desconocido'}`);
       }
     }
     console.log(
@@ -394,7 +445,7 @@ export default async function handler(
   // ── Paso 3: Enviar email GAS (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ─────────────────
   console.log(`${LOG} GAS relay iniciado`);
   waitUntil(
-    sendGasEmail(payload, requestReference, dealId, origen)
+    sendGasEmail(payload, requestReference, dealId, origen, consent.section, at)
       .then(() => {
         console.log(`${LOG} GAS relay OK`);
       })
@@ -420,7 +471,9 @@ async function sendGasEmail(
   payload: RequestOrderPayload,
   ref: string,
   dealId: number,
-  origen: string[]
+  origen: string[],
+  consent: string[],
+  at: Date
 ): Promise<void> {
   // Sin el correo del cliente: los logs nunca llevan datos personales
   console.log(`${LOG} GAS email starting | ref: ${ref}`);
@@ -434,12 +487,14 @@ async function sendGasEmail(
   });
   // La plantilla del correo (Apps Script, compartida con Cotización) solo muestra algunos
   // campos: la referencia, el negocio de Pipedrive, la comuna y las notas van en la lista.
+  // La constancia va después de los textos del cliente y antes del origen.
   const itemsText = [
     `Solicitud de pedido ${ref} \u2014 negocio Pipedrive #${dealId}`,
     `Comuna: ${payload.commune}, ${payload.region}`,
     ...(payload.notes ? [`Notas del cliente: ${payload.notes}`] : []),
     '',
     ...itemLines,
+    ...(consent.length ? ['', ...consent] : []),
     '',
     ...origen,
   ].join('\n');
@@ -467,7 +522,7 @@ async function sendGasEmail(
         ? 'Con IVA (el cliente veía precios netos, modo empresa)'
         : 'Con IVA',
       notas: payload.notes ?? '-',
-      fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
+      fecha: at.toLocaleDateString('es-CL', { dateStyle: 'long', timeZone: 'America/Santiago' }),
     }),
   });
 

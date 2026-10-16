@@ -9,6 +9,10 @@
 // Santiago, src/test/freeShipping.ts) y los transportistas son los mismos en todas las páginas.
 // Las frases retiradas de la PR 11 las revisa src/config/contentTruth.test.ts en todas las
 // páginas fijas, también estas.
+// PR 13: versión 1.1 con el archivo permanente de cada versión (public/legal/, enlaces bajo la
+// versión), las casillas, la constancia y el aviso de cookies en Privacidad y Términos. La
+// política debe decir lo mismo que el código: textos de las casillas (consent.ts) y del
+// aviso de cookies (cookieConsent.ts).
 
 import { describe, expect, it } from 'vitest';
 import { renderToString } from 'react-dom/server';
@@ -18,7 +22,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { serverTree } from '@/entry-server';
 import { preloadRoute } from '@/routes';
 import { LEGAL_PAGES, type LegalPath } from '@/config/legal';
-import { LEGAL_NAME, LEGAL_REPRESENTATIVE, LEGAL_RUT, LEGAL_UPDATED, LEGAL_UPDATED_LABEL, LEGAL_VERSION, SITE_URL } from '@/config/site';
+import { LEGAL_ARCHIVE, LEGAL_NAME, LEGAL_REPRESENTATIVE, LEGAL_RUT, LEGAL_UPDATED, LEGAL_UPDATED_LABEL, LEGAL_VERSION, SITE_URL } from '@/config/site';
+import { COOKIE_CONSENT_MAX_AGE_MS, COOKIE_TEXTS } from '@/lib/cookieConsent';
+import { CONSENT_TEXTS, consentTextPlain, legalArchiveHref, type LegalVersionedPath } from '../../api/_lib/forms/consent';
 import {
   businessClosedDays,
   businessHours,
@@ -77,7 +83,6 @@ function section(main: Element, heading: string) {
  * como "las excluidas", sí hay retiro en bodega y los transportistas son los de REGION_CARRIERS).
  */
 const FORBIDDEN = [
-  '3 meses',
   '1 año base',
   'stock',
   'existencias',
@@ -103,6 +108,8 @@ const amountsIn = (s: string) => s.match(/\$\s?\d[\d.]*\d/g) ?? [];
 /** Lo que confirmó el dueño el 2026-10-14 (README de la lista de precios por mayor), con sus palabras. */
 const OWNER_EXCLUDED =
   'San Bernardo, Puente Alto, Colina y el resto de la Provincia de Chacabuco; Talagante, Peñaflor y Padre Hurtado; Melipilla y Alhué; Buin, Paine y Pirque';
+/** "3 meses" de garantía, pero no "13 meses" (cookies de Google Analytics, Privacidad §7 y §10). */
+const THREE_MONTHS = /(?<!\d)3 meses/;
 
 /** Todo plazo en días u horas de un texto ("2 días hábiles", "3 a 5 días", "48 hrs"). */
 const DAY_COUNTS = /\d+(?:\s*(?:a|-|y)\s*\d+)?\s*(?:d[ií]as?(?:\s+(?:h[aá]biles|corridos))?|h(?:oras|rs)?|semanas?)(?![\p{L}\p{N}])/giu;
@@ -121,6 +128,13 @@ async function page(path: LegalPath) {
 
 const internalRoutes = new Set<string>([...STATIC_ROUTES, ...NOINDEX_ROUTES]);
 const VERSIONED: LegalPath[] = ['/terminos-y-condiciones', '/cambios-devoluciones-y-garantia', '/politica-de-privacidad'];
+/** Correo para temas de datos personales, con el asunto ya escrito. */
+const DATA_MAILTO = 'mailto:ventas@elights.cl?subject=Datos%20personales';
+/** href de los enlaces de una sección (el selector a[href="…%20…"] de jsdom no encuentra el mailto). */
+const linksIn = (els: Element[]) => els.flatMap(el => [...el.querySelectorAll('a')].map(a => a.getAttribute('href')));
+/** Archivos permanentes que enlaza una página con versión: la vigente y las de LEGAL_ARCHIVE. */
+const archiveHrefs = (path: LegalPath) =>
+  VERSIONED.includes(path) ? [LEGAL_VERSION, ...LEGAL_ARCHIVE].map(v => legalArchiveHref(path as LegalVersionedPath, v)) : [];
 
 describe('páginas legales y de compra: todas', () => {
   it('son las 6 de LEGAL_PAGES, todas páginas fijas indexables', () => {
@@ -143,23 +157,42 @@ describe('páginas legales y de compra: todas', () => {
       expect(policyIssues(text)).toEqual([]);
       for (const phrase of FORBIDDEN) expect(html, phrase).not.toContain(phrase);
       for (const amount of amountsIn(text)) expect(amount, `${path}: monto`).toBe(THRESHOLD);
+      expect(html).not.toMatch(THREE_MONTHS);
       expect(text).not.toMatch(/\[C\d+\]|\[nombre|LEGAL_UPDATED|TODO/); // sin marcadores del borrador
-      // Enlaces: internos a páginas de la app; externos solo correo, teléfono, WhatsApp y SERNAC
+      // Enlaces: internos a páginas de la app o a los archivos de versión de esta misma página;
+      // externos solo correo, teléfono, WhatsApp y SERNAC
+      const archives: string[] = [];
       for (const a of main.querySelectorAll('a')) {
         const href = a.getAttribute('href') ?? '';
-        if (href.startsWith('/')) expect(internalRoutes.has(href), `${path}: enlace a ${href}`).toBe(true);
+        if (href.startsWith('/legal/')) archives.push(href);
+        else if (href.startsWith('/')) expect(internalRoutes.has(href), `${path}: enlace a ${href}`).toBe(true);
         else expect(href, `${path}: enlace a ${href}`).toMatch(/^(?:mailto:ventas@elights\.cl(?:\?subject=Datos%20personales)?|tel:\+56991273128|https:\/\/wa\.me\/56991273128|https:\/\/www\.sernac\.cl)$/);
       }
+      expect(archives, `${path}: enlaces a los archivos de versión`).toEqual(archiveHrefs(path));
       const nav = main.querySelector('nav[aria-label="Más información"]')!;
       expect([...nav.querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual(LEGAL_PAGES.filter(p => p.path !== path).map(p => p.path));
       expect(nav.textContent).not.toContain(label);
       // La versión solo en los textos que la llevan
       const version = `Versión ${LEGAL_VERSION}. Vigente desde el ${LEGAL_UPDATED_LABEL}.`;
+      const archiveLinks = main.querySelector('[data-legal-archive="omit"]');
       if (VERSIONED.includes(path)) {
         expect(text).toContain(version);
         expect(main.querySelector('time')?.getAttribute('datetime')).toBe(LEGAL_UPDATED);
+        // Bajo la versión: guardar o imprimir la vigente y las anteriores (fuera del archivo)
+        expect(archiveLinks?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+          `Guardar o imprimir esta versión · Versiones anteriores: ${LEGAL_ARCHIVE.join(', ')}`,
+        );
+        const [save, ...previous] = [...archiveLinks!.querySelectorAll('a')];
+        expect(save.textContent).toBe('Guardar o imprimir esta versión');
+        expect(save.getAttribute('href')).toBe(legalArchiveHref(path as LegalVersionedPath));
+        expect(previous.map(a => [a.textContent, a.getAttribute('href')])).toEqual(
+          LEGAL_ARCHIVE.map(v => [v, legalArchiveHref(path as LegalVersionedPath, v)]),
+        );
+        // Archivos estáticos (no rutas de la app) y fuera del archivo de la versión
+        expect(archiveLinks!.querySelector('p, div')).toBeNull(); // extractArticle lo quita entero
       } else {
         expect(text).not.toContain('Vigente desde');
+        expect(archiveLinks).toBeNull();
       }
     });
   }
@@ -190,6 +223,7 @@ describe('páginas legales y de compra: todas', () => {
       for (const phrase of FORBIDDEN) expect(description, `${path}: description`).not.toContain(phrase);
       for (const amount of amountsIn(description)) expect(amount, `${path}: monto en la descripción`).toBe(THRESHOLD);
       if (FREE_RE.test(description)) expect(claimIssues(description), `${path}: description`).toEqual([]);
+      expect(description, `${path}: description`).not.toMatch(THREE_MONTHS);
       if (path === '/despacho') {
         expect([...description.matchAll(DAY_COUNTS)].map(m => m[0])).toEqual(['2 días hábiles']);
         expect(description).toContain('Despacho en hasta 2 días hábiles');
@@ -277,6 +311,28 @@ describe('páginas legales y de compra: contenido', () => {
     // §11: una garantía del fabricante mayor que 6 meses da los mismos derechos (Ley 19.496 art. 21)
     expect(section(main, '11.').text).toContain('durante ese plazo mayor tienes los mismos derechos');
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
+  });
+
+  it('/terminos-y-condiciones (PR 13): casilla del pedido, copia permanente al pagar, novedades solo con la casilla y versiones', async () => {
+    const { main } = await page('/terminos-y-condiciones');
+    const buying = section(main, '3.').text;
+    // §3.1: la casilla obligatoria de /solicitar-pedido (consent.ts, privacyWithTerms)
+    expect(buying).toContain('Al enviar una solicitud de pedido marcas que aceptas estos términos y que leíste la Política de privacidad.');
+    expect(consentTextPlain(CONSENT_TEXTS.privacyWithTerms)).toMatch(/^Acepto los Términos y condiciones, leí la Política de privacidad/);
+    // §3.6: copia de los términos vigentes al pagar (Ley 19.496 art. 12 A), con el archivo permanente
+    expect(buying).toContain(
+      'una copia de estos términos en la versión vigente al pagar (adjunta o en un enlace permanente que puedes guardar o imprimir)',
+    );
+    // §14: novedades solo por correo y con la casilla opcional, sin marcar; baja por el canal de datos personales
+    const marketing = section(main, '14.');
+    expect(marketing.text).toContain('Solo te enviaremos novedades u ofertas por correo si marcas la casilla para recibirlas en un formulario: es opcional y viene sin marcar.');
+    expect(linksIn(marketing.els)).toContain(DATA_MAILTO);
+    expect(consentTextPlain(CONSENT_TEXTS.marketing)).toContain('por correo (opcional)');
+    // §15: cada versión en un enlace permanente; la compra se rige por la vigente al pagar
+    const changes = section(main, '15.').text;
+    expect(changes).toContain('Cada versión indica su fecha y queda publicada en un enlace permanente, junto con las anteriores.');
+    expect(changes).toContain('Tu compra se rige por la versión vigente cuando pagaste; si cambió desde tu solicitud, la cotización te lo indica.');
+    expect(changes).not.toContain('pídela a');
   });
 
   it('/cambios-devoluciones-y-garantia: retracto de 10 días corridos (90 sin confirmación), 6 meses, reembolso en 45 días y quién paga el traslado', async () => {
@@ -402,7 +458,7 @@ describe('páginas legales y de compra: contenido', () => {
 
   it('/politica-de-privacidad: responsable, encargados (sin Axiom), plazos, derechos, cookies y canal "Datos personales"', async () => {
     const { main, text } = await page('/politica-de-privacidad');
-    for (const s of [LEGAL_NAME, LEGAL_RUT, 'Vercel', 'Pipedrive', 'Google', 'Twilio', 'Anthropic', 'Upstash', 'Jumpseller', '30 días corridos', 'no instala cookies propias', '24 meses', '6 años', 'Ley N° 21.719']) {
+    for (const s of [LEGAL_NAME, LEGAL_RUT, 'Vercel', 'Pipedrive', 'Google', 'Twilio', 'Anthropic', 'Upstash', 'Jumpseller', '30 días corridos', 'Sin tu consentimiento, este sitio no instala cookies', '24 meses', '6 años', 'Ley N° 21.719']) {
       expect(text, s).toContain(s);
     }
     expect(text).not.toContain('Axiom');
@@ -435,9 +491,134 @@ describe('páginas legales y de compra: contenido', () => {
     expect(security).toContain('pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje');
     const hrefs = [...main.querySelectorAll('a')].map(a => a.getAttribute('href'));
     expect(hrefs).toContain('mailto:ventas@elights.cl?subject=Datos%20personales');
-    expect(main.querySelectorAll('table tbody tr')).toHaveLength(8);
+    expect(main.querySelectorAll('table tbody tr')).toHaveLength(10);
     expect(main.querySelector('table')?.parentElement?.className).toContain('overflow-x-auto'); // legible en el teléfono
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
+  });
+
+  it('/politica-de-privacidad (PR 13): bases de la tabla, casillas, constancia y transición de la Ley 19.628', async () => {
+    const { main } = await page('/politica-de-privacidad');
+    const rows = [...main.querySelectorAll('table tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(td => td.textContent));
+    const basisOf = (purpose: string) => rows.find(([p]) => p?.startsWith(purpose))?.[1];
+    expect(basisOf('Saber qué canales y campañas generan solicitudes')).toBe(
+      'Interés legítimo de eLIGHTS en evaluar su publicidad; puedes oponerte desde «Configurar cookies», al pie de cada página, o escribiéndonos',
+    );
+    expect(basisOf('Enviarte novedades y ofertas por correo, solo si marcas la casilla opcional')).toBe('Tu consentimiento, que puedes retirar cuando quieras');
+    expect(basisOf('Que Google Ads registre, con sus propias cookies')).toBe('Tu consentimiento, dado en el aviso de cookies');
+    expect(basisOf('Guardar la constancia de tus autorizaciones')).toBe('Obligación legal de acreditar que tratamos tus datos de forma lícita');
+    // §2: lo que guarda la constancia (formatConsentSection) y la decisión de cookies
+    expect(section(main, '2.').text).toContain(
+      'Tus autorizaciones y decisiones: que leíste esta política y autorizaste usar tus datos para responder (y, en la solicitud de pedido, que aceptaste los términos), si quieres recibir novedades, la versión de los textos y la fecha y hora del envío.',
+    );
+    // §3: la transición cita la casilla tal como la ve la persona
+    const bases = section(main, '3.').text;
+    expect(bases).toContain('casilla «Leí la Política de privacidad y autorizo…»');
+    expect(consentTextPlain(CONSENT_TEXTS.privacy)).toMatch(/^Leí la Política de privacidad y autorizo /);
+    for (const s of [
+      'por correo o WhatsApp, con tu mensaje escrito',
+      'Ordenar y priorizar tu solicitud es parte de responderla.',
+      'usamos el origen de tu visita solo internamente, con fines estadísticos',
+      'Desde el 1 de diciembre de 2026 rigen las bases de la tabla',
+      'la casilla queda como constancia de que leíste esta política',
+    ]) {
+      expect(bases, s).toContain(s);
+    }
+    // §5: Google Analytics como encargado y la medición de anuncios entre los otros destinatarios
+    const sharing = section(main, '5.').text;
+    expect(sharing).toContain('solo en elights.cl y si lo aceptas en el aviso de cookies, Google Analytics, bajo los términos de tratamiento de datos de Google');
+    expect(sharing).toContain('Google (medición de anuncios):');
+    expect(sharing).toContain('Desde nuestros formularios no le enviamos tus datos de contacto.');
+    // §7: plazos de las novedades, la constancia, la decisión de cookies y las cookies de Google
+    const retention = section(main, '7.').text;
+    for (const s of [
+      'Si en una solicitud posterior no marcas la casilla, lo tomamos como retiro.',
+      'guardamos solo tu correo y la constancia (versión y fechas) por 4 años',
+      'Constancia de tus autorizaciones (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.',
+      'Tu decisión sobre cookies: 12 meses en tu navegador',
+      'las de Google Analytics, hasta 13 meses; las de medición de anuncios, hasta 90 días',
+      'por 2 meses',
+    ]) {
+      expect(retention, s).toContain(s);
+    }
+    // §8: oposición al origen de la visita también desde «Configurar cookies»
+    expect(section(main, '8.').text).toContain('el registro del origen de tu visita (también desde «Configurar cookies»)');
+  });
+
+  it('/politica-de-privacidad (PR 13): §10 cookies dice lo mismo que el aviso y tiene el botón «Configurar cookies»', async () => {
+    const { main } = await page('/politica-de-privacidad');
+    const cookies = section(main, '10.');
+    for (const s of [
+      'Sin tu consentimiento, este sitio no instala cookies en tu navegador.',
+      'Rechazar las cookies no lo desactiva.',
+      'se guarda 12 meses en el almacenamiento local de tu navegador',
+      'antes de que decidas no se carga nada de Google',
+      'Instala las cookies _ga y _ga_… por hasta 13 meses',
+      '(_gcl_…, hasta 90 días)',
+      'requiere la medición de visitas',
+      'No usamos anuncios personalizados ni remarketing.',
+      'No usamos el píxel de Meta.',
+      'dejamos de medir en esa misma página y borramos de tu navegador las cookies de Google de este sitio',
+    ]) {
+      expect(cookies.text, s).toContain(s);
+    }
+    expect(cookies.text).not.toMatch(/etiquetas de publicidad de Google|no instala cookies propias/);
+    // El botón del pie, también aquí (estático: el prerender lo dibuja igual)
+    const buttons = cookies.els.flatMap(el => [...el.querySelectorAll('button')]);
+    expect(buttons.map(b => [b.textContent, b.getAttribute('type')])).toEqual([[COOKIE_TEXTS.footerButton, 'button']]);
+    expect(COOKIE_TEXTS.footerButton).toBe('Configurar cookies');
+    // Las mismas cifras y nombres que el diálogo del aviso (src/lib/cookieConsent.ts)
+    expect(COOKIE_CONSENT_MAX_AGE_MS).toBe(365 * 24 * 60 * 60 * 1000); // 12 meses
+    expect(COOKIE_TEXTS.settingsDescription).toContain('Guardamos tu decisión 12 meses');
+    expect(COOKIE_TEXTS.analyticsText).toContain('(_ga y _ga_…, hasta 13 meses)');
+    expect(COOKIE_TEXTS.adsText).toContain('(_gcl_…, hasta 90 días)');
+    expect(cookies.text).toContain(`interruptor «${COOKIE_TEXTS.originTitle}» en «${COOKIE_TEXTS.footerButton}»`);
+    // Para lo ya enviado: el canal de datos personales, como dice el diálogo
+    expect(COOKIE_TEXTS.originText).toContain('escríbenos a ventas@elights.cl con el asunto «Datos personales»');
+    expect(linksIn(cookies.els)).toContain(DATA_MAILTO);
+    // §12: el aviso vuelve si cambian sus finalidades; las versiones, desde el enlace del comienzo
+    const changes = section(main, '12.').text;
+    expect(changes).toContain('Si cambian las finalidades del aviso de cookies, te lo volveremos a mostrar.');
+    expect(changes).toContain('Puedes guardar o imprimir cada versión desde el enlace al comienzo de esta página, donde también están las anteriores');
+  });
+
+  it('/politica-de-privacidad (PR 13): la medición de visitas y la de anuncios dicen lo que el código envía a Google', async () => {
+    const { main, text } = await page('/politica-de-privacidad');
+    // Anuncios: whatsapp_click es evento clave de la propiedad (src/lib/analytics.ts), así que un
+    // contacto también puede contar, no solo una solicitud. Lo dicen los 5 lugares.
+    const purposes = [...main.querySelectorAll('table tbody tr td:first-child')].map(td => td.textContent ?? '');
+    const adsRow = purposes.find(p => p.startsWith('Que Google Ads registre'));
+    const places: [string, string | undefined][] = [
+      ['diálogo', COOKIE_TEXTS.adsText],
+      ['tabla', adsRow],
+      ['§3', section(main, '3.').text],
+      ['§5', section(main, '5.').text],
+      ['§10', section(main, '10.').text],
+    ];
+    for (const [where, s] of places) {
+      expect(s, where).toContain('terminó en una solicitud o en un contacto con nosotros');
+      expect(s, where).toMatch(/un clic para escribirnos por WhatsApp/);
+      expect(s, where).not.toMatch(/terminó en una solicitud(?! o en un contacto)/);
+    }
+    // Visitas: páginas y botones (lista, formularios, WhatsApp), nunca «de forma agregada»
+    const buttons = 'saber qué páginas y botones se usan (por ejemplo, agregar productos a la lista, enviar un formulario o abrir WhatsApp)';
+    expect(COOKIE_TEXTS.analyticsText).toContain(buttons);
+    expect(section(main, '10.').text).toContain(buttons);
+    expect(text).not.toMatch(/de forma agregada|qué páginas se usan/);
+    // §7: los 2 meses son de Google Analytics; lo que registra Google Ads, según la política de Google
+    const retention = section(main, '7.').text;
+    expect(retention).toContain('Google Analytics conserva los datos de medición asociados a sus cookies por 2 meses');
+    expect(retention).toContain('Lo que registra Google Ads lo conserva Google según su propia política.');
+    expect(retention).not.toContain('asociados a esas cookies');
+    // §10: la decisión no queda en nuestros sistemas, pero con GA cada medición lleva lo permitido (Consent Mode)
+    expect(section(main, '10.').text).toContain(
+      'No es una cookie y no la guardamos en nuestros sistemas; si aceptas Google Analytics, cada medición le informa a Google qué permitiste.'
+    );
+    expect(text).not.toContain('no sale de tu navegador');
+  });
+
+  it('la versión 1.0 publicada sigue entre las anteriores (sus archivos no se borran)', () => {
+    expect(LEGAL_ARCHIVE).toContain('1.0');
+    expect(LEGAL_ARCHIVE).not.toContain(LEGAL_VERSION);
   });
 });
 

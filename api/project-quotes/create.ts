@@ -10,6 +10,10 @@
 // Flujo (orden crítico — no modificar):
 //   1. Método (405 con Allow: POST)
 //   2. Rate limit por IP (429), origen (403) y honeypot (200 sin crear nada)
+//   2b. Privacidad (clave `consent`, api/_lib/forms/consent.ts): sin la casilla
+//       obligatoria, 400 con code 'consent_required' antes del correo y de Pipedrive.
+//       Un solo new Date() por solicitud: la hora de la constancia, la «Fecha» de la nota
+//       y la ventana de la referencia salen del mismo instante del servidor.
 //   3. Validar payload (400). Se arma un objeto limpio solo con las claves conocidas:
 //      cualquier precio o monto que mande el navegador se descarta.
 //   4. Referencia PY- única: la misma en el correo, la nota y el deal
@@ -21,9 +25,10 @@
 //         + segundo correo "ATENCIÓN ... Crear el negocio a mano."
 //      -> Fallan ambos: 502
 //
-// El correo y la nota terminan con el origen de la visita (clave `attribution`,
-// api/_lib/forms/attribution.ts). Informativo: un origen raro se descarta, nunca da 400, y
-// no entra en la referencia ni en el log.
+// El correo y la nota terminan con la constancia "PRIVACIDAD Y AUTORIZACIONES" y el origen
+// de la visita (clave `attribution`, api/_lib/forms/attribution.ts). El origen es
+// informativo: un origen raro se descarta, nunca da 400, y no entra en la referencia ni en
+// el log. La casilla tampoco entra en la referencia.
 //
 // Los logs llevan solo la referencia, el tipo de proyecto (una de las opciones de la lista:
 // otro valor da 400), los m², si hay empresa y los ids: nunca el correo, el teléfono, el
@@ -52,6 +57,7 @@ import {
   type ProjectType,
 } from '../_lib/forms/projectQuote.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
+import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
 const LOG = '[ProjectQuote]';
 const ALLOWED_METHODS = ['POST'];
@@ -283,10 +289,15 @@ function projectLines(q: ProjectQuote): string[] {
 /**
  * Correo a ventas. La plantilla es fija: el tipo de solicitud va en "Modo:" y la primera
  * línea de PRODUCTOS SOLICITADOS lleva la referencia para encontrar el negocio. Razón
- * social, RUT, giro, dirección y comentarios solo viajan si el cliente los dejó. `origen`:
- * la sección ORIGEN DE LA VISITA, al final.
+ * social, RUT, giro, dirección y comentarios solo viajan si el cliente los dejó. `consent`:
+ * la constancia PRIVACIDAD Y AUTORIZACIONES; `origen`: la sección ORIGEN DE LA VISITA, al final.
  */
-export function buildProjectQuoteEmail(q: ProjectQuote, ref: string, origen: string[] = []): SalesEmail {
+export function buildProjectQuoteEmail(
+  q: ProjectQuote,
+  ref: string,
+  origen: string[] = [],
+  consent: string[] = []
+): SalesEmail {
   const comentarios = q.comentarios ?? '';
   const longComment = comentarios.length > EMAIL_COMMENT_FIELD;
   return {
@@ -298,6 +309,7 @@ export function buildProjectQuoteEmail(q: ProjectQuote, ref: string, origen: str
       `Cotizador de proyecto ${ref} (nuevo.elights.cl/cotizador)`,
       ...projectLines(q),
       ...(longComment ? ['', 'Comentarios del cliente (completos):', comentarios] : []),
+      ...(consent.length ? ['', ...consent] : []),
       ...(origen.length ? ['', ...origen] : []),
     ].join('\n'),
     total: '-',
@@ -319,11 +331,20 @@ const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '
 const chileDateTime = (date: Date) =>
   date.toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Santiago' });
 
-/** Nota del deal con todos los datos y el origen; un reenvío del mismo formulario lo dice al comienzo. */
+/**
+ * Nota del deal con todos los datos, la constancia de privacidad y el origen; un reenvío del
+ * mismo formulario lo dice al comienzo. `now`: el instante de la solicitud (el mismo de la
+ * constancia).
+ */
 export function buildProjectQuoteNote(
   q: ProjectQuote,
   ref: string,
-  { resend = false, now = new Date(), origen = [] }: { resend?: boolean; now?: Date; origen?: string[] } = {}
+  {
+    resend = false,
+    now = new Date(),
+    origen = [],
+    consent = [],
+  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[] } = {}
 ): string {
   const fecha = chileDateTime(now);
   return escapeHtml([
@@ -352,6 +373,7 @@ export function buildProjectQuoteNote(
     '',
     'Sin productos ni precios: preparar propuesta y responder con link de pago de Jumpseller.',
     'source: cotizador | landingPath: /cotizador',
+    ...(consent.length ? ['', ...consent] : []),
     ...(origen.length ? ['', ...origen] : []),
   ].join('\n'));
 }
@@ -399,6 +421,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
+  // Privacidad, antes del correo y de Pipedrive. Un solo reloj por solicitud: la hora de la
+  // constancia es la del servidor.
+  const at = new Date();
+  const consent = resolveConsent(body, { form: 'cotizador', requireTerms: false, at });
+  // `=== false`: con strictNullChecks apagado, `if (!consent.ok)` no estrecha el tipo.
+  if (consent.ok === false) {
+    console.warn(`${LOG} Consent missing`);
+    res.status(400).json({
+      success: false,
+      error: 'Validation failed',
+      code: CONSENT_ERROR_CODE,
+      details: { errors: consent.errors },
+    });
+    return;
+  }
+
   const validation = validateProjectQuote(body);
   if (!validation.valid) {
     console.warn(`${LOG} Validación FAIL | errors:`, validation.errors);
@@ -412,13 +450,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const origen = origenFromBody(body);
   // Una sola referencia para el correo, la nota y el deal: calcularla dos veces podría
   // separarlas si cambia la hora entre ambas.
-  const reference = buildProjectQuoteRef(quote);
+  const reference = buildProjectQuoteRef(quote, at.getTime());
   const hasCompany = isCompany(quote);
   const ref = `${LOG} ${reference}`;
   console.log(`${ref} Procesando | tipo: ${quote.tipoProyecto} | m2: ${quote.m2} | hasCompany: ${hasCompany}`);
 
   // ── Paso 1: correo a ventas ANTES de Pipedrive (si el CRM falla, el lead no se pierde) ──
-  const email = buildProjectQuoteEmail(quote, reference, origen);
+  const email = buildProjectQuoteEmail(quote, reference, origen, consent.section);
   const mail = notifySales(email, ref);
 
   // ── Paso 2: Pipedrive ───────────────────────────────────────────────────────
@@ -478,7 +516,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     status = result.status;
 
     // createDeal no guarda notas: el detalle va aparte, también en un reenvío.
-    await addNote(dealId, buildProjectQuoteNote(quote, reference, { resend: status !== 'created', origen }), ref);
+    await addNote(
+      dealId,
+      buildProjectQuoteNote(quote, reference, { resend: status !== 'created', now: at, origen, consent: consent.section }),
+      ref
+    );
 
     console.log(
       `${ref} Deal: ${dealId} (${status}) | person: ${person.personId}` +
