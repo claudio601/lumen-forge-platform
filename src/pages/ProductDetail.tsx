@@ -217,7 +217,8 @@ const ProductDetail = () => {
 
     // CCT: si el producto define availableCCT[], el cliente debe elegir antes de
     // poder solicitar pedido o cotizar. La selección define el SKU final
-    // despachable (ej. APB120 + 'A' -> APB120A) y la etiqueta visible.
+    // despachable, el mismo de Jumpseller (ej. 2200K: APB120 + '1' -> APB1201),
+    // y la etiqueta visible.
     const hasCCTSelector = !!(product.availableCCT && product.availableCCT.length > 0);
     const hasGroupedSpecs = !!(
       (product.specsElectricos && product.specsElectricos.length > 0) ||
@@ -251,7 +252,7 @@ const ProductDetail = () => {
 
     const ctaDisabled = hasCCTSelector && selectedCCT === null;
 
-    // Variante propagada a la cotización: SKU final (ej. APB150C) + precio CON IVA
+    // Variante propagada a la cotización: SKU final (ej. 2700K: APB1507) + precio CON IVA
     // de la variante elegida. Sin selección queda undefined → cae a product.price.
     const quoteSelection = selectedCCT != null
       ? { cct: selectedCCT, sku: skuFinal, unitPrice: basePrice }
