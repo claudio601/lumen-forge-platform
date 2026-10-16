@@ -74,7 +74,10 @@ Aplica a la oposición y a los demás derechos (acceso, rectificación, supresi�
 ## 7. Lo que no se registra en el servidor
 
 - **Las decisiones de cookies** (aviso y «Configurar cookies») no se guardan en nuestros sistemas, por minimización: quedan en el navegador del visitante. Si acepta Google Analytics, cada medición lleva a Google las señales de Consent Mode con lo que permitió (Política §10). La prueba es el código versionado, sus pruebas automáticas y esas señales.
-- **El asistente de WhatsApp** todavía no deja constancia ni aviso de privacidad: es la PR 13w, pendiente del OK del dueño (pregunta Q8). Mientras tanto, el texto y el enlace a la política van en el perfil de WhatsApp Business.
+- **El asistente de WhatsApp** agrega un aviso breve de privacidad (responsable, uso, asistente con IA, registro en el sistema de seguimiento, enlace a la política y canal «Datos personales») al final de su primera respuesta a cada número (PR 13w, `api/_lib/whatsapp/privacyNotice.ts`).
+  - **El perfil de WhatsApp Business mantiene el texto y el enlace a la política.** Es lo único que la persona ve antes de su primer mensaje, y el asistente procesa ese mensaje antes de enviar el aviso: lo manda a Anthropic, queda en los registros técnicos y, si trae correo y contexto, crea la persona, el negocio y la nota en Pipedrive. No lo quites del perfil.
+  - El aviso puede repetirse: tras un reinicio o un deploy, si atiende otra instancia o cuando el registro llega a 5.000 números. Si la respuesta tarda más de 10 segundos (Twilio espera 15 y después no envía nada), la lleva igual, pero el número no se marca y la siguiente respuesta lo vuelve a llevar. Si Twilio o WhatsApp no entregan una respuesta enviada a tiempo, ese número no lo recibe de nuevo hasta un reinicio.
+  - No deja constancia en Pipedrive. La prueba es el código versionado y sus pruebas automáticas, igual que con las cookies. El registro de mensajes de Twilio sirve como evidencia adicional solo mientras Twilio lo guarde: el plazo real lo confirma el dueño en la consola de Twilio. Si es largo, se corrige en la versión 1.3 de la política lo que el §7 dice de los «plazos breves».
 
 ## 8. Antes de cotizar: versión de los Términos (Términos §15)
 

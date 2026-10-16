@@ -11,6 +11,7 @@ import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { processFlowStep, getFlowState, MSG_MEDIA } from '../_lib/whatsapp/flowEngine.js';
+import { withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
 
@@ -26,6 +27,7 @@ function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+    const startedAt = Date.now(); // plazo de Twilio para el aviso de privacidad (privacyNotice.ts)
     if (req.method !== 'POST') {
           res.status(405).end();
           return;
@@ -71,13 +73,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (numMedia > 0 && body.trim().length < 3) {
         console.log(LOG_PREFIX + ' Media from ' + phone + ' [' + messageSid + ']');
         res.setHeader('Content-Type', 'text/xml');
-        res.status(200).send(buildTwiML(MSG_MEDIA));
+        res.status(200).send(buildTwiML(withPrivacyNotice(phone, MSG_MEDIA, startedAt)));
         return;
   }
 
   if (!body.trim()) {
         res.setHeader('Content-Type', 'text/xml');
-        res.status(200).send(buildTwiML('Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?'));
+        res.status(200).send(buildTwiML(withPrivacyNotice(phone, 'Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?', startedAt)));
         return;
   }
 
@@ -209,5 +211,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       );
 
   res.setHeader('Content-Type', 'text/xml');
-    res.status(200).send(buildTwiML(flowResult.reply));
+    res.status(200).send(buildTwiML(withPrivacyNotice(phone, flowResult.reply, startedAt)));
 }

@@ -1,11 +1,15 @@
 // src/config/site.ts
 // Dirección pública del sitio: canonical, og:url, sitemap, robots y JSON-LD la
 // toman de aquí. Hasta el cambio de dominio es nuevo.elights.cl, que está fuera de
-// Google por la cabecera X-Robots-Tag (vercel.json). La PR del cambio de dominio
-// (Etapa 3) la cambia a https://elights.cl. Es una constante a propósito, para no
-// depender de variables de entorno de Vercel.
+// Google por la cabecera X-Robots-Tag (vercel.json). La constante vive en
+// api/_lib/site.ts, porque el asistente de WhatsApp arma con ella el enlace a la
+// política de privacidad: la PR del cambio de dominio (Etapa 3) la cambia allí a
+// https://elights.cl, y el sitio y el asistente pasan juntos. Es una constante a
+// propósito, para no depender de variables de entorno de Vercel.
 
-export const SITE_URL = 'https://nuevo.elights.cl';
+import { SITE_URL } from '../../api/_lib/site';
+
+export { SITE_URL };
 
 export const SITE_NAME = 'eLIGHTS.cl';
 
