@@ -40,6 +40,7 @@ import {
   waBase,
 } from '@/config/business';
 import { NOINDEX_ROUTES, STATIC_ROUTES } from '@/lib/seo/routes';
+import { PRIVACY_NOTICE } from '../../api/_lib/whatsapp/privacyNotice';
 import { findPolicyBreaking } from '../../scripts/jumpseller/descriptions';
 import { claimIssues, FREE_RE, namedIn, RM_OUTSIDE_SANTIAGO, RM_PROVINCES } from '@/test/freeShipping';
 import EmpresaPage from './EmpresaPage';
@@ -499,7 +500,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(security).toContain('pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje');
     const hrefs = [...main.querySelectorAll('a')].map(a => a.getAttribute('href'));
     expect(hrefs).toContain('mailto:ventas@elights.cl?subject=Datos%20personales');
-    expect(main.querySelectorAll('table tbody tr')).toHaveLength(10);
+    expect(main.querySelectorAll('table tbody tr')).toHaveLength(11);
     expect(main.querySelector('table')?.parentElement?.className).toContain('overflow-x-auto'); // legible en el teléfono
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
   });
@@ -559,11 +560,57 @@ describe('páginas legales y de compra: contenido', () => {
     expect(item('Asistente de WhatsApp:')).toContain(
       'guarda solo en memoria temporal el historial reciente de la conversación, los datos que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad.',
     );
-    expect(item('Twilio y Anthropic')).toContain(
-      'conservan los registros de los mensajes que pasan por sus servicios según las condiciones de servicio que aceptamos al contratarlos.',
+    // Desde la 1.4, Twilio (con su plazo configurado) y Anthropic van por separado
+    expect(item('Anthropic')).toContain(
+      'conserva los registros de los mensajes que pasan por su servicio según las condiciones de servicio que aceptamos al contratarlo.',
     );
-    expect(item('Twilio y Anthropic')).not.toMatch(/breves|propias políticas/);
+    expect(item('Anthropic')).not.toMatch(/breves|propias políticas/);
     expect(item('Registros técnicos del sitio y del asistente de WhatsApp')).toContain('los plazos breves que define cada proveedor');
+  });
+
+  it('/politica-de-privacidad (PR 13z, versión 1.4): revisión de las conversaciones con el asistente para mejorarlo', async () => {
+    const { main, text } = await page('/politica-de-privacidad');
+    const clean = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    // §3: finalidad nueva con su base legal y oposición
+    const rows = [...main.querySelectorAll('table tbody tr')].map(clean);
+    const row = rows.find(r => r.startsWith('Revisar las conversaciones con el asistente de WhatsApp'));
+    expect(row, 'falta la finalidad de la revisión del asistente').toBeDefined();
+    expect(row).toContain('para corregir sus errores y mejorarlo (ver punto 4)');
+    expect(row).toContain('Interés legítimo de eLIGHTS en que el asistente entienda bien las solicitudes y las registre completas; puedes oponerte');
+    // §3: hasta el 30-11, la base es la autorización, y el aviso del bot informa la finalidad
+    expect(section(main, '3.').text).toContain(
+      'En ese período, la revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle; el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta.',
+    );
+    // §4: qué se guarda, qué se quita, quién la revisa, para qué no se usa y cómo oponerse
+    const review = section(main, '4.').els.map(clean).find(t => t.startsWith('Revisión del asistente.'));
+    expect(review, 'falta el párrafo «Revisión del asistente.» del §4').toBeDefined();
+    for (const s of [
+      'Algunas semanas, como la primera de cada mes, guardamos una copia de las conversaciones con el asistente',
+      'El mismo día cambiamos tu teléfono por un código y quitamos los datos de contacto que reconocemos (correo, RUT, teléfonos y direcciones), y también tu nombre y tu empresa cuando los reconocemos.',
+      'Esa copia la revisa nuestro equipo con ayuda de Claude, la inteligencia artificial de Anthropic.',
+      'La revisión no decide nada sobre ti ni se usa para enviarte publicidad, y para probar el asistente usamos mensajes inventados, nunca los tuyos.',
+      'Puedes oponerte escribiéndonos a ventas@elights.cl con el asunto «Datos personales».',
+    ]) {
+      expect(review, s).toContain(s);
+    }
+    // §5: Anthropic también para la revisión
+    expect(section(main, '5.').text).toContain(
+      'Anthropic PBC (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus conversaciones (punto 4).',
+    );
+    // §7: plazos de la copia y de la tabla de claves; Twilio con su plazo configurado
+    const items = section(main, '7.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
+    const item = (start: string) => items.find(t => t.startsWith(start)) ?? '';
+    const copy = item('Copia de revisión del asistente');
+    expect(copy).toContain('no guardamos la exportación original');
+    expect(copy).toContain('esa copia la borramos a los 60 días');
+    expect(copy).toContain('La tabla que une cada código con tu teléfono la guardamos cifrada y la borramos dentro de 14 días');
+    expect(item('Twilio')).toMatch(/^Twilio \(asistente de WhatsApp\): guarda los registros de los mensajes, con su texto, por \d+ días, el plazo que tenemos configurado en su servicio\.$/);
+    // §8 y §9
+    expect(section(main, '8.').text).toContain('la priorización automática y la revisión de tus conversaciones con el asistente;');
+    expect(section(main, '9.').text).toContain('salvo la copia de revisión del asistente, que tiene sus propios plazos (punto 7).');
+    // El aviso del bot informa la finalidad nueva
+    expect(PRIVACY_NOTICE).toContain('para responder tu consulta y mejorar este asistente');
+    expect(text).not.toContain('{TWILIO_RETENTION_DAYS}');
   });
 
   it('/cambios-devoluciones-y-garantia y /terminos-y-condiciones (PR 13x, versión 1.3): retracto, garantía y reclamos por correo, no por el WhatsApp del asistente', async () => {
