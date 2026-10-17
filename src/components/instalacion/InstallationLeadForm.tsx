@@ -78,7 +78,7 @@ function submitErrorMessage(httpStatus: number, code?: string): string {
 
 const TIPOS_PROYECTO = ['Casa / departamento', 'Oficina', 'Local comercial', 'Bodega', 'Condominio / edificio', 'Proyecto industrial', 'Paneles solares', 'Otro'] as const;
 const TIPOS_CLIENTE = [{ value: '', label: 'Selecciona...' }, { value: 'hogar', label: 'Hogar / Particular' }, { value: 'empresa', label: 'Empresa' }, { value: 'condominio', label: 'Condominio / Edificio' }] as const;
-const PREFS_CONTACTO = [{ value: '', label: 'Sin preferencia' }, { value: 'whatsapp', label: 'WhatsApp' }, { value: 'llamada', label: 'Llamada telefonica' }, { value: 'email', label: 'Correo electronico' }] as const;
+const PREFS_CONTACTO = [{ value: '', label: 'Sin preferencia' }, { value: 'whatsapp', label: 'WhatsApp' }, { value: 'llamada', label: 'Llamada telefónica' }, { value: 'email', label: 'Correo electrónico' }] as const;
 
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
@@ -215,12 +215,12 @@ const InstallationLeadForm = () => {
           </label>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div><label htmlFor="ilf-nombre" className={labelClass}>Nombre completo <span className="text-red-500">*</span></label><input id="ilf-nombre" name="nombre" type="text" value={form.nombre} onChange={handleChange} placeholder="Juan Perez" maxLength={MAX_LENGTHS.nombre} className={inputClass} autoComplete="name" /></div>
-          <div><label htmlFor="ilf-telefono" className={labelClass}>Telefono <span className="text-red-500">*</span></label><input id="ilf-telefono" name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="+56 9 XXXX XXXX" maxLength={MAX_LENGTHS.telefono} className={inputClass} autoComplete="tel" /></div>
-          <div><label htmlFor="ilf-email" className={labelClass}>Correo electronico <span className="text-red-500">*</span></label><input id="ilf-email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="correo@ejemplo.com" maxLength={MAX_LENGTHS.email} className={inputClass} autoComplete="email" /></div>
-          <div><label htmlFor="ilf-comuna" className={labelClass}>Comuna <span className="text-red-500">*</span></label><input id="ilf-comuna" name="comuna" type="text" value={form.comuna} onChange={handleChange} placeholder="Ej: Las Condes, Maipu, Quilicura..." maxLength={MAX_LENGTHS.comuna} className={inputClass} /></div>
+          <div><label htmlFor="ilf-nombre" className={labelClass}>Nombre completo <span className="text-red-500">*</span></label><input id="ilf-nombre" name="nombre" type="text" value={form.nombre} onChange={handleChange} placeholder="Juan Pérez" maxLength={MAX_LENGTHS.nombre} className={inputClass} autoComplete="name" /></div>
+          <div><label htmlFor="ilf-telefono" className={labelClass}>Teléfono <span className="text-red-500">*</span></label><input id="ilf-telefono" name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="+56 9 XXXX XXXX" maxLength={MAX_LENGTHS.telefono} className={inputClass} autoComplete="tel" /></div>
+          <div><label htmlFor="ilf-email" className={labelClass}>Correo electrónico <span className="text-red-500">*</span></label><input id="ilf-email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="correo@ejemplo.com" maxLength={MAX_LENGTHS.email} className={inputClass} autoComplete="email" /></div>
+          <div><label htmlFor="ilf-comuna" className={labelClass}>Comuna <span className="text-red-500">*</span></label><input id="ilf-comuna" name="comuna" type="text" value={form.comuna} onChange={handleChange} placeholder="Ej: Las Condes, Maipú, Quilicura..." maxLength={MAX_LENGTHS.comuna} className={inputClass} /></div>
           <div className="sm:col-span-2"><label htmlFor="ilf-tipoProyecto" className={labelClass}>Tipo de proyecto <span className="text-red-500">*</span></label><select id="ilf-tipoProyecto" name="tipoProyecto" value={form.tipoProyecto} onChange={handleChange} className={inputClass}><option value="">Selecciona el tipo de proyecto...</option>{TIPOS_PROYECTO.map(t => (<option key={t} value={t}>{t}</option>))}</select></div>
-          <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripcion breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} maxLength={MAX_LENGTHS.descripcion} placeholder="Cuentanos el espacio..." className={inputClass + ' resize-none'} /></div>
+          <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripción breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} maxLength={MAX_LENGTHS.descripcion} placeholder="Cuéntanos el espacio..." className={inputClass + ' resize-none'} /></div>
           <div><label htmlFor="ilf-tipoCliente" className={labelClass}>Tipo de cliente <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-tipoCliente" name="tipoCliente" value={form.tipoCliente} onChange={handleChange} className={inputClass}>{TIPOS_CLIENTE.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
           <div><label htmlFor="ilf-preferenciaContacto" className={labelClass}>Preferencia de contacto <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-preferenciaContacto" name="preferenciaContacto" value={form.preferenciaContacto} onChange={handleChange} className={inputClass}>{PREFS_CONTACTO.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>
           {consent.fields}
@@ -229,7 +229,7 @@ const InstallationLeadForm = () => {
           {/* Error junto al botón, donde el visitante está mirando */}
           {errorMsg && (<div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700"><AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" /><span>{errorMsg}</span></div>)}
           <Button type="submit" size="lg" disabled={!hydrated || status === 'sending'} className="w-full h-14 text-base font-bold gap-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground transition-all">
-            {status === 'sending' ? (<><Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...</>) : (<><Send className="h-5 w-5" /> SOLICITAR EVALUACION</>)}
+            {status === 'sending' ? (<><Loader2 className="h-5 w-5 animate-spin" /> Enviando solicitud...</>) : (<><Send className="h-5 w-5" /> SOLICITAR EVALUACIÓN</>)}
           </Button>
         </div>
       </fieldset>

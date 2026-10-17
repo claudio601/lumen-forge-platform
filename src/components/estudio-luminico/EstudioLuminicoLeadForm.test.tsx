@@ -25,7 +25,7 @@ const marketingBox = () => screen.getByLabelText(/Quiero recibir novedades/) as 
 function fillForm(telefono = '+56 9 0000 0901', { consent = true } = {}) {
   const type = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
   type(/Nombre completo/, 'PRUEBA ETAPA 2 (09a)');
-  type(/Correo electronico/, 'prueba-etapa2-09a@example.com');
+  type(/Correo electrónico/, 'prueba-etapa2-09a@example.com');
   type(/Teléfono/, telefono);
   type(/Tipo de proyecto/, 'industria_bodega');
   type(/Comuna \/ Ciudad/, 'Santiago');
@@ -103,7 +103,7 @@ describe('EstudioLuminicoLeadForm', () => {
   // tiene 11 dígitos): solo lo frena el tope.
   it.each([
     [/Nombre completo/, 120, 'El nombre', 'x'.repeat(121)],
-    [/Correo electronico/, 254, 'El correo', 'a'.repeat(243) + '@example.com'],
+    [/Correo electrónico/, 254, 'El correo', 'a'.repeat(243) + '@example.com'],
     [/Teléfono/, 30, 'El teléfono', '+56 9' + ' '.repeat(30) + '1234 5678'],
     [/Empresa/, 120, 'La empresa', 'x'.repeat(121)],
     [/Comuna \/ Ciudad/, 80, 'La comuna o ciudad', 'x'.repeat(81)],
@@ -321,7 +321,7 @@ describe('EstudioLuminicoLeadForm: casillas de privacidad y novedades', () => {
     submit();
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(CONSENT_ERRORS.solicitud));
     expect(screen.getAllByRole('alert')).toHaveLength(1);
-    expect(screen.queryByText(/Revisa los datos|Ocurrio un error/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Revisa los datos|Ocurrió un error/)).not.toBeInTheDocument();
     expect(privacyBox()).toHaveFocus();
     expect(trackLead).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/Nombre completo/)).toHaveValue('PRUEBA ETAPA 2 (09a)');

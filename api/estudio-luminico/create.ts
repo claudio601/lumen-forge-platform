@@ -330,7 +330,7 @@ export default async function handler(
     res.status(502).json({
       success: false,
       error:
-        'No se pudo registrar tu solicitud en el sistema. Por favor intentalo de nuevo o escribenos por WhatsApp.',
+        'No se pudo registrar tu solicitud en el sistema. Por favor, inténtalo de nuevo o escríbenos por WhatsApp.',
     } satisfies EstudioLuminicoResponse);
     return;
   }
