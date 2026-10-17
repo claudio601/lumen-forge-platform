@@ -295,11 +295,11 @@ const QuoteCartPage = () => {
               <span className="block sm:inline sm:ml-1 text-[10px] text-muted-foreground">{priceLabel}</span>
             </div>
             <div className="flex items-center border rounded-lg">
-              <button aria-label="Restar una unidad" className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
+              <button aria-label={`Restar una unidad de ${item.product.name}${item.cct ? `, ${item.cct}K` : ''}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
               <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-              <button aria-label="Sumar una unidad" className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
+              <button aria-label={`Sumar una unidad de ${item.product.name}${item.cct ? `, ${item.cct}K` : ''}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
             </div>
-            <button aria-label="Quitar de la cotización" onClick={() => removeFromQuote(key)} className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors">
+            <button aria-label={`Quitar ${item.product.name}${item.cct ? `, ${item.cct}K` : ''} de la cotización`} onClick={() => removeFromQuote(key)} className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>

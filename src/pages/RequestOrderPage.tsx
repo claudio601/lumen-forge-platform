@@ -314,7 +314,7 @@ const RequestOrderPage = () => {
                                                           </div>
                                                           <div className="flex items-center border rounded-lg">
                                                                           <button
-                                                                                                aria-label="Restar una unidad"
+                                                                                                aria-label={`Restar una unidad de ${item.name}, ${item.sku}`}
                                                                                                 className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
                                                                                                 onClick={() => updateQty(requestLineKey(item), item.quantity - 1)}
                                                                                               >
@@ -322,7 +322,7 @@ const RequestOrderPage = () => {
                                                                           </button>
                                                                           <span className="px-3 text-sm font-semibold">{item.quantity}</span>
                                                                           <button
-                                                                                                aria-label="Sumar una unidad"
+                                                                                                aria-label={`Sumar una unidad de ${item.name}, ${item.sku}`}
                                                                                                 className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
                                                                                                 onClick={() => updateQty(requestLineKey(item), item.quantity + 1)}
                                                                                               >
@@ -330,7 +330,7 @@ const RequestOrderPage = () => {
                                                                           </button>
                                                           </div>
                                                           <button
-                                                                              aria-label="Quitar de la solicitud"
+                                                                              aria-label={`Quitar ${item.name}, ${item.sku} de la solicitud`}
                                                                               onClick={() => removeItem(requestLineKey(item))}
                                                                               className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors"
                                                                             >

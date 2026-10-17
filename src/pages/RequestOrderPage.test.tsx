@@ -191,3 +191,28 @@ describe('/solicitar-pedido: casillas de privacidad, términos y novedades', () 
     expect(trackLead).toHaveBeenCalledWith('solicitud_pedido', { item_count: 1 });
   });
 });
+
+describe('/solicitar-pedido: botones de cada fila con nombre propio', () => {
+  afterEach(() => sessionStorage.clear());
+
+  it('restar, sumar y quitar dicen de qué producto son, distintos en cada fila', async () => {
+    const other = products.find(x => !x.cctVariants?.length && x.price > 1000 && x.id !== product.id && x.name !== product.name)!;
+    const line = (p: typeof product) => ({ productId: p.id, jumpsellerId: p.jumpseller_id, sku: p.sku || `JS-${p.jumpseller_id}`, name: p.name, quantity: 1, unitPrice: p.price, priceMode: 'iva', url: `/producto/${p.id}`, attributes: {} });
+    sessionStorage.setItem('elights_request_cart', JSON.stringify([line(product), line(other)]));
+    render(
+      <HelmetProvider><AppProvider><RequestCartProvider>
+        <MemoryRouter initialEntries={['/solicitar-pedido']}><RequestOrderPage /></MemoryRouter>
+      </RequestCartProvider></AppProvider></HelmetProvider>,
+    );
+    await screen.findByLabelText(/Nombre completo/);
+    for (const p of [product, other]) {
+      const label = `${p.name}, ${line(p).sku}`;
+      expect(screen.getByRole('button', { name: `Restar una unidad de ${label}` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `Sumar una unidad de ${label}` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `Quitar ${label} de la solicitud` })).toBeInTheDocument();
+    }
+    const names = screen.getAllByRole('button', { name: /^(Restar una unidad|Sumar una unidad|Quitar) / }).map(b => b.getAttribute('aria-label'));
+    expect(names).toHaveLength(6);
+    expect(new Set(names).size).toBe(6);
+  });
+});
