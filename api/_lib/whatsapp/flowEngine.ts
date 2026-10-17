@@ -34,6 +34,11 @@ export interface FlowState {
   firstMessageAt: number;
   leadType: LeadType;
   isInstallFlow: boolean;
+  // [CIERRE-HONESTO] El atajo de "pidio ejecutivo" ya pidio el correo: lo pide una sola vez.
+  humanEmailAsked: boolean;
+  // [CIERRE-HONESTO] Resultado del negocio en Pipedrive, segun la respuesta de Pipedrive que
+  // anota webhook.ts (recordDealOutcome). Sin valor: no se intento crear.
+  deal?: 'registered' | 'failed';
 }
 
 export interface FlowResult {
@@ -69,14 +74,19 @@ export function installClosingMsg(captured: CapturedFields): string {
 }
 
 // [BOT-SOLO-CORREO] Dueno (2026-10-16): la atencion de una persona es por correo, nunca por este
-// canal (lo atiende solo el asistente). Solo se envia con correo (FIX-EMAIL-GATE).
+// canal (lo atiende solo el asistente). [CIERRE-HONESTO] Sale una sola vez, al cerrar con
+// correo, y webhook.ts la cambia por MSG_DEAL_FAILED si Pipedrive no confirma el negocio.
 export const MSG_HUMAN = 'Perfecto, ya deriv\u00e9 tu solicitud a nuestro equipo de ventas. Te va a atender Claudio Quero directamente por correo.';
 export const MSG_MEDIA = 'Recibimos tu imagen/archivo, gracias. Por ahora atendemos mejor por texto: cuentanos que producto necesitas, para que proyecto y que cantidad aproximada, y te ayudamos de inmediato.';
 export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambien puedo ayudarte a dejar tu solicitud lista para cotizacion por ac\u00e1.';
 
 // [FIX-EMAIL-GATE] Mensaje para pedir correo antes de derivar
-// Se usa cuando el usuario quiere ejecutivo o cierre pero falta correo
-export const MSG_NEED_EMAIL = 'Perfecto! Para derivar tu solicitud a un ejecutivo necesito tu correo de contacto. \u00bfMe lo puedes indicar?';
+// [CIERRE-HONESTO] Texto A, aprobado por el dueno (2026-10-16). Se usa cuando pidio un ejecutivo
+// y falta el correo, y en el cierre sin correo (sin correo la solicitud no queda registrada).
+export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, necesito tu correo. \u00bfMe lo escribes por aqu\u00ed? Si prefieres, env\u00eda tu solicitud a ventas@elights.cl.';
+// [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
+// (o el paso del flujo fallo): nunca se dice "quedo registrada".
+export const MSG_DEAL_FAILED = 'No pude registrar tu solicitud por un problema t\u00e9cnico. Por favor, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
 export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
 // [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio
 // Activa el flujo de captura de lead para instalacion antes de cualquier derivacion
@@ -123,13 +133,54 @@ const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s
 
 // [INSTALL-FLOW] Tipo de proyecto para instalacion
 const INSTALL_TIPO_PROYECTO_RE = /\b(casa|departamento|depto|oficina|local comercial|local|bodega|galpon|quincho|terraza|patio|jardin|exterior|edificio|condominio|empresa|industria|nave|faena|planta|colegio|hospital|estacionamiento)\b/i;
+// [CIERRE-HONESTO] Los correos de eLIGHTS (ventas@, claudio@, constanza@) los publica el propio
+// bot (textos A y B, MSG_EXECUTIVE, MSG4_INSTALL_NO_EMAIL): nunca son el correo del cliente.
+// Si el cliente responde "le escribo a ventas@elights.cl", no hay correo suyo que registrar.
+const EMAIL_RE_ALL = new RegExp(EMAIL_RE.source, 'gi');
+const OWN_EMAIL_RE = /@(?:[a-z0-9-]+\.)*elights\.cl$/i;
 function extractEmail(text: string): string | undefined {
   // [FIX-EMAIL-PARSER] Normalizar texto: quitar espacios, limpiar prefijos
   const normalized = text.trim();
-  const m = normalized.match(EMAIL_RE);
-  if (!m) return undefined;
-  // Limpiar puntuacion al final (. , ; : !) y devolver en minuscula
-  return m[0].replace(/[.,;:!]+$/, '').toLowerCase();
+  for (const raw of normalized.match(EMAIL_RE_ALL) ?? []) {
+    // Limpiar puntuacion al final (. , ; : !) y devolver en minuscula
+    const email = raw.replace(/[.,;:!]+$/, '').toLowerCase();
+    if (!OWN_EMAIL_RE.test(email)) return email;
+  }
+  return undefined;
+}
+/** [CIERRE-HONESTO] El correo que trae Claude, solo si es texto y tiene forma de correo. */
+function emailFrom(value: unknown): string | undefined {
+  return typeof value === 'string' ? extractEmail(value) : undefined;
+}
+/** [CIERRE-HONESTO] Correo del cliente que trae este mensaje (Claude o el texto), si trae uno. */
+function messageEmail(body: string, claudeParsed: { correo?: unknown }): string | undefined {
+  return emailFrom(claudeParsed.correo) ?? extractEmail(body);
+}
+/** [CIERRE-HONESTO] Correo del flujo en curso: el mismo que mira su cierre para crear el negocio. */
+function flowEmail(state: Pick<FlowState, 'isInstallFlow' | 'captured'>): string | undefined {
+  return state.isInstallFlow ? state.captured.install_correo : state.captured.correo;
+}
+
+const NAME_PARTICLE_RE = /^(de|del|la|las|los|y)$/;
+const NAME_WORD_RE = /^[A-Z\u00c0-\u00dc][a-z\u00e0-\u00fc]+(?:['-][A-Za-z\u00c0-\u00fc]+)?$/;
+const NAME_FIRST_WORD_BAN_RE = /^(de|del|la|las|el|los|lo|un|una|san|santa|soy|hola)$/i;
+/**
+ * [CIERRE-HONESTO] Nombre con forma de nombre de persona, para la persona y la nota de Pipedrive:
+ * de 2 a 5 palabras con mayuscula inicial (se admiten "de", "del", "la", "las", "los" e "y" al
+ * medio), que no empieza con un articulo o "de" y que no es una comuna. "de Maipu",
+ * "instalador electrico" o "Las Condes" no lo son; "Ana Prueba" y "Ana de la Fuente", si.
+ */
+export function looksLikePersonName(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const words = value.trim().split(/\s+/);
+  if (words.length < 2 || words.length > 5) return false;
+  if (NAME_FIRST_WORD_BAN_RE.test(words[0])) return false;
+  const first = words[0];
+  const last = words[words.length - 1];
+  if (!NAME_WORD_RE.test(first) || !NAME_WORD_RE.test(last)) return false;
+  if (!words.slice(1, -1).every((w) => NAME_WORD_RE.test(w) || NAME_PARTICLE_RE.test(w))) return false;
+  const plain = value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return !new RegExp('^(?:' + CIUDAD_RE.source + ')$', 'i').test(plain);
 }
 function extractCiudad(text: string): string | undefined {
   const m = text.match(CIUDAD_RE);
@@ -202,12 +253,29 @@ export function getFlowState(phone: string): FlowState {
       firstMessageAt: Date.now(),
       leadType: 'Unknown',
       isInstallFlow: false,
+      humanEmailAsked: false,
     }
   );
 }
 
 export function saveFlowState(phone: string, state: FlowState): void {
   flowStates.set(phone, state);
+}
+
+/**
+ * [CIERRE-HONESTO] webhook.ts anota aqui lo que respondio Pipedrive despues de intentar crear el
+ * negocio. Con eso, la conversacion cerrada solo repite "quedo registrada" si el negocio existe.
+ * `conversationId` es el firstMessageAt de la conversacion que pidio el negocio: si mientras tanto
+ * empezo otra (un pedido nuevo), el resultado no se anota en la nueva.
+ */
+export function recordDealOutcome(phone: string, registered: boolean, conversationId?: number): void {
+  const state = flowStates.get(phone);
+  if (!state) return;
+  if (conversationId !== undefined && state.firstMessageAt !== conversationId) {
+    console.log('[flowEngine] resultado del negocio de otra conversacion — no se anota');
+    return;
+  }
+  saveFlowState(phone, { ...state, deal: registered ? 'registered' : 'failed' });
 }
 
 export function clearFlowState(phone: string): void {
@@ -253,12 +321,14 @@ function mergeInstallFields(
   claudeParsed: { nombre?: string; empresa?: string; correo?: string; comuna_o_ciudad?: string; proyecto_o_uso?: string; },
 ): CapturedFields {
   const updated = { ...captured };
+  // [CIERRE-HONESTO] El nombre y el correo que ya dio en el flujo de productos sirven para la
+  // instalacion: no se vuelven a pedir, y el cierre de instalacion crea el negocio con ellos.
   if (!updated.install_nombre) {
-    const nom = claudeParsed.nombre ?? claudeParsed.empresa ?? extractInstallNombre(body);
+    const nom = claudeParsed.nombre ?? claudeParsed.empresa ?? updated.nombre_o_empresa ?? extractInstallNombre(body);
     if (nom) updated.install_nombre = nom;
   }
   if (!updated.install_correo) {
-    const email = claudeParsed.correo ?? extractEmail(body);
+    const email = emailFrom(claudeParsed.correo) ?? extractEmail(body) ?? updated.correo;
     if (email) updated.install_correo = email;
   }
   if (!updated.install_comuna) {
@@ -275,37 +345,127 @@ function mergeInstallFields(
   }
   return updated;
 }
-// [FIX-EMAIL-GATE] Verifica si hay contexto comercial minimo para crear deal
-// Regla: correo obligatorio + al menos producto O proyecto_o_uso
-function hasMinCommercial(captured: CapturedFields): boolean {
-  if (!captured.correo) return false;
-  const hasContext = Boolean(captured.producto) || Boolean(captured.proyecto_o_uso);
-  return hasContext;
+// [FIX-EMAIL-GATE] Sin correo no se crea el negocio.
+// [CIERRE-HONESTO] Con correo, el cierre siempre registra la solicitud: antes exigia ademas
+// producto o proyecto y, sin ellos, decia "quedo registrada" sin crear nada. Una persona
+// responde por correo, asi que el correo basta (politica de privacidad 1.3).
+function canRegister(captured: CapturedFields): boolean {
+  return Boolean(captured.correo);
+}
+
+/**
+ * [CIERRE-HONESTO] Cierre del flujo de productos. Sin correo pide el correo (texto A) y no promete
+ * nada. Con correo, el texto de "registrada" (o "ya derive", si pidio ejecutivo); webhook.ts lo
+ * cambia por MSG_DEAL_FAILED si Pipedrive no confirma el negocio.
+ */
+function productClosingMsg(registers: boolean, wantsHuman: boolean, leadType: LeadType): string {
+  if (!registers) return MSG_NEED_EMAIL;
+  if (wantsHuman) return MSG_HUMAN;
+  return leadType === 'B2B' ? MSG4_B2B : MSG4;
+}
+
+/** [CIERRE-HONESTO] El cierre de una solicitud registrada, sin "ya derive" (sale una sola vez). */
+function registeredClosing(state: Pick<FlowState, 'isInstallFlow' | 'leadType'>): string {
+  return state.isInstallFlow ? MSG4_INSTALL : state.leadType === 'B2B' ? MSG4_B2B : MSG4;
+}
+
+/**
+ * [CIERRE-HONESTO] Respuesta a un mensaje en una conversacion ya cerrada, segun lo que respondio
+ * Pipedrive y nada mas: "quedo registrada" si confirmo el negocio, el texto B si fallo, y sin
+ * intento (no hay correo) se pide el correo.
+ */
+function closedReply(state: FlowState): string {
+  if (state.deal === 'registered') return registeredClosing(state);
+  if (state.deal === 'failed') return MSG_DEAL_FAILED;
+  return state.isInstallFlow ? MSG4_INSTALL_NO_EMAIL : MSG_NEED_EMAIL;
+}
+
+type ClaudeFields = {
+  producto?: string;
+  tipo_de_luz?: string;
+  cantidad?: string;
+  proyecto_o_uso?: string;
+  comuna_o_ciudad?: string;
+  nombre?: string;
+  empresa?: string;
+  correo?: string;
+  wantsHuman?: boolean;
+  qualifiesForDeal?: boolean;
+};
+
+// PASO 1: MERGE de los campos del flujo de productos (sin cambios de reglas; ver B3/B4 en la PR 2).
+function mergeProductFields(
+  state: FlowState,
+  body: string,
+  claudeParsed: ClaudeFields,
+): { merged: CapturedFields; leadType: LeadType } {
+  const merged: CapturedFields = { ...state.captured };
+  if (claudeParsed.producto) { merged.producto = claudeParsed.producto; } else if (!merged.producto) { const prod = extractProducto(body); if (prod) merged.producto = prod; }
+  if (claudeParsed.tipo_de_luz) { merged.tipo_de_luz = claudeParsed.tipo_de_luz; } else if (hasLuzInfo(body)) { const luzMatch = body.match(LUZ_RE); merged.tipo_de_luz = luzMatch ? normalizeLuz(luzMatch[0]) : extractSnippet(body, 40); }
+  if (claudeParsed.cantidad) { merged.cantidad = claudeParsed.cantidad; } else if (hasCantidadInfo(body)) { const m = body.match(CANTIDAD_RE); merged.cantidad = m ? m[0].trim() : extractSnippet(body, 30); }
+  if (claudeParsed.proyecto_o_uso) { merged.proyecto_o_uso = claudeParsed.proyecto_o_uso; } else if (!merged.proyecto_o_uso) { const proy = extractProyecto(body); if (proy) merged.proyecto_o_uso = proy; }
+  if (claudeParsed.comuna_o_ciudad) { merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad; } else if (!merged.comuna_o_ciudad) { const ciudad = extractCiudad(body); if (ciudad) merged.comuna_o_ciudad = ciudad; }
+  const nombreClaud = claudeParsed.nombre ?? claudeParsed.empresa;
+  if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
+  // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
+  // [CIERRE-HONESTO] el de Claude solo si es texto con forma de correo (una lista hacia caer el webhook)
+  const correoFound = emailFrom(claudeParsed.correo) ?? extractEmail(body);
+  if (correoFound) merged.correo = correoFound;
+  const rutMatch = body.match(RUT_RE);
+  if (rutMatch) merged.rut_empresa = rutMatch[0];
+
+  // Calcular leadType — instalacion NO es señal B2B
+  let leadType: LeadType = state.leadType;
+  if (leadType !== 'B2B') {
+    const isB2BSignal = B2B_SIGNAL_RE.test(body) || Boolean(rutMatch) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
+    if (isB2BSignal) { leadType = 'B2B'; }
+    else if (leadType === 'Unknown' && body.trim().length > 10) { leadType = 'B2C'; }
+  }
+  return { merged, leadType };
+}
+
+/**
+ * [CIERRE-HONESTO] Conversacion cerrada sin resultado de Pipedrive. Lo que llega se suma a lo
+ * capturado (por ejemplo, el nombre y despues el correo) y, con correo, se registra la solicitud.
+ * Si el correo ya estaba, un intento anterior no dejo resultado (se corto, o no termino dentro de
+ * la espera de webhook.ts): se reintenta y se responde el cierre normal, nunca otro "ya derive".
+ */
+function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): FlowResult {
+  const hadEmail = Boolean(flowEmail(state));
+  const late = state.isInstallFlow
+    ? { merged: mergeInstallFields(state.captured, body, claudeParsed), leadType: state.leadType }
+    : mergeProductFields(state, body, claudeParsed);
+  const captureStatus = state.isInstallFlow ? computeInstallCaptureStatus(late.merged) : computeCaptureStatus(late.merged, late.leadType);
+  const next: FlowState = { ...state, captured: late.merged, captureStatus, leadType: late.leadType };
+  saveFlowState(phone, next);
+  const registers = Boolean(flowEmail(next));
+  if (registers) console.log('[flowEngine] conversacion cerrada con correo y sin negocio — registrando' + (hadEmail ? ' (reintento)' : ''));
+  let reply = closedReply(next);
+  if (registers) {
+    if (hadEmail) reply = registeredClosing(next);
+    else reply = next.isInstallFlow ? installClosingMsg(late.merged) : productClosingMsg(true, next.wantsHuman, next.leadType);
+  }
+  return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true };
 }
 
 export function processFlowStep(
   phone: string,
   body: string,
-  claudeParsed: {
-    producto?: string;
-    tipo_de_luz?: string;
-    cantidad?: string;
-    proyecto_o_uso?: string;
-    comuna_o_ciudad?: string;
-    nombre?: string;
-    empresa?: string;
-    correo?: string;
-    wantsHuman?: boolean;
-    qualifiesForDeal?: boolean;
-  },
+  claudeParsed: ClaudeFields,
   signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
 ): FlowResult {
   const state = getFlowState(phone);
 
   if (state.stage === 'closed') {
-    if (!looksLikeNewRequest(body) && !INSTALL_INTENT_RE.test(body)) {
+    const newRequest = looksLikeNewRequest(body) || INSTALL_INTENT_RE.test(body);
+    // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
+    // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
+    if (!state.deal && (!newRequest || messageEmail(body, claudeParsed))) {
+      return continueClosedWithoutDeal(phone, state, body, claudeParsed);
+    }
+    if (!newRequest) {
       return {
-        reply: state.wantsHuman ? MSG_HUMAN : state.isInstallFlow ? installClosingMsg(state.captured) : state.leadType === 'B2B' ? MSG4_B2B : MSG4,
+        reply: closedReply(state),
         shouldCreateDeal: false,
         shouldNotify: false,
         captureStatus: state.captureStatus,
@@ -409,44 +569,27 @@ export function processFlowStep(
   }
 
   // PASO 1: MERGE
-  const merged: CapturedFields = { ...state.captured };
-  if (claudeParsed.producto) { merged.producto = claudeParsed.producto; } else if (!merged.producto) { const prod = extractProducto(body); if (prod) merged.producto = prod; }
-  if (claudeParsed.tipo_de_luz) { merged.tipo_de_luz = claudeParsed.tipo_de_luz; } else if (hasLuzInfo(body)) { const luzMatch = body.match(LUZ_RE); merged.tipo_de_luz = luzMatch ? normalizeLuz(luzMatch[0]) : extractSnippet(body, 40); }
-  if (claudeParsed.cantidad) { merged.cantidad = claudeParsed.cantidad; } else if (hasCantidadInfo(body)) { const m = body.match(CANTIDAD_RE); merged.cantidad = m ? m[0].trim() : extractSnippet(body, 30); }
-  if (claudeParsed.proyecto_o_uso) { merged.proyecto_o_uso = claudeParsed.proyecto_o_uso; } else if (!merged.proyecto_o_uso) { const proy = extractProyecto(body); if (proy) merged.proyecto_o_uso = proy; }
-  if (claudeParsed.comuna_o_ciudad) { merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad; } else if (!merged.comuna_o_ciudad) { const ciudad = extractCiudad(body); if (ciudad) merged.comuna_o_ciudad = ciudad; }
-  const nombreClaud = claudeParsed.nombre ?? claudeParsed.empresa;
-  if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
-  const correoRaw = claudeParsed.correo ?? extractEmail(body);
-  // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
-  const correoFound = correoRaw ? correoRaw.trim().replace(/[.,;:!]+$/, '').toLowerCase() : undefined;
-  if (correoFound) merged.correo = correoFound;
-  const rutMatch = body.match(RUT_RE);
-  if (rutMatch) merged.rut_empresa = rutMatch[0];
-
-  // Calcular leadType — instalacion NO es señal B2B
-  let currentLeadType: LeadType = state.leadType;
-  if (currentLeadType !== 'B2B') {
-    const isB2BSignal = B2B_SIGNAL_RE.test(body) || Boolean(rutMatch) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
-    if (isB2BSignal) { currentLeadType = 'B2B'; }
-    else if (currentLeadType === 'Unknown' && body.trim().length > 10) { currentLeadType = 'B2C'; }
-  }
+  const { merged, leadType: currentLeadType } = mergeProductFields(state, body, claudeParsed);
 
   // [FIX-PRIORITY] PASO 2: wantsHuman path — REQUIERE correo antes de derivar
   // [FIX-EMAIL-GATE] Si el usuario quiere ejecutivo pero no tiene correo, pedirlo primero
+  // [CIERRE-HONESTO] Lo pide una sola vez y sigue en la etapa en que estaba (antes saltaba a
+  // stage3 y repetia el pedido en cada mensaje). Despues sigue el flujo normal.
   if (wantsHuman && !hasCommercialIntent) {
-    if (!merged.correo) {
+    if (merged.correo) {
+      // Con correo: puede derivar (webhook.ts confirma el negocio antes de decir "ya derive")
+      const captureStatus = computeCaptureStatus(merged, currentLeadType);
+      saveFlowState(phone, { ...state, stage: 'closed', captured: merged, wantsHuman: true, captureStatus, leadType: currentLeadType });
+      return { reply: MSG_HUMAN, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: merged, wantsHuman: true, closedFlow: true };
+    }
+    if (!state.humanEmailAsked) {
       // Sin correo: no podemos derivar ni crear deal — pedir correo
       const hasAnyContext = Boolean(merged.producto) || Boolean(merged.proyecto_o_uso);
       const reply = hasAnyContext ? MSG_NEED_EMAIL : MSG_NEED_EMAIL_AND_CONTEXT;
-      saveFlowState(phone, { ...state, stage: 'stage3', captured: merged, wantsHuman: true, leadType: currentLeadType });
+      saveFlowState(phone, { ...state, captured: merged, wantsHuman: true, leadType: currentLeadType, humanEmailAsked: true });
       console.log('[flowEngine] wantsHuman sin correo — pidiendo correo antes de derivar');
       return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: merged, wantsHuman: true, closedFlow: false };
     }
-    // Con correo: puede derivar
-    const captureStatus = computeCaptureStatus(merged, currentLeadType);
-    saveFlowState(phone, { ...state, stage: 'closed', captured: merged, wantsHuman: true, captureStatus, leadType: currentLeadType });
-    return { reply: MSG_HUMAN, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: merged, wantsHuman: true, closedFlow: true };
   }
   // PASO 3: AVANCE MULTI-STAGE
   let repreg1 = state.repreguntasStage1;
@@ -461,13 +604,15 @@ export function processFlowStep(
       if (missing.length === 0) { currentStage = 'stage2'; continue; }
       const missingCritical = missing.filter((m) => m === 'producto' || m === 'cantidad de unidades');
       if (repreg1 >= 1 && missingCritical.length >= 2) {
+        // [CIERRE-HONESTO] Sin correo no se cierra sin haber pedido los datos de contacto (etapa 3)
+        if (!merged.correo && repreg3 === 0) { currentStage = 'stage3'; continue; }
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'incomplete';
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
-        const canCreateDeal = hasMinCommercial(merged);
+        const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
         console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ?? 'none'));
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg1 >= 1 && missingCritical.length < 2) { currentStage = 'stage2'; continue; }
       repreg1 += 1;
@@ -479,13 +624,15 @@ export function processFlowStep(
       const missing = missingStage2(merged);
       if (missing.length === 0) { currentStage = 'stage3'; continue; }
       if (repreg2 >= 1) {
+        // [CIERRE-HONESTO] Sin correo no se cierra sin haber pedido los datos de contacto (etapa 3)
+        if (!merged.correo && repreg3 === 0) { currentStage = 'stage3'; continue; }
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
-        const canCreateDeal = hasMinCommercial(merged);
+        const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
         console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ?? 'none'));
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg2 += 1;
       saveFlowState(phone, { ...state, stage: 'stage2', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
@@ -497,15 +644,15 @@ export function processFlowStep(
       if (missing.length === 0) {
         const cs = computeCaptureStatus(merged, currentLeadType);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: cs, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus: cs, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(true, wantsHuman, currentLeadType), shouldCreateDeal: true, shouldNotify: false, captureStatus: cs, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg3 >= 1) {
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
         console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ?? 'none'));
-        const canCreate3 = hasMinCommercial(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
-        return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        const canCreate3 = canRegister(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
+        return { reply: productClosingMsg(canCreate3, wantsHuman, currentLeadType), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg3 += 1;
       saveFlowState(phone, { ...state, stage: 'stage3', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
@@ -515,7 +662,8 @@ export function processFlowStep(
     break;
   }
 
-  return { reply: currentLeadType === 'B2B' ? MSG4_B2B : MSG4, shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: merged, wantsHuman, closedFlow: true };
+  // Salida de respaldo (no deberia alcanzarse): sin negocio, nunca "quedo registrada".
+  return { reply: MSG_NEED_EMAIL, shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: merged, wantsHuman, closedFlow: true };
 }
 
 function missingStage1(f: CapturedFields): string[] {
