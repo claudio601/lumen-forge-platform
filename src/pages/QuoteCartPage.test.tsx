@@ -409,3 +409,26 @@ describe('/cotizacion: casillas de privacidad y novedades', () => {
     for (const params of gaParams()) expect(Object.keys(params)).not.toEqual(expect.arrayContaining([expect.stringMatching(/commune|comuna/i)]));
   });
 });
+
+describe('/cotizacion: botones de cada fila con nombre propio', () => {
+  afterEach(() => sessionStorage.clear());
+
+  it('restar, sumar y quitar dicen de qué producto son, distintos en cada fila', async () => {
+    const other = products.find(x => !x.cctVariants?.length && x.price > 1000 && x.id !== product.id && x.name !== product.name)!;
+    sessionStorage.setItem('elights_quote', JSON.stringify([{ product, quantity: 2 }, { product: other, quantity: 1 }]));
+    render(
+      <HelmetProvider><AppProvider>
+        <MemoryRouter initialEntries={['/cotizacion']}><QuoteCartPage /></MemoryRouter>
+      </AppProvider></HelmetProvider>,
+    );
+    await screen.findByText(other.name);
+    for (const p of [product, other]) {
+      expect(screen.getByRole('button', { name: `Restar una unidad de ${p.name}` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `Sumar una unidad de ${p.name}` })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: `Quitar ${p.name} de la cotización` })).toBeInTheDocument();
+    }
+    const names = screen.getAllByRole('button', { name: /^(Restar una unidad|Sumar una unidad|Quitar) / }).map(b => b.getAttribute('aria-label'));
+    expect(names).toHaveLength(6);
+    expect(new Set(names).size).toBe(6);
+  });
+});

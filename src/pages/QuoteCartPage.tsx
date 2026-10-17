@@ -267,43 +267,45 @@ const QuoteCartPage = () => {
       </p>
 
       <div className="border rounded-xl overflow-hidden mb-8">
-        <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid grid-cols-[1fr_auto_auto_auto] gap-4">
-          <span>Producto</span><span>Precio unit.</span><span>Cantidad</span><span></span>
+        {/* En el teléfono (bajo sm) cada fila se apila: foto, nombre y SKU arriba; precio,
+            cantidad y quitar abajo. Desde sm, las cuatro columnas. */}
+        <div className="bg-surface px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider grid sm:grid-cols-[1fr_auto_auto_auto] gap-4">
+          <span>Producto</span><span className="hidden sm:block">Precio unit.</span><span className="hidden sm:block">Cantidad</span><span className="hidden sm:block"></span>
         </div>
         {quoteCart.map(item => {
           const key = quoteLineKey(item.product.id, item.cct);
           return (
-          <div key={key} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center">
-            <div className="flex items-center gap-3">
+          <div key={key} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] gap-x-4 gap-y-2 items-center">
+            <div className="col-span-3 sm:col-span-1 flex items-center gap-3 min-w-0">
               <img
                 src={jsImage(item.product.imageRefs?.[0] ?? item.product.image, 200, 'thumb')}
                 alt={item.product.name}
-                className="h-10 w-10 object-contain rounded-lg bg-surface"
+                className="h-10 w-10 flex-shrink-0 object-contain rounded-lg bg-surface"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
-              <div>
-                <p className="font-semibold text-sm line-clamp-1">{item.product.name}</p>
+              <div className="min-w-0">
+                <p className="font-semibold text-sm break-words sm:line-clamp-1">{item.product.name}</p>
                 <p className="text-[10px] text-muted-foreground font-mono">
                   {item.variantSku ?? requestSku(item.product)}{item.cct ? ` · ${item.cct}K` : ''}
                 </p>
               </div>
             </div>
-            <div className="text-sm font-medium text-right">
+            <div className="text-sm font-medium sm:text-right">
               <span>{formatDisplayPrice(item.unitPrice ?? item.product.price)}</span>
-              <span className="text-[10px] text-muted-foreground ml-1">{priceLabel}</span>
+              <span className="block sm:inline sm:ml-1 text-[10px] text-muted-foreground">{priceLabel}</span>
             </div>
             <div className="flex items-center border rounded-lg">
-              <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
+              <button aria-label={`Restar una unidad de ${item.product.name}${item.cct ? `, ${item.cct}K` : ''}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
               <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-              <button className="p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
+              <button aria-label={`Sumar una unidad de ${item.product.name}${item.cct ? `, ${item.cct}K` : ''}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
             </div>
-            <button onClick={() => removeFromQuote(key)} className="text-muted-foreground hover:text-destructive transition-colors">
+            <button aria-label={`Quitar ${item.product.name}${item.cct ? `, ${item.cct}K` : ''} de la cotización`} onClick={() => removeFromQuote(key)} className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
           );
         })}
-        <div className="px-4 py-3 border-t bg-surface flex justify-end items-center gap-2">
+        <div className="px-4 py-3 border-t bg-surface flex flex-wrap justify-end items-center gap-2">
           <span className="text-sm text-muted-foreground">Total referencial:</span>
           <span className="font-bold">{fmt(totalDisplay)}</span>
           <span className="text-xs text-muted-foreground">{priceLabel}</span>
