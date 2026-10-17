@@ -9,10 +9,13 @@
 // novedades por correo solo con la casilla opcional. Versión y fecha: LEGAL_VERSION y
 // LEGAL_UPDATED_LABEL (api/_lib/forms/consent.ts); cada versión queda en public/legal/
 // (npm run legal:archive), el enlace permanente que promete §3.6.
+// Versión 1.3 (PR 13x): §1, respondemos por correo (regla del dueño: no llamar ni seguir por
+// WhatsApp); §16, los problemas con la compra se piden por correo, porque en el WhatsApp
+// atiende el asistente automático, que no los reconoce (Política de privacidad §4).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
-import { CompanyFacts, EmailLink, WhatsAppLink } from '@/components/legal/CompanyFacts';
+import { CompanyFacts, EmailLink } from '@/components/legal/CompanyFacts';
 import { clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, PICKUP_PLACE, quoteValidityBusinessDays } from '@/config/business';
 
 const TerminosPage = () => (
@@ -35,7 +38,7 @@ const TerminosPage = () => (
 
     <h2>1. Quién vende</h2>
     <CompanyFacts />
-    <p>Nos comunicaremos contigo por el correo electrónico, el teléfono o el WhatsApp que indiques en tu solicitud.</p>
+    <p>Te respondemos por correo electrónico, al que indiques en tu solicitud.</p>
 
     <h2>2. A quién se aplican</h2>
     <p>
@@ -208,7 +211,7 @@ const TerminosPage = () => (
 
     <h2>16. Consultas, reclamos y ley aplicable</h2>
     <p>
-      Si tienes un problema con tu compra, escríbenos a <EmailLink /> o al WhatsApp <WhatsAppLink /> y lo resolvemos contigo.
+      Si tienes un problema con tu compra, escríbenos a <EmailLink /> y lo resolvemos contigo.
       También puedes recurrir al Servicio Nacional del Consumidor (SERNAC,{' '}
       <a href="https://www.sernac.cl" target="_blank" rel="noopener noreferrer">
         www.sernac.cl

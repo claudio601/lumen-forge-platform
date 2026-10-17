@@ -4,7 +4,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ConversationTurn } from './conversation.js';
 const LOG_PREFIX = '[claudeAgent]';
-export const FALLBACK_REPLY = 'Hola! Gracias por escribirnos. Un ejecutivo de eLights.cl te contactara pronto.';
+export const FALLBACK_REPLY = 'Hola! Gracias por escribirnos. Cu\u00e9ntanos qu\u00e9 necesitas y tu correo de contacto: la respuesta te llega por correo.';
 export interface ClaudeParsed {
   producto?: string;
   tipo_de_luz?: string;
@@ -30,6 +30,17 @@ const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl
   'Devuelve UNICAMENTE JSON con: producto, tipo_de_luz, cantidad, proyecto_o_uso, ' +
   'comuna_o_ciudad, nombre, empresa, correo (null si no aplica), ' +
   'wantsHuman (boolean), qualifiesForDeal (boolean), summary (string 1-2 lineas).';
+/**
+ * [CIERRE-HONESTO] Cada campo de Claude se usa solo si es texto (un numero se pasa a texto).
+ * Un objeto o una lista (dos correos, un pedido con varios items) queda vacio: antes viajaba
+ * tal cual, hacia caer el webhook o llegaba a la nota como [object Object].
+ */
+export function textField(value: unknown): string | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  return text || undefined;
+}
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (!_client) {
@@ -65,17 +76,17 @@ export async function askClaude(
   try {
     const raw = JSON.parse(jsonStr) as Record<string, unknown>;
     parsed = {
-      producto: raw.producto as string | undefined,
-      tipo_de_luz: raw.tipo_de_luz as string | undefined,
-      cantidad: raw.cantidad as string | undefined,
-      proyecto_o_uso: raw.proyecto_o_uso as string | undefined,
-      comuna_o_ciudad: raw.comuna_o_ciudad as string | undefined,
-      nombre: raw.nombre as string | undefined,
-      empresa: raw.empresa as string | undefined,
-      correo: raw.correo as string | undefined,
+      producto: textField(raw.producto),
+      tipo_de_luz: textField(raw.tipo_de_luz),
+      cantidad: textField(raw.cantidad),
+      proyecto_o_uso: textField(raw.proyecto_o_uso),
+      comuna_o_ciudad: textField(raw.comuna_o_ciudad),
+      nombre: textField(raw.nombre),
+      empresa: textField(raw.empresa),
+      correo: textField(raw.correo),
       wantsHuman: Boolean(raw.wantsHuman),
       qualifiesForDeal: Boolean(raw.qualifiesForDeal),
-      summary: (raw.summary as string) || 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
+      summary: textField(raw.summary) ?? 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
     };
   } catch {
     console.warn(LOG_PREFIX + ' Response not valid JSON — usando defaults');

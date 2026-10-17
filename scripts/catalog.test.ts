@@ -18,6 +18,7 @@ import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
 import { RENAMED_FROM, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts, skuOwners } from '../src/data/catalog/build';
 import { cleanSku } from './jumpseller/normalize';
+import { buildVariantSku } from '../src/lib/variantSku';
 import type { Product } from '../src/data/catalog/types';
 
 type Legacy = Product & { stock?: boolean };
@@ -26,12 +27,27 @@ const legacyById = new Map(legacy.map(p => [p.jumpseller_id, p]));
 const snapById = new Map(jumpsellerSnapshot.map(p => [p.jumpseller_id, p]));
 const siteSlugs = categories.map(c => c.slug);
 const BESTLED = [2301098, 2301101, 2301105, 2301110, 2301114, 4156930, 15021313];
+/** Potencias de la familia BESTLED: su SKU base es APB{W} (APB40 … APB250). */
+const BESTLED_WATTS = [40, 60, 90, 120, 150, 200, 250];
 const SITE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/** Recomendación para alumbrado exterior nuevo desde el 19-10-2026 (D.S. N°1/2022 en todo Chile). */
+const REC = 'Variantes recomendadas: 2700K Cálida, o 2200K Ámbar si la comuna está declarada como Área de Protección Especial.';
+const DS1_2026 = 'que desde el 19 de octubre de 2026 debe cumplir el D.S. N°1/2022 en todo Chile';
 /**
  * Cambios intencionales al texto editorial de los BESTLED después del 2026-09-30 (el fixture
- * es el catálogo legado de ese día y no se edita). PR 11 (2026-10): el estudio DIALux sin
- * promesa de precio, la FAQ de garantía según la Ley 19.496 (arts. 20-21) y la cotización
- * sin promesa de rapidez.
+ * es el catálogo legado de ese día y no se edita). Se aplican en orden, como reemplazos de texto.
+ * - PR 11 (2026-10): el estudio DIALux sin promesa de precio, la FAQ de garantía según la
+ *   Ley 19.496 (arts. 20-21) y la cotización sin promesa de rapidez.
+ * - D.S. N°1/2022 (2026-10-13): desde el 19-10-2026 se exige en todo Chile para el alumbrado
+ *   exterior nuevo. La certificación DS1 es solo de 2200K (Áreas de Protección Especial) y
+ *   2700K (territorio nacional general); 4000K y 5000K solo tienen SEC y se recomiendan solo
+ *   bajo techo. Las Áreas de Protección Especial son comunas declaradas, no regiones; certifica
+ *   un organismo autorizado por la SEC (Protocolo PCL N°1:2024 de la SMA), no el MMA; el % de
+ *   luz azul es el límite de la clasificación de cada variante, no una equivalencia de la CCT.
+ * - PR 14a (2026-10-16): el texto nombra los SKU de variante como Jumpseller, que es la fuente
+ *   de verdad: 2200K = APB{W}1 y 2700K = APB{W}7 (antes APB{W}A y APB{W}C). 4000K (N) y
+ *   5000K (F) no cambian. En el fixture cada uno de esos 63 SKU va entre paréntesis, espacios
+ *   o puntuación, así que el reemplazo de texto no toca nada más.
  */
 const EDITORIAL_EDITS: [string, string][] = [
   ['asesoría técnica gratuita para selección de variante CCT', 'asesoría técnica para la selección de variante CCT'],
@@ -42,6 +58,167 @@ const EDITORIAL_EDITS: [string, string][] = [
     'Reposición o reparación a criterio del fabricante.',
     'Pasados los 6 meses de garantía legal, la reposición o reparación queda a criterio del fabricante; durante esos 6 meses el cliente elige entre reparación, cambio o devolución.',
   ],
+  [
+    'cuenta con certificación DS1/2022 del Ministerio del Medio Ambiente que regula la contaminación lumínica en Chile.',
+    'cuenta con certificación según el D.S. N°1/2022 del Ministerio del Medio Ambiente, la norma que regula la contaminación lumínica en Chile.',
+  ],
+  [
+    'La norma define dos categorías de cumplimiento según luz azul:',
+    'Se exige desde octubre de 2024 en las Áreas de Protección Especial y, desde el 19 de octubre de 2026, en todo Chile para las luminarias exteriores nuevas, incluidos los recambios. Para el alumbrado peatonal y vehicular, la norma fija dos límites de contenido de luz azul:',
+  ],
+  [
+    ':** apto para todo el territorio nacional, incluyendo zonas de protección especial astronómica y de biodiversidad',
+    ':** apto para las comunas declaradas como Áreas de Protección Especial (29 comunas de las regiones de Antofagasta, Atacama y Coquimbo), para las áreas de protección de biodiversidad y para el resto del país',
+  ],
+  [
+    ':** apto para todo el territorio excepto zonas de protección especial',
+    ':** apto para las comunas que no están declaradas como Áreas de Protección Especial',
+  ],
+  [
+    ' opera con 1% de luz azul y cumple los requisitos de **clasificación para Áreas de Protección Especial',
+    ' está certificada con **clasificación para Áreas de Protección Especial',
+  ],
+  [
+    ', siendo apta para proyectos en regiones astronómicas como Antofagasta, Atacama y Coquimbo, así como áreas de protección de biodiversidad.',
+    ', apta para proyectos en comunas declaradas como Áreas de Protección Especial y en áreas de protección de biodiversidad. Antes de elegir la variante, revise si la comuna del proyecto está declarada.',
+  ],
+  [
+    ' opera con 7% de luz azul y cumple los requisitos de **clasificación para territorio nacional general',
+    ' está certificada con **clasificación para territorio nacional general',
+  ],
+  [
+    ', apta para proyectos de alumbrado público en el resto del territorio chileno.',
+    ', apta para proyectos de alumbrado público en las comunas que no están declaradas como Áreas de Protección Especial.',
+  ],
+  [
+    ' son aptas para proyectos de alumbrado público bajo regulación SEC tradicional, en zonas no sujetas a la regulación de contaminación lumínica DS1 MMA.',
+    ' cuentan con certificación SEC; la certificación DS1 corresponde a las variantes 2200K y 2700K. Para alumbrado exterior nuevo recomendamos 2700K Cálida, o 2200K Ámbar si la comuna está declarada como Área de Protección Especial.',
+  ],
+  [
+    'certificado SEC vigente y certificación DS1 MMA se entregan',
+    'certificado SEC vigente y el certificado DS1 de las variantes 2200K y 2700K se entregan',
+  ],
+  [
+    'Disponible en cuatro variantes de temperatura de color con porcentaje de luz azul declarado: Ámbar 2200K (1% luz azul, Áreas de Protección Especial DS1 MMA, SKU',
+    'Disponible en cuatro variantes de temperatura de color, todas con certificación SEC: Ámbar 2200K (certificación DS1 para Áreas de Protección Especial, luz azul ≤1%, SKU',
+  ],
+  [
+    'Cálida 2700K (7% luz azul, territorio nacional general DS1 MMA, SKU',
+    'Cálida 2700K (certificación DS1 para territorio nacional general, luz azul ≤7%, SKU',
+  ],
+  ['Neutra 4000K (30% luz azul, alumbrado público SEC, SKU', 'Neutra 4000K (SKU'],
+  ['Fría 5000K (45% luz azul, alumbrado público SEC, SKU', 'Fría 5000K (SKU'],
+  [
+    ' certificada con clasificación para Áreas de Protección Especial del Ministerio del Medio Ambiente. Cumple restricción de luz azul ≤1%, apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad. Vigente desde octubre 2024.',
+    ' certificada según el D.S. N°1/2022 del Ministerio del Medio Ambiente con clasificación para Áreas de Protección Especial. Cumple el límite de luz azul ≤1%: apta para las comunas declaradas como Áreas de Protección Especial, las áreas de protección de biodiversidad y el resto del país. Exigible en esas áreas desde octubre de 2024.',
+  ],
+  [
+    ' certificada con clasificación para territorio nacional general del Ministerio del Medio Ambiente. Cumple restricción de luz azul entre 1% y 7%, apta para alumbrado exterior en todo el territorio nacional excepto zonas de protección especial.',
+    ' certificada según el D.S. N°1/2022 del Ministerio del Medio Ambiente con clasificación para territorio nacional general. Cumple el límite de luz azul ≤7%: apta para alumbrado exterior en las comunas que no están declaradas como Áreas de Protección Especial. Exigible en todo Chile para luminarias exteriores nuevas desde el 19 de octubre de 2026.',
+  ],
+  [
+    'Ministerio del Medio Ambiente (MMA) - SMA',
+    'Organismo de certificación autorizado por la SEC · Protocolo PCL N°1:2024 de la SMA',
+  ],
+  ['Variantes recomendadas: 2200K (zonas con regulación de cielos oscuros) o 2700K (resto del país).', REC],
+  [
+    'Variantes recomendadas: 2700K Cálida para zonas residenciales, 4000K Neutra para plazas con uso nocturno intensivo.',
+    REC,
+  ],
+  ['Variantes recomendadas: 2700K o 4000K según contexto urbano.', REC],
+  [
+    'Variantes recomendadas: 2700K Cálida para zonas residenciales con regulación DS1 MMA, 4000K Neutra para resto del territorio.',
+    REC,
+  ],
+  ['Variantes recomendadas: 2700K o 4000K según contexto.', REC],
+  ['Variantes recomendadas: 2700K para condominios, 4000K para caminos rurales.', REC],
+  [
+    'Variantes recomendadas: 2700K Cálida para zonas con regulación DS1 MMA, 4000K Neutra para resto del territorio.',
+    REC,
+  ],
+  [
+    'Variantes recomendadas: 2700K Cálida para zonas residenciales con regulación DS1, 4000K para plazas con uso nocturno intensivo.',
+    REC,
+  ],
+  ['Variantes recomendadas: 2700K o 4000K según contexto urbano y exigencia normativa.', REC],
+  [
+    'Variantes recomendadas: 4000K Neutra para visibilidad estándar, 2700K Cálida para zonas con regulación DS1 MMA.',
+    REC,
+  ],
+  ['sensación de seguridad. Variantes recomendadas: 4000K o 5000K.', `sensación de seguridad. ${REC}`],
+  [
+    'circulación de equipos pesados. Variantes recomendadas: 4000K Neutra o 5000K Fría para máxima visibilidad operativa.',
+    `circulación de equipos pesados. ${REC}`,
+  ],
+  [
+    'zonas de carga/descarga. Variantes recomendadas: 4000K Neutra o 5000K Fría.',
+    'zonas de carga/descarga. Variantes recomendadas: 4000K Neutra o 5000K Fría bajo techo; en patios y zonas de carga al aire libre, 2700K Cálida, o 2200K Ámbar si la comuna está declarada como Área de Protección Especial.',
+  ],
+  ['Variantes recomendadas: 4000K Neutra o 5000K Fría para máxima visibilidad operativa y de seguridad.', REC],
+  [
+    'circulación de equipos pesados. Variantes recomendadas: 4000K Neutra o 5000K Fría.',
+    `circulación de equipos pesados. ${REC}`,
+  ],
+  [
+    'para práctica nocturna. Variantes recomendadas: 4000K Neutra o 5000K Fría.',
+    'para práctica nocturna. En canchas, el D.S. N°1/2022 limita la temperatura de color según la clase del recinto y exige apagar la iluminación entre las 00:00 y las 07:00, salvo eventos autorizados por el municipio o la Delegación Presidencial Regional. Variante recomendada para multicanchas y canchas municipales: 2700K Cálida.',
+  ],
+  [
+    'en ambiente costero/salino. Variantes recomendadas: 4000K o 5000K para máxima visibilidad operativa.',
+    `en ambiente costero/salino. ${REC}`,
+  ],
+  ['y gran altura. Variantes recomendadas: 4000K Neutra o 5000K Fría.', `y gran altura. ${REC}`],
+  [
+    '**Zonas de protección astronómica o biodiversidad:** restricción a luminarias con clasificación para',
+    '**Comunas declaradas como Áreas de Protección Especial y áreas de biodiversidad:** revise si la comuna del proyecto está declarada; en ellas se exige la clasificación para',
+  ],
+  ['Variante única apta: 2200K Ámbar', 'Variante con esa certificación: 2200K Ámbar'],
+  [
+    'y la normativa local aplicable.',
+    'y la normativa local aplicable. Para mantener el cumplimiento del D.S. N°1/2022, instale la variante certificada sin superar el ángulo de montaje que declara su certificado DS1.',
+  ],
+  [
+    'Proyectos de recambio municipal con cumplimiento DS1 MMA',
+    'Proyectos de recambio municipal con cumplimiento DS1 MMA (variantes 2200K y 2700K)',
+  ],
+  [
+    'Zonas astronómicas en regiones de Antofagasta, Atacama y Coquimbo (variante 2200K)',
+    'Comunas declaradas como Áreas de Protección Especial (variante 2200K)',
+  ],
+  [
+    'cuenta con clasificación para Áreas de Protección Especial (luz azul ≤1%), apta para todo el territorio nacional incluyendo zonas de protección especial astronómica y de biodiversidad.',
+    'tiene certificación DS1 con clasificación para Áreas de Protección Especial (luz azul ≤1%): apta para las comunas declaradas como Áreas de Protección Especial, las áreas de protección de biodiversidad y el resto del país.',
+  ],
+  [
+    'cuenta con clasificación para territorio nacional general (luz azul entre 1% y 7%), apta para todo el territorio excepto zonas de protección especial.',
+    'tiene certificación DS1 con clasificación para territorio nacional general (luz azul ≤7%): apta para las comunas que no están declaradas como Áreas de Protección Especial.',
+  ],
+  [
+    'Las variantes 4000K y 5000K son aptas para alumbrado público con certificación SEC en zonas sin regulación DS1 MMA.',
+    `Las variantes 4000K y 5000K cuentan con certificación SEC. Para alumbrado exterior nuevo, ${DS1_2026}, recomendamos 2700K Cálida, o 2200K Ámbar si la comuna está declarada como Área de Protección Especial.`,
+  ],
+  [
+    'La elección depende de la zona y el tipo de aplicación. Para calles residenciales y zonas con regulación de cielos oscuros se recomienda 2200K (Áreas de Protección Especial, 1% luz azul) o 2700K (territorio nacional general, 7% luz azul). Para avenidas y vías principales sin restricción DS1, la 4000K Neutra ofrece buena visibilidad estándar. Para estacionamientos y zonas de seguridad perimetral, las 4000K o 5000K aportan mayor contraste y sensación de seguridad.',
+    `La elección depende de la comuna y del tipo de aplicación. Para alumbrado exterior nuevo (calles, avenidas, plazas, estacionamientos y patios), ${DS1_2026}, se recomienda 2700K Cálida (clasificación para territorio nacional general) o, si la comuna está declarada como Área de Protección Especial o el proyecto está en un área de protección de biodiversidad, 2200K Ámbar (clasificación para Áreas de Protección Especial). Revise la comuna del proyecto antes de elegir. Las variantes 4000K y 5000K cuentan con certificación SEC.`,
+  ],
+  [
+    'Para proyectos en regiones con regulación de luz azul (zonas astronómicas o biodiversidad), las variantes 2200K y 2700K cumplen también la norma DS1/2022 MMA.',
+    `Para alumbrado exterior, ${DS1_2026}, las variantes 2200K y 2700K cuentan además con certificación DS1: 2200K para comunas declaradas como Áreas de Protección Especial y áreas de biodiversidad, 2700K para el resto del país.`,
+  ],
+  [
+    'La certificación DS1/2022 MMA, otorgada por el Ministerio del Medio Ambiente y vigente desde octubre 2024, regula la emisión de luz azul para reducir contaminación lumínica, proteger la biodiversidad y la observación astronómica — es obligatoria para alumbrado exterior en zonas reguladas.',
+    'La certificación DS1 acredita el cumplimiento del D.S. N°1/2022 del Ministerio del Medio Ambiente, que regula, entre otros aspectos, la emisión de luz azul para reducir la contaminación lumínica y proteger la biodiversidad y la observación astronómica. La emite un organismo de certificación autorizado por la SEC, según el Protocolo PCL N°1:2024 de la Superintendencia del Medio Ambiente (SMA). Es obligatoria para el alumbrado exterior: desde octubre de 2024 en las Áreas de Protección Especial y, desde el 19 de octubre de 2026, en todo Chile para luminarias nuevas.',
+  ],
+  [
+    'cumple SEC en sus 4 variantes y DS1 MMA en sus variantes 2200K y 2700K.',
+    'cuenta con certificación SEC en sus 4 variantes y con certificación DS1 en sus variantes 2200K y 2700K.',
+  ],
+  ['(1% luz azul)', '(luz azul ≤1%)'],
+  ['(7% luz azul)', '(luz azul ≤7%)'],
+  ...BESTLED_WATTS.flatMap((w): [string, string][] => [
+    [`APB${w}A`, `APB${w}1`],
+    [`APB${w}C`, `APB${w}7`],
+  ]),
 ];
 /** Valor editorial del fixture con los cambios intencionales aplicados. */
 const withEditorialEdits = <T,>(value: T): T =>
@@ -197,13 +374,25 @@ describe('se conserva lo que no viene de Jumpseller', () => {
     for (const id of Object.keys(editorialOverlay)) expect(snapById.has(Number(id))).toBe(true);
   });
 
-  it('los cambios intencionales al editorial se aplicaron en los 7 BESTLED (y nada más cambió)', () => {
+  it('los cambios intencionales al editorial se aplicaron en los BESTLED', () => {
     const text = JSON.stringify(BESTLED.map(id => products.find(x => x.jumpseller_id === id)));
     for (const [from, to] of EDITORIAL_EDITS) {
-      expect(text).not.toContain(from);
-      expect(text.split(to).length - 1, to).toBe(7);
+      if (!to.includes(from)) expect(text, from).not.toContain(from);
+      expect(text, to).toContain(to);
     }
     expect(text).not.toMatch(/gratuit|cotizaci[oó]n r[aá]pida/i);
+  });
+
+  it('los BESTLED no repiten los errores del D.S. N°1/2022', () => {
+    const text = JSON.stringify(BESTLED.map(id => products.find(x => x.jumpseller_id === id)));
+    for (const wrong of [
+      /zonas? (?:no sujetas|sin regulaci[oó]n|sin restricci[oó]n)/i, // desde el 19-10-2026 no quedan zonas sin DS1
+      /regiones? astron[oó]mica|astron[oó]micas en regiones/i, // las Áreas de Protección Especial son comunas
+      /otorgada por el Ministerio|Ministerio del Medio Ambiente \(MMA\) - SMA/i, // certifica un organismo autorizado por la SEC
+      /\b\d+ ?% (?:de )?luz azul|entre 1% y 7%/i, // el % es el límite (≤1%, ≤7%), no un valor de la CCT
+    ]) {
+      expect(text).not.toMatch(wrong);
+    }
   });
 
   it('las variantes CCT de BESTLED toman precio y SKU de Jumpseller', () => {
@@ -217,6 +406,55 @@ describe('se conserva lo que no viene de Jumpseller', () => {
         expect(v.price).toBe(s.price);
         expect(v.sku).toBe(s.sku || v.sku);
       }
+    }
+  });
+});
+
+// PR 14a: el texto editorial (fichas, FAQ, certificaciones, SEO) nombra los SKU de los BESTLED.
+// Jumpseller es la fuente de verdad: 2200K → APB{W}1, 2700K → APB{W}7, 4000K → N, 5000K → F.
+describe('SKU de los BESTLED en el texto editorial', () => {
+  /** Todos los textos de un valor: strings de objetos y listas, a cualquier profundidad. */
+  const strings = (v: unknown): string[] =>
+    typeof v === 'string'
+      ? [v]
+      : Array.isArray(v)
+        ? v.flatMap(strings)
+        : v !== null && typeof v === 'object'
+          ? Object.values(v).flatMap(strings)
+          : [];
+  const editorialTexts = Object.values(editorialOverlay).flatMap(strings);
+  const mentioned = (re: RegExp) => [...new Set(editorialTexts.flatMap(t => t.match(re) ?? []))].sort();
+  const bestled = BESTLED.map(id => {
+    const p = products.find(x => x.jumpseller_id === id)!;
+    return { id, p, live: new Map(snapById.get(id)!.variants.map(v => [v.id, v.sku])) };
+  });
+
+  it('el SKU base del sitio + el sufijo de su color de luz da el SKU de variante de Jumpseller', () => {
+    for (const { id, p, live } of bestled) {
+      expect(p.cctVariants, String(id)).toHaveLength(4);
+      for (const v of p.cctVariants!) {
+        expect(buildVariantSku(p.sku, v.kelvin), `${id} ${v.kelvin}K`).toBe(live.get(v.jumpseller_variant_id!));
+      }
+    }
+  });
+
+  it('no quedan SKU con la convención antigua (A = 2200K, C = 2700K)', () => {
+    expect(mentioned(/\bAPB\d+[AC]\b/g)).toEqual([]);
+  });
+
+  it('cada SKU APB del texto existe en Jumpseller, como SKU de variante o como su base', () => {
+    const jumpsellerSkus = new Set(jumpsellerSnapshot.flatMap(s => [s.sku, ...s.variants.map(v => v.sku)]).filter(Boolean));
+    // El SKU base (APB40) Jumpseller no lo tiene: vale si con cada sufijo da sus SKU de variante.
+    for (const { p, live } of bestled) {
+      if (p.cctVariants!.every(v => buildVariantSku(p.sku, v.kelvin) === live.get(v.jumpseller_variant_id!))) {
+        jumpsellerSkus.add(p.sku);
+      }
+    }
+    const skus = mentioned(/\bAPB\w*/g);
+    expect(skus.filter(sku => !jumpsellerSkus.has(sku))).toEqual([]);
+    // La búsqueda sí ve los SKU: el texto nombra la base y las 4 variantes de cada BESTLED.
+    for (const { p } of bestled) {
+      for (const sku of [p.sku, ...p.cctVariants!.map(v => v.sku)]) expect(skus, sku).toContain(sku);
     }
   });
 });

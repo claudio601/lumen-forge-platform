@@ -2,9 +2,25 @@
 // modificaciones de la Ley 21.719 (rigen desde el 2026-12-01), art. 14 ter. Defaults del
 // dueño: solicitudes a ventas@elights.cl con el asunto "Datos personales"; sin delegado de
 // protección de datos; encargados sin Axiom; 24 meses para solicitudes sin compra y 6 años
-// para documentos tributarios; asistente de WhatsApp con IA activo y con paso a una persona;
-// una persona revisa cada solicitud.
+// para documentos tributarios; asistente de WhatsApp con IA activo, descrito como funciona hoy
+// (versión 1.3); una persona revisa cada solicitud que queda registrada. Que el equipo responda
+// por correo (nunca por WhatsApp ni por teléfono) es regla del dueño. La PR 13y (#85) ajustó
+// MSG_HUMAN y MSG4_INSTALL a esa regla; quedan pendientes para la PR del bot: MSG4 y MSG4_B2B
+// dicen «quedó registrada» aunque no se cree el negocio, y MSG_HUMAN («ya derivé tu
+// solicitud») se repite en un flujo cerrado aunque no haya correo ni negocio.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
+// - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
+//   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
+//   devolvió la IA; la IA (claudeAgent.ts) recibe los mensajes recientes y el nombre del perfil,
+//   solo extrae los datos y escribe el resumen; si piden una persona, no siempre pide el
+//   correo: no deriva si el mensaje trae intención comercial («necesito», COMMERCIAL_INTENT_RE)
+//   y, si nombran a Claudio o Constanza, da sus correos (MSG_EXECUTIVE); sin correo no crea el
+//   negocio en Pipedrive (hasMinCommercial); prioridad «Alta» si pidió una persona
+//   (pipedriveLead.ts); historial, estado y registro del aviso solo en memoria; aviso breve en
+//   la primera respuesta (privacyNotice.ts); adjuntos: NumMedia (webhook.ts). Twilio y Anthropic
+//   conservan los mensajes según las condiciones de servicio que aceptamos al contratarlos (el
+//   plazo, pendiente: consola de Twilio y pregunta Q6). El bot no reconoce retractos, garantías
+//   ni reclamos: por eso Términos §16 y Cambios los piden por correo.
 // - Casillas de los cinco formularios (useConsentFields, src/components/legal/ConsentFields.tsx):
 //   la de privacidad, obligatoria (con los términos en /solicitar-pedido), y la de novedades
 //   por correo, opcional y sin marcar.
@@ -109,7 +125,7 @@ const PrivacidadPage = () => (
         tarjeta.
       </li>
       <li>
-        <strong>Tus mensajes:</strong> lo que nos escribes por correo o WhatsApp.
+        <strong>Tus mensajes:</strong> lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo o WhatsApp.
       </li>
       <li>
         <strong>Origen de tu visita:</strong> la página por la que entraste al sitio, el sitio desde el que llegaste y los
@@ -128,8 +144,9 @@ const PrivacidadPage = () => (
     </ul>
     <p>No pedimos datos sensibles (salud, origen étnico, creencias, etc.). Por favor no los incluyas en tus comentarios.</p>
     <p>
-      <strong>De dónde vienen:</strong> casi todos nos los das tú en los formularios, por correo o por WhatsApp. Los datos de pago
-      y despacho de tu compra vienen de la plataforma del link de pago (Jumpseller). Los parámetros de campaña vienen del enlace
+      <strong>De dónde vienen:</strong> casi todos nos los das tú en los formularios, por correo o por WhatsApp. Si nos escribes
+      por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp. Los datos de pago y
+      despacho de tu compra vienen de la plataforma del link de pago (Jumpseller). Los parámetros de campaña vienen del enlace
       con el que llegaste.
     </p>
 
@@ -174,17 +191,25 @@ const PrivacidadPage = () => (
 
     <h2>4. Priorización de solicitudes y respuestas automáticas</h2>
     <p>
-      <strong>Priorización.</strong> Cuando envías una solicitud, un programa le asigna un puntaje con reglas fijas: si compras
-      como empresa o como persona, el monto referencial, la cantidad de productos y si indicaste empresa y teléfono. En las
-      solicitudes de instalación considera el tipo de proyecto, el tipo de cliente y qué tan completa viene la solicitud. El
-      resultado solo ordena el seguimiento ("Alta" o "Normal"). No decide si te vendemos, a qué precio ni en qué condiciones, y una
-      persona de nuestro equipo revisa y responde cada solicitud. Puedes pedirnos que te expliquemos el resultado u oponerte a
-      este tratamiento.
+      <strong>Priorización.</strong> Cuando envías una solicitud desde el sitio, un programa le asigna un puntaje con reglas
+      fijas: si compras como empresa o como persona, el monto referencial, la cantidad de productos y si indicaste empresa y
+      teléfono. En las solicitudes de instalación considera el tipo de proyecto, el tipo de cliente y qué tan completa viene la
+      solicitud. El resultado solo ordena el seguimiento ("Alta" o "Normal"). En WhatsApp no hay puntaje: tu solicitud queda en
+      "Alta" si el asistente detecta que pides hablar con una persona y en "Normal" si no, y se clasifica como de empresa o de
+      persona con reglas fijas, según lo que escribes. Nada de esto decide si te vendemos, a qué precio ni en qué condiciones, y
+      una persona de nuestro equipo revisa y responde cada solicitud que queda registrada en nuestro sistema de seguimiento.
+      Puedes pedirnos que te expliquemos el resultado u oponerte a este tratamiento.
     </p>
     <p>
-      <strong>Asistente de WhatsApp.</strong> Las primeras respuestas en nuestro WhatsApp pueden venir de un asistente automático
-      que usa inteligencia artificial (Claude, de Anthropic) para entender tu consulta y responderla. En cualquier momento puedes
-      pedir hablar con una persona.
+      <strong>Asistente de WhatsApp.</strong> En nuestro WhatsApp te atiende un asistente automático. Sus respuestas son mensajes
+      predefinidos, que pueden repetir datos que reconoció en tus mensajes (como el proyecto o el tipo de luz); no las redacta una
+      inteligencia artificial. El asistente envía tus mensajes recientes y el nombre de tu perfil a una inteligencia artificial
+      (Claude, de Anthropic), que reconoce en ellos los datos de tu solicitud (producto, tipo de luz, cantidad, proyecto o uso,
+      comuna o ciudad, nombre, empresa y correo), detecta si pides hablar con una persona y escribe un resumen para nuestro equipo.
+      Si pides hablar con una persona, una persona de nuestro equipo te responde por correo, así que necesitamos tu correo. El
+      asistente no siempre te lo pide; por ejemplo, si nombras a uno de nuestros ejecutivos, te da su correo para que le escribas.
+      Sin tu correo, tu solicitud no queda registrada en nuestro sistema de seguimiento y no llega a nuestro equipo; en ese caso,
+      escríbenos a <EmailLink />. En su primera respuesta, el asistente te muestra un aviso breve con el enlace a esta política.
     </p>
 
     <h2>5. Con quién compartimos tus datos</h2>
@@ -293,12 +318,17 @@ const PrivacidadPage = () => (
         <strong>Registro técnico de pedidos (Upstash):</strong> 30 días.
       </li>
       <li>
-        <strong>Asistente de WhatsApp:</strong> guarda el historial reciente de la conversación solo en memoria temporal. Lo que
-        registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes.
+        <strong>Asistente de WhatsApp:</strong> guarda solo en memoria temporal el historial reciente de la conversación, los datos
+        que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad. Lo que registramos de la conversación en nuestro
+        sistema de seguimiento sigue el plazo de las solicitudes.
       </li>
       <li>
         <strong>Registros técnicos del sitio y del asistente de WhatsApp</strong> (pueden incluir tu teléfono, nombre, correo o un
         extracto de tu mensaje): los plazos breves que define cada proveedor.
+      </li>
+      <li>
+        <strong>Twilio y Anthropic</strong> (asistente de WhatsApp): aparte de esos registros técnicos, conservan los registros de
+        los mensajes que pasan por sus servicios según las condiciones de servicio que aceptamos al contratarlos.
       </li>
     </ul>
 
