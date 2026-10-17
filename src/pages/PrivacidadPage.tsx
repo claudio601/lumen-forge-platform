@@ -5,9 +5,15 @@
 // para documentos tributarios; asistente de WhatsApp con IA activo, descrito como funciona hoy
 // (versión 1.3); una persona revisa cada solicitud que queda registrada. Que el equipo responda
 // por correo (nunca por WhatsApp ni por teléfono) es regla del dueño. La PR 13y (#85) ajustó
-// MSG_HUMAN y MSG4_INSTALL a esa regla; quedan pendientes para la PR del bot: MSG4 y MSG4_B2B
-// dicen «quedó registrada» aunque no se cree el negocio, y MSG_HUMAN («ya derivé tu
-// solicitud») se repite en un flujo cerrado aunque no haya correo ni negocio.
+// MSG_HUMAN y MSG4_INSTALL a esa regla, y la PR 1 del bot (#88) hizo que «quedó registrada» y
+// «ya derivé» salgan solo cuando Pipedrive confirma el negocio.
+// Versión 1.4 (decisión del dueño, 2026-10-17): revisión de las conversaciones con el asistente
+// para corregirlo (finalidad, §3, §4, §5, §7, §8 y §9), con el procedimiento y los plazos de
+// ~/proyectos/elights-bot-2026-10/marcha-blanca/protocolo-marcha-blanca.md (fuera del repo):
+// la exportación de Twilio no se guarda cruda; la copia seudonimizada se borra a los 60 días y la
+// tabla de claves, cifrada, a los 14; la lee Claude solo con una cuenta comercial de Anthropic.
+// El aviso del bot (privacyNotice.ts) informa la finalidad nueva. TWILIO_RETENTION_DAYS es el
+// plazo configurado en la consola de Twilio (lo confirma el dueño).
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -45,6 +51,9 @@ import { REGION_CARRIERS } from '@/config/business';
 
 const DATA_SUBJECT = 'Datos personales';
 
+/** Días que Twilio guarda los mensajes (Messaging → Settings → General de su consola). Lo confirma el dueño. */
+const TWILIO_RETENTION_DAYS = 400;
+
 const PURPOSES: [string, string][] = [
   ['Responder tu solicitud, confirmar disponibilidad, cotizar y mandarte el link de pago', 'Medidas previas a un contrato, a tu pedido'],
   ['Cumplir tu compra: pago, despacho, retracto y garantías', 'Ejecución del contrato'],
@@ -52,6 +61,10 @@ const PURPOSES: [string, string][] = [
   [
     'Ordenar y priorizar el seguimiento de las solicitudes (ver punto 4)',
     'Interés legítimo de eLIGHTS en atender primero lo más urgente; puedes oponerte',
+  ],
+  [
+    'Revisar las conversaciones con el asistente de WhatsApp para corregir sus errores y mejorarlo (ver punto 4)',
+    'Interés legítimo de eLIGHTS en que el asistente entienda bien las solicitudes y las registre completas; puedes oponerte',
   ],
   [
     'Saber qué canales y campañas generan solicitudes (origen de la visita)',
@@ -174,7 +187,9 @@ const PrivacidadPage = () => (
       mismas finalidades, sobre la base de la autorización que nos das al enviarnos una solicitud (en el sitio, al marcar la
       casilla «Leí la Política de privacidad y autorizo…»; por correo o WhatsApp, con tu mensaje escrito) y de las obligaciones
       legales que nos aplican. Ordenar y priorizar tu solicitud es parte de responderla. Para saber de dónde vienen las
-      solicitudes usamos el origen de tu visita solo internamente, con fines estadísticos, como permite esa ley. Desde el 1 de
+      solicitudes usamos el origen de tu visita solo internamente, con fines estadísticos, como permite esa ley. En ese período, la
+      revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle;
+      el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. Desde el 1 de
       diciembre de 2026 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
       pides, y la casilla queda como constancia de que leíste esta política.
     </p>
@@ -211,6 +226,15 @@ const PrivacidadPage = () => (
       Sin tu correo, tu solicitud no queda registrada en nuestro sistema de seguimiento y no llega a nuestro equipo; en ese caso,
       escríbenos a <EmailLink />. En su primera respuesta, el asistente te muestra un aviso breve con el enlace a esta política.
     </p>
+    <p>
+      <strong>Revisión del asistente.</strong> Algunas semanas, como la primera de cada mes, guardamos una copia de las
+      conversaciones con el asistente para encontrar sus errores (por ejemplo, un dato mal reconocido, una pregunta que faltó o una
+      solicitud que no quedó registrada) y corregirlos. El mismo día cambiamos tu teléfono por un código y quitamos los datos de
+      contacto que reconocemos (correo, RUT, teléfonos y direcciones), y también tu nombre y tu empresa cuando los reconocemos. Esa
+      copia la revisa nuestro equipo con ayuda de Claude, la inteligencia artificial de Anthropic. La revisión no decide nada sobre
+      ti ni se usa para enviarte publicidad, y para probar el asistente usamos mensajes inventados, nunca los tuyos. Puedes
+      oponerte escribiéndonos a <EmailLink subject={DATA_SUBJECT} /> con el asunto «{DATA_SUBJECT}».
+    </p>
 
     <h2>5. Con quién compartimos tus datos</h2>
     <p>
@@ -236,7 +260,8 @@ const PrivacidadPage = () => (
         <strong>Twilio Inc.</strong> (Estados Unidos): conexión de nuestro número de WhatsApp.
       </li>
       <li>
-        <strong>Anthropic PBC</strong> (Estados Unidos): inteligencia artificial del asistente de WhatsApp.
+        <strong>Anthropic PBC</strong> (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus
+        conversaciones (punto 4).
       </li>
       <li>
         <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de
@@ -323,12 +348,24 @@ const PrivacidadPage = () => (
         sistema de seguimiento sigue el plazo de las solicitudes.
       </li>
       <li>
+        <strong>Copia de revisión del asistente</strong> (punto 4): no guardamos la exportación original; el mismo día la cambiamos
+        por una copia con tu teléfono cambiado por un código y sin los datos de contacto que reconocemos, y esa copia la borramos a
+        los 60 días. La tabla que une cada código con tu teléfono la guardamos cifrada y la borramos dentro de 14 días; después
+        queda solo un código secreto derivado de tu teléfono, que sirve únicamente para encontrar tu caso si te opones, y lo
+        borramos junto con la copia. Las cifras que salen de la revisión (por ejemplo, cuántas solicitudes quedaron completas) no
+        te identifican y las guardamos sin plazo.
+      </li>
+      <li>
         <strong>Registros técnicos del sitio y del asistente de WhatsApp</strong> (pueden incluir tu teléfono, nombre, correo o un
         extracto de tu mensaje): los plazos breves que define cada proveedor.
       </li>
       <li>
-        <strong>Twilio y Anthropic</strong> (asistente de WhatsApp): aparte de esos registros técnicos, conservan los registros de
-        los mensajes que pasan por sus servicios según las condiciones de servicio que aceptamos al contratarlos.
+        <strong>Twilio</strong> (asistente de WhatsApp): guarda los registros de los mensajes, con su texto,
+        por {TWILIO_RETENTION_DAYS} días, el plazo que tenemos configurado en su servicio.
+      </li>
+      <li>
+        <strong>Anthropic</strong> (asistente de WhatsApp): conserva los registros de los mensajes que pasan por su servicio según
+        las condiciones de servicio que aceptamos al contratarlo.
       </li>
     </ul>
 
@@ -346,7 +383,7 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>oposición:</strong> oponerte a un tratamiento, incluidos el envío de novedades, el registro del origen de tu visita
-        (también desde «Configurar cookies») y la priorización automática;
+        (también desde «Configurar cookies»), la priorización automática y la revisión de tus conversaciones con el asistente;
       </li>
       <li>
         <strong>portabilidad:</strong> recibir tus datos en un formato de uso común;
@@ -389,7 +426,8 @@ const PrivacidadPage = () => (
       Usamos conexiones cifradas (HTTPS), damos acceso a tus datos solo a las personas de nuestro equipo y a los proveedores que lo
       necesitan y guardamos las credenciales de los sistemas fuera del código del sitio. Los registros técnicos del sitio y del
       asistente de WhatsApp pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje; se guardan
-      solo los plazos breves que define cada proveedor (punto 7). Si ocurre una vulneración de seguridad que pueda afectar tus datos, la informaremos a la Agencia
+      solo los plazos breves que define cada proveedor, salvo la copia de revisión del asistente, que tiene sus propios plazos
+      (punto 7). Si ocurre una vulneración de seguridad que pueda afectar tus datos, la informaremos a la Agencia
       de Protección de Datos Personales y, cuando corresponda, a ti.
     </p>
 

@@ -33,12 +33,12 @@
  * LEGAL_UPDATED no mueve el margen de CONSENT_GRACE_DAYS días: se cuenta desde
  * CONSENT_SINCE_DATE (consentGraceUntil), que no cambia al subir la versión.
  */
-export const LEGAL_VERSION: string = '1.3';
-export const LEGAL_UPDATED: string = '2026-10-16';
-export const LEGAL_UPDATED_LABEL: string = '16 de octubre de 2026';
+export const LEGAL_VERSION: string = '1.4';
+export const LEGAL_UPDATED: string = '2026-10-18';
+export const LEGAL_UPDATED_LABEL: string = '18 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
-export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2'];
+export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3'];
 
 /** Páginas con versión y archivo permanente (LegalLayout con `updated`). */
 export const LEGAL_VERSIONED_PATHS = [

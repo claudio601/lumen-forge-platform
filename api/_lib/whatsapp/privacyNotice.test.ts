@@ -43,7 +43,7 @@ const MAX_COMBINED = 1000;
  * Versión de los textos legales con la que se revisó el aviso. Al subirla, se vuelve a leer
  * el aviso contra la política nueva (sobre todo el §4) y se actualiza aquí.
  */
-const NOTICE_REVIEWED_FOR_LEGAL_VERSION = '1.3';
+const NOTICE_REVIEWED_FOR_LEGAL_VERSION = '1.4';
 
 /** Módulo nuevo, con el registro vacío. */
 async function freshModule(): Promise<NoticeModule> {
@@ -61,7 +61,7 @@ afterEach(() => {
 describe('texto del aviso', () => {
   it('cabe en 300 caracteres, hoy y con el dominio de la Etapa 3', async () => {
     expect(PRIVACY_NOTICE.length).toBeLessThanOrEqual(300);
-    expect(PRIVACY_NOTICE.length).toBe(297);
+    expect(PRIVACY_NOTICE.length).toBe(296);
 
     vi.resetModules();
     vi.doMock('../site.js', () => ({ SITE_URL: 'https://elights.cl' }));
@@ -69,7 +69,7 @@ describe('texto del aviso', () => {
     expect(etapa3.PRIVACY_POLICY_URL).toBe('https://elights.cl/politica-de-privacidad');
     expect(etapa3.PRIVACY_NOTICE).toContain('\nPolítica: https://elights.cl/politica-de-privacidad\n');
     expect(etapa3.PRIVACY_NOTICE.length).toBeLessThanOrEqual(300);
-    expect(etapa3.PRIVACY_NOTICE.length).toBe(291);
+    expect(etapa3.PRIVACY_NOTICE.length).toBe(290);
   });
 
   it('con cada respuesta fija del flujo, el mensaje queda muy bajo el límite de Twilio', () => {
@@ -101,6 +101,7 @@ describe('texto del aviso', () => {
       site.LEGAL_NAME,
       contactEmail,
       'responder tu consulta',
+      'mejorar este asistente',
       'asistente automático con IA',
       'sistema de seguimiento',
       '«Datos personales»',

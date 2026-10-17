@@ -8,7 +8,8 @@
 // - El texto dice solo lo que el código hace: las respuestas son plantillas fijas y la IA
 //   (claudeAgent.ts) solo extrae datos; el negocio en Pipedrive solo se crea si hay correo
 //   ("puede quedar registrada"). No promete pasar a una persona: el flujo pide el correo antes.
-//   Todo lo que dice está en la política vigente (src/pages/PrivacidadPage.tsx, versión 1.2);
+//   Todo lo que dice está en la política vigente (src/pages/PrivacidadPage.tsx, versión 1.4,
+//   que agrega la revisión de las conversaciones para mejorar el asistente);
 //   privacyNotice.test.ts lo comprueba.
 // - Los textos van con escapes \u, como flowEngine.ts, para no arriesgar mojibake.
 // - El registro de "ya mostrado" es un Set en la memoria de la instancia, con el mismo teléfono
@@ -41,7 +42,7 @@ export const PRIVACY_POLICY_URL: string = SITE_URL + '/politica-de-privacidad';
  * buildTwiML lo deja tal cual.
  */
 export const PRIVACY_NOTICE: string =
-  'Privacidad: eLIGHTS.CL SpA usa tus datos para responder tu consulta. Te atiende un asistente autom\u00e1tico con IA y tu solicitud puede quedar registrada en nuestro sistema de seguimiento.\n' +
+  'Privacidad: eLIGHTS.CL SpA usa tus datos para responder tu consulta y mejorar este asistente autom\u00e1tico con IA. Tu solicitud puede quedar registrada en nuestro sistema de seguimiento.\n' +
   'Pol\u00edtica: ' + PRIVACY_POLICY_URL + '\n' +
   'Derechos: ventas@elights.cl, asunto \u00abDatos personales\u00bb';
 
