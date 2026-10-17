@@ -2,8 +2,8 @@
 // Aviso de privacidad del asistente de WhatsApp (Etapa 2 · PR 13w), de punta a punta en el
 // webhook: la primera respuesta a cada número lleva el aviso al final (también si es un
 // adjunto o un mensaje vacío) y las siguientes no; el aviso no entra al historial que va a
-// Claude, ni a Pipedrive, ni al aviso al equipo, ni al log QA; si Claude falla se responde
-// igual; un 405, un 403 o un error antes de enviar no marcan el número; si la respuesta sale
+// Claude, ni a Pipedrive, ni al aviso al equipo, ni al log QA; si Claude o el paso del flujo
+// fallan se responde igual; un 405, un 403 o un error antes de enviar no marcan el número; si la respuesta sale
 // después del plazo de Twilio, lleva el aviso pero el número no se marca. Claude, Pipedrive y
 // el aviso al equipo están simulados (sin red) y el reloj, cuando hace falta, también. Vive en
 // api/_tests/ para que Vercel no lo despliegue como función.
@@ -20,7 +20,7 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { getHistory } from '../_lib/whatsapp/conversation.js';
-import { MSG1, MSG4, MSG_MEDIA } from '../_lib/whatsapp/flowEngine.js';
+import { MSG1, MSG4, MSG_DEAL_FAILED, MSG_MEDIA } from '../_lib/whatsapp/flowEngine.js';
 import { buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { PRIVACY_NOTICE, PRIVACY_POLICY_URL } from '../_lib/whatsapp/privacyNotice.js';
 
@@ -243,9 +243,9 @@ describe('fallas: el bot responde igual y un error no marca el número', () => {
     expect(res.body).toBe(withNotice(MSG1));
   });
 
-  it('si el request falla antes de enviar, el número no queda marcado: el siguiente mensaje lleva el aviso', async () => {
+  it('si falla el paso del flujo, responde el texto B con el aviso (antes: un 500 sin respuesta)', async () => {
     const phone = nextPhone();
-    // Un campo que lanza al leerse hace fallar processFlowStep (en producción: un 500).
+    // Un campo que lanza al leerse hace fallar processFlowStep.
     const parsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'x' };
     Object.defineProperty(parsed, 'producto', {
       enumerable: true,
@@ -254,10 +254,21 @@ describe('fallas: el bot responde igual y un error no marca el número', () => {
       },
     });
     vi.mocked(askClaude).mockResolvedValueOnce({ ...claudeOk(), parsed } as Awaited<ReturnType<typeof askClaude>>);
+    const res = await sendMessage(phone, 'Necesito focos LED');
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBe(withNotice(MSG_DEAL_FAILED));
+    expect(ensureWhatsAppDeal).not.toHaveBeenCalled();
+  });
+
+  it('si el envío falla antes de armar la respuesta, el número no queda marcado: el siguiente mensaje lleva el aviso', async () => {
+    const phone = nextPhone();
     const failed = fakeRes();
+    failed.setHeader = () => {
+      throw new Error('falla simulada al enviar');
+    };
     await expect(
-      webhook(fakeReq({ From: 'whatsapp:' + phone, Body: 'Necesito focos LED', NumMedia: '0' }), failed),
-    ).rejects.toThrow('falla simulada');
+      webhook(fakeReq({ From: 'whatsapp:' + phone, Body: 'Hola', NumMedia: '0' }), failed),
+    ).rejects.toThrow('falla simulada al enviar');
     expect(failed.body).toBeUndefined();
 
     const next = await sendMessage(phone, 'Hola');
