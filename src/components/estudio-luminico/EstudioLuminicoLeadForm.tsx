@@ -48,17 +48,17 @@ const TIPOS_PROYECTO = [
 ] as const;
 
 const TIENE_PLANOS = [
-  { value: 'si_dwg_listo', label: 'Si, los tengo listos' },
-  { value: 'si_preparar', label: 'Si, pero necesito prepararlos' },
-  { value: 'no_tengo', label: 'No, necesito orientacion' },
+  { value: 'si_dwg_listo', label: 'Sí, los tengo listos' },
+  { value: 'si_preparar', label: 'Sí, pero necesito prepararlos' },
+  { value: 'no_tengo', label: 'No, necesito orientación' },
 ] as const;
 
 const OBJETIVOS = [
   { value: 'entrenamiento', label: 'Entrenamiento deportivo' },
   { value: 'competencia', label: 'Competencia / Partido oficial' },
-  { value: 'operacion_industrial', label: 'Operacion industrial' },
+  { value: 'operacion_industrial', label: 'Operación industrial' },
   { value: 'seguridad', label: 'Seguridad / Vigilancia' },
-  { value: 'licitacion', label: 'Licitación / Ingenieria' },
+  { value: 'licitacion', label: 'Licitación / Ingeniería' },
   { value: 'no_definido', label: 'No lo tengo claro' },
 ] as const;
 
@@ -218,7 +218,7 @@ const EstudioLuminicoLeadForm = () => {
   const validateForm = (): string | null => {
     if (!form.nombreCompleto.trim()) return 'El nombre completo es requerido.';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-      return 'Ingresa un correo electronico valido.';
+      return 'Ingresa un correo electrónico válido.';
     if (!form.telefono.trim()) return 'El teléfono es requerido.';
     // Misma regla que el servidor (api/estudio-luminico/validation.ts)
     const phoneDigits = form.telefono.replace(/\D/g, '').length;
@@ -366,7 +366,7 @@ const EstudioLuminicoLeadForm = () => {
               type="text"
               value={form.nombreCompleto}
               onChange={handleChange}
-              placeholder="Juan Perez"
+              placeholder="Juan Pérez"
               maxLength={ESTUDIO_MAX_LENGTHS.nombreCompleto}
               className={inputClass}
               autoComplete="name"
@@ -376,7 +376,7 @@ const EstudioLuminicoLeadForm = () => {
           {/* Email */}
           <div>
             <label htmlFor="elf-email" className={labelClass}>
-              Correo electronico {reqStar}
+              Correo electrónico {reqStar}
             </label>
             <input
               id="elf-email"
@@ -457,7 +457,7 @@ const EstudioLuminicoLeadForm = () => {
               type="text"
               value={form.comunaCiudad}
               onChange={handleChange}
-              placeholder="Tome, Region del Biobio"
+              placeholder="Tomé, Región del Biobío"
               maxLength={ESTUDIO_MAX_LENGTHS.comunaCiudad}
               className={inputClass}
             />
@@ -475,7 +475,7 @@ const EstudioLuminicoLeadForm = () => {
               onChange={handleChange}
               className={inputClass}
             >
-              <option value="">Selecciona una opcion...</option>
+              <option value="">Selecciona una opción...</option>
               {TIENE_PLANOS.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -598,7 +598,7 @@ const EstudioLuminicoLeadForm = () => {
           {(status === 'error' || errorMsg) && (
             <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">
               <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <span>{errorMsg || 'Ocurrio un error. Intentalo de nuevo.'}</span>
+              <span>{errorMsg || 'Ocurrió un error. Inténtalo de nuevo.'}</span>
             </div>
           )}
           <Button

@@ -82,7 +82,7 @@ const Header = () => {
                                             {PUBLISHED_PRODUCT_COUNT} productos en total
                                         </span>
                                         <Link to="/catalogo" className="text-xs font-semibold text-primary hover:underline" onClick={() => setCatOpen(false)}>
-                                            Ver catalogo completo
+                                            Ver catálogo completo
                                         </Link>
                                     </div>
                                 </div>

@@ -39,7 +39,7 @@ const marketingBox = () => screen.getByLabelText(/Quiero recibir novedades/) as 
 function fillForm({ consent = true, comuna = 'Santiago' } = {}) {
   const type = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
   type(/Nombre completo/, 'PRUEBA ETAPA 2 (10) - borrar');
-  type(/Correo electronico/, 'prueba-etapa2-10@example.com');
+  type(/Correo electrónico/, 'prueba-etapa2-10@example.com');
   type(/Teléfono/, '+56 9 0000 0910');
   type(/Comuna/, comuna);
   if (consent) fireEvent.click(privacyBox());

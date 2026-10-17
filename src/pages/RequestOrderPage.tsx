@@ -131,7 +131,7 @@ const RequestOrderPage = () => {
                                           Agrega productos desde el catalogo para solicitar un pedido
                                 </p>
                                 <Button asChild className="gradient-primary text-primary-foreground">
-                                          <Link to="/catalogo">Ver catalogo</Link>
+                                          <Link to="/catalogo">Ver catálogo</Link>
                                 </Button>
                         </div>
                       );
@@ -164,9 +164,9 @@ const RequestOrderPage = () => {
               if (missing.length > 0 || phoneInvalid) {
                         // Fix 3: mensaje especifico segun el tipo de error de telefono
                         if (phoneInvalid && missing.length === 0) {
-                                    setErrorMsg('Ingresa un teléfono valido con al menos 8 digitos.');
+                                    setErrorMsg('Ingresa un teléfono válido con al menos 8 dígitos.');
                         } else if (phoneInvalid) {
-                                    setErrorMsg('Por favor completa todos los campos requeridos (*) e ingresa un teléfono valido.');
+                                    setErrorMsg('Por favor completa todos los campos requeridos (*) e ingresa un teléfono válido.');
                         } else {
                                     setErrorMsg('Por favor completa todos los campos requeridos (*).');
                         }
@@ -247,7 +247,7 @@ const RequestOrderPage = () => {
                         sendEvent('request_form_submit_error', { reason: 'exception' });
                         setStatus('error');
                         setErrorMsg(
-                                    'No pudimos enviar tu solicitud. Por favor intentalo de nuevo o escribenos por WhatsApp.'
+                                    'No pudimos enviar tu solicitud. Por favor, inténtalo de nuevo o escríbenos por WhatsApp.'
                                   );
                         window.scrollTo({ top: 0, behavior: 'smooth' });
               }
@@ -377,7 +377,7 @@ const RequestOrderPage = () => {
                                                                     type="text"
                                                                     value={form.fullName}
                                                                     onChange={handleChange}
-                                                                    placeholder="Juan Perez"
+                                                                    placeholder="Juan Pérez"
                                                                     className={inputClass}
                                                                     autoComplete="name"
                                                                   />
@@ -386,7 +386,7 @@ const RequestOrderPage = () => {
                                 {/* Email */}
                                       <div>
                                                   <label htmlFor="ro-email" className={labelClass}>
-                                                                Correo electronico <span className="text-red-500">*</span>
+                                                                Correo electrónico <span className="text-red-500">*</span>
                                                   </label>
                                                   <input
                                                                     id="ro-email"
@@ -483,7 +483,7 @@ const RequestOrderPage = () => {
                                                                     type="text"
                                                                     value={form.commune}
                                                                     onChange={handleChange}
-                                                                    placeholder="Ej: Las Condes, Maipu..."
+                                                                    placeholder="Ej: Las Condes, Maipú..."
                                                                     className={inputClass}
                                                                   />
                                       </div>

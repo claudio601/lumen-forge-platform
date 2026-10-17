@@ -31,17 +31,17 @@ const marketingBox = () => screen.getByLabelText(/Quiero recibir novedades/) as 
 function fillForm({ telefono = '+56 9 0000 0903', email = EMAIL, consent = true } = {}) {
   const type = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
   type(/Nombre completo/, NAME);
-  type(/Telefono/, telefono);
-  type(/Correo electronico/, email);
+  type(/Teléfono/, telefono);
+  type(/Correo electrónico/, email);
   type(/Comuna/, 'Santiago');
   type(/Tipo de proyecto/, 'Oficina');
-  type(/Descripcion breve/, DESCRIPCION);
+  type(/Descripción breve/, DESCRIPCION);
   type(/Tipo de cliente/, 'empresa');
   type(/Preferencia de contacto/, 'email');
   if (consent) fireEvent.click(privacyBox());
 }
 
-const submit = () => fireEvent.click(screen.getByRole('button', { name: /SOLICITAR EVALUACION/ }));
+const submit = () => fireEvent.click(screen.getByRole('button', { name: /SOLICITAR EVALUACIÓN/ }));
 const fetchUrls = () => (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit][]).map(([url]) => String(url));
 const sentBody = () => JSON.parse((vi.mocked(fetch).mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
 
@@ -97,10 +97,10 @@ describe('InstallationLeadForm', () => {
     expect(screen.queryByText('Solicitud recibida')).not.toBeInTheDocument();
     expect(trackLead).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/Nombre completo/)).toHaveValue(NAME);
-    expect(screen.getByLabelText(/Descripcion breve/)).toHaveValue(DESCRIPCION);
+    expect(screen.getByLabelText(/Descripción breve/)).toHaveValue(DESCRIPCION);
     expect(privacyBox()).toBeChecked();
     expect(sendEvent).toHaveBeenCalledWith('instalacion_form_submit_failure', { tipoProyecto: 'Oficina', error_message: 'http_' + httpStatus });
-    await waitFor(() => expect(screen.getByRole('button', { name: /SOLICITAR EVALUACION/ })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: /SOLICITAR EVALUACIÓN/ })).toBeEnabled());
   });
 
   it('el campo trampa oculto se envía con lo que tenga', async () => {
@@ -132,10 +132,10 @@ describe('InstallationLeadForm', () => {
     vi.stubGlobal('fetch', reply(201, '{"success":true}'));
     render(form());
     expect(screen.getByLabelText(/Nombre completo/)).toHaveAttribute('maxLength', '120');
-    expect(screen.getByLabelText(/Telefono/)).toHaveAttribute('maxLength', '30');
-    expect(screen.getByLabelText(/Correo electronico/)).toHaveAttribute('maxLength', '254');
+    expect(screen.getByLabelText(/Teléfono/)).toHaveAttribute('maxLength', '30');
+    expect(screen.getByLabelText(/Correo electrónico/)).toHaveAttribute('maxLength', '254');
     expect(screen.getByLabelText(/Comuna/)).toHaveAttribute('maxLength', '80');
-    const desc = screen.getByLabelText(/Descripcion breve/);
+    const desc = screen.getByLabelText(/Descripción breve/);
     expect(desc).toHaveAttribute('maxLength', '2000');
     fillForm();
     // jsdom no aplica maxLength a un cambio por código: lo frena la validación del formulario
@@ -187,7 +187,7 @@ describe('InstallationLeadForm antes de hidratar (HTML del prerender)', () => {
     expect(form.getAttribute('method')).toBe('post');
     expect(form.hasAttribute('action')).toBe(false);
     expect(container.querySelector('fieldset')).toHaveAttribute('disabled');
-    const button = within(container).getByRole('button', { name: /SOLICITAR EVALUACION/ });
+    const button = within(container).getByRole('button', { name: /SOLICITAR EVALUACIÓN/ });
     expect(button).toHaveAttribute('disabled');
     expect(button).toBeDisabled();
     const controls = [...form.querySelectorAll('input, select, textarea')];
@@ -215,7 +215,7 @@ describe('InstallationLeadForm antes de hidratar (HTML del prerender)', () => {
     expect(consoleErrors.mock.calls.map((args) => args.map(String).join(' ')).filter((m) => /did not match|server HTML|hydrat/i.test(m))).toEqual([]);
     expect(container.contains(serverButton)).toBe(true); // React reutilizó el nodo
     expect(container.querySelector('fieldset')).not.toHaveAttribute('disabled');
-    expect(within(container).getByRole('button', { name: /SOLICITAR EVALUACION/ })).toBeEnabled();
+    expect(within(container).getByRole('button', { name: /SOLICITAR EVALUACIÓN/ })).toBeEnabled();
     expect(within(container).getByLabelText(/Nombre completo/)).toBeEnabled();
     expect(within(container).getByLabelText(/autorizo a eLIGHTS a usar mis datos/)).toBeEnabled();
     expect(within(container).getByLabelText(/autorizo a eLIGHTS a usar mis datos/)).not.toBeChecked();
@@ -256,7 +256,7 @@ describe('InstallationLeadForm: origen de la visita', () => {
 // Privacidad y novedades (Etapa 2 · PR 13): useConsentFields('solicitud') con la nota aprobada.
 describe('InstallationLeadForm: casillas de privacidad y novedades', () => {
   const CONSENT_400 = JSON.stringify({ success: false, error: 'Validation failed', code: 'consent_required', details: { errors: ['consent is required'] } });
-  const button = () => screen.getByRole('button', { name: /SOLICITAR EVALUACION/ });
+  const button = () => screen.getByRole('button', { name: /SOLICITAR EVALUACIÓN/ });
 
   beforeEach(() => {
     vi.mocked(sendEvent).mockClear();
