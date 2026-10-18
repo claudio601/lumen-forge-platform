@@ -67,7 +67,7 @@ describe('/solicitar-pedido como primera página', () => {
     const retracto = within(notice).getByText('Derecho a retracto:').closest('p')!;
     expect(retracto).toHaveTextContent('Derecho a retracto: puedes arrepentirte de tu compra dentro de 10 días corridos desde que recibes el producto. No aplica a productos ya instalados o usados más allá de lo necesario para revisarlos, ni a los fabricados o adaptados según tus especificaciones; si tu pedido incluye alguno, la cotización lo indicará junto a su precio, antes de que pagues.');
     expect(retracto).toHaveClass('text-base');
-    expect(screen.getByText('Total referencial:').nextElementSibling!.className).not.toMatch(/\btext-(?:lg|\d?xl)\b/);
+    expect(screen.getByText('Total con IVA:').nextElementSibling!.className).not.toMatch(/\btext-(?:lg|\d?xl)\b/);
     const links = within(notice).getAllByRole('link');
     expect(links.map(a => a.getAttribute('href'))).toEqual(['/terminos-y-condiciones', '/cambios-devoluciones-y-garantia', '/politica-de-privacidad']);
     for (const a of links) {

@@ -56,7 +56,7 @@ function fillContact(telefono = '+56 9 0000 0902', { consent = true } = {}) {
 }
 
 function fillCompany() {
-  type(/RUT Empresa/, 'RUT-PRUEBA');
+  type(/RUT Empresa/, '44.444.444-4'); // inventado, con dígito verificador válido
   type(/Razón Social/, 'PRUEBA ETAPA 2 (no procesar)');
   type(/Giro/, 'Prueba');
   type(/Dirección Comercial/, 'Prueba 123, Santiago');
@@ -134,7 +134,7 @@ describe('/cotizacion', () => {
       leadType: 'B2B',
       priceMode: 'neto',
       organization: { name: 'PRUEBA ETAPA 2 (no procesar)' },
-      company: { rut: 'RUT-PRUEBA', giro: 'Prueba', address: 'Prueba 123, Santiago' },
+      company: { rut: '44.444.444-4', giro: 'Prueba', address: 'Prueba 123, Santiago' },
     });
   });
 
@@ -196,7 +196,7 @@ describe('/cotizacion', () => {
   });
 
   it.each([
-    ['502', reply(502, '{"success":false}'), 502, /No pudimos registrar.*WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
+    ['502', reply(502, '{"success":false}'), 502, /No pudimos registrar tu solicitud en este momento\. Inténtalo de nuevo o escríbenos a ventas@elights\.cl/],
     ['429', reply(429, '{"success":false}'), 429, /Espera unos minutos/],
     ['400', reply(400, '{"success":false,"error":"Validation failed"}'), 400, /Revisa los datos/],
     ['200 { success: false }', reply(200, '{"success":false}'), 200, /No pudimos registrar/],
@@ -236,7 +236,7 @@ describe('/cotizacion', () => {
     toggleHeader(); // el cliente pasa a ver precios con IVA
     expect(await screen.findAllByText('Precio c/IVA')).not.toHaveLength(0);
     expect(screen.getByLabelText(/Tipo de cliente/)).toHaveValue('empresa');
-    expect(screen.getByLabelText(/RUT Empresa/)).toHaveValue('RUT-PRUEBA');
+    expect(screen.getByLabelText(/RUT Empresa/)).toHaveValue('44.444.444-4');
     submit();
     expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
     expect(sentBody()).toMatchObject({
@@ -244,7 +244,7 @@ describe('/cotizacion', () => {
       leadType: 'B2B',
       priceMode: 'iva',
       organization: { name: 'PRUEBA ETAPA 2 (no procesar)' },
-      company: { rut: 'RUT-PRUEBA', giro: 'Prueba', address: 'Prueba 123, Santiago' },
+      company: { rut: '44.444.444-4', giro: 'Prueba', address: 'Prueba 123, Santiago' },
     });
   });
 

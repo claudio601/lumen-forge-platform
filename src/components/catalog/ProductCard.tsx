@@ -21,7 +21,7 @@ interface Props {
 }
 
 const ProductCard = ({ product }: Props) => {
-    const { addToQuote, formatDisplayPrice, priceLabel, isB2B, displayPrice } = useApp();
+    const { addToQuote, formatDisplayPrice, priceLabel, isB2B } = useApp();
     const [imgError, setImgError] = useState(false);
 
     // Foto en tamaño tarjeta desde el CDN de Jumpseller (la original puede pesar varios MB).
@@ -29,18 +29,14 @@ const ProductCard = ({ product }: Props) => {
     const firstImage = jsImage(imageRef, 400);
     const showImage = firstImage && !imgError;
 
-    // Precio congelado al momento de renderizar la tarjeta
-    const frozenUnitPrice = displayPrice(product.price);
-
     const requestItem = {
           productId: product.id,
           jumpsellerId: product.jumpseller_id,
           variantId: product.jumpseller_variant_id,
           sku: requestSku(product),
           name: product.name,
-          unitPrice: frozenUnitPrice,
-          // Fix 1: persistir el modo de precio al momento de agregar al carrito
-          priceMode: (isB2B ? 'neto' : 'iva') as 'neto' | 'iva',
+          // Siempre CON IVA: la solicitud muestra el neto según el selector (auditoría UX, F-01)
+          unitPrice: product.price,
           image: jsImage(imageRef, 200, 'thumb'),
           url: `/producto/${product.id}`,
           attributes: {

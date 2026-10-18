@@ -79,3 +79,33 @@ describe('RequestCart: la sesión se lee después de montar (páginas estáticas
     expect(JSON.parse(sessionStorage.getItem(KEY)!)[0].quantity).toBe(3);
   });
 });
+
+// Auditoría UX F-01: cada línea guarda su precio CON IVA y el total nunca suma con IVA y netos
+describe('RequestCart: total en un solo modo', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+
+  it('carrito mixto guardado antes del cambio (una línea con IVA y otra neta): la neta pasa a CON IVA', () => {
+    sessionStorage.setItem(KEY, JSON.stringify([
+      { ...sampleItem, sku: 'APB1507', variantId: 1002, quantity: 1, unitPrice: 130400, priceMode: 'iva' },
+      { ...sampleItem, sku: 'APB150N', variantId: 1001, quantity: 1, unitPrice: 99580, priceMode: 'neto' },
+    ]));
+    const { result } = renderHook(() => useRequestCart(), { wrapper });
+    // Antes: 130.400 + 99.580 = 229.980 (con IVA y neto sumados)
+    expect(result.current.subtotal).not.toBe(229980);
+    expect(result.current.subtotal).toBe(130400 + 118500);
+    expect(result.current.netSubtotal).toBe(109580 + 99580);
+    expect(result.current.items.map(i => i.unitPrice)).toEqual([130400, 118500]);
+    expect(result.current.items.some(i => 'priceMode' in i)).toBe(false);
+  });
+
+  it('agregar guarda el precio CON IVA; el total CON IVA y el neto salen de los mismos precios', () => {
+    const { result } = renderHook(() => useRequestCart(), { wrapper });
+    act(() => {
+      result.current.addItem({ ...sampleItem, sku: 'APB1507', variantId: 1002, unitPrice: 130400, priceMode: undefined });
+      result.current.addItem({ ...sampleItem, sku: 'APB150N', variantId: 1001, unitPrice: 118500, priceMode: undefined, quantity: 2 });
+    });
+    expect(result.current.subtotal).toBe(130400 + 2 * 118500);
+    expect(result.current.netSubtotal).toBe(109580 + 2 * 99580);
+    expect(JSON.parse(sessionStorage.getItem(KEY)!).map((i: RequestCartItem) => i.unitPrice)).toEqual([130400, 118500]);
+  });
+});

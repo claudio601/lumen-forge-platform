@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildRequestRef, cartItemToOrderItem, reconcileRequestItems } from './requestOrder';
+import { buildRequestRef, cartItemToOrderItem, netOfGross, normalizeStoredLine, reconcileRequestItems, requestTotals } from './requestOrder';
 import { products } from '@/data/products';
 import type { RequestCartItem } from '@/types/request-order';
 
@@ -17,9 +17,10 @@ describe('reconcileRequestItems: carritos guardados antes de una sincronización
     expect(r.items[0]).toMatchObject({ unitPrice: 16200, name: ar111.name, jumpsellerId: 3305420 });
   });
 
-  it('respeta el modo neto en que se agregó (precio sin IVA)', () => {
-    const r = reconcileRequestItems([item({ priceMode: 'neto' })], products);
-    expect(r.items[0].unitPrice).toBe(Math.round(16200 / 1.19));
+  it('una línea vieja guardada en modo neto queda con el precio CON IVA del catálogo, sin priceMode (F-01)', () => {
+    const r = reconcileRequestItems([item({ unitPrice: Math.round(16200 / 1.19), priceMode: 'neto' })], products);
+    expect(r.items[0].unitPrice).toBe(16200);
+    expect(r.items[0]).not.toHaveProperty('priceMode');
   });
 
   it('usa el precio de la variante CCT (BESTLED 150W 2700K)', () => {
@@ -91,14 +92,37 @@ describe('reconcileRequestItems: ids renombrados (PR 07)', () => {
 });
 
 describe('payload y referencia', () => {
-  it('el payload lleva los ids de Jumpseller y el modo de precio', () => {
-    const o = cartItemToOrderItem(item({ jumpsellerId: 3305420, variantId: 7, priceMode: 'neto' }));
-    expect(o).toMatchObject({ jumpsellerId: 3305420, variantId: 7, priceMode: 'neto' });
+  it('el payload lleva los ids de Jumpseller y el precio en el modo del selector al enviar', () => {
+    const line = item({ jumpsellerId: 3305420, variantId: 7, unitPrice: 16200, quantity: 3 });
+    expect(cartItemToOrderItem(line, 'neto')).toMatchObject({ jumpsellerId: 3305420, variantId: 7, priceMode: 'neto', unitPrice: 13613, lineTotal: 3 * 13613 });
+    expect(cartItemToOrderItem(line, 'iva')).toMatchObject({ jumpsellerId: 3305420, variantId: 7, priceMode: 'iva', unitPrice: 16200, lineTotal: 3 * 16200 });
   });
 
   it('dos productos con el mismo SKU de Jumpseller no generan la misma referencia', () => {
     const a = buildRequestRef('x@y.cl', [item({ productId: 'panel-24w', sku: 'DLRO40N' })]);
     const b = buildRequestRef('x@y.cl', [item({ productId: 'panel-6w', sku: 'DLRO40N' })]);
     expect(a).not.toBe(b);
+  });
+});
+
+// Auditoría UX F-01: el total de la solicitud nunca suma precios con IVA y netos
+describe('requestTotals y líneas guardadas en modo neto', () => {
+  it('suma los precios CON IVA y, aparte, el neto línea por línea (como se ve en modo empresa)', () => {
+    const lines = [{ unitPrice: 130400, quantity: 1 }, { unitPrice: 118500, quantity: 2 }];
+    expect(requestTotals(lines)).toEqual({ gross: 130400 + 2 * 118500, net: netOfGross(130400) + 2 * netOfGross(118500) });
+    expect(netOfGross(130400)).toBe(109580);
+    expect(requestTotals([])).toEqual({ gross: 0, net: 0 });
+  });
+
+  it('normalizeStoredLine: una línea neta pasa a CON IVA y pierde priceMode; una con IVA o nueva queda igual', () => {
+    expect(normalizeStoredLine(item({ unitPrice: 109580, priceMode: 'neto' }))).toEqual(
+      expect.objectContaining({ unitPrice: Math.round(109580 * 1.19) }),
+    );
+    expect(normalizeStoredLine(item({ unitPrice: 109580, priceMode: 'neto' }))).not.toHaveProperty('priceMode');
+    const iva = normalizeStoredLine(item({ unitPrice: 130400, priceMode: 'iva' }));
+    expect(iva.unitPrice).toBe(130400);
+    expect(iva).not.toHaveProperty('priceMode');
+    const { priceMode: _drop, ...fresh } = item({ unitPrice: 130400 });
+    expect(normalizeStoredLine(fresh)).toBe(fresh);
   });
 });

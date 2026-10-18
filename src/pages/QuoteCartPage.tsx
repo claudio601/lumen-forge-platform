@@ -1,23 +1,38 @@
-import { useEffect, useRef, useState } from 'react';
+// /cotizacion: la lista de cotización y el formulario (persona o empresa). Un solo envío a
+// /api/quotes/create; el servidor manda el correo a ventas y crea el negocio en Pipedrive.
+//
+// Auditoría UX, entrega 2 (2026-10-17):
+// - F-02: cada campo obligatorio se revisa al salir de él y al enviar, con el mensaje debajo
+//   (aria-invalid, aria-describedby) y el foco en el primero con error; el aviso general va
+//   junto al botón (role="alert"). El RUT de empresa toma formato al salir del campo y se
+//   revisa su dígito verificador; el servidor no lo revisa (nunca rechaza un lead por él).
+// - F-03: la confirmación con el plazo de respuesta, 3 pasos y un resumen para imprimir.
+import { useEffect, useState } from 'react';
 import { useApp, quoteLineKey } from '@/context/AppContext';
 import { requestSku } from '@/lib/variantSku';
 import { jsImage } from '@/lib/jumpsellerImage';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, FileText, Send, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Minus, Plus, Trash2, FileText, Send, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
-import { contactEmail, whatsappDisplayNumber } from '@/config/business';
+import { contactEmail, responseTimeHours, responseTimePromise } from '@/config/business';
 import Seo from '@/components/Seo';
 import PreSubmitNotice from '@/components/legal/PreSubmitNotice';
 import { useConsentFields } from '@/components/legal/ConsentFields';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
+import { formatRut } from '@/lib/rut';
+import { emailMessage, phoneDigitCount, requiredMessage, rutMessage } from '@/lib/formValidation';
+import { useFieldErrors } from '@/hooks/useFieldErrors';
+import FieldError from '@/components/forms/FieldError';
+import FormErrorAlert from '@/components/forms/FormErrorAlert';
+import RequestConfirmation from '@/components/forms/RequestConfirmation';
 
 type CustomerType = 'persona' | 'empresa';
 
 // Mismas reglas que el servidor (api/quotes/create.ts y api/_lib/crm/validation.ts):
 // el correo a ventas sale desde el servidor, así que un dato rechazado ahí no llega a nadie.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// El correo usa EMAIL_RE de src/lib/formValidation.ts (la misma expresión del servidor).
 const MAX_COMENTARIOS = 2000;
 const MAX_DATO_EMPRESA = 200;
 
@@ -34,6 +49,89 @@ const COMPANY_FIELDS = [
   { name: 'giro',        label: 'Giro' },
   { name: 'direccion',   label: 'Dirección Comercial', autoComplete: 'street-address' },
 ] as const;
+
+interface QuoteForm {
+  nombre: string;
+  email: string;
+  telefono: string;
+  rutEmpresa: string;
+  razonSocial: string;
+  giro: string;
+  direccion: string;
+  comentarios: string;
+}
+type QuoteField = keyof QuoteForm;
+/** Lo que necesita la regla de cada campo: los valores y si es empresa. */
+type QuoteValues = QuoteForm & { isEmpresa: boolean };
+
+/** Campos en el orden del formulario (el foco va al primero con error). */
+const FIELD_ORDER: readonly QuoteField[] = ['nombre', 'email', 'telefono', 'rutEmpresa', 'razonSocial', 'giro', 'direccion', 'comentarios'];
+const COMPANY_NAMES: readonly QuoteField[] = COMPANY_FIELDS.map(f => f.name);
+const activeFields = (isEmpresa: boolean) => (isEmpresa ? FIELD_ORDER : FIELD_ORDER.filter(f => !COMPANY_NAMES.includes(f)));
+
+const companyText = (value: string, empty: string, label: string) =>
+  requiredMessage(value, empty) ??
+  (value.trim().length > MAX_DATO_EMPRESA ? `${label} admite hasta ${MAX_DATO_EMPRESA} caracteres.` : null);
+
+/** La regla de cada campo: el mensaje que va debajo, o null si está bien. */
+function validateField(name: QuoteField, v: QuoteValues): string | null {
+  switch (name) {
+    case 'nombre':
+      return requiredMessage(v.nombre, 'Escribe tu nombre y apellido.');
+    case 'email':
+      return emailMessage(v.email, 'Escribe tu correo electrónico.');
+    case 'telefono': {
+      if (!v.telefono.trim()) return 'Escribe tu teléfono.';
+      const digits = phoneDigitCount(v.telefono);
+      return digits < 8 || digits > 12 ? 'El teléfono debe tener entre 8 y 12 dígitos.' : null;
+    }
+    case 'rutEmpresa':
+      return v.isEmpresa ? rutMessage(v.rutEmpresa, { required: true, emptyMessage: 'Escribe el RUT de la empresa.' }) : null;
+    case 'razonSocial':
+      return v.isEmpresa ? companyText(v.razonSocial, 'Escribe la razón social.', 'La razón social') : null;
+    case 'giro':
+      return v.isEmpresa ? companyText(v.giro, 'Escribe el giro de la empresa.', 'El giro') : null;
+    case 'direccion':
+      return v.isEmpresa ? companyText(v.direccion, 'Escribe la dirección comercial.', 'La dirección comercial') : null;
+    case 'comentarios':
+      return v.comentarios.trim().length > MAX_COMENTARIOS ? `Los comentarios admiten hasta ${MAX_COMENTARIOS} caracteres.` : null;
+  }
+}
+
+const QUOTE_STEPS = [
+  'Revisamos tu solicitud y confirmamos disponibilidad y precio.',
+  'Te enviamos por correo la cotización formal, con el link de pago.',
+  'Si la aceptas, pagas con el link de pago: la compra se hace solo cuando pagas.',
+] as const;
+
+/** Lo enviado, con los precios como los veía el cliente, para el resumen de la confirmación. */
+interface SentQuote {
+  reference: string;
+  lines: { key: string; name: string; detail: string; quantity: number; unit: string }[];
+  total: string;
+  priceLabel: string;
+}
+
+function QuoteSummary({ quote }: { quote: SentQuote }) {
+  return (
+    <>
+      <ul className="divide-y text-sm">
+        {quote.lines.map(l => (
+          <li key={l.key} className="py-2 flex justify-between gap-3">
+            <span className="min-w-0">
+              <span className="font-medium break-words">{l.name}</span>
+              <span className="block text-xs text-muted-foreground">{l.detail}</span>
+            </span>
+            <span className="text-right whitespace-nowrap">{l.quantity} × {l.unit}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-sm text-right">
+        Total referencial: <strong>{quote.total}</strong> <span className="text-xs text-muted-foreground">{quote.priceLabel}</span>
+      </p>
+    </>
+  );
+}
 
 const djb2 = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
 
@@ -85,48 +183,17 @@ function submitErrorMessage(httpStatus: number, code?: string): string {
   // Un 400 por la casilla nunca dice "teléfono de 8 a 12 dígitos"
   if (code === CONSENT_ERROR_CODE) return CONSENT_ERRORS.solicitud;
   if (httpStatus === 400) return 'Revisa los datos (teléfono de 8 a 12 dígitos) e inténtalo de nuevo.';
-  if (httpStatus === 429) return 'Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
+  if (httpStatus === 429) return 'Espera unos minutos o escríbenos a ' + contactEmail + '.';
   return (
-    'No pudimos registrar tu solicitud en este momento. Escríbenos por WhatsApp al ' +
-    whatsappDisplayNumber + ' o a ' + contactEmail + ', o inténtalo de nuevo.'
-  );
-}
-
-/**
- * Solicitud confirmada. El botón que tenía el foco desaparece con el formulario, así que el
- * foco pasa al título: un lector de pantalla lee "Solicitud enviada" y la referencia.
- */
-function QuoteSent({ quoteRef }: { quoteRef: string }) {
-  const heading = useRef<HTMLHeadingElement>(null);
-  useEffect(() => { heading.current?.focus(); }, []);
-  return (
-    <div className="container py-16 text-center max-w-md mx-auto" data-elights-form="cotizacion">
-      <Seo title={SEO_TITLE} description={SEO_DESCRIPTION} noindex />
-      <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" aria-hidden="true" />
-      <h1 ref={heading} tabIndex={-1} aria-describedby="qc-sent-detail qc-sent-ref" className="text-2xl font-bold mb-2 focus:outline-none">
-        Solicitud enviada
-      </h1>
-      <p id="qc-sent-detail" className="text-muted-foreground mb-4">
-        Nuestro equipo comercial revisará tu solicitud y te contactará a la brevedad con tu cotización personalizada.
-      </p>
-      <p id="qc-sent-ref" className="inline-block text-xs font-mono bg-muted px-3 py-1.5 rounded-lg text-muted-foreground mb-6">
-        Referencia: <span className="font-bold text-foreground">{quoteRef}</span>
-      </p>
-      <div>
-        <Button asChild className="gradient-primary text-primary-foreground">
-          <Link to="/catalogo">Seguir explorando</Link>
-        </Button>
-      </div>
-    </div>
+    'No pudimos registrar tu solicitud en este momento. Inténtalo de nuevo o escríbenos a ' + contactEmail + '.'
   );
 }
 
 const QuoteCartPage = () => {
   const { quoteCart, updateQuoteQty, removeFromQuote, clearQuote, formatDisplayPrice, displayPrice, priceLabel, isB2B, loaded } = useApp();
-  const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [confirmedRef, setConfirmedRef] = useState('');
+  const [sent, setSent] = useState<SentQuote | null>(null);
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
   // Casillas de privacidad y novedades: siempre sin marcar al entrar
   const consent = useConsentFields('solicitud');
@@ -139,43 +206,57 @@ const QuoteCartPage = () => {
   }, [loaded, isB2B]);
   const customerType: CustomerType = chosenType ?? (isB2B ? 'empresa' : 'persona');
   const isEmpresa = customerType === 'empresa';
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<QuoteForm>({
     nombre: '', email: '', telefono: '', rutEmpresa: '',
     razonSocial: '', giro: '', direccion: '', comentarios: '',
   });
+  const fe = useFieldErrors<QuoteField, QuoteValues>('qc-', validateField, FIELD_ORDER);
 
   const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const name = e.target.name as QuoteField;
+    const next = { ...form, [name]: e.target.value };
+    setForm(next);
+    fe.onChange(name, { ...next, isEmpresa });
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const name = e.target.name as QuoteField;
+    if (name === 'rutEmpresa') {
+      // Formato 12.345.678-9 al salir del campo
+      const next = { ...form, rutEmpresa: formatRut(form.rutEmpresa) };
+      if (next.rutEmpresa !== form.rutEmpresa) setForm(next);
+      fe.onBlur(name, { ...next, isEmpresa });
+      return;
+    }
+    fe.onBlur(name, { ...form, isEmpresa });
+  };
+
+  const changeCustomerType = (type: CustomerType) => {
+    setChosenType(type);
+    // Al pasar a persona, los datos de empresa dejan de revisarse
+    for (const f of COMPANY_NAMES) fe.onChange(f, { ...form, isEmpresa: type === 'empresa' });
+  };
 
   const totalDisplay = quoteCart.reduce((s, i) => s + displayPrice(i.unitPrice ?? i.product.price) * i.quantity, 0);
 
-  const validate = (): string | null => {
-    const required: readonly { name: keyof typeof form }[] = isEmpresa ? [...CONTACT_FIELDS, ...COMPANY_FIELDS] : CONTACT_FIELDS;
-    if (required.some(f => !form[f.name].trim())) return 'Completa todos los campos requeridos (*).';
-    if (!EMAIL_RE.test(form.email.trim())) return 'Ingresa un correo electrónico válido.';
-    const phoneDigits = form.telefono.replace(/\D/g, '').length;
-    if (phoneDigits < 8 || phoneDigits > 12) return 'El teléfono debe tener entre 8 y 12 dígitos.';
-    if (isEmpresa && COMPANY_FIELDS.some(f => form[f.name].trim().length > MAX_DATO_EMPRESA))
-      return 'Los datos de la empresa admiten hasta ' + MAX_DATO_EMPRESA + ' caracteres cada uno.';
-    if (form.comentarios.trim().length > MAX_COMENTARIOS)
-      return 'Los comentarios admiten hasta ' + MAX_COMENTARIOS + ' caracteres.';
-    return null;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const invalid = validate();
-    if (invalid) { setErrorMsg(invalid); return; }
-    // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
-    if (!consent.check()) { setErrorMsg(''); return; }
+    if (sending) return;
     setErrorMsg('');
+    // El RUT se envía con formato aunque no se haya salido del campo
+    const values: QuoteForm = isEmpresa && form.rutEmpresa ? { ...form, rutEmpresa: formatRut(form.rutEmpresa) } : form;
+    if (values !== form) setForm(values);
+    // Cada campo con su mensaje; el foco va al primero con error
+    if (!fe.checkAll(activeFields(isEmpresa), { ...values, isEmpresa })) return;
+    // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
+    if (!consent.check()) return;
     setSending(true);
 
     // La misma lista, del mismo cliente y en la misma hora, lleva la misma referencia
     const skus = quoteCart.map(i => i.product.id + ':' + (i.variantSku ?? requestSku(i.product)) + 'x' + i.quantity).sort().join(',');
-    const quoteRef = 'NE-' + djb2([form.email.trim().toLowerCase(), customerType, skus, Math.floor(Date.now() / 3_600_000)].join('|'));
+    const quoteRef = 'NE-' + djb2([values.email.trim().toLowerCase(), customerType, skus, Math.floor(Date.now() / 3_600_000)].join('|'));
 
     try {
       // Un solo envío: el servidor manda el correo a ventas y crea el negocio en Pipedrive
@@ -187,14 +268,14 @@ const QuoteCartPage = () => {
         // Precios que veía el cliente; el servidor los recalcula CON IVA desde el catálogo
         priceMode: isB2B ? 'neto' : 'iva',
         customer: {
-          name: form.nombre.trim(),
-          email: form.email.trim(),
-          phone: form.telefono.trim(),
+          name: values.nombre.trim(),
+          email: values.email.trim(),
+          phone: values.telefono.trim(),
           preferredChannel: 'Email',
         },
-        organization: isEmpresa ? { name: form.razonSocial.trim() } : undefined,
+        organization: isEmpresa ? { name: values.razonSocial.trim() } : undefined,
         company: isEmpresa
-          ? { rut: form.rutEmpresa.trim(), giro: form.giro.trim(), address: form.direccion.trim() }
+          ? { rut: values.rutEmpresa.trim(), giro: values.giro.trim(), address: values.direccion.trim() }
           : undefined,
         products: quoteCart.map(i => ({
           jumpsellerId: i.product.jumpseller_id,
@@ -205,7 +286,7 @@ const QuoteCartPage = () => {
           unitPriceClp: displayPrice(i.unitPrice ?? i.product.price),
         })),
         quoteAmountClp: totalDisplay,
-        notes: form.comentarios.trim() || undefined,
+        notes: values.comentarios.trim() || undefined,
         website,
         attribution: getAttribution(),
         consent: consent.payload(),
@@ -213,8 +294,19 @@ const QuoteCartPage = () => {
 
       // GA4: lead enviado (conversión), solo cuando el servidor lo confirmó
       trackLead('cotizacion', { lead_type: isEmpresa ? 'B2B' : 'B2C', item_count: quoteCart.length });
-      setConfirmedRef(quoteRef);
-      setSubmitted(true);
+      // Lo enviado queda para el resumen de la confirmación (la lista se vacía)
+      setSent({
+        reference: quoteRef,
+        lines: quoteCart.map(i => ({
+          key: quoteLineKey(i.product.id, i.cct),
+          name: i.product.name,
+          detail: `${i.variantSku ?? requestSku(i.product)}${i.cct ? ` · ${i.cct}K` : ''}`,
+          quantity: i.quantity,
+          unit: formatDisplayPrice(i.unitPrice ?? i.product.price),
+        })),
+        total: fmt(totalDisplay),
+        priceLabel,
+      });
       clearQuote();
     } catch (err) {
       // La lista y los datos quedan para reintentar
@@ -235,7 +327,20 @@ const QuoteCartPage = () => {
     }
   };
 
-  if (submitted) return <QuoteSent quoteRef={confirmedRef} />;
+  if (sent) {
+    return (
+      <RequestConfirmation
+        form="cotizacion"
+        idPrefix="qc-sent"
+        title="Solicitud enviada"
+        reference={sent.reference}
+        steps={QUOTE_STEPS}
+        summary={<QuoteSummary quote={sent} />}
+        seo={<Seo title={SEO_TITLE} description={SEO_DESCRIPTION} noindex />}
+        back={{ to: '/catalogo', label: 'Seguir explorando' }}
+      />
+    );
+  }
 
   if (quoteCart.length === 0) {
     return (
@@ -251,7 +356,7 @@ const QuoteCartPage = () => {
     );
   }
 
-  const inputClass = 'w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all';
+  const inputClass = 'w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all aria-[invalid=true]:border-red-500';
 
   return (
     // data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
@@ -312,7 +417,8 @@ const QuoteCartPage = () => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-2xl">
+      {/* noValidate: los mensajes son los del sitio, bajo cada campo (la burbuja del navegador sale en inglés) */}
+      <form onSubmit={handleSubmit} noValidate className="max-w-2xl">
         {/* Campo trampa para bots: invisible para personas y lectores de pantalla */}
         <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
           <label>
@@ -328,15 +434,17 @@ const QuoteCartPage = () => {
                 {field.label} <span className="text-destructive">*</span>
               </label>
               <input
-                id={`qc-${field.name}`}
+                {...fe.fieldProps(field.name)}
                 name={field.name}
                 type={'type' in field ? field.type : 'text'}
                 autoComplete={field.autoComplete}
                 value={form[field.name]}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 className={inputClass}
                 required
               />
+              <FieldError id={fe.errorId(field.name)} message={fe.errors[field.name]} />
             </div>
           ))}
           <div>
@@ -347,7 +455,7 @@ const QuoteCartPage = () => {
               id="qc-customerType"
               name="customerType"
               value={customerType}
-              onChange={(e) => setChosenType(e.target.value as CustomerType)}
+              onChange={(e) => changeCustomerType(e.target.value as CustomerType)}
               className={inputClass}
             >
               <option value="persona">Persona natural</option>
@@ -360,38 +468,39 @@ const QuoteCartPage = () => {
                 {field.label} <span className="text-destructive">*</span>
               </label>
               <input
-                id={`qc-${field.name}`}
+                {...fe.fieldProps(field.name)}
                 name={field.name}
                 type="text"
                 autoComplete={'autoComplete' in field ? field.autoComplete : 'off'}
                 maxLength={MAX_DATO_EMPRESA}
+                placeholder={field.name === 'rutEmpresa' ? 'Ej.: 12.345.678-9' : undefined}
                 value={form[field.name]}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 className={inputClass}
                 required
               />
+              <FieldError id={fe.errorId(field.name)} message={fe.errors[field.name]} />
             </div>
           ))}
           <div className="sm:col-span-2">
             <label htmlFor="qc-comentarios" className="text-sm font-medium mb-1 block">Comentarios del proyecto / requerimiento</label>
-            <textarea id="qc-comentarios" name="comentarios" value={form.comentarios} onChange={handleChange} rows={3} maxLength={MAX_COMENTARIOS} className={inputClass + ' resize-none'} />
+            <textarea {...fe.fieldProps('comentarios')} name="comentarios" value={form.comentarios} onChange={handleChange} onBlur={handleBlur} rows={3} maxLength={MAX_COMENTARIOS} className={inputClass + ' resize-none'} />
+            <FieldError id={fe.errorId('comentarios')} message={fe.errors.comentarios} />
           </div>
         </div>
         <PreSubmitNotice kind="cotizacion" />
         {consent.fields}
         {/* Error junto al botón, donde el visitante está mirando */}
-        {errorMsg && (
-          <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 mb-4 text-sm text-red-700">
-            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <span>{errorMsg}</span>
-          </div>
-        )}
+        <FormErrorAlert summary={fe.summary} message={errorMsg} />
         <Button type="submit" size="lg" disabled={sending} className="w-full gradient-primary text-primary-foreground h-14 text-base font-bold gap-2">
           {sending
             ? <><span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" /> Enviando...</>
             : <><Send className="h-5 w-5" /> ENVIAR SOLICITUD DE PRESUPUESTO</>
           }
         </Button>
+        <p className="text-center text-sm text-muted-foreground mt-3">{responseTimePromise}</p>
+        <p className="text-center text-xs text-muted-foreground mt-1">{responseTimeHours}</p>
       </form>
     </div>
   );
