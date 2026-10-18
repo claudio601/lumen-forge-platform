@@ -13,7 +13,8 @@
 // la exportación de Twilio no se guarda cruda; la copia seudonimizada se borra a los 60 días y la
 // tabla de claves, cifrada, a los 14; la lee Claude solo con una cuenta comercial de Anthropic.
 // El aviso del bot (privacyNotice.ts) informa la finalidad nueva. TWILIO_RETENTION_DAYS es el
-// plazo configurado en la consola de Twilio (lo confirma el dueño).
+// plazo configurado en la consola de Twilio (400, confirmado por el dueño); su respaldo sigue
+// encendido (decisión del dueño, 2026-10-18) y §7 lo informa.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -51,7 +52,11 @@ import { REGION_CARRIERS } from '@/config/business';
 
 const DATA_SUBJECT = 'Datos personales';
 
-/** Días que Twilio guarda los mensajes (Messaging → Settings → General de su consola). Lo confirma el dueño. */
+/**
+ * Días que Twilio guarda los mensajes (Messaging → Settings → General de su consola): 400, confirmado
+ * por el dueño el 2026-10-18. El respaldo de Twilio (Backup Storage) queda encendido por decisión
+ * del dueño, para revisar y mejorar el asistente; §7 lo informa.
+ */
 const TWILIO_RETENTION_DAYS = 400;
 
 const PURPOSES: [string, string][] = [
@@ -361,7 +366,8 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Twilio</strong> (asistente de WhatsApp): guarda los registros de los mensajes, con su texto,
-        por {TWILIO_RETENTION_DAYS} días, el plazo que tenemos configurado en su servicio.
+        por {TWILIO_RETENTION_DAYS} días, el plazo que tenemos configurado en su servicio, y además un respaldo de esos registros, que
+        conservamos para revisar y mejorar el asistente (punto 4) mientras sirva para ese fin.
       </li>
       <li>
         <strong>Anthropic</strong> (asistente de WhatsApp): conserva los registros de los mensajes que pasan por su servicio según

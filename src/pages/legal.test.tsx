@@ -604,7 +604,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(copy).toContain('no guardamos la exportación original');
     expect(copy).toContain('esa copia la borramos a los 60 días');
     expect(copy).toContain('La tabla que une cada código con tu teléfono la guardamos cifrada y la borramos dentro de 14 días');
-    expect(item('Twilio')).toMatch(/^Twilio \(asistente de WhatsApp\): guarda los registros de los mensajes, con su texto, por \d+ días, el plazo que tenemos configurado en su servicio\.$/);
+    expect(item('Twilio')).toMatch(/^Twilio \(asistente de WhatsApp\): guarda los registros de los mensajes, con su texto, por 400 días, el plazo que tenemos configurado en su servicio, y además un respaldo de esos registros, que conservamos para revisar y mejorar el asistente \(punto 4\) mientras sirva para ese fin\.$/);
     // §8 y §9
     expect(section(main, '8.').text).toContain('la priorización automática y la revisión de tus conversaciones con el asistente;');
     expect(section(main, '9.').text).toContain('salvo la copia de revisión del asistente, que tiene sus propios plazos (punto 7).');

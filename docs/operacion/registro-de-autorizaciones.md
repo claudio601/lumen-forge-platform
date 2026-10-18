@@ -79,6 +79,7 @@ Aplica a la oposición y a los demás derechos (acceso, rectificación, supresi�
 - Solicitudes que no terminan en compra: 24 meses desde el último contacto. La constancia sigue a su solicitud.
 - Novedades: mientras no se retiren. Si se borra la solicitud, la constancia pasa al registro de novedades.
 - Bajas de novedades: 4 años, solo el correo y la constancia.
+- Twilio (asistente de WhatsApp): 400 días en su consola y su API, más su respaldo (Backup Storage), que queda encendido por decisión del dueño (2026-10-18) para revisar y mejorar el asistente. La política §7 lo informa.
 - Revisión del asistente (desde la 1.4): la exportación de Twilio no se guarda; la tabla de claves, cifrada, 14 días; la copia seudonimizada y la huella del teléfono, 60 días; las cifras, sin plazo. Los borrados los ejecuta el dueño con el comando que deja Claude en `marcha-blanca/registro.md`, y cada uno tiene su recordatorio en el calendario.
 
 ## 7. Lo que no se registra en el servidor
