@@ -1,9 +1,13 @@
 import { MessageCircle, X } from 'lucide-react';
 import { useState } from 'react';
 import { waBase, whatsappDisplayNumber, businessHours } from '@/config/business';
+import { useWhatsAppButtonHidden } from '@/hooks/useHideWhatsAppButton';
 
 const WhatsAppButton = () => {
   const [expanded, setExpanded] = useState(false);
+  // No se ofrece en las confirmaciones de las solicitudes (dueño, 2026-10-17; auditoría UX F-03)
+  const hidden = useWhatsAppButtonHidden();
+  if (hidden) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">

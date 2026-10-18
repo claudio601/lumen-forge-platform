@@ -120,9 +120,11 @@ describe('/solicitar-pedido: casillas de privacidad, términos y novedades', () 
     await renderPage();
     fillForm({ consent: false, comuna: '' });
     submit();
-    expect(await screen.findByText('Por favor completa todos los campos requeridos (*).')).toBeInTheDocument();
+    // Auditoría UX F-02: el aviso general (role="alert", junto al botón) es el del campo; el de la casilla no aparece
+    const alerts = await screen.findAllByRole('alert');
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toHaveTextContent('Escribe tu comuna.');
     expect(screen.queryByText(CONSENT_ERRORS.pedido)).not.toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
   });
 

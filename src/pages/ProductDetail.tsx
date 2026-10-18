@@ -212,7 +212,7 @@ const ProductDetail = () => {
     const showFromPrice = hasVariantPricing && selectedCCT === null;
     const displayedBasePrice = showFromPrice ? fromPrice : basePrice;
 
-    // Precio congelado al momento de agregar al Request Cart
+    // Precio unitario en el modo del selector (total por la cantidad elegida)
     const frozenUnitPrice = displayPrice(basePrice);
 
     // CCT: si el producto define availableCCT[], el cliente debe elegir antes de
@@ -268,9 +268,9 @@ const ProductDetail = () => {
           variantId: selectedVariantId ?? product.jumpseller_variant_id,
           sku: skuFinal,
           name: product.name,
-          unitPrice: frozenUnitPrice,
-          // Fix 1: persistir el modo de precio al momento de agregar al carrito
-          priceMode: (isB2B ? 'neto' : 'iva') as 'neto' | 'iva',
+          // Siempre CON IVA (el de la variante elegida): la solicitud muestra el neto según
+          // el selector (auditoría UX, F-01)
+          unitPrice: basePrice,
           image: gallery[0] ? jsImage(gallery[0], 200, 'thumb') : undefined,
           url: `/producto/${product.id}`,
           attributes: {

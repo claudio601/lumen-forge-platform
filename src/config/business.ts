@@ -31,6 +31,21 @@ export const businessHoursLong = 'lunes a viernes, de 9:30 a 14:00 y de 15:00 a 
 /** Días sin atención (elights.cl: fines de semana cerrado; festivos, decisión del dueño). */
 export const businessClosedDays = 'Sábados, domingos y festivos, cerrado.';
 
+// ── Plazo de respuesta de las solicitudes (dueño, 2026-10-17) ─────────────────
+// El equipo responde SIEMPRE por correo: nunca ofrecer llamadas ni WhatsApp en las
+// confirmaciones ni junto al botón de envío. Sin horas exactas: lo que llega fuera del
+// horario se responde el día hábil siguiente. Lo usan /cotizacion, /solicitar-pedido y
+// /cotizador (junto al botón y en la confirmación).
+
+/** El plazo que se promete. */
+export const responseTimePromise = 'Te respondemos por correo el mismo día hábil.';
+
+/** El horario, para ir junto al plazo (antes de enviar). */
+export const responseTimeHours = `Atendemos de ${businessHoursLong}`;
+
+/** Lo que pasa con una solicitud que llega fuera del horario (en la confirmación). */
+export const responseTimeOffHours = `${responseTimeHours} Si tu solicitud llegó fuera de ese horario, te respondemos el día hábil siguiente.`;
+
 // ── Montos ──────────────────────────────────────────────────
 
 /**

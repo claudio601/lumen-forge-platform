@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+// /cotizador: solicitud de propuesta técnica para un proyecto (sin productos). El servidor
+// (/api/project-quotes/create) manda el correo a ventas y crea el negocio en Pipedrive.
+// Auditoría UX, entrega 2 (F-03, 2026-10-17): la confirmación da el plazo de respuesta (por
+// correo, el mismo día hábil), 3 pasos y un resumen para imprimir, sin derivar a WhatsApp.
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, CheckCircle2, Zap, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Send, Zap, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
-import { waBase, contactEmail, whatsappDisplayNumber } from '@/config/business';
+import { contactEmail, responseTimeHours, responseTimePromise } from '@/config/business';
 import Seo from '@/components/Seo';
 import { useConsentFields } from '@/components/legal/ConsentFields';
+import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 // Las listas, los topes y la lectura de los m² son los mismos del servidor (api/project-quotes/create.ts)
 import {
@@ -70,11 +74,10 @@ function submitErrorMessage(httpStatus: number, code?: string): string {
   if (code === CONSENT_ERROR_CODE) return CONSENT_ERRORS.solicitud;
   if (httpStatus === 400) return 'Revisa email y teléfono (8 a 12 dígitos) e inténtalo de nuevo.';
   if (httpStatus === 429) {
-    return 'Hiciste varios envíos seguidos. Espera unos minutos o escríbenos por WhatsApp al ' + whatsappDisplayNumber + '.';
+    return 'Hiciste varios envíos seguidos. Espera unos minutos o escríbenos a ' + contactEmail + '.';
   }
   return (
-    'No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos por WhatsApp al ' +
-    whatsappDisplayNumber + ' o a ' + contactEmail + '.'
+    'No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a ' + contactEmail + '.'
   );
 }
 
@@ -82,6 +85,15 @@ function submitErrorMessage(httpStatus: number, code?: string): string {
 const optional = (value: string) => value.trim() || undefined;
 
 const inputClass = 'w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30';
+
+const PROJECT_STEPS = [
+  'Revisamos los datos de tu proyecto.',
+  'Te enviamos por correo la propuesta técnica, con la cotización formal.',
+  'Si la aceptas, pagas con el link de pago: la compra se hace solo cuando pagas.',
+] as const;
+
+const SEO_TITLE = 'Cotizar Iluminación LED | eLIGHTS Chile';
+const SEO_DESCRIPTION = 'Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales.';
 
 const SmartQuotePage = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -95,7 +107,6 @@ const SmartQuotePage = () => {
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
-  const successHeading = useRef<HTMLHeadingElement>(null);
   const [form, setForm] = useState({
     tipoProyecto: '',
     m2: '',
@@ -117,11 +128,6 @@ const SmartQuotePage = () => {
   useEffect(() => {
     setHydrated(true);
   }, []);
-
-  // El botón enfocado desaparece al confirmar: el foco pasa al título de la confirmación
-  useEffect(() => {
-    if (submitted) successHeading.current?.focus();
-  }, [submitted]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -190,7 +196,7 @@ const SmartQuotePage = () => {
       const ref = await submitProjectQuote(buildPayload());
       // Conversión solo cuando el servidor confirmó la solicitud
       trackLead('cotizador', { project_type: form.tipoProyecto });
-      toast.success('Propuesta solicitada — te contactamos pronto');
+      toast.success('Propuesta solicitada', { description: responseTimePromise });
       setReference(ref);
       setSubmitted(true);
     } catch (err) {
@@ -215,36 +221,43 @@ const SmartQuotePage = () => {
   };
 
   if (submitted) {
+    // Los datos del proyecto (no los de contacto) van en el resumen para imprimir
+    const projectData = [
+      ['Tipo de proyecto', form.tipoProyecto],
+      ['m2 aproximados', form.m2.trim()],
+      ['Altura del espacio (m)', form.altura.trim()],
+      ['Tipo de aplicación', form.aplicacion.trim()],
+      ['Nivel de iluminación', form.nivelIluminacion],
+      ['Ciudad / Región', form.ciudad.trim()],
+      ['Plazo del proyecto', form.plazo.trim()],
+    ].filter(([, value]) => value);
     return (
-      <div className="container py-16 text-center max-w-md mx-auto" data-elights-form="cotizador">
-    <Seo title="Cotizar Iluminación LED | eLIGHTS Chile" description="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." path="/cotizador" />
-
-        <CheckCircle2 className="h-16 w-16 text-primary mx-auto mb-4" />
-        <h1 ref={successHeading} tabIndex={-1} className="text-2xl font-bold mb-2 focus:outline-none">Propuesta solicitada!</h1>
-        {reference && (
-          <p className="text-sm font-medium mb-2">
-            Tu referencia: <span className="font-mono">{reference}</span>
-          </p>
-        )}
-        <p className="text-muted-foreground mb-2">
-          Nuestro equipo técnico preparará una propuesta personalizada y te contactará.
-        </p>
-        <p className="text-sm text-muted-foreground mb-8">
-          También puedes escribirnos a{' '}
-          <a href={'mailto:' + contactEmail} className="text-primary underline">{contactEmail}</a>
-          {' '}o al{' '}
-          <a href={waBase} className="text-primary underline">{whatsappDisplayNumber}</a>.
-        </p>
-        <Button asChild className="gradient-primary text-primary-foreground">
-          <Link to="/">Volver al inicio</Link>
-        </Button>
-      </div>
+      // El foco pasa al título de la confirmación (el botón enfocado desaparece)
+      <RequestConfirmation
+        form="cotizador"
+        idPrefix="sq-sent"
+        title="Propuesta solicitada"
+        reference={reference}
+        steps={PROJECT_STEPS}
+        summary={
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+            {projectData.map(([label, value]) => (
+              <div key={label} className="contents">
+                <dt className="text-muted-foreground">{label}</dt>
+                <dd className="break-words">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        }
+        seo={<Seo title={SEO_TITLE} description={SEO_DESCRIPTION} path="/cotizador" />}
+        back={{ to: '/', label: 'Volver al inicio' }}
+      />
     );
   }
 
   return (
     <div className="container py-8">
-      <Seo title="Cotizar Iluminación LED | eLIGHTS Chile" description="Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales." path="/cotizador" />
+      <Seo title={SEO_TITLE} description={SEO_DESCRIPTION} path="/cotizador" />
       {/* data-elights-form (en el formulario y en la confirmación): la etiqueta de Google excluye
           este bloque de la detección automática de datos. Es fijo: igual en el servidor y en el navegador. */}
       <div className="max-w-2xl mx-auto" data-elights-form="cotizador">
@@ -360,6 +373,11 @@ const SmartQuotePage = () => {
                 <><Send className="h-5 w-5" /> Solicitar propuesta técnica</>
               )}
             </Button>
+            {/* Junto al botón (el fieldset separa con space-y-6: !mt-3 lo acerca) */}
+            <div className="text-center !mt-3">
+              <p className="text-sm text-muted-foreground">{responseTimePromise}</p>
+              <p className="text-xs text-muted-foreground mt-1">{responseTimeHours}</p>
+            </div>
             {/* Campo trampa: fuera de la pantalla; si llega con texto, el servidor no crea nada.
                 Va al final: como primer hijo, space-y-6 le daba al primer bloque un margen extra arriba. */}
             <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>

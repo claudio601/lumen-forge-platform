@@ -35,22 +35,61 @@ export function buildRequestRef(email: string, items: RequestCartItem[]): string
   return 'RC-' + djb2(raw);
 }
 
+// ── Precios en el modo del selector ─────────────────────────────────────────
+/** IVA de Chile: el modo empresa muestra el precio sin IVA (÷1,19), como el toggle del encabezado. */
+const IVA_FACTOR = 1.19;
+
+/** Precio neto (sin IVA) de un precio CON IVA, redondeado como en el toggle (AppContext.displayPrice). */
+export const netOfGross = (gross: number) => Math.round(gross / IVA_FACTOR);
+
+/** Modo del selector de precios del encabezado: 'neto' = empresa (sin IVA), 'iva' = con IVA. */
+export type PriceMode = 'neto' | 'iva';
+
+/**
+ * Totales de la solicitud. Cada línea guarda su precio CON IVA del catálogo; el neto se
+ * calcula al mostrar, línea por línea (la suma calza con los precios unitarios que se ven).
+ * Nunca se suman precios con IVA y netos (auditoría UX, F-01).
+ */
+export function requestTotals(items: readonly Pick<RequestCartItem, 'unitPrice' | 'quantity'>[]): { gross: number; net: number } {
+  let gross = 0;
+  let net = 0;
+  for (const i of items) {
+    gross += i.unitPrice * i.quantity;
+    net += netOfGross(i.unitPrice) * i.quantity;
+  }
+  return { gross, net };
+}
+
+/**
+ * Una línea guardada antes del 2026-10-17 podía traer el precio neto (priceMode 'neto'):
+ * pasa a CON IVA (aproximado; la puesta al día con el catálogo deja el exacto) y pierde
+ * priceMode. Una línea nueva queda igual.
+ */
+export function normalizeStoredLine<T extends Pick<RequestCartItem, 'unitPrice' | 'priceMode'>>(item: T): T {
+  if (item.priceMode === undefined) return item;
+  const { priceMode, ...rest } = item;
+  return { ...rest, unitPrice: priceMode === 'neto' ? Math.round(item.unitPrice * IVA_FACTOR) : item.unitPrice } as T;
+}
+
 // ── Mapeo de RequestCartItem a RequestOrderItem ──────────────────────────────
 /**
- * Convierte un RequestCartItem del frontend al formato RequestOrderItem
- * que espera el endpoint. Calcula lineTotal = quantity * unitPrice.
+ * Convierte una línea del carrito al formato que espera el endpoint, con el precio que veía
+ * el cliente en el modo del selector al enviar (`mode`): neto o con IVA. El servidor ignora
+ * ese precio y recalcula CON IVA desde el catálogo; priceMode solo deja la nota "el cliente
+ * veía precios netos" en Pipedrive.
  */
-export function cartItemToOrderItem(item: RequestCartItem): RequestOrderItem {
+export function cartItemToOrderItem(item: RequestCartItem, mode: PriceMode): RequestOrderItem {
+  const unitPrice = mode === 'neto' ? netOfGross(item.unitPrice) : item.unitPrice;
   return {
     jumpsellerId: item.jumpsellerId,
     variantId: item.variantId,
-    priceMode: item.priceMode,
+    priceMode: mode,
     sku: item.sku,
     name: item.name,
     quantity: item.quantity,
-    unitPrice: item.unitPrice,
+    unitPrice,
     currency: 'CLP',
-    lineTotal: item.quantity * item.unitPrice,
+    lineTotal: item.quantity * unitPrice,
     url: item.url,
     attributes: item.attributes,
   };
@@ -75,8 +114,9 @@ export interface ReconcileResult {
  * Pone al día un carrito guardado en la sesión contra el catálogo vigente: quita
  * productos que ya no se publican, completa ids de Jumpseller (carritos viejos),
  * pasa al id vigente del sitio (ids renombrados, PR 07) y actualiza precio y nombre.
- * El precio se muestra en el modo en que se agregó (neto = sin IVA, como en el toggle
- * de empresa). El servidor igual recalcula.
+ * El precio queda siempre CON IVA (también el de una línea vieja guardada en modo neto,
+ * que pierde priceMode): la página muestra el neto según el selector. El servidor igual
+ * recalcula.
  */
 export function reconcileRequestItems(items: RequestCartItem[], catalog: readonly Product[]): ReconcileResult {
   const byId = new Map(catalog.map((p) => [p.id, p]));
@@ -100,8 +140,7 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
     const variant = product.cctVariants?.find(
       (v) => (item.variantId && v.jumpseller_variant_id === item.variantId) || v.sku === item.sku,
     );
-    const gross = variant?.price ?? product.price;
-    const unitPrice = item.priceMode === 'neto' ? Math.round(gross / 1.19) : gross;
+    const unitPrice = variant?.price ?? product.price;
     // Solo ids de variante que el producto tiene hoy (una variante vieja haría fallar el precio).
     const validVariantIds = new Set(
       [product.jumpseller_variant_id, ...(product.cctVariants ?? []).map((v) => v.jumpseller_variant_id)].filter(Boolean),
@@ -117,6 +156,7 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
       unitPrice,
     };
     if (updated.variantId === undefined) delete updated.variantId;
+    delete updated.priceMode;
     if (unitPrice !== item.unitPrice) repriced++;
     if (JSON.stringify(updated) !== JSON.stringify(item)) changed = true;
     // Al completar ids (o pasar al id vigente), una línea vieja puede quedar igual a otra nueva: se juntan.
