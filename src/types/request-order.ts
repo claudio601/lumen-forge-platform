@@ -10,12 +10,12 @@ export interface RequestOrderItem {
     jumpsellerId?: number;
     /** Id de la variante en Jumpseller (p. ej. color de luz de BESTLED). */
     variantId?: number;
-    /** Cómo veía el precio el cliente: 'neto' (modo empresa) o 'iva'. */
+    /** Cómo veía el precio el cliente al enviar (selector del encabezado): 'neto' (modo empresa) o 'iva'. */
     priceMode?: 'neto' | 'iva';
     sku: string;
     name: string;
     quantity: number;
-    /** Precio congelado al momento de agregar al carrito */
+    /** Precio que veía el cliente, en el modo de priceMode (el servidor recalcula CON IVA). */
     unitPrice: number;
     currency: 'CLP';
     /** quantity * unitPrice calculado en frontend */
@@ -31,6 +31,7 @@ export interface RequestOrderItem {
 // Payload que se envia al endpoint api/request-orders/create
 export interface RequestOrderPayload {
     items: RequestOrderItem[];
+    /** Suma de lineTotal, en el modo de priceMode de las líneas (el servidor recalcula CON IVA). */
     subtotal: number;
     fullName: string;
     email: string;
@@ -69,7 +70,7 @@ export type RequestOrderResponse =
     | RequestOrderSuccessResponse
   | RequestOrderErrorResponse;
 
-// Item en el Request Cart (estado React/localStorage)
+// Item en el Request Cart (estado React/sessionStorage)
 export interface RequestCartItem {
     productId: string;
     /** Id del producto en Jumpseller (ausente en carritos guardados antes de 2026-10). */
@@ -79,14 +80,18 @@ export interface RequestCartItem {
     sku: string;
     name: string;
     quantity: number;
-    /** Precio congelado al momento de agregar */
+    /**
+     * Precio unitario CON IVA del catálogo (el de la variante, si la hay). El neto del modo
+     * empresa se calcula al mostrar (requestTotals, cartItemToOrderItem): así el total nunca
+     * suma precios con IVA y netos (auditoría UX, F-01).
+     */
     unitPrice: number;
     /**
-       * Modo de precio con que fue congelado el item al agregarlo al carrito.
-          * 'neto' = precio sin IVA (B2B). 'iva' = precio con IVA (B2C).
-             * Persiste en localStorage junto con el item.
-                */
-    priceMode: 'neto' | 'iva';
+     * @deprecated Solo en carritos guardados antes del 2026-10-17: 'neto' quería decir que
+     * unitPrice venía sin IVA. Al leer la sesión, normalizeStoredLine lo pasa a CON IVA y lo
+     * quita; las líneas nuevas no lo llevan.
+     */
+    priceMode?: 'neto' | 'iva';
     image?: string;
     url: string;
     attributes: {

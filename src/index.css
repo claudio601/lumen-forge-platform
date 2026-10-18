@@ -95,3 +95,28 @@
     box-shadow: 0 8px 24px -4px hsl(270 76% 47% / 0.15), 0 4px 12px -2px hsl(220 15% 20% / 0.08);
   }
 }
+
+/* "Imprimir o guardar resumen" en las confirmaciones de /cotizacion, /solicitar-pedido y
+   /cotizador (src/components/forms/RequestConfirmation.tsx, auditoría UX F-03): en papel o PDF
+   va solo la confirmación, sin el encabezado, el pie, el botón de WhatsApp, los avisos ni los
+   botones. Las demás páginas se imprimen como siempre. */
+@media print {
+  body:has([data-print-summary]) > :not(#root),
+  body:has([data-print-summary]) #root > :not(.min-h-screen),
+  body:has([data-print-summary]) header,
+  body:has([data-print-summary]) main ~ * {
+    display: none !important;
+  }
+  body:has([data-print-summary]) .min-h-screen {
+    min-height: 0;
+  }
+  [data-print-summary] {
+    max-width: none;
+    padding-top: 0;
+    color: #000;
+  }
+  [data-print-summary] a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

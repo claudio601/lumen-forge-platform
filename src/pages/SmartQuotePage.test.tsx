@@ -14,6 +14,7 @@ import { MemoryRouter } from 'react-router-dom';
 import SmartQuotePage from './SmartQuotePage';
 import { ILLUMINATION_LEVELS, PROJECT_TYPES } from '../../api/_lib/forms/projectQuote';
 import { CONSENT_ERRORS, LEGAL_VERSION, parseConsent } from '../../api/_lib/forms/consent';
+import { businessHoursLong, contactEmail, responseTimePromise } from '@/config/business';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
@@ -108,12 +109,12 @@ describe('SmartQuotePage (/cotizador)', () => {
   });
 
   it.each([
-    ['502', reply(502, '{"success":false}'), 502, /No pudimos enviar tu solicitud.*WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
-    ['504 con HTML', reply(504, '<!DOCTYPE html><html>An error occurred</html>'), 504, /WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
-    ['200 { success: false }', reply(200, '{"success":false}'), 200, /WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
-    ['200 sin JSON', reply(200, '<html>ok?</html>'), 200, /WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
-    ['red caída', vi.fn(async () => { throw new TypeError('Failed to fetch'); }), 0, /WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
-    ['403', reply(403, '{"success":false,"error":"Forbidden"}'), 403, /WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
+    ['502', reply(502, '{"success":false}'), 502, /No pudimos enviar tu solicitud\. Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
+    ['504 con HTML', reply(504, '<!DOCTYPE html><html>An error occurred</html>'), 504, /Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
+    ['200 { success: false }', reply(200, '{"success":false}'), 200, /Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
+    ['200 sin JSON', reply(200, '<html>ok?</html>'), 200, /Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
+    ['red caída', vi.fn(async () => { throw new TypeError('Failed to fetch'); }), 0, /Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
+    ['403', reply(403, '{"success":false,"error":"Forbidden"}'), 403, /Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
     ['429', reply(429, '{"success":false}'), 429, /Espera unos minutos/],
     ['400', reply(400, '{"success":false,"error":"Validation failed"}'), 400, /Revisa email y teléfono \(8 a 12 dígitos\)/],
   ])('%s: aviso junto al botón, sin confirmación ni conversión, y los datos quedan', async (_name, fetchImpl, httpStatus, message) => {
@@ -428,5 +429,75 @@ describe('SmartQuotePage: casillas de privacidad y novedades', () => {
       expect(Object.keys(p)).not.toEqual(expect.arrayContaining([expect.stringMatching(/commune|comuna|ciudad/i)]));
       expect(JSON.stringify(p)).not.toContain('Santiago');
     }
+  });
+});
+
+// Auditoría UX F-03 (entrega 2, 2026-10-17): plazo de respuesta por correo, 3 pasos y resumen
+// para imprimir; sin WhatsApp ni llamadas (el equipo responde siempre por correo).
+describe('SmartQuotePage: plazo y confirmación', () => {
+  const NO_OTHER_CHANNEL = /whatsapp|wa\.me|llam(?:ar|amos|aremos|ada)|tel[eé]fono|\+56/i;
+  beforeEach(() => {
+    vi.mocked(toast.success).mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('junto al botón: "Te respondemos por correo el mismo día hábil" y el horario, también en el HTML del prerender', () => {
+    renderPage();
+    const note = screen.getByText(responseTimePromise);
+    expect(submitButton().compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(note.nextElementSibling).toHaveTextContent(`Atendemos de ${businessHoursLong}`);
+    const html = renderToString(page());
+    expect(html).toContain(responseTimePromise);
+  });
+
+  it('la confirmación: plazo, horario, referencia, 3 pasos, revisa tu correo, resumen del proyecto e imprimir; sin WhatsApp', async () => {
+    vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-ux02', dealId: 9 })));
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+    renderPage();
+    fillForm();
+    type(/Ciudad/, 'Santiago');
+    fireEvent.click(submitButton());
+    const heading = await screen.findByRole('heading', { name: 'Propuesta solicitada' });
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(heading).toHaveAccessibleDescription(`${responseTimePromise} Referencia: PY-ux02`);
+    expect(toast.success).toHaveBeenCalledWith('Propuesta solicitada', { description: responseTimePromise });
+
+    const container = heading.closest('[data-elights-form]') as HTMLElement;
+    expect(container).toHaveAttribute('data-elights-form', 'cotizador');
+    const text = container.textContent!.replace(/\s+/g, ' ');
+    expect(text).toContain(`Atendemos de ${businessHoursLong} Si tu solicitud llegó fuera de ese horario, te respondemos el día hábil siguiente.`);
+    expect(within(screen.getByRole('region', { name: 'Próximos pasos' })).getAllByRole('listitem').map(li => li.textContent)).toEqual([
+      'Revisamos los datos de tu proyecto.',
+      'Te enviamos por correo la propuesta técnica, con la cotización formal.',
+      'Si la aceptas, pagas con el link de pago: la compra se hace solo cuando pagas.',
+    ]);
+    expect(text).toContain('Revisa tu correo, también la carpeta de spam');
+    // El resumen lleva los datos del proyecto, no los de contacto
+    const summary = screen.getByRole('region', { name: 'Resumen de tu solicitud' });
+    expect(summary).toHaveTextContent('Tipo de proyectoBodega');
+    expect(summary).toHaveTextContent('1200');
+    expect(summary).not.toHaveTextContent('prueba-etapa2-09d@example.com');
+    expect(summary).not.toHaveTextContent('0904');
+    expect(screen.getByRole('link', { name: contactEmail })).toHaveAttribute('href', `mailto:${contactEmail}?subject=${encodeURIComponent('Solicitud PY-ux02')}`);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimir o guardar resumen' }));
+    expect(print).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/');
+
+    expect(text).not.toMatch(NO_OTHER_CHANNEL);
+    expect(text).not.toMatch(/te contactar|copia/i);
+    expect(container.querySelector('a[href*="wa.me"], a[href^="tel:"]')).toBeNull();
+  });
+
+  it('sin referencia en la respuesta: la confirmación igual da el plazo y los pasos, sin "Referencia"', async () => {
+    vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true })));
+    renderPage();
+    fillForm();
+    fireEvent.click(submitButton());
+    const heading = await screen.findByRole('heading', { name: 'Propuesta solicitada' });
+    expect(heading).toHaveAccessibleDescription(responseTimePromise);
+    expect(screen.queryByText(/Referencia:/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(3); // los 3 pasos
   });
 });
