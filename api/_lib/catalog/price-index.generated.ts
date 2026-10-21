@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '09115feec812';
+export const SNAPSHOT_HASH = '35323ec3fd4f';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -614,7 +614,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2284560": {
     "name": "FOCO LED COB BASCULANTE 5W IP44 MARCO BLANCO",
-    "sku": "M160-32",
+    "sku": "FLCB5B",
     "price": 5320,
     "variants": {
       "4165318": {
@@ -629,7 +629,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2286835": {
     "name": "FOCO LED COB BASCULANTE CODO 30W IP33",
-    "sku": "FLCBC30F",
+    "sku": "FLCBC30",
     "price": 24900,
     "variants": {
       "105152274": {
@@ -641,7 +641,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 24900
       },
       "118438897": {
-        "sku": "",
+        "sku": "FLCBC30C",
         "price": 24900
       }
     }
@@ -667,7 +667,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2292318": {
     "name": "PROYECTOR LED COB 20W GRIS IP65",
-    "sku": "CHIPX50N",
+    "sku": "PLC20G",
     "price": 5800,
     "variants": {
       "4176509": {
@@ -678,7 +678,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2292375": {
     "name": "PROYECTOR LED COB 30W GRIS IP65",
-    "sku": "CHIPX50N",
+    "sku": "PLC30G",
     "price": 8800,
     "variants": {
       "4176583": {
@@ -689,7 +689,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2292456": {
     "name": "PROYECTOR LED COB 70W GRIS IP65",
-    "sku": "CHIPX50N",
+    "sku": "PLC70G",
     "price": 18000,
     "variants": {
       "4176671": {
@@ -1137,7 +1137,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2327095": {
     "name": "REGLETA LED T8 9W 60 CM. IP44",
-    "sku": "LLLF40120CA",
+    "sku": "RLT8960",
     "price": 3790,
     "variants": {
       "4192987": {
@@ -1152,7 +1152,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2327131": {
     "name": "REGLETA LED T8 18W 120 CM. IP44",
-    "sku": "LLLF40120CA",
+    "sku": "RLT818120",
     "price": 4990,
     "variants": {
       "4193016": {
@@ -1216,15 +1216,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2340385": {
     "name": "PROYECTOR LED SLIM SMD 400W IP66",
-    "sku": "PLSSMD400F",
+    "sku": "PLSSMD400",
     "price": 165600,
     "variants": {
       "121250397": {
-        "sku": "PLSSMD400F",
+        "sku": "PLSSMD400C",
         "price": 165600
       },
       "121250398": {
-        "sku": "PLSSMD400F",
+        "sku": "PLSSMD4007",
         "price": 165600
       },
       "121250399": {
@@ -1232,14 +1232,14 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 165600
       },
       "121250400": {
-        "sku": "PLSSMD400F",
+        "sku": "PLSSMD4001",
         "price": 165600
       }
     }
   },
   "2340468": {
     "name": "PROYECTOR LED SLIM SMD 30W IP66",
-    "sku": "PLSSMD10",
+    "sku": "PLSSMD30",
     "price": 8840,
     "variants": {
       "4205118": {
@@ -1247,14 +1247,14 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 8840
       },
       "11927469": {
-        "sku": "",
+        "sku": "PLSSMD30C",
         "price": 8840
       }
     }
   },
   "2340483": {
     "name": "PROYECTOR LED SLIM SMD 50W IP66 LUZ FRÍA",
-    "sku": "PLSSMD10",
+    "sku": "PLSSMD50",
     "price": 11570,
     "variants": {
       "4205128": {
@@ -1262,7 +1262,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 11570
       },
       "11927470": {
-        "sku": "",
+        "sku": "PLSSMD50C",
         "price": 11570
       }
     }
@@ -1307,7 +1307,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2340625": {
     "name": "PROYECTOR LED SLIM SMD 100W IP66",
-    "sku": "PLSSMD10",
+    "sku": "PLSSMD100",
     "price": 31429,
     "variants": {
       "4205286": {
@@ -1352,7 +1352,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2345138": {
     "name": "RIEL MONOFÁSICO 2 MT.",
-    "sku": "RM1MT",
+    "sku": "RM2MT",
     "price": 8500,
     "variants": {
       "4210753": {
@@ -1382,7 +1382,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2345320": {
     "name": "TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 BLANCA",
-    "sku": "TAOCRE27",
+    "sku": "TAOCRE27B",
     "price": 3990,
     "variants": {}
   },
@@ -1578,7 +1578,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2352646": {
     "name": "LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 40W",
     "sku": "LLTPATPAX40",
-    "price": 534700,
+    "price": 358800,
     "variants": {}
   },
   "2352650": {
@@ -1600,7 +1600,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2354701": {
     "name": "DOWNLIGHT LED SOBREPUESTO CILINDRO 7W IP20",
-    "sku": "DLS7LVB",
+    "sku": "DLSC7",
     "price": 7800,
     "variants": {
       "11927474": {
@@ -1935,7 +1935,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 7485,
     "variants": {
       "7094744": {
-        "sku": "PLRS18SF",
+        "sku": "PLUTSMD10SMF",
         "price": 7485
       }
     }
@@ -1952,19 +1952,13 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 9000,
     "variants": {}
   },
-  "3192973": {
-    "name": "SEÑALETICA DE EMERGENCIA LED SALIDA 3W 4 HRS AUTONOMÍA",
-    "sku": "SEL3S",
-    "price": 16900,
-    "variants": {}
-  },
   "3213127": {
     "name": "LINEAL LED EMBUTIDA 40W 120 CM.",
-    "sku": "LLE40120N",
+    "sku": "LLE40120",
     "price": 33670,
     "variants": {
       "99319918": {
-        "sku": "LLE40120N",
+        "sku": "LLE40120C",
         "price": 33670
       },
       "99319919": {
@@ -1972,7 +1966,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 33670
       },
       "99319920": {
-        "sku": "LLE40120N",
+        "sku": "LLE40120F",
         "price": 33670
       }
     }
@@ -2118,8 +2112,8 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "3433454": {
     "name": "EQUIPO LED DE EMERGENCIA 2*1.2W",
-    "sku": "",
-    "price": 12900,
+    "sku": "ELE212",
+    "price": 17760,
     "variants": {}
   },
   "3481496": {
@@ -2135,15 +2129,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "3612990": {
     "name": "DOWNLIGHT LED SOBREPUESTO 7W LAVADORA SLIM IP20",
-    "sku": "DLS7LVB",
+    "sku": "DWS7LS",
     "price": 7650,
     "variants": {
       "11927495": {
-        "sku": "",
+        "sku": "DWS7LSC",
         "price": 7650
       },
       "11927496": {
-        "sku": "",
+        "sku": "DWS7LSF",
         "price": 7650
       }
     }
@@ -2248,11 +2242,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "3972346": {
     "name": "APLIQUE LED MURO 5W IP65 GRIS",
-    "sku": "AMEL3G",
+    "sku": "ALM5IP65G",
     "price": 7540,
     "variants": {
       "6593334": {
-        "sku": "ALM5IP65GF",
+        "sku": "ALM5IP65GC",
         "price": 7540
       },
       "6593335": {
@@ -2548,31 +2542,31 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "11521285": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR FLYHAWK 40-80W",
-    "sku": "APSB80N",
+    "sku": "APSB",
     "price": 442800,
     "variants": {
       "118197691": {
-        "sku": "APSB80N",
+        "sku": "APSB40N",
         "price": 442800
       },
       "118197717": {
-        "sku": "",
+        "sku": "APSB401",
         "price": 442800
       },
       "118197718": {
-        "sku": "",
+        "sku": "APSB407",
         "price": 442800
       },
       "118197860": {
-        "sku": "APSB80N",
+        "sku": "APSB60N",
         "price": 478800
       },
       "118197861": {
-        "sku": "",
+        "sku": "APSB601",
         "price": 478800
       },
       "118197862": {
-        "sku": "",
+        "sku": "APSB607",
         "price": 478800
       },
       "118197863": {
@@ -2580,11 +2574,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 514800
       },
       "118197864": {
-        "sku": "",
+        "sku": "APSB801",
         "price": 514800
       },
       "118197865": {
-        "sku": "",
+        "sku": "APSB807",
         "price": 514800
       }
     }
@@ -2597,30 +2591,30 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "14582065": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 300W CON PANEL SOLAR  CON BRAZO PARA MONTAR EN MURO O POSTE",
-    "sku": "APS300PB",
+    "sku": "APS300P",
     "price": 159900,
     "variants": {
       "117807100": {
-        "sku": "APS300PB",
+        "sku": "APS300P1",
         "price": 159900
       },
       "117807101": {
-        "sku": "APS300PB",
+        "sku": "APS300P7",
         "price": 159900
       },
       "117807102": {
-        "sku": "APS300PB",
+        "sku": "APS300PN",
         "price": 159900
       },
       "117807103": {
-        "sku": "APS300PB",
+        "sku": "APS300PF",
         "price": 159900
       }
     }
   },
   "15014164": {
     "name": "LÁMPARA DE EMERGENCIA LED ANTIEXPLOSIVA 2X3W IP65 IK10",
-    "sku": "LEATEX2X8",
+    "sku": "LEATEX2X3",
     "price": 117900,
     "variants": {}
   },
@@ -2839,7 +2833,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "16160509": {
     "name": "TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 NEGRA",
-    "sku": "TAOCRE27",
+    "sku": "TAOCRE27N",
     "price": 3990,
     "variants": {}
   },
@@ -2888,11 +2882,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 15990,
     "variants": {
       "118410531": {
-        "sku": "AMB16W",
+        "sku": "AMB16WC",
         "price": 15990
       },
       "118410532": {
-        "sku": "AMB16W",
+        "sku": "AMB16WF",
         "price": 15990
       }
     }
@@ -3306,12 +3300,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       }
     }
   },
-  "21519463": {
-    "name": "LÁMPARA DE EMERGENCIA LED 2X4W IP67",
-    "sku": "LEATEX2X4",
-    "price": 35900,
-    "variants": {}
-  },
   "21739206": {
     "name": "AMPOLLETA LED BOLA 15W E27",
     "sku": "",
@@ -3329,7 +3317,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "21743223": {
     "name": "KIT DE EMERGENCIA LED 50W UNIVERSAL 90 MINUTOS DE AUTONOMIA",
-    "sku": "SS50W",
+    "sku": "SS50WU",
     "price": 16900,
     "variants": {}
   },
@@ -3399,51 +3387,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       "98856618": {
         "sku": "",
         "price": 177900
-      }
-    }
-  },
-  "24031164": {
-    "name": "CAMPANA LED UFO NF8 100W 110LM/W IP65",
-    "sku": "",
-    "price": 22000,
-    "variants": {
-      "100157168": {
-        "sku": "CLUFONF8100F",
-        "price": 22000
-      },
-      "100157169": {
-        "sku": "CLUFONF8100N",
-        "price": 22000
-      }
-    }
-  },
-  "24040212": {
-    "name": "CAMPANA LED UFO NF8 150W 110LM/W IP65",
-    "sku": "",
-    "price": 26500,
-    "variants": {
-      "100179792": {
-        "sku": "CUFONF8150C",
-        "price": 26500
-      },
-      "100179793": {
-        "sku": "CUFONF8150F",
-        "price": 26500
-      }
-    }
-  },
-  "24040292": {
-    "name": "CAMPANA LED UFO NF8 200W 110LM/W IP65",
-    "sku": "",
-    "price": 33600,
-    "variants": {
-      "100179951": {
-        "sku": "CUFONF8200C",
-        "price": 33600
-      },
-      "100179952": {
-        "sku": "CUFONF8200F",
-        "price": 33600
       }
     }
   },
@@ -3698,7 +3641,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 9440,
     "variants": {
       "103033375": {
-        "sku": "DLRO40N",
+        "sku": "PLRO24N",
         "price": 9440
       }
     }
@@ -3709,7 +3652,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 4640,
     "variants": {
       "103033507": {
-        "sku": "DLRO40N",
+        "sku": "PLRO6N",
         "price": 4640
       }
     }
@@ -3832,23 +3775,23 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "26946977": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
-    "sku": "APS300PF",
+    "sku": "APS300ALL",
     "price": 238800,
     "variants": {
       "110677528": {
-        "sku": "APS300PF",
+        "sku": "APS300ALL1",
         "price": 238800
       },
       "110677529": {
-        "sku": "APS300PF",
+        "sku": "APS300ALLN",
         "price": 238800
       },
       "110677530": {
-        "sku": "APS300PF",
+        "sku": "APS300ALL7",
         "price": 238800
       },
       "110677531": {
-        "sku": "APS300PF",
+        "sku": "APS300ALLF",
         "price": 238800
       }
     }
@@ -3927,7 +3870,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 14190,
     "variants": {
       "106672292": {
-        "sku": "ADCE2X5NC",
+        "sku": "ADBBM2X5NC",
         "price": 14190
       }
     }
@@ -3938,7 +3881,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 20200,
     "variants": {
       "107448697": {
-        "sku": "ADCE2X5NC",
+        "sku": "ADBB2X10NC",
         "price": 20200
       }
     }
@@ -4007,70 +3950,70 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "30511210": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
-    "sku": "APS400PF",
+    "sku": "APS600ALL",
     "price": 619900,
     "variants": {
       "110660215": {
-        "sku": "APS600PC",
+        "sku": "APS600ALL1",
         "price": 619900
       },
       "110660216": {
-        "sku": "APS600PN",
+        "sku": "APS600ALLN",
         "price": 619900
       },
       "110660217": {
-        "sku": "APS600PC",
+        "sku": "APS600ALL7",
         "price": 619900
       },
       "110660218": {
-        "sku": "APS600PF",
+        "sku": "APS600ALLF",
         "price": 619900
       }
     }
   },
   "30518805": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 400W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
-    "sku": "APS600PF",
+    "sku": "APS400ALL",
     "price": 359900,
     "variants": {
       "110660366": {
-        "sku": "APS600PC",
+        "sku": "APS400ALL1",
         "price": 359900
       },
       "110660367": {
-        "sku": "APS600PN",
+        "sku": "APS400ALLN",
         "price": 359900
       },
       "110660368": {
-        "sku": "APS600PC",
+        "sku": "APS400ALL7",
         "price": 359900
       },
       "110660369": {
-        "sku": "APS600PF",
+        "sku": "APS400ALLF",
         "price": 359900
       }
     }
   },
   "30534071": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
-    "sku": "APS300PF",
-    "price": 153600,
+    "sku": "APS200ALL",
+    "price": 165600,
     "variants": {
       "110677475": {
-        "sku": "APS200SALLC",
-        "price": 153600
+        "sku": "APS200ALL1",
+        "price": 165600
       },
       "110677476": {
-        "sku": "APS200SALLN",
-        "price": 153600
+        "sku": "APS200ALLN",
+        "price": 165600
       },
       "110677477": {
-        "sku": "APS200SALLC",
-        "price": 153600
+        "sku": "APS200ALL7",
+        "price": 165600
       },
       "110677478": {
-        "sku": "APS200SALLF",
-        "price": 153600
+        "sku": "APS200ALLF",
+        "price": 165600
       }
     }
   },
@@ -4087,7 +4030,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "31731832": {
     "name": "PROYECTOR LED CANOPY 200W IP66 IK10",
-    "sku": "PLAPEX200F",
+    "sku": "PLCAN200F",
     "price": 321600,
     "variants": {}
   },
@@ -4097,7 +4040,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 84990,
     "variants": {
       "114560030": {
-        "sku": "FLEP18C",
+        "sku": "LLEP28C",
         "price": 84990
       }
     }
@@ -4282,10 +4225,16 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 19900,
     "variants": {}
   },
+  "37379454": {
+    "name": "BRAZO GALVANIZADO PARA POSTE 1 SALIDA Ø48MM",
+    "sku": "BPG48-1",
+    "price": 26990,
+    "variants": {}
+  },
   "37404730": {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 300W",
     "sku": "PLAPEX300F",
-    "price": 321600,
+    "price": 343200,
     "variants": {}
   },
   "37625224": {
@@ -4307,9 +4256,28 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       }
     }
   },
+  "37625303": {
+    "name": "PANEL LED CUADRADO EMBUTIDO 15W IP44",
+    "sku": "",
+    "price": 2790,
+    "variants": {
+      "122880402": {
+        "sku": "PLCE15C",
+        "price": 2790
+      },
+      "122880403": {
+        "sku": "PLCE15N",
+        "price": 2790
+      },
+      "122880404": {
+        "sku": "PLCE15F",
+        "price": 2790
+      }
+    }
+  },
   "37656341": {
     "name": "LUMINARIA LED VIAL A PRUEBA DE EXPLOSIÓN 125W IP66 CLASE I DIV. 2",
-    "sku": "EX-125W STA1",
+    "sku": "EX-125W-STA1",
     "price": 1199880,
     "variants": {}
   }

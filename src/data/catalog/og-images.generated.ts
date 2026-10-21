@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '09115feec812';
+export const SNAPSHOT_HASH = '35323ec3fd4f';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -153,7 +153,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "3123738": {"url":"https://images.jumpseller.com/store/elights-cl/3123738/PROYECTOR-LED-ULTRA-THIN-10W-IP66-NEGRO-CON-SENSOR_eLIGHTS.CL.png?1630428889","format":"png","bytes":147077,"width":1010,"height":1024},
   "3123789": {"url":"https://images.jumpseller.com/store/elights-cl/3123789/PROYECTOR-LED-ULTRA-THIN-30W-IP66-NEGRO-CON-SENSOR_eLIGHTS.CL.png?1630429091","format":"png","bytes":94320,"width":1010,"height":1024},
   "3124480": {"url":"https://images.jumpseller.com/store/elights-cl/3124480/PROYECTOR-LED-ULTRA-THIN-20W-IP66-NEGRO-CON-SENSOR_eLIGHTS.CL.png?1630429047","format":"png","bytes":125115,"width":1010,"height":1024},
-  "3192973": {"url":"https://images.jumpseller.com/store/elights-cl/3192973/SE_ALETICA_DE_EMERGENCIA_LED_SALIDA_3W_eLIGHTS.cl.png?1690404978","format":"png","bytes":129599,"width":610,"height":507},
   "3213127": {"url":"https://images.jumpseller.com/store/elights-cl/3213127/Lineal-Embutida.png?1662676666","format":"png","bytes":7014595,"width":5456,"height":3064},
   "3229761": {"url":"https://images.jumpseller.com/store/elights-cl/3229761/Panel_LED_Conc_ntrico_Opal_20W_2.png?1559593178","format":"png","bytes":219414,"width":616,"height":598},
   "3283555": {"url":"https://images.jumpseller.com/store/elights-cl/3283555/proyector_01.jpg?1653223604","format":"jpeg","bytes":74939,"width":800,"height":800},
@@ -256,7 +255,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "21392612": {"url":"https://images.jumpseller.com/store/elights-cl/21392612/Dise_o_sin_t_tulo__48_.png?1694722767","format":"png","bytes":1091756,"width":1080,"height":1080},
   "21392713": {"url":"https://images.jumpseller.com/store/elights-cl/21392713/Dise_o_sin_t_tulo__49_.png?1694723322","format":"png","bytes":1424742,"width":1080,"height":1080},
   "21441880": {"url":"https://images.jumpseller.com/store/elights-cl/21441880/01-backlight-600x300-mm.png?1695305682","format":"png","bytes":60294,"width":907,"height":907},
-  "21519463": {"url":"https://images.jumpseller.com/store/elights-cl/21519463/L_MPARA_DE_EMERGENCIA_LED_ANTIEXPLOSIVA_2X4W_IP67-Elights.png?1695668607","format":"png","bytes":761861,"width":1080,"height":1080},
   "21739206": {"url":"https://images.jumpseller.com/store/elights-cl/21739206/amp-led-bola-7-70w-e27.jpg?1696947724","format":"jpeg","bytes":8174,"width":600,"height":600},
   "21743223": {"url":"https://images.jumpseller.com/store/elights-cl/21743223/Dise_o_sin_t_tulo__61_-transformed.png?1706904738","format":"png","bytes":1667204,"width":2160,"height":2160},
   "21766686": {"url":"https://images.jumpseller.com/store/elights-cl/21766686/panel-led-1200x150-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1697046106","format":"jpeg","bytes":11864,"width":600,"height":600},
@@ -266,9 +264,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "22679578": {"url":"https://images.jumpseller.com/store/elights-cl/22679578/CINTA_LED_EXTERIOR_14_4W_SMD_5730_72LEDsm_100mt._220V._ROJO__2_.png?1701114910","format":"png","bytes":544918,"width":1080,"height":1080},
   "23188967": {"url":"https://images.jumpseller.com/store/elights-cl/23188967/-PROYECTOR_LED_ULTRA_SLIM_1000W-.png?1704226889","format":"png","bytes":660485,"width":1080,"height":1080},
   "23188968": {"url":"https://images.jumpseller.com/store/elights-cl/23188968/PROYECTOR_ULTRA_SLIM_600W-.png?1704225724","format":"png","bytes":666720,"width":1080,"height":1080},
-  "24031164": {"url":"https://images.jumpseller.com/store/elights-cl/24031164/LED_UFO_NF8_TOTAL_eLIGHTS.CL.jpg?1708372270","format":"jpeg","bytes":192415,"width":1000,"height":1000},
-  "24040212": {"url":"https://images.jumpseller.com/store/elights-cl/24040212/LED_UFO_NF8_TOTAL_eLIGHTS.CL.jpg?1708443904","format":"jpeg","bytes":192415,"width":1000,"height":1000},
-  "24040292": {"url":"https://images.jumpseller.com/store/elights-cl/24040292/LED_UFO_NF8_TOTAL_eLIGHTS.CL.jpg?1708444685","format":"jpeg","bytes":192415,"width":1000,"height":1000},
   "24043822": {"url":"https://images.jumpseller.com/store/elights-cl/24043822/LED_UFO_NF8_TOTAL_eLIGHTS.CL.jpg?1708457095","format":"jpeg","bytes":192415,"width":1000,"height":1000},
   "24192756": {"url":"https://images.jumpseller.com/store/elights-cl/24192756/50_4x.png?1709819301","format":"png","bytes":385037,"width":1695,"height":1695},
   "24192873": {"url":"https://images.jumpseller.com/store/elights-cl/24192873/100_4x.png?1709843349","format":"png","bytes":368344,"width":1283,"height":1283},
@@ -330,7 +325,9 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "35794580": {"url":"https://images.jumpseller.com/store/elights-cl/35794580/media/696376_fd19e60b7cb242478b1f4379ae6535fb~mv2.png/v1/fit/w_500%2Ch_500%2Cq_90/file.png?1781479280","format":"png","bytes":105225,"width":500,"height":500},
   "35808441": {"url":"https://images.jumpseller.com/store/elights-cl/35808441/foto-producto-30146.jpg?1781576239","format":"jpeg","bytes":65678,"width":1254,"height":1254},
   "37039738": {"url":"https://images.jumpseller.com/store/elights-cl/37039738/media/696376_2e12c4f686f74c5aa1cfa4b4e5822763~mv2.png?1788980660","format":"png","bytes":1020888,"width":1890,"height":2126},
+  "37379454": {"url":"https://images.jumpseller.com/store/elights-cl/37379454/brazo-galvanizado-1-salida-48mm-1.jpg?1791987514","format":"jpeg","bytes":102140,"width":1536,"height":1024},
   "37404730": {"url":"https://images.jumpseller.com/store/elights-cl/37404730/CAMPANA_LED_ANTIEXPLOSIVA_200W_eLIGHTS.cl.png?1790864686","format":"png","bytes":222937,"width":500,"height":500},
   "37625224": {"url":"https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_1.png?1791485046","format":"png","bytes":66458,"width":600,"height":600},
+  "37625303": {"url":"https://images.jumpseller.com/store/elights-cl/37625303/store/elights-cl/2270155/12W_1.png?1791485052","format":"png","bytes":66458,"width":600,"height":600},
   "37656341": {"url":"https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733","format":"png","bytes":90456,"width":500,"height":403},
 };
