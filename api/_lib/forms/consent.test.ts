@@ -75,6 +75,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.3 (PR 13x): cambian la Política (asistente de WhatsApp), los Términos §1 y §16 y Cambios
   // (retracto, garantía y reclamos por correo); las casillas no cambian.
   '1.3': CONSENT_TEXTS_SINCE_1_2,
+  // 1.4 (PR 13z): la Política agrega la revisión de las conversaciones con el asistente de
+  // WhatsApp para mejorarlo (y el aviso del bot la informa); las casillas no cambian.
+  '1.4': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

@@ -1,6 +1,6 @@
 # Registro de autorizaciones: novedades, bajas y oposiciones
 
-Procedimiento de ventas desde la PR 13 (versión 1.2 de los textos legales; vigente: 1.3, PR 13x, que corrige lo que la política dice del asistente de WhatsApp y pide por correo el retracto, la garantía y los reclamos). Lo que dice este documento tiene que coincidir con la Política de privacidad (§4 asistente de WhatsApp, §7 plazos, §8 derechos y §10 cookies) y con los Términos (§15 cambios). Si la política cambia, este documento cambia en la misma PR. La redacción legal la revisa el abogado (pregunta Q6 del plan).
+Procedimiento de ventas desde la PR 13 (versión 1.2 de los textos legales; 1.3, PR 13x, que corrige lo que la política dice del asistente de WhatsApp y pide por correo el retracto, la garantía y los reclamos; vigente: 1.4, PR 13z, que agrega la revisión de las conversaciones con el asistente para mejorarlo). Lo que dice este documento tiene que coincidir con la Política de privacidad (§4 asistente de WhatsApp, §7 plazos, §8 derechos y §10 cookies) y con los Términos (§15 cambios). Si la política cambia, este documento cambia en la misma PR. La redacción legal la revisa el abogado (pregunta Q6 del plan).
 
 ## 1. Qué queda registrado y dónde
 
@@ -11,9 +11,9 @@ Cada envío de los 5 formularios del sitio (`/solicitar-pedido`, `/cotizacion`, 
 Privacidad: leída; autoriza usar sus datos para responder esta solicitud (casilla obligatoria)
 Términos y condiciones: aceptados (casilla obligatoria)
 Novedades y ofertas por correo: NO
-Versión de los textos legales: 1.3
+Versión de los textos legales: 1.4
 Registrado: 2026-11-20 11:03:12, hora de Chile (reloj del servidor)
-consent_json: {"v":"1.3","at":"2026-11-20T14:03:12Z","form":"solicitar-pedido","privacy":true,"terms":true,"marketing":false,"src":"web"}
+consent_json: {"v":"1.4","at":"2026-11-20T14:03:12Z","form":"solicitar-pedido","privacy":true,"terms":true,"marketing":false,"src":"web"}
 ```
 
 Variantes:
@@ -35,7 +35,7 @@ Dónde queda primero:
 - Vale **la última línea que empieza con `consent_json:`** de la nota o del correo. No te guíes por la línea legible: un cliente puede escribir un texto parecido en sus comentarios, pero lo que escribe el cliente queda siempre **antes** del bloque.
 - Campos del JSON: `v` (versión que vio el cliente; `null` si es un formulario anterior), `sv` (versión del servidor, solo si es distinta), `at` (instante UTC), `form`, `privacy`, `terms`, `marketing`, `src` (`web` o `web-legacy`).
 - Si una persona tiene varias solicitudes, manda la más reciente (`at` mayor). Una solicitud posterior **sin** la casilla de novedades cuenta como retiro (Política §7).
-- Para saber qué texto aceptó, abre el archivo de su versión (`v`): `https://nuevo.elights.cl/legal/politica-de-privacidad-v1.3.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`). Desde la Etapa 3, en elights.cl.
+- Para saber qué texto aceptó, abre el archivo de su versión (`v`): `https://nuevo.elights.cl/legal/politica-de-privacidad-v1.4.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`). Desde la Etapa 3, en elights.cl.
 
 ## 3. Novedades y ofertas por correo
 
@@ -56,6 +56,15 @@ El origen de la visita (página de entrada, sitio anterior y parámetros de camp
      - si la nota no lo tiene (el correo es la única constancia), deja el correo, ponle la etiqueta «Origen: oposición» y no lo uses para analizar canales: queda solo como registro de la solicitud.
   3. Responde confirmando qué borraste y, si quedó un correo como constancia, que solo se guarda como registro de la solicitud.
 
+### 4.1 Oposición a la revisión del asistente de WhatsApp (desde la 1.4)
+
+Llega por correo (asunto «Datos personales»), con el teléfono desde el que la persona le escribió al bot.
+
+1. Pásale el teléfono a Claude en una sesión de la carpeta `~/proyectos/elights-bot-2026-10/marcha-blanca/`. Claude calcula la huella del teléfono y busca su código en las copias seudonimizadas de los ciclos vigentes (hasta 60 días), sin leer las conversaciones.
+2. Si aparece, se borran sus conversaciones de la copia y de los informes que aún no se cierran, y su número se agrega a `EXCLUIR_NUMEROS` en `marcha-blanca/.env`, para que no entre en los ciclos siguientes.
+3. Anota en `marcha-blanca/registro.md` la fecha y «oposición atendida» (sin el teléfono).
+4. Responde confirmando que sus conversaciones ya no se revisan. Lo que quedó en Pipedrive sigue el plazo de las solicitudes (§6); si también pide borrar eso, es una solicitud de supresión.
+
 ## 5. Plazos para responder (Política §8)
 
 | Fecha de la solicitud | Plazo |
@@ -70,6 +79,8 @@ Aplica a la oposición y a los demás derechos (acceso, rectificación, supresi�
 - Solicitudes que no terminan en compra: 24 meses desde el último contacto. La constancia sigue a su solicitud.
 - Novedades: mientras no se retiren. Si se borra la solicitud, la constancia pasa al registro de novedades.
 - Bajas de novedades: 4 años, solo el correo y la constancia.
+- Twilio (asistente de WhatsApp): 400 días en su consola y su API, más su respaldo (Backup Storage), que queda encendido por decisión del dueño (2026-10-18) para revisar y mejorar el asistente. La política §7 lo informa.
+- Revisión del asistente (desde la 1.4): la exportación de Twilio no se guarda; la tabla de claves, cifrada, 14 días; la copia seudonimizada y la huella del teléfono, 60 días; las cifras, sin plazo. Los borrados los ejecuta el dueño con el comando que deja Claude en `marcha-blanca/registro.md`, y cada uno tiene su recordatorio en el calendario.
 
 ## 7. Lo que no se registra en el servidor
 
@@ -81,7 +92,7 @@ Aplica a la oposición y a los demás derechos (acceso, rectificación, supresi�
 - **Lo que la política 1.3 dice del asistente** (§2, §4 y §7):
   - **Lo que hace hoy el código.** En ese WhatsApp siempre responde el asistente, con mensajes predefinidos que pueden repetir datos que reconoció la IA. La IA (Claude) solo reconoce los datos y escribe el resumen. El número, el nombre del perfil de WhatsApp y los adjuntos llegan solos. **Sin correo no se crea el negocio en Pipedrive**, así que esa conversación no llega a ventas. En Pipedrive la prioridad es «Alta» si pidió una persona y «Normal» si no. Si piden una persona, el asistente **no siempre** pide el correo: si el mensaje dice «necesito», «busco», «cotizar» o «comprar», sigue con las preguntas de cotización; si nombran a Claudio o a Constanza, les da sus correos. Tampoco reconoce retractos, garantías ni reclamos: por eso, desde la 1.3, Cambios y los Términos §16 los piden por correo.
   - **Regla del dueño.** La respuesta de una persona va siempre por correo, nunca por WhatsApp ni por teléfono. La política lo dice así, y la PR 13y (#85) ajustó a esa regla los mensajes `MSG_HUMAN` («Te va a atender Claudio Quero directamente por correo») y `MSG4_INSTALL`.
-  - **Diferencias pendientes con el bot** (PR aparte, con el OK del dueño): `MSG4` y `MSG4_B2B` dicen que la solicitud «quedó registrada» aunque no se cree el negocio: siempre que falta el correo y, en algunos cierres, cuando hay correo pero falta el producto o el proyecto (`hasMinCommercial`). Además, `MSG_HUMAN` («ya derivé tu solicitud a nuestro equipo de ventas») se repite en cada mensaje de un flujo cerrado en que la persona pidió un ejecutivo, aunque no haya correo ni negocio. Si alguien dice que el asistente le confirmó su solicitud y no tiene negocio en Pipedrive, búscalo en el registro de mensajes de Twilio y respóndele por correo si lo dio.
+  - **Diferencias con el bot, resueltas en la PR 1 del bot (#88):** «quedó registrada» y «ya derivé» salen solo si Pipedrive confirma el negocio; sin correo, el bot pide el correo (texto A) y, si Pipedrive falla, ofrece ventas@elights.cl (texto B). Si alguien dice que el asistente le confirmó su solicitud y no tiene negocio en Pipedrive, búscalo en el registro de mensajes de Twilio y respóndele por correo si lo dio.
   - Si el asistente cambia (por ejemplo, con la especificación nueva del bot), la política cambia en la misma PR y sube la versión.
 
 ## 8. Antes de cotizar: versión de los Términos (Términos §15)
