@@ -21,6 +21,7 @@ import handler from '../quotes/create';
 import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import { priceIndex } from '../_lib/catalog/price-index.generated.js';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -762,12 +763,19 @@ describe('POST /api/quotes/create: privacidad', () => {
 });
 
 describe('/api/quotes/create: la nota dice qué variante es', () => {
-  it('con variantLabel, la línea lleva la etiqueta legible en la nota completa', async () => {
+  // Una variante con SKU propio de un producto con varias, del índice real (el que genera la
+  // sincronización): sin fijar SKU ni precio, que el dueño corrige en Jumpseller.
+  const [jid, entry] = Object.entries(priceIndex).find(([, e]) => Object.keys(e.variants).length > 1 && Object.values(e.variants).some(v => v.sku)) ?? [];
+  const [vid, variant] = entry ? Object.entries(entry.variants).find(([, v]) => v.sku)! : [];
+
+  it.skipIf(!variant)('con variantLabel, la línea lleva el SKU de la variante y la etiqueta legible en la nota completa', async () => {
     vi.mocked(processQuoteToCrm).mockResolvedValue(crmResult(91, 'created') as never);
     vi.mocked(pipedrivePost).mockResolvedValue({ success: true, data: { id: 1 } } as never);
-    await call({ ...persona(), products: [{ jumpsellerId: 2301098, variantId: 111887368, sku: 'APB407', name: 'BESTLED 40W', quantity: 1, unitPriceClp: 119400, variantLabel: 'Cálida 2700K' }] });
+    await call({ ...persona(), products: [{ jumpsellerId: Number(jid), variantId: Number(vid), sku: variant!.sku, name: entry!.name, quantity: 1, unitPriceClp: variant!.price, variantLabel: 'Cálida 2700K' }] });
     const [note] = notes();
-    expect(note.content).toMatch(/\[APB407\] .* — Cálida 2700K x1 @ \d+ CLP/);
+    expect(note.content).toContain(`[${variant!.sku}] `);
+    expect(note.content).toContain(` — Cálida 2700K x1 @ ${variant!.price} CLP`);
+    expect(note.content).toContain(`Jumpseller ${jid} variante ${vid}`);
   });
 });
 
