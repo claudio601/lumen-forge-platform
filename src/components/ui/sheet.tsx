@@ -56,11 +56,14 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-        {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+        {/* 40×40 px para el dedo (antes 16 px) y el nombre en español: lo usa el menú del teléfono.
+            Va antes del contenido: se ve arriba a la derecha (absolute) y así también es lo primero
+            con Tab, no lo último después de todas las opciones (WCAG 2.4.3, orden del foco). */}
+        <SheetPrimitive.Close className="absolute right-2 top-2 inline-flex h-10 w-10 items-center justify-center rounded-md opacity-70 ring-offset-background transition-opacity hover:bg-accent hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <X className="h-5 w-5" aria-hidden="true" />
+          <span className="sr-only">Cerrar</span>
         </SheetPrimitive.Close>
+        {children}
       </SheetPrimitive.Content>
     </SheetPortal>
   ),

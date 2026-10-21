@@ -13,6 +13,8 @@
 //   junto al botón (role="alert"), sin subir la página. El correo con la regla del servidor;
 //   el RUT (opcional) con su dígito verificador, que el servidor no revisa.
 // - F-03: la confirmación con el plazo de respuesta, 3 pasos y un resumen para imprimir.
+// Entrega 3 (F-04): la franja de 3 pasos bajo el título, también con la solicitud vacía (la
+// puerta «Pedido (n)» del encabezado se ve siempre).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, ArrowLeft, Loader2, Minus, Plus, Trash2, Send } from 'lucide-react';
@@ -45,6 +47,7 @@ import { useFieldErrors } from '@/hooks/useFieldErrors';
 import FieldError from '@/components/forms/FieldError';
 import FormErrorAlert from '@/components/forms/FormErrorAlert';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
+import ProcessSteps from '@/components/forms/ProcessSteps';
 
 const SEO_TITLE = 'Solicitud de Pedido | eLIGHTS Chile';
 const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización.';
@@ -113,6 +116,9 @@ function validateField(name: Field, v: FormValues): string | null {
 
 /** El servidor rechazó el correo (api/request-orders/create.ts: 'email has invalid format'). */
 const EMAIL_REJECTED = `No pudimos validar tu correo. Revísalo; si sigue fallando, escríbenos a ${contactEmail}.`;
+
+/** Franja de 3 pasos, antes de enviar (informe UX, 5.3). */
+const ORDER_FLOW = ['Envías tu solicitud', 'Confirmamos disponibilidad', 'Pagas con el link y despachamos'] as const;
 
 // ── Confirmación ────────────────────────────────────────────────────────────
 const ORDER_STEPS = [
@@ -219,8 +225,9 @@ const RequestOrderPage = () => {
       <div className="container py-16 text-center">
         <Seo title={SEO_TITLE} description={SEO_DESCRIPTION} noindex />
         <ClipboardList className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Tu solicitud está vacía</h1>
-        <p className="text-muted-foreground mb-6">Agrega productos desde el catálogo para solicitar un pedido</p>
+        <h1 className="text-2xl font-bold mb-2">Tu solicitud de pedido está vacía</h1>
+        <p className="text-muted-foreground mb-6">Agrega productos desde el catálogo para solicitar un pedido.</p>
+        <ProcessSteps label="Cómo funciona la solicitud de pedido" steps={ORDER_FLOW} className="max-w-3xl mx-auto mb-8" />
         <Button asChild className="gradient-primary text-primary-foreground">
           <Link to="/catalogo">Ver catálogo</Link>
         </Button>
@@ -357,9 +364,10 @@ const RequestOrderPage = () => {
       </Link>
 
       <h1 className="text-2xl font-bold mb-1">Solicitud de pedido</h1>
-      <p className="text-muted-foreground text-sm mb-6">
+      <p className="text-muted-foreground text-sm mb-4">
         Completa tus datos: confirmamos disponibilidad y te enviamos un link de pago seguro.
       </p>
+      <ProcessSteps label="Cómo funciona la solicitud de pedido" steps={ORDER_FLOW} className="mb-8" />
 
       {/* ── Tabla de productos ──────────────────────────────────────── */}
       {/* En el teléfono (bajo sm) cada fila se apila: foto, nombre y SKU arriba; precio,

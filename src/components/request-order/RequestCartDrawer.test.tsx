@@ -1,6 +1,7 @@
-// Pastilla de la solicitud en el encabezado (auditoría UX, F-01): el total va en el modo del
-// selector de precios (con IVA, o neto en modo empresa) y nunca suma precios con IVA y netos,
-// tampoco con un carrito guardado antes del cambio con una línea de cada modo.
+// Puerta «Pedido (n)» del encabezado. Auditoría UX, F-01: el total va en el modo del selector de
+// precios (con IVA, o neto en modo empresa) y nunca suma precios con IVA y netos, tampoco con un
+// carrito guardado antes del cambio con una línea de cada modo. F-04 (entrega 3): se nombra con
+// palabras y se ve siempre, también con la solicitud vacía.
 
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -44,13 +45,30 @@ describe('RequestCartDrawer: total en un solo modo', () => {
   it('con IVA: los dos precios CON IVA (130.400 + 118.500), no 229.980', async () => {
     seedMixedCart({ b2b: false });
     renderPill();
-    expect(await screen.findByText(/Solicitud \(2\)/)).toHaveTextContent(/^Solicitud \(2\) · \$248\.900$/);
+    expect(await screen.findByText(/Pedido \(2\)/)).toHaveTextContent(/^Pedido \(2\) · \$248\.900$/);
     expect(screen.queryByText(/229\.980/)).not.toBeInTheDocument();
   });
 
   it('modo empresa: los dos netos (109.580 + 99.580), con la palabra neto', async () => {
     seedMixedCart({ b2b: true });
     renderPill();
-    expect(await screen.findByText(/Solicitud \(2\)/)).toHaveTextContent(/^Solicitud \(2\) · \$209\.160 neto$/);
+    expect(await screen.findByText(/Pedido \(2\)/)).toHaveTextContent(/^Pedido \(2\) · \$209\.160 neto$/);
+  });
+});
+
+describe('RequestCartDrawer: puerta «Pedido (n)» (F-04)', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it('con la solicitud vacía se ve igual, «Pedido (0)» sin total, y lleva a /solicitar-pedido', () => {
+    renderPill();
+    const door = screen.getByRole('link', { name: 'Pedido (0)' });
+    expect(door).toHaveAttribute('href', '/solicitar-pedido');
+    expect(door).not.toHaveTextContent('$');
+  });
+
+  it('con productos, el número es la suma de las cantidades', async () => {
+    sessionStorage.setItem('elights_request_cart', JSON.stringify([line({ variantId: 1002, priceMode: 'iva', quantity: 3 })]));
+    renderPill();
+    expect(await screen.findByRole('link', { name: /^Pedido \(3\)/ })).toHaveAttribute('href', '/solicitar-pedido');
   });
 });

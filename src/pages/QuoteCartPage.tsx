@@ -7,6 +7,8 @@
 //   junto al botón (role="alert"). El RUT de empresa toma formato al salir del campo y se
 //   revisa su dígito verificador; el servidor no lo revisa (nunca rechaza un lead por él).
 // - F-03: la confirmación con el plazo de respuesta, 3 pasos y un resumen para imprimir.
+// Entrega 3 (F-04): la franja de 3 pasos bajo el título, también con la lista vacía (la puerta
+// «Cotización (n)» del encabezado se ve siempre), y la lista vacía ofrece la asesoría técnica.
 import { useEffect, useState } from 'react';
 import { useApp, quoteLineKey } from '@/context/AppContext';
 import { requestSku } from '@/lib/variantSku';
@@ -27,6 +29,8 @@ import { useFieldErrors } from '@/hooks/useFieldErrors';
 import FieldError from '@/components/forms/FieldError';
 import FormErrorAlert from '@/components/forms/FormErrorAlert';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
+import ProcessSteps from '@/components/forms/ProcessSteps';
+import { ADVISORY_LINK } from '@/config/navigation';
 
 type CustomerType = 'persona' | 'empresa';
 
@@ -97,6 +101,9 @@ function validateField(name: QuoteField, v: QuoteValues): string | null {
       return v.comentarios.trim().length > MAX_COMENTARIOS ? `Los comentarios admiten hasta ${MAX_COMENTARIOS} caracteres.` : null;
   }
 }
+
+/** Franja de 3 pasos, antes de enviar (informe UX, 5.2). */
+const QUOTE_FLOW = ['Envías tu lista', 'Confirmamos disponibilidad y precio', 'Recibes la cotización por correo'] as const;
 
 const QUOTE_STEPS = [
   'Revisamos tu solicitud y confirmamos disponibilidad y precio.',
@@ -348,10 +355,16 @@ const QuoteCartPage = () => {
         <Seo title={SEO_TITLE} description={SEO_DESCRIPTION} noindex />
         <FileText className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Tu lista de cotización está vacía</h1>
-        <p className="text-muted-foreground mb-6">Agrega productos desde el catálogo para solicitar una cotización</p>
-        <Button asChild className="gradient-primary text-primary-foreground">
-          <Link to="/catalogo">Ver catálogo</Link>
-        </Button>
+        <p className="text-muted-foreground mb-6">Agrega productos desde el catálogo o pídenos asesoría.</p>
+        <ProcessSteps label="Cómo funciona la cotización" steps={QUOTE_FLOW} className="max-w-3xl mx-auto mb-8" />
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button asChild className="gradient-primary text-primary-foreground">
+            <Link to="/catalogo">Ver catálogo</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to={ADVISORY_LINK.to}>{ADVISORY_LINK.label}</Link>
+          </Button>
+        </div>
       </div>
     );
   }
@@ -367,9 +380,10 @@ const QuoteCartPage = () => {
         <ArrowLeft className="h-4 w-4" /> Seguir explorando
       </Link>
       <h1 className="text-2xl font-bold mb-2">Solicitud de cotización</h1>
-      <p className="text-muted-foreground text-sm mb-6">
+      <p className="text-muted-foreground text-sm mb-4">
         Un asesor comercial revisará tu solicitud y te enviará una cotización personalizada.
       </p>
+      <ProcessSteps label="Cómo funciona la cotización" steps={QUOTE_FLOW} className="mb-8" />
 
       <div className="border rounded-xl overflow-hidden mb-8">
         {/* En el teléfono (bajo sm) cada fila se apila: foto, nombre y SKU arriba; precio,

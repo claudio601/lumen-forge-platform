@@ -5,12 +5,17 @@ import Logo from '@/components/Logo';
 import { waBase, whatsappDisplayNumber, contactEmail, businessHours } from '@/config/business';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_RUT } from '@/config/site';
 import { LEGAL_PAGES, legalPage } from '@/config/legal';
+import { ADVISORY_LINK } from '@/config/navigation';
 import CookieSettingsButton from '@/components/legal/CookieSettingsButton';
 
-/** Columna "Empresa": quiénes somos y las páginas de venta. */
+/**
+ * Columna "Empresa": quiénes somos y las páginas de venta. «Asesoría técnica» (auditoría UX,
+ * E-02): su destino está en src/config/navigation.ts.
+ */
 const companyLinks = [
   { label: legalPage('/empresa').label, to: '/empresa' },
   { label: 'Solicitar cotización', to: '/cotizacion' },
+  { label: ADVISORY_LINK.label, to: ADVISORY_LINK.to },
   { label: 'Instaladores y profesionales', to: '/instaladores' },
   { label: 'Cotizador de proyectos', to: '/cotizador' },
 ];

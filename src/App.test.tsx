@@ -149,10 +149,83 @@ describe('búsqueda: sigue a ?q', () => {
     const input = (await screen.findByDisplayValue('panel', undefined, WAIT)) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'tubo' } });
     expect(input.value).toBe('tubo');
-    // Buscar "panel" otra vez desde el header (misma URL, navegación nueva).
-    const header = screen.getByPlaceholderText('Buscar productos...');
+    // Buscar "panel" otra vez desde el header (misma URL, navegación nueva). Es el campo de
+    // escritorio: en el teléfono el buscador se pliega en la lupa, que lleva a /buscar (A-02).
+    const header = screen.getByPlaceholderText('Buscar por SKU, producto, watts, kelvin...');
     fireEvent.change(header, { target: { value: 'panel' } });
     fireEvent.submit(header.closest('form')!);
     await waitFor(() => expect(input.value).toBe('panel'), WAIT);
+  });
+});
+
+// Auditoría UX, B-01 (entrega 3): una ficha abierta desde un listado empieza arriba; Atrás
+// devuelve al punto del listado. La paginación sube a la grilla, también al volver a la 1.
+describe('navegación: la ficha abre arriba y Atrás conserva el punto (B-01)', () => {
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+  beforeEach(() => sessionStorage.clear());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Element.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  it('un enlace del listado a la ficha (PUSH) sube al tope; Atrás (POP) no mueve la página', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    renderAt('/catalogo/paneles-led');
+    await screen.findByText(`${count('paneles-led')} productos encontrados`, undefined, WAIT);
+    expect(scrollTo).not.toHaveBeenCalled(); // la primera carga no se toca
+    const cards = within(screen.getByRole('main')).getAllByRole('link').filter(a => a.getAttribute('href')?.startsWith('/producto/'));
+    const card = cards[cards.length - 1]; // la última tarjeta, la del caso medido
+    fireEvent.click(card);
+    await waitFor(() => expect(window.location.pathname).toBe(card.getAttribute('href')), WAIT);
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    scrollTo.mockClear();
+    navigate('/catalogo/paneles-led'); // popstate: Atrás
+    await screen.findByText(`${count('paneles-led')} productos encontrados`, undefined, WAIT);
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('paginación: no se mueve al llegar a ?page=2; sube a la grilla al ir a la 1 y al volver a la 2', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    renderAt('/catalogo/paneles-led?page=2');
+    await screen.findByText(/Mostrando 25–48/, undefined, WAIT);
+    expect(scrollIntoView).not.toHaveBeenCalled(); // enlace directo o Atrás: se conserva el punto
+    fireEvent.click(screen.getByRole('link', { name: '1' }));
+    await screen.findByText(/Mostrando 1–24/, undefined, WAIT);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1); // antes, volver a la 1 no subía
+    fireEvent.click(screen.getByRole('link', { name: '2' }));
+    await screen.findByText(/Mostrando 25–48/, undefined, WAIT);
+    expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(scrollTo).not.toHaveBeenCalled(); // mismo pathname: ScrollToTop no interviene
+  });
+
+  it('Atrás y Adelante entre páginas de la misma categoría (POP) no suben a la grilla', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    renderAt('/catalogo/paneles-led');
+    await screen.findByText(/Mostrando 1–24/, undefined, WAIT);
+    fireEvent.click(screen.getByRole('link', { name: '2' })); // PUSH: sube a la grilla
+    await screen.findByText(/Mostrando 25–48/, undefined, WAIT);
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    navigate('/catalogo/paneles-led'); // popstate: Atrás, a la página 1
+    await screen.findByText(/Mostrando 1–24/, undefined, WAIT);
+    navigate('/catalogo/paneles-led?page=2'); // popstate: Adelante, a la página 2
+    await screen.findByText(/Mostrando 25–48/, undefined, WAIT);
+    await new Promise(r => setTimeout(r, 50));
+    // El navegador devuelve al punto donde estaba el visitante: nadie compite con él.
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('la corrección de un ?page inválido (REPLACE) no mueve la pantalla', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const last = Math.ceil(count('paneles-led') / 24);
+    renderAt('/catalogo/paneles-led?page=99');
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get('page')).toBe(String(last)), WAIT);
+    await new Promise(r => setTimeout(r, 50));
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 });
