@@ -2,7 +2,9 @@
 // Verifica el contenido SEO de un producto (src/data/catalog/content/<id>.json):
 //   - formato y largos del formato BESTLED (lo que la ficha sabe mostrar),
 //   - reglas del sitio (sin stock, sin precios, despacho solo "hasta 2 días hábiles" y
-//     nunca como plazo de llegada, sin flota propia, sin promesas como "gratis" o "mismo día"),
+//     nunca como plazo de llegada, sin flota propia, sin promesas como "gratis" o "mismo día";
+//     D.S. N°1/2022 sin certificado afirmado, sin el D.S. N°43, sin luz azul en canchas y sin
+//     el «% de luz azul» junto a la norma: src/data/catalog/ds1.ts),
 //   - que no invente datos: cada cifra con su unidad (W, lm, K, V, h, años, mm, °, %, A…)
 //     tiene que estar en los datos de Jumpseller del producto con esa misma unidad (o en
 //     una fila cuya etiqueta la implica, como "Garantía" o "Alto (mm)"); lo mismo cada
@@ -12,6 +14,7 @@
 // sincronización los revisa a diario y avisa en su informe sin bloquear precios.
 
 import type { ProductContent } from '../../src/data/catalog/types';
+import { ds1ContentIssues } from '../../src/data/catalog/ds1';
 import { findRuleBreaking } from '../jumpseller/descriptions';
 import { factsText, type ProductFacts } from './facts';
 
@@ -167,7 +170,8 @@ const FORBIDDEN: [RegExp, string][] = [
   ],
   [/mejor precio|precios? (?:bajos?|competitivos?|imbatibles?)|m[aá]s barat|oferta|descuento|liquidaci[oó]n|promoci[oó]n/i, 'habla de precios u ofertas'],
   [/de por vida/i, 'garantía de por vida'],
-  [/\bn[°º]\s?1\b|n[uú]mero uno|l[ií]der (?:del|en el) mercado/i, 'se declara líder'],
+  // «D.S. N°1/2022» (la norma de contaminación lumínica) no es declararse «N°1»
+  [/(?<!D\.\s?S\.\s?)\bn[°º]\s?1\b|n[uú]mero uno|l[ií]der (?:del|en el) mercado/i, 'se declara líder'],
   [/24\/7/, 'promete atención 24/7'],
   [/checkout|carrito/i, 'menciona checkout o carrito (el sitio cotiza)'],
   [/https?:\/\/|www\./i, 'trae URLs'],
@@ -265,6 +269,9 @@ export function checkRules(c: ProductContent): string[] {
   }
   const chained = text.split(/(?<=[.!?])\s+|\n+/).find(s => CHAINED_DISPATCH.test(s) && s.split(';').length > 2);
   if (chained) problems.push(`encadena el plazo de despacho con dos o más ";" (lo de regiones va en otra oración): "${chained.slice(0, 60)}…"`);
+  // D.S. N°1/2022: el contenido SEO nunca es de una BESTLED (content.test.ts), así que ningún
+  // producto de aquí tiene certificado documentado (src/data/catalog/ds1.ts)
+  problems.push(...ds1ContentIssues(c));
   return problems;
 }
 

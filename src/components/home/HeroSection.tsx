@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, FileText, Zap, Shield } from 'lucide-react';
+import { ArrowRight, FileText, Zap, Shield, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import { DS1_NOTICE } from '@/config/navigation';
 
 const HeroSection = () => (
   <section className="relative overflow-hidden" style={{ minHeight: '540px' }}>
@@ -44,7 +45,7 @@ const HeroSection = () => (
             Catálogo técnico completo, despacho a todo Chile y asesoría especializada para tu proyecto de iluminación.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 mb-10">
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
             <Button asChild size="lg" className="gap-2 text-base px-8 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
               <Link to="/catalogo">
                 Explorar catálogo <ArrowRight className="h-4 w-4" />
@@ -56,6 +57,19 @@ const HeroSection = () => (
               </Link>
             </Button>
           </div>
+
+          <Link
+            to={DS1_NOTICE.to}
+            className="group mb-8 flex items-start gap-2 rounded-lg border border-white/15 bg-white/5 px-3 py-2.5 text-sm text-gray-200 backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-white/10"
+          >
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <span>
+              <strong className="font-semibold text-white">{DS1_NOTICE.label}</strong> {DS1_NOTICE.text}{' '}
+              <span className="inline-flex items-center gap-1 font-semibold text-white underline underline-offset-2 group-hover:text-primary-foreground">
+                {DS1_NOTICE.cta} <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+            </span>
+          </Link>
 
           <div className="flex flex-wrap gap-5">
             {[

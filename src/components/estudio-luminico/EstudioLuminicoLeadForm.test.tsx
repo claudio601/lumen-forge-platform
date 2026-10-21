@@ -10,6 +10,7 @@ import { hydrateRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import EstudioLuminicoLeadForm from './EstudioLuminicoLeadForm';
 import { CONSENT_ERRORS, LEGAL_VERSION, parseConsent } from '../../../api/_lib/forms/consent';
+import { REQUIERE_DS1_LABELS, validateEstudioPayload } from '../../../api/estudio-luminico/validation';
 
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
 import { sendEvent, trackLead } from '@/lib/analytics';
@@ -243,6 +244,62 @@ describe('EstudioLuminicoLeadForm: origen de la visita', () => {
     submit();
     expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
     expect(sentBody()).not.toHaveProperty('attribution');
+  });
+});
+
+// D.S. N°1/2022 (auditoría UX, entrega 4, E-03): pregunta opcional, aparte de la normativa
+// objetivo. Sus valores son los que acepta el servidor (validation.ts), que la agrega a la nota.
+describe('EstudioLuminicoLeadForm: D.S. N°1/2022', () => {
+  const sentBody = () => JSON.parse((vi.mocked(fetch).mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+  const ds1Select = () => screen.getByLabelText(/¿El proyecto debe cumplir el D\.S\. N°1\/2022 \(contaminación lumínica\)\?/) as HTMLSelectElement;
+  beforeEach(() => {
+    vi.mocked(sendEvent).mockClear();
+    vi.mocked(trackLead).mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('la pregunta es opcional, con "Sin indicar" primero y las mismas respuestas que acepta el servidor', () => {
+    render(form());
+    const select = ds1Select();
+    expect([...select.options].map(o => o.value)).toEqual(['', ...Object.keys(REQUIERE_DS1_LABELS)]);
+    expect([...select.options].map(o => o.textContent)).toEqual([
+      'Sin indicar',
+      'Sí, me lo exigen (bases, mandante o municipio)',
+      'No lo sé: quiero asesoría',
+      'No, es un recinto cerrado con muros',
+    ]);
+    expect(select.value).toBe('');
+    expect(select.getAttribute('aria-describedby')).toBe('elf-ds1-ayuda');
+    // Art. 3 a) del decreto: un recinto techado sin muros sigue siendo alumbrado exterior
+    expect(document.getElementById('elf-ds1-ayuda')?.textContent).toBe(
+      'Rige para el alumbrado exterior nuevo desde el 19 de octubre de 2026, también en canchas y galpones techados sin muros.',
+    );
+    expect(REQUIERE_DS1_LABELS.no).toBe('No, es un recinto cerrado con muros');
+  });
+
+  it.each(Object.keys(REQUIERE_DS1_LABELS))('«%s»: viaja en requiereDs1 y el servidor lo acepta', async (value) => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":555,"leadRef":"ESTL-x"}'));
+    render(form());
+    fillForm();
+    fireEvent.change(ds1Select(), { target: { value } });
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(sentBody().requiereDs1).toBe(value);
+    expect(validateEstudioPayload(sentBody())).toEqual({ valid: true, errors: [] });
+  });
+
+  it('sin respuesta, la clave no viaja (la nota queda igual que antes) y Analytics no la recibe', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":555,"leadRef":"ESTL-x"}'));
+    render(form());
+    fillForm();
+    fireEvent.change(ds1Select(), { target: { value: 'si' } });
+    fireEvent.change(ds1Select(), { target: { value: '' } });
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(sentBody()).not.toHaveProperty('requiereDs1');
+    const events = [...vi.mocked(sendEvent).mock.calls, ...vi.mocked(trackLead).mock.calls].map(c => JSON.stringify(c));
+    expect(events.join('\n')).not.toMatch(/requiereDs1|ds1/i);
   });
 });
 

@@ -174,7 +174,7 @@ export const trustClaims = {
   },
   certifications: {
     title: 'Certificaciones por producto',
-    desc: 'Cada ficha indica las certificaciones del producto (SEC, DS1, CE u otras) cuando las tiene.',
+    desc: 'Cada ficha indica las certificaciones del producto (SEC, CE u otras) cuando las tiene.',
   },
   warranty: {
     title: 'Garantía según producto',

@@ -78,6 +78,44 @@ la llegada del pedido en 2 días hábiles (es el plazo de despacho), camiones o 
 "líder"/"número uno", comparaciones con otras marcas o tiendas, URLs, HTML, emojis,
 mayúsculas sostenidas, signos de exclamación en serie.
 
+## D.S. N°1/2022 (contaminación lumínica)
+
+Lo verifican `src/data/catalog/ds1.ts` y `npm run content -- check`. Ningún producto con
+contenido SEO tiene certificado D.S. N°1 documentado (solo las 7 BESTLED, que usan su ficha
+editorial), aunque Jumpseller diga "DS1" en su tabla.
+
+- Nunca "certificado/certificación DS1", "cumple el D.S. N°1", "versiones DS1", "marcadas
+  como DS1", "sellos SEC y DS1" ni "aprobación de contaminación lumínica". Se ofrece asesoría:
+  "¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl".
+- La norma se escribe "D.S. N°1/2022", nunca la sigla "DS1". El D.S. N°43 está derogado desde
+  el 19-10-2024: no se cita.
+- Una oración que nombra la norma (o la contaminación lumínica) no lleva "certificado",
+  "certificación", "cumple", "apto" ni "sello": la explicación general ("el cumplimiento se
+  acredita con el certificado de cada luminaria") va en otra oración.
+- También cuentan como afirmación "apta para Áreas de Protección Especial", "certificada para
+  cielos oscuros", "cumple la normativa lumínica" o "cumple el Decreto 1".
+- "2200K, 1% de luz azul" se puede escribir como dato del producto (decisión del dueño), pero
+  nunca en una ficha de canchas, estadios o gimnasios: ahí la norma fija una temperatura de
+  color máxima según la clase del recinto (I, II o III) y el apagado entre las 00:00 y las
+  07:00, salvo eventos autorizados.
+- El "% de luz azul" no va en el mismo bloque que nombra la norma: ni en la respuesta a una
+  pregunta sobre el D.S. N°1/2022, ni en una sección cuyo subtítulo la nombra, ni en el mismo
+  beneficio. El 1 % y el 7 % son los límites del decreto, y juntos se leen como "cumple". El
+  dato va en su propia sección o pregunta, y la norma, con la asesoría, en otra.
+- Las preguntas no son de cumplimiento ("¿Sirve para…?", "¿Cumple…?", "¿Qué versión pido si
+  debo cumplir…?"): se escribe "¿Qué hago si mi proyecto debe cumplir el D.S. N°1/2022?" y se
+  responde con la asesoría por correo.
+- En canchas, la respuesta sobre la norma no ofrece versiones por temperatura de color: según
+  la skill normativa-ds1-elights, la fría de 6000K o 6500K queda sobre el tope de cualquier
+  clase (la Tabla 4 del decreto está como imagen, así que el tope en Kelvin no se escribe en la
+  web). Se pide el uso y la clase del recinto y se asesora. Una cancha o un galpón techado sin muros sigue siendo alumbrado
+  exterior (art. 3 a): se escribe "exteriores, incluidos los techados sin muros", nunca "al
+  aire libre", y la luz fría queda para "interiores cerrados, con muros".
+- Fechas verificadas: alumbrado exterior nuevo, desde el 19 de octubre de 2026 en todo Chile;
+  en las Áreas de Protección Especial, desde el 19 de octubre de 2024. "Nuevo" es el de
+  proyectos adjudicados o iniciados desde esa fecha (art. 3 z y aa); lo anterior cumple al
+  recambio. No escribir "recambio total al 2029".
+
 ## Formato del archivo
 
 ```json

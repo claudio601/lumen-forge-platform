@@ -7,8 +7,9 @@ import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution, type Attribution } from '@/lib/attribution';
 import { useConsentFields } from '@/components/legal/ConsentFields';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE, type ConsentInput } from '../../../api/_lib/forms/consent';
-// Topes de largo: los mismos del servidor (el correo a ventas lleva la nota completa)
-import { ESTUDIO_MAX_LENGTHS } from '../../../api/estudio-luminico/validation';
+// Topes de largo: los mismos del servidor (el correo a ventas lleva la nota completa); las
+// respuestas al D.S. N°1/2022 son las claves que acepta el servidor
+import { ESTUDIO_MAX_LENGTHS, isRequiereDs1, type RequiereDs1 } from '../../../api/estudio-luminico/validation';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ export interface EstudioLuminicoFormPayload {
   empresa?: string;
   normativaObjetivo?: string;
   urgenciaProyecto?: string;
+  /** ¿Debe cumplir el D.S. N°1/2022? Opcional; sin respuesta la clave no viaja. */
+  requiereDs1?: RequiereDs1;
   descripcionProyecto?: string;
   origen: 'estudio_luminico_web';
   fecha: string;
@@ -71,6 +74,17 @@ const NORMATIVAS = [
   { value: 'sec_chile', label: 'SEC / RIC Chile' },
 ] as const;
 
+// D.S. N°1/2022 (auditoría UX, E-03): pregunta aparte de la normativa objetivo, porque se suma a
+// cualquiera de ellas en un proyecto exterior. Un recinto techado sin muros (multicancha, galpón
+// abierto) también es alumbrado exterior (art. 3 a del decreto): el "no" es solo el cerrado. El servidor la agrega a la nota y al correo
+// (api/estudio-luminico/validation.ts); no pasa por el mapeo protegido de Pipedrive.
+const REQUIERE_DS1: readonly { value: '' | RequiereDs1; label: string }[] = [
+  { value: '', label: 'Sin indicar' },
+  { value: 'si', label: 'Sí, me lo exigen (bases, mandante o municipio)' },
+  { value: 'no_se', label: 'No lo sé: quiero asesoría' },
+  { value: 'no', label: 'No, es un recinto cerrado con muros' },
+];
+
 const URGENCIAS = [
   { value: '', label: 'Sin urgencia definida' },
   { value: 'urgente', label: 'Urgente (menos de 1 semana)' },
@@ -94,6 +108,7 @@ const EMPTY_FORM = {
   empresa: '',
   normativaObjetivo: '',
   urgenciaProyecto: '',
+  requiereDs1: '',
   descripcionProyecto: '',
 };
 
@@ -206,6 +221,7 @@ const EstudioLuminicoLeadForm = () => {
     empresa: form.empresa?.trim() || undefined,
     normativaObjetivo: form.normativaObjetivo || undefined,
     urgenciaProyecto: form.urgenciaProyecto || undefined,
+    requiereDs1: isRequiereDs1(form.requiereDs1) ? form.requiereDs1 : undefined,
     descripcionProyecto: form.descripcionProyecto?.trim() || undefined,
     origen: 'estudio_luminico_web',
     fecha: new Date().toLocaleDateString('es-CL', { dateStyle: 'long' }),
@@ -569,6 +585,28 @@ const EstudioLuminicoLeadForm = () => {
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
+          </div>
+
+          {/* D.S. N°1/2022 (opcional) */}
+          <div className="sm:col-span-2">
+            <label htmlFor="elf-ds1" className={labelClass}>
+              ¿El proyecto debe cumplir el D.S. N°1/2022 (contaminación lumínica)? {optLabel}
+            </label>
+            <select
+              id="elf-ds1"
+              name="requiereDs1"
+              value={form.requiereDs1}
+              onChange={handleChange}
+              aria-describedby="elf-ds1-ayuda"
+              className={inputClass}
+            >
+              {REQUIERE_DS1.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <p id="elf-ds1-ayuda" className="mt-1.5 text-xs text-gray-500">
+              Rige para el alumbrado exterior nuevo desde el 19 de octubre de 2026, también en canchas y galpones techados sin muros.
+            </p>
           </div>
 
           {/* Descripcion (opcional) */}
