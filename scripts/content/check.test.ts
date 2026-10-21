@@ -234,6 +234,98 @@ describe('verificación del contenido SEO', () => {
     }
   });
 
+  // D.S. N°1/2022 (auditoría UX, entrega 4, D-04): frases que estaban en content/*.json en
+  // origin/main f6b50bb, antes de corregirlas
+  it('D.S. N°1: rechaza el certificado sin respaldo, la sigla DS1, el DS43 y la luz azul en canchas', () => {
+    const cases: [string, RegExp][] = [
+      ['Se cotiza en luz fría de 6500K y cálida, y tiene certificación SEC y DS1.', /afirma el D\.S\. N°1 sin certificado/],
+      ['Las versiones de 2200K y 2700K están indicadas como **DS1**, la norma chilena de contaminación lumínica.', /sigla «DS1»/],
+      ['Tonos cálidos de 2200K y 2700K con 1% y 7% de luz azul, marcados como DS1.', /afirma el D\.S\. N°1 sin certificado/],
+      ['La ficha incluye una aprobación de contaminación lumínica (E-013-01-2540).', /afirma el D\.S\. N°1 sin certificado/],
+      ['La versión de luz cálida cuenta con certificación DS43, norma chilena de emisión.', /D\.S\. N°43/],
+      ['En la ficha figura la certificación SEC, CE, RoHS y DS1/DS43.', /D\.S\. N°43/],
+      ['¿Cumple con el D.S. N°1/2022? Sí, cumple el D.S. N°1.', /afirma el D\.S\. N°1 sin certificado/],
+      ['En una cancha conviene partir por los cálidos, porque la norma pone exigencias a la emisión de luz azul.', /luz azul a canchas/],
+    ];
+    for (const [text, problem] of cases) {
+      expect(rules(text).some(p => problem.test(p)), text).toBe(true);
+    }
+    // En toda la ficha: si es de canchas o estadios, la luz azul no va en ninguna parte
+    const stadium = checkRules({ ...good, useCases: ['Canchas de fútbol', 'Estadios', 'Plazas'], description: good.description + '\n\nLa de 2200K declara 1% de luz azul.' });
+    expect(stadium.some(p => p.startsWith('menciona la luz azul en una ficha de canchas'))).toBe(true);
+  });
+
+  it('D.S. N°1: acepta la norma por su nombre, la asesoría y la luz azul como dato fuera de canchas', () => {
+    for (const text of [
+      '¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl con la comuna y el tipo de vía.',
+      'Desde el 19 de octubre de 2026, el D.S. N°1/2022 rige en todo Chile para el alumbrado exterior nuevo.',
+      'Ante un municipio, el cumplimiento se acredita con el certificado de cada luminaria.',
+      'Se ofrece en dos versiones cálidas, de 2200K (1% de luz azul) y 2700K (7% de luz azul).',
+      'Certificación SEC, CE y RoHS según la ficha.',
+      'El D.S. N°43 quedó sin efecto el 19 de octubre de 2024, cuando entró en vigencia el D.S. N°1/2022.',
+    ]) {
+      expect(rules(text), text).toEqual([]);
+    }
+    // «N°1» del decreto no es declararse líder; «somos el N°1» sí
+    expect(rules('Somos el N°1 en iluminación.')).toContain('se declara líder: "N°1"');
+  });
+
+  // Fórmulas equivalentes de cumplimiento (revisión de la entrega 4): la norma también se nombra
+  // por su título, por los «cielos oscuros», por las Áreas de Protección Especial o como «Decreto 1»
+  it('D.S. N°1: rechaza las fórmulas equivalentes de cumplimiento', () => {
+    for (const text of [
+      'La versión de 2200K es apta para Áreas de Protección Especial.',
+      'Cumple la normativa lumínica chilena.',
+      'Certificada para cielos oscuros.',
+      'Cumple la norma de emisión de luminosidad artificial.',
+      'Cumple el Decreto 1 del MMA.',
+      'Cumple el decreto N°1 de 2022.',
+    ]) {
+      expect(rules(text).some(p => p.startsWith('afirma el D.S. N°1 sin certificado')), text).toBe(true);
+    }
+    // «decreto 10» o «DS 13» no son la norma
+    expect(rules('Cumple el decreto 10 y el DS 13 de otra materia.').filter(p => p.includes('D.S. N°1'))).toEqual([]);
+  });
+
+  // Hallazgo de la revisión: «¿Sirve para un proyecto que debe cumplir el D.S. N°1/2022?»
+  // respondido con «2200K (1% de luz azul) y 2700K (7% de luz azul)» se lee como «sí, cumple»
+  it('D.S. N°1: el % de luz azul no va en la pregunta, la sección o el beneficio que nombra la norma', () => {
+    const NEXT_TO_NORM = 'da el % de luz azul junto a la norma';
+    const withFaq = (question: string, answer: string) => checkRules({ ...good, faq: [...good.faq, { question, answer }] });
+    expect(
+      withFaq('¿Sirve para un proyecto que debe cumplir el D.S. N°1/2022?', 'Se ofrece en 2200K (1% de luz azul) y 2700K (7% de luz azul).').some(p =>
+        p.startsWith(NEXT_TO_NORM),
+      ),
+    ).toBe(true);
+    expect(
+      withFaq('¿Qué tono conviene en una calle?', 'Las cálidas: la de 2200K, con un 1% de luz azul. Si necesitas el D.S. N°1/2022, te asesoramos.').some(p =>
+        p.startsWith(NEXT_TO_NORM),
+      ),
+    ).toBe(true);
+    // Un subtítulo con la norma alcanza a sus párrafos
+    const section = checkRules({
+      ...good,
+      description: good.description + '\n\n**Temperatura de color y D.S. N°1/2022**\n\nSe pide en 2200K, con 1% de luz azul, o en 2700K, con 7%.',
+    });
+    expect(section.some(p => p.startsWith(NEXT_TO_NORM))).toBe(true);
+    expect(checkRules({ ...good, keyBenefits: [...good.keyBenefits, '2200K con 1% de luz azul, para el D.S. N°1/2022'] }).some(p => p.startsWith(NEXT_TO_NORM))).toBe(true);
+
+    // El dato en su bloque y la asesoría en otro: se acepta (decisión del dueño)
+    const apart = checkRules({
+      ...good,
+      description: good.description + '\n\n**Temperatura de color**\n\nSe pide en 2200K, con 1% de luz azul, o en 2700K, con 7%.',
+      keyBenefits: [...good.keyBenefits, 'Cálidas de 2200K (1% de luz azul) y 2700K (7% de luz azul)'],
+      faq: [
+        ...good.faq,
+        {
+          question: '¿Qué hago si mi proyecto debe cumplir el D.S. N°1/2022?',
+          answer: 'Escríbenos a ventas@elights.cl con la comuna y el tipo de alumbrado, y te asesoramos en la luminaria y la documentación que corresponden.',
+        },
+      ],
+    });
+    expect(apart.filter(p => p.includes('luz azul'))).toEqual([]);
+  });
+
   it('rechaza el plazo de despacho encadenado con dos o más punto y coma', () => {
     const CHAINED = 'encadena el plazo de despacho con dos o más ";"';
     for (const text of [

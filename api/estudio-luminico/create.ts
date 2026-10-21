@@ -23,7 +23,8 @@
 //    -> Fallan ambos: 502 con error visible al usuario
 // 9. Retornar 201/200 { success, personId, dealId, dealAction, leadRef }
 //
-// La nota (y el correo, que lleva el mismo texto) termina con la constancia "PRIVACIDAD Y
+// La nota (y el correo, que lleva el mismo texto) lleva, si el visitante respondió, la sección
+// del D.S. N°1/2022 (validation.ts, auditoría UX, entrega 4), y termina con la constancia "PRIVACIDAD Y
 // AUTORIZACIONES" y el origen de la visita (clave `attribution`, distinta del campo `origen`
 // del formulario; api/_lib/forms/attribution.ts), agregados después de buildEstudioDealNote
 // (protegido). El origen es informativo: un origen raro se descarta, nunca da 400, y no
@@ -58,7 +59,7 @@ import {
   getClientIp,
 } from '../_lib/auth.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
-import { validateEstudioPayload } from './validation.js';
+import { ds1NoteLines, validateEstudioPayload } from './validation.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
@@ -256,7 +257,17 @@ export default async function handler(
   // dos veces podria separarlas si cambia la hora entre ambas.
   const leadRef = buildEstudioLeadRef(payload);
   // Los textos del cliente quedan antes de la constancia; después solo va el origen (saneado).
-  const note = [buildEstudioDealNote(payload, leadRef), '', ...consent.section, '', ...origenFromBody(body)].join('\n');
+  // La respuesta al D.S. N°1/2022 (campo opcional, validation.ts) va en su propia sección después
+  // de la nota protegida: buildEstudioDealNote no la conoce. Sin respuesta, la nota no cambia.
+  const ds1 = ds1NoteLines(body);
+  const note = [
+    buildEstudioDealNote(payload, leadRef),
+    ...(ds1.length ? ['', ...ds1] : []),
+    '',
+    ...consent.section,
+    '',
+    ...origenFromBody(body),
+  ].join('\n');
   const ref = LOG + ' ' + leadRef;
 
   // Solo un campo de lista cerrada: la comuna es texto libre y podría traer datos personales

@@ -51,6 +51,34 @@ const VALID_URGENCIA = [
 
 const VALID_ORIGEN = ['estudio_luminico_web', 'manual'] as const;
 
+// ── D.S. N°1/2022 (contaminación lumínica), auditoría UX, entrega 4 (E-03) ──────
+// Campo opcional `requiereDs1`. No pasa por api/_lib/crm/** (protegido): ni la etiqueta de
+// Pipedrive ni la nota de buildEstudioDealNote lo conocen. Lo agrega create.ts como una sección
+// propia de la nota (y del correo, que lleva el mismo texto), después de la de buildEstudioDealNote
+// y antes de la constancia de privacidad.
+
+/** Valor del formulario → texto de la nota. El formulario usa las mismas claves. */
+export const REQUIERE_DS1_LABELS = {
+  si: 'Sí, se lo exigen (bases, mandante o municipio)',
+  no_se: 'No lo sabe: pide asesoría',
+  no: 'No, es un recinto cerrado con muros',
+} as const;
+export type RequiereDs1 = keyof typeof REQUIERE_DS1_LABELS;
+/** Una de las claves de REQUIERE_DS1_LABELS (sin Object.hasOwn: el formulario compila con ES2020). */
+export const isRequiereDs1 = (value: unknown): value is RequiereDs1 =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(REQUIERE_DS1_LABELS, value);
+export const DS1_NOTE_HEADING = '--- D.S. N°1/2022 (CONTAMINACIÓN LUMÍNICA) ---';
+
+/**
+ * Sección de la nota con la respuesta al D.S. N°1/2022. Vacía si el visitante no respondió (o
+ * con un valor que la validación ya habría rechazado): la nota queda igual que antes.
+ */
+export function ds1NoteLines(body: unknown): string[] {
+  const value = body && typeof body === 'object' ? (body as Record<string, unknown>).requiereDs1 : undefined;
+  if (!isRequiereDs1(value)) return [];
+  return [DS1_NOTE_HEADING, '¿Debe cumplirlo?: ' + REQUIERE_DS1_LABELS[value]];
+}
+
 // Tope de la descripcion: asi la nota completa (y el correo a ventas, que la lleva)
 // cabe siempre bajo el maximo del relay. El textarea del formulario usa el mismo.
 export const MAX_DESCRIPCION_PROYECTO = 2000;
@@ -175,6 +203,14 @@ export function validateEstudioPayload(payload: unknown): EstudioValidationResul
     !(VALID_URGENCIA as readonly string[]).includes(p.urgenciaProyecto as string)
   ) {
     errors.push('urgenciaProyecto must be one of: ' + VALID_URGENCIA.join(', '));
+  }
+
+  if (
+    p.requiereDs1 !== undefined &&
+    p.requiereDs1 !== '' &&
+    !isRequiereDs1(p.requiereDs1)
+  ) {
+    errors.push('requiereDs1 must be one of: ' + Object.keys(REQUIERE_DS1_LABELS).join(', '));
   }
 
   if (

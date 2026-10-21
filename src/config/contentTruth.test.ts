@@ -11,6 +11,13 @@
 // check-prerender no detecta estas frases (solo mira stock y plazos de despacho), así que
 // este test las vigila en el código y en el HTML que genera el servidor.
 //
+// D.S. N°1/2022 (auditoría UX, entrega 4: D-04, K-03, E-01 y A-01): al final de este archivo, el
+// contenido propio (fichas SEO, fichas editoriales, introducciones de categoría y configuración)
+// no afirma el certificado D.S. N°1 de productos sin certificado documentado, no cita el D.S.
+// N°43, no le aplica la luz azul a las canchas y no pone el «% de luz azul» junto a la norma en
+// una ficha sin certificado (reglas en src/data/catalog/ds1.ts); y el aviso del hero y el bloque
+// de /catalogo/alumbrado-publico se ven como se aprobaron.
+//
 // Fuera de aquí: el contenido SEO por producto (src/data/catalog/content/*.json) todavía
 // promete flota propia en 116 fichas. Se corrige en la PR 11b, con su regla en
 // scripts/content/check.ts.
@@ -28,7 +35,22 @@ import { productDescriptions } from '@/data/catalog/descriptions.generated';
 import { PROJECT_CATEGORIES } from '@/data/catalog/categories.config';
 import type { Product } from '@/data/catalog/types';
 import WhatsAppButton from '@/components/WhatsAppButton';
-import { businessHours, clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, freeShippingShort, PICKUP_PLACE, waInstaladores } from './business';
+import {
+  businessHours,
+  clp,
+  contactEmail,
+  FREE_SHIPPING_AREA,
+  FREE_SHIPPING_THRESHOLD_CLP,
+  freeShippingShort,
+  PICKUP_PLACE,
+  responseTimePromise,
+  trustClaims,
+  waInstaladores,
+} from './business';
+import { ADVISORY_LINK, DS1_NOTICE } from './navigation';
+import { DS1_CERTIFIED_IDS, ds1ContentIssues, ds1Issues, sentences } from '@/data/catalog/ds1';
+import { BESTLED_60W_ID, CATEGORY_INTROS, DS1_BUTTON_PRODUCTS, type CategoryIntro } from '@/data/catalog/category-intros';
+import type { ProductContent } from '@/data/catalog/types';
 import { claimIssues, freeShippingIssues, handWrittenFreeShippingAmount } from '@/test/freeShipping';
 
 interface Retired {
@@ -392,5 +414,213 @@ describe('despacho sin costo: el detector atrapa ofertas que contradicen la cons
     ['a regiones', `<p>Despacho sin costo sobre ${T} en la Provincia de Santiago y a regiones.</p>`],
   ])('detecta: %s', (_, html) => {
     expect(issuesOf(html).issues).not.toEqual([]);
+  });
+});
+
+// ── D.S. N°1/2022 (auditoría UX, entrega 4) ─────────────────────────────────────────────
+// Reglas en src/data/catalog/ds1.ts. No dependen de valores del catálogo que cambian con
+// Jumpseller: revisan el contenido propio (lo que escribe eLIGHTS) y la lista de productos con
+// certificado documentado, que decide el dueño.
+
+/** Todos los textos de un valor (objeto, lista o texto), uno por línea. */
+const textsOf = (value: unknown): string[] =>
+  typeof value === 'string' ? [value] : Array.isArray(value) ? value.flatMap(textsOf) : value && typeof value === 'object' ? Object.values(value).flatMap(textsOf) : [];
+
+const CONTENT = import.meta.glob<ProductContent>('/src/data/catalog/content/*.json', { eager: true, import: 'default' });
+const contentEntries = Object.entries(CONTENT).map(([path, c]) => [Number(path.match(/(\d+)\.json$/)![1]), c] as const);
+const CONFIG_SOURCES = import.meta.glob<string>(['/src/data/catalog/categories.config.ts', '/src/data/catalog/category-intros.ts'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
+/**
+ * Las únicas oraciones de las introducciones de categoría que afirman el certificado D.S. N°1:
+ * nombran solo a las BESTLED, el único producto con certificado documentado (DS1_CERTIFIED_IDS).
+ * Una oración nueva con el certificado se agrega aquí solo con la decisión del dueño.
+ */
+const APPROVED_CERTIFICATE_SENTENCES: ReadonlySet<string> = new Set([
+  'Las BESTLED tienen certificado D.S. N°1 en dos variantes: 2700K, para el resto del país, y 2200K, apta también para las Áreas de Protección Especial.',
+  'Ver BESTLED con certificado D.S. N°1',
+]);
+
+/** Textos de una introducción de categoría, cada uno por separado (título, párrafos, botones, detalle). */
+const introTexts = (intro: CategoryIntro) => [
+  intro.title,
+  ...intro.paragraphs,
+  ...intro.actions.flatMap(a => [a.label, a.hint ?? '', 'mailSubject' in a.to ? a.to.mailSubject : '']),
+  intro.details.summary,
+  ...intro.details.items.map(i => `${i.label}: ${i.text}`),
+];
+/** En una introducción, el certificado solo se afirma en las oraciones aprobadas. */
+const introIssues = (texts: string[]) =>
+  texts.flatMap(sentences).flatMap(s => ds1Issues(s, { certified: APPROVED_CERTIFICATE_SENTENCES.has(s) }));
+
+/** La ficha publicada a la que lleva el botón de las BESTLED: la primera candidata publicada, o ninguna. */
+const ds1ButtonTarget = () =>
+  DS1_BUTTON_PRODUCTS.map(id => products.find(p => p.jumpseller_id === id)).find((p): p is Product => p !== undefined);
+
+describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () => {
+  it('el certificado documentado es de las BESTLED, y su ficha editorial lo dice por variante (2200K y 2700K)', () => {
+    expect(DS1_CERTIFIED_IDS.length).toBeGreaterThan(0);
+    for (const id of DS1_CERTIFIED_IDS) {
+      const text = textsOf(editorialOverlay[id]).join('\n');
+      expect(text, String(id)).toContain('certificación DS1 en sus variantes 2200K y 2700K');
+    }
+  });
+
+  it('fichas SEO (content/*.json): sin certificado D.S. N°1, sin la sigla DS1, sin el D.S. N°43, sin luz azul en canchas y sin el % de luz azul junto a la norma', () => {
+    expect(contentEntries.length).toBeGreaterThan(0);
+    // Ninguna ficha SEO es de un producto con certificado: esos usan su ficha editorial
+    const problems = contentEntries.flatMap(([id, c]) => ds1ContentIssues(c).map(p => `${id}: ${p}`));
+    expect(problems).toEqual([]);
+    expect(contentEntries.filter(([id]) => DS1_CERTIFIED_IDS.includes(id)).map(([id]) => id)).toEqual([]);
+  });
+
+  it('fichas SEO: una pregunta sobre la norma no se responde con el % de luz azul (se lee como «cumple»)', () => {
+    const faq = { question: '¿Sirve para un proyecto que debe cumplir el D.S. N°1/2022?', answer: 'Se ofrece en 2200K (1% de luz azul) y 2700K (7% de luz azul).' };
+    const [[, sample]] = contentEntries;
+    expect(ds1ContentIssues({ ...sample, faq: [...sample.faq, faq] }).some(p => p.startsWith('da el % de luz azul junto a la norma'))).toBe(true);
+  });
+
+  it('fichas editoriales: el certificado solo en productos con certificado documentado, y nunca el D.S. N°43', () => {
+    const entries = Object.entries(editorialOverlay);
+    expect(entries.length).toBeGreaterThan(0);
+    const problems = entries.flatMap(([id, e]) =>
+      ds1Issues(textsOf(e).join('\n'), { certified: DS1_CERTIFIED_IDS.includes(Number(id)) }).map(p => `${id}: ${p}`),
+    );
+    expect(problems).toEqual([]);
+  });
+
+  it('portada («Por qué elegir eLIGHTS»): sin la sigla DS1 ni certificados D.S. N°1', () => {
+    const problems = Object.values(trustClaims).flatMap(c => ds1Issues(`${c.title}. ${c.desc}`, { certified: false }));
+    expect(problems).toEqual([]);
+    expect(trustClaims.certifications.desc).not.toMatch(/\bDS\s?-?0?1\b|D\.S\./);
+  });
+
+  it('introducciones de categoría: el certificado solo en las oraciones aprobadas, y su botón lleva a BESTLED certificadas', () => {
+    const intros = Object.entries(CATEGORY_INTROS);
+    expect(intros.map(([slug]) => slug)).toContain('alumbrado-publico');
+    for (const [slug, intro] of intros) {
+      expect(introIssues(introTexts(intro)), slug).toEqual([]);
+      for (const a of intro.actions) {
+        if ('products' in a.to) {
+          expect(a.to.products.length, `${slug}: ${a.label}`).toBeGreaterThan(0);
+          for (const id of a.to.products) expect(DS1_CERTIFIED_IDS, `${slug}: ${a.label}`).toContain(id);
+        }
+      }
+    }
+    // La 60W primero; después, el resto de las certificadas, por si la sincronización deja de publicarla
+    expect(DS1_BUTTON_PRODUCTS[0]).toBe(BESTLED_60W_ID);
+    expect([...DS1_BUTTON_PRODUCTS].sort()).toEqual([...DS1_CERTIFIED_IDS].sort());
+  });
+
+  it('categories.config.ts y category-intros.ts (sus textos) no citan el D.S. N°43, no usan la sigla DS1 ni afirman otros certificados', () => {
+    const files = Object.keys(CONFIG_SOURCES);
+    expect(files).toHaveLength(2);
+    for (const [file, src] of Object.entries(CONFIG_SOURCES)) {
+      // Los textos entre comillas del código, sin comentarios ni imports (los nombres como
+      // DS1_CERTIFIED_IDS no son texto del sitio)
+      const code = src.split('\n').filter(l => !/^\s*(?:\/\/|\/?\*|import\b)/.test(l)).join('\n');
+      const strings = [...code.matchAll(/'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)"|`((?:[^`\\]|\\.)*)`/g)].map(m => m[1] ?? m[2] ?? m[3]);
+      expect(strings.length, file).toBeGreaterThan(0);
+      expect(introIssues(strings), file).toEqual([]);
+    }
+  });
+
+  it('el detector de las introducciones atrapa un certificado fuera de las oraciones aprobadas', () => {
+    for (const text of [
+      'Ver luminarias con certificado D.S. N°1',
+      'Los solares de esta categoría cumplen el D.S. N°1/2022.',
+      'Las BESTLED y la Flyhawk tienen certificado D.S. N°1.',
+      'La versión de 2200K es apta para Áreas de Protección Especial.',
+      'Cumple la normativa lumínica chilena.',
+      'Certificada para cielos oscuros.',
+      'Cumple la norma de emisión de luminosidad artificial.',
+      'Cumple el Decreto 1 del MMA.',
+      'En canchas, la luz azul no puede superar el 1 %.',
+      'Certificación SEC, DS1 y DS43.',
+    ]) {
+      expect(introIssues([text]), text).not.toEqual([]);
+    }
+    expect(introIssues([...APPROVED_CERTIFICATE_SENTENCES, '¿Necesitas el D.S. N°1? Te asesoramos'])).toEqual([]);
+  });
+});
+
+describe('D.S. N°1/2022 en las páginas', () => {
+  it('inicio: el aviso del hero lleva a alumbrado público, sin "con certificado"', async () => {
+    expect(DS1_NOTICE.to).toBe(categoryPath('alumbrado-publico'));
+    const { root } = await page('/');
+    const notices = [...root.querySelectorAll('main a')].filter(a => a.textContent?.includes('D.S. N°1/2022'));
+    expect(notices).toHaveLength(1);
+    const [notice] = notices;
+    expect(notice.closest('section')?.querySelector('h1')).not.toBeNull(); // en el hero, junto al título
+    expect(notice.getAttribute('href')).toBe(categoryPath('alumbrado-publico'));
+    expect(notice.textContent).toBe(`${DS1_NOTICE.label} ${DS1_NOTICE.text} ${DS1_NOTICE.cta} `);
+    expect(notice.textContent).toContain('desde el 19 de octubre de 2026 rige en todo Chile para el alumbrado exterior nuevo.');
+    expect(notice.textContent).not.toMatch(/certific|cumple|DS1\b|todo alumbrado/i);
+  });
+
+  it('/catalogo/alumbrado-publico: el bloque D.S. N°1, antes de la grilla, con sus botones, el detalle y las fuentes', async () => {
+    const { html, root } = await page(categoryPath('alumbrado-publico'));
+    const block = root.querySelector('section[aria-labelledby="category-intro-title"]')!;
+    expect(block).not.toBeNull();
+    expect(block.querySelector('h2')?.textContent).toBe('Alumbrado público y D.S. N°1/2022');
+    expect(html.indexOf('category-intro-title')).toBeLessThan(html.indexOf('grid grid-cols-2')); // antes de la grilla
+    const text = block.textContent ?? '';
+    // Lo que es "nuevo" (art. 3 aa): proyectos adjudicados o iniciados desde la fecha
+    expect(text).toContain('Desde el 19 de octubre de 2026, el D.S. N°1/2022 del Ministerio del Medio Ambiente');
+    expect(text).toContain('a las luminarias exteriores de los proyectos de instalación o recambio que se adjudican o comienzan desde esa fecha.');
+    expect(text).toContain('En las Áreas de Protección Especial se exige desde el 19 de octubre de 2024.');
+    expect(text).toContain(responseTimePromise); // el mismo día hábil, por correo
+    expect(text).not.toMatch(/stock|DS ?43|2029|WhatsApp|ll[aá]manos|al aire libre|todo alumbrado/i);
+
+    const link = (label: string) => [...block.querySelectorAll('a')].find(a => a.textContent?.startsWith(label));
+    // Botón de las BESTLED: la primera candidata publicada (la 60W si está); sin ninguna publicada, no aparece
+    const target = ds1ButtonTarget();
+    const bestledLink = link('Ver BESTLED con certificado D.S. N°1');
+    if (target) {
+      expect(DS1_CERTIFIED_IDS).toContain(target.jumpseller_id);
+      expect(bestledLink?.getAttribute('href')).toBe(productPath(target.id));
+    } else {
+      expect(bestledLink).toBeUndefined();
+    }
+    const mail = link('¿Tu comuna es Área de Protección Especial? Pregúntanos')?.getAttribute('href') ?? '';
+    expect(mail.startsWith(`mailto:${contactEmail}?subject=`)).toBe(true);
+    expect(decodeURIComponent(mail.split('subject=')[1])).toBe('Consulta D.S. N°1/2022: ¿mi comuna es Área de Protección Especial?');
+    const advisory = link('¿Necesitas el D.S. N°1? Te asesoramos');
+    expect(advisory?.getAttribute('href')).toBe(ADVISORY_LINK.to);
+    expect(advisory?.textContent).toContain(ADVISORY_LINK.hint); // el estudio se cotiza
+
+    // Detalle plegable, en el HTML del servidor (buscadores y lectores de pantalla)
+    const details = block.querySelector('details')!;
+    expect(details.hasAttribute('open')).toBe(false);
+    expect(details.querySelector('summary')?.textContent).toBe('Qué exige la norma según el tipo de alumbrado');
+    expect([...details.querySelectorAll('dt')].map(dt => dt.textContent)).toEqual([
+      'Calles, pasajes, plazas y alumbrado industrial',
+      'Canchas y recintos deportivos',
+      'Alumbrado ornamental y de fachadas',
+      'Áreas de Protección Especial',
+      'Proyectos adjudicados o iniciados antes',
+      'Cómo se acredita',
+    ]);
+    // Art. 3 a): techado sin muros sigue siendo exterior; art. 3 z) y 11: lo existente cumple al recambio
+    expect(details.textContent).toContain('Cuentan como alumbrado exterior aunque estén techados, si no tienen muros.');
+    expect(details.textContent).toContain('cuentan como existentes: cumplen la norma cuando se recambian.');
+    // Cada texto por separado: el certificado solo en las oraciones aprobadas; la luz azul nunca junto a canchas
+    expect(introIssues([...block.querySelectorAll('h2, p, a, summary, dt, dd')].map(el => el.textContent ?? ''))).toEqual([]);
+
+    const sources = [...block.querySelectorAll('a[target="_blank"]')];
+    expect(sources.map(a => a.getAttribute('href'))).toEqual([
+      'https://www.bcn.cl/leychile/navegar?i=1197027',
+      'https://luminica.mma.gob.cl/plazos-norma-luminica/',
+    ]);
+    for (const a of sources) expect(a.getAttribute('rel')).toBe('noopener noreferrer');
+  });
+
+  it('las demás categorías no llevan introducción', async () => {
+    const other = (await import('@/data/catalog/categories.config')).categories.find(c => !CATEGORY_INTROS[c.slug])!;
+    const { root } = await page(categoryPath(other.slug));
+    expect(root.querySelector('section[aria-labelledby="category-intro-title"]')).toBeNull();
   });
 });

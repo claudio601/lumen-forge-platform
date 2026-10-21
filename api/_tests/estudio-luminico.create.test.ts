@@ -18,7 +18,7 @@ import { pipedrivePost, pipedriveGet } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
 import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types';
-import { ESTUDIO_MAX_LENGTHS } from '../estudio-luminico/validation';
+import { DS1_NOTE_HEADING, ESTUDIO_MAX_LENGTHS, REQUIERE_DS1_LABELS } from '../estudio-luminico/validation';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -470,6 +470,7 @@ const AT_MAX = {
   normativaObjetivo: 'criterios_fifa',
   urgenciaProyecto: 'futura_licitacion',
   tienePlanos: 'si_preparar',
+  requiereDs1: 'si', // la respuesta más larga al D.S. N°1/2022 (entrega 4)
 };
 
 describe('POST /api/estudio-luminico/create: privacidad y topes', () => {
@@ -586,5 +587,76 @@ describe('POST /api/estudio-luminico/create: privacidad y topes', () => {
       expect(text).toContain('"marketing":true');
       expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
     }
+  });
+});
+
+// --- D.S. N°1/2022 (auditoría UX, entrega 4, E-03) ---
+// Pregunta opcional `requiereDs1`. buildEstudioDealNote y el mapeo de Pipedrive son protegidos
+// (api/_lib/crm/**) y no la conocen: create.ts agrega una sección propia después de la nota del
+// proyecto y antes de la constancia, en la nota y en el correo. Sin respuesta, la nota no cambia.
+
+describe('POST /api/estudio-luminico/create: D.S. N°1/2022', () => {
+  beforeEach(() => {
+    vi.mocked(findOrCreatePerson).mockReset().mockResolvedValue({ personId: 11, action: 'created' });
+    vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
+      path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
+    vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
+    vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
+    vi.stubEnv('PIPEDRIVE_OWNER_USER_ID', '1');
+    vi.stubEnv('PIPEDRIVE_FIELD_TIPO_SERVICIO', 'tipo_key');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(AT));
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  const leadRef = (res: { body: unknown }) => (res.body as { leadRef: string }).leadRef;
+
+  it.each(Object.entries(REQUIERE_DS1_LABELS))('«%s»: la sección va después de la nota del proyecto y antes de la constancia, en la nota y en el correo', async (value, label) => {
+    const body = { ...base, requiereDs1: value, attribution: ATTRIBUTION };
+    const res = await call(body);
+    expect(res.statusCode).toBe(201);
+    const expected = [
+      buildEstudioDealNote(body as unknown as EstudioLuminicoPayload, leadRef(res)),
+      '',
+      DS1_NOTE_HEADING,
+      '¿Debe cumplirlo?: ' + label,
+      '',
+      expectedSection(false),
+      '',
+      ORIGEN_GADS,
+    ].join('\n');
+    const [[, note]] = pdCalls('/notes');
+    expect(note.content).toBe(expected);
+    expect(gasBodies()[0].items_lista).toBe(expected);
+    expect(lastConsentRecord(expected)).toMatchObject({ form: 'estudio-luminico', privacy: true, src: 'web' });
+  });
+
+  it.each([['sin la clave', undefined], ['vacía ("Sin indicar")', '']])('%s: la nota queda igual que antes', async (_name, value) => {
+    const body = { ...base, attribution: ATTRIBUTION, ...(value === undefined ? {} : { requiereDs1: value }) };
+    const res = await call(body);
+    expect(res.statusCode).toBe(201);
+    const [[, note]] = pdCalls('/notes');
+    expect(note.content).toBe([buildEstudioDealNote(body as unknown as EstudioLuminicoPayload, leadRef(res)), '', expectedSection(false), '', ORIGEN_GADS].join('\n'));
+    expect(note.content).not.toContain('D.S. N°1');
+  });
+
+  it.each([['otro texto', 'quizas'], ['un número', 1], ['una lista', ['si']], ['una clave heredada', 'toString']])('%s: 400 sin correo ni Pipedrive', async (_name, value) => {
+    const res = await call({ ...base, requiereDs1: value });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ details: { errors: ['requiereDs1 must be one of: si, no_se, no'] } });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+  });
+
+  it('el campo no llega a Pipedrive como campo del negocio (solo en la nota): el mapeo protegido no lo conoce', async () => {
+    await call({ ...base, requiereDs1: 'si' });
+    const [[, deal]] = pdCalls('/deals');
+    expect(JSON.stringify(deal)).not.toMatch(/D\.S\.|requiereDs1/);
   });
 });
