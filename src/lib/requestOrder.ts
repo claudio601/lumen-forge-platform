@@ -25,9 +25,11 @@ function djb2(s: string): string {
  * Regex valido: /^RC-[a-z0-9]{5,8}$/i
  */
 export function buildRequestRef(email: string, items: RequestCartItem[]): string {
-  // productId además del SKU: en Jumpseller hay SKUs repetidos entre productos distintos.
+  // productId además del SKU: en Jumpseller hay SKUs repetidos entre productos distintos. Y
+  // la variante: dos variantes sin SKU propio del mismo producto comparten «JS-<id>», y otra
+  // lista con la misma referencia se tomaría como reenvío de la primera.
   const skus = items
-    .map((i) => i.productId + ':' + i.sku + 'x' + i.quantity)
+    .map((i) => i.productId + ':' + i.sku + (i.variantId ? '#' + i.variantId : '') + 'x' + i.quantity)
     .sort()
     .join(',');
   const win = Math.floor(Date.now() / 3_600_000); // ventana de 1 hora
@@ -137,13 +139,21 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
       changed = true;
       continue;
     }
-    const variant = product.cctVariants?.find(
-      (v) => (item.variantId && v.jumpseller_variant_id === item.variantId) || v.sku === item.sku,
-    );
-    const unitPrice = variant?.price ?? product.price;
+    // La variante elegida en la ficha (selector genérico), por su id de Jumpseller
+    const live = item.variantId ? product.variants?.find((v) => v.id === item.variantId) : undefined;
+    const variant = live
+      ? undefined
+      : product.cctVariants?.find(
+          (v) => (item.variantId && v.jumpseller_variant_id === item.variantId) || v.sku === item.sku,
+        );
+    const unitPrice = live?.price ?? variant?.price ?? product.price;
     // Solo ids de variante que el producto tiene hoy (una variante vieja haría fallar el precio).
     const validVariantIds = new Set(
-      [product.jumpseller_variant_id, ...(product.cctVariants ?? []).map((v) => v.jumpseller_variant_id)].filter(Boolean),
+      [
+        product.jumpseller_variant_id,
+        ...(product.cctVariants ?? []).map((v) => v.jumpseller_variant_id),
+        ...(product.variants ?? []).map((v) => v.id),
+      ].filter(Boolean),
     );
     const keptVariantId = item.variantId && validVariantIds.has(item.variantId) ? item.variantId : undefined;
     const updated: RequestCartItem = {
@@ -151,7 +161,7 @@ export function reconcileRequestItems(items: RequestCartItem[], catalog: readonl
       productId: product.id,
       url: `/producto/${product.id}`,
       jumpsellerId: product.jumpseller_id,
-      variantId: variant?.jumpseller_variant_id ?? keptVariantId ?? product.jumpseller_variant_id,
+      variantId: live?.id ?? variant?.jumpseller_variant_id ?? keptVariantId ?? product.jumpseller_variant_id,
       name: product.name,
       unitPrice,
     };

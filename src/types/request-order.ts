@@ -23,6 +23,11 @@ export interface RequestOrderItem {
     url: string;
     attributes: {
           potencia?: string;
+          /**
+           * Etiqueta legible de la variante elegida («Cálida 2700K», «80W · Neutra 4000K»,
+           * «Negro»): la nota de Pipedrive y el correo la muestran
+           * junto al nombre (src/lib/variants.ts, variantAttributes).
+           */
           colorLuz?: string;
           terminacion?: string;
     };

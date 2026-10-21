@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { AppProvider, useApp, quoteLineKey } from './AppContext';
+import { AppProvider, useApp } from './AppContext';
+import { quoteItemKey, quoteLineKey } from '@/lib/quoteLine';
 import { buildVariantSku } from '@/lib/variantSku';
 import { products } from '@/data/products';
 
@@ -42,6 +43,41 @@ describe('cotización con variantes CCT', () => {
     act(() => { result.current.updateQuoteQty(quoteLineKey(p150.id, CALIDA.cct), 0); });
     expect(result.current.quoteCart).toHaveLength(1);
     expect(result.current.quoteCart[0].cct).toBe(NEUTRA.cct);
+  });
+});
+
+describe('cotización con variantes de Jumpseller (selector genérico, D-01)', () => {
+  beforeEach(() => sessionStorage.clear());
+  const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
+  const v40 = { cct: 2200, sku: 'JS-11521285', unitPrice: 442800, variantId: 118197717, label: '40W · Cálida 2200K' };
+  const v80 = { cct: 2200, sku: 'JS-11521285', unitPrice: 514800, variantId: 118197864, label: '80W · Cálida 2200K' };
+
+  it('dos variantes con la misma temperatura (Flyhawk 40W y 80W, 2200K) son dos líneas, cada una con su precio', () => {
+    const { result } = renderHook(() => useApp(), { wrapper });
+    act(() => {
+      result.current.addToQuote(flyhawk, 1, undefined, v40);
+      result.current.addToQuote(flyhawk, 1, undefined, v80);
+      result.current.addToQuote(flyhawk, 2, undefined, v80);
+    });
+    expect(result.current.quoteCart.map(i => [i.variantId, i.unitPrice, i.quantity, i.variantLabel])).toEqual([
+      [118197717, 442800, 1, '40W · Cálida 2200K'],
+      [118197864, 514800, 3, '80W · Cálida 2200K'],
+    ]);
+    act(() => { result.current.updateQuoteQty(quoteItemKey(result.current.quoteCart[0]), 0); });
+    expect(result.current.quoteCart.map(i => i.variantId)).toEqual([118197864]);
+  });
+
+  it('una línea BESTLED guardada antes (solo con su CCT) se junta con la misma variante agregada después', async () => {
+    const v2700 = p150.cctVariants!.find(v => v.kelvin === 2700)!;
+    sessionStorage.setItem('elights_quote', JSON.stringify([{ product: p150, quantity: 2, cct: 2700, variantSku: 'APB1507', unitPrice: 189200 }]));
+    const { result } = renderHook(() => useApp(), { wrapper });
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.quoteCart[0].variantId).toBe(v2700.jumpseller_variant_id);
+    act(() => {
+      result.current.addToQuote(p150, 1, undefined, { ...CALIDA, variantId: v2700.jumpseller_variant_id, label: 'Cálida 2700K' });
+    });
+    expect(result.current.quoteCart).toHaveLength(1);
+    expect(result.current.quoteCount).toBe(3);
   });
 });
 

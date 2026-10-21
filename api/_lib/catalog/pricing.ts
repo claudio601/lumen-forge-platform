@@ -134,11 +134,16 @@ export function priceItems(items: readonly PricingInput[], index: Index = priceI
     const variant = variantId ? entry.variants[String(variantId)] : undefined;
     const variantUnknown = Boolean(variantId && !variant);
     const unitPrice = variant?.price ?? entry.price;
+    // SKU de la variante: solo el suyo. El del producto únicamente si el producto tiene una
+    // sola variante: con varias, es el de otra (Flyhawk: APSB80N, de las 4000K) o lo comparten
+    // (DLS7LVB, PLRS18SB). Misma regla que el sitio (src/lib/variants.ts, variantLineSku).
+    const single = Object.keys(entry.variants).length <= 1;
+    const lineSku = variant ? variant.sku || (single ? entry.sku : '') : entry.sku || sku;
     lineIndexes.push(i);
     lines.push({
       jumpsellerId: jumpsellerId!,
       ...(variant ? { variantId } : {}),
-      sku: variant?.sku || entry.sku || sku || `JS-${jumpsellerId}`,
+      sku: lineSku || `JS-${jumpsellerId}`,
       name: entry.name,
       quantity,
       unitPrice,

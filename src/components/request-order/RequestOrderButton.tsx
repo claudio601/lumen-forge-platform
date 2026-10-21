@@ -31,7 +31,8 @@ const RequestOrderButton = ({
     addItem({ ...item, quantity });
     setAdded(true);
     toast.success('Agregado a tu solicitud', {
-      description: item.name,
+      // Con la variante elegida: «… BESTLED 90W – Cálida 2700K»
+      description: item.attributes?.colorLuz ? `${item.name} – ${item.attributes.colorLuz}` : item.name,
       action: {
         label: 'Ver solicitud',
         onClick: () => (window.location.href = '/solicitar-pedido'),

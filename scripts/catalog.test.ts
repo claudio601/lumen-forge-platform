@@ -389,7 +389,13 @@ describe('se conserva lo que no viene de Jumpseller', () => {
   });
 
   it('los BESTLED no repiten los errores del D.S. N°1/2022', () => {
-    const text = JSON.stringify(BESTLED.map(id => products.find(x => x.jumpseller_id === id)));
+    // Sin `variants`: son los valores crudos de Jumpseller («Luz Cálida 2200K - 1% Luz Azul»),
+    // que el sitio nunca muestra así (src/lib/variants.ts: «Ámbar 2200K»; lo prueba variants.test.ts)
+    // ni publica en el HTML (el radio lleva la posición; lo prueba src/ssr-hydration.test.tsx)
+    const text = JSON.stringify(
+      BESTLED.map(id => products.find(x => x.jumpseller_id === id)),
+      (key, value) => (key === 'variants' ? undefined : value),
+    );
     for (const wrong of [
       /zonas? (?:no sujetas|sin regulaci[oó]n|sin restricci[oó]n)/i, // desde el 19-10-2026 no quedan zonas sin DS1
       /regiones? astron[oó]mica|astron[oó]micas en regiones/i, // las Áreas de Protección Especial son comunas

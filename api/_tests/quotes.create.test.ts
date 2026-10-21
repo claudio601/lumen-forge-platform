@@ -760,3 +760,14 @@ describe('POST /api/quotes/create: privacidad', () => {
     }
   });
 });
+
+describe('/api/quotes/create: la nota dice qué variante es', () => {
+  it('con variantLabel, la línea lleva la etiqueta legible en la nota completa', async () => {
+    vi.mocked(processQuoteToCrm).mockResolvedValue(crmResult(91, 'created') as never);
+    vi.mocked(pipedrivePost).mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    await call({ ...persona(), products: [{ jumpsellerId: 2301098, variantId: 111887368, sku: 'APB407', name: 'BESTLED 40W', quantity: 1, unitPriceClp: 119400, variantLabel: 'Cálida 2700K' }] });
+    const [note] = notes();
+    expect(note.content).toMatch(/\[APB407\] .* — Cálida 2700K x1 @ \d+ CLP/);
+  });
+});
+
