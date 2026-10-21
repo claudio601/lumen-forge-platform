@@ -1,22 +1,58 @@
 // Variantes de Jumpseller (auditoría UX, D-01 y C-01): etiquetas limpias, precio por variante,
-// SKU de la variante y los datos que llegan a la solicitud y a la cotización. Con productos
-// reales del snapshot: la BESTLED 90W, la Flyhawk (potencia y color de luz) y el proyector
-// antivandálico 100W (dos opciones, mismo precio).
+// SKU de la variante y los datos que llegan a la solicitud y a la cotización.
+// Sin valores fijos del catálogo: la sincronización diaria trae los SKU y precios que el dueño
+// corrige en Jumpseller. Cada prueba verifica una regla sobre el snapshot
+// (jumpseller-snapshot.generated.ts) y elige sus productos por una propiedad («el producto con
+// dos opciones», «uno con el mismo precio en todas sus opciones»); lo esperado (SKU, precio)
+// sale del snapshot. Si ningún producto cumple la propiedad, la prueba se omite (skipIf).
+// Los casos que el catálogo puede dejar de tener (el SKU del producto es el de otra variante o lo
+// comparten varias) se prueban además con productos de ejemplo, que no dependen de Jumpseller.
 
 import { describe, expect, it } from 'vitest';
-import { products } from '@/data/products';
+import { products, type Product } from '@/data/products';
+import type { ProductVariant } from '@/data/catalog/types';
 import { jumpsellerSnapshot } from '@/data/catalog/jumpseller-snapshot.generated';
-import { buildVariantSku } from '@/lib/variantSku';
+import { editorialOverlay } from '@/data/catalog/overlay/editorial';
+import { expectedLineSku, expectedSkuIsDistinct, snapshotVariant } from '@/test/variantRule';
 import {
   axisPrices, hasVariantChoice, lightChoice, missingChoicesText, selectedVariant, variantAttributes, variantAxes,
   variantFromPrice, variantKelvin, variantLabel, variantLineSku, variantSku, variantSkuIsDistinct,
+  type VariantAxis, type VariantSelection,
 } from './variants';
 
-const byJid = (id: number) => products.find(p => p.jumpseller_id === id)!;
-const bestled90 = byJid(2301105);
-const flyhawk = byJid(11521285);
-const antivandalico = byJid(2252962);
+const site = (id: number) => products.find(p => p.jumpseller_id === id)!;
+const snapMulti = jumpsellerSnapshot.filter(s => s.variants.length > 1);
 const withChoice = products.filter(hasVariantChoice);
+const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
+const KIND_ORDER = { potencia: 0, luz: 1, otro: 2 } as const;
+
+/** Variantes compatibles con lo elegido (escrito aquí, sin usar variantsMatching). */
+const matching = (variants: readonly ProductVariant[], selection: VariantSelection) =>
+  variants.filter(v => Object.entries(selection).every(([name, value]) => v.options.find(o => o.name === name)?.value === value));
+/** Lo elegido en cada eje para llegar a la variante `v`. */
+const selectionOf = (axes: readonly VariantAxis[], v: ProductVariant): VariantSelection =>
+  Object.fromEntries(axes.map(a => [a.name, v.options.find(o => o.name === a.name)!.value]));
+/** Opción de la variante en el eje. */
+const choiceOf = (axis: VariantAxis, v: ProductVariant) =>
+  axis.choices.find(c => c.value === v.options.find(o => o.name === axis.name)?.value)!;
+/** La más cara; a igual precio, la que no tiene SKU propio (el caso «JS-<id>») y luego el orden de Jumpseller. */
+const mostExpensive = (p: Product) =>
+  [...p.variants!].sort((a, b) => b.price - a.price || Number(Boolean(a.sku)) - Number(Boolean(b.sku)))[0];
+
+// ── Productos elegidos por una propiedad del snapshot ────────────────────────
+// Hoy, la Flyhawk 40-80W (potencia y temperatura de color)
+const twoAxes = withChoice.find(p => variantAxes(p).length > 1);
+// Hoy, p. ej., un proyector antivandálico: un color de luz, mismo precio y SKU propio por variante
+const samePrice = withChoice.find(p => {
+  const axes = variantAxes(p);
+  return axes.length === 1 && axes[0].kind === 'luz' && variantFromPrice(p) === undefined &&
+    p.variants!.some(v => expectedSkuIsDistinct(p.jumpseller_id, v.id));
+});
+// Las BESTLED: las del contenido editorial con variantes CCT que siguen publicadas en Jumpseller
+const bestledIds = Object.entries(editorialOverlay)
+  .filter(([id, e]) => e.availableCCT?.length && jumpsellerSnapshot.some(s => s.jumpseller_id === Number(id)))
+  .map(([id]) => Number(id))
+  .sort((a, b) => a - b);
 
 describe('lightChoice: el valor de Jumpseller, limpio', () => {
   it.each([
@@ -41,16 +77,34 @@ describe('lightChoice: el valor de Jumpseller, limpio', () => {
   });
 });
 
+describe('missingChoicesText: lo que falta elegir, en palabras', () => {
+  const axis = (kind: VariantAxis['kind'], legend: string): VariantAxis => ({ name: legend, kind, legend, choices: [] });
+
+  it('una frase con cada eje que falta', () => {
+    expect(missingChoicesText([axis('potencia', 'Potencia'), axis('luz', 'Temperatura de color')])).toBe('una potencia y una temperatura de color');
+    expect(missingChoicesText([axis('luz', 'Temperatura de color')])).toBe('una temperatura de color');
+    expect(missingChoicesText([axis('luz', 'Color de luz')])).toBe('un color de luz');
+    expect(missingChoicesText([axis('potencia', 'Potencia'), axis('luz', 'Color de luz'), axis('otro', 'Color')]))
+      .toBe('una potencia, un color de luz y una opción de color');
+    expect(missingChoicesText([])).toBe('');
+  });
+});
+
 describe('las variantes del snapshot en el sitio', () => {
-  it('188 productos tienen más de una variante y todos tienen selector; 8 tienen precios distintos ("desde")', () => {
-    const snapMulti = jumpsellerSnapshot.filter(s => s.variants.length > 1).map(s => s.jumpseller_id).sort();
-    expect(withChoice.map(p => p.jumpseller_id).sort()).toEqual(snapMulti);
-    expect(withChoice).toHaveLength(188);
-    for (const p of withChoice) expect(variantAxes(p).length, p.name).toBeGreaterThan(0);
-    const desde = withChoice.filter(p => variantFromPrice(p) !== undefined).map(p => p.jumpseller_id).sort((a, b) => a - b);
-    expect(desde).toEqual([2301098, 2301101, 2301105, 2301110, 2301114, 4156930, 11521285, 15021313]);
+  it(`los ${snapMulti.length} productos con más de una variante en Jumpseller tienen selector, con todas sus variantes; «desde» solo si no cuestan lo mismo`, () => {
+    expect(snapMulti.length).toBeGreaterThan(0);
+    expect(withChoice.map(p => p.jumpseller_id).sort((a, b) => a - b)).toEqual(snapMulti.map(s => s.jumpseller_id).sort((a, b) => a - b));
+    for (const s of snapMulti) {
+      const p = site(s.jumpseller_id);
+      expect(variantAxes(p).length, p.name).toBeGreaterThan(0);
+      // Las variantes de Jumpseller, con su id, SKU y precio
+      expect(p.variants!.map(v => [v.id, v.sku, v.price]), p.name).toEqual(s.variants.map(v => [v.id, v.sku, v.price]));
+      // «desde» la más barata, solo si no cuestan todas lo mismo
+      const prices = s.variants.map(v => v.price);
+      expect(variantFromPrice(p), p.name).toBe(new Set(prices).size > 1 ? Math.min(...prices) : undefined);
+    }
     // Con una sola variante (o ninguna) no hay nada que elegir
-    expect(products.filter(p => !hasVariantChoice(p)).every(p => variantAxes(p).length === 0)).toBe(true);
+    expect(products.filter(p => !hasVariantChoice(p)).every(p => variantAxes(p).length === 0 && variantFromPrice(p) === undefined)).toBe(true);
   });
 
   it('cada variante tiene una etiqueta propia, limpia y sin afirmar certificados', () => {
@@ -66,156 +120,215 @@ describe('las variantes del snapshot en el sitio', () => {
     }
   });
 
-  it('cada combinación de opciones lleva a una sola variante', () => {
+  it('los ejes van en orden (potencia, luz, el resto) y cada combinación de opciones lleva a una sola variante, con su precio', () => {
     for (const p of withChoice) {
       const axes = variantAxes(p);
+      const kinds = axes.map(a => KIND_ORDER[a.kind]);
+      expect(kinds, p.name).toEqual([...kinds].sort((a, b) => a - b));
       for (const v of p.variants!) {
-        const selection = Object.fromEntries(axes.map(a => [a.name, v.options.find(o => o.name === a.name)!.value]));
-        expect(selectedVariant(p, axes, selection)?.id, p.name).toBe(v.id);
+        const picked = selectedVariant(p, axes, selectionOf(axes, v));
+        expect(picked?.id, p.name).toBe(v.id);
+        expect(picked?.price).toBe(snapshotVariant(p.jumpseller_id, v.id).price);
       }
+      // Sin elegir en todos los ejes no hay variante
+      expect(selectedVariant(p, axes, {})).toBeUndefined();
     }
   });
 
-  it('las 7 BESTLED: el selector genérico cubre sus 4 variantes CCT (mismo id, SKU y precio de Jumpseller)', () => {
+  it('precio por opción: solo cuando la opción decide el precio, y es el de Jumpseller', () => {
+    let priced = 0;
+    for (const p of withChoice) {
+      const axes = variantAxes(p);
+      for (const axis of axes) {
+        // Sin elegir nada y con cada opción de los otros ejes ya elegida
+        const selections: VariantSelection[] = [
+          {},
+          ...axes.filter(a => a !== axis).flatMap(a => a.choices.map(c => ({ [a.name]: c.value }))),
+        ];
+        for (const selection of selections) {
+          const byChoice = axis.choices.map(c => new Set(matching(p.variants!, { ...selection, [axis.name]: c.value }).map(v => v.price)));
+          const decides = byChoice.every(set => set.size <= 1) && new Set(byChoice.flatMap(set => [...set])).size > 1;
+          const prices = axisPrices(p.variants!, axis, selection);
+          if (!decides) {
+            expect(prices, `${p.name} · ${axis.legend}`).toBeUndefined();
+            continue;
+          }
+          priced++;
+          axis.choices.forEach((c, i) => expect(prices?.get(c.value), `${p.name} · ${c.label}`).toBe([...byChoice[i]][0]));
+        }
+      }
+    }
+    // Si en Jumpseller hay variantes con precios distintos, alguna opción lleva su precio
+    if (withChoice.some(p => variantFromPrice(p) !== undefined)) expect(priced).toBeGreaterThan(0);
+  });
+
+  it(`las ${bestledIds.length} BESTLED: el selector genérico cubre sus variantes CCT (mismo id, SKU y precio de Jumpseller), con el nombre de la ficha`, () => {
     const bestled = products.filter(p => p.availableCCT?.length);
-    expect(bestled).toHaveLength(7);
+    expect(bestled.map(p => p.jumpseller_id).sort((a, b) => a - b)).toEqual(bestledIds);
     for (const p of bestled) {
       expect(hasVariantChoice(p), p.name).toBe(true);
+      const axes = variantAxes(p);
+      expect(axes.map(a => a.kind), p.name).toEqual(['luz']);
       for (const c of p.cctVariants!) {
         const v = p.variants!.find(x => x.id === c.jumpseller_variant_id)!;
         expect(v, `${p.name} ${c.kelvin}K`).toBeDefined();
-        expect(v.sku).toBe(buildVariantSku(p.sku, c.kelvin));
+        if (v.sku) expect(c.sku).toBe(v.sku);
         expect(v.price).toBe(c.price);
         expect(variantKelvin(p, v)).toBe(c.kelvin);
+        // La opción lleva el nombre de la ficha BESTLED («Ámbar 2200K»): es la etiqueta para Pipedrive
+        const label = `${squash(c.name)} ${c.kelvin}K`;
+        expect(choiceOf(axes[0], v).label).toBe(label);
+        expect(variantAttributes(p, v)).toEqual({ potencia: p.watts > 0 ? `${p.watts}W` : undefined, colorLuz: label });
+        expect(variantLineSku(p, v)).toBe(expectedLineSku(p.jumpseller_id, v.id));
       }
     }
   });
 });
 
-describe('BESTLED 90W: temperatura de color, con precio por opción', () => {
-  const axes = variantAxes(bestled90);
+// Si Jumpseller deja de tener un producto con dos opciones, no hay nada que probar aquí.
+describe.skipIf(!twoAxes)(`el producto con dos opciones (${twoAxes?.name ?? 'ninguno en el snapshot'})`, () => {
+  const p = twoAxes!;
+  const axes = twoAxes ? variantAxes(twoAxes) : [];
 
-  it('un eje «Temperatura de color» con los nombres de la ficha BESTLED', () => {
-    expect(axes.map(a => a.legend)).toEqual(['Temperatura de color']);
-    expect(axes[0].choices.map(c => c.label)).toEqual(['Ámbar 2200K', 'Cálida 2700K', 'Neutra 4000K', 'Fría 5000K']);
+  it('un eje por opción de Jumpseller, con sus valores en el orden de Jumpseller', () => {
+    const names = [...new Set(p.variants!.flatMap(v => v.options.map(o => o.name)))];
+    expect(axes.map(a => a.name).sort()).toEqual([...names].sort());
+    for (const axis of axes) {
+      const values = [...new Set(p.variants!.map(v => v.options.find(o => o.name === axis.name)!.value))];
+      expect(axis.choices.map(c => c.value), axis.legend).toEqual(values);
+      if (axis.kind === 'potencia') for (const c of axis.choices) expect(c.label).toMatch(/^\d+(?:[.,]\d+)?W$/);
+    }
   });
 
-  it('antes: entraba a $139.900 (la más barata); ahora «desde $139.900» y cada opción con su precio', () => {
-    expect(bestled90.price).toBe(139900);
-    expect(variantFromPrice(bestled90)).toBe(139900);
-    expect([...axisPrices(bestled90.variants!, axes[0], {})!.values()]).toEqual([154000, 154000, 139900, 139900]);
-  });
-
-  it('2700K: SKU APB907, $154.000 y la etiqueta para Pipedrive', () => {
-    const v = selectedVariant(bestled90, axes, { [axes[0].name]: axes[0].choices[1].value })!;
-    expect(v).toMatchObject({ id: 111887900, sku: 'APB907', price: 154000 });
-    expect(variantLineSku(bestled90, v)).toBe('APB907');
-    expect(variantSkuIsDistinct(bestled90, v)).toBe(true);
-    expect(variantAttributes(bestled90, v)).toEqual({ potencia: '90W', colorLuz: 'Cálida 2700K' });
-  });
-});
-
-describe('Flyhawk 40-80W: potencia y color de luz', () => {
-  const axes = variantAxes(flyhawk);
-
-  it('dos ejes: primero la potencia (decide el precio), después la temperatura de color', () => {
-    expect(axes.map(a => a.legend)).toEqual(['Potencia', 'Temperatura de color']);
-    expect(axes[0].choices.map(c => c.label)).toEqual(['40W', '60W', '80W']);
-    expect(axes[1].choices.map(c => c.label)).toEqual(['Cálida 2200K', 'Cálida 2700K', 'Neutra 4000K']);
-    expect([...axisPrices(flyhawk.variants!, axes[0], {})!.values()]).toEqual([442800, 478800, 514800]);
-    // El color no cambia el precio: sus opciones no llevan precio
-    expect(axisPrices(flyhawk.variants!, axes[1], {})).toBeUndefined();
-    expect(axisPrices(flyhawk.variants!, axes[1], { [axes[0].name]: '80W' })).toBeUndefined();
-  });
-
-  it('antes no se podía pedir la de $514.800; ahora 80W 2200K es su variante, con su precio', () => {
-    expect(flyhawk.price).toBe(442800);
-    const v = selectedVariant(flyhawk, axes, { [axes[0].name]: '80W', [axes[1].name]: axes[1].choices[0].value })!;
-    expect(v).toMatchObject({ id: 118197864, price: 514800 });
-    expect(variantLabel(flyhawk, v)).toBe('80W · Cálida 2200K');
-    expect(variantAttributes(flyhawk, v)).toEqual({ potencia: '80W', colorLuz: '80W · Cálida 2200K' });
-  });
-
-  it('SKU: la variante 2200K no tiene en Jumpseller y el del producto (APSB80N) es el de las 4000K → JS-<id>', () => {
-    const v2200 = flyhawk.variants!.find(v => v.id === 118197864)!;
-    const v4000 = flyhawk.variants!.find(v => v.id === 118197863)!;
-    expect(flyhawk.sku).toBe('APSB80N');
-    expect(variantSku(v2200)).toBe('');
-    expect(variantLineSku(flyhawk, v2200)).toBe('JS-11521285');
-    expect(variantLineSku(flyhawk, v4000)).toBe('APSB80N');
-    // APSB80N es el de las tres 4000K (40W, 60W y 80W): no distingue la variante
-    expect(variantSkuIsDistinct(flyhawk, v4000)).toBe(false);
-    expect(variantSkuIsDistinct(flyhawk, v2200)).toBe(false);
-  });
-
-  it('lo que falta elegir, en palabras', () => {
-    expect(missingChoicesText(axes)).toBe('una potencia y una temperatura de color');
-    expect(missingChoicesText(axes.slice(1))).toBe('una temperatura de color');
+  it('la variante más cara se puede pedir, con su precio, su etiqueta (todas sus opciones) y el SKU de la regla', () => {
+    // Antes de la auditoría solo se podía pedir la más barata
+    const v = mostExpensive(p);
+    const picked = selectedVariant(p, axes, selectionOf(axes, v))!;
+    expect(picked).toMatchObject({ id: v.id, price: snapshotVariant(p.jumpseller_id, v.id).price });
+    expect(picked.price).toBe(Math.max(...p.variants!.map(x => x.price)));
+    const label = axes.map(a => choiceOf(a, v)).map(c => (c.detail ? `${c.label}, ${c.detail}` : c.label)).join(' · ');
+    expect(variantLabel(p, v)).toBe(label);
+    const power = axes.find(a => a.kind === 'potencia');
+    expect(variantAttributes(p, v)).toMatchObject({
+      potencia: power ? choiceOf(power, v).label : p.watts > 0 ? `${p.watts}W` : undefined,
+      colorLuz: label,
+    });
+    expect(variantLineSku(p, v)).toBe(expectedLineSku(p.jumpseller_id, v.id));
   });
 });
 
-describe('Proyector antivandálico 100W: dos opciones de color, mismo precio', () => {
-  const axes = variantAxes(antivandalico);
+// Si Jumpseller deja de tener uno así, no hay nada que probar aquí.
+describe.skipIf(!samePrice)(`un color de luz, mismo precio en todas las opciones (${samePrice?.name ?? 'ninguno en el snapshot'})`, () => {
+  const p = samePrice!;
 
-  it('«Color de luz: Cálida · Fría», sin precio por opción ni «desde»', () => {
-    expect(axes.map(a => [a.legend, a.choices.map(c => c.label)])).toEqual([['Color de luz', ['Cálida', 'Fría']]]);
-    expect(axisPrices(antivandalico.variants!, axes[0], {})).toBeUndefined();
-    expect(variantFromPrice(antivandalico)).toBeUndefined();
-    expect(missingChoicesText(axes)).toBe('un color de luz');
-  });
-
-  it('antes entraba como JS-2252962, sin color; ahora con el SKU de la variante', () => {
-    const fria = selectedVariant(antivandalico, axes, { [axes[0].name]: 'Luz Fría' })!;
-    expect(variantLineSku(antivandalico, fria)).toBe('CHIPX100NF');
-    expect(variantAttributes(antivandalico, fria)).toEqual({ potencia: '100W', colorLuz: 'Fría' });
+  it('sin precio por opción ni «desde»; la línea lleva el SKU propio de la variante', () => {
+    const axes = variantAxes(p);
+    expect(axes[0].legend).toMatch(/^(Temperatura de color|Color de luz)$/);
+    expect(axisPrices(p.variants!, axes[0], {})).toBeUndefined();
+    expect(variantFromPrice(p)).toBeUndefined();
+    const v = p.variants!.find(x => expectedSkuIsDistinct(p.jumpseller_id, x.id))!;
+    expect(variantLineSku(p, v)).toBe(snapshotVariant(p.jumpseller_id, v.id).sku);
+    expect(variantSkuIsDistinct(p, v)).toBe(true);
+    expect(variantAttributes(p, v)).toMatchObject({ colorLuz: variantLabel(p, v) });
   });
 });
 
-describe('SKU de la variante: solo el suyo, nunca el del producto', () => {
-  const sinSku = (id: number) => byJid(id).variants!.filter(v => !v.sku);
+describe('SKU de la línea: el propio de la variante o «JS-<id>», nunca el del producto ni el de otra variante', () => {
+  it(`las ${snapMulti.reduce((n, s) => n + s.variants.length, 0)} variantes del snapshot`, () => {
+    for (const s of snapMulti) {
+      const p = site(s.jumpseller_id);
+      for (const sv of s.variants) {
+        const v = p.variants!.find(x => x.id === sv.id)!;
+        const where = `${s.jumpseller_id} ${sv.id}`;
+        const line = variantLineSku(p, v);
+        expect(variantSku(v), where).toBe(sv.sku);
+        expect(line, where).toBe(expectedLineSku(s.jumpseller_id, sv.id));
+        // Nunca el SKU de otra variante del mismo producto (salvo que sea también el suyo)
+        const otherSkus = s.variants.filter(o => o.id !== sv.id && o.sku && o.sku !== sv.sku).map(o => o.sku);
+        expect(otherSkus, where).not.toContain(line);
+        // Ni el del producto (el de Jumpseller o el que muestra el sitio), si no es el suyo
+        if (!sv.sku) expect([s.sku, p.sku].filter(Boolean), where).not.toContain(line);
+        // «Define el SKU del despacho» solo si el SKU es suyo y ninguna otra variante lo comparte
+        expect(variantSkuIsDistinct(p, v), where).toBe(expectedSkuIsDistinct(s.jumpseller_id, sv.id));
+      }
+    }
+  });
 
-  it('en las 188, la línea lleva el SKU de la variante o «JS-<id>»', () => {
-    for (const p of withChoice) {
+  // Productos con SKU (en Jumpseller o en el sitio) y alguna variante sin SKU propio
+  const withProductSku = snapMulti.filter(s => (s.sku || site(s.jumpseller_id).sku) && s.variants.some(v => !v.sku));
+  it.skipIf(!withProductSku.length)(`variantes sin SKU propio en productos con SKU (${withProductSku.length}): «JS-<id>», no el del producto`, () => {
+    for (const s of withProductSku) {
+      const p = site(s.jumpseller_id);
+      for (const v of p.variants!.filter(x => !x.sku)) {
+        expect(variantSku(v)).toBe('');
+        expect(variantLineSku(p, v), p.name).toBe(`JS-${s.jumpseller_id}`);
+        expect(variantSkuIsDistinct(p, v)).toBe(false);
+      }
+    }
+  });
+
+  // Productos cuyo SKU es el de una de sus variantes, lo comparten varias o lo usan otros
+  // productos. El 21-10-2026 Jumpseller ya no tenía ninguno (el dueño los corrigió): la prueba
+  // se omite y quedan los productos de ejemplo de la prueba siguiente.
+  const skuUses = new Map<string, number>();
+  for (const s of jumpsellerSnapshot) {
+    for (const sku of new Set([s.sku, ...s.variants.map(v => v.sku)].filter(Boolean))) skuUses.set(sku, (skuUses.get(sku) ?? 0) + 1);
+  }
+  const ambiguous = snapMulti.filter(s => s.sku && (s.variants.some(v => v.sku === s.sku) || skuUses.get(s.sku)! > 1));
+  it.skipIf(!ambiguous.length)(`SKU del producto que es de una variante o compartido (${ambiguous.length}): cada variante, el suyo o «JS-<id>»`, () => {
+    for (const s of ambiguous) {
+      const p = site(s.jumpseller_id);
       for (const v of p.variants!) {
-        expect(variantSku(v), `${p.jumpseller_id} ${v.id}`).toBe(v.sku);
-        expect(variantLineSku(p, v)).toBe(v.sku || `JS-${p.jumpseller_id}`);
+        const line = variantLineSku(p, v);
+        expect(line, `${s.jumpseller_id} ${v.id}`).toBe(v.sku || `JS-${s.jumpseller_id}`);
+        if (v.sku !== s.sku) expect(line).not.toBe(s.sku);
       }
     }
   });
 
-  it.each([
-    // [jumpseller_id, SKU del producto en Jumpseller, por qué no es el de la variante]
-    [2286835, 'FLCBC30F', 'foco codo 30W: es el de su variante Fría'],
-    [2340468, 'PLSSMD10', 'proyector slim 30W: lo usan también el de 50W y el de 100W'],
-    [2340483, 'PLSSMD10', 'proyector slim 50W: lo usan también el de 30W y el de 100W'],
-    [3612990, 'DLS7LVB', 'downlight 7W slim: lo comparten sus dos variantes y el cilindro 7W'],
-    [2354701, 'DLS7LVB', 'downlight cilindro 7W: lo comparten sus dos variantes y el slim 7W'],
-    [2418983, 'PLRS18SB', 'panel redondo 18W con sensor: lo comparten sus tres variantes'],
-  ])('%i (%s): %s → sin SKU arriba y «JS-<id>» en la línea', (id, productSku) => {
-    const p = byJid(id);
-    expect(p.sku).toBe(productSku);
-    const missing = sinSku(id);
-    expect(missing.length).toBeGreaterThan(0);
-    for (const v of missing) {
-      expect(variantSku(v)).toBe('');
-      expect(variantLineSku(p, v)).toBe(`JS-${id}`);
-      expect(variantSkuIsDistinct(p, v)).toBe(false);
-    }
+  it('productos de ejemplo: el SKU del producto es el de otra variante, lo comparten varias o ninguna variante tiene', () => {
+    const variant = (id: number, sku: string, value: string): ProductVariant => ({ id, sku, price: 1000, options: [{ name: 'Color', value }] });
+    // El del producto es el de su variante Fría (así estaba el foco codo 30W)
+    const codo = { jumpseller_id: 9000001, sku: 'COD30F', variants: [variant(1, '', 'Luz Cálida'), variant(2, 'COD30N', 'Luz Neutra'), variant(3, 'COD30F', 'Luz Fría')] };
+    expect(codo.variants.map(v => variantLineSku(codo, v))).toEqual(['JS-9000001', 'COD30N', 'COD30F']);
+    expect(codo.variants.map(v => variantSkuIsDistinct(codo, v))).toEqual([false, true, true]);
+    // El del producto lo comparten dos variantes (así estaba la Flyhawk con sus 4000K)
+    const solar = { jumpseller_id: 9000002, sku: 'SOL80N', variants: [variant(1, '', '2200K'), variant(2, 'SOL80N', '4000K 40W'), variant(3, 'SOL80N', '4000K 60W')] };
+    expect(solar.variants.map(v => variantLineSku(solar, v))).toEqual(['JS-9000002', 'SOL80N', 'SOL80N']);
+    expect(solar.variants.map(v => variantSkuIsDistinct(solar, v))).toEqual([false, false, false]);
+    // Ninguna variante tiene SKU; el del producto lo usa también otro producto (así estaban los downlight 7W)
+    const downlight = { jumpseller_id: 9000003, sku: 'DL7', variants: [variant(1, '', 'Luz Cálida'), variant(2, '', 'Luz Fría')] };
+    expect(downlight.variants.map(v => variantSku(v))).toEqual(['', '']);
+    expect(downlight.variants.map(v => variantLineSku(downlight, v))).toEqual(['JS-9000003', 'JS-9000003']);
+    expect(downlight.variants.map(v => variantSkuIsDistinct(downlight, v))).toEqual([false, false]);
   });
 });
 
 describe('otros casos del snapshot', () => {
-  it('foco a riel: el color de la carcasa («Negro», «Blanco») va también como terminación', () => {
-    const riel = byJid(27987505);
-    expect(variantAxes(riel).map(a => a.legend)).toEqual(['Color']);
-    expect(variantAttributes(riel, riel.variants![0])).toMatchObject({ colorLuz: 'Negro', terminacion: 'Negro' });
+  // Opciones que no son de luz y cuyo nombre dice «Color» (hoy, p. ej., los focos a riel)
+  const finishes = withChoice.filter(p => variantAxes(p).some(a => a.kind === 'otro' && /color/i.test(a.name)));
+  it.skipIf(!finishes.length)(`el color de la carcasa («Negro», «Blanco») va también como terminación (${finishes.length})`, () => {
+    for (const p of finishes) {
+      const axis = variantAxes(p).find(a => a.kind === 'otro' && /color/i.test(a.name))!;
+      for (const v of p.variants!) {
+        expect(variantAttributes(p, v), p.name).toMatchObject({ colorLuz: variantLabel(p, v), terminacion: choiceOf(axis, v).label });
+      }
+    }
   });
 
-  it('proyector de estadio modular: sin temperatura en Jumpseller, el % distingue las dos cálidas', () => {
-    const modular = byJid(32913027);
-    expect(variantAxes(modular)[0].legend).toBe('Color de luz');
-    expect(modular.variants!.map(v => variantLabel(modular, v))).toEqual([
-      'Cálida, 1 % de luz azul', 'Cálida, 7 % de luz azul', 'Neutra 4000K', 'Fría 5000K',
-    ]);
+  // Opciones de luz sin temperatura en Jumpseller (hoy, p. ej., los proyectores de estadio modulares)
+  const blueLight = withChoice.filter(p => variantAxes(p).some(a => a.kind === 'luz' && a.choices.some(c => c.detail)));
+  it.skipIf(!blueLight.length)(`sin temperatura en Jumpseller, el % de luz azul distingue las opciones, aparte y como dato (${blueLight.length})`, () => {
+    for (const p of blueLight) {
+      const axis = variantAxes(p).find(a => a.kind === 'luz' && a.choices.some(c => c.detail))!;
+      expect(axis.legend, p.name).toBe('Color de luz');
+      for (const v of p.variants!) {
+        const c = choiceOf(axis, v);
+        if (!c.detail) continue;
+        expect(c.kelvin).toBeUndefined();
+        expect(c.detail).toMatch(/^\d+(?:,\d+)? % de luz azul$/);
+        expect(variantLabel(p, v)).toContain(`${c.label}, ${c.detail}`);
+      }
+    }
   });
 });

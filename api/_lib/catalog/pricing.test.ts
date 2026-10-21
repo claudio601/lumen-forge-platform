@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { priceItems, netOf } from './pricing';
-import type { PriceIndexEntry } from './price-index.generated';
+import { priceIndex, type PriceIndexEntry } from './price-index.generated';
 
 const index: Record<string, PriceIndexEntry> = {
   '2301098': { name: 'ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08', sku: '', price: 108500, variants: { '95224064': { sku: 'APB40N', price: 108500 }, '111887368': { sku: 'APB407', price: 119400 } } },
@@ -23,11 +23,30 @@ describe('precios en el servidor (CON IVA, desde el catálogo)', () => {
     expect(r.lines[0]).toMatchObject({ variantId: 111887368, sku: 'APB407', unitPrice: 119400 });
   });
 
-  it('variante sin SKU propio: nunca el SKU de otra variante, sino JS-<id> (Flyhawk, catálogo real)', () => {
-    // La Flyhawk tiene APSB80N como SKU de producto, que es el de sus variantes 4000K.
-    const r = priceItems([{ jumpsellerId: 11521285, variantId: 118197864, quantity: 1 }]);
+  it('variante sin SKU propio: nunca el SKU del producto ni el de otra variante, sino JS-<id>', () => {
+    // Así estaba la Flyhawk: APSB80N era el SKU del producto y el de sus tres variantes 4000K.
+    const shared: Record<string, PriceIndexEntry> = {
+      '7000002': { name: 'SOLAR', sku: 'SOL80N', price: 1000, variants: { '1': { sku: '', price: 1000 }, '2': { sku: 'SOL80N', price: 1000 }, '3': { sku: 'SOL80N', price: 1200 } } },
+    };
+    const r = priceItems([1, 2, 3].map(variantId => ({ jumpsellerId: 7000002, variantId, quantity: 1 })), shared);
     expect(r.errors).toEqual([]);
-    expect(r.lines[0]).toMatchObject({ variantId: 118197864, sku: 'JS-11521285' });
+    expect(r.lines.map(l => [l.variantId, l.sku, l.unitPrice])).toEqual([[1, 'JS-7000002', 1000], [2, 'SOL80N', 1000], [3, 'SOL80N', 1200]]);
+  });
+
+  it('catálogo real: cada variante de un producto con varias lleva su SKU propio o JS-<id>, y su precio', () => {
+    // Sin SKU ni precios fijos: salen del índice que genera la sincronización con Jumpseller.
+    const multi = Object.entries(priceIndex).filter(([, e]) => Object.keys(e.variants).length > 1);
+    expect(multi.length).toBeGreaterThan(0);
+    for (const [id, entry] of multi) {
+      const items = Object.keys(entry.variants).map(variantId => ({ jumpsellerId: Number(id), variantId: Number(variantId), quantity: 1 }));
+      const r = priceItems(items);
+      expect(r.errors).toEqual([]);
+      expect(r.unresolved).toEqual([]);
+      for (const line of r.lines) {
+        const v = entry.variants[String(line.variantId)];
+        expect(line, `${id} ${line.variantId}`).toMatchObject({ jumpsellerId: Number(id), sku: v.sku || `JS-${id}`, unitPrice: v.price });
+      }
+    }
   });
 
   it('variante sin SKU en un producto de una sola variante: usa el SKU del producto', () => {
@@ -75,7 +94,12 @@ describe('precios en el servidor (CON IVA, desde el catálogo)', () => {
     expect(netOf(16200)).toBe(13613);
   });
 
-  it('el índice real generado desde Jumpseller tiene precio para el AR111', () => {
-    expect(priceItems([{ jumpsellerId: 3305420, quantity: 1 }]).lines[0].unitPrice).toBe(16200);
+  it('el índice real generado desde Jumpseller: cada producto, con el precio del índice', () => {
+    const ids = Object.keys(priceIndex);
+    expect(ids.length).toBeGreaterThan(0);
+    const r = priceItems(ids.map(id => ({ jumpsellerId: Number(id), quantity: 1 })));
+    expect(r.unresolved).toEqual([]);
+    expect(r.lines.map(l => l.unitPrice)).toEqual(ids.map(id => priceIndex[id].price));
+    for (const l of r.lines) expect(l.unitPrice, String(l.jumpsellerId)).toBeGreaterThan(0);
   });
 });
