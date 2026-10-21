@@ -2,14 +2,18 @@
 // Tarjeta de producto en listados y catalogo.
 // Modelo cotización → link de pago: CTA principal "Solicitar pedido".
 // Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
+// Con más de una variante en Jumpseller, la tarjeta no agrega a ciegas (auditoría UX, C-01):
+// "Elegir variante" lleva a la ficha, donde está el selector, y si las variantes no cuestan
+// lo mismo el precio dice "desde".
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Zap } from 'lucide-react';
+import { FileText, SlidersHorizontal, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Product } from '@/data/catalog/types';
 import { PROJECT_CATEGORIES } from '@/data/catalog/categories.config';
 import { requestSku } from '@/lib/variantSku';
+import { hasVariantChoice, variantFromPrice } from '@/lib/variants';
 import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
 import { useRequestCart } from '@/context/RequestCartContext';
@@ -28,6 +32,8 @@ const ProductCard = ({ product }: Props) => {
     const imageRef = product.imageRefs?.[0] ?? product.images?.[0];
     const firstImage = jsImage(imageRef, 400);
     const showImage = firstImage && !imgError;
+    const mustChoose = hasVariantChoice(product);
+    const fromPrice = variantFromPrice(product);
 
     const requestItem = {
           productId: product.id,
@@ -83,8 +89,10 @@ const ProductCard = ({ product }: Props) => {
                           {product.kelvin > 0 && <span>{product.kelvin}K</span>}
                           {product.beamAngle && <span>{product.beamAngle}deg</span>}
                         </div>
-                        <div className="flex items-baseline gap-1.5">
-                                  <p className="text-lg font-bold text-foreground">{formatDisplayPrice(product.price)}</p>
+                        {/* flex-wrap: en el teléfono, «desde $167.800» y la pastilla no caben en una línea */}
+                        <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                                  {fromPrice !== undefined && <span className="text-xs text-muted-foreground">desde</span>}
+                                  <p className="text-lg font-bold text-foreground">{formatDisplayPrice(fromPrice ?? product.price)}</p>
                                   <span
                                                 className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                                                                 isB2B ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
@@ -100,21 +108,34 @@ const ProductCard = ({ product }: Props) => {
                       </p>
                         )}
                         <div className="flex flex-wrap gap-2 pt-1">
-                          {/* FASE 1: CTA principal = Solicitar pedido */}
-                                  <RequestOrderButton item={requestItem} variant="card" />
-                          {/* Cotizar (QuoteCart) se mantiene como accion secundaria */}
-                                  <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="flex-1 gap-1 text-xs border-primary/30 text-primary hover:bg-accent h-8"
-                                                onClick={() => {
-                                                                addToQuote(product);
-                                                                toast.success('Agregado a cotización');
-                                                }}
-                                              >
-                                              <FileText className="h-3.5 w-3.5" />
-                                              Cotizar
+                          {mustChoose ? (
+                                  // La variante se elige en la ficha: aquí no se agrega nada sin ella
+                                  <Button asChild size="sm" className="flex-1 gap-1 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground">
+                                              {/* El nombre accesible empieza con el texto visible y dice de qué producto es */}
+                                              <Link to={`/producto/${product.id}`} aria-label={`Elegir variante: ${product.name}`}>
+                                                          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
+                                                          Elegir variante
+                                              </Link>
                                   </Button>
+                          ) : (
+                                  <>
+                                    {/* FASE 1: CTA principal = Solicitar pedido */}
+                                              <RequestOrderButton item={requestItem} variant="card" />
+                                    {/* Cotizar (QuoteCart) se mantiene como accion secundaria */}
+                                              <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="flex-1 gap-1 text-xs border-primary/30 text-primary hover:bg-accent h-8"
+                                                            onClick={() => {
+                                                                            addToQuote(product);
+                                                                            toast.success('Agregado a cotización');
+                                                            }}
+                                                          >
+                                                          <FileText className="h-3.5 w-3.5" />
+                                                          Cotizar
+                                              </Button>
+                                  </>
+                          )}
                         </div>
                 </div>
           </div>

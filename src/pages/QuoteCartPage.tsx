@@ -10,7 +10,8 @@
 // Entrega 3 (F-04): la franja de 3 pasos bajo el título, también con la lista vacía (la puerta
 // «Cotización (n)» del encabezado se ve siempre), y la lista vacía ofrece la asesoría técnica.
 import { useEffect, useState } from 'react';
-import { useApp, quoteLineKey } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
+import { quoteItemKey } from '@/lib/quoteLine';
 import { requestSku } from '@/lib/variantSku';
 import { jsImage } from '@/lib/jumpsellerImage';
 import { Link } from 'react-router-dom';
@@ -140,6 +141,10 @@ function QuoteSummary({ quote }: { quote: SentQuote }) {
   );
 }
 
+/** La variante después del SKU: « · Cálida 2700K» (o « · 2700K» en las líneas guardadas antes). */
+const variantSuffix = (i: { variantLabel?: string; cct?: number }) =>
+  i.variantLabel ? ` · ${i.variantLabel}` : i.cct ? ` · ${i.cct}K` : '';
+
 const djb2 = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0; return h.toString(36); };
 
 /**
@@ -261,8 +266,9 @@ const QuoteCartPage = () => {
     if (!consent.check()) return;
     setSending(true);
 
-    // La misma lista, del mismo cliente y en la misma hora, lleva la misma referencia
-    const skus = quoteCart.map(i => i.product.id + ':' + (i.variantSku ?? requestSku(i.product)) + 'x' + i.quantity).sort().join(',');
+    // La misma lista, del mismo cliente y en la misma hora, lleva la misma referencia. La variante
+    // cuenta: dos variantes sin SKU propio comparten «JS-<id>» (otra lista no es un reenvío)
+    const skus = quoteCart.map(i => i.product.id + ':' + (i.variantSku ?? requestSku(i.product)) + (i.variantId ? '#' + i.variantId : '') + 'x' + i.quantity).sort().join(',');
     const quoteRef = 'NE-' + djb2([values.email.trim().toLowerCase(), customerType, skus, Math.floor(Date.now() / 3_600_000)].join('|'));
 
     try {
@@ -286,9 +292,11 @@ const QuoteCartPage = () => {
           : undefined,
         products: quoteCart.map(i => ({
           jumpsellerId: i.product.jumpseller_id,
-          variantId: (i.cct != null ? i.product.cctVariants?.find(v => v.kelvin === i.cct)?.jumpseller_variant_id : undefined) ?? i.product.jumpseller_variant_id,
+          variantId: i.variantId ?? (i.cct != null ? i.product.cctVariants?.find(v => v.kelvin === i.cct)?.jumpseller_variant_id : undefined) ?? i.product.jumpseller_variant_id,
           sku: i.variantSku ?? requestSku(i.product),
           name: i.product.name,
+          // Qué variante es, legible para el vendedor: dos variantes pueden compartir el SKU
+          variantLabel: i.variantLabel ?? (i.cct ? `${i.cct}K` : undefined),
           quantity: i.quantity,
           unitPriceClp: displayPrice(i.unitPrice ?? i.product.price),
         })),
@@ -305,9 +313,9 @@ const QuoteCartPage = () => {
       setSent({
         reference: quoteRef,
         lines: quoteCart.map(i => ({
-          key: quoteLineKey(i.product.id, i.cct),
+          key: quoteItemKey(i),
           name: i.product.name,
-          detail: `${i.variantSku ?? requestSku(i.product)}${i.cct ? ` · ${i.cct}K` : ''}`,
+          detail: `${i.variantSku ?? requestSku(i.product)}${variantSuffix(i)}`,
           quantity: i.quantity,
           unit: formatDisplayPrice(i.unitPrice ?? i.product.price),
         })),
@@ -392,7 +400,10 @@ const QuoteCartPage = () => {
           <span>Producto</span><span className="hidden sm:block">Precio unit.</span><span className="hidden sm:block">Cantidad</span><span className="hidden sm:block"></span>
         </div>
         {quoteCart.map(item => {
-          const key = quoteLineKey(item.product.id, item.cct);
+          const key = quoteItemKey(item);
+          // La variante en los nombres de los botones: dos variantes del mismo producto son dos filas
+          const variantName = item.variantLabel ?? (item.cct ? `${item.cct}K` : '');
+          const rowName = `${item.product.name}${variantName ? `, ${variantName}` : ''}`;
           return (
           <div key={key} className="px-4 py-3 border-t grid grid-cols-[1fr_auto_auto] sm:grid-cols-[1fr_auto_auto_auto] gap-x-4 gap-y-2 items-center">
             <div className="col-span-3 sm:col-span-1 flex items-center gap-3 min-w-0">
@@ -405,7 +416,7 @@ const QuoteCartPage = () => {
               <div className="min-w-0">
                 <p className="font-semibold text-sm break-words sm:line-clamp-1">{item.product.name}</p>
                 <p className="text-[10px] text-muted-foreground font-mono">
-                  {item.variantSku ?? requestSku(item.product)}{item.cct ? ` · ${item.cct}K` : ''}
+                  {item.variantSku ?? requestSku(item.product)}{variantSuffix(item)}
                 </p>
               </div>
             </div>
@@ -414,11 +425,11 @@ const QuoteCartPage = () => {
               <span className="block sm:inline sm:ml-1 text-[10px] text-muted-foreground">{priceLabel}</span>
             </div>
             <div className="flex items-center border rounded-lg">
-              <button aria-label={`Restar una unidad de ${item.product.name}${item.cct ? `, ${item.cct}K` : ''}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
+              <button aria-label={`Restar una unidad de ${rowName}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
               <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-              <button aria-label={`Sumar una unidad de ${item.product.name}${item.cct ? `, ${item.cct}K` : ''}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
+              <button aria-label={`Sumar una unidad de ${rowName}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
             </div>
-            <button aria-label={`Quitar ${item.product.name}${item.cct ? `, ${item.cct}K` : ''} de la cotización`} onClick={() => removeFromQuote(key)} className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors">
+            <button aria-label={`Quitar ${rowName} de la cotización`} onClick={() => removeFromQuote(key)} className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors">
               <Trash2 className="h-4 w-4" />
             </button>
           </div>

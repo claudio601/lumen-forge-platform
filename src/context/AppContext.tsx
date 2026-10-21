@@ -2,10 +2,19 @@ import { createContext, startTransition, useContext, useState, useEffect, ReactN
 import type { Product } from '@/data/catalog/types';
 // Tabla chica y sin imports: este archivo va en el bundle principal (no importar el catálogo)
 import { RENAMED_FROM } from '@/data/catalog/renamed-ids';
+// Identidad de cada línea: producto + variante (src/lib/quoteLine.ts)
+import { quoteItemKey, quoteLineKey } from '@/lib/quoteLine';
 
-// Selección de variante de color al cotizar. unitPrice es CON IVA (base);
-// displayPrice aplica el toggle B2B (÷1,19) al renderizar.
-export interface QuoteSelection { cct: number; sku: string; unitPrice: number; }
+// Variante elegida al cotizar. unitPrice es CON IVA (base); displayPrice aplica el toggle
+// B2B (÷1,19) al renderizar. variantId y label: la variante de Jumpseller y su etiqueta
+// legible (src/lib/variants.ts); cct, la temperatura de color si la opción la trae.
+export interface QuoteSelection {
+  cct?: number;
+  sku: string;
+  unitPrice: number;
+  variantId?: number;
+  label?: string;
+}
 interface QuoteItem {
   product: Product;
   quantity: number;
@@ -13,11 +22,12 @@ interface QuoteItem {
   cct?: number;
   variantSku?: string;
   unitPrice?: number;
+  /** Id de la variante en Jumpseller (las cotizaciones guardadas antes de 2026-10-21 no lo traen). */
+  variantId?: number;
+  /** Etiqueta legible de la variante: «Cálida 2700K», «80W · Neutra 4000K». */
+  variantLabel?: string;
 }
 
-// Identidad de línea de cotización: un mismo producto en dos CCT distintas
-// son líneas separadas.
-export const quoteLineKey = (productId: string, cct?: number) => `${productId}::${cct ?? ''}`;
 
 interface AppContextType {
   quoteCart: QuoteItem[];
@@ -54,9 +64,15 @@ function withCurrentIds(items: QuoteItem[]): QuoteItem[] {
   const out: QuoteItem[] = [];
   for (const item of items) {
     const current = RENAMED_FROM.get(item?.product?.id ?? '');
-    const next = current ? { ...item, product: { ...item.product, id: current } } : item;
-    const key = quoteLineKey(next.product?.id ?? '', next.cct);
-    const twin = out.findIndex(i => quoteLineKey(i.product?.id ?? '', i.cct) === key);
+    let next = current ? { ...item, product: { ...item.product, id: current } } : item;
+    // Línea BESTLED guardada antes del selector genérico (solo con su CCT): toma el id de la
+    // variante, para juntarse con la misma variante agregada después.
+    if (next?.cct != null && next.variantId == null) {
+      const variantId = next.product?.cctVariants?.find(v => v.kelvin === next.cct)?.jumpseller_variant_id;
+      if (variantId) next = { ...next, variantId };
+    }
+    const key = quoteItemKey(next);
+    const twin = out.findIndex(i => quoteItemKey(i) === key);
     if (twin >= 0) out[twin] = { ...out[twin], quantity: out[twin].quantity + next.quantity };
     else out.push(next);
   }
@@ -92,18 +108,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [isB2B, loaded]);
 
   const addToQuote = (product: Product, qty = 1, notes?: string, selection?: QuoteSelection) => {
-    const key = quoteLineKey(product.id, selection?.cct);
+    const key = quoteLineKey(product.id, selection?.cct, selection?.variantId);
     setQuoteCart(prev => {
-      const existing = prev.find(i => quoteLineKey(i.product.id, i.cct) === key);
-      if (existing) return prev.map(i => quoteLineKey(i.product.id, i.cct) === key ? { ...i, quantity: i.quantity + qty } : i);
-      return [...prev, { product, quantity: qty, notes, cct: selection?.cct, variantSku: selection?.sku, unitPrice: selection?.unitPrice }];
+      const existing = prev.find(i => quoteItemKey(i) === key);
+      if (existing) return prev.map(i => quoteItemKey(i) === key ? { ...i, quantity: i.quantity + qty } : i);
+      return [...prev, {
+        product, quantity: qty, notes,
+        cct: selection?.cct, variantSku: selection?.sku, unitPrice: selection?.unitPrice,
+        ...(selection?.variantId != null ? { variantId: selection.variantId } : {}),
+        ...(selection?.label ? { variantLabel: selection.label } : {}),
+      }];
     });
   };
-  const removeFromQuote = (lineKey: string) => setQuoteCart(prev => prev.filter(i => quoteLineKey(i.product.id, i.cct) !== lineKey));
+  const removeFromQuote = (lineKey: string) => setQuoteCart(prev => prev.filter(i => quoteItemKey(i) !== lineKey));
   const clearQuote = () => setQuoteCart([]);
   const updateQuoteQty = (lineKey: string, qty: number) => {
     if (qty <= 0) { removeFromQuote(lineKey); return; }
-    setQuoteCart(prev => prev.map(i => quoteLineKey(i.product.id, i.cct) === lineKey ? { ...i, quantity: qty } : i));
+    setQuoteCart(prev => prev.map(i => quoteItemKey(i) === lineKey ? { ...i, quantity: qty } : i));
   };
   const quoteCount = quoteCart.reduce((s, i) => s + i.quantity, 0);
 
@@ -125,6 +146,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// Junto a su proveedor, como useRequestCart en RequestCartContext.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useApp = () => {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used within AppProvider');

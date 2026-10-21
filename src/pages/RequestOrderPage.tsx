@@ -133,6 +133,9 @@ interface SentOrder {
   mode: PriceMode;
 }
 
+/** Nombre de la fila en los botones: producto, variante (si la hay) y SKU, distinto en cada fila. */
+const rowName = (l: RequestCartItem) => [l.name, l.attributes?.colorLuz, l.sku].filter(Boolean).join(', ');
+
 /** Variante o código del producto, sin el código interno JS-… (es solo para Pipedrive). */
 const lineDetail = (l: RequestCartItem) =>
   [l.attributes?.colorLuz, /^JS-/.test(l.sku) ? undefined : l.sku].filter(Boolean).join(' · ');
@@ -399,6 +402,8 @@ const RequestOrderPage = () => {
               )}
               <div className="min-w-0">
                 <p className="font-semibold text-sm break-words sm:line-clamp-1">{item.name}</p>
+                {/* La variante elegida en la ficha: «Cálida 2700K» */}
+                {item.attributes?.colorLuz && <p className="text-xs text-muted-foreground">{item.attributes.colorLuz}</p>}
                 <p className="text-[10px] text-muted-foreground font-mono">{item.sku}</p>
               </div>
             </div>
@@ -408,7 +413,7 @@ const RequestOrderPage = () => {
             </div>
             <div className="flex items-center border rounded-lg">
               <button
-                aria-label={`Restar una unidad de ${item.name}, ${item.sku}`}
+                aria-label={`Restar una unidad de ${rowName(item)}`}
                 className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
                 onClick={() => updateQty(requestLineKey(item), item.quantity - 1)}
               >
@@ -416,7 +421,7 @@ const RequestOrderPage = () => {
               </button>
               <span className="px-3 text-sm font-semibold">{item.quantity}</span>
               <button
-                aria-label={`Sumar una unidad de ${item.name}, ${item.sku}`}
+                aria-label={`Sumar una unidad de ${rowName(item)}`}
                 className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
                 onClick={() => updateQty(requestLineKey(item), item.quantity + 1)}
               >
@@ -424,7 +429,7 @@ const RequestOrderPage = () => {
               </button>
             </div>
             <button
-              aria-label={`Quitar ${item.name}, ${item.sku} de la solicitud`}
+              aria-label={`Quitar ${rowName(item)} de la solicitud`}
               onClick={() => removeItem(requestLineKey(item))}
               className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors"
             >
