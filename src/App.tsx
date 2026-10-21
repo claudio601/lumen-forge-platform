@@ -6,6 +6,7 @@ import { AppProvider } from "@/context/AppContext";
 import { RequestCartProvider } from "@/context/RequestCartContext";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import CookieConsent from "@/components/legal/CookieConsent";
 import { sendPageView } from "@/lib/analytics";
@@ -51,6 +52,8 @@ export function AppLayout({ onMounted, notFoundPath }: LayoutProps) {
   return (
     <>
       <RouteTracker />
+      {/* Auditoría UX, B-01: la página nueva empieza arriba; Atrás conserva el punto. */}
+      <ScrollToTop />
       {/* Aviso de cookies (PR 13): null en el servidor y en el primer render del navegador. */}
       <CookieConsent />
       <div className="min-h-screen flex flex-col">
