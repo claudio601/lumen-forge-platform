@@ -356,9 +356,14 @@ describe('se conserva lo que no viene de Jumpseller', () => {
       if (!p.sku || p.sku === s.sku || p.sku === legacySku) continue;
       expect(owners.get(p.sku), `${p.jumpseller_id} ${p.sku}`).toEqual(new Set([p.jumpseller_id]));
     }
-    // Caso real: DLRO40N es del panel Retraído 40W; los de 24W y 6W no lo heredan.
-    expect(products.find(p => p.jumpseller_id === 25714697)!.sku).toBe('');
-    expect(products.find(p => p.jumpseller_id === 25714841)!.sku).toBe('');
+    // Caso real: DLRO40N es del panel Retraído 40W; los de 24W y 6W no lo heredan. Pueden no
+    // tener SKU o tener uno propio (el 13-10 Jumpseller le cargó PLRO24N al de 24W), pero nunca
+    // el de otro producto.
+    for (const id of [25714697, 25714841]) {
+      const sku = products.find(p => p.jumpseller_id === id)!.sku;
+      expect(sku, String(id)).not.toBe('DLRO40N');
+      if (sku) expect(owners.get(sku), `${id} ${sku}`).toEqual(new Set([id]));
+    }
   });
 
   it('todo el contenido editorial de los 7 BESTLED sigue intacto', () => {
