@@ -8,11 +8,14 @@ import { products, categories, PROJECT_CATEGORIES, type Product } from '@/data/p
 import { useProductContent } from '@/data/catalog/content';
 import type { ProductContent } from '@/data/catalog/types';
 import { buildVariantSku, requestSku } from '@/lib/variantSku';
+import {
+    missingChoicesText, selectedVariant, variantAttributes, variantAxes, variantKelvin, variantLabel,
+    variantLineSku, variantSku, variantSkuIsDistinct, variantsMatching, type VariantSelection,
+} from '@/lib/variants';
+import VariantSelector from '@/components/catalog/VariantSelector';
 import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
 import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
@@ -20,7 +23,7 @@ import {
     FileText, Minus, Plus, Download, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { waProductUrl } from '@/config/business';
@@ -35,14 +38,6 @@ import SpecGroups, { type SpecGroupsProps } from '@/components/catalog/SpecGroup
 import type { SpecRow } from '@/data/catalog/jumpseller.types';
 import { warrantyNote } from '@/lib/productWarranty';
 import { htmlToText } from '@/lib/html';
-
-// Mapping CCT -> etiqueta visible en UI / Pipedrive
-const CCT_LABELS: Record<number, string> = {
-  2200: '2200K Ámbar',
-  2700: '2700K Cálida',
-  4000: '4000K Neutra',
-  5000: '5000K Fría',
-};
 
 // Renderiza inline **bold** -> <strong>
 function renderInlineMd(text: string): ReactNode[] {
@@ -116,7 +111,9 @@ const ProductDetail = () => {
     const [qty, setQty] = useState(1);
     const [activeImg, setActiveImg] = useState(0);
     const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
-    const [selectedCCT, setSelectedCCT] = useState<number | null>(null);
+    // Variante elegida: opción por eje (nombre de la opción en Jumpseller → valor)
+    const [selection, setSelection] = useState<VariantSelection>({});
+    const hintId = useId();
 
     if (!found) {
           return (
@@ -199,27 +196,25 @@ const ProductDetail = () => {
       ]),
     };
   
-    // Resolución de precio por variante de color (CON IVA). Si la variante define
-    // price, manda; si no, cae a product.price. El toggle B2B (÷1,19) lo aplica displayPrice.
-    const selectedVariant = product.cctVariants?.find(v => v.kelvin === selectedCCT);
-    const variantPrices = (product.cctVariants ?? [])
-      .map(v => v.price)
-      .filter((p): p is number => typeof p === 'number');
-    const hasVariantPricing = variantPrices.length > 0;
-    const fromPrice = hasVariantPricing ? Math.min(...variantPrices) : product.price;
-    const basePrice = selectedVariant?.price ?? product.price;
-    // Sin selección y con precios por variante → mostrar "desde {más barato}".
-    const showFromPrice = hasVariantPricing && selectedCCT === null;
-    const displayedBasePrice = showFromPrice ? fromPrice : basePrice;
+    // Variantes de Jumpseller (auditoría UX, D-01): con más de una, el cliente elige en el
+    // selector y los botones esperan la elección. Precio CON IVA de la variante; el toggle B2B
+    // (÷1,19) lo aplica displayPrice. Mientras falte elegir, si las variantes posibles no
+    // cuestan lo mismo, "desde {la más barata}".
+    const axes = variantAxes(product);
+    const hasVariantChoice = axes.length > 0;
+    const chosen = selectedVariant(product, axes, selection);
+    const candidatePrices = hasVariantChoice
+      ? variantsMatching(product.variants ?? [], selection).map(v => v.price)
+      : [product.price];
+    const candidateMin = candidatePrices.length ? Math.min(...candidatePrices) : product.price;
+    const showFromPrice = !chosen && new Set(candidatePrices).size > 1;
+    // Precio de lo que se agrega: el de la variante elegida (o el único posible)
+    const basePrice = chosen?.price ?? (showFromPrice ? product.price : candidateMin);
+    const displayedBasePrice = showFromPrice ? candidateMin : basePrice;
 
     // Precio unitario en el modo del selector (total por la cantidad elegida)
-    const frozenUnitPrice = displayPrice(basePrice);
+    const frozenUnitPrice = displayPrice(displayedBasePrice);
 
-    // CCT: si el producto define availableCCT[], el cliente debe elegir antes de
-    // poder solicitar pedido o cotizar. La selección define el SKU final
-    // despachable, el mismo de Jumpseller (ej. 2200K: APB120 + '1' -> APB1201),
-    // y la etiqueta visible.
-    const hasCCTSelector = !!(product.availableCCT && product.availableCCT.length > 0);
     const hasGroupedSpecs = !!(
       (product.specsElectricos && product.specsElectricos.length > 0) ||
       (product.specsConstruccion && product.specsConstruccion.length > 0) ||
@@ -245,27 +240,35 @@ const ProductDetail = () => {
         : nameSpecs.electricos.length || nameSpecs.construccion.length
           ? { ...nameSpecs, applications: product.applications }
           : null;
-    const cctLabel = selectedCCT != null ? CCT_LABELS[selectedCCT] : undefined;
-    const skuFinal = buildVariantSku(requestSku(product), selectedCCT);
-    // Consultas por WhatsApp con la variante elegida (SKU + color de luz), no el SKU base.
-    const waUrl = waProductUrl(cctLabel ? `${product.name} – ${cctLabel}` : product.name, skuFinal);
+    // La variante elegida define el SKU de la línea (el de Jumpseller, p. ej. APB907, o JS-<id>
+    // si no tiene) y la etiqueta legible que llega a la solicitud, a la cotización, a Pipedrive
+    // y a WhatsApp.
+    const chosenLabel = chosen ? variantLabel(product, chosen) : undefined;
+    const skuFinal = chosen ? variantLineSku(product, chosen) : requestSku(product);
+    // Código visible arriba: el de la variante elegida, solo si Jumpseller le dio uno (nunca el
+    // del producto ni el interno JS-…)
+    const headerSku = chosen ? variantSku(chosen) : product.sku;
+    // Consultas por WhatsApp con la variante elegida (SKU + variante), no el SKU base.
+    const waUrl = waProductUrl(chosenLabel ? `${product.name} – ${chosenLabel}` : product.name, skuFinal);
 
-    const ctaDisabled = hasCCTSelector && selectedCCT === null;
+    // Sin la variante, los botones no agregan nada (como hasta ahora en las BESTLED)
+    const ctaDisabled = hasVariantChoice && !chosen;
+    const missingAxes = axes.filter(a => selection[a.name] === undefined);
+    // «Define el SKU del despacho» solo si el SKU de la variante la distingue de las otras
+    const variantHint = chosen
+      ? `Elegiste: ${chosenLabel}. ${variantSkuIsDistinct(product, chosen) ? 'La elección define el SKU del despacho.' : 'La elección queda registrada en tu solicitud.'}`
+      : `Elige ${missingChoicesText(missingAxes)} para continuar.`;
 
-    // Variante propagada a la cotización: SKU final (ej. 2700K: APB1507) + precio CON IVA
-    // de la variante elegida. Sin selección queda undefined → cae a product.price.
-    const quoteSelection = selectedCCT != null
-      ? { cct: selectedCCT, sku: skuFinal, unitPrice: basePrice }
-      : undefined;
-
-    const selectedVariantId = selectedCCT != null
-      ? product.cctVariants?.find(v => v.kelvin === selectedCCT)?.jumpseller_variant_id
+    // Variante propagada a la cotización: SKU, precio CON IVA, id y etiqueta de la variante.
+    // Sin variante para elegir queda undefined → cae a product.price.
+    const quoteSelection = chosen
+      ? { cct: variantKelvin(product, chosen), sku: skuFinal, unitPrice: chosen.price, variantId: chosen.id, label: chosenLabel }
       : undefined;
 
     const requestItem = {
           productId: product.id,
           jumpsellerId: product.jumpseller_id,
-          variantId: selectedVariantId ?? product.jumpseller_variant_id,
+          variantId: chosen?.id ?? product.jumpseller_variant_id,
           sku: skuFinal,
           name: product.name,
           // Siempre CON IVA (el de la variante elegida): la solicitud muestra el neto según
@@ -273,10 +276,9 @@ const ProductDetail = () => {
           unitPrice: basePrice,
           image: gallery[0] ? jsImage(gallery[0], 200, 'thumb') : undefined,
           url: `/producto/${product.id}`,
-          attributes: {
-                  potencia: product.watts > 0 ? `${product.watts}W` : undefined,
-                  colorLuz: cctLabel,
-          },
+          attributes: chosen
+            ? variantAttributes(product, chosen)
+            : { potencia: product.watts > 0 ? `${product.watts}W` : undefined },
     };
   
     return (
@@ -361,7 +363,7 @@ const ProductDetail = () => {
                 
                   {/* ── Info + CTAs ─────────────────────────────────────── */}
                         <div>
-                                  <p className="text-xs text-muted-foreground font-mono mb-1">{product.sku}</p>
+                                  <p className="text-xs text-muted-foreground font-mono mb-1 min-h-4">{headerSku}</p>
                                   <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
                         
                           {(product.tags ?? []).length > 0 && (
@@ -410,35 +412,17 @@ const ProductDetail = () => {
                         <div className="mb-4" />
                       )}
                         
-                          {/* Selector de temperatura de color (solo si product.availableCCT existe) */}
-                          {hasCCTSelector && (
-                                  <div className="mb-4 p-4 border rounded-xl bg-surface">
-                                              <Label className="text-sm font-semibold mb-3 block">
-                                                Temperatura de color <span className="text-destructive">*</span>
-                                              </Label>
-                                              <RadioGroup
-                                                value={selectedCCT != null ? String(selectedCCT) : ''}
-                                                onValueChange={(v) => setSelectedCCT(Number(v))}
-                                                className="grid grid-cols-2 gap-2"
-                                              >
-                                                {(product.availableCCT ?? []).map(cct => (
-                                                  <div key={cct} className="flex items-center gap-2">
-                                                    <RadioGroupItem value={String(cct)} id={`cct-${cct}`} />
-                                                    <Label htmlFor={`cct-${cct}`} className="text-sm cursor-pointer">
-                                                      {CCT_LABELS[cct] ?? `${cct}K`}
-                                                    </Label>
-                                                  </div>
-                                                ))}
-                                              </RadioGroup>
-                                              <p className="text-xs text-muted-foreground mt-3">
-                                                Selecciona la temperatura de color. La elección afecta el SKU final del despacho.
-                                              </p>
-                                              {ctaDisabled && (
-                                                <p className="text-xs text-destructive mt-2">
-                                                  Selecciona temperatura de color para continuar
-                                                </p>
-                                              )}
-                                  </div>
+                          {/* Selector de variante (productos con más de una variante en Jumpseller) */}
+                          {hasVariantChoice && (
+                                  <VariantSelector
+                                    axes={axes}
+                                    variants={product.variants ?? []}
+                                    selection={selection}
+                                    onSelect={(name, value) => setSelection(prev => ({ ...prev, [name]: value }))}
+                                    formatPrice={formatDisplayPrice}
+                                    hint={variantHint}
+                                    hintId={hintId}
+                                  />
                                 )}
 
                           {/* Selector de cantidad */}
@@ -453,7 +437,7 @@ const ProductDetail = () => {
                                                             </button>
                                               </div>
                                               <span className="text-sm text-muted-foreground">
-                                                            Subtotal:{' '}
+                                                            Subtotal{showFromPrice ? ' desde' : ''}:{' '}
                                                 {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(frozenUnitPrice * qty)}{' '}
                                                 {priceLabel}
                                               </span>
@@ -462,17 +446,18 @@ const ProductDetail = () => {
                           {/* ── CTAs principales ── */}
                                   <div className="flex flex-wrap gap-3 mb-6">
                                     {/* FASE 1: CTA principal = Solicitar pedido */}
-                                              <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" disabled={ctaDisabled} />
+                                              <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" disabled={ctaDisabled} aria-describedby={hasVariantChoice ? hintId : undefined} />
                                     {/* Cotizar (QuoteCart) se mantiene como accion secundaria.
-                                        Propaga la variante CCT seleccionada (SKU + precio) a la línea de cotización. */}
+                                        Propaga la variante elegida (id, SKU, precio y etiqueta) a la línea de cotización. */}
                                               <Button
                                                               size="lg"
                                                               variant="outline"
                                                               disabled={ctaDisabled}
+                                                              aria-describedby={hasVariantChoice ? hintId : undefined}
                                                               className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
                                                               onClick={() => {
                                                                                 addToQuote(product, qty, undefined, quoteSelection);
-                                                                                toast.success('Agregado a cotización');
+                                                                                toast.success('Agregado a cotización', chosenLabel ? { description: `${product.name} – ${chosenLabel}` } : undefined);
                                                               }}
                                                             >
                                                             <FileText className="h-4 w-4" />

@@ -2,6 +2,11 @@
 // Tipos del catálogo. Sin datos: se puede importar desde cualquier parte (incluido
 // el bundle principal y scripts/) sin arrastrar el arreglo de productos.
 
+import type { SnapshotVariant } from './jumpseller.types';
+
+/** Variante de Jumpseller: id, SKU ('' si no tiene), precio CON IVA y opciones. */
+export type ProductVariant = SnapshotVariant;
+
 export interface Product {
   id: string;
   sku: string;
@@ -23,7 +28,13 @@ export interface Product {
   featured: boolean;
   brand: string;
   jumpseller_id: number;
+  /** Id de la única variante en Jumpseller (productos con una sola variante). */
   jumpseller_variant_id?: number;
+  /**
+   * Variantes de Jumpseller, solo cuando hay más de una para elegir: el selector de la ficha
+   * (src/lib/variants.ts) las muestra con etiquetas limpias, y la tarjeta pide elegir.
+   */
+  variants?: ProductVariant[];
   cri?: number;
   voltage?: string;
   beamAngle?: number;

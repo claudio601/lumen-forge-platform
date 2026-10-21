@@ -29,6 +29,14 @@ describe('reconcileRequestItems: carritos guardados antes de una sincronización
     expect(r.items[0]).toMatchObject({ unitPrice: v2700.price, variantId: v2700.jumpseller_variant_id });
   });
 
+  it('usa el precio de la variante elegida en el selector genérico (Flyhawk 80W: $514.800, no $442.800)', () => {
+    const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
+    const line = item({ productId: flyhawk.id, jumpsellerId: flyhawk.jumpseller_id, sku: 'JS-11521285', variantId: 118197864, unitPrice: 514800, attributes: { colorLuz: '80W · Cálida 2200K' } });
+    const r = reconcileRequestItems([line], products);
+    expect(r.repriced).toBe(0);
+    expect(r.items[0]).toMatchObject({ unitPrice: 514800, variantId: 118197864, sku: 'JS-11521285', attributes: { colorLuz: '80W · Cálida 2200K' } });
+  });
+
   it('quita productos que ya no se publican', () => {
     const r = reconcileRequestItems([item({ productId: 'campana-led-ufo-150w-ip65-light-negra', name: 'UFO 150W' }), item({})], products);
     expect(r.removed).toEqual(['UFO 150W']);
@@ -101,6 +109,12 @@ describe('payload y referencia', () => {
   it('dos productos con el mismo SKU de Jumpseller no generan la misma referencia', () => {
     const a = buildRequestRef('x@y.cl', [item({ productId: 'panel-24w', sku: 'DLRO40N' })]);
     const b = buildRequestRef('x@y.cl', [item({ productId: 'panel-6w', sku: 'DLRO40N' })]);
+    expect(a).not.toBe(b);
+  });
+
+  it('dos variantes sin SKU propio del mismo producto (ambas «JS-<id>») dan referencias distintas', () => {
+    const a = buildRequestRef('x@y.cl', [item({ productId: 'flyhawk', sku: 'JS-11521285', variantId: 118197717 })]);
+    const b = buildRequestRef('x@y.cl', [item({ productId: 'flyhawk', sku: 'JS-11521285', variantId: 118197864 })]);
     expect(a).not.toBe(b);
   });
 });

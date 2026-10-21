@@ -23,6 +23,18 @@ describe('precios en el servidor (CON IVA, desde el catálogo)', () => {
     expect(r.lines[0]).toMatchObject({ variantId: 111887368, sku: 'APB407', unitPrice: 119400 });
   });
 
+  it('variante sin SKU propio: nunca el SKU de otra variante, sino JS-<id> (Flyhawk, catálogo real)', () => {
+    // La Flyhawk tiene APSB80N como SKU de producto, que es el de sus variantes 4000K.
+    const r = priceItems([{ jumpsellerId: 11521285, variantId: 118197864, quantity: 1 }]);
+    expect(r.errors).toEqual([]);
+    expect(r.lines[0]).toMatchObject({ variantId: 118197864, sku: 'JS-11521285' });
+  });
+
+  it('variante sin SKU en un producto de una sola variante: usa el SKU del producto', () => {
+    const one: Record<string, PriceIndexEntry> = { '7000001': { name: 'X', sku: 'XSKU', price: 5000, variants: { '1': { sku: '', price: 5000 } } } };
+    expect(priceItems([{ jumpsellerId: 7000001, variantId: 1, quantity: 1 }], one).lines[0].sku).toBe('XSKU');
+  });
+
   it('producto sin SKU: queda JS-<id>', () => {
     expect(priceItems([{ jumpsellerId: 3921249, quantity: 1 }], index).lines[0].sku).toBe('JS-3921249');
   });

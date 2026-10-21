@@ -120,12 +120,15 @@ function expectServerHtmlWithoutBanner(html: string) {
 
 const withContent = products.find(p => hasProductContent(p.jumpseller_id) && !editorialOverlay[p.jumpseller_id])!;
 const bestled = products.find(p => editorialOverlay[p.jumpseller_id])!;
+// Selector de variante genérico con dos ejes (potencia y temperatura de color) y precio «desde»
+const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
 
 const PAGES: [string, string, string][] = [
   ...STATIC_ROUTES.map(r => [`página fija ${r}`, r, r] as [string, string, string]),
   ['categoría (Google Ads, página 2)', '/catalogo/paneles-led', '/catalogo/paneles-led?gclid=abc&utm_source=google&page=2'],
   ['ficha con contenido SEO', `/producto/${withContent.id}`, `/producto/${withContent.id}?gclid=abc`],
   ['ficha BESTLED', `/producto/${bestled.id}`, `/producto/${bestled.id}`],
+  ['ficha con selector de variante (Flyhawk)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?gclid=abc`],
 ];
 
 /**
@@ -171,6 +174,37 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(container.textContent).toContain('B2B - Precio neto');
     expect(sessionStorage.getItem('elights_b2b')).toBe('true');
     expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)).toHaveLength(1);
+  });
+
+  it('la ficha con variantes llega con el selector y «desde» en el HTML, y al hidratar se puede elegir', async () => {
+    const { container, html } = await hydrate(`/producto/${flyhawk.id}`, `/producto/${flyhawk.id}`, false);
+    expect(html).toContain('data-variant-selector');
+    expect(html).toContain('Elige una potencia y una temperatura de color para continuar.');
+    const price = () => container.querySelector('main p.text-3xl')!.parentElement!.textContent!;
+    expect(price()).toMatch(/^desde\s*\$442\.800/);
+    const radio = (name: RegExp) => [...container.querySelectorAll<HTMLElement>('[role="radio"]')].find(r => name.test(r.closest('label')!.textContent!))!;
+    await act(async () => { fireEvent.click(radio(/^80W/)); });
+    await act(async () => { fireEvent.click(radio(/^Cálida 2200K/)); });
+    expect(price()).toMatch(/^\$514\.800/);
+    expect(container.textContent).toContain('Elegiste: 80W · Cálida 2200K.');
+  });
+
+  it('el HTML de las fichas con selector no lleva el texto crudo de Jumpseller; en las BESTLED, ningún «% de luz azul»', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {}); // useLayoutEffect de Radix en jsdom (ver hydrate)
+    const bestleds = products.filter(p => p.availableCCT?.length);
+    expect(bestleds).toHaveLength(7);
+    for (const p of [...bestleds, flyhawk]) {
+      const path = `/producto/${p.id}`;
+      await preloadRoute(path);
+      const html = renderToString(serverTree(path));
+      expect(html, p.name).toContain('data-variant-selector');
+      // Ni en los radios ni en los inputs ocultos de Radix (antes: value="Luz Cálida - 2200K - 1% Luz Azul")
+      for (const raw of new Set(p.variants!.flatMap(v => v.options.map(o => o.value)))) {
+        if (/luz/i.test(raw)) expect(html, `${p.name}: ${raw}`).not.toContain(`value="${raw}"`);
+      }
+      // D.S. N°1: el % es el límite de la clase, no un dato de la temperatura (scripts/catalog.test.ts)
+      if (p.availableCCT?.length) expect(html, p.name).not.toMatch(/\b\d+ ?% (?:de )?luz azul/i);
+    }
   });
 
   it('la ficha llega con su contenido SEO en el HTML y lo conserva al hidratar', async () => {

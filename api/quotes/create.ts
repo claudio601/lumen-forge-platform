@@ -267,13 +267,16 @@ function repriceSiteQuote(body: Record<string, unknown>, site: SiteQuote): strin
     }
     total += line.lineTotal;
     const sku = siteText(line.sku);
+    // Qué variante es, legible (la etiqueta del sitio): dos variantes pueden compartir el SKU
+    const label = line.variantId ? siteText(p.variantLabel) : '';
+    const variant = label ? ` — ${label}` : '';
     const revisarVariant = line.variantUnknown ? ' — REVISAR: variante ya no existe, precio base' : '';
     site.detail.push(
-      `  [${sku}] ${line.name} x${line.quantity} @ ${line.unitPrice} CLP = ${line.lineTotal} CLP` +
+      `  [${sku}] ${line.name}${variant} x${line.quantity} @ ${line.unitPrice} CLP = ${line.lineTotal} CLP` +
         ` | Jumpseller ${line.jumpsellerId}${line.variantId ? ` variante ${line.variantId}` : ''}` +
         revisarVariant,
     );
-    site.compact.push(`  [${sku}] x${line.quantity} = ${line.lineTotal} CLP${revisarVariant}`);
+    site.compact.push(`  [${sku}]${variant} x${line.quantity} = ${line.lineTotal} CLP${revisarVariant}`);
     return { sku: line.sku, name: line.name, quantity: line.quantity, unitPriceClp: line.unitPrice };
   });
   if (total > 0) body.quoteAmountClp = total;
