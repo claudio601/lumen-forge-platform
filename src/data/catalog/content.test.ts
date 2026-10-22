@@ -29,7 +29,7 @@ describe('contenido SEO por producto', () => {
   });
 
   it('formato del formato BESTLED y reglas del sitio (sin stock, precios ni promesas)', () => {
-    const problems = entries.flatMap(([id, c]) => [...checkFormat(c), ...checkRules(c)].map(p => `${id}: ${p}`));
+    const problems = entries.flatMap(([id, c]) => [...checkFormat(c), ...checkRules(c, id)].map(p => `${id}: ${p}`));
     expect(problems).toEqual([]);
   });
 

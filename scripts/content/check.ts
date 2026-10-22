@@ -3,8 +3,9 @@
 //   - formato y largos del formato BESTLED (lo que la ficha sabe mostrar),
 //   - reglas del sitio (sin stock, sin precios, despacho solo "hasta 2 días hábiles" y
 //     nunca como plazo de llegada, sin flota propia, sin promesas como "gratis" o "mismo día";
-//     D.S. N°1/2022 sin certificado afirmado, sin el D.S. N°43, sin luz azul en canchas y sin
-//     el «% de luz azul» junto a la norma: src/data/catalog/ds1.ts),
+//     D.S. N°1/2022 certificado solo en las líneas certificadas y en sus versiones
+//     certificadas, sin el D.S. N°43, sin luz azul en canchas y sin el «% de luz azul» junto a
+//     la norma: src/data/catalog/ds1.ts),
 //   - que no invente datos: cada cifra con su unidad (W, lm, K, V, h, años, mm, °, %, A…)
 //     tiene que estar en los datos de Jumpseller del producto con esa misma unidad (o en
 //     una fila cuya etiqueta la implica, como "Garantía" o "Alto (mm)"); lo mismo cada
@@ -257,8 +258,13 @@ export function checkFormat(c: ProductContent): string[] {
 /** El plazo de despacho en una oración con dos o más ";": lo de regiones va en otra oración. */
 const CHAINED_DISPATCH = new RegExp(String.raw`${W}${TWO_DAYS}${WE}`, 'iu');
 
-/** Reglas del sitio: sin stock, sin precios, despacho solo "hasta 2 días hábiles" (no de llegada), sin flota propia ni promesas. */
-export function checkRules(c: ProductContent): string[] {
+/**
+ * Reglas del sitio: sin stock, sin precios, despacho solo "hasta 2 días hábiles" (no de llegada),
+ * sin flota propia ni promesas, y el D.S. N°1/2022. El id de Jumpseller decide si el producto es
+ * de una línea con certificado D.S. N°1 (src/data/catalog/ds1.ts); sin id, se revisa como un
+ * producto sin certificado.
+ */
+export function checkRules(c: ProductContent, jumpsellerId?: number): string[] {
   const problems: string[] = [];
   const text = allText(c);
   const rule = findRuleBreaking(text);
@@ -269,9 +275,9 @@ export function checkRules(c: ProductContent): string[] {
   }
   const chained = text.split(/(?<=[.!?])\s+|\n+/).find(s => CHAINED_DISPATCH.test(s) && s.split(';').length > 2);
   if (chained) problems.push(`encadena el plazo de despacho con dos o más ";" (lo de regiones va en otra oración): "${chained.slice(0, 60)}…"`);
-  // D.S. N°1/2022: el contenido SEO nunca es de una BESTLED (content.test.ts), así que ningún
-  // producto de aquí tiene certificado documentado (src/data/catalog/ds1.ts)
-  problems.push(...ds1ContentIssues(c));
+  // D.S. N°1/2022: el certificado solo en las líneas certificadas, y ahí solo en sus versiones
+  // certificadas (src/data/catalog/ds1.ts)
+  problems.push(...ds1ContentIssues(c, jumpsellerId));
   return problems;
 }
 
@@ -298,7 +304,7 @@ export function checkFacts(c: ProductContent, f: ProductFacts): string[] {
 }
 
 export function checkContent(c: ProductContent, f: ProductFacts): string[] {
-  return [...checkFormat(c), ...checkRules(c), ...checkFacts(c, f)];
+  return [...checkFormat(c), ...checkRules(c, f.jumpseller_id), ...checkFacts(c, f)];
 }
 
 /** Oraciones largas repetidas en muchos productos (contenido duplicado: malo para SEO). */

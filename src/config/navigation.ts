@@ -23,8 +23,8 @@ export const ADVISORY_LINK = {
 /**
  * Aviso del D.S. N°1/2022 bajo los botones del hero de la portada (auditoría UX, A-01): lleva a
  * la categoría, que explica la norma (src/data/catalog/category-intros.ts). Sin "con
- * certificado": la mayoría de los productos de la categoría no tiene certificado D.S. N°1
- * documentado (solo las BESTLED).
+ * certificado": el certificado D.S. N°1 es solo de 8 líneas, y en la mayoría solo en algunas
+ * versiones (src/data/catalog/ds1.ts); la categoría dice cuáles son de alumbrado público.
  * La ruta va escrita: src/lib/seo/routes.ts importa el catálogo completo y la portada no debe
  * cargarlo (lo prueba contentTruth.test.ts contra categoryPath).
  */

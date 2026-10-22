@@ -1,6 +1,7 @@
 // scripts/content/facts.ts
 // Los datos de un producto que puede usar su contenido SEO: solo lo que dice Jumpseller
-// (nombre, SKU, marca, categorías, especificaciones agrupadas, aplicaciones y texto).
+// (nombre, SKU, marca, categorías, opciones de sus variantes, especificaciones agrupadas,
+// aplicaciones y texto).
 // Lo leen quienes escriben el contenido y check.ts, que verifica cada cifra contra esto.
 
 import type { ProductDescription, SnapshotProduct, SpecRow } from '../../src/data/catalog/jumpseller.types';
@@ -19,6 +20,11 @@ export interface ProductFacts {
   text: string;
   /** Tablas comparativas (familia), sin etiquetas. */
   tables: string;
+  /**
+   * Opciones de sus variantes («Color de Luz: Luz Ámbar - 1600K»), sin repetir: las muestra el
+   * selector de la ficha, aunque la descripción no las liste.
+   */
+  variantOptions: string[];
 }
 
 const plain = (html = '') =>
@@ -33,7 +39,7 @@ const plain = (html = '') =>
     .trim();
 
 export function productFacts(
-  p: Pick<SnapshotProduct, 'jumpseller_id' | 'name' | 'sku' | 'brand' | 'categories'>,
+  p: Pick<SnapshotProduct, 'jumpseller_id' | 'name' | 'sku' | 'brand' | 'categories'> & Partial<Pick<SnapshotProduct, 'variants'>>,
   d: ProductDescription | undefined,
   categoryNames: Readonly<Record<string, string>>,
 ): ProductFacts {
@@ -49,11 +55,12 @@ export function productFacts(
     applications: d?.applications ?? [],
     text: plain(d?.text),
     tables: plain(d?.tables),
+    variantOptions: [...new Set((p.variants ?? []).flatMap(v => v.options.map(o => `${o.name}: ${o.value}`)))],
   };
 }
 
 /** Todo el texto de los datos, para buscar cifras y certificaciones. */
 export function factsText(f: ProductFacts): string {
   const rows = [...f.electricos, ...f.construccion, ...f.componentes].map(r => `${r.label}: ${r.value}`);
-  return [f.name, f.sku, f.brand, ...f.categories, ...rows, ...f.applications, f.text, f.tables].join('\n');
+  return [f.name, f.sku, f.brand, ...f.categories, ...rows, ...f.applications, f.text, f.tables, ...f.variantOptions].join('\n');
 }

@@ -11,12 +11,13 @@
 // check-prerender no detecta estas frases (solo mira stock y plazos de despacho), así que
 // este test las vigila en el código y en el HTML que genera el servidor.
 //
-// D.S. N°1/2022 (auditoría UX, entrega 4: D-04, K-03, E-01 y A-01): al final de este archivo, el
-// contenido propio (fichas SEO, fichas editoriales, introducciones de categoría y configuración)
-// no afirma el certificado D.S. N°1 de productos sin certificado documentado, no cita el D.S.
-// N°43, no le aplica la luz azul a las canchas y no pone el «% de luz azul» junto a la norma en
-// una ficha sin certificado (reglas en src/data/catalog/ds1.ts); y el aviso del hero y el bloque
-// de /catalogo/alumbrado-publico se ven como se aprobaron.
+// D.S. N°1/2022 (auditoría UX, entrega 4: D-04, K-03, E-01 y A-01; líneas certificadas según el
+// dueño, 22-10-2026): al final de este archivo, el contenido propio (fichas SEO, fichas
+// editoriales, introducciones de categoría y configuración) solo afirma el certificado D.S. N°1
+// de las 8 líneas certificadas y en sus versiones certificadas, no cita el D.S. N°43, no le
+// aplica la luz azul a las canchas y no pone el «% de luz azul» junto a la norma (reglas en
+// src/data/catalog/ds1.ts); y el aviso del hero y el bloque de /catalogo/alumbrado-publico se
+// ven como se aprobaron.
 //
 // Fuera de aquí: el contenido SEO por producto (src/data/catalog/content/*.json) todavía
 // promete flota propia en 116 fichas. Se corrige en la PR 11b, con su regla en
@@ -48,7 +49,18 @@ import {
   waInstaladores,
 } from './business';
 import { ADVISORY_LINK, DS1_NOTICE } from './navigation';
-import { DS1_CERTIFIED_IDS, ds1ContentIssues, ds1Issues, sentences } from '@/data/catalog/ds1';
+import {
+  DS1_CERTIFIED_IDS,
+  DS1_CERTIFIED_LINES,
+  DS1_WARM_KELVIN,
+  ds1Certificate,
+  ds1ContentIssues,
+  ds1Issues,
+  ds1Line,
+  isDs1Certified,
+  isDs1CertifiedKelvin,
+  sentences,
+} from '@/data/catalog/ds1';
 import { BESTLED_60W_ID, CATEGORY_INTROS, DS1_BUTTON_PRODUCTS, type CategoryIntro } from '@/data/catalog/category-intros';
 import type { ProductContent } from '@/data/catalog/types';
 import { claimIssues, freeShippingIssues, handWrittenFreeShippingAmount } from '@/test/freeShipping';
@@ -420,7 +432,7 @@ describe('despacho sin costo: el detector atrapa ofertas que contradicen la cons
 // ── D.S. N°1/2022 (auditoría UX, entrega 4) ─────────────────────────────────────────────
 // Reglas en src/data/catalog/ds1.ts. No dependen de valores del catálogo que cambian con
 // Jumpseller: revisan el contenido propio (lo que escribe eLIGHTS) y la lista de productos con
-// certificado documentado, que decide el dueño.
+// certificado (DS1_CERTIFIED_LINES), que decide el dueño.
 
 /** Todos los textos de un valor (objeto, lista o texto), uno por línea. */
 const textsOf = (value: unknown): string[] =>
@@ -436,11 +448,15 @@ const CONFIG_SOURCES = import.meta.glob<string>(['/src/data/catalog/categories.c
 
 /**
  * Las únicas oraciones de las introducciones de categoría que afirman el certificado D.S. N°1:
- * nombran solo a las BESTLED, el único producto con certificado documentado (DS1_CERTIFIED_IDS).
- * Una oración nueva con el certificado se agrega aquí solo con la decisión del dueño.
+ * nombran las líneas certificadas de alumbrado público (DS1_CERTIFIED_LINES: BESTLED, Flyhawk,
+ * solar industrial All in One y Pagoda solar UFO; sin la Island, que es ornamental, ni los Slim
+ * SMD y los proyectores de estadio) y solo sus versiones certificadas; la clasificación para
+ * Áreas de Protección Especial, solo de las BESTLED (su certificado detallado, PR #78). Una
+ * oración nueva con el certificado se agrega aquí solo con la decisión del dueño.
  */
 const APPROVED_CERTIFICATE_SENTENCES: ReadonlySet<string> = new Set([
-  'Las BESTLED tienen certificado D.S. N°1 en dos variantes: 2700K, para el resto del país, y 2200K, apta también para las Áreas de Protección Especial.',
+  'Las líneas BESTLED, Flyhawk y Solar industrial All in One tienen certificado D.S. N°1 en sus versiones de 2200K y 2700K; la Pagoda LED solar UFO, en sus versiones ámbar de 1600K y cálida de 2700K.',
+  'En las BESTLED, la de 2700K es para el resto del país y la de 2200K es apta también para las Áreas de Protección Especial.',
   'Ver BESTLED con certificado D.S. N°1',
 ]);
 
@@ -461,20 +477,127 @@ const ds1ButtonTarget = () =>
   DS1_BUTTON_PRODUCTS.map(id => products.find(p => p.jumpseller_id === id)).find((p): p is Product => p !== undefined);
 
 describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () => {
-  it('el certificado documentado es de las BESTLED, y su ficha editorial lo dice por variante (2200K y 2700K)', () => {
-    expect(DS1_CERTIFIED_IDS.length).toBeGreaterThan(0);
-    for (const id of DS1_CERTIFIED_IDS) {
+  it('el certificado es de las 8 líneas del dueño (33 productos), cada una con sus versiones; la ficha editorial de las BESTLED lo dice por variante', () => {
+    // Decisiones del dueño del 22-10-2026: las cálidas de 2200K y 2700K en 5 líneas, la ámbar de
+    // 1600K y la de 2700K en la Pagoda, y todas las versiones en los proyectores de estadio
+    const versions = Object.fromEntries(Object.entries(DS1_CERTIFIED_LINES).map(([line, l]) => [line, l.versions]));
+    expect(versions).toEqual({
+      bestled: [2200, 2700],
+      flyhawk: [2200, 2700],
+      solarIndustrial: [2200, 2700],
+      island: [2200, 2700],
+      slim: [2200, 2700],
+      pagoda: [1600, 2700],
+      estadioModular: 'all',
+      estadio: 'all',
+    });
+    expect(DS1_WARM_KELVIN).toEqual([2200, 2700]);
+    for (const [line, l] of Object.entries(DS1_CERTIFIED_LINES)) expect(l.ids.length, line).toBeGreaterThan(0);
+    expect(DS1_CERTIFIED_IDS).toHaveLength(33);
+    expect(new Set(DS1_CERTIFIED_IDS).size).toBe(DS1_CERTIFIED_IDS.length);
+    // Los Slim de 30, 50 y 100W no tienen certificado
+    for (const id of [2340468, 2340483, 2340625]) expect(ds1Certificate(id), String(id)).toBe(false);
+    // Solo los proyectores de estadio son de recintos deportivos
+    expect(Object.entries(DS1_CERTIFIED_LINES).filter(([, l]) => l.sports).map(([line]) => line)).toEqual(['estadioModular', 'estadio']);
+    for (const id of DS1_CERTIFIED_LINES.bestled.ids) {
       const text = textsOf(editorialOverlay[id]).join('\n');
       expect(text, String(id)).toContain('certificación DS1 en sus variantes 2200K y 2700K');
     }
   });
 
-  it('fichas SEO (content/*.json): sin certificado D.S. N°1, sin la sigla DS1, sin el D.S. N°43, sin luz azul en canchas y sin el % de luz azul junto a la norma', () => {
+  it('preguntas por producto y por versión: cada línea con su regla', () => {
+    const [slim, pagoda, island, estadio, modular, bestled] = (['slim', 'pagoda', 'island', 'estadio', 'estadioModular', 'bestled'] as const).map(
+      line => DS1_CERTIFIED_LINES[line].ids[0],
+    );
+    const other = 2340625; // Slim 100W, sin certificado
+    expect(ds1Line(slim)?.key).toBe('slim');
+    expect(ds1Line(modular)?.key).toBe('estadioModular');
+    expect(ds1Line(other)).toBeUndefined();
+    expect(ds1Line(undefined)).toBeUndefined();
+    for (const id of DS1_CERTIFIED_IDS) expect(isDs1Certified(id), String(id)).toBe(true);
+    for (const id of [other, undefined]) expect(isDs1Certified(id)).toBe(false);
+
+    const certifiedKelvin = (id: number | undefined, kelvin: readonly number[]) => kelvin.filter(k => isDs1CertifiedKelvin(id, k));
+    const ALL = [1600, 2200, 2700, 3000, 4000, 5000, 6000, 6500];
+    expect(certifiedKelvin(bestled, ALL)).toEqual([2200, 2700]);
+    expect(certifiedKelvin(island, ALL)).toEqual([2200, 2700]);
+    expect(certifiedKelvin(slim, ALL)).toEqual([2200, 2700]); // no la de 3000K ni las frías
+    expect(certifiedKelvin(pagoda, ALL)).toEqual([1600, 2700]); // no la de 4000K ni la de 5000K
+    expect(certifiedKelvin(estadio, ALL)).toEqual(ALL); // todas, también las frías
+    expect(certifiedKelvin(modular, ALL)).toEqual(ALL);
+    expect(certifiedKelvin(other, ALL)).toEqual([]);
+    expect(certifiedKelvin(undefined, ALL)).toEqual([]);
+  });
+
+  it('fichas SEO (content/*.json): el certificado D.S. N°1 solo en las líneas certificadas y en sus versiones, sin la sigla DS1, sin el D.S. N°43, sin luz azul en canchas ni en los proyectores de estadio y sin el % de luz azul junto a la norma', () => {
     expect(contentEntries.length).toBeGreaterThan(0);
-    // Ninguna ficha SEO es de un producto con certificado: esos usan su ficha editorial
-    const problems = contentEntries.flatMap(([id, c]) => ds1ContentIssues(c).map(p => `${id}: ${p}`));
+    const problems = contentEntries.flatMap(([id, c]) => ds1ContentIssues(c, id).map(p => `${id}: ${p}`));
     expect(problems).toEqual([]);
-    expect(contentEntries.filter(([id]) => DS1_CERTIFIED_IDS.includes(id)).map(([id]) => id)).toEqual([]);
+    // Las BESTLED usan su ficha editorial (la única con la clasificación para Áreas de Protección Especial)
+    expect(contentEntries.filter(([id]) => DS1_CERTIFIED_LINES.bestled.ids.includes(id)).map(([id]) => id)).toEqual([]);
+  });
+
+  it('el detector de las fichas SEO: en una línea certificada, el certificado va con sus versiones certificadas; en el resto, nunca', () => {
+    const certified = { certified: ds1Certificate(DS1_CERTIFIED_LINES.flyhawk.ids[0]) };
+    for (const text of [
+      'Las versiones cálidas de 2200K y 2700K tienen certificado D.S. N°1/2022.',
+      'La de 2.200 K tiene certificado D.S. N°1/2022, la norma de contaminación lumínica.',
+      '¿Qué versiones tienen certificado D.S. N°1/2022?',
+      '¿Necesitas el D.S. N°1? Te asesoramos',
+    ]) {
+      expect(ds1Issues(text, certified), text).toEqual([]);
+    }
+    for (const text of [
+      'Tiene certificado D.S. N°1/2022.',
+      'Las versiones de 2200K, 2700K y 4000K tienen certificado D.S. N°1/2022.',
+      'La de 5000K cumple el D.S. N°1/2022.',
+      'Todas sus versiones tienen certificado D.S. N°1/2022, también la de 2700K.',
+      'Certificación SEC y DS1 en 2200K.',
+      'La de 2200K tiene certificado D.S. N°1/2022 y es apta para Áreas de Protección Especial.',
+    ]) {
+      expect(ds1Issues(text, certified), text).not.toEqual([]);
+    }
+    // Slim SMD: la de 3000K no tiene certificado
+    const slim = { certified: ds1Certificate(DS1_CERTIFIED_LINES.slim.ids[0]) };
+    expect(ds1Issues('Las de 2200K y 2700K tienen certificado D.S. N°1/2022.', slim)).toEqual([]);
+    expect(ds1Issues('Las de 2200K, 2700K y 3000K tienen certificado D.S. N°1/2022.', slim)).not.toEqual([]);
+    // …ni nombrada sin «K» o por su tono, ni en otra oración sin la norma (también en la Island)
+    const island = { certified: ds1Certificate(DS1_CERTIFIED_LINES.island.ids[0]) };
+    for (const text of [
+      'Las versiones de 2200K, 2700K y la fría tienen certificado D.S. N°1/2022.',
+      'La de 2700K y la neutra tienen certificado D.S. N°1/2022.',
+      'Las cálidas de 2200K, 2700K y 3000 tienen certificado D.S. N°1/2022.',
+      'La de 3000K también lo tiene.',
+      'La versión de 4000K está certificada.',
+      'La de 4000K tiene el mismo certificado.',
+    ]) {
+      expect(ds1Issues(text, slim), text).not.toEqual([]);
+      expect(ds1Issues(text, island), text).not.toEqual([]);
+    }
+    for (const text of ['La de 3000K y la fría de 6500K no lo tienen.', 'Las de 2200K y 2700K tienen certificado D.S. N°1/2022, exigible desde el 19-10-2026.']) {
+      expect(ds1Issues(text, slim), text).toEqual([]);
+    }
+    // Pagoda: la ámbar de 1600K y la de 2700K, no la de 2200K ni las frías
+    const pagoda = { certified: ds1Certificate(DS1_CERTIFIED_LINES.pagoda.ids[0]) };
+    expect(ds1Issues('Sus versiones ámbar de 1600K y cálida de 2700K tienen certificado D.S. N°1/2022.', pagoda)).toEqual([]);
+    for (const text of ['La de 2200K tiene certificado D.S. N°1/2022.', 'Las de 1600K, 2700K y 4000K tienen certificado D.S. N°1/2022.']) {
+      expect(ds1Issues(text, pagoda), text).not.toEqual([]);
+    }
+    // Proyectores de estadio: todas sus versiones, pero sin la sigla ni la luz azul
+    for (const id of [DS1_CERTIFIED_LINES.estadio.ids[0], DS1_CERTIFIED_LINES.estadioModular.ids[0]]) {
+      const stadium = { certified: ds1Certificate(id) };
+      for (const text of ['Este proyector tiene certificado D.S. N°1/2022.', 'Tiene certificado D.S. N°1/2022 en todas sus versiones, también en 5000K.']) {
+        expect(ds1Issues(text, stadium), `${id}: ${text}`).toEqual([]);
+      }
+      for (const text of ['Certificación SEC y DS1.', 'En canchas, la de 2700K tiene 7% de luz azul y certificado D.S. N°1/2022.']) {
+        expect(ds1Issues(text, stadium), `${id}: ${text}`).not.toEqual([]);
+      }
+    }
+    // Fuera de las líneas certificadas (o sin id), ni siquiera en 2200K
+    const other = contentEntries.map(([id]) => id).find(id => !DS1_CERTIFIED_IDS.includes(id))!;
+    for (const id of [other, undefined]) {
+      expect(ds1Issues('Las versiones de 2200K y 2700K tienen certificado D.S. N°1/2022.', { certified: ds1Certificate(id) })).not.toEqual([]);
+    }
   });
 
   it('fichas SEO: una pregunta sobre la norma no se responde con el % de luz azul (se lee como «cumple»)', () => {
@@ -483,12 +606,13 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     expect(ds1ContentIssues({ ...sample, faq: [...sample.faq, faq] }).some(p => p.startsWith('da el % de luz azul junto a la norma'))).toBe(true);
   });
 
-  it('fichas editoriales: el certificado solo en productos con certificado documentado, y nunca el D.S. N°43', () => {
+  it('fichas editoriales: el certificado solo en productos con certificado, y nunca el D.S. N°43', () => {
     const entries = Object.entries(editorialOverlay);
     expect(entries.length).toBeGreaterThan(0);
-    const problems = entries.flatMap(([id, e]) =>
-      ds1Issues(textsOf(e).join('\n'), { certified: DS1_CERTIFIED_IDS.includes(Number(id)) }).map(p => `${id}: ${p}`),
-    );
+    // La de las BESTLED está aprobada tal cual (PR #78: reparte las variantes en varias
+    // oraciones); otra línea certificada, solo con la versión de 2200K o 2700K en cada oración
+    const certified = (id: number) => DS1_CERTIFIED_LINES.bestled.ids.includes(id) || ds1Certificate(id);
+    const problems = entries.flatMap(([id, e]) => ds1Issues(textsOf(e).join('\n'), { certified: certified(Number(id)) }).map(p => `${id}: ${p}`));
     expect(problems).toEqual([]);
   });
 
@@ -510,9 +634,9 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
         }
       }
     }
-    // La 60W primero; después, el resto de las certificadas, por si la sincronización deja de publicarla
+    // La 60W primero; después, el resto de las BESTLED, por si la sincronización deja de publicarla
     expect(DS1_BUTTON_PRODUCTS[0]).toBe(BESTLED_60W_ID);
-    expect([...DS1_BUTTON_PRODUCTS].sort()).toEqual([...DS1_CERTIFIED_IDS].sort());
+    expect([...DS1_BUTTON_PRODUCTS].sort()).toEqual([...DS1_CERTIFIED_LINES.bestled.ids].sort());
   });
 
   it('categories.config.ts y category-intros.ts (sus textos) no citan el D.S. N°43, no usan la sigla DS1 ni afirman otros certificados', () => {
@@ -533,6 +657,11 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
       'Ver luminarias con certificado D.S. N°1',
       'Los solares de esta categoría cumplen el D.S. N°1/2022.',
       'Las BESTLED y la Flyhawk tienen certificado D.S. N°1.',
+      'Las líneas BESTLED, Flyhawk y Solar industrial All in One tienen certificado D.S. N°1 en todas sus versiones.',
+      'El proyector de estadio modular tiene certificado D.S. N°1 en 2700K.',
+      'La Island tiene certificado D.S. N°1 en sus versiones de 2200K y 2700K.',
+      'La Pagoda LED solar UFO tiene certificado D.S. N°1 en todas sus versiones.',
+      'Los Slim SMD tienen certificado D.S. N°1 en 2200K y 2700K.',
       'La versión de 2200K es apta para Áreas de Protección Especial.',
       'Cumple la normativa lumínica chilena.',
       'Certificada para cielos oscuros.',
@@ -572,6 +701,11 @@ describe('D.S. N°1/2022 en las páginas', () => {
     expect(text).toContain('Desde el 19 de octubre de 2026, el D.S. N°1/2022 del Ministerio del Medio Ambiente');
     expect(text).toContain('a las luminarias exteriores de los proyectos de instalación o recambio que se adjudican o comienzan desde esa fecha.');
     expect(text).toContain('En las Áreas de Protección Especial se exige desde el 19 de octubre de 2024.');
+    // Las líneas certificadas de alumbrado público, en sus versiones certificadas (decisión del dueño, 22-10-2026)
+    expect(text).toContain(
+      'Las líneas BESTLED, Flyhawk y Solar industrial All in One tienen certificado D.S. N°1 en sus versiones de 2200K y 2700K; la Pagoda LED solar UFO, en sus versiones ámbar de 1600K y cálida de 2700K.',
+    );
+    expect(text).not.toMatch(/estadio|island|slim|(?:3|4|5|6)\.?[05]00\s?K/i);
     expect(text).toContain(responseTimePromise); // el mismo día hábil, por correo
     expect(text).not.toMatch(/stock|DS ?43|2029|WhatsApp|ll[aá]manos|al aire libre|todo alumbrado/i);
 
