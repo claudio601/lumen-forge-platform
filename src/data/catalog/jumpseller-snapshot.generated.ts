@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '38ac2aef42ab';
+export const SNAPSHOT_HASH = '549cc8dbd1be';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -4604,7 +4604,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -4663,7 +4663,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -4865,7 +4865,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -5008,7 +5008,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -5276,7 +5276,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -7193,7 +7193,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -7209,13 +7209,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 99319920,
+        "id": 123218388,
         "sku": "LLE40120F",
         "price": 33670,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -7556,7 +7556,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -9178,7 +9178,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -9757,7 +9757,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11016,7 +11016,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11059,7 +11059,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11102,7 +11102,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11145,7 +11145,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11188,7 +11188,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz cálida - 3000K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
