@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '35323ec3fd4f';
+export const SNAPSHOT_HASH = '38ac2aef42ab';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -17,12 +17,12 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 1200,
     "variants": {
-      "94680903": {
-        "sku": "ALE9C",
-        "price": 1200
-      },
       "94680904": {
         "sku": "ALE9F",
+        "price": 1200
+      },
+      "123217978": {
+        "sku": "ALE9C",
         "price": 1200
       }
     }
@@ -314,15 +314,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 3000,
     "variants": {
       "6701576": {
-        "sku": "PLRS12N",
+        "sku": "PLRS12C",
         "price": 3000
       },
       "120885517": {
-        "sku": "",
+        "sku": "PLRS12N",
         "price": 3000
       },
       "120885520": {
-        "sku": "",
+        "sku": "PLRS12F",
         "price": 3000
       }
     }
@@ -1957,16 +1957,16 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "LLE40120",
     "price": 33670,
     "variants": {
-      "99319918": {
-        "sku": "LLE40120C",
-        "price": 33670
-      },
       "99319919": {
         "sku": "LLE40120N",
         "price": 33670
       },
       "99319920": {
         "sku": "LLE40120F",
+        "price": 33670
+      },
+      "123218003": {
+        "sku": "LLE40120C",
         "price": 33670
       }
     }
@@ -2025,7 +2025,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "3309140": {
-    "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK09",
+    "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK08",
     "sku": "",
     "price": 765600,
     "variants": {
@@ -3451,15 +3451,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 3000,
     "variants": {
       "100817623": {
-        "sku": "PLRS12C",
+        "sku": "PLRS12CB",
         "price": 3000
       },
       "120885664": {
-        "sku": "",
+        "sku": "PLRS12NB",
         "price": 3000
       },
       "120885665": {
-        "sku": "",
+        "sku": "PLRS12FB",
         "price": 3000
       }
     }

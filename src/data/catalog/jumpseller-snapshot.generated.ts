@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '35323ec3fd4f';
+export const SNAPSHOT_HASH = '38ac2aef42ab';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -32,13 +32,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94680903,
+        "id": 123217978,
         "sku": "ALE9C",
         "price": 1200,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -1147,7 +1147,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 6701576,
-        "sku": "PLRS12N",
+        "sku": "PLRS12C",
         "price": 3000,
         "options": [
           {
@@ -1158,7 +1158,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885517,
-        "sku": "",
+        "sku": "PLRS12N",
         "price": 3000,
         "options": [
           {
@@ -1169,7 +1169,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885520,
-        "sku": "",
+        "sku": "PLRS12F",
         "price": 3000,
         "options": [
           {
@@ -7187,13 +7187,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 99319918,
+        "id": 123218003,
         "sku": "LLE40120C",
         "price": 33670,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz cálida - 3000K"
           }
         ]
       },
@@ -7420,7 +7420,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 3309140,
-    "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK09",
+    "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK08",
     "permalink": "proyector-led-de-estadio-redondo-1000w-ip66-ik09",
     "sku": "",
     "price": 765600,
@@ -12374,7 +12374,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 100817623,
-        "sku": "PLRS12C",
+        "sku": "PLRS12CB",
         "price": 3000,
         "options": [
           {
@@ -12385,7 +12385,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885664,
-        "sku": "",
+        "sku": "PLRS12NB",
         "price": 3000,
         "options": [
           {
@@ -12396,7 +12396,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 120885665,
-        "sku": "",
+        "sku": "PLRS12FB",
         "price": 3000,
         "options": [
           {
