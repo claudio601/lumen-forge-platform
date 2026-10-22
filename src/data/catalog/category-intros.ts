@@ -5,17 +5,20 @@
 // solo la importa CatalogPage, que se carga en su propio trozo.
 //
 // D.S. N°1/2022 (reglas en ./ds1.ts, que vigila src/config/contentTruth.test.ts): el certificado
-// solo se afirma de las BESTLED (DS1_CERTIFIED_IDS); el resto de la categoría (solares y otros
-// sin certificado documentado) no se nombra con sello. Fechas y exigencias verificadas en el
-// texto del decreto (BCN, idNorma 1197027: art. 3 letras a, z y aa; arts. 5, 6, 7, 11, 12 y 20)
-// y en la tabla de plazos del MMA, el 21-10-2026. "Nuevo" es lo del art. 3 aa): fuera de las
-// Áreas de Protección Especial, la luminaria de un proyecto de instalación o recambio adjudicado
-// o iniciado antes del 19-10-2026 es existente y cumple al recambio (art. 11 N°1). Sin "recambio
-// total al 2029" ni el anteproyecto de agosto de 2026 (preguntas 6 y 8 del informe UX,
-// pendientes del dueño y del abogado).
+// solo se afirma de las líneas certificadas que están en alumbrado público (BESTLED, Flyhawk y
+// solar industrial All in One, en sus versiones de 2200K y 2700K, y la Pagoda LED solar UFO, en la
+// ámbar de 1600K y la cálida de 2700K; decisión del dueño, 22-10-2026). Las demás líneas
+// certificadas no son de esta categoría (la Island es ornamental; los Slim SMD y los proyectores
+// de estadio, de recintos deportivos y exteriores): no se nombran aquí. El resto de la categoría
+// no se nombra con sello. Fechas y exigencias verificadas en el texto del decreto (BCN, idNorma
+// 1197027: art. 3 letras a, z y aa; arts. 5, 6, 7, 11, 12 y 20) y en la tabla de plazos del MMA,
+// el 21-10-2026. "Nuevo" es lo del art. 3 aa): fuera de las Áreas de Protección Especial, la
+// luminaria de un proyecto de instalación o recambio adjudicado o iniciado antes del 19-10-2026 es
+// existente y cumple al recambio (art. 11 N°1). Sin "recambio total al 2029" ni el anteproyecto de
+// agosto de 2026 (preguntas 6 y 8 del informe UX, pendientes del dueño y del abogado).
 
 import { ADVISORY_LINK } from '../../config/navigation';
-import { DS1_CERTIFIED_IDS } from './ds1';
+import { DS1_CERTIFIED_LINES } from './ds1';
 
 /**
  * Destino de un botón: una ruta del sitio, la ficha de un producto (ids de Jumpseller en orden de
@@ -40,16 +43,16 @@ export interface CategoryIntro {
 export const BESTLED_60W_ID = 2301101;
 /**
  * Destino de "Ver BESTLED con certificado D.S. N°1": la 60W y, si la sincronización deja de
- * publicarla, la primera BESTLED certificada que siga publicada.
+ * publicarla, la primera BESTLED que siga publicada.
  */
-export const DS1_BUTTON_PRODUCTS: readonly number[] = [BESTLED_60W_ID, ...DS1_CERTIFIED_IDS.filter(id => id !== BESTLED_60W_ID)];
+export const DS1_BUTTON_PRODUCTS: readonly number[] = [BESTLED_60W_ID, ...DS1_CERTIFIED_LINES.bestled.ids.filter(id => id !== BESTLED_60W_ID)];
 
 export const CATEGORY_INTROS: Readonly<Record<string, CategoryIntro>> = {
   'alumbrado-publico': {
     title: 'Alumbrado público y D.S. N°1/2022',
     paragraphs: [
       'Desde el 19 de octubre de 2026, el D.S. N°1/2022 del Ministerio del Medio Ambiente, la norma de contaminación lumínica, se exige en todo Chile a las luminarias exteriores de los proyectos de instalación o recambio que se adjudican o comienzan desde esa fecha. En las Áreas de Protección Especial se exige desde el 19 de octubre de 2024.',
-      'Las BESTLED tienen certificado D.S. N°1 en dos variantes: 2700K, para el resto del país, y 2200K, apta también para las Áreas de Protección Especial.',
+      'Las líneas BESTLED, Flyhawk y Solar industrial All in One tienen certificado D.S. N°1 en sus versiones de 2200K y 2700K; la Pagoda LED solar UFO, en sus versiones ámbar de 1600K y cálida de 2700K. En las BESTLED, la de 2700K es para el resto del país y la de 2200K es apta también para las Áreas de Protección Especial.',
     ],
     actions: [
       { label: 'Ver BESTLED con certificado D.S. N°1', to: { products: DS1_BUTTON_PRODUCTS } },

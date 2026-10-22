@@ -80,31 +80,78 @@ mayúsculas sostenidas, signos de exclamación en serie.
 
 ## D.S. N°1/2022 (contaminación lumínica)
 
-Lo verifican `src/data/catalog/ds1.ts` y `npm run content -- check`. Ningún producto con
-contenido SEO tiene certificado D.S. N°1 documentado (solo las 7 BESTLED, que usan su ficha
-editorial), aunque Jumpseller diga "DS1" en su tabla.
+Lo verifican `src/data/catalog/ds1.ts` y `npm run content -- check`. Tienen certificado
+D.S. N°1 solo las 8 líneas de `DS1_CERTIFIED_LINES` (decisiones del dueño, 22-10-2026; 33
+productos), cada una en sus versiones:
 
-- Nunca "certificado/certificación DS1", "cumple el D.S. N°1", "versiones DS1", "marcadas
-  como DS1", "sellos SEC y DS1" ni "aprobación de contaminación lumínica". Se ofrece asesoría:
-  "¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl".
-- La norma se escribe "D.S. N°1/2022", nunca la sigla "DS1". El D.S. N°43 está derogado desde
-  el 19-10-2024: no se cita.
-- Una oración que nombra la norma (o la contaminación lumínica) no lleva "certificado",
-  "certificación", "cumple", "apto" ni "sello": la explicación general ("el cumplimiento se
-  acredita con el certificado de cada luminaria") va en otra oración.
+| Línea | Versiones con certificado |
+|---|---|
+| BESTLED (ficha editorial), Flyhawk, solar industrial All in One, Island (ornamental) y Slim SMD de 150 a 500W | Las cálidas de **2200K y 2700K** (en los Slim, no la de 3000K) |
+| Pagoda LED solar UFO 300W | La ámbar de **1600K** y la cálida de **2700K** |
+| Proyectores de estadio, modulares y no modulares | **Todas** (recintos deportivos: van por temperatura de color según la clase) |
+
+Las demás versiones no se mencionan como certificadas. En los Slim SMD de 150 a 500W (Jumpseller
+marca "CON DS1" también la de 3000K) y en la Pagoda, la ficha dice además cuáles no lo tienen,
+en una oración aparte que no nombra la norma: "La de 3000K y la fría de 6500K no lo tienen" o
+"La neutra de 4000K y la fría de 5000K no lo tienen" (en la misma oración que el certificado, el
+detector lee esas temperaturas como certificadas). El resto de los productos no tiene
+certificado, aunque Jumpseller diga "DS1" en su tabla (los Slim de 30, 50 y 100W, por ejemplo).
+
+Para preguntar por un producto o una versión: `isDs1Certified(id)`,
+`isDs1CertifiedKelvin(id, kelvin)` y `ds1Line(id)` (en `src/data/catalog/ds1.ts`).
+
+- En una línea certificada por versión, la oración que afirma el certificado nombra la versión:
+  "Las versiones cálidas de 2200K y 2700K tienen certificado D.S. N°1/2022". Sin otra
+  temperatura en esa oración, sin "todas sus versiones" y sin subtítulos como "**Certificado
+  D.S. N°1/2022**" a secas ("**Certificado D.S. N°1/2022 en 2200K y 2700K**" sí). Una pregunta
+  ("¿Qué versiones tienen certificado D.S. N°1/2022?") puede no nombrarla si la respuesta lo
+  hace. En los proyectores de estadio basta "Este proyector tiene certificado D.S. N°1/2022".
+  La guarda lee como versión sin certificado también la cifra sin "K" ("y 3000") y el tono
+  ("la fría", "la neutra"), y en otra oración sin la norma, "también lo tiene", "está
+  certificada" o "el mismo certificado" junto a una versión sin certificado.
+- La clasificación para Áreas de Protección Especial ("apta para…") solo está documentada en
+  las BESTLED: en las demás no se escribe. Sí se puede decir que la de 2200K es la que se pide
+  en las Áreas de Protección Especial.
+- En las líneas certificadas por versión, toda recomendación de uso exterior en proyectos nuevos
+  (calles, avenidas, accesos, estacionamientos, patios, plazas, paseos, condominios, sectores
+  con cámaras) va con sus versiones certificadas; las demás (la de 4000K o 5000K de la Island y
+  de las solares, la de 3000K o la fría de los Slim) se nombran solo como opciones, sin
+  recomendarlas para ese uso. En los Slim, la fría puede quedar para interiores cerrados.
+- En los proyectores de estadio, el certificado se lee en el contexto del alumbrado deportivo:
+  si la misma oración o sección habla de plazas, se precisa ("Para alumbrado deportivo, este
+  proyector tiene certificado D.S. N°1/2022…"). Para plazas y paseos no se recomienda una
+  versión: asesoría. La luz fría de 6000K no se presenta como la habitual en canchas (supera el
+  tope de cualquier clase de recinto): al cotizar, se pide la clase del recinto.
+- Si Jumpseller no dice "DS1" en la ficha del producto, el certificado no se atribuye a "la
+  ficha": se afirma como dato de eLIGHTS.
+- En el resto de los productos, nunca "certificado/certificación DS1", "cumple el D.S. N°1",
+  "versiones DS1", "marcadas como DS1", "sellos SEC y DS1" ni "aprobación de contaminación
+  lumínica". Se ofrece asesoría: "¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a
+  ventas@elights.cl".
+- La norma se escribe "D.S. N°1/2022", nunca la sigla "DS1" (tampoco en las líneas
+  certificadas). El D.S. N°43 está derogado desde el 19-10-2024: no se cita.
+- Fuera de las líneas certificadas, una oración que nombra la norma (o la contaminación
+  lumínica) no lleva "certificado", "certificación", "cumple", "apto" ni "sello": la explicación
+  general ("el cumplimiento se acredita con el certificado de cada luminaria") va en otra
+  oración.
 - También cuentan como afirmación "apta para Áreas de Protección Especial", "certificada para
   cielos oscuros", "cumple la normativa lumínica" o "cumple el Decreto 1".
 - "2200K, 1% de luz azul" se puede escribir como dato del producto (decisión del dueño), pero
   nunca en una ficha de canchas, estadios o gimnasios: ahí la norma fija una temperatura de
   color máxima según la clase del recinto (I, II o III) y el apagado entre las 00:00 y las
-  07:00, salvo eventos autorizados.
+  07:00, salvo eventos autorizados. Los proyectores de estadio, modulares y no modulares, dicen
+  su certificado, pero su ficha no habla de luz azul en ninguna parte, aunque no nombre la
+  cancha (la guarda lo revisa por línea).
 - El "% de luz azul" no va en el mismo bloque que nombra la norma: ni en la respuesta a una
   pregunta sobre el D.S. N°1/2022, ni en una sección cuyo subtítulo la nombra, ni en el mismo
   beneficio. El 1 % y el 7 % son los límites del decreto, y juntos se leen como "cumple". El
-  dato va en su propia sección o pregunta, y la norma, con la asesoría, en otra.
-- Las preguntas no son de cumplimiento ("¿Sirve para…?", "¿Cumple…?", "¿Qué versión pido si
-  debo cumplir…?"): se escribe "¿Qué hago si mi proyecto debe cumplir el D.S. N°1/2022?" y se
-  responde con la asesoría por correo.
+  dato va en su propia sección o pregunta, y la norma, con el certificado por versión o la
+  asesoría, en otra. Vale también para las líneas certificadas.
+- En productos sin certificado, las preguntas no son de cumplimiento ("¿Sirve para…?",
+  "¿Cumple…?", "¿Qué versión pido si debo cumplir…?"): se escribe "¿Qué hago si mi proyecto
+  debe cumplir el D.S. N°1/2022?" y se responde con la asesoría por correo. En una línea
+  certificada sí: "¿Qué versiones tienen certificado D.S. N°1/2022?" o "¿Qué versión pido si mi
+  proyecto debe cumplir el D.S. N°1/2022?", y la respuesta nombra las versiones certificadas.
 - En canchas, la respuesta sobre la norma no ofrece versiones por temperatura de color: según
   la skill normativa-ds1-elights, la fría de 6000K o 6500K queda sobre el tope de cualquier
   clase (la Tabla 4 del decreto está como imagen, así que el tope en Kelvin no se escribe en la

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProductContent } from '../../src/data/catalog/types';
 import type { SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
 import { checkContent, checkFacts, checkFormat, checkRules, repeatedSentences } from './check';
+import { DS1_CERTIFIED_LINES } from '../../src/data/catalog/ds1';
 import { productFacts } from './facts';
 import { CONTENT_DIR } from './files';
 import { renderContentReport, reviewContent } from './report';
@@ -92,6 +93,18 @@ describe('verificación del contenido SEO', () => {
     expect(checkFacts({ ...good, keyBenefits: ['Solo 20 mm de alto', 'Opera entre -20 °C y 45 °C'] }, { ...facts, construccion: f.construccion })).not.toContainEqual(
       expect.stringMatching(/20 mm|45 °C/),
     );
+  });
+
+  it('las opciones de las variantes también son datos de Jumpseller (las muestra el selector de la ficha)', () => {
+    const benefit = { ...good, keyBenefits: ['Versión ámbar de 1600K y cálida de 2700K'] };
+    expect(checkFacts(benefit, facts)).toContainEqual('cifra que no está en los datos de Jumpseller: "1600K"');
+    const variants = [
+      { id: 1, sku: 'A', price: 1, options: [{ name: 'Color de Luz', value: 'Luz Ámbar - 1600K' }] },
+      { id: 2, sku: 'B', price: 1, options: [{ name: 'Color de Luz', value: 'Luz Cálida - 2700K' }] },
+    ];
+    const f = productFacts({ ...product, variants }, description, {});
+    expect(f.variantOptions).toEqual(['Color de Luz: Luz Ámbar - 1600K', 'Color de Luz: Luz Cálida - 2700K']);
+    expect(checkFacts(benefit, f)).toEqual([]);
   });
 
   it('los grados se reconocen con guion, espacio o minúsculas, y "cree" (verbo) no es una marca', () => {
@@ -324,6 +337,126 @@ describe('verificación del contenido SEO', () => {
       ],
     });
     expect(apart.filter(p => p.includes('luz azul'))).toEqual([]);
+  });
+
+  // Líneas con certificado D.S. N°1 (decisión del dueño, 22-10-2026; 8 líneas, 33 productos),
+  // cada una con sus versiones certificadas: la solar industrial All in One, en 2200K y 2700K
+  it('D.S. N°1: en una línea certificada acepta el certificado de las versiones de 2200K y 2700K, y nada más', () => {
+    const solar = DS1_CERTIFIED_LINES.solarIndustrial.ids[0];
+    const ds1 = (problems: string[]) => problems.filter(p => /D\.S\. N°1|DS1|luz azul/.test(p));
+    const certified = (text: string) => ds1(checkRules({ ...good, description: text }, solar));
+    for (const text of [
+      'Las versiones cálidas de 2200K y 2700K tienen certificado D.S. N°1/2022 de contaminación lumínica; al cotizar, pide el certificado de la versión que elijas.',
+      '**Certificado D.S. N°1/2022 en 2200K y 2700K**\n\nAl cotizar, pide el certificado de la versión que elijas.',
+      'Se cotiza en 2200K, 2700K, 4000K y 5000K. Las cálidas, de 2200K y 2700K, tienen certificado D.S. N°1/2022.',
+    ]) {
+      expect(certified(text), text).toEqual([]);
+    }
+    expect(
+      ds1(
+        checkRules(
+          { ...good, faq: [...good.faq, { question: '¿Qué versiones tienen certificado D.S. N°1/2022?', answer: 'Las de luz cálida, de 2200K y 2700K, tienen certificado D.S. N°1/2022.' }] },
+          solar,
+        ),
+      ),
+    ).toEqual([]);
+
+    const cases: [string, RegExp][] = [
+      ['Tiene certificado D.S. N°1/2022 de contaminación lumínica.', /sin decir de qué versiones/],
+      ['**Certificado D.S. N°1/2022**\n\nAl cotizar, pide el certificado de la versión que elijas.', /sin decir de qué versiones/],
+      ['Las versiones de 2200K, 2700K y 4000K tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(4000K/],
+      ['La de 5000K es apta para Áreas de Protección Especial.', /sin decir de qué versiones/],
+      ['Todas sus versiones, incluida la de 2700K, tienen certificado D.S. N°1/2022.', /de todas las versiones/],
+      ['Versiones de 2200K y 2700K con certificación DS1.', /sigla «DS1»/],
+      ['Las de 2200K (1% de luz azul) y 2700K (7% de luz azul) tienen certificado D.S. N°1/2022.', /% de luz azul junto a la norma/],
+    ];
+    for (const [text, problem] of cases) {
+      expect(certified(text).some(p => problem.test(p)), text).toBe(true);
+    }
+
+    // Lo mismo en un producto fuera de las líneas certificadas (o sin id): sin certificado
+    const text = 'Las versiones cálidas de 2200K y 2700K tienen certificado D.S. N°1/2022.';
+    expect(ds1(checkRules({ ...good, description: text }))).toContainEqual(expect.stringContaining('afirma el D.S. N°1 sin certificado documentado'));
+    expect(ds1(checkRules({ ...good, description: text }, 7))).toContainEqual(expect.stringContaining('afirma el D.S. N°1 sin certificado documentado'));
+  });
+
+  it('D.S. N°1: los proyectores de estadio dicen su certificado en todas sus versiones, pero sin luz azul (los recintos deportivos van por temperatura de color)', () => {
+    const sports = { ...good, useCases: ['Canchas de fútbol', 'Estadios', 'Gimnasios techados sin muros'] };
+    const claim = 'Este proyector tiene certificado D.S. N°1/2022, la norma de contaminación lumínica.';
+    for (const stadium of [DS1_CERTIFIED_LINES.estadioModular.ids[0], DS1_CERTIFIED_LINES.estadio.ids[0]]) {
+      expect(checkRules({ ...sports, description: claim }, stadium).filter(p => /D\.S\. N°1|luz azul/.test(p)), String(stadium)).toEqual([]);
+      expect(checkRules({ ...sports, description: `${claim}\n\nLa de 2700K declara 7% de luz azul.` }, stadium)).toContainEqual(
+        expect.stringContaining('menciona la luz azul en una ficha de canchas'),
+      );
+      expect(checkRules({ ...sports, description: 'Certificación SEC y DS1.' }, stadium)).toContainEqual(expect.stringContaining('sigla «DS1»'));
+      // Aunque la ficha no nombre la cancha: la regla va por línea
+      const plain = { ...good, description: `${claim}\n\nLa de 2700K tiene un 7% de luz azul.` };
+      expect(checkRules(plain, stadium), String(stadium)).toContainEqual(expect.stringContaining('proyector de recintos deportivos'));
+    }
+    // En un producto de otra línea, ese dato en su propia sección no es un problema
+    const solar = DS1_CERTIFIED_LINES.solarIndustrial.ids[0];
+    expect(checkRules({ ...good, description: 'La de 2700K tiene un 7% de luz azul.' }, solar).filter(p => /luz azul/.test(p))).toEqual([]);
+  });
+
+  it('D.S. N°1: en los Slim SMD la de 3000K no tiene certificado, y en la Pagoda solar UFO son la de 1600K y la de 2700K', () => {
+    const ds1 = (problems: string[]) => problems.filter(p => /D\.S\. N°1/.test(p));
+    const slim = DS1_CERTIFIED_LINES.slim.ids[0];
+    expect(ds1(checkRules({ ...good, description: 'Las versiones de 2200K y 2700K tienen certificado D.S. N°1/2022.' }, slim))).toEqual([]);
+    expect(ds1(checkRules({ ...good, description: 'Las cálidas de 2200K, 2700K y 3000K tienen certificado D.S. N°1/2022.' }, slim))).toContainEqual(
+      expect.stringContaining('junto a una versión sin certificado (3000K'),
+    );
+    const pagoda = DS1_CERTIFIED_LINES.pagoda.ids[0];
+    expect(ds1(checkRules({ ...good, description: 'Sus versiones ámbar de 1600K y cálida de 2700K tienen certificado D.S. N°1/2022.' }, pagoda))).toEqual([]);
+    expect(ds1(checkRules({ ...good, description: 'La de 2200K tiene certificado D.S. N°1/2022.' }, pagoda))).toContainEqual(
+      expect.stringContaining('solo las de 1600K y 2700K'),
+    );
+    // Cuáles no lo tienen va en otra oración, sin nombrar la norma
+    for (const [id, text] of [
+      [slim, 'Las versiones cálidas de 2200K y 2700K tienen certificado D.S. N°1/2022. La de 3000K y la fría de 6500K no lo tienen.'],
+      [pagoda, 'Sus versiones ámbar de 1600K y cálida de 2700K tienen certificado D.S. N°1/2022. La neutra de 4000K y la fría de 5000K no lo tienen.'],
+    ] as const) {
+      expect(ds1(checkRules({ ...good, description: text }, id)), text).toEqual([]);
+    }
+  });
+
+  it('D.S. N°1: en las líneas certificadas por versión, tampoco lo extiende a una versión nombrada sin «K», por su tono o en otra oración', () => {
+    const ds1 = (problems: string[]) => problems.filter(p => /D\.S\. N°1/.test(p));
+    for (const id of [DS1_CERTIFIED_LINES.slim.ids[0], DS1_CERTIFIED_LINES.island.ids[0]]) {
+      for (const text of [
+        // En la oración del certificado: el tono o la cifra sin «K»
+        'Las versiones de 2200K, 2700K y la fría tienen certificado D.S. N°1/2022.',
+        'La de 2700K y la neutra tienen certificado D.S. N°1/2022.',
+        'Las cálidas de 2200K, 2700K y 3000 tienen certificado D.S. N°1/2022.',
+        // En otra oración, sin nombrar la norma
+        'Las de 2200K y 2700K tienen certificado D.S. N°1/2022. La de 3000K también lo tiene.',
+        'Las de 2200K y 2700K tienen certificado D.S. N°1/2022. La versión de 4000K está certificada.',
+        'Las de 2200K y 2700K tienen certificado D.S. N°1/2022. La de 4000K tiene el mismo certificado.',
+      ]) {
+        expect(ds1(checkRules({ ...good, description: text }, id)), `${id}: ${text}`).not.toEqual([]);
+      }
+      for (const text of [
+        // El año de la norma, una fecha o un flujo no son temperaturas de color
+        'Sus versiones de 2200K y 2700K tienen certificado D.S. N°1/2022, exigible desde el 19-10-2026 en todo Chile.',
+        'La de 2700K, con 9.000 lm, tiene certificado D.S. N°1/2022.',
+        // Decir cuáles no lo tienen, preguntarlo o nombrar la certificación SEC está bien
+        'Las de 2200K y 2700K tienen certificado D.S. N°1/2022. La de 3000K y la fría no lo tienen.',
+        '¿La de 4000K también lo tiene?',
+        'Está certificado por la SEC y se ofrece en luz fría de 6500K o en luz cálida de 2700K.',
+      ]) {
+        expect(ds1(checkRules({ ...good, description: text }, id)), `${id}: ${text}`).toEqual([]);
+      }
+    }
+  });
+
+  it('D.S. N°1: la Island (ornamental) dice su certificado en 2200K y 2700K, sin nombrar en esa oración la 4000K ni la 5000K', () => {
+    const ds1 = (problems: string[]) => problems.filter(p => /D\.S\. N°1|DS1/.test(p));
+    const ok = 'Sus versiones cálidas, de 2200K y 2700K, tienen certificado D.S. N°1/2022. También se ofrece en neutra de 4000K y en fría de 5000K.';
+    for (const id of DS1_CERTIFIED_LINES.island.ids) {
+      expect(ds1(checkRules({ ...good, description: ok }, id)), String(id)).toEqual([]);
+      // En la misma oración, la temperatura sin certificado se lee como certificada
+      const joined = 'Tiene certificado D.S. N°1/2022 en 2200K y 2700K, no en 4000K ni 5000K.';
+      expect(ds1(checkRules({ ...good, description: joined }, id)), String(id)).toContainEqual(expect.stringContaining('junto a una versión sin certificado'));
+    }
   });
 
   it('rechaza el plazo de despacho encadenado con dos o más punto y coma', () => {
