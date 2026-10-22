@@ -34,8 +34,9 @@
  * CONSENT_SINCE_DATE (consentGraceUntil), que no cambia al subir la versión.
  */
 export const LEGAL_VERSION: string = '1.4';
-export const LEGAL_UPDATED: string = '2026-10-18';
-export const LEGAL_UPDATED_LABEL: string = '18 de octubre de 2026';
+// La 1.4 se publicó el 21-10-2026 (PR #90, 09:41 hora de Chile); hasta el 22-10 decía 18 de octubre.
+export const LEGAL_UPDATED: string = '2026-10-21';
+export const LEGAL_UPDATED_LABEL: string = '21 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
 export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3'];
