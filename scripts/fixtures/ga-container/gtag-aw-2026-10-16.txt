@@ -1,0 +1,31 @@
+// Fixture sintético para scripts/check-ga-container.test.ts (Etapa 2 · PR 14).
+// Imita la forma del bloque `data` de https://www.googletagmanager.com/gtag/js?id=AW-000000000
+// con las banderas que tenía la etiqueta de Google Ads de eLIGHTS el 2026-10-16 (configuración
+// pública): detección automática de eventos activa (formularios, page_view por historial y
+// otros) y detección automática del correo sin exclusiones. No es una copia del script de
+// Google: solo la estructura que lee el chequeo.
+(function(){
+
+var data = {
+"resource": {
+  "version":"1",
+  "macros":[{"function":"__e"}],
+  "tags":[{"function":"__ogt_auto_events","priority":19,"vtp_enableOutboundClick":true,"vtp_enableScroll":true,"vtp_enableDownload":true,"vtp_enableHistoryEvents":true,"vtp_enableForm":true,"vtp_enableVideo":true,"vtp_enablePageView":true,"vtp_enableInPageEventsHidden":false,"vtp_hidePageViewToggle":false,"tag_id":1}
+  ,{"function":"__ogt_ads_datatos","priority":19,"tag_id":2}
+  ,{"function":"__ogt_1p_data_v2","priority":9,"vtp_isAutoEnabled":true,"vtp_isManualEnabled":false,"vtp_autoPhoneEnabled":false,"vtp_autoCollectExclusionSelectors":["list",["map","exclusionSelector",""]],"vtp_isEnabled":true,"vtp_autoAddressEnabled":false,"vtp_autoEmailEnabled":true,"vtp_isAutoCollectPiiEnabledFlag":true,"tag_id":3}
+  ,{"function":"__ccd_ads_first","priority":8,"tag_id":4}
+  ,{"function":"__ccd_pre_auto_pii","priority":6,"tag_id":5}
+  ,{"function":"__ccd_em_form","priority":5,"vtp_includeParams":false,"tag_id":6}
+  ,{"function":"__ccd_em_page_view","priority":4,"vtp_historyEvents":true,"vtp_deferPageView":true,"vtp_includeParams":true,"tag_id":7}
+  ,{"function":"__ccd_enable_cm","priority":3,"tag_id":8}
+  ,{"function":"__ccd_add_1p_data","priority":2,"vtp_acceptAutomatic":true,"vtp_acceptCode":true,"vtp_acceptManualSelector":true,"vtp_acceptUserData":true,"tag_id":9}
+  ,{"function":"__dest_aw","vtp_ignoreDupeGtagConfigCalls":false,"vtp_destinationId":"AW-000000000","vtp_enableVariablesInDestinationId":false,"tag_id":10}
+  ,{"function":"__ccd_ads_last","priority":0,"tag_id":11}],
+  "predicates":[{"function":"_eq","arg0":["macro",0],"arg1":"gtm.js"}],
+  "rules":[[["if",0],["add",1,2,3,4,5,6,7,8,9,10,11]]]
+},
+"runtime":[]
+};
+
+var Ma=/^[{}\[]+$/;function Na(a){return String(a).replace(/[}{]/g,"")}
+})();

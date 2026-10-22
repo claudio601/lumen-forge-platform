@@ -219,7 +219,7 @@ describe('sessionStorage bloqueado o alterado', () => {
 describe('oposición al origen de la visita (PR 13)', () => {
   const CONSENT_KEY = 'elights_cookie_consent';
   const decision = (origin: boolean, at = new Date().toISOString()) =>
-    localStorage.setItem(CONSENT_KEY, JSON.stringify({ v: 1, at, analytics: false, ads: false, origin }));
+    localStorage.setItem(CONSENT_KEY, JSON.stringify({ v: 2, at, analytics: false, ads: false, meta: false, origin }));
 
   it('con origin=false guardado, captureAttribution no escribe y getAttribution devuelve undefined', async () => {
     sessionStorage.setItem(KEY, JSON.stringify({ gclid: GCLID, landing: '/' })); // anotado antes de oponerse
@@ -261,7 +261,7 @@ describe('oposición al origen de la visita (PR 13)', () => {
 
   it.each([
     ['sin decisión', null],
-    ['con Rechazar (solo apaga las cookies de Google)', true],
+    ['con Rechazar (solo apaga las cookies de Google y de Meta)', true],
   ])('%s se sigue capturando', async (_, origin) => {
     if (origin !== null) decision(origin);
     const { captureAttribution, getAttribution } = await load();

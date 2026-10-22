@@ -133,8 +133,12 @@ class SubmitError extends Error {
   }
 }
 
-/** Solo es exito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError. */
-async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<void> {
+/**
+ * Solo es exito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError.
+ * Devuelve la referencia (leadRef) que confirma el servidor ('' si no viene: la trampa contra
+ * bots responde { success: true } sin ella).
+ */
+async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<string> {
   let res: Response;
   try {
     res = await fetch('/api/estudio-luminico/create', {
@@ -147,7 +151,7 @@ async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<v
   }
 
   // Una pagina de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown; code?: unknown } | null = null;
+  let data: { success?: unknown; code?: unknown; leadRef?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
@@ -155,6 +159,7 @@ async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<v
   if (!res.ok) throw new SubmitError('api_error', res.status, typeof data?.code === 'string' ? data.code : undefined);
   if (!data) throw new SubmitError('invalid_body', res.status);
   if (data.success !== true) throw new SubmitError('not_success', res.status);
+  return typeof data.leadRef === 'string' ? data.leadRef : '';
 }
 
 // Tope de la descripcion: el mismo que api/estudio-luminico/validation.ts
@@ -277,25 +282,27 @@ const EstudioLuminicoLeadForm = () => {
 
     // GA4: form_submit
     sendEvent('estudio_luminico_form_submit', {
-      tipoProyecto: form.tipoProyecto,
-      tienePlanos: form.tienePlanos,
-      objetivoProyecto: form.objetivoProyecto,
-      normativaObjetivo: form.normativaObjetivo || 'no_seguro',
-      urgenciaProyecto: form.urgenciaProyecto || 'sin_definir',
+      tipo_proyecto: form.tipoProyecto,
+      tiene_planos: form.tienePlanos,
+      objetivo_proyecto: form.objetivoProyecto,
+      normativa_objetivo: form.normativaObjetivo || 'no_seguro',
+      urgencia_proyecto: form.urgenciaProyecto || 'sin_definir',
     });
 
     try {
       const payload = buildPayload();
-      await submitEstudioLead(payload);
+      const ref = await submitEstudioLead(payload);
 
-      // GA4: lead enviado (conversión), solo cuando el servidor lo confirmó
-      trackLead('estudio_luminico', {
-        tipo_proyecto: form.tipoProyecto,
-        tiene_planos: form.tienePlanos,
-        objetivo_proyecto: form.objetivoProyecto,
-        normativa_objetivo: form.normativaObjetivo || 'no_seguro',
-        urgencia_proyecto: form.urgenciaProyecto || 'sin_definir',
-      });
+      // Conversión solo si el servidor confirmó la solicitud con su referencia (no se envía)
+      if (ref) {
+        trackLead('estudio_luminico', {
+          tipo_proyecto: form.tipoProyecto,
+          tiene_planos: form.tienePlanos,
+          objetivo_proyecto: form.objetivoProyecto,
+          normativa_objetivo: form.normativaObjetivo || 'no_seguro',
+          urgencia_proyecto: form.urgenciaProyecto || 'sin_definir',
+        });
+      }
 
       setStatus('success');
       setForm(EMPTY_FORM);
@@ -306,7 +313,7 @@ const EstudioLuminicoLeadForm = () => {
       const reason = err instanceof SubmitError ? err.reason : 'exception';
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
       const code = err instanceof SubmitError ? err.code : undefined;
-      sendEvent('estudio_luminico_form_submit_error', { reason, httpStatus });
+      sendEvent('estudio_luminico_form_submit_error', { reason, http_status: httpStatus });
       if (code === CONSENT_ERROR_CODE) {
         // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
         setStatus('idle');

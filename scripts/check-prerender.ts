@@ -17,8 +17,11 @@
 //     es un archivo de dist/ (su 301 lo taparía), y cada destino de categoría o página fija
 //     se generó (o es /buscar, que sirve spa.html).
 //   - consentimiento (PR 13): ninguna página trae el aviso de cookies ni rastros de Google
-//     (googletagmanager, gtag, dataLayer): el aviso aparece solo en el navegador y GA se carga
-//     solo después de aceptar. Las páginas generadas y 404.html llevan un botón «Configurar
+//     (googletagmanager, gtag, dataLayer): el aviso aparece solo en el navegador y GTM se carga
+//     solo después de aceptar. Desde la PR 14, tampoco rastros del píxel de Meta
+//     (connect.facebook.net, facebook.com/tr, fbevents, fbq(): un snippet o un <noscript> con
+//     su imagen enviaría un PageView sin consentimiento, y el píxel lo carga solo el contenedor
+//     con «Publicidad en Meta». Las páginas generadas y 404.html llevan un botón «Configurar
 //     cookies» en el pie (spa.html viene vacía: solo las ausencias). /cotizador, /instalacion y
 //     /estudio-luminico traen las dos casillas sin marcar dentro de su data-elights-form.
 // Avisos (nunca bloquean): un 301 de elights.cl que llega a un producto no publicado (da 404:
@@ -316,6 +319,8 @@ export interface ConsentFacts {
   bannerText: boolean;
   /** Rastros de Google en el HTML (googletagmanager, google-analytics.com, gtag/js, gtag(, dataLayer). */
   google: string[];
+  /** Rastros del píxel de Meta en el HTML (connect.facebook.net, facebook.com/tr, fbevents, fbq(). */
+  meta: string[];
   /** Botones «Configurar cookies» dentro del pie. */
   footerCookieButtons: number;
   /** Casillas de consentimiento: nombre, si vienen marcadas y el data-elights-form que las envuelve. */
@@ -325,6 +330,8 @@ export interface ConsentFacts {
 }
 
 const GOOGLE_TRACES = /googletagmanager|google-analytics\.com|gtag\/js|\bgtag\(|dataLayer/gi;
+/** El píxel de Meta: su script, su imagen (también la del <noscript>) y sus llamadas. */
+const META_TRACES = /connect\.facebook\.net|facebook\.com\/tr\b|fbevents|\bfbq\(/gi;
 const CONSENT_BOX_NAMES: readonly string[] = [CONSENT_FIELD_NAMES.privacy, CONSENT_FIELD_NAMES.marketing];
 
 export function consentFacts(html: string): ConsentFacts {
@@ -332,6 +339,7 @@ export function consentFacts(html: string): ConsentFacts {
     banners: 0,
     bannerText: false,
     google: [...new Set([...html.matchAll(GOOGLE_TRACES)].map(m => m[0]))],
+    meta: [...new Set([...html.matchAll(META_TRACES)].map(m => m[0]))],
     footerCookieButtons: 0,
     consentBoxes: [],
     forms: [],
@@ -361,6 +369,7 @@ export function consentIssues(f: ConsentFacts, expect: { footer: boolean; form?:
   const issues: string[] = [];
   if (f.banners || f.bannerText) issues.push('trae el aviso de cookies en el HTML (debe aparecer solo en el navegador, después de hidratar)');
   if (f.google.length) issues.push(`trae Google Analytics antes del consentimiento: ${f.google.join(', ')}`);
+  if (f.meta.length) issues.push(`trae el píxel de Meta antes del consentimiento: ${f.meta.join(', ')}`);
   if (expect.footer && f.footerCookieButtons !== 1) {
     issues.push(`${f.footerCookieButtons} botones «${COOKIE_TEXTS.footerButton}» en el pie (debe haber uno)`);
   }
@@ -386,7 +395,7 @@ export function consentIssues(f: ConsentFacts, expect: { footer: boolean; form?:
 export function consentSummary(problems: number, forms: readonly string[] = Object.keys(PRERENDERED_FORMS)): string {
   if (problems > 0) return `[check-prerender] Consentimiento: ${problems} problema(s)`;
   return (
-    `[check-prerender] Consentimiento: sin aviso de cookies ni Google en el HTML; «${COOKIE_TEXTS.footerButton}» en el pie; ` +
+    `[check-prerender] Consentimiento: sin aviso de cookies, Google ni Meta en el HTML; «${COOKIE_TEXTS.footerButton}» en el pie; ` +
     `casillas sin marcar en ${forms.join(', ')}`
   );
 }

@@ -43,8 +43,10 @@ class SubmitError extends Error {
 /**
  * El servidor envía el correo a ventas y crea el negocio en Pipedrive.
  * Solo es éxito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError.
+ * Devuelve la referencia (leadRef) que confirma el servidor ('' si no viene: la trampa contra
+ * bots responde { success: true } sin ella).
  */
-async function submitLead(payload: InstallationLeadPayload): Promise<void> {
+async function submitLead(payload: InstallationLeadPayload): Promise<string> {
   let res: Response;
   try {
     res = await fetch('/api/installation-leads/create', {
@@ -56,11 +58,12 @@ async function submitLead(payload: InstallationLeadPayload): Promise<void> {
     throw new SubmitError(0);
   }
   // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown; code?: unknown } | null = null;
+  let data: { success?: unknown; code?: unknown; leadRef?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
   if (!res.ok || data?.success !== true) throw new SubmitError(res.status, typeof data?.code === 'string' ? data.code : undefined);
+  return typeof data.leadRef === 'string' ? data.leadRef : '';
 }
 
 // Topes: los mismos que api/installation-leads/validation.ts (MAX_LENGTHS)
@@ -141,7 +144,7 @@ const InstallationLeadForm = () => {
     e.preventDefault();
     // Sin la comuna: a Google Analytics no va nada que ayude a identificar a la persona
     const tipoProyecto = form.tipoProyecto;
-    sendEvent('instalacion_form_submit_attempt', { tipoProyecto });
+    sendEvent('instalacion_form_submit_attempt', { tipo_proyecto: tipoProyecto });
     const invalid = validateForm();
     if (invalid) {
       setErrorMsg(invalid);
@@ -156,9 +159,9 @@ const InstallationLeadForm = () => {
     setErrorMsg('');
     setStatus('sending');
     try {
-      await submitLead(buildPayload());
-      // GA4: conversión solo cuando el servidor confirmó la solicitud
-      trackLead('instalacion', { tipo_proyecto: tipoProyecto });
+      const ref = await submitLead(buildPayload());
+      // Conversión solo si el servidor confirmó la solicitud con su referencia (no se envía)
+      if (ref) trackLead('instalacion', { tipo_proyecto: tipoProyecto });
       setStatus('success');
       setForm(EMPTY_FORM);
       consent.reset(); // "Enviar otra solicitud" vuelve a pedir las casillas
@@ -168,7 +171,7 @@ const InstallationLeadForm = () => {
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
       const code = err instanceof SubmitError ? err.code : undefined;
       sendEvent('instalacion_form_submit_failure', {
-        tipoProyecto,
+        tipo_proyecto: tipoProyecto,
         error_message: 'http_' + httpStatus,
       });
       if (code === CONSENT_ERROR_CODE) {

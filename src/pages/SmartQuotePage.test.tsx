@@ -95,6 +95,16 @@ describe('SmartQuotePage (/cotizador)', () => {
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
 
+  it('generate_lead solo con la referencia PY- en la respuesta: { success: true } sin ella (trampa contra bots) no cuenta', async () => {
+    vi.stubGlobal('fetch', reply(200, JSON.stringify({ success: true })));
+    renderPage();
+    fillForm();
+    fireEvent.click(submitButton());
+    expect(await screen.findByRole('heading', { name: /Propuesta solicitada/ })).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(trackLead).not.toHaveBeenCalled();
+  });
+
   it('envía los datos de empresa recortados', async () => {
     vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-test2', dealId: 2 })));
     renderPage();
@@ -128,7 +138,7 @@ describe('SmartQuotePage (/cotizador)', () => {
     expect(screen.queryByRole('heading', { name: /Propuesta solicitada/ })).not.toBeInTheDocument();
     expect(trackLead).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalled();
-    expect(sendEvent).toHaveBeenCalledWith('cotizador_submit_error', expect.objectContaining({ httpStatus }));
+    expect(sendEvent).toHaveBeenCalledWith('cotizador_submit_error', expect.objectContaining({ http_status: httpStatus }));
     expect(screen.getByLabelText(/Nombre y Apellido/)).toHaveValue('PRUEBA ETAPA 2 (09d)');
     expect(screen.getByLabelText(/m2 aproximados/)).toHaveValue('1200');
     expect(screen.getByLabelText(/Tipo de proyecto/)).toHaveValue('Bodega');

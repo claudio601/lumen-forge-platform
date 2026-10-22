@@ -163,8 +163,12 @@ class SubmitError extends Error {
   }
 }
 
-/** Solo es éxito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError. */
-async function submitQuote(payload: object): Promise<void> {
+/**
+ * Solo es éxito un 2xx con { success: true }; cualquier otra respuesta lanza SubmitError.
+ * Devuelve la referencia NE- que confirma el servidor ('' si no viene: la trampa contra bots
+ * responde { success: true } sin ella).
+ */
+async function submitQuote(payload: object): Promise<string> {
   let res: Response;
   try {
     res = await fetch('/api/quotes/create', {
@@ -177,7 +181,7 @@ async function submitQuote(payload: object): Promise<void> {
   }
 
   // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown; code?: unknown } | null = null;
+  let data: { success?: unknown; code?: unknown; quoteReference?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
@@ -185,6 +189,7 @@ async function submitQuote(payload: object): Promise<void> {
   if (!res.ok) throw new SubmitError('api_error', res.status, typeof data?.code === 'string' ? data.code : undefined);
   if (!data) throw new SubmitError('invalid_body', res.status);
   if (data.success !== true) throw new SubmitError('not_success', res.status);
+  return typeof data.quoteReference === 'string' ? data.quoteReference : '';
 }
 
 const SEO_TITLE = 'Solicitud de Cotización | eLIGHTS Chile';
@@ -273,7 +278,7 @@ const QuoteCartPage = () => {
 
     try {
       // Un solo envío: el servidor manda el correo a ventas y crea el negocio en Pipedrive
-      await submitQuote({
+      const confirmed = await submitQuote({
         sourceSystem: 'nuevo_elights',
         quoteReference: quoteRef,
         customerType,
@@ -307,8 +312,8 @@ const QuoteCartPage = () => {
         consent: consent.payload(),
       });
 
-      // GA4: lead enviado (conversión), solo cuando el servidor lo confirmó
-      trackLead('cotizacion', { lead_type: isEmpresa ? 'B2B' : 'B2C', item_count: quoteCart.length });
+      // Conversión solo si el servidor confirmó la solicitud con su referencia (no se envía)
+      if (confirmed) trackLead('cotizacion', { lead_type: isEmpresa ? 'B2B' : 'B2C', item_count: quoteCart.length });
       // Lo enviado queda para el resumen de la confirmación (la lista se vacía)
       setSent({
         reference: quoteRef,
@@ -329,7 +334,7 @@ const QuoteCartPage = () => {
       const reason = err instanceof SubmitError ? err.reason : 'exception';
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
       const code = err instanceof SubmitError ? err.code : undefined;
-      sendEvent('cotizacion_form_submit_error', { reason, httpStatus });
+      sendEvent('cotizacion_form_submit_error', { reason, http_status: httpStatus });
       if (code === CONSENT_ERROR_CODE) {
         // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
         setErrorMsg('');

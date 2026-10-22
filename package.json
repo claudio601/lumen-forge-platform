@@ -15,6 +15,7 @@
     "prerender": "tsx scripts/prerender.ts",
     "check:prerender": "tsx scripts/check-prerender.ts",
     "check:ga-container": "tsx scripts/check-ga-container.ts",
+    "check:gtm-export": "tsx scripts/check-gtm-export.ts",
     "build:dev": "vite build --mode development && vite build --ssr src/entry-server.tsx --outDir dist-ssr --mode development && npm run generate-sitemap && npm run prerender",
     "lint": "eslint .",
     "typecheck": "tsc -b --noEmit",

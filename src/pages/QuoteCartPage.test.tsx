@@ -153,7 +153,7 @@ describe('/cotizacion', () => {
   });
 
   it('persona: un solo envío a /api/quotes/create, nunca al relay de correo, y la referencia en pantalla', async () => {
-    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77}'));
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77,"quoteReference":"NE-x"}'));
     await renderPage();
     fillContact();
     submit();
@@ -210,11 +210,21 @@ describe('/cotizacion', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(screen.queryByText('Solicitud enviada')).not.toBeInTheDocument();
     expect(trackLead).not.toHaveBeenCalled();
-    expect(sendEvent).toHaveBeenCalledWith('cotizacion_form_submit_error', expect.objectContaining({ httpStatus }));
+    expect(sendEvent).toHaveBeenCalledWith('cotizacion_form_submit_error', expect.objectContaining({ http_status: httpStatus }));
     expect(screen.getByText(product.name)).toBeInTheDocument();
     expect(savedQuote()).toHaveLength(1);
     expect(screen.getByLabelText(/Nombre y Apellido/)).toHaveValue('PRUEBA ETAPA 2 (09b) - borrar');
     await waitFor(() => expect(screen.getByRole('button', { name: /ENVIAR SOLICITUD/ })).toBeEnabled());
+  });
+
+  it('generate_lead solo con la referencia NE- en la respuesta: { success: true } sin ella (trampa contra bots) no cuenta', async () => {
+    vi.stubGlobal('fetch', reply(200, '{"success":true}'));
+    await renderPage();
+    fillContact();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(trackLead).not.toHaveBeenCalled();
   });
 
   it('200 { success: true, dealId: null } (Pipedrive falló pero el correo salió): solicitud enviada', async () => {
@@ -286,7 +296,7 @@ describe('/cotizacion: origen de la visita', () => {
 
   it('con un origen guardado en la sesión, el envío lo lleva en attribution', async () => {
     sessionStorage.setItem('elights_attribution', JSON.stringify(ATTRIBUTION));
-    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77}'));
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77,"quoteReference":"NE-x"}'));
     await renderPage();
     fillContact();
     submit();
@@ -295,7 +305,7 @@ describe('/cotizacion: origen de la visita', () => {
   });
 
   it('sin origen guardado, la clave attribution no viaja', async () => {
-    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77}'));
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77,"quoteReference":"NE-x"}'));
     await renderPage();
     fillContact();
     submit();

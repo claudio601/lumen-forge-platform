@@ -46,8 +46,8 @@ function seedSession() {
 }
 
 /** Decisiones de cookies que se siembran en el navegador (nunca en el HTML del servidor). */
-const ACCEPTED: CookieChoice = { analytics: true, ads: true, origin: true };
-const REJECTED_NO_ORIGIN: CookieChoice = { analytics: false, ads: false, origin: false };
+const ACCEPTED: CookieChoice = { analytics: true, ads: true, meta: true, origin: true };
+const REJECTED_NO_ORIGIN: CookieChoice = { analytics: false, ads: false, meta: false, origin: false };
 
 function seedDecision(choice: CookieChoice) {
   localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, JSON.stringify({ v: COOKIE_CONSENT_VERSION, at: new Date().toISOString(), ...choice }));
@@ -114,7 +114,7 @@ async function hydrate(serverPath: string, clientUrl: string, withSession: boole
 function expectServerHtmlWithoutBanner(html: string) {
   expect(html).not.toContain(`aria-label="${COOKIE_TEXTS.bannerLabel}"`);
   expect(html).not.toContain(COOKIE_TEXTS.banner);
-  expect(html).not.toMatch(/googletagmanager|dataLayer/);
+  expect(html).not.toMatch(/googletagmanager|dataLayer|fbevents|connect\.facebook\.net|facebook\.com\/tr|\bfbq\(/);
   expect(html).toContain(`>${COOKIE_TEXTS.footerButton}</button>`);
 }
 
@@ -288,11 +288,12 @@ describe('aviso de cookies y casillas en la hidratación (PR 13)', () => {
   }
 });
 
-// Va al final: analytics.ts recuerda en el módulo que GA ya se cargó (solo vi.resetModules
+// Va al final: analytics.ts recuerda en el módulo que GTM ya se cargó (solo vi.resetModules
 // lo reinicia) y las pruebas de arriba comparten el módulo.
-describe('con Google Analytics activo en el host (elights.cl desde la Etapa 3)', () => {
-  it('página de llegada de Google Ads con cookies aceptadas: se hidrata sin desajustes y GA se carga después, fuera del HTML', async () => {
+describe('con GTM activo en el host (elights.cl desde la Etapa 3)', () => {
+  it('página de llegada de Google Ads con cookies aceptadas: se hidrata sin desajustes y GTM se carga después, fuera del HTML', async () => {
     vi.stubEnv('VITE_ANALYTICS_HOSTS', 'localhost');
+    vi.stubEnv('VITE_GTM_ID', 'GTM-TEST123');
     vi.stubEnv('VITE_GA4_ID', 'G-TEST123');
     try {
       const { errors, mismatches, container, serverH1, html } = await hydrate(
@@ -306,8 +307,9 @@ describe('con Google Analytics activo en el host (elights.cl desde la Etapa 3)',
       expect(mismatches).toEqual([]);
       expect(container.contains(serverH1)).toBe(true);
       expectServerHtmlWithoutBanner(html);
-      // Control positivo: con la decisión guardada, el page_view de RouteTracker cargó GA
-      await waitFor(() => expect(document.head.querySelector('script[src*="googletagmanager.com/gtag/js?id=G-TEST123"]')).not.toBeNull());
+      // Control positivo: con la decisión guardada, la vista de RouteTracker cargó GTM (y nunca gtag/js)
+      await waitFor(() => expect(document.head.querySelector('script[src="https://www.googletagmanager.com/gtm.js?id=GTM-TEST123"]')).not.toBeNull());
+      expect(document.head.querySelector('script[src*="gtag/js"]')).toBeNull();
       expect(container.innerHTML).not.toContain('googletagmanager');
       expect(container.querySelector(BANNER)).toBeNull();
     } finally {

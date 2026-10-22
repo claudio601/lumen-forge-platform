@@ -33,7 +33,8 @@
 // origin: false en la decisión de cookies (src/lib/cookieConsent.ts). Desde ese momento no
 // se captura ni se envía nada, y clearAttribution() borra lo ya anotado en esta pestaña.
 // La oposición no vence. Sin decisión, o con «Rechazar» (que solo apaga las cookies de
-// Google), se sigue capturando.
+// Google y de Meta), se sigue capturando. Los ids de clic que analytics.ts repone en la URL
+// salen de su propia copia (captureLandingParams), no de este registro.
 //
 // Hidratación: ningún componente lo lee al dibujar; getAttribution() solo se llama al
 // enviar un formulario.

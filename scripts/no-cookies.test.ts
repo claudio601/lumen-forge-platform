@@ -2,7 +2,9 @@
 // «Sin tu consentimiento, este sitio no instala cookies en tu navegador» (Política de
 // privacidad, PR 13). Lo respalda el código:
 // - Ningún archivo de src/ toca document.cookie, salvo src/lib/analytics.ts, y ahí solo para
-//   BORRAR las cookies de Google al revocar (una sola asignación, que expira la cookie).
+//   BORRAR las cookies de Google y de Meta al revocar (una sola asignación, que expira la cookie).
+// - El sitio nunca carga el píxel de Meta por su cuenta ni le envía eventos (PR 14): lo carga el
+//   contenedor de GTM con el consentimiento «Publicidad en Meta». El sitio solo puede revocarlo.
 // - Ninguna API ni librería de cookies (cookieStore, js-cookie y similares).
 // - El componente sidebar de shadcn, que guardaba su estado en una cookie y nadie usaba,
 //   ya no existe.
@@ -61,8 +63,29 @@ describe('el sitio no instala cookies', () => {
     expect(existsSync(join(SRC, 'components', 'ui', 'sidebar.tsx'))).toBe(false);
   });
 
-  it('index.html no carga nada de Google por su cuenta', () => {
+  it('index.html no carga nada de Google ni de Meta por su cuenta (ni un <noscript> de GTM o del píxel)', () => {
     const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
     expect(html).not.toMatch(/googletagmanager|google-analytics|gtag\(/);
+    expect(html).not.toMatch(/connect\.facebook\.net|facebook\.com\/tr|fbevents|\bfbq\(/);
+  });
+
+  it('src/ nunca carga el script del píxel de Meta ni llama fbq init o track (solo consent revoke)', () => {
+    const offenders = files.filter(f => /connect\.facebook\.net|facebook\.com\/tr|fbevents|_fbq\b/.test(readFileSync(f, 'utf8'))).map(rel);
+    expect(offenders).toEqual([]);
+    const calls = files.flatMap(f =>
+      [...readFileSync(f, 'utf8').matchAll(/\bfbq\s*\(\s*(['"`])([^'"`]*)\1/g)].map(m => `${rel(f)}: ${m[2]}`),
+    );
+    expect([...new Set(calls)]).toEqual(['src/lib/analytics.ts: consent']); // también en sus comentarios
+    const analytics = readFileSync(join(SRC, 'lib', 'analytics.ts'), 'utf8');
+    expect(analytics).toContain("window.fbq('consent', 'revoke')");
+    expect(analytics).not.toMatch(/fbq\s*\(\s*['"`](?:init|track|trackCustom|trackSingle|set)['"`]/);
+  });
+
+  it('el único script que inserta src/ es gtm.js (nunca gtag/js)', () => {
+    const inserts = files.filter(f => /createElement\(\s*['"]script['"]\s*\)/.test(readFileSync(f, 'utf8'))).map(rel);
+    expect(inserts).toEqual(['src/lib/analytics.ts']);
+    const analytics = readFileSync(join(SRC, 'lib', 'analytics.ts'), 'utf8');
+    expect(analytics).toContain("'https://www.googletagmanager.com/gtm.js?id='");
+    expect(files.filter(f => /gtag\/js/.test(readFileSync(f, 'utf8'))).map(rel)).toEqual([]);
   });
 });

@@ -271,7 +271,7 @@ const RequestOrderPage = () => {
 
     setStatus('sending');
     // Sin la comuna: a Google Analytics no va nada que ayude a identificar a la persona
-    sendEvent('request_form_start', { customerType: values.customerType });
+    sendEvent('request_form_start', { customer_type: values.customerType });
 
     const requestReference = buildRequestRef(values.email, items);
     // Lo que veía el cliente al enviar, en el modo del selector; el servidor recalcula CON IVA
@@ -315,7 +315,7 @@ const RequestOrderPage = () => {
           if (Array.isArray(list)) serverErrors = list.filter((x): x is string => typeof x === 'string');
         } catch { /* cuerpo no JSON */ }
         console.error('[RequestOrder] Endpoint error', { status: res.status, code });
-        sendEvent('request_form_submit_error', { reason: 'api_error', httpStatus: res.status });
+        sendEvent('request_form_submit_error', { reason: 'api_error', http_status: res.status });
         // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje
         // general, y el botón vuelve a estar disponible
         if (res.status === 400 && code === CONSENT_ERROR_CODE) {
@@ -336,9 +336,12 @@ const RequestOrderPage = () => {
 
       // Email enviado solo desde backend (fire-and-forget).
 
-      // Sin la referencia RC-: uniría la medición de Google con el negocio en
-      // Pipedrive (Política §10: solo páginas y botones, sin datos de contacto).
-      trackLead('solicitud_pedido', { item_count: items.length });
+      // Conversión solo si la respuesta trae la referencia RC-: la trampa contra bots responde
+      // { success: true } sin ella y sin crear nada. La referencia decide, pero no se envía:
+      // uniría la medición con el negocio en Pipedrive (Política §10: sin datos de contacto).
+      if (typeof data?.requestReference === 'string' && data.requestReference) {
+        trackLead('solicitud_pedido', { item_count: items.length });
+      }
 
       // Lo enviado queda para el resumen de la confirmación (el carrito se vacía)
       setSent({ reference: data.requestReference, lines: items, mode });

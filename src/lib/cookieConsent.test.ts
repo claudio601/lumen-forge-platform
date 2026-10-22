@@ -1,7 +1,9 @@
 // src/lib/cookieConsent.test.ts
-// Decisión de cookies (Etapa 2 · PR 13): dónde se guarda, cuándo vale (versión, 12 meses,
-// reloj adelantado, tipos), que la oposición al origen no vence, el respaldo en memoria si
-// el almacenamiento falla, los avisos a esta pestaña y a las otras, y los hosts de prueba.
+// Decisión de cookies (Etapa 2 · PR 13; PR 14: «Publicidad en Meta», versión 2): dónde se
+// guarda, cuándo vale (versión, 12 meses, reloj adelantado, tipos), que anuncios y Meta
+// requieren la medición de visitas, que una decisión v1 ya no vale, que la oposición al origen
+// no vence, el respaldo en memoria si el almacenamiento falla, los avisos a esta pestaña y a las
+// otras (con su origen) y los hosts de prueba.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,10 +20,11 @@ async function load(): Promise<CookieConsentModule> {
 }
 
 const record = (over: Record<string, unknown> = {}) => ({
-  v: 1,
+  v: 2,
   at: NOW.toISOString(),
   analytics: true,
   ads: false,
+  meta: false,
   origin: true,
   ...over,
 });
@@ -54,27 +57,34 @@ describe('importar', () => {
 });
 
 describe('guardar y leer', () => {
-  it("escribe 'elights_cookie_consent' con v, at, analytics, ads y origin, en ese orden", async () => {
+  it("escribe 'elights_cookie_consent' con v, at, analytics, ads, meta y origin, en ese orden", async () => {
     const cc = await load();
+    expect(cc.COOKIE_CONSENT_VERSION).toBe(2);
     expect(cc.getCookieChoice()).toBeNull();
-    cc.setCookieChoice({ analytics: true, ads: true, origin: true });
-    expect(localStorage.getItem(KEY)).toBe('{"v":1,"at":"2026-11-20T14:03:12.000Z","analytics":true,"ads":true,"origin":true}');
-    expect(cc.getCookieChoice()).toEqual({ analytics: true, ads: true, origin: true });
+    cc.setCookieChoice({ analytics: true, ads: true, meta: true, origin: true });
+    expect(localStorage.getItem(KEY)).toBe('{"v":2,"at":"2026-11-20T14:03:12.000Z","analytics":true,"ads":true,"meta":true,"origin":true}');
+    expect(cc.getCookieChoice()).toEqual({ analytics: true, ads: true, meta: true, origin: true });
   });
 
   it('una decisión guardada en otra carga se lee igual', async () => {
     seed(record({ analytics: false, ads: false, origin: false }));
     const cc = await load();
-    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, origin: false });
+    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, meta: false, origin: false });
   });
 
-  it('anuncios sin visitas se guardan y se leen como anuncios apagados', async () => {
+  it('anuncios o Meta sin visitas se guardan y se leen apagados (requieren la medición de visitas)', async () => {
     const cc = await load();
-    expect(cc.setCookieChoice({ analytics: false, ads: true, origin: true })).toEqual({ analytics: false, ads: false, origin: true });
-    expect(stored().ads).toBe(false);
+    expect(cc.setCookieChoice({ analytics: false, ads: true, meta: true, origin: true })).toEqual({ analytics: false, ads: false, meta: false, origin: true });
+    expect(stored()).toMatchObject({ ads: false, meta: false });
     localStorage.clear();
-    seed(record({ analytics: false, ads: true }));
-    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, origin: true });
+    seed(record({ analytics: false, ads: true, meta: true }));
+    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, meta: false, origin: true });
+  });
+
+  it('Meta es independiente de la medición de anuncios de Google', async () => {
+    const cc = await load();
+    expect(cc.setCookieChoice({ analytics: true, ads: false, meta: true, origin: true })).toEqual({ analytics: true, ads: false, meta: true, origin: true });
+    expect(cc.getCookieChoice()).toEqual({ analytics: true, ads: false, meta: true, origin: true });
   });
 });
 
@@ -85,24 +95,28 @@ describe('validez', () => {
   ])('vale una decisión %s', async (_, value) => {
     seed(value);
     const cc = await load();
-    expect(cc.getCookieChoice()).toEqual({ analytics: true, ads: false, origin: true });
+    expect(cc.getCookieChoice()).toEqual({ analytics: true, ads: false, meta: false, origin: true });
   });
 
   it.each([
     ['vencida (365 días o más)', record({ at: new Date(NOW.getTime() - 365 * DAY).toISOString() })],
     ['vencida (400 días)', record({ at: new Date(NOW.getTime() - 400 * DAY).toISOString() })],
-    ['de otra versión', record({ v: 2 })],
+    ['de la versión 1 (antes de «Publicidad en Meta»)', { v: 1, at: NOW.toISOString(), analytics: true, ads: true, origin: true }],
+    ['de la versión 1 aunque traiga meta', record({ v: 1, meta: true })],
+    ['de otra versión', record({ v: 3 })],
     ['sin versión', record({ v: undefined })],
     ['con fecha más de 1 día en el futuro', record({ at: new Date(NOW.getTime() + DAY + 1000).toISOString() })],
     ['con fecha ilegible', record({ at: 'ayer' })],
     ['con fecha que no es texto', record({ at: NOW.getTime() })],
     ['con analytics no booleano', record({ analytics: 'true' })],
     ['con ads no booleano', record({ ads: 1 })],
+    ['sin meta', record({ meta: undefined })],
+    ['con meta no booleano', record({ meta: 'false' })],
     ['sin origin', record({ origin: undefined })],
     ['que es null', null],
     ['que es un texto', 'aceptado'],
     ['que es un arreglo', [record()]],
-    ['con JSON roto', '{"v":1,'],
+    ['con JSON roto', '{"v":2,'],
   ])('no vale una decisión %s: el aviso vuelve', async (_, value) => {
     seed(value);
     const cc = await load();
@@ -111,13 +125,18 @@ describe('validez', () => {
 });
 
 describe('oposición al origen de la visita', () => {
-  it('no vence: sigue con una decisión vencida o de otra versión', async () => {
+  it('no vence: sigue con una decisión vencida o de otra versión (también una v1 sin meta)', async () => {
     seed(record({ origin: false, at: new Date(NOW.getTime() - 800 * DAY).toISOString() }));
     let cc = await load();
     expect(cc.getCookieChoice()).toBeNull();
     expect(cc.isOriginOptedOut()).toBe(true);
 
     seed(record({ origin: false, v: 99 }));
+    cc = await load();
+    expect(cc.getCookieChoice()).toBeNull();
+    expect(cc.isOriginOptedOut()).toBe(true);
+
+    seed({ v: 1, at: NOW.toISOString(), analytics: false, ads: false, origin: false });
     cc = await load();
     expect(cc.getCookieChoice()).toBeNull();
     expect(cc.isOriginOptedOut()).toBe(true);
@@ -148,8 +167,8 @@ describe('almacenamiento que falla', () => {
     });
     const cc = await load();
     expect(cc.getCookieChoice()).toBeNull();
-    expect(() => cc.setCookieChoice({ analytics: false, ads: false, origin: false })).not.toThrow();
-    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, origin: false });
+    expect(() => cc.setCookieChoice({ analytics: false, ads: false, meta: false, origin: false })).not.toThrow();
+    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, meta: false, origin: false });
     expect(cc.isOriginOptedOut()).toBe(true);
   });
 
@@ -159,9 +178,9 @@ describe('almacenamiento que falla', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('QuotaExceededError');
     });
-    cc.setCookieChoice({ analytics: false, ads: false, origin: true });
+    cc.setCookieChoice({ analytics: false, ads: false, meta: false, origin: true });
     expect(stored().analytics).toBe(true); // lo viejo sigue en localStorage
-    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, origin: true });
+    expect(cc.getCookieChoice()).toEqual({ analytics: false, ads: false, meta: false, origin: true });
   });
 
   it('__resetForTests olvida la copia en memoria', async () => {
@@ -169,45 +188,45 @@ describe('almacenamiento que falla', () => {
       throw new Error('SecurityError');
     });
     const cc = await load();
-    cc.setCookieChoice({ analytics: true, ads: true, origin: true });
+    cc.setCookieChoice({ analytics: true, ads: true, meta: true, origin: true });
     cc.__resetForTests();
     expect(cc.getCookieChoice()).toBeNull();
   });
 });
 
 describe('avisos', () => {
-  it('setCookieChoice avisa a los suscriptores y emite COOKIE_CONSENT_EVENT con la decisión', async () => {
+  it('setCookieChoice avisa a los suscriptores (desde esta pestaña) y emite COOKIE_CONSENT_EVENT con la decisión', async () => {
     const cc = await load();
     const listener = vi.fn();
     const onEvent = vi.fn();
     const unsubscribe = cc.subscribe(listener);
     window.addEventListener(cc.COOKIE_CONSENT_EVENT, onEvent);
-    cc.setCookieChoice({ analytics: true, ads: false, origin: true });
-    expect(listener).toHaveBeenCalledWith({ analytics: true, ads: false, origin: true });
+    cc.setCookieChoice({ analytics: true, ads: false, meta: true, origin: true });
+    expect(listener).toHaveBeenCalledWith({ analytics: true, ads: false, meta: true, origin: true }, 'this-tab');
     expect(onEvent).toHaveBeenCalledTimes(1);
-    expect((onEvent.mock.calls[0][0] as CustomEvent).detail).toEqual({ analytics: true, ads: false, origin: true });
+    expect((onEvent.mock.calls[0][0] as CustomEvent).detail).toEqual({ analytics: true, ads: false, meta: true, origin: true });
     expect(cc.COOKIE_CONSENT_EVENT).toBe('elights:cookie-consent');
     window.removeEventListener(cc.COOKIE_CONSENT_EVENT, onEvent);
 
     unsubscribe();
-    cc.setCookieChoice({ analytics: false, ads: false, origin: true });
+    cc.setCookieChoice({ analytics: false, ads: false, meta: false, origin: true });
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it('el evento storage (otra pestaña) avisa con la decisión guardada allí', async () => {
+  it('el evento storage (otra pestaña) avisa con la decisión guardada allí y dice que viene de otra pestaña', async () => {
     const cc = await load();
     const listener = vi.fn();
     const unsubscribe = cc.subscribe(listener);
     seed(record({ analytics: false, ads: false, origin: false }));
     window.dispatchEvent(new StorageEvent('storage', { key: KEY }));
-    expect(listener).toHaveBeenCalledWith({ analytics: false, ads: false, origin: false });
+    expect(listener).toHaveBeenCalledWith({ analytics: false, ads: false, meta: false, origin: false }, 'other-tab');
 
     window.dispatchEvent(new StorageEvent('storage', { key: 'elights_request_cart' }));
     expect(listener).toHaveBeenCalledTimes(1);
 
     localStorage.clear();
     window.dispatchEvent(new StorageEvent('storage', { key: null })); // otra pestaña borró todo
-    expect(listener).toHaveBeenLastCalledWith(null);
+    expect(listener).toHaveBeenLastCalledWith(null, 'other-tab');
 
     unsubscribe();
     window.dispatchEvent(new StorageEvent('storage', { key: KEY }));
@@ -222,7 +241,7 @@ describe('avisos', () => {
       throw new Error('falla');
     });
     cc.subscribe(ok);
-    cc.setCookieChoice({ analytics: true, ads: true, origin: true });
+    cc.setCookieChoice({ analytics: true, ads: true, meta: true, origin: true });
     expect(ok).toHaveBeenCalledTimes(1);
     expect(stored()).toMatchObject({ analytics: true, ads: true });
     expect(consoleError).toHaveBeenCalledTimes(1); // el error no se pierde
@@ -270,12 +289,49 @@ describe('bannerTestHost (VITE_COOKIE_BANNER_HOSTS)', () => {
 });
 
 describe('textos', () => {
-  it('el aviso cabe en 2 a 3 líneas y el diálogo dice que la decisión dura 12 meses', async () => {
+  it('el aviso cabe en 4 líneas y el diálogo dice que la decisión dura 12 meses', async () => {
     const { COOKIE_TEXTS } = await load();
-    expect(COOKIE_TEXTS.banner.length).toBeLessThan(160);
+    expect(COOKIE_TEXTS.banner.length).toBeLessThanOrEqual(220);
     expect(COOKIE_TEXTS.settingsDescription).toContain('Guardamos tu decisión 12 meses');
     expect(COOKIE_TEXTS.analyticsText).toContain('hasta 13 meses');
     expect(COOKIE_TEXTS.adsText.startsWith('Requiere la medición de visitas.')).toBe(true);
     expect(Object.isFrozen(COOKIE_TEXTS)).toBe(true);
+  });
+
+  it('el aviso nombra a Meta (es lo único que se lee antes de «Aceptar», que también enciende Meta)', async () => {
+    const { COOKIE_TEXTS } = await load();
+    expect(COOKIE_TEXTS.banner).toContain('cookies de Google y de Meta');
+    expect(COOKIE_TEXTS.banner).toContain('Meta también usa esos datos para sus propios anuncios');
+  });
+
+  it('«Publicidad en Meta»: requiere la medición de visitas, sus cookies, lo que recibe Meta y que no van datos de contacto', async () => {
+    const { COOKIE_TEXTS } = await load();
+    expect(COOKIE_TEXTS.metaTitle).toBe('Publicidad en Meta');
+    expect(COOKIE_TEXTS.metaText.startsWith('Requiere la medición de visitas.')).toBe(true);
+    for (const s of [
+      'cookies como _fbp y _fbc, y datos en el almacenamiento local, hasta 90 días',
+      'las páginas que visitas (con su dirección completa y el sitio desde el que llegaste)',
+      'el identificador del clic (fbclid) si llegaste desde un enlace de Facebook o Instagram',
+      'si nos enviaste una solicitud (y de qué tipo) o hiciste clic para contactarnos (y por qué medio)',
+      'Meta también usa estos datos para sus propios anuncios',
+      'No le enviamos tu nombre ni tus datos de contacto.',
+      'Solo en elights.cl.',
+    ]) {
+      expect(COOKIE_TEXTS.metaText, s).toContain(s);
+    }
+  });
+
+  it('en las direcciones que no miden, el panel dice que tampoco hay píxel de Meta', async () => {
+    const { COOKIE_TEXTS } = await load();
+    expect(COOKIE_TEXTS.settingsDescriptionNoGoogle).toBe(
+      'En esta dirección del sitio no usamos cookies, Google Analytics, medición de anuncios ni el píxel de Meta. Si más adelante los usamos, te lo preguntaremos aquí.',
+    );
+  });
+
+  it('los textos van en español de Chile, sin mojibake', async () => {
+    const { COOKIE_TEXTS } = await load();
+    const all = Object.values(COOKIE_TEXTS).join(' ');
+    expect(all).not.toMatch(/Ã|Â|â€|\uFFFD|�/);
+    expect(all).toContain('medición');
   });
 });

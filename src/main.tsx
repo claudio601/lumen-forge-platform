@@ -10,11 +10,15 @@ import App from "./App.tsx";
 import { staticPage } from "./routes";
 import { retryBrokenImages } from "./lib/brokenImages";
 import { captureAttribution } from "./lib/attribution";
+import { captureLandingParams } from "./lib/analytics";
 import "./index.css";
 
 // Origen de la visita (anuncio, campaña, sitio anterior): una vez por carga, antes de que
 // React Router pueda redirigir y botar los parámetros. Nunca lanza.
 captureAttribution();
+// Ids de clic de la URL de llegada (copia propia de analytics, para reponerlos si el visitante
+// acepta después de navegar) y el modo de prueba de GTM. Mismo momento; nunca lanza.
+captureLandingParams();
 
 const container = document.getElementById("root")!;
 
