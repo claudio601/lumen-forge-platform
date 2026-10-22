@@ -559,6 +559,11 @@
       "statusCode": 301
     },
     {
+      "source": "/brazo-galvanizado-para-poste-1-salida-o48mm{/}?",
+      "destination": "/producto/brazo-galvanizado-para-poste-1-salida-o48mm",
+      "statusCode": 301
+    },
+    {
       "source": "/cambios-y-devoluciones{/}?",
       "destination": "/cambios-devoluciones-y-garantia",
       "statusCode": 301
@@ -660,17 +665,17 @@
     },
     {
       "source": "/campana-led-ufo-nf8-100w-110lm/w-ip65{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-100w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
       "source": "/campana-led-ufo-nf8-150w-110lm/w-ip65{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-150w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
       "source": "/campana-led-ufo-nf8-200w-110lm/w-ip65{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-200w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
@@ -1314,6 +1319,11 @@
       "statusCode": 301
     },
     {
+      "source": "/iluminacion_antiexplosiva/alumbrado-vial-antiexplosivo{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
       "source": "/iluminacion_antiexplosiva/campana-led-ufo-antiexplosiva{/}?",
       "destination": "/catalogo/iluminacion-antiexplosiva",
       "statusCode": 301
@@ -1425,7 +1435,7 @@
     },
     {
       "source": "/lampara-de-emergencia-led-2x4w-ip67{/}?",
-      "destination": "/producto/lampara-de-emergencia-led-2x4w-ip67",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
@@ -1676,6 +1686,11 @@
     {
       "source": "/panel-led-cuadrado-embutido-12w-ip20{/}?",
       "destination": "/producto/panel-led-cuadrado-embutido-12w-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/panel-led-cuadrado-embutido-15w-ip44{/}?",
+      "destination": "/producto/panel-led-cuadrado-embutido-15w-ip44",
       "statusCode": 301
     },
     {
@@ -2380,7 +2395,7 @@
     },
     {
       "source": "/senaletica-de-emergencia-led-salida-3w-4-hrs-autonomia{/}?",
-      "destination": "/producto/senaletica-de-emergencia-led-salida-3w-4-hrs-autonomia",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
