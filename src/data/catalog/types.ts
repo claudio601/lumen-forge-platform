@@ -18,7 +18,14 @@ export interface Product {
   /** Todas las categorías del sitio a las que pertenece (filtros del catálogo). */
   categories: string[];
   watts: number;
+  /** Temperatura de color que trae el nombre (0 si no la trae). */
   kelvin: number;
+  /**
+   * Todas las temperaturas de color en que se vende (auditoría UX, B-05): las de las opciones de
+   * sus variantes en Jumpseller; si ninguna la trae, la del nombre. Sin repetir, de menor a
+   * mayor; [] si no se conoce. El filtro del catálogo usa «alguna variante tiene esa temperatura».
+   */
+  kelvins: number[];
   lumens: number;
   ip?: string;
   image: string;

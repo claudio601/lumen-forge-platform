@@ -1,0 +1,263 @@
+// src/lib/productSearch.test.ts
+// Búsqueda tolerante (auditoría UX, B-03) y la salida sin resultados (B-04). Corre contra el
+// catálogo real, que cambia con cada sincronización de Jumpseller: las pruebas fijan reglas
+// (qué tiene que encontrar cada consulta de la auditoría y en qué orden), no conteos.
+
+import { describe, it, expect } from 'vitest';
+import { products, categories, type Product } from '@/data/products';
+import { GENERIC_SEARCH_WORDS, SEARCH_SYNONYMS } from '@/data/catalog/search-synonyms';
+import {
+  normalizeSearchText,
+  searchIndex,
+  searchProducts,
+  searchRequestMailto,
+  searchSuggestions,
+  searchWords,
+} from './productSearch';
+
+const search = (q: string) => searchProducts(products, q);
+const ids = (list: readonly Product[]) => new Set(list.map(p => p.id));
+const norm = normalizeSearchText;
+const catName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
+/** Todo el texto que indexa un producto, normalizado. */
+const haystack = (p: Product) =>
+  norm([p.sku, p.name, p.brand, ...p.categories.map(catName), ...(p.variants ?? []).flatMap(v => [v.sku, ...v.options.map(o => o.value)]), ...p.kelvins.map(k => `${k}K`)].join(' '));
+const nameHas = (p: Product, re: RegExp) => re.test(norm(p.name));
+const sameSet = (a: readonly Product[], b: readonly Product[]) => expect([...ids(a)].sort()).toEqual([...ids(b)].sort());
+const allSkus = (p: Product) => [p.sku, ...(p.variants ?? []).map(v => v.sku)].filter(Boolean).map(norm);
+
+describe('texto normalizado', () => {
+  it('sin tildes y en minúsculas', () => {
+    expect(norm('ALUMBRADO PÚBLICO')).toBe('alumbrado publico');
+    expect(norm('Señalética Galpón')).toBe('senaletica galpon');
+  });
+
+  it('junta lo que se escribe separado: «2700 K», «IP 65», «60 x 60» y la coma decimal', () => {
+    expect(searchWords('2700 K')).toEqual(['2700k']);
+    expect(searchWords('IP 65')).toEqual(['ip65']);
+    expect(searchWords('panel 60 x 60')).toEqual(['panel', '60x60']);
+    expect(searchWords('CINTA 14,4W 5mt.')).toEqual(['cinta', '14.4w', '5mt']);
+    expect(searchWords('eLIGHTS.cl')).toEqual(['elights', 'cl']);
+  });
+});
+
+describe('consultas de la auditoría (B-03)', () => {
+  it('«alumbrado publico» sin tilde da lo mismo que con tilde y trae toda la categoría', () => {
+    const plain = search('alumbrado publico');
+    expect(plain.length).toBeGreaterThan(0);
+    sameSet(plain, search('alumbrado público'));
+    sameSet(plain, search('ALUMBRADO PUBLICO'));
+    const inCategory = products.filter(p => p.categories.includes('alumbrado-publico'));
+    for (const p of inCategory) expect(ids(plain).has(p.id), p.name).toBe(true);
+    for (const p of plain) expect(haystack(p)).toMatch(/alumbrado.*publico|publico.*alumbrado/);
+  });
+
+  it('«reflector» encuentra los proyectores (sinónimo)', () => {
+    const r = search('reflector');
+    expect(r.length).toBeGreaterThan(0);
+    sameSet(r, search('proyector'));
+    for (const p of products.filter(x => nameHas(x, /\bproyector\b/))) expect(ids(r).has(p.id), p.name).toBe(true);
+  });
+
+  it('«luminaria vial»: «luminaria» no filtra; trae lo que dice «vial» y el alumbrado público', () => {
+    const r = search('luminaria vial');
+    sameSet(r, search('vial'));
+    const expected = ids([...search('alumbrado publico'), ...products.filter(p => nameHas(p, /\bvial\b/))]);
+    expect([...ids(r)].sort()).toEqual([...expected].sort());
+    // Lo que dice «vial» tal cual va antes que lo que llega por sinónimo
+    const literal = r.filter(p => nameHas(p, /\bvial\b/));
+    expect(r.slice(0, literal.length)).toEqual(literal);
+  });
+
+  it('«galpon» (sin tilde) encuentra las campanas; «galpón» y «galpones», lo mismo', () => {
+    const r = search('galpon');
+    expect(r.length).toBeGreaterThan(0);
+    sameSet(r, search('campana'));
+    sameSet(r, search('galpón'));
+    sameSet(r, search('galpones'));
+    for (const p of products.filter(x => nameHas(x, /\bcampana\b/))) expect(ids(r).has(p.id), p.name).toBe(true);
+  });
+
+  it('«cancha» encuentra los proyectores de estadio', () => {
+    const r = search('cancha');
+    expect(r.length).toBeGreaterThan(0);
+    sameSet(r, search('proyector de estadio'));
+    for (const p of r) expect(haystack(p)).toMatch(/estadio/);
+    for (const p of products.filter(x => nameHas(x, /proyector.*estadio/))) expect(ids(r).has(p.id), p.name).toBe(true);
+  });
+
+  it('«2700K» trae los productos con alguna variante de 2700K (también «2700 K» y «2700»)', () => {
+    const r = search('2700K');
+    const withVariant = products.filter(p => p.kelvins.includes(2700));
+    expect(withVariant.length).toBeGreaterThan(0);
+    for (const p of withVariant) expect(ids(r).has(p.id), p.name).toBe(true);
+    for (const p of r) expect(p.kelvins.includes(2700) || /2700\s*k/i.test(p.name), p.name).toBe(true);
+    sameSet(r, search('2700 K'));
+    sameSet(r, search('2700'));
+  });
+
+  it('«IP 65» da lo mismo que «IP65» y trae los IP65', () => {
+    const r = search('IP 65');
+    sameSet(r, search('ip65'));
+    const ip65 = products.filter(p => p.ip === 'IP65');
+    expect(ip65.length).toBeGreaterThan(0);
+    for (const p of ip65) expect(ids(r).has(p.id), p.name).toBe(true);
+    for (const p of r) expect(haystack(p)).toMatch(/ip ?65/);
+  });
+
+  it('«APB601» (SKU de una variante BESTLED) trae primero ese producto', () => {
+    const owner = products.find(p => p.variants?.some(v => v.sku === 'APB601'));
+    if (!owner) return; // la variante ya no está en Jumpseller: la regla general va abajo
+    expect(search('APB601')[0].id).toBe(owner.id);
+    expect(search('apb601')[0].id).toBe(owner.id);
+  });
+
+  it('el SKU de cualquier variante encuentra su producto, y lo que coincide por SKU va primero', () => {
+    const skus = [...new Set(products.flatMap(p => (p.variants ?? []).map(v => v.sku)).filter(Boolean))];
+    expect(skus.length).toBeGreaterThan(0);
+    for (const sku of skus) {
+      const r = search(sku);
+      const q = searchWords(sku);
+      const bySku = r.filter(p => allSkus(p).some(s => q.every(w => searchWords(s).some(x => x.startsWith(w)))));
+      for (const p of products.filter(x => allSkus(x).includes(norm(sku)))) expect(ids(bySku).has(p.id), `${sku}: ${p.name}`).toBe(true);
+      expect(r.slice(0, bySku.length), sku).toEqual(bySku);
+    }
+  });
+
+  it('«proyectr» (una letra menos) da lo mismo que «proyector»', () => {
+    const r = search('proyectr');
+    expect(r.length).toBeGreaterThan(0);
+    sameSet(r, search('proyector'));
+  });
+
+  it('«antiexplosivo» trae toda la iluminación antiexplosiva; «ex» y «ATEX», lo mismo, y «ex» no trae lo de exterior', () => {
+    const r = search('antiexplosivo');
+    for (const p of products.filter(x => x.categories.includes('iluminacion-antiexplosiva'))) expect(ids(r).has(p.id), p.name).toBe(true);
+    sameSet(r, search('antiexplosiva'));
+    sameSet(search('ex'), r);
+    sameSet(search('ATEX'), r);
+  });
+
+  it('«panel 60x60» trae los paneles de 60x60, todas las palabras presentes', () => {
+    const r = search('panel 60x60');
+    expect(r.length).toBeGreaterThan(0);
+    for (const p of r) expect(haystack(p)).toMatch(/panel/);
+    for (const p of r) expect(haystack(p)).toMatch(/60 ?x ?60/);
+    for (const p of products.filter(x => nameHas(x, /\bpanel\b.*\b60x60\b/))) expect(ids(r).has(p.id), p.name).toBe(true);
+    sameSet(r, search('panel 60 x 60'));
+  });
+});
+
+describe('reglas de la búsqueda', () => {
+  it('sin la comparación numérica suelta: «0» no trae todo, y un número busca ese número', () => {
+    expect(search('0')).toEqual([]);
+    for (let d = 1; d <= 9; d++) expect(search(String(d)).length, String(d)).toBeLessThan(products.length);
+    for (const p of search('100')) expect(norm(`${p.name} ${haystack(p)}`)).toMatch(/(^|[^0-9.])100(?![0-9])/);
+  });
+
+  it('todas las palabras tienen que estar', () => {
+    const both = search('campana 200w');
+    expect(both.length).toBeGreaterThan(0);
+    for (const p of both) expect(haystack(p)).toMatch(/200 ?w/);
+    expect(search('campana palabraquenoexiste')).toEqual([]);
+  });
+
+  it('orden: SKU, nombre y el resto; a igualdad, el orden del catálogo', () => {
+    const r = search('proyector');
+    const inName = r.filter(p => nameHas(p, /proyector/));
+    expect(inName.length).toBeGreaterThan(0);
+    expect(r.slice(0, inName.length)).toEqual(inName);
+    const position = new Map(products.map((p, i) => [p.id, i]));
+    const order = inName.map(p => position.get(p.id)!);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
+  it('«foco»: primero lo que dice «foco» en el nombre, después los proyectores (sinónimo)', () => {
+    const r = search('foco');
+    const literal = r.filter(p => nameHas(p, /\bfocos?\b/));
+    expect(literal.length).toBeGreaterThan(0);
+    expect(r.slice(0, literal.length)).toEqual(literal);
+    for (const p of search('proyector')) expect(ids(r).has(p.id)).toBe(true);
+  });
+
+  it('consulta vacía o solo espacios: nada', () => {
+    expect(search('')).toEqual([]);
+    expect(search('   ')).toEqual([]);
+  });
+
+  it('solo palabras genéricas («led»): se buscan tal cual', () => {
+    expect(search('led').length).toBeGreaterThan(0);
+  });
+
+  it('el índice se arma una sola vez y es liviano', () => {
+    const t0 = performance.now();
+    const index = searchIndex(products);
+    const built = performance.now() - t0;
+    expect(searchIndex(products)).toBe(index);
+    const queries = ['reflector', 'luminaria vial', 'alumbrado publico', 'galpon', 'cancha', '2700K', 'IP 65', 'APB601', 'proyectr', 'panel 60x60'];
+    const t1 = performance.now();
+    for (const q of queries) search(q);
+    const perQuery = (performance.now() - t1) / queries.length;
+    // Márgenes amplios (la máquina de CI es lenta): en un portátil, el índice tarda ~15 ms y una consulta ~1-3 ms
+    expect(built).toBeLessThan(1000);
+    expect(perQuery).toBeLessThan(100);
+  });
+});
+
+describe('diccionario de sinónimos (search-synonyms.ts)', () => {
+  const keys = SEARCH_SYNONYMS.flatMap(s => s.busca.map(norm));
+
+  it('entre 20 y 30 palabras, sin repetir', () => {
+    expect(keys.length).toBeGreaterThanOrEqual(20);
+    expect(keys.length).toBeLessThanOrEqual(30);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('cada «encuentra» da resultados y cada palabra trae al menos lo mismo', () => {
+    for (const s of SEARCH_SYNONYMS) {
+      const target = search(s.encuentra);
+      expect(target.length, s.encuentra).toBeGreaterThan(0);
+      for (const key of s.busca) {
+        const r = ids(search(key));
+        for (const p of target) expect(r.has(p.id), `${key} → ${s.encuentra}: ${p.name}`).toBe(true);
+      }
+    }
+  });
+
+  it('ninguna palabra del diccionario es genérica', () => {
+    const generic = new Set(GENERIC_SEARCH_WORDS.map(norm));
+    for (const key of keys) for (const w of searchWords(key)) expect(generic.has(w), key).toBe(false);
+  });
+});
+
+describe('sin resultados (B-04)', () => {
+  it('hasta 3 sugerencias, todas con resultados y distintas; primero por sinónimo', () => {
+    const s = searchSuggestions(products, 'foco cancha palabraquenoexiste');
+    expect(search('foco cancha palabraquenoexiste')).toEqual([]);
+    expect(s.length).toBeGreaterThan(0);
+    expect(s.length).toBeLessThanOrEqual(3);
+    expect(s.slice(0, 2)).toEqual(['proyector', 'proyector de estadio']);
+    for (const q of s) expect(search(q).length, q).toBeGreaterThan(0);
+    expect(new Set(s.map(q => [...ids(search(q))].sort().join('|'))).size).toBe(s.length);
+  });
+
+  it('sin sinónimos, igual hay sugerencias (búsquedas populares) que dan resultados', () => {
+    const s = searchSuggestions(products, 'xyzzy');
+    expect(s).toHaveLength(3);
+    for (const q of s) expect(search(q).length, q).toBeGreaterThan(0);
+  });
+
+  it('correo prellenado a ventas@elights.cl con «Busco: {consulta}» en el asunto y el cuerpo', () => {
+    const href = searchRequestMailto('  galpón   200W ');
+    expect(href.startsWith('mailto:ventas@elights.cl?subject=')).toBe(true);
+    const params = new URLSearchParams(href.slice(href.indexOf('?') + 1));
+    expect(params.get('subject')).toBe('Busco: galpón 200W');
+    expect(params.get('body')).toContain('Hola, busco: galpón 200W');
+    expect(href).not.toMatch(/wa\.me|whatsapp/i);
+  });
+
+  it('una consulta muy larga se corta en el correo', () => {
+    const params = new URLSearchParams(searchRequestMailto('x'.repeat(500)).split('?')[1]);
+    expect(params.get('subject')!.length).toBeLessThanOrEqual('Busco: '.length + 120);
+  });
+});

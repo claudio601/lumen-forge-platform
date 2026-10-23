@@ -126,6 +126,8 @@ const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
 const PAGES: [string, string, string][] = [
   ...STATIC_ROUTES.map(r => [`página fija ${r}`, r, r] as [string, string, string]),
   ['categoría (Google Ads, página 2)', '/catalogo/paneles-led', '/catalogo/paneles-led?gclid=abc&utm_source=google&page=2'],
+  // Temperatura de color en la URL (auditoría UX, B-05): el HTML estático no la trae; se aplica al montar
+  ['categoría con temperatura en la URL (campaña ?k=2700)', '/catalogo/alumbrado-publico', '/catalogo/alumbrado-publico?k=2700&gclid=abc'],
   ['ficha con contenido SEO', `/producto/${withContent.id}`, `/producto/${withContent.id}?gclid=abc`],
   ['ficha BESTLED', `/producto/${bestled.id}`, `/producto/${bestled.id}`],
   ['ficha con selector de variante (Flyhawk)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?gclid=abc`],

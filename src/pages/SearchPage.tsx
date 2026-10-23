@@ -2,8 +2,67 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useLocation, Link } from 'react-router-dom';
 import { products, popularSearches, categories } from '@/data/products';
 import ProductCard from '@/components/catalog/ProductCard';
-import { Search, X, TrendingUp } from 'lucide-react';
+import { Search, X, TrendingUp, Mail } from 'lucide-react';
 import Seo from '@/components/Seo';
+import { Button } from '@/components/ui/button';
+import { contactEmail, responseTimePromise } from '@/config/business';
+import { ADVISORY_LINK } from '@/config/navigation';
+import { searchProducts, searchRequestMailto, searchSuggestions } from '@/lib/productSearch';
+
+/**
+ * Salida cuando la búsqueda no da resultados (auditoría UX, B-04): un correo prellenado a ventas,
+ * la asesoría técnica y hasta 3 búsquedas que sí dan resultados (primero por sinónimo). Contacto
+ * solo por correo: el WhatsApp prellenado queda para después de la marcha blanca del bot.
+ */
+const NoResults = ({ query, onSearch }: { query: string; onSearch: (q: string) => void }) => {
+  const suggestions = useMemo(() => searchSuggestions(products, query), [query]);
+  const buttonClass = 'h-auto min-h-9 py-2 whitespace-normal text-left justify-start sm:justify-center';
+  return (
+    <section aria-labelledby="no-results-title" className="max-w-2xl mx-auto py-8">
+      <p className="text-center text-sm text-muted-foreground mb-6">No encontramos productos para «{query.trim()}».</p>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5">
+        <h2 id="no-results-title" className="text-base md:text-lg font-semibold mb-2">¿No lo encuentras? Te lo buscamos</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+          Cuéntanos qué necesitas y lo buscamos por ti.
+        </p>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+          <Button asChild size="sm" className={buttonClass}>
+            <a href={searchRequestMailto(query)}>
+              <Mail className="h-4 w-4" aria-hidden="true" />
+              Escríbenos a {contactEmail}
+            </a>
+          </Button>
+          <Button asChild size="sm" variant="outline" className={buttonClass}>
+            <Link to={ADVISORY_LINK.to}>
+              <span>
+                {ADVISORY_LINK.label}
+                <span className="block text-xs font-normal opacity-80">{ADVISORY_LINK.hint}</span>
+              </span>
+            </Link>
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">{responseTimePromise}</p>
+      </div>
+      {suggestions.length > 0 && (
+        <div className="mt-6 text-center">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">También puedes buscar</h3>
+          <div className="flex flex-wrap justify-center gap-2">
+            {suggestions.map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSearch(s)}
+                className="text-sm border rounded-full px-3 py-1.5 hover:border-primary/40 hover:text-primary transition-colors"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
 
 const SearchPage = () => {
   const [params] = useSearchParams();
@@ -14,19 +73,9 @@ const SearchPage = () => {
   const { key: navKey } = useLocation();
   useEffect(() => { setQuery(initialQ); }, [initialQ, navKey]);
 
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.toLowerCase();
-    return products.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.sku.toLowerCase().includes(q) ||
-      p.category.includes(q) ||
-      String(p.watts).includes(q) ||
-      String(p.kelvin).includes(q) ||
-      String(p.lumens).includes(q) ||
-      (p.ip && p.ip.toLowerCase().includes(q))
-    );
-  }, [query]);
+  // Búsqueda tolerante (auditoría UX, B-03): sin tildes, por palabras, con los SKU de las
+  // variantes y sinónimos de obra (src/lib/productSearch.ts).
+  const results = useMemo(() => searchProducts(products, query), [query]);
 
   return (
     <div className="container py-8">
@@ -80,27 +129,17 @@ const SearchPage = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : results.length > 0 ? (
         <>
-          <p className="text-sm text-muted-foreground mb-4">{results.length} resultados para "{query}"</p>
-          {results.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {results.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-lg font-semibold mb-2">No se encontraron resultados</p>
-              <p className="text-sm text-muted-foreground mb-4">Intenta con otros términos o explora nuestras categorías</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {popularSearches.slice(0, 4).map(s => (
-                  <button key={s} onClick={() => setQuery(s)} className="text-sm border rounded-full px-3 py-1.5 hover:border-primary/40 hover:text-primary transition-colors">
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground mb-4">
+            {results.length} resultado{results.length !== 1 ? 's' : ''} para «{query.trim()}»
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {results.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
         </>
+      ) : (
+        <NoResults query={query} onSearch={setQuery} />
       )}
     </div>
   );

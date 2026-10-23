@@ -75,6 +75,26 @@ export function parseKelvin(name: string): number {
   return m ? Number(m[1]) : 0;
 }
 
+/**
+ * Todas las temperaturas de color de un texto: "Luz Cálida 2200K - 1% Luz Azul" → [2200];
+ * "Luz fría 6400k" → [6400]. Sin temperatura ("Luz Cálida - 1% Luz Azul"), []: el % de luz
+ * azul no se traduce a kelvin (src/lib/variants.ts).
+ */
+export function parseKelvins(text: string): number[] {
+  return [...text.matchAll(/(\d{4})\s*K\b/gi)].map(m => Number(m[1]));
+}
+
+/**
+ * Temperaturas de color de un producto (auditoría UX, B-05): las de las opciones de todas sus
+ * variantes en Jumpseller (también la única, cuando tiene una sola); si ninguna trae temperatura,
+ * la del nombre. Sin repetir y de menor a mayor.
+ */
+export function productKelvins(s: Pick<SnapshotProduct, 'name' | 'variants'>): number[] {
+  const fromVariants = s.variants.flatMap(v => v.options.flatMap(o => parseKelvins(o.value)));
+  const found = fromVariants.length ? fromVariants : parseKelvins(s.name);
+  return [...new Set(found)].sort((a, b) => a - b);
+}
+
 /** Grado de protección desde el nombre: "... IP66 IK08" → "IP66". */
 export function parseIp(name: string): string | undefined {
   const m = name.match(/\bIP\s?(\d{2})\b/i);
@@ -179,6 +199,7 @@ export function baseFromSnapshot(
       categories: [...s.categories],
       watts: parseWatts(s.name),
       kelvin: parseKelvin(s.name),
+      kelvins: productKelvins(s),
       lumens: ov.lumens ?? 0,
       ...(ip ? { ip } : {}),
       image: s.images[0]?.url ?? '',
