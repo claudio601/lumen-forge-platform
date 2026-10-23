@@ -10,7 +10,7 @@ import { hydrateRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import EstudioLuminicoLeadForm from './EstudioLuminicoLeadForm';
 import { CONSENT_ERRORS, LEGAL_VERSION, parseConsent } from '../../../api/_lib/forms/consent';
-import { REQUIERE_DS1_LABELS, validateEstudioPayload } from '../../../api/estudio-luminico/validation';
+import { REQUIERE_DS1_LABELS, validateEstudioPayload } from '../../../api/_lib/forms/estudioLuminicoValidation';
 
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
 import { sendEvent, trackLead } from '@/lib/analytics';
@@ -111,7 +111,7 @@ describe('EstudioLuminicoLeadForm', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  // Los mismos topes que el servidor (ESTUDIO_MAX_LENGTHS, api/estudio-luminico/validation.ts).
+  // Los mismos topes que el servidor (ESTUDIO_MAX_LENGTHS, api/_lib/forms/estudioLuminicoValidation.ts).
   // Cada valor largo pasa las demás reglas (el correo sigue siendo un correo y el teléfono
   // tiene 11 dígitos): solo lo frena el tope.
   it.each([
@@ -260,7 +260,7 @@ describe('EstudioLuminicoLeadForm: origen de la visita', () => {
 });
 
 // D.S. N°1/2022 (auditoría UX, entrega 4, E-03): pregunta opcional, aparte de la normativa
-// objetivo. Sus valores son los que acepta el servidor (validation.ts), que la agrega a la nota.
+// objetivo. Sus valores son los que acepta el servidor (api/_lib/forms/estudioLuminicoValidation.ts), que la agrega a la nota.
 describe('EstudioLuminicoLeadForm: D.S. N°1/2022', () => {
   const sentBody = () => JSON.parse((vi.mocked(fetch).mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
   const ds1Select = () => screen.getByLabelText(/¿El proyecto debe cumplir el D\.S\. N°1\/2022 \(contaminación lumínica\)\?/) as HTMLSelectElement;

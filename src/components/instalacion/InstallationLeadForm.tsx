@@ -66,7 +66,7 @@ async function submitLead(payload: InstallationLeadPayload): Promise<string> {
   return typeof data.leadRef === 'string' ? data.leadRef : '';
 }
 
-// Topes: los mismos que api/installation-leads/validation.ts (MAX_LENGTHS)
+// Topes: los mismos que api/_lib/forms/installationLeadValidation.ts (MAX_LENGTHS)
 const MAX_LENGTHS = { nombre: 120, email: 254, telefono: 30, comuna: 80, descripcion: 2000 } as const;
 const FIELD_NAMES: Record<keyof typeof MAX_LENGTHS, string> = { nombre: 'El nombre', email: 'El correo', telefono: 'El teléfono', comuna: 'La comuna', descripcion: 'La descripción' };
 
@@ -130,7 +130,7 @@ const InstallationLeadForm = () => {
   const validateForm = (): string | null => {
     if (!form.nombre.trim() || !form.telefono.trim() || !form.email.trim() || !form.comuna.trim() || !form.tipoProyecto || !form.descripcion.trim())
       return 'Por favor completa todos los campos requeridos (*).';
-    // Mismas reglas que el servidor (api/installation-leads/validation.ts)
+    // Mismas reglas que el servidor (api/_lib/forms/installationLeadValidation.ts)
     const phoneDigits = form.telefono.replace(/\D/g, '').length;
     if (phoneDigits < 8 || phoneDigits > 12) return 'El teléfono debe tener entre 8 y 12 dígitos.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Ingresa un correo electrónico válido.';

@@ -13,7 +13,7 @@
 //     400 con code 'consent_required' antes del correo y de Pipedrive, también con
 //     INSTALLATION_API_SECRET. La hora de la constancia es la del servidor (payload.fecha
 //     no cuenta).
-// 5. Validar payload (server-side estricto, con topes de largo: validation.ts)
+// 5. Validar payload (server-side estricto, con topes de largo: _lib/forms/estudioLuminicoValidation.ts)
 // 6. Referencia ESTL- unica: la misma en el correo, la nota y el deal
 // 7. Correo a ventas via GAS ANTES de Pipedrive (waitUntil, no bloquea)
 // 8. Crear/actualizar deal en Pipedrive + nota estructurada
@@ -24,11 +24,11 @@
 // 9. Retornar 201/200 { success, personId, dealId, dealAction, leadRef }
 //
 // La nota (y el correo, que lleva el mismo texto) lleva, si el visitante respondió, la sección
-// del D.S. N°1/2022 (validation.ts, auditoría UX, entrega 4), y termina con la constancia "PRIVACIDAD Y
+// del D.S. N°1/2022 (_lib/forms/estudioLuminicoValidation.ts, auditoría UX, entrega 4), y termina con la constancia "PRIVACIDAD Y
 // AUTORIZACIONES" y el origen de la visita (clave `attribution`, distinta del campo `origen`
 // del formulario; api/_lib/forms/attribution.ts), agregados después de buildEstudioDealNote
 // (protegido). El origen es informativo: un origen raro se descarta, nunca da 400, y no
-// entra en la referencia ni en el log. Los topes de validation.ts hacen que todo quepa en
+// entra en la referencia ni en el log. Los topes de _lib/forms/estudioLuminicoValidation.ts hacen que todo quepa en
 // el correo sin recorte (el relay corta el final, donde van la constancia y el origen).
 //
 // DECISION V1: Reutiliza PIPEDRIVE_PIPELINE_ID + PIPEDRIVE_STAGE_NEW_LEAD_ID
@@ -59,7 +59,7 @@ import {
   getClientIp,
 } from '../_lib/auth.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
-import { ds1NoteLines, validateEstudioPayload } from './validation.js';
+import { ds1NoteLines, validateEstudioPayload } from '../_lib/forms/estudioLuminicoValidation.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
@@ -257,7 +257,7 @@ export default async function handler(
   // dos veces podria separarlas si cambia la hora entre ambas.
   const leadRef = buildEstudioLeadRef(payload);
   // Los textos del cliente quedan antes de la constancia; después solo va el origen (saneado).
-  // La respuesta al D.S. N°1/2022 (campo opcional, validation.ts) va en su propia sección después
+  // La respuesta al D.S. N°1/2022 (campo opcional, _lib/forms/estudioLuminicoValidation.ts) va en su propia sección después
   // de la nota protegida: buildEstudioDealNote no la conoce. Sin respuesta, la nota no cambia.
   const ds1 = ds1NoteLines(body);
   const note = [

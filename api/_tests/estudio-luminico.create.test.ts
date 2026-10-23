@@ -18,7 +18,7 @@ import { pipedrivePost, pipedriveGet } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
 import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types';
-import { DS1_NOTE_HEADING, ESTUDIO_MAX_LENGTHS, REQUIERE_DS1_LABELS } from '../estudio-luminico/validation';
+import { DS1_NOTE_HEADING, ESTUDIO_MAX_LENGTHS, REQUIERE_DS1_LABELS } from '../_lib/forms/estudioLuminicoValidation';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,

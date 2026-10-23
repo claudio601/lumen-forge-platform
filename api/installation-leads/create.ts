@@ -11,7 +11,7 @@
 //  4. Honeypot anti-bot (campo website debe estar vacio)
 //  4b. Privacidad (clave `consent`, api/_lib/forms/consent.ts): sin la casilla obligatoria,
 //      400 con code 'consent_required' antes del correo y de Pipedrive, también con
-//      INSTALLATION_API_SECRET. aceptaContacto sigue siendo obligatorio (validation.ts).
+//      INSTALLATION_API_SECRET. aceptaContacto sigue siendo obligatorio (_lib/forms/installationLeadValidation.ts).
 //  5. Validacion del InstallationLeadPayload
 //  6. Referencia INST- unica: la misma en el correo, la nota y el campo del deal
 //  7. Correo a ventas via GAS ANTES de Pipedrive (waitUntil, no bloquea)
@@ -49,7 +49,7 @@ import {
   getClientIp,
 } from '../_lib/auth.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
-import { validateInstallationPayload } from './validation.js';
+import { validateInstallationPayload } from '../_lib/forms/installationLeadValidation.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 
