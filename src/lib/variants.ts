@@ -10,9 +10,15 @@
 // aparte («1 % de luz azul»), porque es lo único que distingue las opciones; nunca como
 // certificado (decisión del dueño, 2026-10-17).
 // Tono: 2200K es «ámbar», aunque Jumpseller la llame «Luz Cálida»; 2700K y 3000K son «cálida»
-// (decisión del dueño, 2026-10-23).
-// Sin imports de datos: lo usan la tarjeta (bundle principal) y la ficha.
+// (decisión del dueño, 2026-10-23). Solo donde los 2200K están confirmados: las líneas con
+// certificado D.S. N°1 que los incluyen (ds1.ts, lista del dueño). En otros productos (hoy, 28:
+// paneles, dicroicos, focos de piso, Ultra Slim, tubos T5, solares de 60 a 150W) Jumpseller
+// llama «Luz Cálida - 2200K» a una versión que la ficha da como cálida de 3000K o 3500K: ahí
+// sigue «Cálida 2200K», como la ficha, hasta que se corrija la temperatura en Jumpseller.
+// Sin imports de datos de Jumpseller ni de contenido: lo usan la tarjeta (bundle principal) y la
+// ficha. De ds1.ts solo entra la lista de líneas certificadas (el resto se descarta al compilar).
 
+import { isDs1CertifiedKelvin } from '@/data/catalog/ds1';
 import type { Product, ProductVariant } from '@/data/catalog/types';
 import type { RequestCartItem } from '@/types/request-order';
 
@@ -58,21 +64,32 @@ const BLUE_LIGHT = /(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+)?luz\s+azul/i;
 const RGB = /\brgb\b/i;
 const WATTS = /^(\d+(?:[.,]\d+)?)\s*w$/i;
 
+/**
+ * Los 2200K del producto están confirmados (su línea tiene certificado D.S. N°1 en 2200K,
+ * ds1.ts): su opción se llama «Ámbar 2200K». Fuera de esas líneas, la temperatura de Jumpseller
+ * puede estar mal (ver arriba) y queda el tono que trae.
+ */
+const amberConfirmed = (jumpsellerId?: number) => isDs1CertifiedKelvin(jumpsellerId, AMBER_KELVIN);
+
+/** Producto con lo que necesitan las etiquetas del selector: sus variantes y su id de Jumpseller. */
+type VariantProduct = Pick<Product, 'variants' | 'cctVariants' | 'jumpseller_id'>;
+
 const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
 const isLight = (value: string) => TONES.some(([re]) => re.test(value)) || KELVIN.test(value) || RGB.test(value);
 
 /**
- * Valor de una opción de luz, limpio: «Luz Cálida 2200K - 1% Luz Azul» → «Ámbar 2200K» (2200K es
- * ámbar); «3000K Luz Cálida» → «Cálida 3000K»; «Luz fría 6400k» → «Fría 6400K». Sin temperatura,
- * «Luz Cálida - 1% Luz Azul» → «Cálida» con el dato «1 % de luz azul». Sin tono ni temperatura
- * reconocibles, el texto tal cual (sin espacios de más).
+ * Valor de una opción de luz, limpio: «Luz Cálida 2200K - 1% Luz Azul» → «Cálida 2200K», o
+ * «Ámbar 2200K» si los 2200K del producto están confirmados (`amber2200`); «3000K Luz Cálida» →
+ * «Cálida 3000K»; «Luz fría 6400k» → «Fría 6400K». Sin temperatura, «Luz Cálida - 1% Luz Azul» →
+ * «Cálida» con el dato «1 % de luz azul». Sin tono ni temperatura reconocibles, el texto tal cual
+ * (sin espacios de más).
  */
-export function lightChoice(raw: string): Omit<VariantChoice, 'value'> {
+export function lightChoice(raw: string, { amber2200 = false }: { amber2200?: boolean } = {}): Omit<VariantChoice, 'value'> {
   const text = squash(raw);
   const k = KELVIN.exec(text);
   const kelvin = k ? Number(k[1]) : undefined;
   const found = TONES.find(([re]) => re.test(text))?.[1];
-  const tone = found === 'Cálida' && kelvin === AMBER_KELVIN ? 'Ámbar' : found;
+  const tone = amber2200 && found === 'Cálida' && kelvin === AMBER_KELVIN ? 'Ámbar' : found;
   const blue = kelvin ? null : BLUE_LIGHT.exec(text);
   const detail = blue ? `${blue[1].replace('.', ',')} % de luz azul` : undefined;
   const parts = [tone, kelvin ? `${kelvin}K` : undefined].filter(Boolean);
@@ -86,8 +103,8 @@ function axisKind(name: string, values: readonly string[]): VariantAxisKind {
   return 'otro';
 }
 
-function choiceFor(kind: VariantAxisKind, raw: string): Omit<VariantChoice, 'value'> {
-  if (kind === 'luz') return lightChoice(raw);
+function choiceFor(kind: VariantAxisKind, raw: string, amber2200: boolean): Omit<VariantChoice, 'value'> {
+  if (kind === 'luz') return lightChoice(raw, { amber2200 });
   const watts = kind === 'potencia' ? WATTS.exec(squash(raw)) : null;
   return { label: watts ? `${watts[1]}W` : squash(raw) };
 }
@@ -112,17 +129,19 @@ export function hasVariantChoice(product: Pick<Product, 'variants'>): boolean {
  * Ejes del selector (uno por opción de Jumpseller), en este orden: potencia, luz y el resto.
  * Las opciones van en el orden de Jumpseller. Sin variantes para elegir, [].
  * En las BESTLED, la opción de luz lleva el nombre editorial de su variante CCT («Ámbar 2200K»),
- * el mismo de la sección «Variantes de temperatura de color», si la temperatura coincide.
+ * el mismo de la sección «Variantes de temperatura de color», si la temperatura coincide. En las
+ * demás líneas con los 2200K confirmados, «Ámbar 2200K» (lightChoice).
  */
-export function variantAxes(product: Pick<Product, 'variants' | 'cctVariants'>): VariantAxis[] {
+export function variantAxes(product: VariantProduct): VariantAxis[] {
   const variants = product.variants ?? [];
   if (variants.length < 2) return [];
+  const amber2200 = amberConfirmed(product.jumpseller_id);
   const names = [...new Set(variants.flatMap(v => v.options.map(o => o.name)))];
   const axes = names.map((name, position) => {
     const values = [...new Set(variants.map(v => optionValue(v, name)).filter((v): v is string => v !== undefined))];
     const kind = axisKind(name, values);
     const choices: VariantChoice[] = values.map(value => {
-      const choice: VariantChoice = { value, ...choiceFor(kind, value) };
+      const choice: VariantChoice = { value, ...choiceFor(kind, value, amber2200) };
       if (kind === 'luz' && choice.kelvin) {
         const owners = variants.filter(v => optionValue(v, name) === value);
         const editorial = owners.length === 1
@@ -249,14 +268,14 @@ function variantChoices(axes: readonly VariantAxis[], variant: ProductVariant): 
  * «Cálida, 7 % de luz azul», «Negro». La ven el cliente (lista, avisos) y el vendedor (nota de
  * Pipedrive y correo).
  */
-export function variantLabel(product: Pick<Product, 'variants' | 'cctVariants'>, variant: ProductVariant): string {
+export function variantLabel(product: VariantProduct, variant: ProductVariant): string {
   return variantChoices(variantAxes(product), variant)
     .map(({ choice }) => (choice.detail ? `${choice.label}, ${choice.detail}` : choice.label))
     .join(' · ');
 }
 
 /** Temperatura de color de la variante (si su opción de luz la trae). */
-export function variantKelvin(product: Pick<Product, 'variants' | 'cctVariants'>, variant: ProductVariant): number | undefined {
+export function variantKelvin(product: VariantProduct, variant: ProductVariant): number | undefined {
   return variantChoices(variantAxes(product), variant).find(({ axis }) => axis.kind === 'luz')?.choice.kelvin;
 }
 
@@ -266,7 +285,7 @@ export function variantKelvin(product: Pick<Product, 'variants' | 'cctVariants'>
  * (api/request-orders/create.ts). `potencia` y `terminacion` van como datos sueltos.
  */
 export function variantAttributes(
-  product: Pick<Product, 'variants' | 'cctVariants' | 'watts'>,
+  product: VariantProduct & Pick<Product, 'watts'>,
   variant: ProductVariant,
 ): RequestCartItem['attributes'] {
   const picked = variantChoices(variantAxes(product), variant);
