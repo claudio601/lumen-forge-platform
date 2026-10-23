@@ -13,6 +13,7 @@ import { products, type Product } from '@/data/products';
 import type { ProductVariant } from '@/data/catalog/types';
 import { jumpsellerSnapshot } from '@/data/catalog/jumpseller-snapshot.generated';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
+import { isDs1CertifiedKelvin } from '@/data/catalog/ds1';
 import { expectedLineSku, expectedSkuIsDistinct, snapshotVariant } from '@/test/variantRule';
 import {
   axisPrices, hasVariantChoice, lightChoice, missingChoicesText, selectedVariant, variantAttributes, variantAxes,
@@ -56,6 +57,7 @@ const bestledIds = Object.entries(editorialOverlay)
 
 describe('lightChoice: el valor de Jumpseller, limpio', () => {
   it.each([
+    // Sin los 2200K confirmados, el tono de Jumpseller (ver «2200K: ámbar» más abajo)
     ['Luz Cálida - 2200K - 1% Luz Azul', 'Cálida 2200K', undefined],
     ['Luz Cálida 2700K 7% Luz Azul', 'Cálida 2700K', undefined],
     ['Luz Neutra – 4000K', 'Neutra 4000K', undefined],
@@ -74,6 +76,43 @@ describe('lightChoice: el valor de Jumpseller, limpio', () => {
   ])('%s → %s', (raw, label, detail) => {
     expect(lightChoice(raw).label).toBe(label);
     expect(lightChoice(raw).detail).toBe(detail);
+  });
+
+  // 2200K es ámbar aunque Jumpseller diga «Luz Cálida»; 2700K y 3000K, cálidas (dueño, 23-10-2026)
+  it.each([
+    ['Luz Cálida - 2200K - 1% Luz Azul', 'Ámbar 2200K'],
+    ['Luz Cálida - 2200K', 'Ámbar 2200K'],
+    ['Luz Cálida 2700K 7% Luz Azul', 'Cálida 2700K'],
+    ['3000K Luz Cálida', 'Cálida 3000K'],
+    ['Luz Fria - 6500K', 'Fría 6500K'],
+  ])('con los 2200K confirmados: %s → %s', (raw, label) => {
+    expect(lightChoice(raw, { amber2200: true }).label).toBe(label);
+  });
+});
+
+describe('2200K: «Ámbar» solo donde los 2200K están confirmados (líneas con certificado D.S. N°1)', () => {
+  // En otros productos Jumpseller llama «Luz Cálida - 2200K» a una versión que la ficha da como
+  // cálida de 3000K o 3500K (paneles, dicroicos, Ultra Slim…): ahí queda el tono de Jumpseller.
+  const with2200 = withChoice
+    .filter(p => !p.availableCCT?.length) // las BESTLED llevan el nombre de su ficha (su prueba, más abajo)
+    .flatMap(p => variantAxes(p).filter(a => a.kind === 'luz').flatMap(a => a.choices.filter(c => c.kelvin === 2200).map(c => ({ p, c }))));
+  const confirmed = with2200.filter(({ p }) => isDs1CertifiedKelvin(p.jumpseller_id, 2200));
+  const unconfirmed = with2200.filter(({ p }) => !isDs1CertifiedKelvin(p.jumpseller_id, 2200));
+
+  it.skipIf(!confirmed.length)(`con los 2200K confirmados, «Ámbar 2200K» en el selector, la solicitud y la cotización (${confirmed.length})`, () => {
+    for (const { p, c } of confirmed) {
+      expect(c.label, p.name).toBe('Ámbar 2200K');
+      const v = p.variants!.find(x => x.options.some(o => o.value === c.value))!;
+      expect(variantLabel(p, v), p.name).toContain('Ámbar 2200K');
+      expect(variantAttributes(p, v).colorLuz, p.name).toContain('Ámbar 2200K');
+    }
+  });
+
+  it.skipIf(!unconfirmed.length)(`sin confirmar, el tono de Jumpseller: nunca «Ámbar» por la cifra (${unconfirmed.length})`, () => {
+    for (const { p, c } of unconfirmed) {
+      expect(c.label, p.name).toBe(lightChoice(c.value).label);
+      if (!/[aá]mbar/i.test(c.value)) expect(c.label, p.name).not.toMatch(/ámbar/i);
+    }
   });
 });
 

@@ -19,7 +19,7 @@ import App from '@/App';
 import { serverTree } from '@/entry-server';
 import { preloadRoute, staticPage } from '@/routes';
 import { NOT_FOUND_ATTR, NOT_FOUND_URL } from '@/lib/notFound';
-import { STATIC_ROUTES } from '@/lib/seo/routes';
+import { prerenderedRoutes, STATIC_ROUTES } from '@/lib/seo/routes';
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
@@ -126,9 +126,16 @@ const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
 const PAGES: [string, string, string][] = [
   ...STATIC_ROUTES.map(r => [`página fija ${r}`, r, r] as [string, string, string]),
   ['categoría (Google Ads, página 2)', '/catalogo/paneles-led', '/catalogo/paneles-led?gclid=abc&utm_source=google&page=2'],
+  // Temperatura de color en la URL (auditoría UX, B-05): el HTML estático no la trae; se aplica al montar
+  ['categoría con temperatura en la URL (campaña ?k=2700)', '/catalogo/alumbrado-publico', '/catalogo/alumbrado-publico?k=2700&gclid=abc'],
   ['ficha con contenido SEO', `/producto/${withContent.id}`, `/producto/${withContent.id}?gclid=abc`],
   ['ficha BESTLED', `/producto/${bestled.id}`, `/producto/${bestled.id}`],
   ['ficha con selector de variante (Flyhawk)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?gclid=abc`],
+  // Guías (plan del blog, §5.6): cada guía publicada, también las sin indexar; G1 llega desde el
+  // correo del 12/11 a su sección #plazos
+  ...prerenderedRoutes()
+    .filter(r => r.startsWith('/guias/'))
+    .map(r => [`guía ${r}, desde un correo`, r, `${r}?utm_source=email&utm_medium=email&utm_campaign=20261112-plazos-ds1#plazos`] as [string, string, string]),
 ];
 
 /**
@@ -142,6 +149,8 @@ const NOT_FOUND_URLS: [string, string][] = [
   ['producto que salió del catálogo (id publicado antes)', '/producto/lineal-led-flat-40w-120-cm-ip20-6500k?gclid=abc'],
   ['categoría que no existe, página 2', '/catalogo/no-existe?page=2'],
   ['ruta de la app con otras mayúsculas', '/Cotizador'],
+  // Una guía que no existe (o que se despublicó): coincide con /guias/:slug
+  ['guía que no existe', '/guias/no-existe'],
 ];
 
 describe('hidratación de las páginas estáticas (árbol real: entry-server y App)', () => {
@@ -184,9 +193,9 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(price()).toMatch(/^desde\s*\$442\.800/);
     const radio = (name: RegExp) => [...container.querySelectorAll<HTMLElement>('[role="radio"]')].find(r => name.test(r.closest('label')!.textContent!))!;
     await act(async () => { fireEvent.click(radio(/^80W/)); });
-    await act(async () => { fireEvent.click(radio(/^Cálida 2200K/)); });
+    await act(async () => { fireEvent.click(radio(/^Ámbar 2200K/)); });
     expect(price()).toMatch(/^\$514\.800/);
-    expect(container.textContent).toContain('Elegiste: 80W · Cálida 2200K.');
+    expect(container.textContent).toContain('Elegiste: 80W · Ámbar 2200K.');
   });
 
   it('el HTML de las fichas con selector no lleva el texto crudo de Jumpseller; en las BESTLED, ningún «% de luz azul»', async () => {

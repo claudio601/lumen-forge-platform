@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { products } from '@/data/products';
 import { SITE_URL } from '@/config/site';
 import {
+  articleJsonLd,
   breadcrumbJsonLd,
   faqJsonLd,
   itemListJsonLd,
@@ -50,5 +51,35 @@ describe('JSON-LD', () => {
     expect(crumbs.itemListElement.map(c => [c.position, c.item])).toEqual([[1, `${SITE_URL}/`], [2, `${SITE_URL}/catalogo`]]);
     const list = itemListJsonLd(products.slice(0, 2), 25) as { itemListElement: { position: number; url: string }[] };
     expect(list.itemListElement[0]).toMatchObject({ position: 25, url: `${SITE_URL}/producto/${products[0].id}` });
+  });
+
+  it('guía (plan del blog, §1.6): Article con fechas fijas, autor con su página, editorial con su logo y la URL de la guía', () => {
+    const ld = articleJsonLd({
+      headline: 'Título',
+      description: 'Descripción',
+      path: '/guias/x',
+      datePublished: '2026-10-23T00:00:00-03:00',
+      dateModified: '2026-10-23T00:00:00-03:00',
+      author: { name: 'Claudio Quero', path: '/empresa' },
+      image: `${SITE_URL}/og-default.jpg`,
+    });
+    expect(ld).toEqual({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: 'Título',
+      description: 'Descripción',
+      image: [`${SITE_URL}/og-default.jpg`],
+      datePublished: '2026-10-23T00:00:00-03:00',
+      dateModified: '2026-10-23T00:00:00-03:00',
+      author: { '@type': 'Person', name: 'Claudio Quero', url: `${SITE_URL}/empresa` },
+      publisher: {
+        '@type': 'Organization',
+        name: 'eLIGHTS.cl',
+        url: `${SITE_URL}/`,
+        logo: { '@type': 'ImageObject', url: `${SITE_URL}/logo-square.png`, width: 512, height: 512 },
+      },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/guias/x` },
+      inLanguage: 'es-CL',
+    });
   });
 });

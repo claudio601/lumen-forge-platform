@@ -7,6 +7,7 @@ import {
   contentIssues,
   expectedOg,
   inspectHtml,
+  isGuideRoute,
   isSyncBotBranch,
   legacyRedirectIssues,
   notFoundMarkerIssues,
@@ -108,6 +109,53 @@ describe('check-prerender: estructura', () => {
     const noindex = page({ head: '<title>x</title><meta name="robots" content="noindex, follow"/>', body: '' });
     expect(structuralIssues('/buscar', inspectHtml(noindex), { indexable: false })).toEqual([]);
     expect(structuralIssues('/buscar', inspectHtml(page()), { indexable: false })).toEqual(['sin noindex']);
+  });
+});
+
+describe('check-prerender: guías (plan del blog, §2.2 y §5.6)', () => {
+  const GUIDE = '/guias/norma-luminica-ds-1-2022';
+  const brand = expectedOg(DEFAULT_OG);
+  const H1 = 'Norma lumínica (D.S. N°1/2022): qué revisar en un proyecto de alumbrado exterior';
+  const ld = (...docs: object[]) => docs.map(d => `<script type="application/ld+json">${JSON.stringify(d)}</script>`).join('');
+  const article = { '@type': 'Article', headline: H1 };
+  const crumbs = { '@type': 'BreadcrumbList', itemListElement: [] };
+  const guideHead = (extra: string, docs: object[] = [crumbs, article]) =>
+    `<title>Norma lumínica | eLIGHTS</title>${extra}` +
+    `<meta property="og:image" content="${brand.url}"/><meta property="og:image:width" content="1200"/>` +
+    `<meta property="og:image:height" content="630"/><meta property="og:image:alt" content="eLIGHTS.cl"/>` +
+    `<meta name="twitter:image" content="${brand.url}"/>${ld(...docs)}`;
+  const guide = (extra: string, docs?: object[]) => inspectHtml(page({ head: guideHead(extra, docs), body: `<main><h1>${H1}</h1><p>Texto.</p></main>` }));
+  const NOINDEX = '<meta name="robots" content="noindex, follow"/>';
+  const CANONICAL = `<link rel="canonical" href="${SITE}${GUIDE}"/>`;
+  const unindexed = (f: ReturnType<typeof guide>) =>
+    structuralIssues(GUIDE, f, { indexable: false, unindexed: true, article: true, siteUrl: SITE, og: brand });
+
+  it('una guía publicada sin indexar: estructura completa, con noindex y sin canonical', () => {
+    expect(unindexed(guide(NOINDEX))).toEqual([]);
+    expect(unindexed(guide(''))).toEqual(['guía sin indexar sin noindex']);
+    expect(unindexed(guide(NOINDEX + CANONICAL))).toEqual([`guía sin indexar con canonical ["${SITE}${GUIDE}"]`]);
+    // Igual que una indexable: un h1, la imagen de la marca y la app dibujada
+    expect(unindexed(inspectHtml(page({ head: guideHead(NOINDEX), body: '' })))).toEqual(['la app está vacía', '0 h1 (0 visibles con texto); debe haber uno']);
+  });
+
+  it('la regla de siempre no cambia: una guía indexable con noindex bloquea', () => {
+    const indexable = (f: ReturnType<typeof guide>) => structuralIssues(GUIDE, f, { indexable: true, article: true, siteUrl: SITE, og: brand });
+    expect(indexable(guide(CANONICAL))).toEqual([]);
+    expect(indexable(guide(CANONICAL + NOINDEX))).toEqual(['tiene noindex']);
+  });
+
+  it('toda guía trae un JSON-LD Article con el h1 como headline y sus migas, sin FAQPage', () => {
+    expect(unindexed(guide(NOINDEX, [crumbs]))).toEqual(['0 JSON-LD Article (la guía debe tener uno)']);
+    expect(unindexed(guide(NOINDEX, [crumbs, { ...article, headline: 'Otro título' }]))).toEqual([
+      `el headline del JSON-LD Article ("Otro título") no es el h1 (${JSON.stringify(H1)})`,
+    ]);
+    expect(unindexed(guide(NOINDEX, [article]))).toEqual(['guía sin JSON-LD BreadcrumbList']);
+    expect(unindexed(guide(NOINDEX, [crumbs, article, { '@type': 'FAQPage', mainEntity: [] }]))).toEqual(['guía con FAQPage (plan del blog, §1.6: no se emite)']);
+  });
+
+  it('reconoce las rutas de las guías', () => {
+    expect(isGuideRoute(GUIDE)).toBe(true);
+    for (const r of ['/guias', '/guias/', '/guias/a/b', '/catalogo/x']) expect(isGuideRoute(r), r).toBe(false);
   });
 });
 

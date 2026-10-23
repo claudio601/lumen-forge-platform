@@ -34,8 +34,10 @@ describe('chequeo de humo', () => {
   it('revisa páginas, rutas sin prerender (con y sin barra final), /carro, ids renombrados, URLs de elights.cl, 404, archivos y las funciones de api/ (solo GET)', () => {
     const t = buildTargets();
     const paths = (k: string) => t.filter(x => x.kind === k).map(x => x.path);
-    expect(paths('page')).toHaveLength(18); // 12 fijas (STATIC_ROUTES), 3 fichas y 3 categorías
-    expect(paths('page')).toEqual(expect.arrayContaining(['/empresa', '/medios-de-pago', '/politica-de-privacidad']));
+    expect(paths('page')).toHaveLength(19); // 13 fijas (STATIC_ROUTES, con /guias), 3 fichas y 3 categorías
+    expect(paths('page')).toEqual(expect.arrayContaining(['/empresa', '/medios-de-pago', '/politica-de-privacidad', '/guias']));
+    // Guías «publicadas sin indexar» (plan del blog, §2.2): con su noindex, aparte de las páginas
+    expect(paths('unindexed')).toEqual(['/guias/norma-luminica-ds-1-2022']);
     expect(paths('spa')).toEqual(expect.arrayContaining(['/cotizacion', '/cotizacion/', '/solicitar-pedido', '/solicitar-pedido/', '/buscar']));
     const nf3 = '/producto/campana-led-ufo-nf3-150w-150-lm-w-ip66';
     const solar = '/producto/alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto';
@@ -72,7 +74,7 @@ describe('chequeo de humo', () => {
       // PR 12: página legal de Jumpseller a su página nueva
       { path: '/terms-and-conditions', kind: 'redirect', to: '/terminos-y-condiciones', expectedStatus: 301 },
     ]);
-    expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/producto-test-checkout', '/blog']);
+    expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/guias/no-existe', '/producto-test-checkout', '/blog']);
     // Las dos últimas no tienen regla a propósito
     for (const path of ['/producto-test-checkout', '/blog']) {
       const row = LEGACY_URLS.find(u => u.source === path);
@@ -119,6 +121,18 @@ describe('chequeo de humo', () => {
     // Otra página en esta URL (p. ej. la portada servida en lugar de la ficha)
     expect(rowIssues(row('/producto/x', 'page', 200, 'text/html', page))).toEqual(['canonical https://nuevo.elights.cl/ no es la de esta URL']);
     expect(rowIssues(row('/cotizacion/', 'spa', 200, 'text/html', { robots: 'noindex, follow' }))).toEqual([]);
+    // Guía publicada sin indexar: 200 con noindex, sin canonical y con su h1
+    const guide = '/guias/norma-luminica-ds-1-2022';
+    expect(rowIssues(row(guide, 'unindexed', 200, 'text/html', { robots: 'noindex, follow', h1: 1 }))).toEqual([]);
+    expect(rowIssues(row(guide, 'unindexed', 200, 'text/html', { canonical: `https://nuevo.elights.cl${guide}`, h1: 1 }))).toEqual([
+      'sin noindex',
+      `canonical https://nuevo.elights.cl${guide} en una guía sin indexar`,
+    ]);
+    expect(rowIssues(row(guide, 'unindexed', 404, 'text/html', { robots: 'noindex, follow', notFoundMark: true }))).toEqual([
+      'estado 404, se esperaba 200',
+      '0 h1 (debe haber uno)',
+      'es la página 404',
+    ]);
     expect(rowIssues(row('/cotizacion/', 'spa', 404, 'text/html', { robots: 'noindex, follow', notFoundMark: true }))).toEqual([
       'estado 404, se esperaba 200',
       'es la página 404',

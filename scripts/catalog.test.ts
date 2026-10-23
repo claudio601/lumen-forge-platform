@@ -16,7 +16,7 @@ import { baseOverrides } from '../src/data/catalog/overlay/overrides';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
 import { RENAMED_FROM, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
-import { EDITORIAL_KEYS, parseIp, parseKelvin, parseWatts, skuOwners } from '../src/data/catalog/build';
+import { EDITORIAL_KEYS, parseIp, parseKelvin, parseKelvins, parseWatts, productKelvins, skuOwners } from '../src/data/catalog/build';
 import { cleanSku } from './jumpseller/normalize';
 import { buildVariantSku } from '../src/lib/variantSku';
 import type { Product } from '../src/data/catalog/types';
@@ -321,6 +321,24 @@ describe('se conserva lo que no viene de Jumpseller', () => {
       expect(p.ip).toBe(parseIp(p.name));
     }
     for (const p of kept) expect(p.lumens).toBe(legacyById.get(p.jumpseller_id)!.lumens);
+  });
+
+  it('las temperaturas de color (kelvins) salen de las opciones de las variantes; sin ninguna ahí, del nombre (auditoría UX, B-05)', () => {
+    expect(parseKelvins('Luz Cálida 2200K - 1% Luz Azul')).toEqual([2200]);
+    expect(parseKelvins('Luz fría 6400k')).toEqual([6400]);
+    expect(parseKelvins('Luz Cálida - 1% Luz Azul')).toEqual([]); // el % de luz azul no se traduce a kelvin
+    for (const p of products) {
+      const s = snapById.get(p.jumpseller_id)!;
+      expect(p.kelvins, p.name).toEqual(productKelvins(s));
+      expect(p.kelvins, p.name).toEqual([...new Set(p.kelvins)].sort((a, b) => a - b));
+      const optionText = s.variants.flatMap(v => v.options.map(o => o.value)).join(' | ');
+      const source = parseKelvins(optionText).length ? optionText : s.name;
+      for (const k of p.kelvins) expect(source, `${p.name} ${k}K`).toMatch(new RegExp(`${k}\\s*K\\b`, 'i'));
+    }
+    // Las BESTLED tienen varias temperaturas en sus variantes de Jumpseller, aunque el nombre no diga ninguna
+    const bestled = products.filter(p => BESTLED.includes(p.jumpseller_id));
+    expect(bestled.length).toBeGreaterThan(0);
+    for (const p of bestled) expect(p.kelvins.length, p.name).toBeGreaterThan(1);
   });
 
   it('la potencia sale del nombre (corrige cintas "14,4W" que el sitio mostraba como 4W)', () => {

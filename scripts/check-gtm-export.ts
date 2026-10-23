@@ -23,7 +23,9 @@
 //      --sin-fase-a2, el juego de la v1.2: X01 y X02 en todas (y X03 en Meta).
 //   4. Activadores: cada etiqueta con el suyo (tabla 6.3), las de configuración una vez por
 //      página con Inicialización y elights_consent_update. T07: link_url contiene
-//      ventas@elights.cl y no contiene subject=Datos (decisión 13: solo ventas@).
+//      ventas@elights.cl y no contiene subject=Datos (decisión 13: solo ventas@). T09: justo los
+//      eventos del sitio, y el informe nombra el que falta o sobra; un evento nuevo que la
+//      especificación aún no tiene (PENDING_SITE_EVENTS: guia_cta_click) puede faltar: nota.
 //   5. Ajustes: send_page_view: false, Signals y personalización apagados y cookies de 395 días
 //      en GA4; la etiqueta de Google de Ads con sus cookies por defecto (_gcl_…, 90 días);
 //      conversiones sin valor, sin ID de transacción ni conversiones mejoradas; vinculador sin
@@ -111,7 +113,17 @@ export const SITE_EVENTS: readonly string[] = [
   'estudio_luminico_cta_hero_click',
   'instalacion_cta_hero_click',
   'instalacion_cta_final_click',
+  'guia_cta_click',
 ];
+
+/**
+ * Eventos del sitio que la especificación de la agencia todavía no tiene (la v1.3 no los nombra
+ * en las tablas 3.4, 3.5 y 6.3). Si el T09 de la exportación no los incluye, es una nota y no un
+ * problema: el evento llega a la capa de datos pero no a GA4 hasta que la agencia lo sume. Cuando
+ * la agencia publique la versión de la especificación que los trae, se sacan de esta lista y
+ * vuelven a bloquear. guia_cta_click: los llamados de las guías (plan del blog, §5.5).
+ */
+export const PENDING_SITE_EVENTS: readonly string[] = ['guia_cta_click'];
 
 /** Parámetros de evento del sitio (tabla 3.5, sin las claves de estado). */
 export const EVENT_PARAMS: readonly string[] = [
@@ -323,6 +335,26 @@ function regexSelectsExactly(source: string, want: readonly string[], others: re
   return want.every(w => re.test(w)) && ![...others, ...near].some(o => re.test(o));
 }
 
+/** Eventos que el activador T09 nunca debe aceptar: los de estado del sitio y los de GTM. */
+const NOT_SITE_EVENTS = ['elights_page_view', 'elights_consent_update', 'elights_meta_granted', 'gtm.js', 'gtm.dom', 'gtm.load', 'page_view'];
+
+/**
+ * Lo que le falta o le sobra a la regex de eventos de T09 frente a SITE_EVENTS: `missing`, los
+ * eventos acordados que no acepta (bloquea); `pending`, los de PENDING_SITE_EVENTS que no acepta
+ * (nota); `extra`, lo que acepta y no debe (bloquea). null si la regex no se puede leer.
+ */
+export function siteEventsRegexGaps(source: string): { missing: string[]; pending: string[]; extra: string[] } | null {
+  const re = safeRegex(source);
+  if (!re) return null;
+  const missed = SITE_EVENTS.filter(e => !re.test(e));
+  const near = SITE_EVENTS.flatMap(w => ['x' + w, w + 'x']);
+  return {
+    missing: missed.filter(e => !PENDING_SITE_EVENTS.includes(e)),
+    pending: missed.filter(e => PENDING_SITE_EVENTS.includes(e)),
+    extra: [...NOT_SITE_EVENTS, ...near].filter(o => re.test(o)),
+  };
+}
+
 /** El evento al que responde un activador de evento personalizado: { equals } o { regex }. */
 function eventMatch(ix: ExportIndex, t: GtmTrigger): { equals?: string; regex?: string } | null {
   const conds = (t.customEventFilter ?? []).map(c => readCondition(ix, c));
@@ -343,8 +375,9 @@ export function triggerRole(ix: ExportIndex, t: GtmTrigger): TriggerRole | null 
   const ev = eventMatch(ix, t);
   if (!ev) return null;
   if (ev.regex !== undefined) {
-    const others = ['elights_page_view', 'elights_consent_update', 'elights_meta_granted', 'gtm.js', 'gtm.dom', 'gtm.load', 'page_view'];
-    return filters.length === 0 && regexSelectsExactly(ev.regex, SITE_EVENTS, others) ? 'site_events' : null;
+    // T09: los eventos del sitio; los de PENDING_SITE_EVENTS pueden faltar (reviewExport lo anota)
+    const gaps = siteEventsRegexGaps(ev.regex);
+    return filters.length === 0 && gaps && !gaps.missing.length && !gaps.extra.length ? 'site_events' : null;
   }
   const simple: Record<string, TriggerRole> = {
     elights_consent_update: 'consent_update',
@@ -644,6 +677,36 @@ export interface ExportVerdict {
   notes: string[];
 }
 
+/** «a, b, c y 4 más». */
+const listFew = (items: readonly string[], max = 3) =>
+  items.length > max ? `${items.slice(0, max).join(', ')} y ${items.length - max} más` : items.join(', ');
+
+/**
+ * El activador de eventos de GA03 (T09), con nombre y apellido: qué evento del sitio le falta o
+ * qué acepta de más (bloquea), y qué evento nuevo, aún fuera de la especificación de la agencia
+ * (PENDING_SITE_EVENTS), no incluye todavía (nota).
+ */
+function siteEventsTriggerReview(ix: ExportIndex, tag: GtmTag, issues: string[], notes: string[]): void {
+  for (const id of tag.firingTriggerId ?? []) {
+    const t = ix.triggers.get(id);
+    const regex = t && normType(t.type) === 'CUSTOMEVENT' ? eventMatch(ix, t)?.regex : undefined;
+    if (!t || regex === undefined) continue;
+    const gaps = siteEventsRegexGaps(regex);
+    if (!gaps) {
+      issues.push(`«${t.name}»: su regex de eventos no se puede leer`);
+      continue;
+    }
+    if (gaps.missing.length) issues.push(`a «${t.name}» le faltan eventos del sitio (tabla 3.4): ${gaps.missing.join(', ')}`);
+    if (gaps.extra.length) issues.push(`«${t.name}» acepta eventos que no son del sitio: ${listFew(gaps.extra)}`);
+    if (gaps.pending.length) {
+      notes.push(
+        `«${t.name}» no incluye ${gaps.pending.join(', ')}: es un evento nuevo del sitio que la especificación de la agencia aún no tiene ` +
+          '(tablas 3.4, 3.5 y 6.3). No bloquea, pero hasta que la agencia lo sume a T09 ese evento no llega a GA4.',
+      );
+    }
+  }
+}
+
 export function reviewExport(exp: GtmExport, opts: CheckOptions = {}): ExportVerdict {
   const ix = new ExportIndex(exp);
   const failures: string[] = [];
@@ -684,6 +747,7 @@ export function reviewExport(exp: GtmExport, opts: CheckOptions = {}): ExportVer
     if (expected && !sameSet(roles.filter((r): r is TriggerRole => r !== null), expected)) {
       issues.push(`activadores ${roles.filter(Boolean).join(', ') || 'ninguno'} (deben ser ${expected.join(', ')})`);
     }
+    if (kind === 'GA_EVENTS') siteEventsTriggerReview(ix, tag, issues, notes);
     if ((kind === 'G01' || kind === 'G02' || kind === 'GA01') && tag.tagFiringOption !== 'ONCE_PER_LOAD') {
       issues.push('debe dispararse una vez por página (ONCE_PER_LOAD)');
     }

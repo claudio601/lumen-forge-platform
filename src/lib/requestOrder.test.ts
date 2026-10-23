@@ -31,10 +31,10 @@ describe('reconcileRequestItems: carritos guardados antes de una sincronización
 
   it('usa el precio de la variante elegida en el selector genérico (Flyhawk 80W: $514.800, no $442.800)', () => {
     const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
-    const line = item({ productId: flyhawk.id, jumpsellerId: flyhawk.jumpseller_id, sku: 'JS-11521285', variantId: 118197864, unitPrice: 514800, attributes: { colorLuz: '80W · Cálida 2200K' } });
+    const line = item({ productId: flyhawk.id, jumpsellerId: flyhawk.jumpseller_id, sku: 'JS-11521285', variantId: 118197864, unitPrice: 514800, attributes: { colorLuz: '80W · Ámbar 2200K' } });
     const r = reconcileRequestItems([line], products);
     expect(r.repriced).toBe(0);
-    expect(r.items[0]).toMatchObject({ unitPrice: 514800, variantId: 118197864, sku: 'JS-11521285', attributes: { colorLuz: '80W · Cálida 2200K' } });
+    expect(r.items[0]).toMatchObject({ unitPrice: 514800, variantId: 118197864, sku: 'JS-11521285', attributes: { colorLuz: '80W · Ámbar 2200K' } });
   });
 
   it('quita productos que ya no se publican', () => {

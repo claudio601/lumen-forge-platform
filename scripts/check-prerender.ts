@@ -9,6 +9,11 @@
 //   - el JSON-LD se lee, y en las fichas el precio coincide con el catálogo;
 //   - nada quedó "para dibujar en el navegador";
 //   - spa.html y 404.html llevan noindex, y el sitemap lista justo las páginas generadas;
+//   - guías «publicadas sin indexar» (plan del blog, §2.2 y §5.6, fila 10): cada una existe, con
+//     la misma estructura que una página indexable, pero con noindex en su HTML, sin canonical
+//     (como toda página noindex del sitio, src/components/Seo.tsx) y fuera del sitemap. Toda
+//     guía (/guias/<slug>) trae su JSON-LD Article con el h1 como headline, sus migas y ningún
+//     FAQPage. La regla de siempre no cambia: una página indexable con noindex bloquea;
 //   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404";
 //   - ningún id retirado (src/data/catalog/renamed-ids.ts) tiene página: Vercel aplica su
 //     301 antes que los archivos, así que nunca se vería. Un 301 que llega a un producto no
@@ -43,7 +48,7 @@ import { products } from '../src/data/catalog/index';
 import { RENAMED_FROM } from '../src/data/catalog/renamed-ids';
 import { productImageFacts } from '../src/data/catalog/og-images.generated';
 import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
-import { indexableRoutes, productPath } from '../src/lib/seo/routes';
+import { indexableRoutes, noindexGuideRoutes, productPath } from '../src/lib/seo/routes';
 import { findPolicyBreaking } from './jumpseller/descriptions';
 import { KNOWN_PHRASES } from './known-phrases';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
@@ -154,11 +159,16 @@ export function expectedOg(img: OgImage): ExpectedOg {
   return { url: ogImageUrl(img), ...(img.width && img.height ? { width: img.width, height: img.height } : {}) };
 }
 
-/** Problemas de estructura de una página indexable (o de spa.html / 404.html). */
+/**
+ * Problemas de estructura de una página indexable (o de spa.html / 404.html). unindexed: una guía
+ * «publicada sin indexar» (plan del blog, §2.2): la estructura completa de una página, pero con
+ * noindex y sin canonical. article: una guía, con su JSON-LD Article (headline = h1) y sus migas,
+ * sin FAQPage.
+ */
 export function structuralIssues(
   route: string,
   f: PageFacts,
-  expect: { indexable: boolean; price?: number; siteUrl?: string; og?: ExpectedOg },
+  expect: { indexable: boolean; unindexed?: boolean; article?: boolean; price?: number; siteUrl?: string; og?: ExpectedOg },
 ): string[] {
   const issues: string[] = [];
   const site = expect.siteUrl ?? SITE_URL;
@@ -166,16 +176,21 @@ export function structuralIssues(
   if (f.titles.length !== 1 || !f.titles[0]) issues.push(`${f.titles.length} títulos (debe haber uno, con texto)`);
   if (f.clientRendered) issues.push('una parte quedó sin dibujar en el servidor');
   const noindex = f.robots.some(r => /noindex/i.test(r));
-  if (!expect.indexable) {
+  if (!expect.indexable && !expect.unindexed) {
     if (!noindex) issues.push('sin noindex');
     return issues;
   }
   if (f.rootEmpty) issues.push('la app está vacía');
   const visible = f.h1s.filter(h => h.visible && h.text);
   if (f.h1s.length !== 1 || visible.length !== 1) issues.push(`${f.h1s.length} h1 (${visible.length} visibles con texto); debe haber uno`);
-  if (noindex) issues.push('tiene noindex');
-  const url = site + route;
-  if (f.canonicals.length !== 1 || f.canonicals[0] !== url) issues.push(`canonical ${JSON.stringify(f.canonicals)} en vez de ${url}`);
+  if (expect.unindexed) {
+    if (!noindex) issues.push('guía sin indexar sin noindex');
+    if (f.canonicals.length) issues.push(`guía sin indexar con canonical ${JSON.stringify(f.canonicals)}`);
+  } else {
+    if (noindex) issues.push('tiene noindex');
+    const url = site + route;
+    if (f.canonicals.length !== 1 || f.canonicals[0] !== url) issues.push(`canonical ${JSON.stringify(f.canonicals)} en vez de ${url}`);
+  }
   if (f.ogImages.length !== 1) issues.push(`${f.ogImages.length} og:image (debe haber una)`);
   for (const img of f.ogImages) {
     let path = '';
@@ -212,8 +227,20 @@ export function structuralIssues(
     if (!product) issues.push('ficha sin JSON-LD de producto');
     else if (product.offers?.price !== expect.price) issues.push(`precio del JSON-LD ${String(product.offers?.price)} y en el catálogo ${expect.price}`);
   }
+  if (expect.article) {
+    const type = (d: unknown) => (d as { '@type'?: string })?.['@type'];
+    const articles = parsed.filter(d => type(d) === 'Article') as { headline?: unknown }[];
+    const h1 = visible[0]?.text;
+    if (articles.length !== 1) issues.push(`${articles.length} JSON-LD Article (la guía debe tener uno)`);
+    else if (h1 !== undefined && articles[0].headline !== h1) issues.push(`el headline del JSON-LD Article (${JSON.stringify(articles[0].headline)}) no es el h1 (${JSON.stringify(h1)})`);
+    if (!parsed.some(d => type(d) === 'BreadcrumbList')) issues.push('guía sin JSON-LD BreadcrumbList');
+    if (parsed.some(d => type(d) === 'FAQPage')) issues.push('guía con FAQPage (plan del blog, §1.6: no se emite)');
+  }
   return issues;
 }
+
+/** Ruta de una guía (/guias/<slug>). */
+export const isGuideRoute = (route: string) => /^\/guias\/[^/]+$/.test(route);
 
 // Frases que la regla marca pero son correctas en una página (se informan, sin bloquear): en su
 // propio módulo, sin dependencias, para que src/pages/legal.test.tsx use la misma lista.
@@ -411,8 +438,11 @@ function main() {
   const ownPhotos = [...productOg.values()].filter(Boolean).length;
 
   const routes = indexableRoutes();
+  // Guías «publicadas sin indexar» (plan del blog, §2.2): se revisan aparte, nunca en el sitemap
+  const unindexed = noindexGuideRoutes();
   const pageFacts = new Map<string, PageFacts>();
-  for (const route of routes) {
+  const unindexedFacts = new Map<string, PageFacts>();
+  for (const route of [...routes, ...unindexed]) {
     const html = read(outputPath(route));
     if (!html) {
       consentProblems++; // sin HTML no se revisó: el resumen no puede decir que está bien
@@ -420,9 +450,11 @@ function main() {
       continue;
     }
     const facts = inspectHtml(html);
-    pageFacts.set(route, facts);
+    const isUnindexed = unindexed.includes(route);
+    (isUnindexed ? unindexedFacts : pageFacts).set(route, facts);
     const og = expectedOg(productOg.get(route) ?? DEFAULT_OG);
-    for (const issue of structuralIssues(route, facts, { indexable: true, price: prices.get(route), og })) blocking.push(`${route}: ${issue}`);
+    const expectations = { indexable: !isUnindexed, unindexed: isUnindexed, article: isGuideRoute(route), price: prices.get(route), og };
+    for (const issue of structuralIssues(route, facts, expectations)) blocking.push(`${route}: ${issue}`);
     for (const issue of notFoundMarkerIssues(html, false)) blocking.push(`${route}: ${issue}`);
     for (const issue of consentIssues(consentFacts(html), { footer: true, form: PRERENDERED_FORMS[route] })) {
       consentProblems++;
@@ -457,6 +489,7 @@ function main() {
   const missing = routes.filter(r => !locs.includes(r));
   const extra = locs.filter(l => !pageFacts.has(l));
   if (missing.length || extra.length) blocking.push(`sitemap: faltan ${JSON.stringify(missing)}, sobran ${JSON.stringify(extra)}`);
+  for (const route of unindexed) if (locs.includes(route)) blocking.push(`sitemap: ${route} es una guía sin indexar y no debe estar`);
 
   // Ids renombrados (PR 07)
   const published = new Set(products.map(p => p.id));
@@ -472,7 +505,7 @@ function main() {
   // Contenido: el texto de cada página, y una vez la cabecera y el pie (se repiten en todas)
   const content: string[] = [];
   const known: string[] = [];
-  const texts: [string, string][] = [...pageFacts].map(([route, f]) => [route, f.mainText]);
+  const texts: [string, string][] = [...pageFacts, ...unindexedFacts].map(([route, f]) => [route, f.mainText]);
   const home = pageFacts.get('/');
   if (home) texts.push(['cabecera y pie', home.chromeText]);
   for (const [route, text] of texts) {
@@ -486,6 +519,10 @@ function main() {
   else blocking.push(...content.map(c => `${c}: contradice las reglas del sitio (stock o plazos de despacho)`));
 
   console.log(`[check-prerender] ${pageFacts.size} de ${routes.length} páginas revisadas, más spa.html y 404.html`);
+  console.log(
+    `[check-prerender] Guías sin indexar (noindex, fuera del sitemap): ${unindexedFacts.size} de ${unindexed.length}` +
+      (unindexed.length ? `: ${unindexed.join(', ')}` : ''),
+  );
   console.log(`[check-prerender] Imagen para compartir: ${ownPhotos} fichas con su foto, ${productOg.size - ownPhotos} con la imagen de la marca`);
   console.log(
     `[check-prerender] Ids renombrados: ${RENAMED_FROM.size} redirecciones 301; ${toUnpublished.length} llegan a productos no publicados (dan 404)` +
