@@ -73,14 +73,14 @@ const MANDATORY = A.A4;
  * propuesta, no un texto aprobado, y la guía no se fusiona a main (la prueba lo avisa).
  */
 const DS1_BLOCK_OWNER_OK: Readonly<Record<string, string>> = {
-  // Pedido con la PR de G1 el 23-10-2026 (decisión 7 de decisiones-dueno.md)
-  'norma-luminica-ds-1-2022': 'pendiente',
+  // OK del dueño en el chat el 23-10-2026, con la PR #110 (decisión 7 de decisiones-dueno.md)
+  'norma-luminica-ds-1-2022': '23-10-2026',
 };
 
 /**
  * Las únicas oraciones de cada guía que juntan el certificado con la norma: las aprueba el dueño
  * (decisión 6 del plan). Una oración nueva con el certificado se agrega aquí solo con su OK, que
- * se anota en DS1_BLOCK_OWNER_OK. La de G1: PENDIENTE DE OK.
+ * se anota en DS1_BLOCK_OWNER_OK. La de G1: aprobada el 23-10-2026.
  */
 const APPROVED_CERTIFICATE_SENTENCES: Readonly<Record<string, readonly string[]>> = {
   'norma-luminica-ds-1-2022': ['Estas luminarias tienen certificado D.S. N°1/2022 solo en las versiones que se nombran.'],
@@ -91,7 +91,7 @@ const APPROVED_NORM_BLUE_LIGHT: ReadonlySet<string> = new Set([A.A8]);
 
 /**
  * El bloque «Luminarias con certificado» de cada guía, tal como lo aprueba el dueño (su OK, en
- * DS1_BLOCK_OWNER_OK; el de G1: PENDIENTE): lo genera ds1LineGroups (DS1_CERTIFIED_LINES y las
+ * DS1_BLOCK_OWNER_OK; el de G1: aprobado el 23-10-2026): lo genera ds1LineGroups (DS1_CERTIFIED_LINES y las
  * variantes de Jumpseller) y lo escribe Claude.
  */
 const APPROVED_DS1_BLOCK: Readonly<Record<string, readonly string[]>> = {
