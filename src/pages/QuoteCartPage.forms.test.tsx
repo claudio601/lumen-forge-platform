@@ -4,10 +4,11 @@
 //   el campo, el foco en el primero con error y el aviso general junto al botón.
 // - F-03: la confirmación con el plazo (por correo, el mismo día hábil), los 3 pasos, "Revisa
 //   tu correo" e "Imprimir o guardar resumen", sin WhatsApp ni llamadas.
+// «Recordar mis datos en este dispositivo» (especificación del 23-10-2026, §5): al final.
 // RUT inventados (rango 44 millones, sin asignar) y correos example.com.
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider } from '@/context/AppContext';
@@ -15,6 +16,18 @@ import QuoteCartPage from './QuoteCartPage';
 import { products } from '@/data/products';
 import { FIELD_MESSAGES } from '@/lib/formValidation';
 import { businessHoursLong, contactEmail, responseTimePromise } from '@/config/business';
+import { REMEMBER_TEXTS } from '@/components/forms/RememberContact';
+import {
+  FIXED_NOW,
+  TEST_RUT,
+  expectFreshBox,
+  expectNothingElseStored,
+  expectSavedBox,
+  rememberBox,
+  rememberStatus,
+  seedSaved,
+  storedContact,
+} from '@/test/rememberContact';
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
@@ -208,5 +221,171 @@ describe('/cotizacion: plazo y confirmación (F-03)', () => {
 
     expect(text).not.toMatch(NO_OTHER_CHANNEL);
     expect(text).not.toMatch(/a la brevedad|te contactar[áa]|copia/i);
+  });
+});
+
+describe('/cotizacion: recordar mis datos', () => {
+  const CONTACT = { nombre: 'PRUEBA Cotización (rec) - borrar', email: 'prueba-recordar-cotizacion@example.com', telefono: '+56 9 0000 0934' };
+  const COMPANY = { empresa: 'PRUEBA Cotización SpA (no procesar)', giro: 'Prueba', direccion: 'Prueba 123, Santiago', rut: TEST_RUT };
+  const COMENTARIO = 'PRUEBA comentario de la cotización - borrar';
+  /** El servidor confirma con la referencia que recibió (api/quotes/create.ts). */
+  const confirms = () => vi.fn(async (_url: string, init: RequestInit) => ({
+    ok: true,
+    status: 201,
+    text: async () => JSON.stringify({ success: true, quoteReference: JSON.parse(init.body as string).quoteReference, dealId: 1 }),
+  }));
+  const field = (label: RegExp) => screen.getByLabelText(label) as HTMLInputElement;
+  const bodies = () => (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit][]).map(([, init]) => JSON.parse(init.body as string));
+  const privacy = () => fireEvent.click(screen.getByLabelText(/autorizo a eLIGHTS a usar mis datos/));
+
+  function fillAll({ empresa = true } = {}) {
+    type(/Nombre y Apellido/, CONTACT.nombre);
+    type(/Email/, CONTACT.email);
+    type(/Teléfono/, CONTACT.telefono);
+    if (empresa) {
+      fireEvent.change(screen.getByLabelText(/Tipo de cliente/), { target: { value: 'empresa' } });
+      fillCompany(COMPANY.rut);
+      type(/Razón Social/, COMPANY.empresa);
+      type(/Dirección Comercial/, COMPANY.direccion);
+    }
+  }
+
+  beforeEach(() => localStorage.clear());
+  afterEach(() => { localStorage.clear(); vi.useRealTimers(); });
+
+  it('sin datos guardados, la casilla empieza desmarcada, después de la empresa y antes de los comentarios', async () => {
+    await renderPage({ b2b: true });
+    expectFreshBox();
+    const box = rememberBox();
+    expect(field(/Dirección Comercial/).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(box.compareDocumentPosition(field(/Comentarios/)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('con datos, completa los vacíos y el tipo guardado gana sobre el modo del encabezado; después manda el selector', async () => {
+    seedSaved({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY, comuna: 'Maipú', region: 'Valparaiso' });
+    await renderPage(); // modo persona en el encabezado
+    await waitFor(() => expect(field(/Nombre y Apellido/).value).toBe(CONTACT.nombre));
+    expect(field(/Email/).value).toBe(CONTACT.email);
+    expect(field(/Teléfono/).value).toBe(CONTACT.telefono);
+    expect(field(/Tipo de cliente/).value).toBe('empresa');
+    expect(field(/RUT Empresa/).value).toBe(TEST_RUT);
+    expect(field(/Razón Social/).value).toBe(COMPANY.empresa);
+    expect(field(/Giro/).value).toBe(COMPANY.giro);
+    expect(field(/Dirección Comercial/).value).toBe(COMPANY.direccion);
+    expectSavedBox();
+    fireEvent.change(screen.getByLabelText(/Tipo de cliente/), { target: { value: 'persona' } });
+    expect(field(/Tipo de cliente/).value).toBe('persona');
+    expect(screen.queryByLabelText(/Razón Social/)).toBeNull();
+  });
+
+  it('guardado como persona, en modo empresa del encabezado aparece como persona', async () => {
+    seedSaved({ ...CONTACT, tipoCliente: 'persona' });
+    await renderPage({ b2b: true });
+    await waitFor(() => expect(field(/Tipo de cliente/).value).toBe('persona'));
+    expect(field(/Nombre y Apellido/).value).toBe(CONTACT.nombre);
+  });
+
+  it('desmarcar borra al instante sin vaciar los campos; cambiar el correo desmarca y borra', async () => {
+    seedSaved({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
+    await renderPage();
+    await waitFor(() => expectSavedBox());
+    fireEvent.click(rememberBox());
+    expect(storedContact()).toBeNull();
+    expect(rememberStatus()).toHaveTextContent(REMEMBER_TEXTS.cleared);
+    expect(field(/Razón Social/).value).toBe(COMPANY.empresa);
+    expectFreshBox();
+  });
+
+  it('cambiar el correo completado desmarca y borra, con su aviso', async () => {
+    seedSaved(CONTACT);
+    await renderPage();
+    await waitFor(() => expect(rememberBox().checked).toBe(true));
+    type(/Email/, 'prueba-otra@example.com');
+    expect(storedContact()).toBeNull();
+    expect(rememberBox().checked).toBe(false);
+    expect(rememberStatus()).toHaveTextContent(REMEMBER_TEXTS.emailChanged);
+  });
+
+  it('un envío confirmado como empresa con la casilla marcada guarda exactamente lo enviado; ni comentarios ni productos', async () => {
+    vi.stubGlobal('fetch', confirms());
+    await renderPage();
+    fillAll();
+    type(/Comentarios/, COMENTARIO);
+    fireEvent.click(rememberBox());
+    privacy();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
+    expectNothingElseStored([COMENTARIO, product.name, String(product.jumpseller_id), 'NE-']);
+  });
+
+  it('como persona guarda el tipo persona y no la empresa (aunque se haya escrito antes de cambiar)', async () => {
+    vi.stubGlobal('fetch', confirms());
+    await renderPage({ b2b: true });
+    fillAll();
+    fireEvent.change(screen.getByLabelText(/Tipo de cliente/), { target: { value: 'persona' } });
+    fireEvent.click(rememberBox());
+    privacy();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'persona' });
+  });
+
+  it('un envío confirmado con la casilla desmarcada no guarda nada', async () => {
+    vi.stubGlobal('fetch', confirms());
+    await renderPage();
+    fillAll();
+    privacy();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(storedContact()).toBeNull();
+  });
+
+  it.each([
+    ['sin referencia (la trampa contra bots)', () => reply(201, '{"success":true}'), false],
+    ['sin referencia (la trampa contra bots)', () => reply(201, '{"success":true}'), true],
+    ['400', () => reply(400, '{"success":false}'), false],
+    ['400', () => reply(400, '{"success":false}'), true],
+    ['500', () => reply(500, '{"success":false}'), false],
+    ['500', () => reply(500, '{"success":false}'), true],
+  ])('%s (con datos guardados: %s): no guarda nada y lo guardado no cambia', async (_, server, withSaved) => {
+    vi.stubGlobal('fetch', server());
+    if (withSaved) seedSaved(CONTACT);
+    const before = localStorage.getItem('elights_contact');
+    await renderPage();
+    if (withSaved) {
+      await waitFor(() => expect(rememberBox().checked).toBe(true));
+      type(/Teléfono/, '+56 9 0000 0939');
+    } else {
+      fillAll({ empresa: false });
+      fireEvent.click(rememberBox());
+    }
+    privacy();
+    submit();
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(localStorage.getItem('elights_contact')).toBe(before);
+  });
+
+  it('el cuerpo que va al servidor es idéntico con y sin datos guardados', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(FIXED_NOW);
+    vi.stubGlobal('fetch', confirms());
+    await renderPage();
+    fillAll();
+    privacy();
+    submit();
+    await screen.findByText('Solicitud enviada');
+    cleanup();
+    sessionStorage.clear();
+    seedSaved({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
+    await renderPage();
+    await waitFor(() => expect(field(/RUT Empresa/).value).toBe(TEST_RUT));
+    privacy();
+    submit();
+    await screen.findByText('Solicitud enviada');
+    const [without, withSaved] = bodies();
+    expect(withSaved).toEqual(without);
+    expect(JSON.stringify(withSaved)).not.toMatch(/recordarDatos|elights_contact|remember/i);
   });
 });

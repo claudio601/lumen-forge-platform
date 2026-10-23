@@ -1,3 +1,8 @@
+// «Recordar mis datos» (especificación del 23-10-2026): la casilla va después de la comuna (el
+// último dato de contacto). Al hidratar y en «Enviar otra solicitud» se completan los campos
+// vacíos con lo guardado (también la comuna, que solo se lee: es la de la obra y nunca se
+// guarda desde aquí); un envío confirmado con la casilla marcada guarda nombre, correo y
+// teléfono (useRememberContact). El tipo de cliente de aquí (hogar, empresa o condominio) no se toca.
 import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -5,6 +10,8 @@ import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution, type Attribution } from '@/lib/attribution';
 import { useConsentFields } from '@/components/legal/ConsentFields';
+import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
+import type { SavedContact } from '@/lib/savedContact';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE, CONSENT_TEXTS, type ConsentInput } from '../../../api/_lib/forms/consent';
 
 export interface InstallationLeadPayload {
@@ -93,6 +100,10 @@ const EMPTY_FORM = {
 
 type FormValues = typeof EMPTY_FORM;
 
+/** Los campos vacíos con lo guardado (los nombres de este formulario). */
+const withSaved = (values: FormValues, saved: SavedContact | null): FormValues =>
+  saved ? fillEmpty(values, { nombre: saved.nombre, email: saved.email, telefono: saved.telefono, comuna: saved.comuna }) : values;
+
 const InstallationLeadForm = () => {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [status, setStatus] = useState<FormState>('idle');
@@ -101,12 +112,18 @@ const InstallationLeadForm = () => {
   // Casillas de privacidad y novedades, siempre sin marcar. La nota aprobada por el dueño
   // (Vercel, Google y Pipedrive) sigue bajo la obligatoria; el bloque ocupa las dos columnas.
   const consent = useConsentFields('solicitud', { note: CONSENT_TEXTS.installationNote, className: 'sm:col-span-2' });
+  // «Recordar mis datos en este dispositivo», después de los datos de contacto
+  const remember = useRememberContact('instalacion', { className: 'sm:col-span-2' });
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
+    // Lo guardado se lee recién ahora: el HTML del prerender y el primer render no cambian
+    const saved = remember.prefill();
+    if (saved) setForm(prev => withSaved(prev, saved));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -116,6 +133,13 @@ const InstallationLeadForm = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'email') remember.onEmailChange(value);
+  };
+
+  /** «Enviar otra solicitud»: el formulario vuelve vacío, con lo guardado y la casilla al día. */
+  const startOver = () => {
+    setStatus('idle');
+    setForm(withSaved(EMPTY_FORM, remember.prefill()));
   };
 
   const buildPayload = (): InstallationLeadPayload => ({
@@ -159,9 +183,12 @@ const InstallationLeadForm = () => {
     setErrorMsg('');
     setStatus('sending');
     try {
-      const ref = await submitLead(buildPayload());
+      const payload = buildPayload();
+      const ref = await submitLead(payload);
       // Conversión solo si el servidor confirmó la solicitud con su referencia (no se envía)
       if (ref) trackLead('instalacion', { tipo_proyecto: tipoProyecto });
+      // Con la misma condición y la casilla marcada, se guarda lo enviado (sin la comuna de la obra)
+      remember.afterSubmit(Boolean(ref), { nombre: payload.nombre, email: payload.email, telefono: payload.telefono });
       setStatus('success');
       setForm(EMPTY_FORM);
       consent.reset(); // "Enviar otra solicitud" vuelve a pedir las casillas
@@ -197,7 +224,7 @@ const InstallationLeadForm = () => {
         <CheckCircle2 className="h-14 w-14 text-green-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
         <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisará tu solicitud y te contactará con una propuesta personalizada.</p>
-        <button onClick={() => setStatus('idle')} className="mt-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">Enviar otra solicitud</button>
+        <button onClick={startOver} className="mt-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">Enviar otra solicitud</button>
       </div>
     );
   }
@@ -221,7 +248,9 @@ const InstallationLeadForm = () => {
           <div><label htmlFor="ilf-nombre" className={labelClass}>Nombre completo <span className="text-red-500">*</span></label><input id="ilf-nombre" name="nombre" type="text" value={form.nombre} onChange={handleChange} placeholder="Juan Pérez" maxLength={MAX_LENGTHS.nombre} className={inputClass} autoComplete="name" /></div>
           <div><label htmlFor="ilf-telefono" className={labelClass}>Teléfono <span className="text-red-500">*</span></label><input id="ilf-telefono" name="telefono" type="tel" value={form.telefono} onChange={handleChange} placeholder="+56 9 XXXX XXXX" maxLength={MAX_LENGTHS.telefono} className={inputClass} autoComplete="tel" /></div>
           <div><label htmlFor="ilf-email" className={labelClass}>Correo electrónico <span className="text-red-500">*</span></label><input id="ilf-email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="correo@ejemplo.com" maxLength={MAX_LENGTHS.email} className={inputClass} autoComplete="email" /></div>
-          <div><label htmlFor="ilf-comuna" className={labelClass}>Comuna <span className="text-red-500">*</span></label><input id="ilf-comuna" name="comuna" type="text" value={form.comuna} onChange={handleChange} placeholder="Ej: Las Condes, Maipú, Quilicura..." maxLength={MAX_LENGTHS.comuna} className={inputClass} /></div>
+          <div><label htmlFor="ilf-comuna" className={labelClass}>Comuna <span className="text-red-500">*</span></label><input id="ilf-comuna" name="comuna" type="text" value={form.comuna} onChange={handleChange} placeholder="Ej: Las Condes, Maipú, Quilicura..." maxLength={MAX_LENGTHS.comuna} className={inputClass} autoComplete="address-level2" /></div>
+          {/* Recordar mis datos: al final de los datos de contacto, lejos de las casillas de privacidad */}
+          {remember.field}
           <div className="sm:col-span-2"><label htmlFor="ilf-tipoProyecto" className={labelClass}>Tipo de proyecto <span className="text-red-500">*</span></label><select id="ilf-tipoProyecto" name="tipoProyecto" value={form.tipoProyecto} onChange={handleChange} className={inputClass}><option value="">Selecciona el tipo de proyecto...</option>{TIPOS_PROYECTO.map(t => (<option key={t} value={t}>{t}</option>))}</select></div>
           <div className="sm:col-span-2"><label htmlFor="ilf-descripcion" className={labelClass}>Descripción breve del proyecto <span className="text-red-500">*</span></label><textarea id="ilf-descripcion" name="descripcion" value={form.descripcion} onChange={handleChange} rows={3} maxLength={MAX_LENGTHS.descripcion} placeholder="Cuéntanos el espacio..." className={inputClass + ' resize-none'} /></div>
           <div><label htmlFor="ilf-tipoCliente" className={labelClass}>Tipo de cliente <span className="text-xs font-normal text-gray-400">(opcional)</span></label><select id="ilf-tipoCliente" name="tipoCliente" value={form.tipoCliente} onChange={handleChange} className={inputClass}>{TIPOS_CLIENTE.map(({ value, label }) => (<option key={value} value={value}>{label}</option>))}</select></div>

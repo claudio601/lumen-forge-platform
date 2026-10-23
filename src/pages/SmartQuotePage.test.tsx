@@ -241,6 +241,8 @@ describe('SmartQuotePage antes de hidratar (HTML del prerender)', () => {
   const CONTROLS = [
     'tipoProyecto', 'm2', 'altura', 'aplicacion', 'nivelIluminacion', 'ciudad', 'plazo',
     'comentarios', 'archivos', 'nombre', 'email', 'telefono', 'rutEmpresa', 'razonSocial', 'giro', 'direccion',
+    // «Recordar mis datos en este dispositivo» (especificación del 23-10-2026): al final de los datos de contacto
+    'recordarDatos',
     'consentPrivacy', 'consentMarketing', 'website',
   ];
 
@@ -699,19 +701,26 @@ describe('SmartQuotePage: adjuntar archivos', () => {
 
     // Va la mitad del primero (200 de 1000 bytes) y el segundo todavía no empieza: de a uno
     expect(await screen.findByRole('button', { name: /Subiendo archivos… 20\u00a0%/ })).toBeDisabled();
-    // El lector de pantalla oye la etapa, y el avance solo cada 25 % (no en cada evento)
-    expect(screen.getByRole('status')).toHaveTextContent(/^Subiendo archivos…$/);
+    // El lector de pantalla oye la etapa, y el avance solo cada 25 % (no en cada evento). Es la
+    // última región role="status": la primera es la de «Recordar mis datos», vacía
+    const sendingStatus = () => {
+      const regions = screen.getAllByRole('status');
+      expect(regions).toHaveLength(2);
+      expect(regions[0]).toBeEmptyDOMElement();
+      return regions[1];
+    };
+    expect(sendingStatus()).toHaveTextContent(/^Subiendo archivos…$/);
     expect(uploadPresigned).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Quitar bases.pdf' })).toBeDisabled();
     expect(fileInput()).toBeDisabled();
     // El primero terminó (400 de 1000 bytes) y el segundo espera: 40 %
     await act(async () => { releaseFirst(); });
     expect(await screen.findByRole('button', { name: /Subiendo archivos… 40\u00a0%/ })).toBeDisabled();
-    expect(screen.getByRole('status')).toHaveTextContent(/^Subiendo archivos… 25\s%$/); // con espacio duro
+    expect(sendingStatus()).toHaveTextContent(/^Subiendo archivos… 25\s%$/); // con espacio duro
     expect(uploadPresigned).toHaveBeenCalledTimes(2);
     await act(async () => { releaseSecond(); });
     expect(await screen.findByRole('button', { name: /Enviando…/ })).toBeDisabled();
-    expect(screen.getByRole('status')).toHaveTextContent(/^Enviando…$/);
+    expect(sendingStatus()).toHaveTextContent(/^Enviando…$/);
     expect(n).toBe(1);
     await act(async () => { releaseCreate(); });
 

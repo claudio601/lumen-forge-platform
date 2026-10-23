@@ -9,6 +9,10 @@
 // romper la página de llegada: el aviso lee la decisión del navegador. El HTML del servidor
 // nunca lo trae; después de hidratar aparece solo si no hay decisión (control positivo). La
 // decisión se siembra solo en el navegador, después de generar el HTML.
+//
+// «Recordar mis datos» (especificación del 23-10-2026, §5): lo guardado ('elights_contact')
+// también se siembra solo en el navegador. El HTML trae la casilla sin marcar y ningún dato, y
+// después de hidratar los campos quedan completos y la casilla marcada (control positivo).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, waitFor } from '@testing-library/react';
@@ -25,6 +29,8 @@ import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
 import { COOKIE_CONSENT_STORAGE_KEY, COOKIE_CONSENT_VERSION, COOKIE_TEXTS, __resetForTests, type CookieChoice } from '@/lib/cookieConsent';
 import { CONSENT_FIELD_NAMES } from '../api/_lib/forms/consent';
+import { SAVED_CONTACT_STORAGE_KEY, type SavedContact } from '@/lib/savedContact';
+import { REMEMBER_FIELD_NAME, REMEMBER_TEXTS } from '@/components/forms/RememberContact';
 
 /**
  * Sesión de un cliente en modo empresa con productos en la cotización y en la solicitud, y
@@ -81,7 +87,14 @@ const MISMATCH = /did not match|did not expect server HTML|Expected server HTML|
  * una decisión de cookies guardada (las dos, solo en el navegador).
  * notFound: el HTML es 404.html (Vercel lo sirve en cualquier URL sin archivo ni regla).
  */
-async function hydrate(serverPath: string, clientUrl: string, withSession: boolean, notFound = false, decision: CookieChoice | null = null) {
+async function hydrate(
+  serverPath: string,
+  clientUrl: string,
+  withSession: boolean,
+  notFound = false,
+  decision: CookieChoice | null = null,
+  savedContact: SavedContact | null = null,
+) {
   sessionStorage.clear();
   localStorage.clear();
   __resetForTests();
@@ -94,6 +107,9 @@ async function hydrate(serverPath: string, clientUrl: string, withSession: boole
   const html = renderToString(serverTree(serverPath));
   if (withSession) seedSession();
   if (decision) seedDecision(decision);
+  if (savedContact) {
+    localStorage.setItem(SAVED_CONTACT_STORAGE_KEY, JSON.stringify({ v: 1, at: new Date(Date.now() - 86_400_000).toISOString(), data: savedContact }));
+  }
   window.history.replaceState({}, '', clientUrl);
   const container = document.createElement('div');
   container.innerHTML = html;
@@ -293,6 +309,66 @@ describe('aviso de cookies y casillas en la hidratación (PR 13)', () => {
         await waitFor(() => expect(live.closest('fieldset[disabled]')).toBeNull());
         expect(live.checked).toBe(false);
       }
+    });
+  }
+});
+
+describe('«Recordar mis datos» en la hidratación (especificación del 23-10-2026)', () => {
+  const SAVED: SavedContact = {
+    nombre: 'PRUEBA Hidratación - borrar',
+    email: 'prueba-hidratacion@example.com',
+    telefono: '+56 9 0000 0936',
+    tipoCliente: 'empresa',
+    empresa: 'PRUEBA Hidratación SpA (no procesar)',
+    giro: 'Prueba de giro',
+    direccion: 'Prueba 123, Santiago',
+    rut: '44.444.444-4',
+    comuna: 'Quinta Normal',
+  };
+  /** Página, data-elights-form y lo que debe quedar en cada campo (name → valor) después de hidratar. */
+  const FORMS: [string, string, [string, string][]][] = [
+    ['/cotizador', 'cotizador', [
+      ['nombre', SAVED.nombre!], ['email', SAVED.email!], ['telefono', SAVED.telefono!], ['rutEmpresa', SAVED.rut!],
+      ['razonSocial', SAVED.empresa!], ['giro', SAVED.giro!], ['direccion', SAVED.direccion!], ['ciudad', ''],
+    ]],
+    ['/estudio-luminico', 'estudio-luminico', [
+      ['nombreCompleto', SAVED.nombre!], ['email', SAVED.email!], ['telefono', SAVED.telefono!], ['empresa', SAVED.empresa!], ['comunaCiudad', ''],
+    ]],
+    ['/instalacion', 'instalacion', [
+      ['nombre', SAVED.nombre!], ['email', SAVED.email!], ['telefono', SAVED.telefono!], ['comuna', SAVED.comuna!], ['tipoCliente', ''],
+    ]],
+  ];
+
+  for (const [page, form, fields] of FORMS) {
+    it(`${page}, con datos guardados: se hidrata sin desajustes, el HTML trae la casilla sin marcar y ningún dato, y al hidratar se completa`, async () => {
+      const { errors, mismatches, container, serverH1, html } = await hydrate(page, page, false, false, null, SAVED);
+      expect(errors).toEqual([]);
+      expect(mismatches).toEqual([]);
+      expect(container.contains(serverH1)).toBe(true);
+
+      // El HTML del servidor: la casilla sin marcar, en el formulario deshabilitado, y ningún dato guardado
+      const server = document.createElement('div');
+      server.innerHTML = html;
+      const box = server.querySelector<HTMLInputElement>(`input[type="checkbox"][name="${REMEMBER_FIELD_NAME}"]`);
+      expect(box).not.toBeNull();
+      expect(box!.hasAttribute('checked')).toBe(false);
+      expect(box!.closest('fieldset[disabled]')).not.toBeNull();
+      expect(box!.closest('[data-elights-form]')?.getAttribute('data-elights-form')).toBe(form);
+      expect(server.textContent).toContain(REMEMBER_TEXTS.label);
+      expect(server.textContent).not.toContain(REMEMBER_TEXTS.labelSaved);
+      for (const value of [SAVED.nombre!, SAVED.email!, SAVED.telefono!, SAVED.empresa!, SAVED.rut!, SAVED.direccion!, SAVED.giro!, SAVED.comuna!]) {
+        expect(html, value).not.toContain(value);
+      }
+      for (const [name] of fields) expect(server.querySelector(`[name="${name}"]`)?.getAttribute('value') ?? '', name).toBe('');
+
+      // Después de hidratar: los campos completos y la casilla marcada, con «Seguir recordando…»
+      const live = (name: string) => container.querySelector<HTMLInputElement>(`[name="${name}"]`)!;
+      await waitFor(() => expect(live(REMEMBER_FIELD_NAME).checked).toBe(true));
+      for (const [name, value] of fields) expect(live(name).value, name).toBe(value);
+      expect(live(REMEMBER_FIELD_NAME).closest('fieldset[disabled]')).toBeNull();
+      expect(live(REMEMBER_FIELD_NAME).closest('label')?.textContent).toBe(REMEMBER_TEXTS.labelSaved);
+      // Las casillas de privacidad y novedades no cambian: siguen sin marcar
+      for (const name of [CONSENT_FIELD_NAMES.privacy, CONSENT_FIELD_NAMES.marketing]) expect(live(name).checked, name).toBe(false);
     });
   }
 });
