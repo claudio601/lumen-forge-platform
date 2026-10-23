@@ -16,6 +16,8 @@
 // Cada fila se juzga según su tipo (PR 05, 404 reales):
 //   page      200, HTML con canonical y sin noindex
 //   spa       200, HTML con noindex (spa.html: /buscar, /cotizacion, /solicitar-pedido)
+//   unindexed 200, HTML de una guía «publicada sin indexar» (plan del blog, §2.2): noindex en su
+//             HTML, sin canonical y sin la marca de 404.html
 //   notfound  404, HTML con noindex y la marca de 404.html
 //   redirect  307 al destino de la regla (/carro → /solicitar-pedido); 301 en los ids de
 //             producto renombrados (PR 07) y en las URLs de elights.cl (PR 08). Con '?' en la
@@ -42,10 +44,10 @@ import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
-import { NOINDEX_ROUTES, STATIC_ROUTES } from '../src/lib/seo/routes';
+import { indexableGuideRoutes, NOINDEX_ROUTES, noindexGuideRoutes, STATIC_ROUTES } from '../src/lib/seo/routes';
 import { LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
 
-export type Kind = 'page' | 'spa' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
+export type Kind = 'page' | 'spa' | 'unindexed' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
 
 export interface Target {
   path: string;
@@ -145,7 +147,9 @@ export function buildTargets(): Target[] {
   const datasheet = products.find(p => p.datasheetUrl)?.datasheetUrl;
   const as = (kind: Kind) => (path: string): Target => ({ path, kind });
   return [
-    ...[...pages, ...productPaths, ...categoryPaths].map(as('page')),
+    // Las guías: las indexables como páginas; las publicadas sin indexar, con su noindex
+    ...[...pages, ...productPaths, ...categoryPaths, ...indexableGuideRoutes()].map(as('page')),
+    ...noindexGuideRoutes().map(as('unindexed')),
     // Con y sin barra final: la regla de vercel.json acepta las dos (son los formularios de venta)
     ...['/buscar', '/buscar?q=panel', '/cotizacion', '/solicitar-pedido', '/cotizacion/', '/solicitar-pedido/'].map(as('spa')),
     ...['/carro', '/carro/'].map(path => ({ path, kind: 'redirect' as const, to: '/solicitar-pedido' })),
@@ -157,7 +161,7 @@ export function buildTargets(): Target[] {
     }),
     // URLs de elights.cl (PR 08): 301 al destino de legacy-urls.json, conservando la consulta
     ...LEGACY_SMOKE.map(legacyRedirectTarget),
-    ...['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', ...LEGACY_SMOKE_NOT_FOUND].map(as('notfound')),
+    ...['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/guias/no-existe', ...LEGACY_SMOKE_NOT_FOUND].map(as('notfound')),
     ...['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico', ...(datasheet ? [new URL(datasheet, 'https://x').pathname] : [])].map(
       as('file'),
     ),
@@ -225,6 +229,14 @@ export function rowIssues(r: Row): string[] {
       status(200);
       want(html, `tipo ${r.type || '(vacío)'}, se esperaba HTML`);
       want(noindex, 'sin noindex');
+      want(!r.notFoundMark, 'es la página 404');
+      break;
+    case 'unindexed':
+      status(200);
+      want(html, `tipo ${r.type || '(vacío)'}, se esperaba HTML`);
+      want(noindex, 'sin noindex');
+      want(!r.canonical, `canonical ${r.canonical} en una guía sin indexar`);
+      want(r.h1 === 1, `${r.h1} h1 (debe haber uno)`);
       want(!r.notFoundMark, 'es la página 404');
       break;
     case 'notfound':

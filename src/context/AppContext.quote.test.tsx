@@ -49,8 +49,8 @@ describe('cotización con variantes CCT', () => {
 describe('cotización con variantes de Jumpseller (selector genérico, D-01)', () => {
   beforeEach(() => sessionStorage.clear());
   const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
-  const v40 = { cct: 2200, sku: 'JS-11521285', unitPrice: 442800, variantId: 118197717, label: '40W · Cálida 2200K' };
-  const v80 = { cct: 2200, sku: 'JS-11521285', unitPrice: 514800, variantId: 118197864, label: '80W · Cálida 2200K' };
+  const v40 = { cct: 2200, sku: 'JS-11521285', unitPrice: 442800, variantId: 118197717, label: '40W · Ámbar 2200K' };
+  const v80 = { cct: 2200, sku: 'JS-11521285', unitPrice: 514800, variantId: 118197864, label: '80W · Ámbar 2200K' };
 
   it('dos variantes con la misma temperatura (Flyhawk 40W y 80W, 2200K) son dos líneas, cada una con su precio', () => {
     const { result } = renderHook(() => useApp(), { wrapper });
@@ -60,8 +60,8 @@ describe('cotización con variantes de Jumpseller (selector genérico, D-01)', (
       result.current.addToQuote(flyhawk, 2, undefined, v80);
     });
     expect(result.current.quoteCart.map(i => [i.variantId, i.unitPrice, i.quantity, i.variantLabel])).toEqual([
-      [118197717, 442800, 1, '40W · Cálida 2200K'],
-      [118197864, 514800, 3, '80W · Cálida 2200K'],
+      [118197717, 442800, 1, '40W · Ámbar 2200K'],
+      [118197864, 514800, 3, '80W · Ámbar 2200K'],
     ]);
     act(() => { result.current.updateQuoteQty(quoteItemKey(result.current.quoteCart[0]), 0); });
     expect(result.current.quoteCart.map(i => i.variantId)).toEqual([118197864]);

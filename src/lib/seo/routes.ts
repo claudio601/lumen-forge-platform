@@ -4,9 +4,14 @@
 // destinos `path` de las URLs de elights.cl y los primeros segmentos reservados
 // (scripts/redirects/build.ts). scripts/site-routes.test.ts verifica que cada ruta de
 // src/routes.tsx esté clasificada aquí.
+//
+// Guías (plan del blog, §5.2): /guias es una página fija; cada guía publicada con index: true se
+// suma a las indexables, y las «publicadas sin indexar» (index: false) tienen su propia clase,
+// noindexGuideRoutes(): se prerenderizan, llevan noindex en su HTML y quedan fuera del sitemap.
 
 import { products } from '../../data/catalog/index';
 import { categories } from '../../data/catalog/categories.config';
+import { GUIDES, guidePath } from '../../data/guides/index';
 
 /** Páginas fijas que van a Google. */
 export const STATIC_ROUTES = [
@@ -23,6 +28,8 @@ export const STATIC_ROUTES = [
   '/despacho',
   '/medios-de-pago',
   '/politica-de-privacidad',
+  // Índice de las guías (plan del blog, §5.2; GUIDES_PATH)
+  '/guias',
 ] as const;
 
 /** Páginas que dependen de la sesión o de una búsqueda: noindex, sin sitemap. */
@@ -32,12 +39,30 @@ export const NOINDEX_ROUTES = ['/buscar', '/cotizacion', '/solicitar-pedido'] as
 export const REDIRECT_ROUTES = ['/carro'] as const;
 
 /** Patrones de App.tsx con páginas generadas desde el catálogo. */
-export const DYNAMIC_ROUTE_PATTERNS = ['/catalogo/:categorySlug', '/producto/:id'] as const;
+export const DYNAMIC_ROUTE_PATTERNS = ['/catalogo/:categorySlug', '/producto/:id', '/guias/:slug'] as const;
 
 export const categoryPath = (slug: string) => `/catalogo/${encodeURIComponent(slug)}`;
 export const productPath = (id: string) => `/producto/${id}`;
 
-/** Todas las URLs indexables: fijas, categorías y productos (sin parámetros). */
+/** Guías publicadas que van a Google (index: true). */
+export function indexableGuideRoutes(): string[] {
+  return GUIDES.filter(g => g.index).map(g => guidePath(g.slug));
+}
+
+/**
+ * Guías «publicadas sin indexar» (index: false, plan §2.2): se prerenderizan y se ven igual, pero
+ * su HTML lleva noindex y quedan fuera de indexableRoutes() y del sitemap.
+ */
+export function noindexGuideRoutes(): string[] {
+  return GUIDES.filter(g => !g.index).map(g => guidePath(g.slug));
+}
+
+/** Todas las URLs indexables: fijas, categorías, guías indexables y productos (sin parámetros). */
 export function indexableRoutes(): string[] {
-  return [...STATIC_ROUTES, ...categories.map(c => categoryPath(c.slug)), ...products.map(p => productPath(p.id))];
+  return [...STATIC_ROUTES, ...categories.map(c => categoryPath(c.slug)), ...indexableGuideRoutes(), ...products.map(p => productPath(p.id))];
+}
+
+/** Las páginas que escribe el prerender: las indexables y las guías sin indexar. */
+export function prerenderedRoutes(): string[] {
+  return [...indexableRoutes(), ...noindexGuideRoutes()];
 }

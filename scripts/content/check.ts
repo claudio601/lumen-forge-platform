@@ -9,13 +9,15 @@
 //   - que no invente datos: cada cifra con su unidad (W, lm, K, V, h, años, mm, °, %, A…)
 //     tiene que estar en los datos de Jumpseller del producto con esa misma unidad (o en
 //     una fila cuya etiqueta la implica, como "Garantía" o "Alto (mm)"); lo mismo cada
-//     certificación, grado IP/IK y marca de componentes (facts.ts).
+//     certificación, grado IP/IK y marca de componentes (facts.ts). En los proyectores de
+//     estadio, el certificado D.S. N°1/2022 solo en las versiones de hasta 5000K que el producto
+//     tiene entre sus variantes (ds1VariantIssues, decisión del dueño del 23-10-2026).
 // Cada función devuelve la lista de problemas (vacía si está bien). Formato y reglas no
 // dependen de Jumpseller (los verifica content.test.ts); los datos sí, así que la
 // sincronización los revisa a diario y avisa en su informe sin bloquear precios.
 
 import type { ProductContent } from '../../src/data/catalog/types';
-import { ds1ContentIssues } from '../../src/data/catalog/ds1';
+import { ds1ContentIssues, ds1VariantIssues } from '../../src/data/catalog/ds1';
 import { findRuleBreaking } from '../jumpseller/descriptions';
 import { factsText, type ProductFacts } from './facts';
 
@@ -281,7 +283,11 @@ export function checkRules(c: ProductContent, jumpsellerId?: number): string[] {
   return problems;
 }
 
-/** Nada que no esté en Jumpseller: cifras con su unidad, certificaciones, grados IP/IK y marcas. */
+/**
+ * Nada que no esté en Jumpseller: cifras con su unidad, certificaciones, grados IP/IK y marcas; y
+ * en los proyectores de estadio, el certificado D.S. N°1/2022 solo en versiones de hasta 5000K
+ * que el producto tiene entre sus variantes.
+ */
 export function checkFacts(c: ProductContent, f: ProductFacts): string[] {
   const problems: string[] = [];
   const text = normalizeCodes(allText(c));
@@ -300,6 +306,9 @@ export function checkFacts(c: ProductContent, f: ProductFacts): string[] {
     const brand = m[0].toLowerCase().replace(/meanwell/, 'mean well');
     if (!factsLower.includes(brand)) problems.push(`marca que no está en los datos de Jumpseller: "${m[0]}"`);
   }
+  // D.S. N°1/2022 en los proyectores de estadio: solo en las versiones de hasta 5000K que tiene
+  // el producto (src/data/catalog/ds1.ts)
+  problems.push(...ds1VariantIssues(c, f.jumpseller_id, f.variantOptions));
   return [...new Set(problems)];
 }
 

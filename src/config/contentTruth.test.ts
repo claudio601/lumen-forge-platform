@@ -12,12 +12,17 @@
 // este test las vigila en el código y en el HTML que genera el servidor.
 //
 // D.S. N°1/2022 (auditoría UX, entrega 4: D-04, K-03, E-01 y A-01; líneas certificadas según el
-// dueño, 22-10-2026): al final de este archivo, el contenido propio (fichas SEO, fichas
+// dueño, 22-10-2026; los proyectores de estadio, solo hasta 5000K desde el 23-10-2026): al final
+// de este archivo, el contenido propio (fichas SEO, fichas
 // editoriales, introducciones de categoría y configuración) solo afirma el certificado D.S. N°1
 // de las 8 líneas certificadas y en sus versiones certificadas, no cita el D.S. N°43, no le
 // aplica la luz azul a las canchas y no pone el «% de luz azul» junto a la norma (reglas en
 // src/data/catalog/ds1.ts); y el aviso del hero y el bloque de /catalogo/alumbrado-publico se
 // ven como se aprobaron.
+//
+// Guías (plan del blog, §5.6): src/data/guides entra en la revisión del código y cada guía
+// publicada (también las sin indexar) en la del HTML. La lista de frases retiradas vive en
+// src/test/retired.ts, compartida con src/data/guides/guides.test.ts.
 //
 // Fuera de aquí: el contenido SEO por producto (src/data/catalog/content/*.json) todavía
 // promete flota propia en 116 fichas. Se corrige en la PR 11b, con su regla en
@@ -29,7 +34,7 @@ import { renderToString } from 'react-dom/server';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { serverTree } from '@/entry-server';
 import { preloadRoute } from '@/routes';
-import { STATIC_ROUTES, categoryPath, productPath } from '@/lib/seo/routes';
+import { STATIC_ROUTES, categoryPath, noindexGuideRoutes, prerenderedRoutes, productPath } from '@/lib/seo/routes';
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { productDescriptions } from '@/data/catalog/descriptions.generated';
@@ -52,11 +57,13 @@ import { ADVISORY_LINK, DS1_NOTICE } from './navigation';
 import {
   DS1_CERTIFIED_IDS,
   DS1_CERTIFIED_LINES,
+  DS1_SPORTS_MAX_KELVIN,
   DS1_WARM_KELVIN,
   ds1Certificate,
   ds1ContentIssues,
   ds1Issues,
   ds1Line,
+  ds1VariantIssues,
   isDs1Certified,
   isDs1CertifiedKelvin,
   sentences,
@@ -64,75 +71,36 @@ import {
 import { BESTLED_60W_ID, CATEGORY_INTROS, DS1_BUTTON_PRODUCTS, type CategoryIntro } from '@/data/catalog/category-intros';
 import type { ProductContent } from '@/data/catalog/types';
 import { claimIssues, freeShippingIssues, handWrittenFreeShippingAmount } from '@/test/freeShipping';
+import { retiredIn } from '@/test/retired';
 
-interface Retired {
-  re: RegExp;
-  why: string;
-  /** Solo en el código: en el HTML chocaría con precios del catálogo ("$250.990", "$120.000"). */
-  sourceOnly?: true;
-}
-
-/** Frases retiradas. Todas están en origin/main b110116 (antes de la PR 11). */
-const RETIRED: Retired[] = [
-  { re: /\+8 años/i, why: 'años en el mercado sin confirmar' },
-  { re: /100\+/, why: 'cantidad de proyectos sin confirmar' },
-  { re: /gratis|gratuit/i, why: 'envío o servicio gratis sin confirmar (DIALux: sin promesa de precio)' },
-  // El monto existe (PR 12b), pero escrito a mano se desfasa de la constante: solo FREE_SHIPPING_THRESHOLD_CLP + clp()
-  { re: /\$\s?250|250\.000/, why: 'monto del despacho sin costo escrito a mano (usar FREE_SHIPPING_THRESHOLD_CLP)', sourceOnly: true },
-  { re: /santiago urbano|[aá]rea urbana/i, why: 'la zona del despacho sin costo es FREE_SHIPPING_AREA (Provincia de Santiago)' },
-  { re: /no tenemos[^.]{0,60}retiro|retiro en oficina/i, why: 'sí hay retiro en bodega (PICKUP_PLACE)' },
-  { re: /20\.000/, why: 'precio de la visita técnica sin confirmar', sourceOnly: true },
-  { re: /descontable|no se descuenta/i, why: 'promesa sobre el precio de la visita o del estudio' },
-  { re: /pr[oó]ximamente/i, why: 'anuncia funciones que no existen' },
-  { re: /24-48|menos de 24 ?h(?:oras|rs?)?\b|(?:<|&lt;)\s?24 ?h|en 24 ?h(?:oras|rs?)?\b|24 ?h(?:oras|rs?)?\.? h[aá]biles/i, why: 'plazo de respuesta sin confirmar' },
-  { re: /cotizaci[oó]n r[aá]pida/i, why: 'rapidez de respuesta sin confirmar' },
-  { re: /9:00-18:00/, why: 'horario antiguo (usar businessHours)' },
-  { re: /reposici[oó]n continua|prioridad en disponibilidad|reserva de productos/i, why: 'promesa implícita de stock' },
-  { re: /precios especiales|tarifas especiales/i, why: 'precios especiales sin confirmar' },
-  { re: /descuentos? por (?:proyecto|volumen)/i, why: 'descuentos por proyecto o volumen sin confirmar' },
-  { re: /mi cuenta/i, why: 'no hay login (Fase 3)' },
-  {
-    re: /certificados SEC|SEC\s*Certificados|t[eé]cnicos? certificados?|electricistas certificados|instalador(?:es)? certificad[oa]s?|certificaci[oó]n de (?:la )?instalaci[oó]n/i,
-    why: 'credenciales del equipo sin verificar (la declaración ante la SEC exige instalador autorizado)',
-  },
-  { re: /value: ['"]SEC['"]/, why: 'cifra "SEC / Certificados" del hero de /instalacion', sourceOnly: true },
-  { re: /garantizad[oa]/i, why: '"garantizado" sin explicar la garantía (Ley 19.496, art. 33)' },
-  { re: /productos certificados|certificaci[oó]n SEC, DS1, CE, IEC/i, why: 'una sola certificación para todo el catálogo' },
-  // "12 meses" solo como garantía: la Política de privacidad dice que la decisión de cookies dura 12 meses (PR 13)
-  {
-    re: /garant[ií]a de f[aá]brica|garant[ií]a (?:base )?(?:de )?(?:1 año|12 meses)|12 meses(?: de)? garant[ií]a|'12 meses', label: 'Garant[ií]a'/i,
-    why: 'una sola garantía para todo el catálogo',
-  },
-  { re: /camiones propios|flota propia|reparto propio|nuestros camiones|propios camiones|camiones de eLIGHTS/i, why: 'flota propia sin confirmar' },
-  { re: /post-venta incluida|soporte t[eé]cnico incluido|certificados CE\/IEC|primer mes|letra chica|todo tipo de instalaciones/i, why: 'promesa general sin respaldo' },
-  { re: /experiencia en (?:recintos|todo tipo)|nuestro ingeniero/i, why: 'experiencia o equipo sin respaldo' },
-  { re: /aproximadamente 20|~20 p/i, why: 'extensión del informe DIALux sin confirmar' },
-  { re: /cotizador inteligente/i, why: 'el formulario es simple' },
-];
-
-/** Código con textos para el visitante (sin tests) y las fichas editoriales BESTLED. */
+/**
+ * Código con textos para el visitante (sin tests), las fichas editoriales BESTLED y las guías
+ * (plan del blog, §5.6: src/data/guides; la frase retirada se busca línea por línea).
+ */
 const SOURCES = import.meta.glob<string>(
   [
     '/src/components/**/*.{ts,tsx}',
     '/src/pages/**/*.{ts,tsx}',
     '/src/config/**/*.{ts,tsx}',
     '/src/data/catalog/overlay/editorial.ts',
+    '/src/data/guides/**/*.ts',
     '!**/*.test.*',
   ],
   { query: '?raw', import: 'default', eager: true },
 );
 
-function retiredIn(text: string, onlyRendered = false): string[] {
-  return RETIRED.filter(r => !(onlyRendered && r.sourceOnly)).flatMap(({ re, why }) => {
-    const m = text.match(re);
-    return m ? [`"${m[0]}" (${why})`] : [];
-  });
-}
-
 describe('textos sin respaldo: el código', () => {
   it('revisa los componentes, las páginas, la configuración y las fichas BESTLED', () => {
     const files = Object.keys(SOURCES);
-    for (const f of ['/src/components/home/TrustBar.tsx', '/src/components/layout/Footer.tsx', '/src/pages/InstallerAreaPage.tsx', '/src/config/business.ts', '/src/data/catalog/overlay/editorial.ts']) {
+    for (const f of [
+      '/src/components/home/TrustBar.tsx',
+      '/src/components/layout/Footer.tsx',
+      '/src/pages/InstallerAreaPage.tsx',
+      '/src/config/business.ts',
+      '/src/data/catalog/overlay/editorial.ts',
+      '/src/data/guides/content/norma-luminica-ds-1-2022.ts',
+      '/src/pages/GuidePage.tsx',
+    ]) {
       expect(files).toContain(f);
     }
     expect(files.some(f => f.includes('.test.'))).toBe(false);
@@ -218,10 +186,15 @@ const oneYear = fromJumpseller.find(p => warrantyRow(p) === '1 año')!;
 const projectProduct = fromJumpseller.find(p => p.categories.some(c => PROJECT_CATEGORIES.includes(c)))!;
 
 describe('textos sin respaldo: el HTML de las páginas', () => {
-  // Páginas fijas y una ficha BESTLED: todo su texto sale del código y de editorial.ts.
-  // Las demás fichas también muestran el contenido SEO por producto (PR 11b) y la garantía
-  // propia de cada producto, así que ahí solo se revisa lo que pone el sitio.
-  for (const path of [...STATIC_ROUTES, productPath(bestled.id)]) {
+  // Páginas fijas, una ficha BESTLED y las guías: todo su texto sale del código, de editorial.ts
+  // y de src/data/guides. Las demás fichas también muestran el contenido SEO por producto (PR 11b)
+  // y la garantía propia de cada producto, así que ahí solo se revisa lo que pone el sitio.
+  const guideRoutes = prerenderedRoutes().filter(r => r.startsWith('/guias/'));
+  it('las guías publicadas (también las sin indexar) entran en esta revisión', () => {
+    expect(guideRoutes.length).toBeGreaterThan(0);
+    for (const r of noindexGuideRoutes()) expect(guideRoutes).toContain(r);
+  });
+  for (const path of [...STATIC_ROUTES, productPath(bestled.id), ...guideRoutes]) {
     it(`${path}: sin frases retiradas (texto y atributos)`, async () => {
       const { html } = await page(path);
       expect(retiredIn(html, true)).toEqual([]);
@@ -264,7 +237,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
   // Toda oferta de despacho sin costo: el monto de la constante con "sobre" o "mayor a", la zona
   // de la constante y ninguna otra (src/test/freeShipping.ts). También en las fichas (una BESTLED
   // y una de Jumpseller) y en una categoría: ahí se agregaría una promesa junto al precio.
-  for (const path of [...STATIC_ROUTES, productPath(bestled.id), productPath(withoutDatasheet.id), categoryPath(bestled.categories[0])]) {
+  for (const path of [...STATIC_ROUTES, productPath(bestled.id), productPath(withoutDatasheet.id), categoryPath(bestled.categories[0]), ...guideRoutes]) {
     it(`${path}: el despacho sin costo solo con el monto y la zona de business.ts`, async () => {
       const { root } = await page(path);
       const { claims, issues } = freeShippingIssues(root);
@@ -478,8 +451,10 @@ const ds1ButtonTarget = () =>
 
 describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () => {
   it('el certificado es de las 8 líneas del dueño (33 productos), cada una con sus versiones; la ficha editorial de las BESTLED lo dice por variante', () => {
-    // Decisiones del dueño del 22-10-2026: las cálidas de 2200K y 2700K en 5 líneas, la ámbar de
-    // 1600K y la de 2700K en la Pagoda, y todas las versiones en los proyectores de estadio
+    // Decisiones del dueño del 22-10-2026: las cálidas de 2200K y 2700K en 5 líneas y la ámbar de
+    // 1600K y la de 2700K en la Pagoda; la del 23-10-2026 reemplaza «todas las versiones» en los
+    // proyectores de estadio por las de hasta 5000K (la Tabla 4 limita el alumbrado deportivo a
+    // 5000K o 3000K según la clase del recinto)
     const versions = Object.fromEntries(Object.entries(DS1_CERTIFIED_LINES).map(([line, l]) => [line, l.versions]));
     expect(versions).toEqual({
       bestled: [2200, 2700],
@@ -488,9 +463,10 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
       island: [2200, 2700],
       slim: [2200, 2700],
       pagoda: [1600, 2700],
-      estadioModular: 'all',
-      estadio: 'all',
+      estadioModular: { maxKelvin: 5000 },
+      estadio: { maxKelvin: 5000 },
     });
+    expect(DS1_SPORTS_MAX_KELVIN).toBe(5000);
     expect(DS1_WARM_KELVIN).toEqual([2200, 2700]);
     for (const [line, l] of Object.entries(DS1_CERTIFIED_LINES)) expect(l.ids.length, line).toBeGreaterThan(0);
     expect(DS1_CERTIFIED_IDS).toHaveLength(33);
@@ -523,8 +499,9 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     expect(certifiedKelvin(island, ALL)).toEqual([2200, 2700]);
     expect(certifiedKelvin(slim, ALL)).toEqual([2200, 2700]); // no la de 3000K ni las frías
     expect(certifiedKelvin(pagoda, ALL)).toEqual([1600, 2700]); // no la de 4000K ni la de 5000K
-    expect(certifiedKelvin(estadio, ALL)).toEqual(ALL); // todas, también las frías
-    expect(certifiedKelvin(modular, ALL)).toEqual(ALL);
+    // Estadios: hasta 5000K, no la fría de 6000K ni la de 6500K (23-10-2026)
+    expect(certifiedKelvin(estadio, ALL)).toEqual([1600, 2200, 2700, 3000, 4000, 5000]);
+    expect(certifiedKelvin(modular, ALL)).toEqual([1600, 2200, 2700, 3000, 4000, 5000]);
     expect(certifiedKelvin(other, ALL)).toEqual([]);
     expect(certifiedKelvin(undefined, ALL)).toEqual([]);
   });
@@ -577,20 +554,74 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     for (const text of ['La de 3000K y la fría de 6500K no lo tienen.', 'Las de 2200K y 2700K tienen certificado D.S. N°1/2022, exigible desde el 19-10-2026.']) {
       expect(ds1Issues(text, slim), text).toEqual([]);
     }
+    // Un tono frío o neutro con una temperatura cálida es un error de redacción: en las líneas
+    // certificadas por versión se sigue marcando (solo los estadios aceptan «la fría de 5000K»)
+    for (const text of [
+      'La fría de 2700K tiene certificado D.S. N°1/2022.',
+      'La neutra (2200K) y la de 2700K tienen certificado D.S. N°1/2022.',
+      'La de 2200K tiene certificado D.S. N°1/2022. La fría - 2700K está certificada.',
+    ]) {
+      expect(ds1Issues(text, slim), text).not.toEqual([]);
+      expect(ds1Issues(text, island), text).not.toEqual([]);
+    }
+    // La respuesta a la pregunta por el certificado tampoco nombra una versión sin certificado
+    expect(ds1Issues('¿Qué versiones tienen certificado D.S. N°1/2022?\nLas de 2200K, 2700K y 3000K.', slim)).toContainEqual(
+      expect.stringContaining('extiende el certificado D.S. N°1 a una versión sin certificado (3000K'),
+    );
+    expect(ds1Issues('¿Qué versiones tienen certificado D.S. N°1/2022?\nLas cálidas de 2200K y 2700K. La de 3000K no lo tiene.', slim)).toEqual([]);
     // Pagoda: la ámbar de 1600K y la de 2700K, no la de 2200K ni las frías
     const pagoda = { certified: ds1Certificate(DS1_CERTIFIED_LINES.pagoda.ids[0]) };
     expect(ds1Issues('Sus versiones ámbar de 1600K y cálida de 2700K tienen certificado D.S. N°1/2022.', pagoda)).toEqual([]);
     for (const text of ['La de 2200K tiene certificado D.S. N°1/2022.', 'Las de 1600K, 2700K y 4000K tienen certificado D.S. N°1/2022.']) {
       expect(ds1Issues(text, pagoda), text).not.toEqual([]);
     }
-    // Proyectores de estadio: todas sus versiones, pero sin la sigla ni la luz azul
+    // Proyectores de estadio (23-10-2026): solo las versiones de hasta 5000K, nombradas en la
+    // oración del certificado; nunca sin límite, en una de más de 5000K ni en «todas sus
+    // versiones»; sin la sigla ni la luz azul
     for (const id of [DS1_CERTIFIED_LINES.estadio.ids[0], DS1_CERTIFIED_LINES.estadioModular.ids[0]]) {
       const stadium = { certified: ds1Certificate(id) };
-      for (const text of ['Este proyector tiene certificado D.S. N°1/2022.', 'Tiene certificado D.S. N°1/2022 en todas sus versiones, también en 5000K.']) {
+      for (const text of [
+        'Para alumbrado deportivo, sus versiones cálida de 2700K, neutra de 4000K y fría de 5000K tienen certificado D.S. N°1/2022.',
+        'Para alumbrado deportivo, su versión cálida de 3000K tiene certificado D.S. N°1/2022. La fría de 6000K no lo tiene.',
+        'Tienen certificado D.S. N°1/2022 sus versiones de 2200K, 2700K, 4000K y 5000K.',
+        'La neutra (4000K) tiene certificado D.S. N°1/2022.',
+        '¿Qué versiones tienen certificado D.S. N°1/2022?',
+        '¿Qué versiones tienen certificado D.S. N°1/2022?\nPara alumbrado deportivo, la cálida de 3000K. La fría de 6000K no lo tiene.',
+        'La de 3000K tiene certificado D.S. N°1/2022. También se cotiza en fría de 6000K, sin certificado.',
+        'Tiene certificado D.S. N°1/2022 en la luz blanca cálida de 2700K.',
+        '¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl.',
+      ]) {
         expect(ds1Issues(text, stadium), `${id}: ${text}`).toEqual([]);
       }
-      for (const text of ['Certificación SEC y DS1.', 'En canchas, la de 2700K tiene 7% de luz azul y certificado D.S. N°1/2022.']) {
-        expect(ds1Issues(text, stadium), `${id}: ${text}`).not.toEqual([]);
+      for (const [text, problem] of [
+        ['Este proyector tiene certificado D.S. N°1/2022.', /sin decir de qué versiones \(solo las de hasta 5000K\)/],
+        ['Para alumbrado deportivo, tiene certificado D.S. N°1/2022.', /sin decir de qué versiones/],
+        ['Tiene certificado D.S. N°1/2022 en todas sus versiones, también en 5000K.', /de todas las versiones/],
+        ['Tiene certificado D.S. N°1/2022 en sus cuatro temperaturas de color, desde 2200K.', /de todas las versiones/],
+        ['Las versiones de 3000K y 6000K tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(6000K/],
+        ['La fría de 6500K cumple el D.S. N°1/2022.', /sin decir de qué versiones/],
+        ['La de 3000K y la fría tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(fría/],
+        ['La de 3000K tiene certificado D.S. N°1/2022. La de 6000K también lo tiene.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        // «Ambas», «sus dos versiones»: los estadios de 300 y 500W tienen dos, una de 6000K
+        ['Ambas versiones, incluida la cálida de 3000K, tienen certificado D.S. N°1/2022.', /de todas las versiones/],
+        ['Sus dos versiones, incluida la de 2200K, tienen certificado D.S. N°1/2022.', /de todas las versiones/],
+        ['La de 3000K tiene certificado D.S. N°1/2022, igual que la otra versión.', /también en otra versión, sin nombrarla/],
+        // La respuesta a una pregunta por el certificado, y la oración que sigue con «también»
+        ['¿Qué versiones tienen certificado D.S. N°1/2022?\nLa cálida de 3000K y la fría de 6000K.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        ['¿Tiene certificado D.S. N°1/2022?\nSí, para alumbrado deportivo.', /pregunta cuya respuesta no dice de qué versiones/],
+        ['La de 3000K tiene certificado D.S. N°1/2022. La de 6000K, también.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        ['La de 3000K tiene certificado D.S. N°1/2022. Lo mismo vale para la de 6500K.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6500K/],
+        // Otros nombres de la fría: «frío», «luz de día», «la blanca»
+        ['Tiene certificado D.S. N°1/2022 en sus tonos cálido de 2200K y frío.', /junto a una versión sin certificado \(frío/],
+        ['Tiene certificado D.S. N°1/2022 en 2200K y en luz de día.', /junto a una versión sin certificado \(luz de día/],
+        ['La de 3000K y la blanca tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(la blanca/],
+        ['Certificación SEC y DS1.', /sigla «DS1»/],
+        ['En canchas, la de 2700K tiene 7% de luz azul y certificado D.S. N°1/2022.', /luz azul a canchas/],
+      ] as const) {
+        expect(
+          ds1Issues(text, stadium).some(p => problem.test(p)),
+          `${id}: ${text}`,
+        ).toBe(true);
       }
     }
     // Fuera de las líneas certificadas (o sin id), ni siquiera en 2200K
@@ -598,6 +629,46 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     for (const id of [other, undefined]) {
       expect(ds1Issues('Las versiones de 2200K y 2700K tienen certificado D.S. N°1/2022.', { certified: ds1Certificate(id) })).not.toEqual([]);
     }
+  });
+
+  it('estadios: el certificado solo en las versiones de hasta 5000K que el producto tiene entre sus variantes; sin ninguna, asesoría', () => {
+    // Las opciones de las variantes como las da Jumpseller (ProductFacts.variantOptions). La
+    // verificación contra el catálogo real va en content.test.ts (checkFacts), que el robot de
+    // sincronización solo informa.
+    const ficha = (description: string): ProductContent => ({ metaTitle: '', metaDescription: '', description, keyBenefits: [], useCases: [], faq: [] });
+    const [estadio300, , estadio600] = DS1_CERTIFIED_LINES.estadio.ids;
+    const modular800 = DS1_CERTIFIED_LINES.estadioModular.ids[7];
+    const options300 = ['Color de Temperatura: Luz Cálida - 3000K', 'Color de Temperatura: Luz Fría- 6000K'];
+    const options600 = ['Color de Temperatura: Luz Fría- 6000K'];
+    const options800 = ['Color de Luz: Luz Cálida - 1% Luz Azul', 'Color de Luz: Luz Cálida - 7% Luz Azul', 'Color de Luz: Luz Neutra – 4000K', 'Color de Luz: Luz fría - 5000K'];
+
+    // Con una versión de hasta 5000K: la nombra; la de más, en otra oración que no lo afirma
+    const ok300 = 'Para alumbrado deportivo, su versión cálida de 3000K tiene certificado D.S. N°1/2022. La fría de 6000K no lo tiene.';
+    expect(ds1VariantIssues(ficha(ok300), estadio300, options300)).toEqual([]);
+    for (const text of [
+      'La de 5000K tiene certificado D.S. N°1/2022.',
+      'Las de 3000K y 4000K tienen certificado D.S. N°1/2022.',
+      'La de 3000K tiene certificado D.S. N°1/2022. La de 2700K también lo tiene.',
+      'La de 3000K tiene certificado D.S. N°1/2022. La de 4000K, también.',
+      '¿Qué versiones tienen certificado D.S. N°1/2022?\nLa de 2700K.',
+    ]) {
+      expect(ds1VariantIssues(ficha(text), estadio300, options300), text).toContainEqual(expect.stringContaining('en una versión que el producto no tiene'));
+    }
+    // Sin ninguna de hasta 5000K (el de 600W, solo 6000K): ninguna afirmación, solo asesoría
+    for (const text of ['Para alumbrado deportivo, tiene certificado D.S. N°1/2022.', 'La de 5000K tiene certificado D.S. N°1/2022.']) {
+      expect(ds1VariantIssues(ficha(text), estadio600, options600), text).toContainEqual(expect.stringContaining('no tiene versiones de hasta 5000K (sus variantes: 6000K)'));
+    }
+    expect(ds1VariantIssues(ficha('¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl.'), estadio600, options600)).toEqual([]);
+    expect(ds1VariantIssues(ficha('La fría de 6000K no lo tiene.'), estadio600, options600)).toEqual([]);
+    // Una cálida que Jumpseller no da con su cifra (el modular de 800W) cuenta como de hasta 5000K
+    const ok800 = 'Para alumbrado deportivo, sus versiones de tono cálido, la neutra de 4000K y la fría de 5000K tienen certificado D.S. N°1/2022.';
+    expect(ds1VariantIssues(ficha(ok800), modular800, options800)).toEqual([]);
+    expect(ds1VariantIssues(ficha('La cálida de 2700K tiene certificado D.S. N°1/2022.'), modular800, options800)).toContainEqual(
+      expect.stringContaining('en una versión que el producto no tiene (2700K'),
+    );
+    // Las demás líneas certificadas no dependen de las variantes: las revisa ds1ContentIssues
+    const slim = DS1_CERTIFIED_LINES.slim.ids[0];
+    expect(ds1VariantIssues(ficha('Las de 2200K y 2700K tienen certificado D.S. N°1/2022.'), slim, [])).toEqual([]);
   });
 
   it('fichas SEO: una pregunta sobre la norma no se responde con el % de luz azul (se lee como «cumple»)', () => {
@@ -659,6 +730,8 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
       'Las BESTLED y la Flyhawk tienen certificado D.S. N°1.',
       'Las líneas BESTLED, Flyhawk y Solar industrial All in One tienen certificado D.S. N°1 en todas sus versiones.',
       'El proyector de estadio modular tiene certificado D.S. N°1 en 2700K.',
+      'Los proyectores de estadio tienen certificado D.S. N°1 en todas sus versiones.',
+      'Los proyectores de estadio tienen certificado D.S. N°1 hasta 5000K.',
       'La Island tiene certificado D.S. N°1 en sus versiones de 2200K y 2700K.',
       'La Pagoda LED solar UFO tiene certificado D.S. N°1 en todas sus versiones.',
       'Los Slim SMD tienen certificado D.S. N°1 en 2200K y 2700K.',
