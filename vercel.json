@@ -274,8 +274,33 @@
       "statusCode": 301
     },
     {
+      "source": "/5-consejos-para-iluminar-tus-noches-de-verano{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/5-tips-para-iluminar-tus-noches-de-verano{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/5-tips-para-iluminar-una-oficina-y-orientarla-a-la-produccion{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/5-tips-para-iluminar-una-oficina{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
       "source": "/60x60-marco-para-sobreponer-panel-led-cielo-americano{/}?",
       "destination": "/producto/60x60-marco-para-sobreponer-panel-led-cielo-americano",
+      "statusCode": 301
+    },
+    {
+      "source": "/7-ideas-para-iluminar-tus-noches-de-verano{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
       "statusCode": 301
     },
     {
@@ -775,7 +800,7 @@
     },
     {
       "source": "/ampolleta-led-c35-vela-filamentos-e14-4w-1{/}?",
-      "destination": "/producto/tripode-para-proyector-led",
+      "destination": "/catalogo/ampolletas-led",
       "statusCode": 301
     },
     {
@@ -855,7 +880,7 @@
     },
     {
       "source": "/aplique-decorativo-bidireccional-cube-10w-luz-fria-ip65-negro-4{/}?",
-      "destination": "/producto/estaca-mini-led-cob-5w-jardin-ip65",
+      "destination": "/catalogo/iluminacion-exterior",
       "statusCode": 301
     },
     {
@@ -1076,6 +1101,26 @@
     {
       "source": "/barra-de-emergencia-60-leds-recargable-autonomia-3-6-hrs{/}?",
       "destination": "/producto/barra-de-emergencia-60-leds-recargable-autonomia-3-6-hrs",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-post-1{/}?",
+      "destination": "/empresa",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog-post{/}?",
+      "destination": "/cotizador",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog/como-comprar-en-elights{/}?",
+      "destination": "/cotizador",
+      "statusCode": 301
+    },
+    {
+      "source": "/blog{/}?",
+      "destination": "/guias",
       "statusCode": 301
     },
     {
@@ -2044,6 +2089,16 @@
       "statusCode": 301
     },
     {
+      "source": "/como-comprar-en-elights{/}?",
+      "destination": "/cotizador",
+      "statusCode": 301
+    },
+    {
+      "source": "/como-comprar-en-nuestro-e-commerce{/}?",
+      "destination": "/cotizador",
+      "statusCode": 301
+    },
+    {
       "source": "/contactos{/}?",
       "destination": "/cotizador",
       "statusCode": 301
@@ -2155,6 +2210,11 @@
     },
     {
       "source": "/downlight-power-led{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/el-incorrecto-uso-de-iluminacion-en-oficinas-puede-causar-fatiga-visual-irritacion-de-ojos-dolores-de-cabeza-y-trastornos-en-el-sueno{/}?",
       "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
@@ -2954,6 +3014,11 @@
       "statusCode": 301
     },
     {
+      "source": "/ilumina-tus-noches-de-verano-para-que-sean-inolvidables{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
       "source": "/iluminacion-antiexplosiva/led-tri-proof-antiexplosivo{/}?",
       "destination": "/catalogo/iluminacion-antiexplosiva",
       "statusCode": 301
@@ -3100,7 +3165,7 @@
     },
     {
       "source": "/kit-de-emergencia-fluorescente-36w-90-minutos-tubo-8-36w{/}?",
-      "destination": "/producto/kit-de-instalacion-cables-suspendidos-1mt-para-paneles",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
@@ -3175,7 +3240,7 @@
     },
     {
       "source": "/kit-de-emergencia-led-50w-90-minutos-autonomia-para-ampolleta-y-tubo-led{/}?",
-      "destination": "/producto/kit-de-instalacion-cables-suspendidos-1mt-para-paneles",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
@@ -3261,6 +3326,11 @@
     {
       "source": "/lampara-de-emergencia-led-antiexplosiva-2x8w-ip65-ik10{/}?",
       "destination": "/producto/lampara-de-emergencia-led-antiexplosiva-2x3w-ip65-ik10",
+      "statusCode": 301
+    },
+    {
+      "source": "/las-ventajas-de-comprar-en-elightscl{/}?",
+      "destination": "/empresa",
       "statusCode": 301
     },
     {
@@ -3575,7 +3645,7 @@
     },
     {
       "source": "/luminaria-lineal-led-flat-40w-120-cm-caccesorios-para-suspender-2{/}?",
-      "destination": "/producto/regleta-led-t5-9w-60-cm-ip44",
+      "destination": "/catalogo/lineales-led",
       "statusCode": 301
     },
     {
@@ -3635,7 +3705,7 @@
     },
     {
       "source": "/luminaria-lineal-led-suspendida-supermarket-40w-120mm{/}?",
-      "destination": "/producto/wall-washer-36w-ip65",
+      "destination": "/catalogo/lineales-led",
       "statusCode": 301
     },
     {
@@ -4500,7 +4570,7 @@
     },
     {
       "source": "/panel-led-concentrico-opal-7w-ip33-2{/}?",
-      "destination": "/producto/foco-led-cob-basculante-5w-ip44-marco-blanco",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
@@ -5019,6 +5089,11 @@
       "statusCode": 301
     },
     {
+      "source": "/proveedores{/}?",
+      "destination": "/empresa",
+      "statusCode": 301
+    },
+    {
       "source": "/proyector-a-prueba-de-explosion-200w{/}?",
       "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-200w",
       "statusCode": 301
@@ -5215,7 +5290,7 @@
     },
     {
       "source": "/proyector-led-antivandalico-50w-ip66-ik10-1{/}?",
-      "destination": "/producto/proyector-led-empotrado-a-muro-35w-muro-ip44",
+      "destination": "/catalogo/proyectores-led",
       "statusCode": 301
     },
     {
@@ -6289,6 +6364,11 @@
       "statusCode": 301
     },
     {
+      "source": "/quieres-ser-nuestro-proveedor{/}?",
+      "destination": "/empresa",
+      "statusCode": 301
+    },
+    {
       "source": "/refund-policy{/}?",
       "destination": "/cambios-devoluciones-y-garantia",
       "statusCode": 301
@@ -6446,6 +6526,11 @@
     {
       "source": "/tortuga-led-16w-opal-blanca-lisa{/}?",
       "destination": "/producto/tortuga-led-16w-opal-blanca-lisa",
+      "statusCode": 301
+    },
+    {
+      "source": "/trabaja-con-nosotros{/}?",
+      "destination": "/empresa",
       "statusCode": 301
     },
     {
@@ -6731,6 +6816,11 @@
     {
       "source": "/tubos_led{/}?",
       "destination": "/catalogo/tubos-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/virginia-implementara-cambios-al-alumbrado-publico-introduciendo-iluminacion-led-luz-calida{/}?",
+      "destination": "/catalogo/alumbrado-publico",
       "statusCode": 301
     },
     {

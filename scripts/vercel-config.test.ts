@@ -321,16 +321,15 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     expect(baseline).toHaveLength(473);
     const bySource = new Map(urls.map(u => [u.source, u]));
     // Las únicas sin regla (el 2026-10-05 eran 25; la PR 12 dio regla a 6 páginas legales y
-    // /medios-de-pago pasó a served). Una pendiente puede ganar regla, nunca al revés.
+    // /medios-de-pago pasó a served; el 2026-10-23 el dueño dio destino a 10 pendientes del blog
+    // y de proveedores, y la entrada oculta sobre la luz fría pasó a gone). Una pendiente puede
+    // ganar regla, nunca al revés.
     const withoutRule = new Set([
       ...['/', '/catalogo', '/medios-de-pago'], // served
       ...['/pagina-basica', '/producto-test-checkout', '/producto-test-checkout-1', '/producto-test-checkout-2', '/test-search'], // gone
-      ...['/5-tips-para-iluminar-tus-noches-de-verano', '/5-tips-para-iluminar-una-oficina', '/blog', '/blog-post-1', '/como-comprar-en-elights'],
-      ...['/como-comprar-en-nuestro-e-commerce', '/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno', '/las-ventajas-de-comprar-en-elightscl'],
-      ...['/virginia-implementara-cambios-al-alumbrado-publico-introduciendo-iluminacion-led-luz-calida'], // blog: pending
-      ...['/quieres-ser-nuestro-proveedor', '/trabaja-con-nosotros'], // pending: 404 por decisión del dueño (2026-10-05)
+      ...['/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno'], // gone: decisión del dueño (2026-10-23)
     ]);
-    expect(withoutRule.size).toBe(19);
+    expect(withoutRule.size).toBe(9);
     for (const source of baseline) {
       const row = bySource.get(source);
       expect(row, `${source} desapareció de legacy-urls.json`).toBeDefined();
@@ -340,7 +339,6 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     // Decisiones del dueño (2026-10-05)
     for (const source of ['/contact', '/contactos']) expect(legacyDestination(bySource.get(source)!), source).toBe('/cotizador');
     expect(legacyDestination(bySource.get('/puzzle-led-simple-embutido-12w-integrado-blanco-ip33')!)).toBe(categoryPath('paneles-led'));
-    expect(bySource.get('/blog')?.pending).toBeDefined();
     // Páginas legales y de compra (PR 12): cada URL vieja a su página nueva; /medios-de-pago es la misma URL
     const legalPages: Record<string, string> = {
       '/cambios-y-devoluciones': '/cambios-devoluciones-y-garantia',
@@ -352,7 +350,51 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     };
     for (const [source, destination] of Object.entries(legalPages)) expect(legacyDestination(bySource.get(source)!), source).toBe(destination);
     expect(bySource.get('/medios-de-pago')?.served).toBe(true);
-    for (const source of ['/quieres-ser-nuestro-proveedor', '/trabaja-con-nosotros']) expect(bySource.get(source)?.pending, source).toBeDefined();
+  });
+
+  it('decisiones del dueño (2026-10-23): el blog y proveedores con destino (plan del blog §2.5), y sin pendientes', () => {
+    const bySource = new Map(urls.map(u => [u.source, u]));
+    const decided: Record<string, string> = {
+      '/blog': '/guias',
+      '/blog-post-1': '/empresa',
+      '/las-ventajas-de-comprar-en-elightscl': '/empresa',
+      '/quieres-ser-nuestro-proveedor': '/empresa',
+      '/trabaja-con-nosotros': '/empresa',
+      '/como-comprar-en-elights': '/cotizador',
+      '/como-comprar-en-nuestro-e-commerce': '/cotizador',
+      '/virginia-implementara-cambios-al-alumbrado-publico-introduciendo-iluminacion-led-luz-calida': categoryPath('alumbrado-publico'),
+      '/5-tips-para-iluminar-una-oficina': categoryPath('paneles-led'),
+      '/5-tips-para-iluminar-tus-noches-de-verano': categoryPath('iluminacion-exterior'),
+      // Historial del panel: Jumpseller las manda a esas páginas; el mismo destino
+      '/5-consejos-para-iluminar-tus-noches-de-verano': categoryPath('iluminacion-exterior'),
+      '/7-ideas-para-iluminar-tus-noches-de-verano': categoryPath('iluminacion-exterior'),
+      '/ilumina-tus-noches-de-verano-para-que-sean-inolvidables': categoryPath('iluminacion-exterior'),
+      '/5-tips-para-iluminar-una-oficina-y-orientarla-a-la-produccion': categoryPath('paneles-led'),
+      '/blog-post': '/cotizador',
+      '/blog/como-comprar-en-elights': '/cotizador',
+      '/proveedores': '/empresa',
+    };
+    for (const [source, destination] of Object.entries(decided)) expect(legacyDestination(bySource.get(source)!), source).toBe(destination);
+    // Las páginas fijas de destino son de LEGACY_PAGE_DESTINATIONS (STATIC_ROUTES)
+    for (const path of ['/guias', '/empresa', '/cotizador']) expect(LEGACY_PAGE_DESTINATIONS.has(path), path).toBe(true);
+    // Ficha reutilizada por Jumpseller para otro producto: a su categoría, no a ese producto
+    const reused: Record<string, string> = {
+      '/ampolleta-led-c35-vela-filamentos-e14-4w-1': 'ampolletas-led',
+      '/aplique-decorativo-bidireccional-cube-10w-luz-fria-ip65-negro-4': 'iluminacion-exterior',
+      '/kit-de-emergencia-fluorescente-36w-90-minutos-tubo-8-36w': 'emergencia-led',
+      '/kit-de-emergencia-led-50w-90-minutos-autonomia-para-ampolleta-y-tubo-led': 'emergencia-led',
+      '/luminaria-lineal-led-flat-40w-120-cm-caccesorios-para-suspender-2': 'lineales-led',
+      '/luminaria-lineal-led-suspendida-supermarket-40w-120mm': 'lineales-led',
+      '/panel-led-concentrico-opal-7w-ip33-2': 'paneles-led',
+      '/proyector-led-antivandalico-50w-ip66-ik10-1': 'proyectores-led',
+    };
+    for (const [source, slug] of Object.entries(reused)) expect(bySource.get(source)?.category, source).toBe(slug);
+    // 404 definitivos: la entrada oculta sobre la luz fría y la luminaria de cultivo (Jumpseller 2557187)
+    for (const source of ['/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno', '/led-de-cultivo-sunset-200w-cree-cxb3590-regulable-c-pantalla-lcd-y-temporizador-2']) {
+      expect(bySource.get(source)?.gone, source).toBeDefined();
+    }
+    // Compuerta de la Etapa 3: ninguna fila pending
+    expect(urls.filter(u => u.pending !== undefined).map(u => u.source)).toEqual([]);
   });
 
   it('el esquema exige exactamente un destino por fila, sin campos desconocidos ni motivos vacíos', () => {

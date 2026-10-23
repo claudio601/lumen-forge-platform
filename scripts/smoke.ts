@@ -64,8 +64,8 @@ const RENAMED_SMOKE_IDS = [4122715, 25888711];
 /**
  * URLs de elights.cl que revisa el chequeo (PR 08), con el destino de legacy-urls.json: una
  * ficha con el mismo id (y la consulta de Google Ads), una categoría (con barra final), fichas
- * renombradas con %C3%BA, con coma y con puntos, /home, /search (conserva ?q=) y una página
- * legal (PR 12).
+ * renombradas con %C3%BA, con coma y con puntos, /home, /search (conserva ?q=), una página
+ * legal (PR 12) y el blog de Jumpseller, que va a /guias (decisión del dueño, 2026-10-23).
  */
 const LEGACY_SMOKE = [
   '/alumbrado-publico-bestled-120w-ip66-ik08?gclid=smoke',
@@ -77,9 +77,10 @@ const LEGACY_SMOKE = [
   '/home',
   '/search?q=panel',
   '/terms-and-conditions',
+  '/blog',
 ];
-/** URLs de elights.cl sin regla a propósito (404): un producto de prueba y el blog. */
-const LEGACY_SMOKE_NOT_FOUND = ['/producto-test-checkout', '/blog'];
+/** URLs de elights.cl sin regla a propósito (404 definitivo): un producto de prueba y la entrada oculta del blog sobre la luz fría. */
+const LEGACY_SMOKE_NOT_FOUND = ['/producto-test-checkout', '/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno'];
 
 /** Fila de una URL de elights.cl: 301 al destino que le da legacy-urls.json. */
 function legacyRedirectTarget(path: string): Target {
