@@ -18,8 +18,12 @@ import { businessHoursLong, contactEmail, responseTimePromise } from '@/config/b
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
+// La subida a Vercel Blob (attachments.ts la carga con import() al enviar)
+vi.mock('@vercel/blob/client', () => ({ uploadPresigned: vi.fn() }));
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
+import { uploadPresigned } from '@vercel/blob/client';
+import { STORED_PATHNAME_RE, UPLOAD_PATHNAME_RE } from '../../api/_lib/attachments/rules';
 
 const reply = (status: number, text: string) =>
   vi.fn(async () => ({ ok: status >= 200 && status < 300, status, text: async () => text }));
@@ -236,7 +240,7 @@ describe('SmartQuotePage antes de hidratar (HTML del prerender)', () => {
 
   const CONTROLS = [
     'tipoProyecto', 'm2', 'altura', 'aplicacion', 'nivelIluminacion', 'ciudad', 'plazo',
-    'comentarios', 'nombre', 'email', 'telefono', 'rutEmpresa', 'razonSocial', 'giro', 'direccion',
+    'comentarios', 'archivos', 'nombre', 'email', 'telefono', 'rutEmpresa', 'razonSocial', 'giro', 'direccion',
     'consentPrivacy', 'consentMarketing', 'website',
   ];
 
@@ -509,5 +513,336 @@ describe('SmartQuotePage: plazo y confirmación', () => {
     expect(heading).toHaveAccessibleDescription(responseTimePromise);
     expect(screen.queryByText(/Referencia:/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(3); // los 3 pasos
+  });
+});
+
+// Adjuntar archivos (especificación «Adjuntar archivos», 22-10-2026, §1, §2 y §6). D1: se suben
+// AL ENVIAR, después de validateForm y de la casilla, nunca con el campo trampa lleno; de a
+// uno, directo a Vercel Blob (uploadPresigned, simulado). D2: consulta previa y tope diario.
+describe('SmartQuotePage: adjuntar archivos', () => {
+  const MB = 1024 * 1024;
+  const UPLOAD_URL = '/api/project-quotes/upload';
+  const CREATE_URL = '/api/project-quotes/create';
+  const FIELD_HELP = 'Bases de licitación, fichas técnicas, planos o planillas. PDF, JPG, PNG, DWG, DXF o XLSX; hasta 5 archivos de 20 MB cada uno.';
+  const FAILED = (name: string) => `No pudimos subir "${name}". Reintenta o envía la solicitud sin ese archivo.`;
+  const DAILY_LIMIT = 'Hoy no podemos recibir más archivos por el sitio. Envía tu solicitud y mándanos los archivos a ventas@elights.cl con tu número de solicitud.';
+  const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+
+  /** Un archivo de `size` bytes sin reservar la memoria (el peso es lo que se revisa). */
+  const file = (name: string, size: number, type = '') => {
+    const f = new File(['x'], name, { type });
+    Object.defineProperty(f, 'size', { value: size });
+    return f;
+  };
+  const fileInput = () => screen.getByLabelText('Elegir archivos') as HTMLInputElement;
+  const choose = (...files: File[]) => fireEvent.change(fileInput(), { target: { files } });
+  const errorsRegion = () => document.getElementById('sq-archivos-errors')!;
+
+  type Call = [string, RequestInit];
+  const calls = () => vi.mocked(fetch).mock.calls as unknown as Call[];
+  const bodiesTo = (url: string) => calls().filter(([u]) => u === url).map(([, init]) => JSON.parse(init.body as string));
+
+  /** fetch: la consulta previa responde `status`; el envío, `create` (en orden, el último se repite). */
+  function stubServer({ status = { available: true } as unknown, create = [[201, { success: true, reference: 'PY-adj1', dealId: 7 }]] as [number, unknown][] } = {}) {
+    let n = 0;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url === UPLOAD_URL) {
+        if (status instanceof Error) throw status;
+        return { ok: true, status: 200, text: async () => JSON.stringify(status) };
+      }
+      const [code, body] = create[Math.min(n++, create.length - 1)];
+      return { ok: code >= 200 && code < 300, status: code, text: async () => JSON.stringify(body) };
+    }));
+  }
+
+  /** uploadPresigned simulado: avanza la mitad, después todo, y devuelve la ruta con el sufijo de Blob. */
+  const blobOk = async (pathname: string, body: unknown, opts: { onUploadProgress?: (e: { loaded: number; total: number; percentage: number }) => void }) => {
+    const size = (body as File).size;
+    opts.onUploadProgress?.({ loaded: size / 2, total: size, percentage: 50 });
+    opts.onUploadProgress?.({ loaded: size, total: size, percentage: 100 });
+    const stored = pathname.replace(/\.(\w+)$/, '-Ab12Cd34Ef.$1');
+    return { pathname: stored, url: 'https://blob.example/' + stored, downloadUrl: '', contentType: '', contentDisposition: '', etag: '' };
+  };
+
+  beforeEach(() => {
+    vi.mocked(trackLead).mockClear();
+    vi.mocked(toast.error).mockClear();
+    vi.mocked(uploadPresigned).mockReset();
+    vi.mocked(uploadPresigned).mockImplementation(blobOk as never);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('el campo va después de los comentarios, con título, ayuda y «Elegir archivos»; en el prerender, igual y deshabilitado', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {}); // aviso de useLayoutEffect, solo en jsdom
+    const html = renderToString(page());
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    try {
+      const group = within(container).getByRole('group', { name: 'Adjuntar archivos (opcional)' });
+      expect(group).toHaveAccessibleDescription(FIELD_HELP);
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+      expect(input).toBeDisabled(); // dentro del fieldset deshabilitado hasta hidratar
+      expect(input.closest('fieldset')).toHaveAttribute('disabled');
+      expect(input).toHaveAttribute('multiple');
+      expect(input.getAttribute('accept')).toBe('.pdf,.jpg,.png,.dwg,.dxf,.xlsx,.jpeg');
+      expect(within(group).getByText('Elegir archivos').tagName).toBe('LABEL');
+      const comentarios = container.querySelector('textarea[name="comentarios"]')!;
+      expect(comentarios.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // En el mismo bloque «Información del proyecto»
+      expect(group.closest('.border')!.querySelector('h2')).toHaveTextContent('Información del proyecto');
+    } finally {
+      container.remove();
+    }
+    renderPage();
+    expect(screen.getByRole('group', { name: 'Adjuntar archivos (opcional)' })).toHaveAccessibleDescription(FIELD_HELP);
+    expect(fileInput()).toBeEnabled();
+    expect(errorsRegion()).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('al elegir: formato, peso, vacío y más de 5, bajo el campo; la lista con nombre, peso y «Quitar»; no sube nada', async () => {
+    stubServer();
+    renderPage();
+    choose(file('bases.doc', 1000), file('plano.dwg', 34 * MB), file('ficha.pdf', 0), file('bases.pdf', 2.1 * MB), file('foto.JPEG', 85 * 1024));
+    const region = errorsRegion();
+    expect([...region.querySelectorAll('p')].map((p) => p.textContent)).toEqual([
+      '"bases.doc" no se puede adjuntar. Usa PDF, JPG, PNG, DWG, DXF o XLSX.',
+      '"plano.dwg" pesa 34 MB y el máximo es 20 MB. Mándalo a ventas@elights.cl cuando tengas tu número de solicitud.',
+      '"ficha.pdf" está vacío.',
+    ]);
+    // El campo lleva los errores en su descripción
+    expect(fileInput().getAttribute('aria-describedby')).toBe('sq-archivos-help sq-archivos-errors');
+    const list = screen.getByRole('list', { name: 'Archivos elegidos' });
+    expect(within(list).getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      'bases.pdf2,1 MBQuitar bases.pdf',
+      'foto.JPEG85 KBQuitar foto.JPEG',
+    ]);
+    // Apenas pasa el máximo: nunca «pesa 20 MB y el máximo es 20 MB»
+    choose(file('justo.pdf', 20 * MB + 1));
+    expect(region).toHaveTextContent('"justo.pdf" pesa 20,1 MB y el máximo es 20 MB.');
+    // Hasta 5: entran 3 más y el resto se avisa una vez
+    choose(file('a.pdf', 10), file('b.png', 10), file('c.xlsx', 10), file('d.dxf', 10), file('e.dwg', 10));
+    expect(within(list).getAllByRole('listitem')).toHaveLength(5);
+    expect([...region.querySelectorAll('p')].map((p) => p.textContent)).toEqual([
+      'Puedes adjuntar hasta 5 archivos. Los demás, mándalos a ventas@elights.cl cuando tengas tu número de solicitud.',
+    ]);
+    // Quitar saca el archivo y el aviso
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar bases.pdf' }));
+    expect(within(list).getAllByRole('listitem')).toHaveLength(4);
+    expect(within(list).queryByText('bases.pdf')).not.toBeInTheDocument();
+    expect(region).toBeEmptyDOMElement();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(uploadPresigned).not.toHaveBeenCalled();
+  });
+
+  it('la subida empieza solo con el formulario válido y la casilla marcada (D1)', async () => {
+    stubServer();
+    renderPage();
+    choose(file('bases.pdf', 1000));
+    fillForm('212 3456'); // teléfono de 7 dígitos
+    fireEvent.click(submitButton());
+    expect(await screen.findByRole('alert')).toHaveTextContent('entre 8 y 12 dígitos');
+    type(/Teléfono/, '+56 9 0000 0904');
+    fireEvent.click(privacyBox()); // desmarca la casilla
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(CONSENT_ERRORS.solicitud));
+    expect(fetch).not.toHaveBeenCalled();
+    expect(uploadPresigned).not.toHaveBeenCalled();
+    fireEvent.click(privacyBox());
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-adj1')).toBeInTheDocument();
+    expect(uploadPresigned).toHaveBeenCalledTimes(1);
+    // Primero la consulta previa, después el envío
+    expect(calls().map(([u]) => u)).toEqual([UPLOAD_URL, CREATE_URL]);
+  });
+
+  it('con el campo trampa lleno no se sube nada y el envío va sin archivos', async () => {
+    stubServer({ create: [[200, { success: true }]] });
+    const { container } = renderPage();
+    choose(file('bases.pdf', 1000));
+    fillForm();
+    fireEvent.change(container.querySelector('input[name="website"]')!, { target: { value: 'http://spam.example' } });
+    fireEvent.click(submitButton());
+    expect(await screen.findByRole('heading', { name: /Propuesta solicitada/ })).toBeInTheDocument();
+    expect(uploadPresigned).not.toHaveBeenCalled();
+    expect(calls().map(([u]) => u)).toEqual([CREATE_URL]);
+    expect(bodiesTo(CREATE_URL)[0]).not.toHaveProperty('archivos');
+    expect(screen.queryByText(/archivo/)).not.toBeInTheDocument();
+  });
+
+  it('sube de a uno (ruta, tipo, peso y privado), muestra «Subiendo archivos… 40 %» y luego «Enviando…», y confirma la cantidad', async () => {
+    let releaseFirst: () => void = () => {};
+    let releaseSecond: () => void = () => {};
+    let releaseCreate: () => void = () => {};
+    vi.mocked(uploadPresigned)
+      .mockImplementationOnce((async (pathname: string, body: unknown, opts: { onUploadProgress: (e: object) => void }) => {
+        opts.onUploadProgress({ loaded: 200, total: 400, percentage: 50 });
+        await new Promise<void>((r) => { releaseFirst = r; });
+        return blobOk(pathname, body, opts);
+      }) as never)
+      .mockImplementationOnce((async (pathname: string, body: unknown, opts: never) => {
+        await new Promise<void>((r) => { releaseSecond = r; });
+        return blobOk(pathname, body, opts);
+      }) as never);
+    let n = 0;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url === UPLOAD_URL) return { ok: true, status: 200, text: async () => '{"available":true}' };
+      n++;
+      await new Promise<void>((r) => { releaseCreate = r; });
+      return { ok: true, status: 201, text: async () => JSON.stringify({ success: true, reference: 'PY-adj2', dealId: 8 }) };
+    }));
+    renderPage();
+    choose(file('bases.pdf', 400), file('plano.dwg', 600));
+    fillForm();
+    fireEvent.click(submitButton());
+
+    // Va la mitad del primero (200 de 1000 bytes) y el segundo todavía no empieza: de a uno
+    expect(await screen.findByRole('button', { name: /Subiendo archivos… 20\u00a0%/ })).toBeDisabled();
+    expect(uploadPresigned).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Quitar bases.pdf' })).toBeDisabled();
+    expect(fileInput()).toBeDisabled();
+    // El primero terminó (400 de 1000 bytes) y el segundo espera: 40 %
+    await act(async () => { releaseFirst(); });
+    expect(await screen.findByRole('button', { name: /Subiendo archivos… 40\u00a0%/ })).toBeDisabled();
+    expect(uploadPresigned).toHaveBeenCalledTimes(2);
+    await act(async () => { releaseSecond(); });
+    expect(await screen.findByRole('button', { name: /Enviando…/ })).toBeDisabled();
+    expect(n).toBe(1);
+    await act(async () => { releaseCreate(); });
+
+    const heading = await screen.findByRole('heading', { name: 'Propuesta solicitada' });
+    const line = 'Recibimos tu solicitud PY-adj2 y tus 2 archivos. Si te falta alguno, envíalo a ventas@elights.cl con tu número de solicitud.';
+    expect(screen.getByText(line)).toBeInTheDocument();
+    expect(heading).toHaveAccessibleDescription(`${responseTimePromise} Referencia: PY-adj2 ${line}`);
+
+    // La consulta previa: cuántos y cuánto, sin nombres
+    expect(bodiesTo(UPLOAD_URL)).toEqual([{ type: 'elights.upload-status', payload: { files: 2, bytes: 1000 } }]);
+    // Cada subida: cotizador/<uuid>.<ext>, privada, el tipo de la extensión y el peso declarado
+    const uploads = vi.mocked(uploadPresigned).mock.calls as unknown as [string, File, Record<string, unknown>][];
+    expect(uploads.map(([path]) => path)).toEqual([expect.stringMatching(new RegExp(`^cotizador/${UUID}\\.pdf$`)), expect.stringMatching(new RegExp(`^cotizador/${UUID}\\.dwg$`))]);
+    for (const [path] of uploads) expect(path).toMatch(UPLOAD_PATHNAME_RE);
+    expect(uploads[0][1].name).toBe('bases.pdf');
+    expect(uploads[0][2]).toMatchObject({ access: 'private', handleUploadUrl: UPLOAD_URL, contentType: 'application/pdf', clientPayload: '{"size":400}' });
+    expect(uploads[1][2]).toMatchObject({ access: 'private', handleUploadUrl: UPLOAD_URL, contentType: 'image/vnd.dwg', clientPayload: '{"size":600}' });
+    expect(uploads[0][2]).not.toHaveProperty('multipart');
+    // El envío lleva las rutas guardadas en Blob (las que acepta create.ts) y los nombres
+    const { archivos } = bodiesTo(CREATE_URL)[0];
+    expect(archivos).toEqual([
+      { pathname: uploads[0][0].replace('.pdf', '-Ab12Cd34Ef.pdf'), nombre: 'bases.pdf' },
+      { pathname: uploads[1][0].replace('.dwg', '-Ab12Cd34Ef.dwg'), nombre: 'plano.dwg' },
+    ]);
+    for (const a of archivos) expect(a.pathname).toMatch(STORED_PATHNAME_RE);
+    expect(trackLead).toHaveBeenCalledTimes(1);
+  });
+
+  it('si falla un archivo: aviso con «Reintentar» y «Enviar sin ese archivo»; Reintentar no vuelve a subir lo que ya subió', async () => {
+    stubServer();
+    vi.mocked(uploadPresigned)
+      .mockImplementationOnce(blobOk as never)
+      .mockImplementationOnce(async () => { throw new Error('Failed to retrieve the presigned URL'); });
+    renderPage();
+    choose(file('bases.pdf', 400), file('plano.dwg', 600));
+    fillForm();
+    fireEvent.click(submitButton());
+
+    const retry = await screen.findByRole('button', { name: 'Reintentar' });
+    expect(errorsRegion()).toHaveTextContent(FAILED('plano.dwg'));
+    expect(screen.getByRole('button', { name: 'Enviar sin ese archivo' })).toBeEnabled();
+    await waitFor(() => expect(retry).toHaveFocus());
+    // No se envió nada y los datos quedan
+    expect(calls().map(([u]) => u)).toEqual([UPLOAD_URL]);
+    expect(screen.queryByRole('heading', { name: /Propuesta solicitada/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Nombre y Apellido/)).toHaveValue('PRUEBA ETAPA 2 (09d)');
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(submitButton()).toBeEnabled();
+    // Nunca el nombre del archivo en la consola
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toMatch(/plano|bases/);
+
+    fireEvent.click(retry);
+    expect(await screen.findByText('PY-adj1')).toBeInTheDocument();
+    const uploads = vi.mocked(uploadPresigned).mock.calls as unknown as [string, File][];
+    expect(uploads.map(([, f]) => f.name)).toEqual(['bases.pdf', 'plano.dwg', 'plano.dwg']);
+    // La segunda consulta previa cuenta solo lo que faltaba
+    expect(bodiesTo(UPLOAD_URL).map((b) => b.payload)).toEqual([{ files: 2, bytes: 1000 }, { files: 1, bytes: 600 }]);
+    expect(bodiesTo(CREATE_URL)[0].archivos.map((a: { nombre: string }) => a.nombre)).toEqual(['bases.pdf', 'plano.dwg']);
+    expect(screen.getByText(/y tus 2 archivos\./)).toBeInTheDocument();
+  });
+
+  it('«Enviar sin ese archivo» envía con los demás; con uno solo, «y tu archivo»', async () => {
+    stubServer();
+    vi.mocked(uploadPresigned)
+      .mockImplementationOnce(blobOk as never)
+      .mockImplementationOnce(async () => { throw new TypeError('Failed to fetch'); });
+    renderPage();
+    choose(file('bases.pdf', 400), file('plano.dwg', 600));
+    fillForm();
+    fireEvent.click(submitButton());
+    fireEvent.click(await screen.findByRole('button', { name: 'Enviar sin ese archivo' }));
+    expect(await screen.findByText('PY-adj1')).toBeInTheDocument();
+    expect(uploadPresigned).toHaveBeenCalledTimes(2);
+    expect(bodiesTo(CREATE_URL)).toHaveLength(1);
+    expect(bodiesTo(CREATE_URL)[0].archivos.map((a: { nombre: string }) => a.nombre)).toEqual(['bases.pdf']);
+    expect(
+      screen.getByText('Recibimos tu solicitud PY-adj1 y tu archivo. Si te falta alguno, envíalo a ventas@elights.cl con tu número de solicitud.'),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    ['tope diario', { available: false, code: 'daily_limit' }],
+    ['subida no disponible (sin almacén o Redis caído)', { available: false, code: 'unavailable' }],
+  ])('%s (D2): el aviso con «Enviar sin archivos», nada se sube y el formulario sigue', async (_name, status) => {
+    stubServer({ status });
+    renderPage();
+    choose(file('bases.pdf', 400));
+    fillForm();
+    fireEvent.click(submitButton());
+    const without = await screen.findByRole('button', { name: 'Enviar sin archivos' });
+    expect(errorsRegion()).toHaveTextContent(DAILY_LIMIT);
+    await waitFor(() => expect(without).toHaveFocus());
+    expect(uploadPresigned).not.toHaveBeenCalled();
+    expect(calls().map(([u]) => u)).toEqual([UPLOAD_URL]);
+    fireEvent.click(without);
+    expect(await screen.findByText('PY-adj1')).toBeInTheDocument();
+    expect(bodiesTo(CREATE_URL)[0]).not.toHaveProperty('archivos');
+    expect(screen.queryByText(/Recibimos tu solicitud/)).not.toBeInTheDocument();
+  });
+
+  it('si la consulta previa no responde, se intenta subir igual', async () => {
+    stubServer({ status: new TypeError('Failed to fetch') });
+    renderPage();
+    choose(file('bases.pdf', 400));
+    fillForm();
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-adj1')).toBeInTheDocument();
+    expect(uploadPresigned).toHaveBeenCalledTimes(1);
+    expect(bodiesTo(CREATE_URL)[0].archivos).toHaveLength(1);
+  });
+
+  it('400 después de subir: el reintento reenvía las mismas rutas sin volver a subir', async () => {
+    stubServer({ create: [[400, { success: false, error: 'Validation failed' }], [201, { success: true, reference: 'PY-adj3', dealId: 9 }]] });
+    renderPage();
+    choose(file('bases.pdf', 400));
+    fillForm();
+    fireEvent.click(submitButton());
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Revisa email y teléfono/);
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-adj3')).toBeInTheDocument();
+    expect(uploadPresigned).toHaveBeenCalledTimes(1);
+    const [first, second] = bodiesTo(CREATE_URL);
+    expect(second.archivos).toEqual(first.archivos);
+    expect(bodiesTo(UPLOAD_URL)).toHaveLength(1);
+  });
+
+  it("crm: 'failed' (el servidor borró los adjuntos): la confirmación no los cuenta", async () => {
+    stubServer({ create: [[200, { success: true, reference: 'PY-adj4', dealId: null, crm: 'failed' }]] });
+    renderPage();
+    choose(file('bases.pdf', 400));
+    fillForm();
+    fireEvent.click(submitButton());
+    expect(await screen.findByText('PY-adj4')).toBeInTheDocument();
+    expect(bodiesTo(CREATE_URL)[0].archivos).toHaveLength(1);
+    expect(screen.queryByText(/Recibimos tu solicitud/)).not.toBeInTheDocument();
   });
 });

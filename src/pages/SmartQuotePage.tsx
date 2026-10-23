@@ -2,6 +2,12 @@
 // (/api/project-quotes/create) manda el correo a ventas y crea el negocio en Pipedrive.
 // Auditoría UX, entrega 2 (F-03, 2026-10-17): la confirmación da el plazo de respuesta (por
 // correo, el mismo día hábil), 3 pasos y un resumen para imprimir, sin derivar a WhatsApp.
+// Adjuntos (especificación «Adjuntar archivos», 22-10-2026): el campo va después de los
+// comentarios (FileAttachments). Los archivos se suben AL ENVIAR (decisión D1 del dueño):
+// después de validateForm y de la casilla de privacidad, nunca si el campo trampa tiene texto,
+// de a uno y directo a Vercel Blob (attachments.ts); luego viaja `archivos` con sus rutas.
+// Si uno falla: «Reintentar» o «Enviar sin ese archivo»; con el tope del día (D2): «Enviar sin
+// archivos». Lo ya subido no se vuelve a subir al reintentar.
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Zap, AlertCircle } from 'lucide-react';
@@ -12,6 +18,8 @@ import { contactEmail, responseTimeHours, responseTimePromise } from '@/config/b
 import Seo from '@/components/Seo';
 import { useConsentFields } from '@/components/legal/ConsentFields';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
+import FileAttachments from '@/components/forms/FileAttachments';
+import { uploadPending, type AttachmentItem, type UploadProblem } from '@/components/forms/attachments';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 // Las listas, los topes y la lectura de los m² son los mismos del servidor (api/project-quotes/create.ts)
 import {
@@ -43,8 +51,12 @@ class SubmitError extends Error {
   }
 }
 
-/** Solo es éxito un 2xx con { success: true }. Devuelve la referencia PY- ('' si no viene). */
-async function submitProjectQuote(payload: Record<string, unknown>): Promise<string> {
+/**
+ * Solo es éxito un 2xx con { success: true }. Devuelve la referencia PY- ('' si no viene) y si
+ * el negocio no quedó en Pipedrive (crm: 'failed'): entonces el servidor borra los adjuntos y
+ * ventas se los pide al cliente por correo.
+ */
+async function submitProjectQuote(payload: Record<string, unknown>): Promise<{ reference: string; crmFailed: boolean }> {
   let res: Response;
   try {
     res = await fetch('/api/project-quotes/create', {
@@ -57,7 +69,7 @@ async function submitProjectQuote(payload: Record<string, unknown>): Promise<str
   }
 
   // Una página de error de Vercel (504, 500) llega en HTML, no en JSON
-  let data: { success?: unknown; reference?: unknown; code?: unknown } | null = null;
+  let data: { success?: unknown; reference?: unknown; code?: unknown; crm?: unknown } | null = null;
   try {
     data = JSON.parse(await res.text());
   } catch { /* cuerpo no JSON */ }
@@ -65,7 +77,7 @@ async function submitProjectQuote(payload: Record<string, unknown>): Promise<str
   if (!res.ok) throw new SubmitError('api_error', res.status, typeof data?.code === 'string' ? data.code : undefined);
   if (!data) throw new SubmitError('invalid_body', res.status);
   if (data.success !== true) throw new SubmitError('not_success', res.status);
-  return typeof data.reference === 'string' ? data.reference : '';
+  return { reference: typeof data.reference === 'string' ? data.reference : '', crmFailed: data.crm === 'failed' };
 }
 
 /** Mensaje para el visitante según el estado HTTP y el code de la respuesta. */
@@ -101,6 +113,12 @@ const SmartQuotePage = () => {
   const [reference, setReference] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [uploadProblem, setUploadProblem] = useState<UploadProblem | null>(null);
+  /** Avance de la subida (0 a 100) mientras se suben los archivos; null el resto del tiempo. */
+  const [progress, setProgress] = useState<number | null>(null);
+  /** Archivos que llegaron con la solicitud (para la confirmación). */
+  const [sentFiles, setSentFiles] = useState(0);
   // Casillas de privacidad y novedades: siempre sin marcar (también en el HTML del prerender).
   // Sin el mb-5 por defecto: el fieldset del formulario ya separa los bloques con space-y-6.
   const consent = useConsentFields('solicitud', { className: 'min-w-0' });
@@ -176,8 +194,13 @@ const SmartQuotePage = () => {
     consent: consent.payload(),
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    void send(attachments);
+  };
+
+  /** Envía con estos archivos: los de la lista o, desde un aviso de la subida, menos alguno. */
+  const send = async (files: AttachmentItem[]) => {
     if (sending) return;
     const invalid = validateForm();
     if (invalid) {
@@ -191,14 +214,34 @@ const SmartQuotePage = () => {
       return;
     }
     setErrorMsg('');
+    setUploadProblem(null);
     setSending(true);
     try {
-      const ref = await submitProjectQuote(buildPayload());
+      let archivos: { pathname: string; nombre: string }[] = [];
+      // D1: recién ahora (formulario válido y casilla marcada) y nunca si el campo trampa tiene texto
+      if (files.length && !website) {
+        if (files.some((item) => !item.pathname)) setProgress(0); // «Subiendo archivos… 0 %» desde la consulta previa
+        const upload = await uploadPending(files, setProgress);
+        setAttachments(upload.items);
+        if (upload.ok === false) {
+          // Los datos y la lista quedan: el aviso bajo el campo trae sus botones
+          setUploadProblem(upload.reason === 'limit' ? { kind: 'limit' } : { kind: 'failed', id: upload.id });
+          return;
+        }
+        archivos = upload.items.map((item) => ({ pathname: item.pathname as string, nombre: item.file.name }));
+      }
+      setProgress(null);
+      const { reference: ref, crmFailed } = await submitProjectQuote({
+        ...buildPayload(),
+        ...(archivos.length ? { archivos } : {}),
+      });
       // Conversión solo si el servidor confirmó la solicitud con su referencia PY- (la trampa
       // contra bots responde { success: true } sin ella). La referencia no se envía.
       if (ref) trackLead('cotizador', { project_type: form.tipoProyecto });
       toast.success('Propuesta solicitada', { description: responseTimePromise });
       setReference(ref);
+      // Sin negocio en Pipedrive los adjuntos no quedan guardados: la confirmación no los cuenta
+      setSentFiles(crmFailed ? 0 : archivos.length);
       setSubmitted(true);
     } catch (err) {
       // Los datos quedan en el formulario para reintentar
@@ -217,8 +260,28 @@ const SmartQuotePage = () => {
       setErrorMsg(message);
       toast.error(message);
     } finally {
+      setProgress(null);
       setSending(false);
     }
+  };
+
+  /** Lista nueva desde el campo: un aviso de la subida ya no corresponde. */
+  const changeAttachments = (items: AttachmentItem[]) => {
+    setAttachments(items);
+    setUploadProblem(null);
+  };
+
+  const skipFailedFile = () => {
+    if (uploadProblem?.kind !== 'failed') return;
+    const failedId = uploadProblem.id;
+    const next = attachments.filter((item) => item.id !== failedId);
+    setAttachments(next);
+    void send(next);
+  };
+
+  const sendWithoutFiles = () => {
+    setAttachments([]);
+    void send([]);
   };
 
   if (submitted) {
@@ -239,6 +302,7 @@ const SmartQuotePage = () => {
         idPrefix="sq-sent"
         title="Propuesta solicitada"
         reference={reference}
+        attachments={sentFiles}
         steps={PROJECT_STEPS}
         summary={
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
@@ -323,6 +387,16 @@ const SmartQuotePage = () => {
                 <label htmlFor="sq-comentarios" className="text-sm font-medium mb-1 block">Comentarios adicionales</label>
                 <textarea id="sq-comentarios" name="comentarios" value={form.comentarios} onChange={handleChange} rows={3} maxLength={MAX_COMENTARIOS} className={inputClass + ' resize-none'} />
               </div>
+              <FileAttachments
+                idPrefix="sq"
+                items={attachments}
+                onChange={changeAttachments}
+                busy={sending}
+                problem={uploadProblem}
+                onRetry={() => void send(attachments)}
+                onSkipFailed={skipFailedFile}
+                onSendWithout={sendWithoutFiles}
+              />
             </div>
             <div className="border rounded-xl p-6 space-y-4">
               <h2 className="font-bold">Datos de contacto</h2>
@@ -369,7 +443,10 @@ const SmartQuotePage = () => {
             )}
             <Button type="submit" size="lg" disabled={!hydrated || sending} className="w-full gradient-primary text-primary-foreground h-14 text-base font-bold gap-2">
               {sending ? (
-                <><span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Enviando...</>
+                <>
+                  <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{' '}
+                  {progress !== null ? `Subiendo archivos… ${progress}\u00a0%` : 'Enviando…'}
+                </>
               ) : (
                 <><Send className="h-5 w-5" /> Solicitar propuesta técnica</>
               )}

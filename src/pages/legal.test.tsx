@@ -42,6 +42,7 @@ import {
 import { NOINDEX_ROUTES, STATIC_ROUTES } from '@/lib/seo/routes';
 import { PRIVACY_NOTICE } from '../../api/_lib/whatsapp/privacyNotice';
 import { findPolicyBreaking } from '../../scripts/jumpseller/descriptions';
+import { KNOWN_PHRASES } from '../../scripts/known-phrases';
 import { claimIssues, FREE_RE, namedIn, RM_OUTSIDE_SANTIAGO, RM_PROVINCES } from '@/test/freeShipping';
 import EmpresaPage from './EmpresaPage';
 import TerminosPage from './TerminosPage';
@@ -68,6 +69,10 @@ function policyIssues(text: string): string[] {
   }
   return found;
 }
+
+/** Lo que marca la regla menos las frases permitidas en esa página (KNOWN_PHRASES, las mismas de check-prerender). */
+const unknownIssues = (path: string, text: string) =>
+  policyIssues(text).filter(phrase => !KNOWN_PHRASES.some(k => k.routes.includes(path) && k.phrase.test(phrase)));
 
 /** Una sección de la página: desde el h2 que empieza con `heading` hasta el siguiente h2. */
 function section(main: Element, heading: string) {
@@ -154,8 +159,8 @@ describe('páginas legales y de compra: todas', () => {
     it(`${path}: un h1, sin stock ni otros plazos de despacho, enlaces válidos y "Más información" con las demás`, async () => {
       const { html, main, text, spaced } = await page(path);
       expect(main.querySelectorAll('h1')).toHaveLength(1);
-      expect(policyIssues(spaced)).toEqual([]);
-      expect(policyIssues(text)).toEqual([]);
+      expect(unknownIssues(path, spaced)).toEqual([]);
+      expect(unknownIssues(path, text)).toEqual([]);
       for (const phrase of FORBIDDEN) expect(html, phrase).not.toContain(phrase);
       for (const amount of amountsIn(text)) expect(amount, `${path}: monto`).toBe(THRESHOLD);
       expect(html).not.toMatch(THREE_MONTHS);
@@ -550,8 +555,9 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '2.').text).toContain(
       'Si nos escribes por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp.',
     );
+    // Desde la 1.6, también desde el sitio (adjuntos del cotizador)
     expect(section(main, '2.').text).toContain(
-      'Tus mensajes: lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo o WhatsApp.',
+      'Tus mensajes: lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo, WhatsApp o desde el sitio.',
     );
     // §7: memoria temporal; Twilio y Anthropic según las condiciones que aceptamos (encargados, §5), no
     // «según sus propias políticas» ni «plazos breves»
@@ -845,6 +851,50 @@ describe('páginas legales y de compra: contenido', () => {
       '(pedido, cotización, cotizador, estudio lumínico o instalación)',
       '(WhatsApp, correo o teléfono)',
     ]);
+  });
+
+  // Especificación «Adjuntar archivos» (22-10-2026, §5), aprobada por el dueño con D1 a D3: los
+  // archivos del cotizador pasan por Vercel Blob (privado y temporal) y quedan en Pipedrive.
+  it('/politica-de-privacidad (versión 1.6): los archivos que se adjuntan en el sitio, con los textos de la especificación', async () => {
+    const { main, text } = await page('/politica-de-privacidad');
+    const clean = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const items = (heading: string) => section(main, heading).els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
+    const item = (heading: string, start: string) => items(heading).find(t => t.startsWith(start)) ?? '';
+    // §2: la solicitud, los mensajes y los datos sensibles
+    expect(item('2.', 'Tu solicitud:')).toBe(
+      'Tu solicitud: productos, cantidades, montos referenciales, comuna y región, comentarios y, en las solicitudes de proyecto, datos de la obra (tipo de proyecto, medidas, altura de montaje, normativa, plazos y ubicación) y los archivos que adjuntes, como bases de licitación, fichas técnicas, planos o planillas.',
+    );
+    expect(item('2.', 'Tus mensajes:')).toBe(
+      'Tus mensajes: lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo, WhatsApp o desde el sitio.',
+    );
+    expect(section(main, '2.').text).toContain('Por favor no los incluyas en tus comentarios ni en tus archivos.');
+    // §5: Vercel guarda los archivos por un tiempo; Pipedrive, con la solicitud
+    expect(item('5.', 'Vercel Inc.')).toBe(
+      'Vercel Inc. (Estados Unidos): alojamiento del sitio y de los formularios, y almacenamiento temporal de los archivos que adjuntas.',
+    );
+    expect(item('5.', 'Pipedrive')).toBe(
+      'Pipedrive (Unión Europea / Estados Unidos): sistema donde registramos y damos seguimiento a solicitudes y clientes, incluidos los archivos que adjuntas.',
+    );
+    // Upstash no cambia: los topes de subida no guardan datos personales
+    expect(item('5.', 'Upstash')).toBe(
+      'Upstash Inc.: registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de seguimiento.',
+    );
+    // §7: la viñeta nueva, con el plazo de 48 horas del barrido diario (api/cron/blob-sweep.ts)
+    expect(item('7.', 'Archivos que adjuntas en el sitio:')).toBe(
+      'Archivos que adjuntas en el sitio: pasan por un almacenamiento privado y temporal de Vercel (Estados Unidos) y se borran apenas quedan en nuestro sistema de seguimiento o, si el envío no se completa, a más tardar en 48 horas. La copia en nuestro sistema de seguimiento sigue el plazo de tu solicitud.',
+    );
+    expect(items('7.').findIndex(t => t.startsWith('Archivos que adjuntas'))).toBe(
+      items('7.').findIndex(t => t.startsWith('Constancia de tus autorizaciones')) + 1,
+    );
+    // «48 horas» es el plazo de borrado, no de despacho: la única frase que la regla marca, permitida
+    // en check-prerender (KNOWN_PHRASES) solo en esta página
+    expect(policyIssues(spacedText(main))).toEqual(['envío no se completa, a más tardar en 48 horas']);
+    expect(unknownIssues('/politica-de-privacidad', spacedText(main))).toEqual([]);
+    expect(unknownIssues('/despacho', 'envío no se completa, a más tardar en 48 horas')).toHaveLength(1);
+    // §9 no cambia
+    expect(section(main, '9.').text).not.toMatch(/archivo/i);
+    // Ni el sitio ni la política ofrecen otro canal para mandar archivos que el correo
+    expect(text).not.toMatch(/archivos? (?:por|a nuestro) WhatsApp/i);
   });
 
   it('la versión 1.0 publicada sigue entre las anteriores (sus archivos no se borran)', () => {

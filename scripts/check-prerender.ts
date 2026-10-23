@@ -45,6 +45,7 @@ import { productImageFacts } from '../src/data/catalog/og-images.generated';
 import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
 import { indexableRoutes, productPath } from '../src/lib/seo/routes';
 import { findPolicyBreaking } from './jumpseller/descriptions';
+import { KNOWN_PHRASES } from './known-phrases';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
 import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
@@ -214,17 +215,9 @@ export function structuralIssues(
   return issues;
 }
 
-/**
- * Frases que la regla marca pero son correctas en esa página: se informan, sin bloquear.
- * Cada una con su motivo.
- */
-export const KNOWN_PHRASES: { routes: string[]; phrase: RegExp; reason: string }[] = [
-  {
-    routes: ['/', '/estudio-luminico'],
-    phrase: /^entrega en 48 horas$/i,
-    reason: 'plazo del informe del estudio DIALux, no de despacho; confirmado por el dueño el 2026-10-03',
-  },
-];
+// Frases que la regla marca pero son correctas en una página (se informan, sin bloquear): en su
+// propio módulo, sin dependencias, para que src/pages/legal.test.tsx use la misma lista.
+export { KNOWN_PHRASES };
 
 /** Frases que contradicen las reglas del sitio en un texto visible (cada una una vez). */
 export function contentIssues(text: string): string[] {

@@ -10,7 +10,8 @@
 // No se promete una copia por correo al cliente: el correo de la solicitud va solo a ventas.
 //
 // El botón de envío desaparece con el formulario: el foco pasa al título, que lee el plazo y
-// la referencia. "Imprimir o guardar resumen" usa window.print(); la hoja de impresión
+// la referencia (y, en /cotizador, cuántos archivos llegaron: especificación «Adjuntar
+// archivos», §1). "Imprimir o guardar resumen" usa window.print(); la hoja de impresión
 // (src/index.css, [data-print-summary]) deja solo esta confirmación.
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -32,12 +33,23 @@ interface RequestConfirmationProps {
   steps: readonly [string, string, string];
   /** Lo que se pidió (productos o datos del proyecto), para el resumen impreso. */
   summary?: ReactNode;
+  /** Archivos que el cliente adjuntó y llegaron (solo /cotizador); 0 o sin valor: sin la línea. */
+  attachments?: number;
   /** El <Seo> de la página. */
   seo: ReactNode;
   back: { to: string; label: string };
 }
 
-const RequestConfirmation = ({ form, idPrefix, title, reference, steps, summary, seo, back }: RequestConfirmationProps) => {
+/**
+ * «Recibimos tu solicitud PY-… y tus 3 archivos. Si te falta alguno, envíalo a
+ * ventas@elights.cl con tu número de solicitud.» Con un solo archivo, «y tu archivo».
+ */
+function attachmentsLine(count: number, reference: string): string {
+  const files = count === 1 ? 'tu archivo' : `tus ${count} archivos`;
+  return `Recibimos tu solicitud${reference ? ' ' + reference : ''} y ${files}. Si te falta alguno, envíalo a ${contactEmail} con tu número de solicitud.`;
+}
+
+const RequestConfirmation = ({ form, idPrefix, title, reference, steps, summary, attachments = 0, seo, back }: RequestConfirmationProps) => {
   useHideWhatsAppButton();
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -48,7 +60,14 @@ const RequestConfirmation = ({ form, idPrefix, title, reference, steps, summary,
   const [sentAt] = useState(() =>
     new Date().toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short', timeZone: 'America/Santiago' }),
   );
-  const ids = { detail: `${idPrefix}-detail`, ref: `${idPrefix}-ref`, steps: `${idPrefix}-steps`, summary: `${idPrefix}-summary` };
+  const ids = {
+    detail: `${idPrefix}-detail`,
+    ref: `${idPrefix}-ref`,
+    files: `${idPrefix}-files`,
+    steps: `${idPrefix}-steps`,
+    summary: `${idPrefix}-summary`,
+  };
+  const describedBy = [ids.detail, reference && ids.ref, attachments > 0 && ids.files].filter(Boolean).join(' ');
   const mailto = `mailto:${contactEmail}${reference ? `?subject=${encodeURIComponent(`Solicitud ${reference}`)}` : ''}`;
 
   return (
@@ -59,7 +78,7 @@ const RequestConfirmation = ({ form, idPrefix, title, reference, steps, summary,
         <h1
           ref={heading}
           tabIndex={-1}
-          aria-describedby={reference ? `${ids.detail} ${ids.ref}` : ids.detail}
+          aria-describedby={describedBy}
           className="text-2xl font-bold mb-3 focus:outline-none"
         >
           {title}
@@ -71,6 +90,11 @@ const RequestConfirmation = ({ form, idPrefix, title, reference, steps, summary,
         {reference && (
           <p id={ids.ref} className="inline-block text-xs font-mono bg-muted px-3 py-1.5 rounded-lg text-muted-foreground">
             Referencia: <span className="font-bold text-foreground">{reference}</span>
+          </p>
+        )}
+        {attachments > 0 && (
+          <p id={ids.files} className="mt-4 text-sm">
+            {attachmentsLine(attachments, reference)}
           </p>
         )}
       </div>

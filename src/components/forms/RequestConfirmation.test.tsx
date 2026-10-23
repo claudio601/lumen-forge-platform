@@ -61,3 +61,45 @@ describe('RequestConfirmation: el correo con la referencia y la medición', () =
     expect(JSON.stringify(entries)).not.toMatch(/\b(RC|NE|PY)-[a-z0-9]/i);
   });
 });
+
+// /cotizador con adjuntos (especificación «Adjuntar archivos», §1): una línea con la cantidad de
+// archivos, en la descripción del título; sin archivos, la confirmación queda como antes.
+describe('RequestConfirmation: archivos que llegaron', () => {
+  const renderWith = (attachments: number | undefined, reference = 'PY-f1l3s') =>
+    render(
+      <MemoryRouter>
+        <RequestConfirmation
+          form="cotizador"
+          idPrefix="sq-sent"
+          title="Propuesta solicitada"
+          reference={reference}
+          attachments={attachments}
+          steps={['Uno', 'Dos', 'Tres']}
+          seo={null}
+          back={{ to: '/', label: 'Volver al inicio' }}
+        />
+      </MemoryRouter>,
+    );
+
+  it.each([
+    [3, 'Recibimos tu solicitud PY-f1l3s y tus 3 archivos. Si te falta alguno, envíalo a ventas@elights.cl con tu número de solicitud.'],
+    [1, 'Recibimos tu solicitud PY-f1l3s y tu archivo. Si te falta alguno, envíalo a ventas@elights.cl con tu número de solicitud.'],
+  ])('%i archivo(s): la línea y el título la lee', (count, line) => {
+    renderWith(count);
+    expect(screen.getByText(line)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Propuesta solicitada' }).getAttribute('aria-describedby')).toBe('sq-sent-detail sq-sent-ref sq-sent-files');
+    // Un solo enlace al correo (el de siempre, con la referencia en el asunto)
+    expect(screen.getAllByRole('link', { name: 'ventas@elights.cl' })).toHaveLength(1);
+  });
+
+  it('sin referencia, la línea igual se lee bien', () => {
+    renderWith(2, '');
+    expect(screen.getByText('Recibimos tu solicitud y tus 2 archivos. Si te falta alguno, envíalo a ventas@elights.cl con tu número de solicitud.')).toBeInTheDocument();
+  });
+
+  it.each([0, undefined])('con %s archivos no hay línea', (count) => {
+    renderWith(count);
+    expect(screen.queryByText(/Recibimos tu solicitud/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Propuesta solicitada' }).getAttribute('aria-describedby')).toBe('sq-sent-detail sq-sent-ref');
+  });
+});

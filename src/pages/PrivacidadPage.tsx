@@ -27,6 +27,11 @@
 // Meta también guardan datos en el almacenamiento local del navegador, y se borran al retirar el
 // permiso. Agregar un evento o un parámetro hacia Meta, o crear públicos, exige otra versión de
 // esta política.
+// Versión 1.6 (especificación «Adjuntar archivos» del 2026-10-22, aprobada por el dueño con las
+// decisiones D1 a D3): el cotizador recibe archivos (bases de licitación, fichas técnicas,
+// planos o planillas). Pasan por un almacén privado y temporal de Vercel Blob y quedan en la
+// pestaña Archivos del negocio en Pipedrive (§2, §5 y §7). Upstash no cambia: los topes de
+// subida cuentan archivos y bytes, sin datos personales; §9 tampoco cambia.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -55,6 +60,10 @@
 //   elights.cl y www, y al retirar un permiso borra las cookies y el almacenamiento local de
 //   Google y de Meta y recarga la página.
 // - Transportistas (§5): los mismos de /despacho, desde REGION_CARRIERS (src/config/business.ts).
+// - Archivos del cotizador (§2, §5 y §7; src/components/forms/FileAttachments.tsx y
+//   api/_lib/attachments/): se suben a Vercel Blob (privado) solo al enviar, pasan al negocio en
+//   Pipedrive y se borran de Blob; si uno no llega, se borra igual (D3) y el barrido diario
+//   (api/cron/blob-sweep.ts) borra lo que tenga más de 24 h: nada queda más de unas 48 h.
 // - Archivo de versiones: public/legal/<página>-v<X.Y>.html (npm run legal:archive).
 // Al cambiar este texto, sube LEGAL_VERSION (api/_lib/forms/consent.ts) y corre
 // npm run legal:archive.
@@ -156,14 +165,16 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Tu solicitud:</strong> productos, cantidades, montos referenciales, comuna y región, comentarios y, en las
-        solicitudes de proyecto, datos de la obra (tipo de proyecto, medidas, altura de montaje, normativa, plazos y ubicación).
+        solicitudes de proyecto, datos de la obra (tipo de proyecto, medidas, altura de montaje, normativa, plazos y ubicación) y
+        los archivos que adjuntes, como bases de licitación, fichas técnicas, planos o planillas.
       </li>
       <li>
         <strong>Tu compra:</strong> dirección de despacho, documento tributario y estado del pago. No recibimos los datos de tu
         tarjeta.
       </li>
       <li>
-        <strong>Tus mensajes:</strong> lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo o WhatsApp.
+        <strong>Tus mensajes:</strong> lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo, WhatsApp o
+        desde el sitio.
       </li>
       <li>
         <strong>Origen de tu visita:</strong> la página por la que entraste al sitio, el sitio desde el que llegaste y los
@@ -180,7 +191,10 @@ const PrivacidadPage = () => (
         mensaje (ver punto 9).
       </li>
     </ul>
-    <p>No pedimos datos sensibles (salud, origen étnico, creencias, etc.). Por favor no los incluyas en tus comentarios.</p>
+    <p>
+      No pedimos datos sensibles (salud, origen étnico, creencias, etc.). Por favor no los incluyas en tus comentarios ni en tus
+      archivos.
+    </p>
     <p>
       <strong>De dónde vienen:</strong> casi todos nos los das tú en los formularios, por correo o por WhatsApp. Si nos escribes
       por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp. Los datos de pago y
@@ -277,11 +291,12 @@ const PrivacidadPage = () => (
     </p>
     <ul>
       <li>
-        <strong>Vercel Inc.</strong> (Estados Unidos): alojamiento del sitio y de los formularios.
+        <strong>Vercel Inc.</strong> (Estados Unidos): alojamiento del sitio y de los formularios, y almacenamiento temporal de
+        los archivos que adjuntas.
       </li>
       <li>
         <strong>Pipedrive</strong> (Unión Europea / Estados Unidos): sistema donde registramos y damos seguimiento a solicitudes y
-        clientes.
+        clientes, incluidos los archivos que adjuntas.
       </li>
       <li>
         <strong>Google</strong> (Estados Unidos): correo electrónico y envío de los avisos de solicitudes a nuestro equipo (Gmail y
@@ -364,6 +379,11 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Constancia de tus autorizaciones</strong> (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.
+      </li>
+      <li>
+        <strong>Archivos que adjuntas en el sitio:</strong> pasan por un almacenamiento privado y temporal de Vercel (Estados
+        Unidos) y se borran apenas quedan en nuestro sistema de seguimiento o, si el envío no se completa, a más tardar en 48
+        horas. La copia en nuestro sistema de seguimiento sigue el plazo de tu solicitud.
       </li>
       <li>
         <strong>Origen de tu visita:</strong> en tu navegador se borra al cerrar la pestaña; la copia que va con tu solicitud sigue
