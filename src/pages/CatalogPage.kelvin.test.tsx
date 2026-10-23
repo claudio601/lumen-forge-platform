@@ -5,7 +5,7 @@
 // cada sincronización de Jumpseller.
 
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import App from '@/App';
 import { sendPageView } from '@/lib/analytics';
@@ -25,6 +25,8 @@ function renderAt(url: string) {
 const WAIT = { timeout: 5000 };
 const inCategory = (slug: string) => products.filter(p => p.categories.includes(slug));
 const withKelvin = (list: readonly Product[], ...kelvins: number[]) => list.filter(p => p.kelvins.some(k => kelvins.includes(k)));
+/** Temperaturas que existen en una lista, de menor a mayor (las pruebas las sacan de los datos, no fijas). */
+const kelvinsOf = (list: readonly Product[]) => [...new Set(list.flatMap(p => p.kelvins))].sort((a, b) => a - b);
 const found = (n: number) => `${n} producto${n !== 1 ? 's' : ''} encontrado${n !== 1 ? 's' : ''}`;
 /**
  * Opciones de temperatura del panel de escritorio: «2700K» → su casilla y su conteo. Recorre el DOM
@@ -66,45 +68,79 @@ describe('catálogo: temperatura de color desde las variantes (B-05)', () => {
     for (const k of [2200, 2700]) if (withKelvin(lighting, k).length) expect(panel.has(k), `${k}K`).toBe(true);
   });
 
-  it('elegir una temperatura deja los productos con alguna variante en ella, sin enviar otro page_view', async () => {
+  it('elegir una temperatura deja los productos con alguna variante en ella, sin enviar otro page_view ni perder el foco', async () => {
     const lighting = inCategory('alumbrado-publico');
-    const k = [...new Set(lighting.flatMap(p => p.kelvins))].sort((a, b) => a - b)[0];
+    const [k] = kelvinsOf(lighting);
+    expect(k).toBeDefined();
     renderAt('/catalogo/alumbrado-publico');
     await screen.findByText(found(lighting.length), undefined, WAIT);
     vi.mocked(sendPageView).mockClear();
-    fireEvent.click(kelvinBox(k)!);
+    const box = kelvinBox(k)!;
+    box.focus();
+    fireEvent.click(box);
     await screen.findByText(found(withKelvin(lighting, k).length), undefined, WAIT);
     await new Promise(r => setTimeout(r, 50));
     expect(sendPageView).not.toHaveBeenCalled();
     expect(window.location.search).toBe('');
+    // El panel no se vuelve a montar con cada clic: la misma casilla, con el foco (B-07)
+    expect(box.isConnected).toBe(true);
+    expect(document.activeElement).toBe(box);
   });
 
-  it('?k=2700 (enlace de campaña) llega con el filtro puesto y se mantiene en la URL', async () => {
+  it('?k (enlace de campaña, como ?k=2700) llega con el filtro puesto y se mantiene en la URL', async () => {
     const lighting = inCategory('alumbrado-publico');
-    const expected = withKelvin(lighting, 2700);
-    if (!expected.length) return; // ninguna variante en 2700K: no hay qué filtrar
-    renderAt('/catalogo/alumbrado-publico?k=2700&gclid=abc');
-    await screen.findByText(found(expected.length), undefined, WAIT);
-    expect(kelvinBox(2700)!.checked).toBe(true);
-    expect(new URLSearchParams(window.location.search).get('k')).toBe('2700');
+    const [k] = kelvinsOf(lighting);
+    expect(k).toBeDefined();
+    renderAt(`/catalogo/alumbrado-publico?k=${k}&gclid=abc`);
+    await screen.findByText(found(withKelvin(lighting, k).length), undefined, WAIT);
+    expect(kelvinBox(k)!.checked).toBe(true);
+    expect(new URLSearchParams(window.location.search).get('k')).toBe(String(k));
   });
 
-  it('?k=2200,2700 suma las dos; si el visitante cambia la temperatura, manda su elección y ?k sale de la URL', async () => {
+  it('?k con dos temperaturas suma las dos; si el visitante cambia la temperatura, manda su elección y ?k sale de la URL', async () => {
     const lighting = inCategory('alumbrado-publico');
-    if (!withKelvin(lighting, 2200).length || !withKelvin(lighting, 2700).length) return;
-    renderAt('/catalogo/alumbrado-publico?k=2200,2700');
-    await screen.findByText(found(withKelvin(lighting, 2200, 2700).length), undefined, WAIT);
-    fireEvent.click(kelvinBox(2200)!); // queda solo 2700K
-    await screen.findByText(found(withKelvin(lighting, 2700).length), undefined, WAIT);
+    const [k1, k2] = kelvinsOf(lighting);
+    expect(k2).toBeDefined();
+    renderAt(`/catalogo/alumbrado-publico?k=${k1},${k2}`);
+    await screen.findByText(found(withKelvin(lighting, k1, k2).length), undefined, WAIT);
+    fireEvent.click(kelvinBox(k1)!); // queda solo k2
+    await screen.findByText(found(withKelvin(lighting, k2).length), undefined, WAIT);
     await waitFor(() => expect(new URLSearchParams(window.location.search).has('k')).toBe(false), WAIT);
-    expect(kelvinBox(2700)!.checked).toBe(true);
+    expect(kelvinBox(k2)!.checked).toBe(true);
+  });
+
+  it('?k con la página 2 → quitar la temperatura → Atrás: vuelve el filtro de la URL, con su casilla marcada', async () => {
+    const k = kelvinsOf(products).find(x => withKelvin(products, x).length > 24);
+    expect(k).toBeDefined();
+    const filtered = withKelvin(products, k!).length;
+    renderAt(`/catalogo?k=${k}`);
+    await screen.findByText(found(filtered), undefined, WAIT);
+    fireEvent.click(document.querySelector<HTMLAnchorElement>('a[rel="next"]')!); // página 2 (una entrada nueva)
+    await screen.findByText(/Mostrando 25–/, undefined, WAIT);
+    expect(new URLSearchParams(window.location.search).get('k')).toBe(String(k));
+    fireEvent.click(kelvinBox(k!)!); // la quita: ?k y ?page salen de la URL
+    await screen.findByText(found(products.length), undefined, WAIT);
+    await waitFor(() => expect(window.location.search).toBe(''), WAIT);
+    vi.mocked(sendPageView).mockClear();
+    await act(async () => {
+      window.history.back();
+      await new Promise(r => setTimeout(r, 50));
+    });
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get('k')).toBe(String(k)), WAIT);
+    await screen.findByText(found(filtered), undefined, WAIT);
+    expect(kelvinBox(k!)!.checked).toBe(true);
+    // El page_view de la entrada con ?k coincide con lo que se ve
+    expect(sendPageView).toHaveBeenLastCalledWith(`/catalogo?k=${k}`);
+    // Y quitarla de nuevo funciona
+    fireEvent.click(kelvinBox(k!)!);
+    await screen.findByText(found(products.length), undefined, WAIT);
+    await waitFor(() => expect(new URLSearchParams(window.location.search).has('k')).toBe(false), WAIT);
   });
 
   it('?k con la página 2: el enlace directo se respeta', async () => {
     const all = products;
-    const kelvins = [...new Set(all.flatMap(p => p.kelvins))];
-    const k = kelvins.find(x => withKelvin(all, x).length > 24);
-    if (!k) return;
+    const k = kelvinsOf(all).find(x => withKelvin(all, x).length > 24);
+    expect(k).toBeDefined();
     renderAt(`/catalogo?k=${k}&page=2`);
     await screen.findByText(/Mostrando 25–/, undefined, WAIT);
     expect(screen.getByText(found(withKelvin(all, k).length))).toBeInTheDocument();

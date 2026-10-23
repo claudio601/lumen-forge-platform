@@ -42,6 +42,11 @@ export interface Product {
    * (src/lib/variants.ts) las muestra con etiquetas limpias, y la tarjeta pide elegir.
    */
   variants?: ProductVariant[];
+  /**
+   * SKU y opciones de la única variante (productos con una sola), que pueden ser distintos de
+   * los del producto («PLC20GC», «Luz Cálida»): la búsqueda los indexa como los de `variants`.
+   */
+  singleVariant?: Pick<ProductVariant, 'sku' | 'options'>;
   cri?: number;
   voltage?: string;
   beamAngle?: number;

@@ -19,12 +19,15 @@ const search = (q: string) => searchProducts(products, q);
 const ids = (list: readonly Product[]) => new Set(list.map(p => p.id));
 const norm = normalizeSearchText;
 const catName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
+/** Las variantes para elegir y la única. */
+const allVariants = (p: Product) => [...(p.variants ?? []), ...(p.singleVariant ? [p.singleVariant] : [])];
 /** Todo el texto que indexa un producto, normalizado. */
 const haystack = (p: Product) =>
-  norm([p.sku, p.name, p.brand, ...p.categories.map(catName), ...(p.variants ?? []).flatMap(v => [v.sku, ...v.options.map(o => o.value)]), ...p.kelvins.map(k => `${k}K`)].join(' '));
+  norm([p.sku, p.name, p.brand, ...p.categories.map(catName), ...allVariants(p).flatMap(v => [v.sku, ...v.options.map(o => o.value)]), ...p.kelvins.map(k => `${k}K`)].join(' '));
 const nameHas = (p: Product, re: RegExp) => re.test(norm(p.name));
 const sameSet = (a: readonly Product[], b: readonly Product[]) => expect([...ids(a)].sort()).toEqual([...ids(b)].sort());
-const allSkus = (p: Product) => [p.sku, ...(p.variants ?? []).map(v => v.sku)].filter(Boolean).map(norm);
+const allSkus = (p: Product) => [p.sku, ...allVariants(p).map(v => v.sku)].filter(Boolean).map(norm);
+const synonymTargets = (s: (typeof SEARCH_SYNONYMS)[number]) => [s.encuentra].flat();
 
 describe('texto normalizado', () => {
   it('sin tildes y en minúsculas', () => {
@@ -38,6 +41,14 @@ describe('texto normalizado', () => {
     expect(searchWords('panel 60 x 60')).toEqual(['panel', '60x60']);
     expect(searchWords('CINTA 14,4W 5mt.')).toEqual(['cinta', '14.4w', '5mt']);
     expect(searchWords('eLIGHTS.cl')).toEqual(['elights', 'cl']);
+  });
+
+  it('unidades escritas largas: «100 watts», «100watts», «2700 kelvin», «1500 lúmenes»', () => {
+    expect(searchWords('100 watts')).toEqual(['100w']);
+    expect(searchWords('100watts')).toEqual(['100w']);
+    expect(searchWords('100 Watt')).toEqual(['100w']);
+    expect(searchWords('2700 kelvin')).toEqual(['2700k']);
+    expect(searchWords('1500 lúmenes')).toEqual(['1500lm']);
   });
 });
 
@@ -112,8 +123,10 @@ describe('consultas de la auditoría (B-03)', () => {
     expect(search('apb601')[0].id).toBe(owner.id);
   });
 
-  it('el SKU de cualquier variante encuentra su producto, y lo que coincide por SKU va primero', () => {
-    const skus = [...new Set(products.flatMap(p => (p.variants ?? []).map(v => v.sku)).filter(Boolean))];
+  it('el SKU de cualquier variante (también la única) encuentra su producto, y lo que coincide por SKU va primero', () => {
+    const skus = [...new Set(products.flatMap(p => allVariants(p).map(v => v.sku)).filter(Boolean))];
+    // Variantes únicas con un SKU distinto del producto («PLC20GC» de «PLC20G»): también cuentan
+    expect(products.some(p => p.singleVariant?.sku && norm(p.singleVariant.sku) !== norm(p.sku))).toBe(true);
     expect(skus.length).toBeGreaterThan(0);
     for (const sku of skus) {
       const r = search(sku);
@@ -121,6 +134,14 @@ describe('consultas de la auditoría (B-03)', () => {
       const bySku = r.filter(p => allSkus(p).some(s => q.every(w => searchWords(s).some(x => x.startsWith(w)))));
       for (const p of products.filter(x => allSkus(x).includes(norm(sku)))) expect(ids(bySku).has(p.id), `${sku}: ${p.name}`).toBe(true);
       expect(r.slice(0, bySku.length), sku).toEqual(bySku);
+    }
+  });
+
+  it('el SKU completo trae primero a su dueño, antes que un SKU que solo empieza igual', () => {
+    const skus = [...new Set(products.flatMap(allSkus))];
+    for (const sku of skus) {
+      const owners = ids(products.filter(p => allSkus(p).includes(sku)));
+      expect(owners.has(search(sku)[0]?.id), sku).toBe(true);
     }
   });
 
@@ -145,6 +166,106 @@ describe('consultas de la auditoría (B-03)', () => {
     for (const p of r) expect(haystack(p)).toMatch(/60 ?x ?60/);
     for (const p of products.filter(x => nameHas(x, /\bpanel\b.*\b60x60\b/))) expect(ids(r).has(p.id), p.name).toBe(true);
     sameSet(r, search('panel 60 x 60'));
+  });
+});
+
+describe('plurales y palabras genéricas', () => {
+  it('«luminarias», «lámparas», «luces» y «luz» no filtran, tampoco en plural', () => {
+    sameSet(search('luminarias solares'), search('luminaria solar'));
+    sameSet(search('luminarias solares'), search('solar'));
+    sameSet(search('lámparas solares'), search('solar'));
+    sameSet(search('luz solar'), search('solar'));
+    sameSet(search('luminarias viales'), search('luminaria vial'));
+    sameSet(search('luminarias para galpon'), search('galpon'));
+    sameSet(search('luces de emergencia'), search('emergencia'));
+    expect(search('luminarias solares').length).toBeGreaterThan(0);
+    expect(search('luces de emergencia').length).toBeGreaterThan(0);
+  });
+
+  it('solo palabras genéricas: se buscan las que están en el catálogo («luces led» busca «led»)', () => {
+    expect(search('luces led').length).toBeGreaterThan(0);
+    sameSet(search('luces led'), search('led'));
+  });
+
+  it('«luz azul» trae primero lo que es azul (la cinta), no solo el «1% de luz azul» de las variantes', () => {
+    const r = search('luz azul');
+    const blue = r.filter(p => nameHas(p, /\bazul\b/));
+    expect(blue.length).toBeGreaterThan(0);
+    expect(r.slice(0, blue.length)).toEqual(blue);
+  });
+});
+
+describe('una letra de diferencia, solo como respaldo', () => {
+  it('«salida» trae lo que dice «salida», no todo lo de «Luz Cálida»', () => {
+    const r = search('salida');
+    expect(r.length).toBeGreaterThan(0);
+    for (const p of r) expect(haystack(p), p.name).toMatch(/salida/);
+  });
+
+  it('«calida» no trae «salida»', () => {
+    const r = search('calida');
+    expect(r.length).toBeGreaterThan(0);
+    for (const p of r) expect(haystack(p), p.name).toMatch(/calida/);
+  });
+
+  it('«estanca» no trae las estacas, y «estaca» no trae la estanca', () => {
+    for (const p of search('estanca')) expect(haystack(p), p.name).toMatch(/estanca/);
+    for (const p of search('estaca')) expect(haystack(p), p.name).toMatch(/estaca\b/);
+  });
+
+  it('con otra primera letra no hay tolerancia: «puente» no trae «fuente», «barco» no trae «marco»', () => {
+    expect(search('puente')).toEqual([]);
+    expect(search('barco')).toEqual([]);
+  });
+
+  it('una palabra que es sinónimo no busca parecidos: «calles» trae el alumbrado público, no los «cables»', () => {
+    sameSet(search('calles'), search('calle'));
+    for (const p of search('calles')) expect(haystack(p), p.name).not.toMatch(/cables/);
+  });
+
+  it('lo que llega con una letra de diferencia va después de lo que coincide tal cual', () => {
+    // «galpn»: por sinónimo (campana) con una letra de diferencia; todo igual que «galpon»
+    sameSet(search('galpn'), search('galpon'));
+  });
+});
+
+describe('sinónimos agregados en la revisión', () => {
+  it('«plafon» y «cielo falso» traen paneles LED, no los «panel solar»', () => {
+    for (const q of ['plafon', 'plafón', 'cielo falso']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of r) expect(p.categories, `${q}: ${p.name}`).toContain('paneles-led');
+      for (const p of r) expect(p.name, q).not.toMatch(/solar/i);
+    }
+  });
+
+  it('«dimmer» trae lo regulable y lo «dimerizable»', () => {
+    const r = ids(search('dimmer'));
+    for (const p of products.filter(x => nameHas(x, /\b(regulable|dimerizable)\b/))) expect(r.has(p.id), p.name).toBe(true);
+  });
+
+  it('«triproof», «tri proof» y «tri-proof» traen las TRI-PROOF y las herméticas', () => {
+    const triproof = products.filter(p => nameHas(p, /tri-proof/));
+    const hermetic = products.filter(p => nameHas(p, /\bhermetica\b/));
+    expect(triproof.length + hermetic.length).toBeGreaterThan(0);
+    for (const q of ['triproof', 'tri proof', 'tri-proof']) {
+      const r = ids(search(q));
+      for (const p of [...triproof, ...hermetic]) expect(r.has(p.id), `${q}: ${p.name}`).toBe(true);
+    }
+  });
+
+  it('«highbay» da lo mismo que «high bay»; «cartel salida», la señalética de salida', () => {
+    sameSet(search('highbay'), search('high bay'));
+    expect(search('highbay').length).toBeGreaterThan(0);
+    const r = search('cartel salida');
+    expect(r.length).toBeGreaterThan(0);
+    for (const p of r) expect(haystack(p), p.name).toMatch(/senaletica.*salida/);
+  });
+
+  it('«100 watts» y «2700 kelvin» dan lo mismo que «100w» y «2700k»', () => {
+    sameSet(search('100 watts'), search('100w'));
+    sameSet(search('2700 kelvin'), search('2700K'));
+    expect(search('100 watts').length).toBeGreaterThan(0);
   });
 });
 
@@ -180,6 +301,16 @@ describe('reglas de la búsqueda', () => {
     for (const p of search('proyector')) expect(ids(r).has(p.id)).toBe(true);
   });
 
+  it('con una potencia, primero los productos de esa potencia: no el trípode que nombra varias', () => {
+    for (const q of ['proyector 10w', 'proyector 50w', 'proyector 100w', 'reflector 200w', 'foco 100w', '100']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      const watts = Number(/(\d+)w?$/.exec(q)![1]);
+      expect(r[0].watts, `${q}: ${r[0].name}`).toBe(watts);
+      expect(r[0].name, q).not.toMatch(/tripode/i);
+    }
+  });
+
   it('consulta vacía o solo espacios: nada', () => {
     expect(search('')).toEqual([]);
     expect(search('   ')).toEqual([]);
@@ -207,26 +338,37 @@ describe('reglas de la búsqueda', () => {
 describe('diccionario de sinónimos (search-synonyms.ts)', () => {
   const keys = SEARCH_SYNONYMS.flatMap(s => s.busca.map(norm));
 
-  it('entre 20 y 30 palabras, sin repetir', () => {
+  it('entre 20 y 40 palabras, sin repetir', () => {
+    // La auditoría pedía de 20 a 30; la revisión agregó «highbay», «tri proof», «cartel» y «regulable»
     expect(keys.length).toBeGreaterThanOrEqual(20);
-    expect(keys.length).toBeLessThanOrEqual(30);
+    expect(keys.length).toBeLessThanOrEqual(40);
     expect(new Set(keys).size).toBe(keys.length);
   });
 
-  it('cada «encuentra» da resultados y cada palabra trae al menos lo mismo', () => {
+  it('cada «encuentra» da resultados y cada palabra trae al menos lo mismo (en su categoría, si la tiene)', () => {
     for (const s of SEARCH_SYNONYMS) {
-      const target = search(s.encuentra);
-      expect(target.length, s.encuentra).toBeGreaterThan(0);
-      for (const key of s.busca) {
-        const r = ids(search(key));
-        for (const p of target) expect(r.has(p.id), `${key} → ${s.encuentra}: ${p.name}`).toBe(true);
+      for (const means of synonymTargets(s)) {
+        const target = search(means).filter(p => !s.categoria || p.categories.includes(s.categoria));
+        expect(target.length, means).toBeGreaterThan(0);
+        for (const key of s.busca) {
+          const r = ids(search(key));
+          for (const p of target) expect(r.has(p.id), `${key} → ${means}: ${p.name}`).toBe(true);
+        }
       }
     }
+  });
+
+  it('las categorías del diccionario existen', () => {
+    for (const s of SEARCH_SYNONYMS) if (s.categoria) expect(categories.some(c => c.id === s.categoria), s.categoria).toBe(true);
   });
 
   it('ninguna palabra del diccionario es genérica', () => {
     const generic = new Set(GENERIC_SEARCH_WORDS.map(norm));
     for (const key of keys) for (const w of searchWords(key)) expect(generic.has(w), key).toBe(false);
+  });
+
+  it('las palabras genéricas, en plural, tampoco filtran', () => {
+    for (const w of ['luminarias', 'lamparas', 'lámparas', 'luces', 'leds']) sameSet(search(`${w} solar`), search('solar'));
   });
 });
 
@@ -239,6 +381,12 @@ describe('sin resultados (B-04)', () => {
     expect(s.slice(0, 2)).toEqual(['proyector', 'proyector de estadio']);
     for (const q of s) expect(search(q).length, q).toBeGreaterThan(0);
     expect(new Set(s.map(q => [...ids(search(q))].sort().join('|'))).size).toBe(s.length);
+  });
+
+  it('las palabras sugeridas se muestran como las escribió el cliente, con sus tildes', () => {
+    expect(searchSuggestions(products, 'señalética xyzzy')[0]).toBe('señalética');
+    expect(searchSuggestions(products, 'proyector antivandálico xyzzy')).toContain('antivandálico');
+    expect(searchSuggestions(products, 'iluminación pública xyzzy')[0]).toBe('pública');
   });
 
   it('sin sinónimos, igual hay sugerencias (búsquedas populares) que dan resultados', () => {
@@ -259,5 +407,16 @@ describe('sin resultados (B-04)', () => {
   it('una consulta muy larga se corta en el correo', () => {
     const params = new URLSearchParams(searchRequestMailto('x'.repeat(500)).split('?')[1]);
     expect(params.get('subject')!.length).toBeLessThanOrEqual('Busco: '.length + 120);
+  });
+
+  it('un emoji justo en el corte no rompe el correo (ni la página)', () => {
+    for (const q of ['a'.repeat(119) + '😀 más', 'a'.repeat(120) + '😀', '😀'.repeat(200), 'galpón \uD83D suelto']) {
+      const href = searchRequestMailto(q);
+      const subject = new URLSearchParams(href.split('?')[1]).get('subject')!;
+      expect(subject.startsWith('Busco: ')).toBe(true);
+      expect([...subject.slice('Busco: '.length)].length).toBeLessThanOrEqual(120);
+    }
+    const subject = new URLSearchParams(searchRequestMailto('a'.repeat(119) + '😀 más').split('?')[1]).get('subject');
+    expect(subject).toBe(`Busco: ${'a'.repeat(119)}😀`);
   });
 });

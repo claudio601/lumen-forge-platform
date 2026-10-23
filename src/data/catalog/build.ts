@@ -164,7 +164,8 @@ export function skuOwners(snapshot: readonly SnapshotProduct[]): Map<string, Set
  * - SKU: el de Jumpseller; si no tiene, el legado; si no, el de su única variante,
  *   pero solo si ningún otro producto usa ese SKU (en Jumpseller hay SKUs repetidos).
  * - orden: el del catálogo legado ("Relevancia"); los productos nuevos van al final.
- * - variantes: con más de una, van todas (el cliente elige en la ficha); con una sola, su id.
+ * - variantes: con más de una, van todas (el cliente elige en la ficha); con una sola, su id y,
+ *   para la búsqueda, su SKU y sus opciones.
  * alsoReserved: ids que ya no están en siteIds pero nunca se reutilizan (los retirados).
  */
 export function baseFromSnapshot(
@@ -208,7 +209,9 @@ export function baseFromSnapshot(
       featured: s.featured,
       brand: s.brand ?? ov.brand ?? '',
       jumpseller_id: s.jumpseller_id,
-      ...(singleVariant ? { jumpseller_variant_id: singleVariant.id } : {}),
+      ...(singleVariant
+        ? { jumpseller_variant_id: singleVariant.id, singleVariant: { sku: singleVariant.sku, options: singleVariant.options } }
+        : {}),
       // Más de una variante: se elige en la ficha (precio, SKU y opciones de Jumpseller)
       ...(s.variants.length > 1 ? { variants: s.variants } : {}),
     };

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useLocation, Link } from 'react-router-dom';
 import { products, popularSearches, categories } from '@/data/products';
 import ProductCard from '@/components/catalog/ProductCard';
@@ -12,14 +12,15 @@ import { searchProducts, searchRequestMailto, searchSuggestions } from '@/lib/pr
 /**
  * Salida cuando la búsqueda no da resultados (auditoría UX, B-04): un correo prellenado a ventas,
  * la asesoría técnica y hasta 3 búsquedas que sí dan resultados (primero por sinónimo). Contacto
- * solo por correo: el WhatsApp prellenado queda para después de la marcha blanca del bot.
+ * solo por correo: el WhatsApp prellenado queda para después de la marcha blanca del bot. El
+ * «No encontramos productos para…» va en la región viva de la página (lo anuncia el lector de
+ * pantalla).
  */
 const NoResults = ({ query, onSearch }: { query: string; onSearch: (q: string) => void }) => {
   const suggestions = useMemo(() => searchSuggestions(products, query), [query]);
   const buttonClass = 'h-auto min-h-9 py-2 whitespace-normal text-left justify-start sm:justify-center';
   return (
-    <section aria-labelledby="no-results-title" className="max-w-2xl mx-auto py-8">
-      <p className="text-center text-sm text-muted-foreground mb-6">No encontramos productos para «{query.trim()}».</p>
+    <section aria-labelledby="no-results-title" className="max-w-2xl mx-auto pb-8">
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5">
         <h2 id="no-results-title" className="text-base md:text-lg font-semibold mb-2">¿No lo encuentras? Te lo buscamos</h2>
         <p className="text-sm text-muted-foreground leading-relaxed mb-3">
@@ -68,6 +69,12 @@ const SearchPage = () => {
   const [params] = useSearchParams();
   const initialQ = params.get('q') || '';
   const [query, setQuery] = useState(initialQ);
+  const inputRef = useRef<HTMLInputElement>(null);
+  /** Buscar desde un botón (sugerencia, búsqueda popular, borrar): el botón desaparece y el foco vuelve al campo. */
+  const searchFor = (q: string) => {
+    setQuery(q);
+    inputRef.current?.focus();
+  };
   // Cada búsqueda desde el header estando ya en /buscar es una navegación nueva
   // (location.key cambia aunque ?q sea el mismo): el campo vuelve a seguir a ?q.
   const { key: navKey } = useLocation();
@@ -76,6 +83,8 @@ const SearchPage = () => {
   // Búsqueda tolerante (auditoría UX, B-03): sin tildes, por palabras, con los SKU de las
   // variantes y sinónimos de obra (src/lib/productSearch.ts).
   const results = useMemo(() => searchProducts(products, query), [query]);
+  const shown = query.trim();
+  const n = results.length;
 
   return (
     <div className="container py-8">
@@ -85,7 +94,9 @@ const SearchPage = () => {
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <input
+            ref={inputRef}
             type="text"
+            aria-label="Buscar productos"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Buscar por SKU, producto, watts, kelvin, IP..."
@@ -93,14 +104,23 @@ const SearchPage = () => {
             autoFocus
           />
           {query && (
-            <button className="absolute right-4 top-1/2 -translate-y-1/2" onClick={() => setQuery('')}>
-              <X className="h-5 w-5 text-muted-foreground" />
+            <button type="button" aria-label="Borrar búsqueda" className="absolute right-4 top-1/2 -translate-y-1/2" onClick={() => searchFor('')}>
+              <X className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             </button>
           )}
         </div>
       </div>
 
-      {!query.trim() ? (
+      {/* Una sola región viva para el resultado de la búsqueda (se actualiza al escribir) */}
+      <p
+        role="status"
+        aria-live="polite"
+        className={!shown ? 'sr-only' : n > 0 ? 'text-sm text-muted-foreground mb-4' : 'max-w-2xl mx-auto pt-8 mb-6 text-center text-sm text-muted-foreground'}
+      >
+        {!shown ? '' : n > 0 ? `${n} resultado${n !== 1 ? 's' : ''} para «${shown}»` : `No encontramos productos para «${shown}».`}
+      </p>
+
+      {!shown ? (
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-1.5">
@@ -110,7 +130,8 @@ const SearchPage = () => {
               {popularSearches.map(s => (
                 <button
                   key={s}
-                  onClick={() => setQuery(s)}
+                  type="button"
+                  onClick={() => searchFor(s)}
                   className="text-sm border rounded-full px-3 py-1.5 hover:border-primary/40 hover:text-primary transition-colors"
                 >
                   {s}
@@ -129,17 +150,12 @@ const SearchPage = () => {
             </div>
           </div>
         </div>
-      ) : results.length > 0 ? (
-        <>
-          <p className="text-sm text-muted-foreground mb-4">
-            {results.length} resultado{results.length !== 1 ? 's' : ''} para «{query.trim()}»
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {results.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        </>
+      ) : n > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {results.map(p => <ProductCard key={p.id} product={p} />)}
+        </div>
       ) : (
-        <NoResults query={query} onSearch={setQuery} />
+        <NoResults query={query} onSearch={searchFor} />
       )}
     </div>
   );

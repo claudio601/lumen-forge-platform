@@ -29,20 +29,41 @@ function renderAt(url: string) {
 }
 
 const NONSENSE = 'palabraquenoexiste';
+/** El SKU de una variante real (no fijo: la prueba no depende de que una variante siga en Jumpseller). */
+const VARIANT_SKU = products.flatMap(p => (p.variants ?? []).map(v => v.sku)).find(Boolean)!;
 
 describe('/buscar: búsqueda tolerante (B-03)', () => {
   beforeEach(() => sessionStorage.clear());
 
-  it.each(['reflector', 'luminaria vial', 'alumbrado publico', 'galpon', 'cancha', '2700K', 'IP 65', 'APB601', 'proyectr'])(
+  it('hay variantes con SKU para probar', () => expect(VARIANT_SKU).toBeTruthy());
+
+  it.each(['reflector', 'luminaria vial', 'alumbrado publico', 'galpon', 'cancha', '2700K', 'IP 65', VARIANT_SKU, 'proyectr'])(
     '«%s» muestra resultados',
     q => {
       const expected = searchProducts(products, q).length;
       expect(expected).toBeGreaterThan(0);
       renderAt(`/buscar?q=${encodeURIComponent(q)}`);
-      expect(screen.getByText(`${expected} resultado${expected === 1 ? '' : 's'} para «${q}»`)).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(`${expected} resultado${expected === 1 ? '' : 's'} para «${q}»`);
       expect(screen.queryByRole('heading', { name: '¿No lo encuentras? Te lo buscamos' })).toBeNull();
     },
   );
+});
+
+describe('/buscar: accesibilidad', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it('el campo y el botón para borrar tienen nombre; una sola región viva, vacía sin búsqueda', () => {
+    renderAt('/buscar');
+    expect(screen.getByRole('textbox', { name: 'Buscar productos' })).toBeInTheDocument();
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar productos' }), { target: { value: NONSENSE } });
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent(`No encontramos productos para «${NONSENSE}».`);
+    fireEvent.click(screen.getByRole('button', { name: 'Borrar búsqueda' }));
+    expect(screen.getByRole('textbox', { name: 'Buscar productos' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Buscar productos' })).toHaveFocus();
+  });
 });
 
 describe('/buscar: sin resultados (B-04)', () => {
@@ -77,13 +98,27 @@ describe('/buscar: sin resultados (B-04)', () => {
     expect(screen.getByRole('region', { name: '¿No lo encuentras? Te lo buscamos' })).toBeInTheDocument();
   });
 
-  it('una sugerencia busca al hacer clic', () => {
+  it('una sugerencia busca al hacer clic, y el foco vuelve al campo', () => {
     renderAt(`/buscar?q=${encodeURIComponent(`cancha ${NONSENSE}`)}`);
     const section = screen.getByRole('region', { name: '¿No lo encuentras? Te lo buscamos' });
     const chip = within(section).getByRole('button', { name: 'proyector de estadio' });
     fireEvent.click(chip);
     const expected = searchProducts(products, 'proyector de estadio').length;
-    expect(screen.getByText(`${expected} resultado${expected === 1 ? '' : 's'} para «proyector de estadio»`)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(`${expected} resultado${expected === 1 ? '' : 's'} para «proyector de estadio»`);
     expect(screen.getByDisplayValue('proyector de estadio')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Buscar productos' })).toHaveFocus();
+  });
+
+  it('las sugerencias conservan las tildes de lo que escribió el cliente', () => {
+    renderAt(`/buscar?q=${encodeURIComponent('señalética xyzzy')}`);
+    const section = screen.getByRole('region', { name: '¿No lo encuentras? Te lo buscamos' });
+    expect(within(section).getAllByRole('button')[0]).toHaveTextContent('señalética');
+  });
+
+  it('un emoji en el corte del correo no deja la página en blanco', () => {
+    const q = 'a'.repeat(119) + '😀';
+    renderAt(`/buscar?q=${encodeURIComponent(q)}`);
+    const section = screen.getByRole('region', { name: '¿No lo encuentras? Te lo buscamos' });
+    expect(within(section).getByRole('link', { name: /ventas@elights\.cl/ }).getAttribute('href')).toMatch(/^mailto:ventas@elights\.cl\?/);
   });
 });
