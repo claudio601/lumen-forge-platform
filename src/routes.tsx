@@ -55,6 +55,9 @@ const pages = {
   DespachoPage: lazyPage('DespachoPage', () => import('./pages/DespachoPage')),
   MediosPagoPage: lazyPage('MediosPagoPage', () => import('./pages/MediosPagoPage')),
   PrivacidadPage: lazyPage('PrivacidadPage', () => import('./pages/PrivacidadPage')),
+  // Guías (plan del blog, §5.2)
+  GuidesIndexPage: lazyPage('GuidesIndexPage', () => import('./pages/GuidesIndexPage')),
+  GuidePage: lazyPage('GuidePage', () => import('./pages/GuidePage')),
   NotFound: lazyPage('NotFound', () => import('./pages/NotFound')),
 };
 
@@ -74,6 +77,20 @@ function ProductRoute() {
   const current = id ? RENAMED_FROM.get(id) : undefined;
   if (current) return <Navigate to={`/producto/${current}${search}${hash}`} replace />;
   return <pages.ProductDetail key={id} />;
+}
+
+/** Una guía se remonta al cambiar de slug (su índice y sus anclas son de cada guía). */
+function GuideRoute() {
+  const { slug } = useParams();
+  return <pages.GuidePage key={slug} />;
+}
+
+/** Cuerpo de la guía (un trozo por guía). Devuelve el archivo precargado; un slug desconocido, nada. */
+async function preloadGuide({ slug }: Params): Promise<string[]> {
+  const { guideContentFile, hasGuideContent, loadGuideContent } = await import('./data/guides/content');
+  if (!slug || !hasGuideContent(slug)) return [];
+  await loadGuideContent(slug);
+  return [guideContentFile(slug)];
 }
 
 /** Contenido SEO de la ficha (un trozo por producto). Devuelve el archivo precargado. */
@@ -117,6 +134,8 @@ const appRoutes: AppRoute[] = [
   { path: '/despacho', element: <pages.DespachoPage />, page: pages.DespachoPage },
   { path: '/medios-de-pago', element: <pages.MediosPagoPage />, page: pages.MediosPagoPage },
   { path: '/politica-de-privacidad', element: <pages.PrivacidadPage />, page: pages.PrivacidadPage },
+  { path: '/guias', element: <pages.GuidesIndexPage />, page: pages.GuidesIndexPage },
+  { path: '/guias/:slug', element: <GuideRoute />, page: pages.GuidePage, preload: preloadGuide },
   { path: '*', element: <pages.NotFound />, page: pages.NotFound },
 ];
 

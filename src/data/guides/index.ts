@@ -29,7 +29,26 @@ export const GUIDE_AUTHORS: Readonly<Record<GuideAuthorKey, GuideAuthor>> = {
 };
 
 /** Las guías publicadas, en orden de publicación. */
-export const GUIDES: readonly GuideMeta[] = [];
+export const GUIDES: readonly GuideMeta[] = [
+  {
+    // G1, el pilar de la norma lumínica. Texto aprobado por el dueño el 23-10-2026 (v2).
+    slug: 'norma-luminica-ds-1-2022',
+    h1: 'Norma lumínica (D.S. N°1/2022): qué revisar en un proyecto de alumbrado exterior',
+    metaTitle: 'Norma lumínica D.S. N°1/2022: qué revisar al cotizar',
+    metaDescription:
+      'Desde cuándo se exige la norma lumínica, qué pide según el tipo de alumbrado y qué revisar antes de cotizar luminarias para un proyecto exterior.',
+    pillar: 'norma-luminica',
+    isPillar: true,
+    target: 'norma lumínica',
+    intent: 'normativa',
+    datePublished: '2026-10-23T00:00:00-03:00',
+    dateModified: '2026-10-23T00:00:00-03:00',
+    publishedLabel: '23-10-2026',
+    author: 'claudio-quero',
+    // Publicada sin indexar hasta el OK del dueño (plan §2.2, decisión 16)
+    index: false,
+  },
+];
 
 /** La ficha de una guía publicada, o undefined. */
 export const guideMeta = (slug: string): GuideMeta | undefined => GUIDES.find(g => g.slug === slug);

@@ -20,6 +20,10 @@
 // src/data/catalog/ds1.ts); y el aviso del hero y el bloque de /catalogo/alumbrado-publico se
 // ven como se aprobaron.
 //
+// Guías (plan del blog, §5.6): src/data/guides entra en la revisión del código y cada guía
+// publicada (también las sin indexar) en la del HTML. La lista de frases retiradas vive en
+// src/test/retired.ts, compartida con src/data/guides/guides.test.ts.
+//
 // Fuera de aquí: el contenido SEO por producto (src/data/catalog/content/*.json) todavía
 // promete flota propia en 116 fichas. Se corrige en la PR 11b, con su regla en
 // scripts/content/check.ts.
@@ -30,7 +34,7 @@ import { renderToString } from 'react-dom/server';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { serverTree } from '@/entry-server';
 import { preloadRoute } from '@/routes';
-import { STATIC_ROUTES, categoryPath, productPath } from '@/lib/seo/routes';
+import { STATIC_ROUTES, categoryPath, noindexGuideRoutes, prerenderedRoutes, productPath } from '@/lib/seo/routes';
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { productDescriptions } from '@/data/catalog/descriptions.generated';
@@ -67,75 +71,36 @@ import {
 import { BESTLED_60W_ID, CATEGORY_INTROS, DS1_BUTTON_PRODUCTS, type CategoryIntro } from '@/data/catalog/category-intros';
 import type { ProductContent } from '@/data/catalog/types';
 import { claimIssues, freeShippingIssues, handWrittenFreeShippingAmount } from '@/test/freeShipping';
+import { retiredIn } from '@/test/retired';
 
-interface Retired {
-  re: RegExp;
-  why: string;
-  /** Solo en el código: en el HTML chocaría con precios del catálogo ("$250.990", "$120.000"). */
-  sourceOnly?: true;
-}
-
-/** Frases retiradas. Todas están en origin/main b110116 (antes de la PR 11). */
-const RETIRED: Retired[] = [
-  { re: /\+8 años/i, why: 'años en el mercado sin confirmar' },
-  { re: /100\+/, why: 'cantidad de proyectos sin confirmar' },
-  { re: /gratis|gratuit/i, why: 'envío o servicio gratis sin confirmar (DIALux: sin promesa de precio)' },
-  // El monto existe (PR 12b), pero escrito a mano se desfasa de la constante: solo FREE_SHIPPING_THRESHOLD_CLP + clp()
-  { re: /\$\s?250|250\.000/, why: 'monto del despacho sin costo escrito a mano (usar FREE_SHIPPING_THRESHOLD_CLP)', sourceOnly: true },
-  { re: /santiago urbano|[aá]rea urbana/i, why: 'la zona del despacho sin costo es FREE_SHIPPING_AREA (Provincia de Santiago)' },
-  { re: /no tenemos[^.]{0,60}retiro|retiro en oficina/i, why: 'sí hay retiro en bodega (PICKUP_PLACE)' },
-  { re: /20\.000/, why: 'precio de la visita técnica sin confirmar', sourceOnly: true },
-  { re: /descontable|no se descuenta/i, why: 'promesa sobre el precio de la visita o del estudio' },
-  { re: /pr[oó]ximamente/i, why: 'anuncia funciones que no existen' },
-  { re: /24-48|menos de 24 ?h(?:oras|rs?)?\b|(?:<|&lt;)\s?24 ?h|en 24 ?h(?:oras|rs?)?\b|24 ?h(?:oras|rs?)?\.? h[aá]biles/i, why: 'plazo de respuesta sin confirmar' },
-  { re: /cotizaci[oó]n r[aá]pida/i, why: 'rapidez de respuesta sin confirmar' },
-  { re: /9:00-18:00/, why: 'horario antiguo (usar businessHours)' },
-  { re: /reposici[oó]n continua|prioridad en disponibilidad|reserva de productos/i, why: 'promesa implícita de stock' },
-  { re: /precios especiales|tarifas especiales/i, why: 'precios especiales sin confirmar' },
-  { re: /descuentos? por (?:proyecto|volumen)/i, why: 'descuentos por proyecto o volumen sin confirmar' },
-  { re: /mi cuenta/i, why: 'no hay login (Fase 3)' },
-  {
-    re: /certificados SEC|SEC\s*Certificados|t[eé]cnicos? certificados?|electricistas certificados|instalador(?:es)? certificad[oa]s?|certificaci[oó]n de (?:la )?instalaci[oó]n/i,
-    why: 'credenciales del equipo sin verificar (la declaración ante la SEC exige instalador autorizado)',
-  },
-  { re: /value: ['"]SEC['"]/, why: 'cifra "SEC / Certificados" del hero de /instalacion', sourceOnly: true },
-  { re: /garantizad[oa]/i, why: '"garantizado" sin explicar la garantía (Ley 19.496, art. 33)' },
-  { re: /productos certificados|certificaci[oó]n SEC, DS1, CE, IEC/i, why: 'una sola certificación para todo el catálogo' },
-  // "12 meses" solo como garantía: la Política de privacidad dice que la decisión de cookies dura 12 meses (PR 13)
-  {
-    re: /garant[ií]a de f[aá]brica|garant[ií]a (?:base )?(?:de )?(?:1 año|12 meses)|12 meses(?: de)? garant[ií]a|'12 meses', label: 'Garant[ií]a'/i,
-    why: 'una sola garantía para todo el catálogo',
-  },
-  { re: /camiones propios|flota propia|reparto propio|nuestros camiones|propios camiones|camiones de eLIGHTS/i, why: 'flota propia sin confirmar' },
-  { re: /post-venta incluida|soporte t[eé]cnico incluido|certificados CE\/IEC|primer mes|letra chica|todo tipo de instalaciones/i, why: 'promesa general sin respaldo' },
-  { re: /experiencia en (?:recintos|todo tipo)|nuestro ingeniero/i, why: 'experiencia o equipo sin respaldo' },
-  { re: /aproximadamente 20|~20 p/i, why: 'extensión del informe DIALux sin confirmar' },
-  { re: /cotizador inteligente/i, why: 'el formulario es simple' },
-];
-
-/** Código con textos para el visitante (sin tests) y las fichas editoriales BESTLED. */
+/**
+ * Código con textos para el visitante (sin tests), las fichas editoriales BESTLED y las guías
+ * (plan del blog, §5.6: src/data/guides; la frase retirada se busca línea por línea).
+ */
 const SOURCES = import.meta.glob<string>(
   [
     '/src/components/**/*.{ts,tsx}',
     '/src/pages/**/*.{ts,tsx}',
     '/src/config/**/*.{ts,tsx}',
     '/src/data/catalog/overlay/editorial.ts',
+    '/src/data/guides/**/*.ts',
     '!**/*.test.*',
   ],
   { query: '?raw', import: 'default', eager: true },
 );
 
-function retiredIn(text: string, onlyRendered = false): string[] {
-  return RETIRED.filter(r => !(onlyRendered && r.sourceOnly)).flatMap(({ re, why }) => {
-    const m = text.match(re);
-    return m ? [`"${m[0]}" (${why})`] : [];
-  });
-}
-
 describe('textos sin respaldo: el código', () => {
   it('revisa los componentes, las páginas, la configuración y las fichas BESTLED', () => {
     const files = Object.keys(SOURCES);
-    for (const f of ['/src/components/home/TrustBar.tsx', '/src/components/layout/Footer.tsx', '/src/pages/InstallerAreaPage.tsx', '/src/config/business.ts', '/src/data/catalog/overlay/editorial.ts']) {
+    for (const f of [
+      '/src/components/home/TrustBar.tsx',
+      '/src/components/layout/Footer.tsx',
+      '/src/pages/InstallerAreaPage.tsx',
+      '/src/config/business.ts',
+      '/src/data/catalog/overlay/editorial.ts',
+      '/src/data/guides/content/norma-luminica-ds-1-2022.ts',
+      '/src/pages/GuidePage.tsx',
+    ]) {
       expect(files).toContain(f);
     }
     expect(files.some(f => f.includes('.test.'))).toBe(false);
@@ -221,10 +186,15 @@ const oneYear = fromJumpseller.find(p => warrantyRow(p) === '1 año')!;
 const projectProduct = fromJumpseller.find(p => p.categories.some(c => PROJECT_CATEGORIES.includes(c)))!;
 
 describe('textos sin respaldo: el HTML de las páginas', () => {
-  // Páginas fijas y una ficha BESTLED: todo su texto sale del código y de editorial.ts.
-  // Las demás fichas también muestran el contenido SEO por producto (PR 11b) y la garantía
-  // propia de cada producto, así que ahí solo se revisa lo que pone el sitio.
-  for (const path of [...STATIC_ROUTES, productPath(bestled.id)]) {
+  // Páginas fijas, una ficha BESTLED y las guías: todo su texto sale del código, de editorial.ts
+  // y de src/data/guides. Las demás fichas también muestran el contenido SEO por producto (PR 11b)
+  // y la garantía propia de cada producto, así que ahí solo se revisa lo que pone el sitio.
+  const guideRoutes = prerenderedRoutes().filter(r => r.startsWith('/guias/'));
+  it('las guías publicadas (también las sin indexar) entran en esta revisión', () => {
+    expect(guideRoutes.length).toBeGreaterThan(0);
+    for (const r of noindexGuideRoutes()) expect(guideRoutes).toContain(r);
+  });
+  for (const path of [...STATIC_ROUTES, productPath(bestled.id), ...guideRoutes]) {
     it(`${path}: sin frases retiradas (texto y atributos)`, async () => {
       const { html } = await page(path);
       expect(retiredIn(html, true)).toEqual([]);
@@ -267,7 +237,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
   // Toda oferta de despacho sin costo: el monto de la constante con "sobre" o "mayor a", la zona
   // de la constante y ninguna otra (src/test/freeShipping.ts). También en las fichas (una BESTLED
   // y una de Jumpseller) y en una categoría: ahí se agregaría una promesa junto al precio.
-  for (const path of [...STATIC_ROUTES, productPath(bestled.id), productPath(withoutDatasheet.id), categoryPath(bestled.categories[0])]) {
+  for (const path of [...STATIC_ROUTES, productPath(bestled.id), productPath(withoutDatasheet.id), categoryPath(bestled.categories[0]), ...guideRoutes]) {
     it(`${path}: el despacho sin costo solo con el monto y la zona de business.ts`, async () => {
       const { root } = await page(path);
       const { claims, issues } = freeShippingIssues(root);

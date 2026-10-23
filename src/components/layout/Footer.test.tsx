@@ -32,9 +32,11 @@ describe('pie de página', () => {
     const help = within(footer).getByRole('navigation', { name: 'Ayuda' });
     expect(within(help).getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(LEGAL_PAGES.filter(p => p.path !== '/empresa').map(p => p.path));
     const company = within(footer).getByRole('navigation', { name: 'Empresa' });
-    expect(within(company).getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(['/empresa', '/cotizacion', '/estudio-luminico', '/instaladores', '/cotizador']);
+    expect(within(company).getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(['/empresa', '/cotizacion', '/estudio-luminico', '/instaladores', '/cotizador', '/guias']);
     // «Asesoría técnica» (auditoría UX, E-02): al estudio lumínico mientras no exista /asesoria
     expect(within(company).getByRole('link', { name: 'Asesoría técnica' })).toHaveAttribute('href', '/estudio-luminico');
+    // Guías (plan del blog, §5.4): el índice /guias, desde la primera guía publicada
+    expect(within(company).getByRole('link', { name: 'Guías' })).toHaveAttribute('href', '/guias');
   });
 
   it('«Configurar cookies» (PR 13): un botón al final de "Ayuda", estático, que abre el diálogo de cookies', () => {

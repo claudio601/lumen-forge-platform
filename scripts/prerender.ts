@@ -1,6 +1,7 @@
 // scripts/prerender.ts
-// Páginas estáticas (Etapa 2, PR 04): escribe el HTML completo de cada página indexable
-// en dist/<ruta>/index.html, para que Google y las vistas previas de enlaces (WhatsApp,
+// Páginas estáticas (Etapa 2, PR 04): escribe el HTML completo de cada página indexable, y de
+// cada guía «publicada sin indexar» (noindex en su HTML; plan del blog, §5.2), en
+// dist/<ruta>/index.html, para que Google y las vistas previas de enlaces (WhatsApp,
 // Facebook) lean el título, la descripción, el JSON-LD y el contenido sin ejecutar JS.
 // El navegador "hidrata" ese HTML (src/main.tsx).
 //
@@ -37,7 +38,8 @@ export type Manifest = Record<string, ManifestChunk>;
 
 interface ServerEntry {
   render(url: string): Promise<{ html: string; head: string; files: string[] }>;
-  indexableRoutes(): string[];
+  /** Las indexables y las guías sin indexar (src/lib/seo/routes.ts). */
+  prerenderedRoutes(): string[];
   SPA_HEAD: string;
 }
 
@@ -120,7 +122,7 @@ async function main() {
   const template = readFileSync(templatePath, 'utf8');
   if (!template.includes(HTML_MARK)) throw new Error('dist/index.html ya es una página generada: vuelve a correr `vite build`');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Manifest;
-  const { render, indexableRoutes, SPA_HEAD } = (await import(pathToFileURL(ssrEntry).href)) as ServerEntry;
+  const { render, prerenderedRoutes, SPA_HEAD } = (await import(pathToFileURL(ssrEntry).href)) as ServerEntry;
 
   const write = (file: string, content: string) => {
     const path = join(dist, file);
@@ -136,7 +138,7 @@ async function main() {
   // spa.html antes que nada: index.html se sobrescribe con la portada.
   write('spa.html', fillTemplate(template, SPA_HEAD, ''));
   write('404.html', markNotFound(await page(NOT_FOUND_URL)));
-  const routes = indexableRoutes();
+  const routes = prerenderedRoutes();
   for (const route of routes) {
     try {
       write(outputPath(route), await page(route));
