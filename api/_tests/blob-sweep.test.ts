@@ -328,14 +328,14 @@ describe('GET /api/cron/blob-sweep', () => {
     expect(del).not.toHaveBeenCalled();
   });
 
-  it('al llegar al techo (unos 8 GB guardados) avisa a ventas; el permiso lo lee de Redis', async () => {
+  it('al llegar al techo (700 MB guardados) avisa a ventas; el permiso lo lee de Redis', async () => {
     files = [blob(2, { size: STORED_CEILING_BYTES - MB }), blob(3, { size: MB }), blob(30, { size: 5 * MB })];
     const res = await call();
     expect(res.body).toMatchObject({ ceilingReached: true, storedBytes: STORED_CEILING_BYTES });
     expect(fake.value(STORED_BYTES_KEY)).toBe(STORED_CEILING_BYTES);
     expect(fake.mails).toHaveLength(1);
     const [mail] = fake.mails;
-    expect(mail.items_lista).toContain('ALERTA: el almacenamiento temporal de archivos del cotizador tiene 8 GB (techo: 8 GB).');
+    expect(mail.items_lista).toContain('ALERTA: el almacenamiento temporal de archivos del cotizador tiene 700 MB (techo: 700 MB).');
     expect(mail.items_lista).toContain('el sitio no recibe archivos adjuntos');
     expect(mail.items_lista).toContain('ventas@elights.cl');
     expect(mail.items_lista).not.toMatch(/whatsapp|\+56/i);

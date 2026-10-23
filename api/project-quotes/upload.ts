@@ -22,7 +22,7 @@
 //      el tipo exacto de la extensión y como máximo el peso que declaró el navegador en
 //      clientPayload ({"size": n}, nunca más de 20 MB); sin multipart: 400.
 //   5. Sin almacén Blob configurado: 503 'unavailable' (el formulario sigue sin archivos).
-//   6. Topes del sitio (D2, quota.ts): techo de lo guardado en Blob y 200 archivos / 1 GB
+//   6. Topes del sitio (D2, quota.ts): techo de lo guardado en Blob (700 MB) y 50 archivos / 300 MB
 //      por día: 429 'daily_limit'. Redis caído: 503 'unavailable'. En producción, sin el
 //      total que deja el barrido diario (no corrió en 3 días: falta CRON_SECRET, está mal o
 //      el cron está apagado): 503 'unavailable', y un aviso a ventas una vez al día. Así

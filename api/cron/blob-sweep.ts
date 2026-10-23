@@ -16,7 +16,7 @@
 //      huérfano vive menos de 48 h. Un pendiente que llega a esa edad sin reintento se borra
 //      igual y la nota del negocio lo dice (D3).
 //   3. Suma lo que queda, más lo que no se pudo borrar, y lo deja en Redis
-//      (STORED_BYTES_KEY). Es el techo del permiso de subida (unos 8 GB) y su señal de que
+//      (STORED_BYTES_KEY). Es el techo del permiso de subida (700 MB) y su señal de que
 //      el barrido corre (en producción, sin esa clave no hay permisos).
 //   4. Reintenta los pendientes de 1 h a 23 h (la función de create.ts se cortó): hasta 3, y
 //      cada uno solo si quedan 30 s; cada paso recibe lo que queda hasta el plazo (60 s del
@@ -69,8 +69,8 @@ const DELETE_BATCH = 100;
 
 const SITE_HOST = new URL(SITE_URL).host;
 
-/** «8,1 GB» */
-const gb = (bytes: number) => String(Math.round((bytes / 1024 ** 3) * 10) / 10).replace('.', ',') + ' GB';
+/** «700 MB» */
+const gb = (bytes: number) => Math.round(bytes / 1024 ** 2).toLocaleString('es-CL') + ' MB';
 
 /** Nombre con que el reintento sube el archivo: «archivo-1a2b3c4d.dwg». */
 export const retryFileName = (pathname: string, ext: AttachmentExt) =>

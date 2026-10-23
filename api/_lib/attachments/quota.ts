@@ -1,10 +1,11 @@
 // api/_lib/attachments/quota.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Topes de los adjuntos del cotizador (decisión D2 del dueño, 22-10-2026), con contadores
+// Topes de los adjuntos del cotizador (decisión D2 del dueño, ajustada el 23-10-2026 para quedar
+// dentro de lo que incluye Blob en Hobby: 1 GB-mes y 2.000 operaciones avanzadas), con contadores
 // en Upstash Redis que no guardan datos personales:
-//   - por día (hora de Chile), para todo el sitio: 200 archivos y 1 GB declarados en los
+//   - por día (hora de Chile), para todo el sitio: 50 archivos y 300 MB declarados en los
 //     permisos de subida;
-//   - techo de lo guardado en Blob (unos 8 GB): el barrido diario (api/cron/blob-sweep.ts)
+//   - techo de lo guardado en Blob (700 MB): el barrido diario (api/cron/blob-sweep.ts)
 //     suma lo que queda (también lo que no pudo borrar) y lo deja en Redis; el permiso lo
 //     revisa. Al llegar al techo no se entregan permisos (el formulario sigue sin adjuntos,
 //     con el mensaje del tope) y el barrido avisa a ventas.
@@ -23,9 +24,9 @@
 
 import { incrementCounter, readCounter, readCounters, setCounterIfAbsent, writeCounter } from '../idempotency/redis.js';
 
-export const DAILY_MAX_FILES = 200;
-export const DAILY_MAX_BYTES = 1024 * 1024 * 1024; // 1 GB
-export const STORED_CEILING_BYTES = 8 * 1024 * 1024 * 1024; // 8 GB
+export const DAILY_MAX_FILES = 50;
+export const DAILY_MAX_BYTES = 300 * 1024 * 1024; // 300 MB
+export const STORED_CEILING_BYTES = 700 * 1024 * 1024; // 700 MB
 
 const DAY_TTL_S = 2 * 24 * 3600;
 /** El total lo reescribe el barrido cada día; si el barrido deja de correr, vence. */

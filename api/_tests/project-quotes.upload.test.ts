@@ -1,7 +1,7 @@
 // api/_tests/project-quotes.upload.test.ts
 // Permiso de subida de los adjuntos del cotizador (POST /api/project-quotes/upload): método,
 // origen en producción, ruta, tipo según la extensión, peso declarado, vencimiento a 10
-// minutos, 15 por IP por hora, topes del sitio (D2: 200 archivos y 1 GB al día, techo de lo
+// minutos, 15 por IP por hora, topes del sitio (D2: 50 archivos y 300 MB al día, techo de lo
 // guardado en Blob), la señal de vida del barrido en producción y Redis caído. El SDK de Blob está simulado y Redis es un Upstash falso en
 // memoria (fetch simulado): no sale nada a Vercel ni a Upstash. Vive en api/_tests/ para que
 // Vercel no lo despliegue como función.
@@ -253,7 +253,7 @@ describe('POST /api/project-quotes/upload', () => {
     expect(handleUploadPresigned).toHaveBeenCalledTimes(1);
   });
 
-  it('tope diario de 1 GB declarado: 429 daily_limit', async () => {
+  it('tope diario de 300 MB declarado: 429 daily_limit', async () => {
     redis.set(dayKeys().bytes, { value: String(DAILY_MAX_BYTES - MB) });
     expect((await call(permit({ size: MB }))).statusCode).toBe(200);
     const res = await call(permit({ size: 1 }));
@@ -261,8 +261,8 @@ describe('POST /api/project-quotes/upload', () => {
     expect(codeOf(res)).toBe('daily_limit');
   });
 
-  it('techo de lo guardado en Blob (unos 8 GB): no hay permiso y no se suma nada', async () => {
-    expect(STORED_CEILING_BYTES).toBe(8 * 1024 ** 3);
+  it('techo de lo guardado en Blob (700 MB): no hay permiso y no se suma nada', async () => {
+    expect(STORED_CEILING_BYTES).toBe(700 * 1024 ** 2);
     redis.set(STORED_BYTES_KEY, { value: String(STORED_CEILING_BYTES) });
     const res = await call(permit());
     expect(res.statusCode).toBe(429);
