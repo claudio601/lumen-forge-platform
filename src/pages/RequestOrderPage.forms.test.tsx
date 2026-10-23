@@ -6,10 +6,11 @@
 //   rechazado por el servidor y el RUT (opcional) con su dígito verificador.
 // - F-03: la confirmación con el plazo (por correo, el mismo día hábil), los 3 pasos, "Revisa
 //   tu correo" e "Imprimir o guardar resumen", sin WhatsApp ni llamadas.
+// «Recordar mis datos en este dispositivo» (especificación del 23-10-2026, §5): al final.
 // Datos de prueba inventados (RUT del rango 44 millones, sin asignar; correos example.com).
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider, useApp } from '@/context/AppContext';
@@ -19,6 +20,18 @@ import { products } from '@/data/products';
 import { formatCLP, netOfGross } from '@/lib/requestOrder';
 import { FIELD_MESSAGES } from '@/lib/formValidation';
 import { businessHoursLong, contactEmail, responseTimePromise } from '@/config/business';
+import { REMEMBER_TEXTS } from '@/components/forms/RememberContact';
+import {
+  FIXED_NOW,
+  TEST_RUT,
+  expectFreshBox,
+  expectNothingElseStored,
+  expectSavedBox,
+  rememberBox,
+  rememberStatus,
+  seedSaved,
+  storedContact,
+} from '@/test/rememberContact';
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn() }));
@@ -349,5 +362,155 @@ describe('/solicitar-pedido: plazo y confirmación (F-03)', () => {
     expect(text).not.toMatch(NO_OTHER_CHANNEL);
     expect(text).not.toMatch(/copia/i);
     expect(page.querySelector('a[href*="wa.me"], a[href^="tel:"]')).toBeNull();
+  });
+});
+
+describe('/solicitar-pedido: recordar mis datos', () => {
+  const CONTACT = { nombre: 'PRUEBA Pedido (rec) - borrar', email: 'prueba-recordar-pedido@example.com', telefono: '+56 9 0000 0935' };
+  const EMPRESA = 'PRUEBA Pedido SpA (no procesar)';
+  const NOTAS = 'PRUEBA notas del pedido - borrar';
+  const field = (label: RegExp) => screen.getByLabelText(label) as HTMLInputElement;
+  const bodies = () => (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit][]).map(([, init]) => JSON.parse(init.body as string));
+  const fails = (status: number) => vi.fn(async () => ({ ok: false, status, json: async () => ({ success: false }) }));
+  const trap = () => vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true }) }));
+
+  function fillAll({ empresa = true } = {}) {
+    type(/Nombre completo/, CONTACT.nombre);
+    type(/Correo electrónico/, CONTACT.email);
+    type(/Teléfono/, CONTACT.telefono);
+    if (empresa) {
+      fireEvent.change(screen.getByLabelText(/Tipo de cliente/), { target: { value: 'empresa' } });
+      type(/Nombre de empresa/, EMPRESA);
+      type(/RUT empresa/, TEST_RUT);
+    }
+    type(/Comuna/, 'Maipú');
+    fireEvent.change(screen.getByLabelText(/Región/), { target: { value: 'Valparaiso' } });
+  }
+
+  beforeEach(() => localStorage.clear());
+  afterEach(() => { localStorage.clear(); vi.useRealTimers(); });
+
+  it('sin datos guardados, la casilla empieza desmarcada, después de la región y antes de las notas', async () => {
+    await renderPage({ mixed: false });
+    expectFreshBox();
+    const box = rememberBox();
+    expect(field(/Región/).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(box.compareDocumentPosition(field(/Notas adicionales/)) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(box.compareDocumentPosition(privacyBox()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('comuna y región con su autocompletado del navegador', async () => {
+    await renderPage({ mixed: false });
+    expect(field(/Comuna/)).toHaveAttribute('autocomplete', 'address-level2');
+    expect(field(/Región/)).toHaveAttribute('autocomplete', 'address-level1');
+  });
+
+  it('con datos, completa los vacíos, y la región y el tipo que estaban en su valor inicial', async () => {
+    seedSaved({ ...CONTACT, tipoCliente: 'empresa', empresa: EMPRESA, giro: 'Prueba', rut: '444444444', comuna: 'Maipú', region: 'Valparaiso' });
+    await renderPage({ mixed: false });
+    await waitFor(() => expect(field(/Nombre completo/).value).toBe(CONTACT.nombre));
+    expect(field(/Correo electrónico/).value).toBe(CONTACT.email);
+    expect(field(/Teléfono/).value).toBe(CONTACT.telefono);
+    expect(field(/Tipo de cliente/).value).toBe('empresa');
+    expect(field(/Nombre de empresa/).value).toBe(EMPRESA);
+    expect(field(/RUT empresa/).value).toBe(TEST_RUT);
+    expect(field(/Comuna/).value).toBe('Maipú');
+    expect(field(/Región/).value).toBe('Valparaiso');
+    expectSavedBox();
+  });
+
+  it('desmarcar borra al instante sin vaciar los campos', async () => {
+    seedSaved({ ...CONTACT, tipoCliente: 'persona', comuna: 'Maipú', region: 'Valparaiso' });
+    await renderPage({ mixed: false });
+    await waitFor(() => expect(rememberBox().checked).toBe(true));
+    fireEvent.click(rememberBox());
+    expect(storedContact()).toBeNull();
+    expect(rememberStatus()).toHaveTextContent(REMEMBER_TEXTS.cleared);
+    expect(field(/Comuna/).value).toBe('Maipú');
+    expect(field(/Región/).value).toBe('Valparaiso');
+    expectFreshBox();
+  });
+
+  it('cambiar el correo completado desmarca y borra, con su aviso', async () => {
+    seedSaved(CONTACT);
+    await renderPage({ mixed: false });
+    await waitFor(() => expect(rememberBox().checked).toBe(true));
+    type(/Correo electrónico/, 'prueba-otra@example.com');
+    expect(storedContact()).toBeNull();
+    expect(rememberBox().checked).toBe(false);
+    expect(rememberStatus()).toHaveTextContent(REMEMBER_TEXTS.emailChanged);
+  });
+
+  it('un envío confirmado con la casilla marcada guarda exactamente lo enviado, con comuna y región; ni notas ni productos', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage({ mixed: false });
+    fillAll();
+    type(/Notas adicionales/, NOTAS);
+    fireEvent.click(rememberBox());
+    fireEvent.click(privacyBox());
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(storedContact()?.data).toEqual({
+      ...CONTACT, tipoCliente: 'empresa', empresa: EMPRESA, rut: TEST_RUT, comuna: 'Maipú', region: 'Valparaiso',
+    });
+    expectNothingElseStored([NOTAS, a.name, a.sku!, 'RC-']);
+  });
+
+  it('un envío confirmado con la casilla desmarcada no guarda nada', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage({ mixed: false });
+    fillAll();
+    fireEvent.click(privacyBox());
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(storedContact()).toBeNull();
+  });
+
+  it.each([
+    ['sin referencia (la trampa contra bots)', trap, false],
+    ['sin referencia (la trampa contra bots)', trap, true],
+    ['400', () => fails(400), false],
+    ['400', () => fails(400), true],
+    ['500', () => fails(500), false],
+    ['500', () => fails(500), true],
+  ])('%s (con datos guardados: %s): no guarda nada y lo guardado no cambia', async (_, server, withSaved) => {
+    vi.stubGlobal('fetch', server());
+    if (withSaved) seedSaved({ ...CONTACT, tipoCliente: 'persona', comuna: 'Maipú', region: 'Valparaiso' });
+    const before = localStorage.getItem('elights_contact');
+    await renderPage({ mixed: false });
+    if (withSaved) {
+      await waitFor(() => expect(rememberBox().checked).toBe(true));
+      type(/Teléfono/, '+56 9 0000 0939');
+    } else {
+      fillAll({ empresa: false });
+      fireEvent.click(rememberBox());
+    }
+    fireEvent.click(privacyBox());
+    submit();
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    expect(localStorage.getItem('elights_contact')).toBe(before);
+  });
+
+  it('el cuerpo que va al servidor es idéntico con y sin datos guardados', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(FIXED_NOW);
+    vi.stubGlobal('fetch', ok());
+    await renderPage({ mixed: false });
+    fillAll();
+    fireEvent.click(privacyBox());
+    submit();
+    await screen.findByText('Solicitud enviada');
+    cleanup();
+    sessionStorage.clear();
+    seedSaved({ ...CONTACT, tipoCliente: 'empresa', empresa: EMPRESA, rut: TEST_RUT, comuna: 'Maipú', region: 'Valparaiso' });
+    await renderPage({ mixed: false });
+    await waitFor(() => expect(field(/Región/).value).toBe('Valparaiso'));
+    fireEvent.click(privacyBox());
+    submit();
+    await screen.findByText('Solicitud enviada');
+    const [without, withSaved] = bodies();
+    expect(withSaved).toEqual(without);
+    expect(JSON.stringify(withSaved)).not.toMatch(/recordarDatos|elights_contact|remember/i);
   });
 });

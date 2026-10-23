@@ -1,4 +1,8 @@
 // src/components/estudio-luminico/EstudioLuminicoLeadForm.tsx
+// «Recordar mis datos» (especificación del 23-10-2026): la casilla va después de la empresa (el
+// último dato de contacto); al hidratar y en «Enviar otra solicitud» se completan los campos
+// vacíos con lo guardado, y un envío confirmado con la casilla marcada guarda lo enviado
+// (useRememberContact). Los datos del proyecto, la comuna o ciudad incluida, nunca se guardan.
 import { useEffect, useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,6 +10,8 @@ import { contactEmail, whatsappDisplayNumber } from '@/config/business';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution, type Attribution } from '@/lib/attribution';
 import { useConsentFields } from '@/components/legal/ConsentFields';
+import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
+import type { SavedContact } from '@/lib/savedContact';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE, type ConsentInput } from '../../../api/_lib/forms/consent';
 // Topes de largo: los mismos del servidor (el correo a ventas lleva la nota completa); las
 // respuestas al D.S. N°1/2022 son las claves que acepta el servidor
@@ -115,6 +121,12 @@ const EMPTY_FORM = {
 type FormValues = typeof EMPTY_FORM;
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
+/** Los campos vacíos con lo guardado (los nombres de este formulario). */
+const withSaved = (values: FormValues, saved: SavedContact | null): FormValues =>
+  saved
+    ? fillEmpty(values, { nombreCompleto: saved.nombre, email: saved.email, telefono: saved.telefono, empresa: saved.empresa })
+    : values;
+
 // ── Envio al endpoint (correo a ventas + Pipedrive en el servidor) ────────────
 
 /**
@@ -198,12 +210,18 @@ const EstudioLuminicoLeadForm = () => {
   const [website, setWebsite] = useState(''); // honeypot: las personas no lo ven ni lo llenan
   // Casillas de privacidad y novedades, siempre sin marcar; ocupan las dos columnas de la grilla
   const consent = useConsentFields('solicitud', { className: 'sm:col-span-2' });
+  // «Recordar mis datos en este dispositivo», después de los datos de contacto
+  const remember = useRememberContact('estudio-luminico', { className: 'sm:col-span-2' });
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
+    // Lo guardado se lee recién ahora: el HTML del prerender y el primer render no cambian
+    const saved = remember.prefill();
+    if (saved) setForm((prev) => withSaved(prev, saved));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (
@@ -211,6 +229,13 @@ const EstudioLuminicoLeadForm = () => {
   ) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === 'email') remember.onEmailChange(value);
+  };
+
+  /** «Enviar otra solicitud»: el formulario vuelve vacío, con lo guardado y la casilla al día. */
+  const startOver = () => {
+    setStatus('idle');
+    setForm(withSaved(EMPTY_FORM, remember.prefill()));
   };
 
   const buildPayload = (): EstudioLuminicoFormPayload => ({
@@ -303,6 +328,10 @@ const EstudioLuminicoLeadForm = () => {
           urgencia_proyecto: form.urgenciaProyecto || 'sin_definir',
         });
       }
+      // Con la misma condición y la casilla marcada, se guarda lo enviado (no el formulario)
+      remember.afterSubmit(Boolean(ref), {
+        nombre: payload.nombreCompleto, email: payload.email, telefono: payload.telefono, empresa: payload.empresa,
+      });
 
       setStatus('success');
       setForm(EMPTY_FORM);
@@ -350,7 +379,7 @@ const EstudioLuminicoLeadForm = () => {
           los antecedentes.
         </p>
         <button
-          onClick={() => setStatus('idle')}
+          onClick={startOver}
           className="mt-2 text-sm text-cyan-600 underline underline-offset-2 hover:text-cyan-800 transition-colors"
         >
           Enviar otra solicitud
@@ -449,6 +478,9 @@ const EstudioLuminicoLeadForm = () => {
               autoComplete="organization"
             />
           </div>
+
+          {/* Recordar mis datos: al final de los datos de contacto, lejos de las casillas de privacidad */}
+          {remember.field}
 
           {/* Tipo de proyecto */}
           <div className="sm:col-span-2">

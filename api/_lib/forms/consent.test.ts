@@ -84,6 +84,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.6 (adjuntos del cotizador): la Política agrega los archivos que se adjuntan en el sitio
   // (§2, §5 y §7: Vercel Blob temporal y la pestaña Archivos de Pipedrive); las casillas no cambian.
   '1.6': CONSENT_TEXTS_SINCE_1_2,
+  // 1.7 (recordar mis datos): la Política agrega la casilla opcional que guarda los datos de
+  // contacto en el navegador (§2, §3, §7 y §10); las casillas de privacidad y novedades no cambian.
+  '1.7': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({
