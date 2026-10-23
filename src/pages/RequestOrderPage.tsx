@@ -203,14 +203,12 @@ const RequestOrderPage = () => {
     prefilled.current = true;
     const saved = remember.prefill();
     if (!saved) return;
-    setForm((prev) => ({
-      ...fillEmpty(prev, {
-        fullName: saved.nombre, email: saved.email, phone: saved.telefono,
-        companyName: saved.empresa, rut: saved.rut, commune: saved.comuna,
-      }),
-      region: saved.region && prev.region === EMPTY_FORM.region ? saved.region : prev.region,
-      customerType: saved.tipoCliente && prev.customerType === EMPTY_FORM.customerType ? saved.tipoCliente : prev.customerType,
-    }));
+    // Con EMPTY_FORM como valor inicial: la región y el tipo se completan solo si siguen en el suyo
+    setForm((prev) => fillEmpty(prev, {
+      fullName: saved.nombre, email: saved.email, phone: saved.telefono,
+      companyName: saved.empresa, rut: saved.rut, commune: saved.comuna,
+      region: saved.region, customerType: saved.tipoCliente,
+    }, EMPTY_FORM));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
   const [status, setStatus] = useState<FormState>('idle');

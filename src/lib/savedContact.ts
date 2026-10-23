@@ -252,10 +252,12 @@ export function savedContactAvailable(): boolean {
  * - Solo las claves que escribe ese formulario, limpias (cleanSavedContact).
  * - Correo distinto del guardado: se reemplaza todo, sin mezclar.
  * - Mismo correo: lo enviado reemplaza lo guardado; un campo vacío o que el formulario no
- *   tiene no borra nada.
+ *   tiene no borra nada. Un valor enviado que no se puede guardar (un RUT inválido, un texto
+ *   más largo que su tope) tampoco deja el anterior: la persona ya lo reemplazó.
  * - Empresa como bloque: si cambia su nombre, se borran el RUT, el giro y la dirección que no
  *   vinieron en ese envío. Con selector, se guarda solo si se envió como empresa; sin
- *   selector, con razón social o empresa el tipo pasa a 'empresa' (nunca a 'persona').
+ *   selector, con razón social o empresa el tipo pasa a 'empresa' (nunca a 'persona'). Si el
+ *   envío no trae la empresa, el bloque guardado no se toca.
  */
 export function mergeSavedContact(form: ContactForm, prev: SavedContact | null, sent: SavedContact): SavedContact | null {
   const rules = FORM_RULES[form];
@@ -263,21 +265,33 @@ export function mergeSavedContact(form: ContactForm, prev: SavedContact | null, 
   for (const key of rules.writes) picked[key] = sent[key];
   const next = cleanSavedContact(picked);
   if (!next.email) return null;
+  // Lo que llegó con texto y cleanSavedContact descartó (RUT inválido, más largo que su tope)
+  const rejected = new Set(rules.writes.filter((key) => {
+    const value = sent[key];
+    return typeof value === 'string' && value.trim() !== '' && next[key] === undefined;
+  }));
 
+  let withCompany: boolean;
   if (rules.company === 'selector') {
-    if (next.tipoCliente !== 'empresa') for (const key of COMPANY_BLOCK) delete next[key];
+    withCompany = next.tipoCliente === 'empresa';
   } else {
     delete next.tipoCliente;
+    withCompany = rules.company === 'optional' && (!!next.empresa || rejected.has('empresa'));
     if (rules.company === 'optional' && next.empresa) next.tipoCliente = 'empresa';
-    else for (const key of COMPANY_BLOCK) delete next[key];
+  }
+  if (!withCompany) {
+    for (const key of COMPANY_BLOCK) {
+      delete next[key];
+      rejected.delete(key);
+    }
   }
 
   const base: SavedContact = prev && sameEmail(prev.email, next.email) ? { ...prev } : {};
-  if (next.empresa && !sameText(base.empresa, next.empresa)) {
-    delete base.giro;
-    delete base.direccion;
-    delete base.rut;
+  // Otra empresa (también una que no se puede guardar): no queda nada del bloque anterior
+  if (rejected.has('empresa') || (next.empresa && !sameText(base.empresa, next.empresa))) {
+    for (const key of COMPANY_BLOCK) delete base[key];
   }
+  for (const key of rejected) delete base[key];
   return cleanSavedContact({ ...base, ...next });
 }
 

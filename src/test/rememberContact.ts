@@ -28,32 +28,53 @@ export function storedContact(): { v: number; at: string; data: Record<string, u
 export const rememberBox = () =>
   screen.getByRole('checkbox', { name: /^(Recordar|Seguir recordando) mis datos en este dispositivo$/ }) as HTMLInputElement;
 
+/**
+ * La casilla muestra la etiqueta y la nota de `shown`; el otro estado es una copia invisible
+ * (aria-hidden) en la misma celda de la grilla, que solo reserva su altura: al cambiar de
+ * estado no se mueve lo de abajo.
+ */
+function expectBoxState(shown: { label: string; hint: string }, other: { label: string; hint: string }): HTMLInputElement {
+  const box = rememberBox();
+  expect(box).toHaveAccessibleName(shown.label);
+  expect(box).toHaveAccessibleDescription(shown.hint);
+  expect(box.closest('label')!.textContent).toBe(shown.label);
+  expect(screen.getByText(shown.label)).toBeVisible();
+  expect(screen.getByText(shown.hint)).toBeVisible();
+  const copy = screen.getByText(other.hint).closest('[aria-hidden="true"]') as HTMLElement;
+  expect(copy).not.toBeNull();
+  expect(copy).not.toBeVisible();
+  expect(copy.textContent).toBe(other.label + other.hint);
+  expect(screen.getByText(other.label)).not.toBeVisible();
+  // En el mismo lugar: la casilla visible y la copia comparten la celda (gridArea 1 / 1)
+  const cell = box.closest('label')!.parentElement!;
+  expect(cell.parentElement).toBe(copy.parentElement);
+  expect(cell.style.gridArea).toBe('1 / 1');
+  expect(copy.style.gridArea).toBe('1 / 1');
+  return box;
+}
+
 /** Casilla sin marcar, con la etiqueta y la nota de ayuda de un visitante sin datos guardados. */
 export function expectFreshBox(): void {
-  const box = rememberBox();
+  const box = expectBoxState(
+    { label: REMEMBER_TEXTS.label, hint: REMEMBER_TEXTS.hint },
+    { label: REMEMBER_TEXTS.labelSaved, hint: REMEMBER_TEXTS.hintSaved },
+  );
   expect(box.checked).toBe(false);
-  expect(box).toHaveAccessibleName(REMEMBER_TEXTS.label);
-  expect(box).toHaveAccessibleDescription(REMEMBER_TEXTS.hint);
-  expect(screen.getByText(REMEMBER_TEXTS.hint)).toBeVisible();
-  expect(screen.getByText(REMEMBER_TEXTS.hintSaved)).not.toBeVisible();
 }
 
 /** Casilla marcada por lo guardado: «Seguir recordando…» y el aviso en lugar de la nota de ayuda. */
 export function expectSavedBox(): void {
-  const box = rememberBox();
+  const box = expectBoxState(
+    { label: REMEMBER_TEXTS.labelSaved, hint: REMEMBER_TEXTS.hintSaved },
+    { label: REMEMBER_TEXTS.label, hint: REMEMBER_TEXTS.hint },
+  );
   expect(box.checked).toBe(true);
-  expect(box).toHaveAccessibleName(REMEMBER_TEXTS.labelSaved);
-  expect(box).toHaveAccessibleDescription(REMEMBER_TEXTS.hintSaved);
-  expect(screen.getByText(REMEMBER_TEXTS.hintSaved)).toBeVisible();
-  expect(screen.getByText(REMEMBER_TEXTS.hint)).not.toBeVisible();
-  // En el mismo lugar: los dos textos en la misma celda del mismo párrafo
-  expect(screen.getByText(REMEMBER_TEXTS.hint).parentElement).toBe(screen.getByText(REMEMBER_TEXTS.hintSaved).parentElement);
 }
 
-/** La región role="status" de la casilla (la que sigue a la nota de ayuda). */
+/** La región role="status" de la casilla (la que sigue a la grilla de la etiqueta y la nota). */
 export function rememberStatus(): HTMLElement {
-  const hint = screen.getByText(REMEMBER_TEXTS.hint).parentElement!;
-  const status = hint.nextElementSibling as HTMLElement;
+  const grid = rememberBox().closest('label')!.parentElement!.parentElement!;
+  const status = grid.nextElementSibling as HTMLElement;
   expect(status).toHaveAttribute('role', 'status');
   return status;
 }

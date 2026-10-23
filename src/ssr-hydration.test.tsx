@@ -354,8 +354,13 @@ describe('«Recordar mis datos» en la hidratación (especificación del 23-10-2
       expect(box!.hasAttribute('checked')).toBe(false);
       expect(box!.closest('fieldset[disabled]')).not.toBeNull();
       expect(box!.closest('[data-elights-form]')?.getAttribute('data-elights-form')).toBe(form);
-      expect(server.textContent).toContain(REMEMBER_TEXTS.label);
-      expect(server.textContent).not.toContain(REMEMBER_TEXTS.labelSaved);
+      // La etiqueta y la nota de quien no tiene datos; «Seguir recordando…» solo en la copia
+      // invisible que reserva su altura (aria-hidden)
+      expect(box!.closest('label')?.textContent).toBe(REMEMBER_TEXTS.label);
+      expect(server.querySelector(`[id="${box!.getAttribute('aria-describedby')}"]`)?.textContent).toBe(REMEMBER_TEXTS.hint);
+      const copy = box!.closest('label')!.parentElement!.nextElementSibling!;
+      expect(copy.getAttribute('aria-hidden')).toBe('true');
+      expect(copy.textContent).toBe(REMEMBER_TEXTS.labelSaved + REMEMBER_TEXTS.hintSaved);
       for (const value of [SAVED.nombre!, SAVED.email!, SAVED.telefono!, SAVED.empresa!, SAVED.rut!, SAVED.direccion!, SAVED.giro!, SAVED.comuna!]) {
         expect(html, value).not.toContain(value);
       }

@@ -199,6 +199,22 @@ describe('savedContact: mezcla de un envío confirmado con lo guardado', () => {
     });
   });
 
+  it('con el mismo correo, un valor enviado que no se puede guardar tampoco deja el anterior', () => {
+    const sinRut = { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', giro: 'Prueba', direccion: 'Prueba 123' };
+    // /cotizador no revisa el dígito verificador: el RUT nuevo e inválido borra el guardado
+    expect(mergeSavedContact('cotizador', empresa, { ...ANA, empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toStrictEqual(sinRut);
+    expect(mergeSavedContact('cotizacion', empresa, { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toStrictEqual(sinRut);
+    // Un nombre más largo que el tope general (/cotizacion no tiene maxLength en el nombre)
+    expect(mergeSavedContact('cotizacion', empresa, { ...ANA, nombre: 'x'.repeat(121), tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA' })).toStrictEqual({
+      email: ANA.email, telefono: ANA.telefono, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', giro: 'Prueba', direccion: 'Prueba 123', rut: RUT,
+    });
+    // Una empresa que no se puede guardar es otra empresa: no queda el bloque anterior
+    expect(mergeSavedContact('cotizacion', empresa, { ...ANA, tipoCliente: 'empresa', empresa: 'x'.repeat(201) })).toStrictEqual({ ...ANA, tipoCliente: 'empresa' });
+    // Sin la empresa en el envío (como persona, o sin razón social), el bloque guardado no se toca
+    expect(mergeSavedContact('cotizacion', empresa, { ...ANA, tipoCliente: 'persona', rut: '44.444.444-5' })).toStrictEqual({ ...empresa, tipoCliente: 'persona' });
+    expect(mergeSavedContact('cotizador', empresa, { ...ANA, rut: '44.444.444-5' })).toStrictEqual(empresa);
+  });
+
   it('con selector, la empresa se guarda solo si se envió como empresa; como persona, la guardada queda', () => {
     expect(mergeSavedContact('cotizacion', null, { ...ANA, tipoCliente: 'persona', empresa: 'PRUEBA Ana SpA', rut: RUT })).toEqual({
       ...ANA, tipoCliente: 'persona',

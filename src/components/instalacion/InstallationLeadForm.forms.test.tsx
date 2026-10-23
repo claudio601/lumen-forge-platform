@@ -90,6 +90,27 @@ describe('/instalacion: recordar mis datos', () => {
     expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
   });
 
+  it('si se puede leer pero no escribir (cuota llena), no completa nada: sin casilla no habría cómo borrar desde aquí', async () => {
+    seedSaved(CONTACT);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('cuota llena'); });
+    vi.stubGlobal('fetch', OK());
+    await renderForm();
+    expect(screen.queryByRole('checkbox', { name: /mis datos en este dispositivo/ })).toBeNull();
+    expect(field(/Nombre completo/).value).toBe('');
+    expect(field(/Correo electrónico/).value).toBe('');
+    expect(field(/Teléfono/).value).toBe('');
+    fillContact();
+    fillProject();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    // «Enviar otra solicitud» tampoco completa nada
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar otra solicitud' }));
+    await waitFor(() => expect(field(/Nombre completo/)).toBeEnabled());
+    expect(field(/Nombre completo/).value).toBe('');
+    // Lo guardado sigue ahí: lo borra el botón de la Política
+    expect(storedContact()?.data).toEqual(CONTACT);
+  });
+
   it('con datos, completa los vacíos (también la comuna) y muestra la casilla marcada con «Seguir recordando…» y el aviso', async () => {
     seedSaved({ ...CONTACT, comuna: 'Maipú', empresa: 'PRUEBA SpA', tipoCliente: 'empresa' });
     await renderForm();
