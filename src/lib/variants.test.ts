@@ -56,7 +56,9 @@ const bestledIds = Object.entries(editorialOverlay)
 
 describe('lightChoice: el valor de Jumpseller, limpio', () => {
   it.each([
-    ['Luz Cálida - 2200K - 1% Luz Azul', 'Cálida 2200K', undefined],
+    // 2200K es ámbar aunque Jumpseller diga «Luz Cálida»; 2700K y 3000K, cálidas (dueño, 23-10-2026)
+    ['Luz Cálida - 2200K - 1% Luz Azul', 'Ámbar 2200K', undefined],
+    ['Luz Cálida - 2200K', 'Ámbar 2200K', undefined],
     ['Luz Cálida 2700K 7% Luz Azul', 'Cálida 2700K', undefined],
     ['Luz Neutra – 4000K', 'Neutra 4000K', undefined],
     ['Luz Fría  - 5000K', 'Fría 5000K', undefined],

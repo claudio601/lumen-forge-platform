@@ -6,9 +6,11 @@
 // «80W», «Negro»; nunca el texto crudo de Jumpseller («Luz Cálida 2200K - 1% Luz Azul»).
 // D.S. N°1: el «% de luz azul» es el límite de cada clase (≤1 %, ≤7 %), no un valor de la
 // temperatura (scripts/catalog.test.ts). Con la temperatura en el valor, la etiqueta es solo
-// «Cálida 2200K». Solo cuando Jumpseller no la trae («Luz Cálida - 1% Luz Azul»), el dato va
+// «Ámbar 2200K». Solo cuando Jumpseller no la trae («Luz Cálida - 1% Luz Azul»), el dato va
 // aparte («1 % de luz azul»), porque es lo único que distingue las opciones; nunca como
 // certificado (decisión del dueño, 2026-10-17).
+// Tono: 2200K es «ámbar», aunque Jumpseller la llame «Luz Cálida»; 2700K y 3000K son «cálida»
+// (decisión del dueño, 2026-10-23).
 // Sin imports de datos: lo usan la tarjeta (bundle principal) y la ficha.
 
 import type { Product, ProductVariant } from '@/data/catalog/types';
@@ -50,6 +52,8 @@ const TONES: readonly (readonly [RegExp, string])[] = [
   [/[aá]mbar/i, 'Ámbar'],
 ];
 const KELVIN = /(\d{4})\s*k\b/i;
+/** 2200K se llama «ámbar», no «cálida» (decisión del dueño, 2026-10-23). */
+const AMBER_KELVIN = 2200;
 const BLUE_LIGHT = /(\d+(?:[.,]\d+)?)\s*%\s*(?:de\s+)?luz\s+azul/i;
 const RGB = /\brgb\b/i;
 const WATTS = /^(\d+(?:[.,]\d+)?)\s*w$/i;
@@ -58,16 +62,17 @@ const squash = (text: string) => text.replace(/\s+/g, ' ').trim();
 const isLight = (value: string) => TONES.some(([re]) => re.test(value)) || KELVIN.test(value) || RGB.test(value);
 
 /**
- * Valor de una opción de luz, limpio: «Luz Cálida 2200K - 1% Luz Azul» → «Cálida 2200K»;
- * «3000K Luz Cálida» → «Cálida 3000K»; «Luz fría 6400k» → «Fría 6400K». Sin temperatura,
+ * Valor de una opción de luz, limpio: «Luz Cálida 2200K - 1% Luz Azul» → «Ámbar 2200K» (2200K es
+ * ámbar); «3000K Luz Cálida» → «Cálida 3000K»; «Luz fría 6400k» → «Fría 6400K». Sin temperatura,
  * «Luz Cálida - 1% Luz Azul» → «Cálida» con el dato «1 % de luz azul». Sin tono ni temperatura
  * reconocibles, el texto tal cual (sin espacios de más).
  */
 export function lightChoice(raw: string): Omit<VariantChoice, 'value'> {
   const text = squash(raw);
-  const tone = TONES.find(([re]) => re.test(text))?.[1];
   const k = KELVIN.exec(text);
   const kelvin = k ? Number(k[1]) : undefined;
+  const found = TONES.find(([re]) => re.test(text))?.[1];
+  const tone = found === 'Cálida' && kelvin === AMBER_KELVIN ? 'Ámbar' : found;
   const blue = kelvin ? null : BLUE_LIGHT.exec(text);
   const detail = blue ? `${blue[1].replace('.', ',')} % de luz azul` : undefined;
   const parts = [tone, kelvin ? `${kelvin}K` : undefined].filter(Boolean);
