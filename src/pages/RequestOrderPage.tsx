@@ -48,16 +48,14 @@ import FieldError from '@/components/forms/FieldError';
 import FormErrorAlert from '@/components/forms/FormErrorAlert';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import ProcessSteps from '@/components/forms/ProcessSteps';
+import { REGIONS } from '@/config/regions';
 
 const SEO_TITLE = 'Solicitud de Pedido | eLIGHTS Chile';
 const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización.';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
-const REGIONS = [
-  'Arica y Parinacota', 'Tarapaca', 'Antofagasta', 'Atacama', 'Coquimbo',
-  'Valparaiso', 'Región Metropolitana', "O'Higgins", 'Maule', 'Nuble',
-  'Biobio', 'La Araucania', 'Los Rios', 'Los Lagos', 'Aysen', 'Magallanes',
-];
+// Las regiones del selector (REGIONS) viven en src/config/regions.ts: la misma lista decide qué
+// región guardada se acepta al recordar los datos (src/lib/savedContact.ts).
 
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
