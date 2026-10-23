@@ -17,7 +17,7 @@ Base: propuesta de ChatGPT del 22-10-2026, revisada por Claude con las reglas de
 - Solo se afirma el certificado en estas líneas y versiones:
   - BESTLED, Flyhawk, Solar industrial All in One, Island y Slim 150–500W: 2200K y 2700K;
   - Pagoda UFO: 1600K y 2700K;
-  - Estadio modular y estadio no modular: todas sus versiones.
+  - Estadio modular y estadio no modular: versiones de hasta 5000K (decisión del dueño, 23-10, mientras revisa los certificados; la norma limita la temperatura de color en canchas a 5000K o 3000K según la clase).
 - Nunca se explica el cumplimiento de canchas con «% de luz azul»: en recintos deportivos la norma se rige por la temperatura de color según la clase.
 
 **Dominio de los enlaces (decisión del dueño, 22-10):** mientras no se haga el cambio de dominio, todos los enlaces van a **nuevo.elights.cl**, porque las rutas /catalogo/... no existen en la tienda Jumpseller. Después del cambio se usa elights.cl. Los textos completos del 29/10 y del 10/11 están en correos-29-10-y-10-11.md; los del 05/11 y del 12/11, en correos-05-11-y-12-11.md.
@@ -43,7 +43,7 @@ Base: propuesta de ChatGPT del 22-10-2026, revisada por Claude con las reglas de
 |---|---|---|---|---|
 | Mar 24/11 | Producto · B2B | Paneles LED para oficinas y comercio · Para espacios interiores de trabajo. | Uniformidad y comodidad visual. | Ver paneles LED → /catalogo/paneles-led |
 | Jue 26/11 | Normativa · B2B | Luz azul y contaminación lumínica · Qué considera el D.S. N°1/2022 sobre la luz azul. | La composición de la luz; criterios generales y los de Áreas de Protección Especial. **Sin hablar de canchas.** | Ver alumbrado público y D.S. N°1 → /catalogo/alumbrado-publico |
-| Mar 01/12 | Producto · B2B | Proyectores LED para recintos deportivos · La distribución de luz es clave en canchas. | Ángulos y uniformidad. **El estadio (modular y no modular) tiene certificado D.S. N°1; sin «% de luz azul».** | Ver proyectores → /catalogo/proyectores-led |
+| Mar 01/12 | Producto · B2B | Proyectores LED para recintos deportivos · La distribución de luz es clave en canchas. | Ángulos y uniformidad. **El estadio (modular y no modular) tiene certificado D.S. N°1 en sus versiones de hasta 5000K; sin «% de luz azul».** | Ver proyectores → /catalogo/proyectores-led |
 | Jue 03/12 | Guía técnica · B2B | Cómo reducir el deslumbramiento LED · Ubicación, orientación y control de la luz. | Causas del deslumbramiento y cómo evitarlo. | Pedir estudio lumínico → /estudio-luminico |
 | **Mié 09/12** | Producto · B2C | Renueva la iluminación de tus espacios · Paneles LED para ambientes interiores. | Tamaño, montaje y distribución. **Se mueve del martes 8, que es feriado.** | Ver paneles LED → /catalogo/paneles-led |
 | Jue 10/12 | Mantención · B2B | Cómo cuidar tus luminarias exteriores · Inspección y limpieza para mantener el rendimiento. | Pauta básica de mantención preventiva. | Cotizar recambio → /cotizador |
