@@ -370,6 +370,7 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
       '/7-ideas-para-iluminar-tus-noches-de-verano': categoryPath('iluminacion-exterior'),
       '/ilumina-tus-noches-de-verano-para-que-sean-inolvidables': categoryPath('iluminacion-exterior'),
       '/5-tips-para-iluminar-una-oficina-y-orientarla-a-la-produccion': categoryPath('paneles-led'),
+      '/el-incorrecto-uso-de-iluminacion-en-oficinas-puede-causar-fatiga-visual-irritacion-de-ojos-dolores-de-cabeza-y-trastornos-en-el-sueno': categoryPath('paneles-led'),
       '/blog-post': '/cotizador',
       '/blog/como-comprar-en-elights': '/cotizador',
       '/proveedores': '/empresa',
@@ -389,8 +390,13 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
       '/proyector-led-antivandalico-50w-ip66-ik10-1': 'proyectores-led',
     };
     for (const [source, slug] of Object.entries(reused)) expect(bySource.get(source)?.category, source).toBe(slug);
-    // 404 definitivos: la entrada oculta sobre la luz fría y la luminaria de cultivo (Jumpseller 2557187)
-    for (const source of ['/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno', '/led-de-cultivo-sunset-200w-cree-cxb3590-regulable-c-pantalla-lcd-y-temporizador-2']) {
+    // 404 definitivos: la entrada oculta sobre la luz fría y las dos URL de la luminaria de cultivo
+    // (Jumpseller 2557187: la del historial y su permalink actual)
+    for (const source of [
+      '/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno',
+      '/led-de-cultivo-sunset-200w-cree-cxb3590-regulable-c-pantalla-lcd-y-temporizador-2',
+      '/luminaria-de-cultivo-indoor-ngen-mawida-240w-cob-luminus-cxm32-3500k-ip44',
+    ]) {
       expect(bySource.get(source)?.gone, source).toBeDefined();
     }
     // Compuerta de la Etapa 3: ninguna fila pending
