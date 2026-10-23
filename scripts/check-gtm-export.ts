@@ -111,6 +111,7 @@ export const SITE_EVENTS: readonly string[] = [
   'estudio_luminico_cta_hero_click',
   'instalacion_cta_hero_click',
   'instalacion_cta_final_click',
+  'guia_cta_click',
 ];
 
 /** Parámetros de evento del sitio (tabla 3.5, sin las claves de estado). */

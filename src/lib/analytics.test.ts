@@ -38,7 +38,7 @@ const TABLE_3_5 = [
 const STATE = ['site_platform', 'elights_env', 'meta_consent'];
 /** Regex del activador T09 del contenedor (especificación 6.3). */
 const T09 =
-  /^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click)$/;
+  /^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click|guia_cta_click)$/;
 
 interface Env {
   gtm?: string | null;
@@ -375,6 +375,28 @@ describe('eventos y parámetros (tablas 3.4 y 3.5)', () => {
     expect(leads).toHaveLength(1);
     expect(leads[0]).toMatchObject({ form_type: 'cotizacion', currency: 'CLP', lead_type: 'B2B', page_location: window.location.origin + '/' });
     expect(JSON.stringify(objects())).not.toMatch(/value|NE-|RC-|PY-/);
+  });
+
+  it('guia_cta_click (plan del blog, §5.5): el destino, el lugar del llamado y la guía', async () => {
+    const m = await load();
+    decide(m, VISITS);
+    m.a.trackGuideCta('guia_texto', '/cotizador', '/guias/norma-luminica-ds-1-2022');
+    m.a.trackGuideCta('guia_recuadro', '/estudio-luminico', '/guias/norma-luminica-ds-1-2022');
+    expect(eventsNamed('guia_cta_click').map(e => [e.link_url, e.link_type, e.page_path])).toEqual([
+      ['/cotizador', 'guia_texto', '/guias/norma-luminica-ds-1-2022'],
+      ['/estudio-luminico', 'guia_recuadro', '/guias/norma-luminica-ds-1-2022'],
+    ]);
+    // Valores propios de link_type: no se mezclan con los de contacto (tabla de Meta Contact)
+    for (const e of eventsNamed('guia_cta_click')) expect(['whatsapp', 'email', 'phone']).not.toContain(e.link_type);
+  });
+
+  it('guia_cta_click: sin decisión o con Rechazar, nada', async () => {
+    const m = await load();
+    m.a.trackGuideCta('guia_texto', '/cotizador', '/guias/norma-luminica-ds-1-2022');
+    expectNothingLoaded();
+    decide(m, REJECT);
+    m.a.trackGuideCta('guia_recuadro', '/cotizador', '/guias/norma-luminica-ds-1-2022');
+    expectNothingLoaded();
   });
 
   it('clics a WhatsApp, correo y teléfono: un evento por clic, con link_url, link_type y page_path', async () => {

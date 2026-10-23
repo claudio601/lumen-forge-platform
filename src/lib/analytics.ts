@@ -119,6 +119,8 @@ export const SITE_EVENTS = [
   'estudio_luminico_cta_hero_click',
   'instalacion_cta_hero_click',
   'instalacion_cta_final_click',
+  // Guías (plan del blog, §5.5): clic en un llamado hacia /cotizador o /estudio-luminico
+  'guia_cta_click',
 ] as const;
 export type SiteEvent = (typeof SITE_EVENTS)[number];
 
@@ -650,6 +652,23 @@ export function applyCookieChoice(choice: CookieChoice | null, options: ApplyOpt
   push(consentUpdateEntry(c));
   if (c.meta && !prev.meta) push(eventEntry('elights_meta_granted', {}, c));
   deleteCookies({ analytics: false, ads: !c.ads, meta: !c.meta });
+}
+
+/**
+ * Dónde está el llamado de una guía: en el texto o en el recuadro final. Son valores propios de
+ * link_type, distintos de los de contacto (whatsapp, email, phone), que usa la tabla de Meta
+ * Contact (scripts/check-gtm-export.ts).
+ */
+export type GuideCtaPlace = 'guia_texto' | 'guia_recuadro';
+
+/**
+ * Clic en un llamado de una guía hacia /cotizador o /estudio-luminico (plan del blog, §5.5): un
+ * guia_cta_click con el destino (link_url), el lugar (link_type) y la guía (page_path). Como todo
+ * evento, solo con la medición de visitas aceptada (sendEvent). Los clics a ventas@elights.cl ya
+ * los mide contact_email_click.
+ */
+export function trackGuideCta(place: GuideCtaPlace, linkUrl: string, pagePath: string): void {
+  sendEvent('guia_cta_click', { link_url: linkUrl, link_type: place, page_path: pagePath });
 }
 
 export type LeadFormType = 'solicitud_pedido' | 'cotizacion' | 'cotizador' | 'estudio_luminico' | 'instalacion';
