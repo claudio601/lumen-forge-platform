@@ -10,7 +10,8 @@ import CookieSettingsButton from '@/components/legal/CookieSettingsButton';
 
 /**
  * Columna "Empresa": quiénes somos y las páginas de venta. «Asesoría técnica» (auditoría UX,
- * E-02): su destino está en src/config/navigation.ts.
+ * E-02): su destino está en src/config/navigation.ts. «Guías» (plan del blog, §5.4): la ruta va
+ * escrita, para no sumar la lista de guías al bundle principal.
  */
 const companyLinks = [
   { label: legalPage('/empresa').label, to: '/empresa' },
@@ -18,6 +19,7 @@ const companyLinks = [
   { label: ADVISORY_LINK.label, to: ADVISORY_LINK.to },
   { label: 'Instaladores y profesionales', to: '/instaladores' },
   { label: 'Cotizador de proyectos', to: '/cotizador' },
+  { label: 'Guías', to: '/guias' },
 ];
 
 /**

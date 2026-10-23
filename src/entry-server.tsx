@@ -9,7 +9,7 @@ import { StaticRouter } from 'react-router-dom/server';
 import { AppLayout, AppProviders } from './App';
 import { preloadRoute } from './routes';
 
-export { indexableRoutes } from './lib/seo/routes';
+export { indexableRoutes, prerenderedRoutes } from './lib/seo/routes';
 
 /**
  * Cabecera de spa.html, la app vacía para las páginas que dependen de la sesión o de la

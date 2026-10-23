@@ -19,7 +19,7 @@ import App from '@/App';
 import { serverTree } from '@/entry-server';
 import { preloadRoute, staticPage } from '@/routes';
 import { NOT_FOUND_ATTR, NOT_FOUND_URL } from '@/lib/notFound';
-import { STATIC_ROUTES } from '@/lib/seo/routes';
+import { prerenderedRoutes, STATIC_ROUTES } from '@/lib/seo/routes';
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
@@ -129,6 +129,11 @@ const PAGES: [string, string, string][] = [
   ['ficha con contenido SEO', `/producto/${withContent.id}`, `/producto/${withContent.id}?gclid=abc`],
   ['ficha BESTLED', `/producto/${bestled.id}`, `/producto/${bestled.id}`],
   ['ficha con selector de variante (Flyhawk)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?gclid=abc`],
+  // Guías (plan del blog, §5.6): cada guía publicada, también las sin indexar; G1 llega desde el
+  // correo del 12/11 a su sección #plazos
+  ...prerenderedRoutes()
+    .filter(r => r.startsWith('/guias/'))
+    .map(r => [`guía ${r}, desde un correo`, r, `${r}?utm_source=email&utm_medium=email&utm_campaign=20261112-plazos-ds1#plazos`] as [string, string, string]),
 ];
 
 /**
@@ -142,6 +147,8 @@ const NOT_FOUND_URLS: [string, string][] = [
   ['producto que salió del catálogo (id publicado antes)', '/producto/lineal-led-flat-40w-120-cm-ip20-6500k?gclid=abc'],
   ['categoría que no existe, página 2', '/catalogo/no-existe?page=2'],
   ['ruta de la app con otras mayúsculas', '/Cotizador'],
+  // Una guía que no existe (o que se despublicó): coincide con /guias/:slug
+  ['guía que no existe', '/guias/no-existe'],
 ];
 
 describe('hidratación de las páginas estáticas (árbol real: entry-server y App)', () => {

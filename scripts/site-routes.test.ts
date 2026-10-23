@@ -7,11 +7,15 @@ import { matchPath } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import {
   DYNAMIC_ROUTE_PATTERNS,
+  indexableGuideRoutes,
   indexableRoutes,
   NOINDEX_ROUTES,
+  noindexGuideRoutes,
+  prerenderedRoutes,
   REDIRECT_ROUTES,
   STATIC_ROUTES,
 } from '../src/lib/seo/routes';
+import { GUIDES, guidePath } from '../src/data/guides/index';
 import { buildRobots, buildSitemap } from './generate-sitemap';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
@@ -28,9 +32,9 @@ describe('rutas del sitio', () => {
     expect(appRoutes.filter(r => !known.has(r))).toEqual([]);
   });
 
-  it('indexables: las páginas fijas + todas las categorías + todos los productos, sin duplicados ni parámetros', () => {
+  it('indexables: las páginas fijas + todas las categorías + las guías indexables + todos los productos, sin duplicados ni parámetros', () => {
     const routes = indexableRoutes();
-    expect(routes).toHaveLength(STATIC_ROUTES.length + categories.length + products.length);
+    expect(routes).toHaveLength(STATIC_ROUTES.length + categories.length + indexableGuideRoutes().length + products.length);
     expect(new Set(routes).size).toBe(routes.length);
     expect(routes.some(r => r.includes('?'))).toBe(false);
     for (const r of NOINDEX_ROUTES) expect(routes).not.toContain(r);
@@ -47,11 +51,29 @@ describe('rutas del sitio', () => {
     expect(buildRobots()).toContain('Disallow: /api/');
   });
 
+  it('guías (plan del blog, §5.2): cada guía publicada es indexable o «publicada sin indexar», nunca las dos; las sin indexar se prerenderizan pero quedan fuera del sitemap', () => {
+    expect(GUIDES.length).toBeGreaterThan(0);
+    const indexable = new Set(indexableRoutes());
+    const unindexed = noindexGuideRoutes();
+    for (const g of GUIDES) {
+      const path = guidePath(g.slug);
+      expect(indexable.has(path), path).toBe(g.index);
+      expect(unindexed.includes(path), path).toBe(!g.index);
+    }
+    expect(prerenderedRoutes()).toEqual([...indexableRoutes(), ...unindexed]);
+    const xml = buildSitemap(indexableRoutes());
+    for (const path of unindexed) expect(xml, path).not.toContain(`<loc>${SITE_URL}${path}</loc>`);
+    // G1 sale «publicada sin indexar» hasta el OK del dueño (decisión 16 del plan)
+    expect(unindexed).toContain('/guias/norma-luminica-ds-1-2022');
+    expect(STATIC_ROUTES).toContain('/guias');
+  });
+
   it('cada ruta dinámica tiene sus páginas generadas: sin la regla comodín (PR 05), una ruta sin página da 404', () => {
     // Una ruta con parámetros nueva (p. ej. un panel de pedidos) necesita prerender o una regla
     // revisada en vercel.json: vercel-config.test.ts solo acepta fuentes de un segmento fijo y
-    // los 301 de ids de producto renombrados ('/producto/<id literal>{/}?', generados).
-    const routes = indexableRoutes();
+    // los 301 de ids de producto renombrados ('/producto/<id literal>{/}?', generados). Las
+    // guías sin indexar también se generan (prerenderedRoutes).
+    const routes = prerenderedRoutes();
     for (const pattern of DYNAMIC_ROUTE_PATTERNS) {
       expect(routes.some(r => matchPath(pattern, r)), `${pattern} no tiene páginas generadas`).toBe(true);
     }

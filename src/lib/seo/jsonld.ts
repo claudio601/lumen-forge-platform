@@ -101,6 +101,46 @@ export function productJsonLd(product: Product, description: string): JsonLd {
   };
 }
 
+export interface ArticleData {
+  /** Igual al H1. */
+  headline: string;
+  description: string;
+  /** Ruta de la guía ('/guias/<slug>'). */
+  path: string;
+  /** ISO 8601 con la zona horaria de Chile, como texto fijo. */
+  datePublished: string;
+  dateModified: string;
+  author: { name: string; path: string };
+  /** URL absoluta de la imagen para compartir (la de la marca mientras las guías no tengan una propia). */
+  image: string;
+}
+
+/**
+ * Una guía (plan del blog, §1.6): Article, que Google acepta sin propiedades obligatorias. El
+ * autor es una persona con su página; la editorial, eLIGHTS.cl con su isotipo cuadrado (el de
+ * organizationJsonLd). Las guías no llevan FAQPage: Google dejó de mostrarlo.
+ */
+export function articleJsonLd(a: ArticleData): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: a.headline,
+    description: a.description,
+    image: [a.image],
+    datePublished: a.datePublished,
+    dateModified: a.dateModified,
+    author: { '@type': 'Person', name: a.author.name, url: absoluteUrl(a.author.path) },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      url: SITE_URL + '/',
+      logo: { '@type': 'ImageObject', url: absoluteUrl('/logo-square.png'), width: 512, height: 512 },
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': absoluteUrl(a.path) },
+    inLanguage: 'es-CL',
+  };
+}
+
 export function faqJsonLd(faq: { question: string; answer: string }[]): JsonLd {
   return {
     '@context': 'https://schema.org/',
