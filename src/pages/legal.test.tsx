@@ -14,9 +14,9 @@
 // política debe decir lo mismo que el código: textos de las casillas (consent.ts) y del
 // aviso de cookies (cookieConsent.ts).
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderToString } from 'react-dom/server';
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { serverTree } from '@/entry-server';
@@ -50,6 +50,8 @@ import CambiosGarantiaPage from './CambiosGarantiaPage';
 import DespachoPage from './DespachoPage';
 import MediosPagoPage from './MediosPagoPage';
 import PrivacidadPage from './PrivacidadPage';
+import { REMEMBER_TEXTS } from '@/components/forms/RememberContact';
+import { SAVED_CONTACT_MAX_AGE_MS, SAVED_CONTACT_STORAGE_KEY } from '@/lib/savedContact';
 
 /** Texto como lo lee check-prerender (textOf): cada nodo de texto separado por un espacio. */
 function spacedText(el: Element): string {
@@ -505,7 +507,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(security).toContain('pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje');
     const hrefs = [...main.querySelectorAll('a')].map(a => a.getAttribute('href'));
     expect(hrefs).toContain('mailto:ventas@elights.cl?subject=Datos%20personales');
-    expect(main.querySelectorAll('table tbody tr')).toHaveLength(12); // 1.5: suma la finalidad de Meta
+    expect(main.querySelectorAll('table tbody tr')).toHaveLength(13); // 1.5: suma la finalidad de Meta; 1.7, recordar tus datos
     expect(main.querySelector('table')?.parentElement?.className).toContain('overflow-x-auto'); // legible en el teléfono
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
   });
@@ -716,9 +718,13 @@ describe('páginas legales y de compra: contenido', () => {
     }
     expect(cookies.text).not.toContain('No usamos el píxel de Meta');
     expect(cookies.text).not.toMatch(/etiquetas de publicidad de Google|no instala cookies propias/);
-    // El botón del pie, también aquí (estático: el prerender lo dibuja igual)
+    // El botón del pie, también aquí (estático: el prerender lo dibuja igual). Desde la 1.7, antes
+    // va «Borrar mis datos guardados» (recordar mis datos, decisión 4 del dueño)
     const buttons = cookies.els.flatMap(el => [...el.querySelectorAll('button')]);
-    expect(buttons.map(b => [b.textContent, b.getAttribute('type')])).toEqual([[COOKIE_TEXTS.footerButton, 'button']]);
+    expect(buttons.map(b => [b.textContent, b.getAttribute('type')])).toEqual([
+      [REMEMBER_TEXTS.deleteButton, 'button'],
+      [COOKIE_TEXTS.footerButton, 'button'],
+    ]);
     expect(COOKIE_TEXTS.footerButton).toBe('Configurar cookies');
     // Las mismas cifras y nombres que el diálogo del aviso (src/lib/cookieConsent.ts)
     expect(COOKIE_CONSENT_MAX_AGE_MS).toBe(365 * 24 * 60 * 60 * 1000); // 12 meses
@@ -895,6 +901,78 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '9.').text).not.toMatch(/archivo/i);
     // Ni el sitio ni la política ofrecen otro canal para mandar archivos que el correo
     expect(text).not.toMatch(/archivos? (?:por|a nuestro) WhatsApp/i);
+  });
+
+  // Especificación «Recordar mis datos en este dispositivo» (23-10-2026, §4), aprobada por el dueño
+  // con sus 4 decisiones: RUT solo si es válido, 12 meses, casilla marcada si hay datos y el botón
+  // «Borrar mis datos guardados» solo en §10.
+  it('/politica-de-privacidad (versión 1.7): recordar mis datos, con los textos de la especificación', async () => {
+    const { main } = await page('/politica-de-privacidad');
+    const clean = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const items = (heading: string) => section(main, heading).els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
+    const item = (heading: string, start: string) => items(heading).find(t => t.startsWith(start)) ?? '';
+    // §2: la última frase de «Tus autorizaciones y decisiones»
+    expect(item('2.', 'Tus autorizaciones y decisiones:')).toMatch(
+      /\. En tu navegador guardamos tu decisión sobre cookies y, si lo pides, tus datos de contacto \(punto 10\)\.$/,
+    );
+    // §3: la fila de la tabla y la base durante el período hasta el 30-11-2026
+    const rows = [...main.querySelectorAll('table tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(clean));
+    expect(rows).toContainEqual([
+      'Recordar tus datos en tu navegador para completar los formularios, solo si marcas esa casilla',
+      'Tu consentimiento, que retiras desmarcando la casilla',
+    ]);
+    expect(section(main, '3.').text).toContain(
+      'en la autorización que das en el aviso de cookies. Recordar tus datos en tu navegador se basa en la autorización que das al marcar esa casilla. En ese período,',
+    );
+    // §7: el plazo, después de la decisión sobre cookies (12 meses, como SAVED_CONTACT_MAX_AGE_MS)
+    expect(SAVED_CONTACT_MAX_AGE_MS).toBe(365 * 24 * 60 * 60 * 1000);
+    expect(item('7.', 'Datos que pides recordar en tu navegador:')).toBe(
+      'Datos que pides recordar en tu navegador: 12 meses desde tu último envío con la casilla marcada; después no los usamos y los borramos en tu próxima visita.',
+    );
+    expect(items('7.').findIndex(t => t.startsWith('Datos que pides recordar'))).toBe(
+      items('7.').findIndex(t => t.startsWith('Tu decisión sobre cookies:')) + 1,
+    );
+    // §10: el punto nuevo, después de «Tu decisión sobre cookies», con la etiqueta de la casilla y el botón
+    const remember = item('10.', 'Si marcas «Recordar mis datos en este dispositivo»');
+    expect(remember).toBe(
+      `Si marcas «${REMEMBER_TEXTS.label}», guardamos en el almacenamiento local de tu navegador tu nombre, correo, teléfono, comuna y región, si compras como persona o empresa, los datos de tu empresa (razón social, RUT, giro y dirección) y la fecha de tu último envío, para completar los formularios cuando vuelvas. No son cookies, no dependen del aviso de cookies y no los guardamos en nuestros sistemas: salen de tu navegador solo cuando envías un formulario. Nunca guardamos ahí tus comentarios, tus archivos ni los datos de tu proyecto. Puedes borrarlos desmarcando la casilla en cualquier formulario o con el botón «${REMEMBER_TEXTS.deleteButton}». No la marques en un computador compartido.`,
+    );
+    expect(items('10.').findIndex(t => t === remember)).toBe(items('10.').findIndex(t => t.startsWith('Tu decisión sobre cookies se guarda')) + 1);
+    const li = section(main, '10.').els.flatMap(el => [...el.querySelectorAll('li')]).find(el => clean(el) === remember)!;
+    expect(li.querySelector('strong')?.textContent).toBe(`«${REMEMBER_TEXTS.label}»`);
+    expect([...li.querySelectorAll('button')].map(b => [b.textContent, b.getAttribute('type')])).toEqual([[REMEMBER_TEXTS.deleteButton, 'button']]);
+    // Las casillas de privacidad y de novedades no cambian (consent.test.ts) y no hay contacto fuera de ventas@
+    expect(linksIn(section(main, '10.').els).every(h => h === DATA_MAILTO)).toBe(true);
+  });
+
+  it('/politica-de-privacidad (versión 1.7): «Borrar mis datos guardados» borra lo guardado sin enviar nada', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    localStorage.setItem(SAVED_CONTACT_STORAGE_KEY, JSON.stringify({ v: 1, at: new Date().toISOString(), data: { email: 'prueba-politica@example.com' } }));
+    localStorage.setItem('elights_cookie_consent', 'sin tocar');
+    try {
+      const { unmount } = render(
+        <HelmetProvider>
+          <MemoryRouter initialEntries={['/politica-de-privacidad']}>
+            <PrivacidadPage />
+          </MemoryRouter>
+        </HelmetProvider>,
+      );
+      // El aviso, al final del punto: vacío hasta el clic
+      const li = screen.getByRole('button', { name: REMEMBER_TEXTS.deleteButton }).closest('li')!;
+      const notice = li.querySelector('[role="status"]')!;
+      expect(notice).toBeEmptyDOMElement();
+      fireEvent.click(screen.getByRole('button', { name: REMEMBER_TEXTS.deleteButton }));
+      expect(localStorage.getItem(SAVED_CONTACT_STORAGE_KEY)).toBeNull();
+      expect(notice).toHaveTextContent(REMEMBER_TEXTS.cleared);
+      expect(li.lastElementChild).toBe(notice);
+      expect(localStorage.getItem('elights_cookie_consent')).toBe('sin tocar'); // la decisión de cookies no se toca
+      expect(fetchSpy).not.toHaveBeenCalled();
+      unmount();
+    } finally {
+      localStorage.clear();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('la versión 1.0 publicada sigue entre las anteriores (sus archivos no se borran)', () => {
