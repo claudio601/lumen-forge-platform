@@ -10,6 +10,7 @@ import ScrollToTop from "@/components/layout/ScrollToTop";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import CookieConsent from "@/components/legal/CookieConsent";
 import { sendPageView } from "@/lib/analytics";
+import { purgeSavedContact } from "@/lib/savedContact";
 import { AppRoutes } from "./routes";
 
 // Componente interno que trackea cambios de ruta en la SPA.
@@ -48,6 +49,11 @@ export function AppLayout({ onMounted, notFoundPath }: LayoutProps) {
   useEffect(() => {
     onMounted?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // «Recordar mis datos» (Política §7): lo vencido o ilegible se borra al abrir cualquier
+  // página, sin pasar por un formulario. Después de montar: el HTML no cambia.
+  useEffect(() => {
+    purgeSavedContact();
   }, []);
   return (
     <>
