@@ -12,7 +12,8 @@
 // este test las vigila en el código y en el HTML que genera el servidor.
 //
 // D.S. N°1/2022 (auditoría UX, entrega 4: D-04, K-03, E-01 y A-01; líneas certificadas según el
-// dueño, 22-10-2026): al final de este archivo, el contenido propio (fichas SEO, fichas
+// dueño, 22-10-2026; los proyectores de estadio, solo hasta 5000K desde el 23-10-2026): al final
+// de este archivo, el contenido propio (fichas SEO, fichas
 // editoriales, introducciones de categoría y configuración) solo afirma el certificado D.S. N°1
 // de las 8 líneas certificadas y en sus versiones certificadas, no cita el D.S. N°43, no le
 // aplica la luz azul a las canchas y no pone el «% de luz azul» junto a la norma (reglas en
@@ -52,11 +53,13 @@ import { ADVISORY_LINK, DS1_NOTICE } from './navigation';
 import {
   DS1_CERTIFIED_IDS,
   DS1_CERTIFIED_LINES,
+  DS1_SPORTS_MAX_KELVIN,
   DS1_WARM_KELVIN,
   ds1Certificate,
   ds1ContentIssues,
   ds1Issues,
   ds1Line,
+  ds1VariantIssues,
   isDs1Certified,
   isDs1CertifiedKelvin,
   sentences,
@@ -478,8 +481,10 @@ const ds1ButtonTarget = () =>
 
 describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () => {
   it('el certificado es de las 8 líneas del dueño (33 productos), cada una con sus versiones; la ficha editorial de las BESTLED lo dice por variante', () => {
-    // Decisiones del dueño del 22-10-2026: las cálidas de 2200K y 2700K en 5 líneas, la ámbar de
-    // 1600K y la de 2700K en la Pagoda, y todas las versiones en los proyectores de estadio
+    // Decisiones del dueño del 22-10-2026: las cálidas de 2200K y 2700K en 5 líneas y la ámbar de
+    // 1600K y la de 2700K en la Pagoda; la del 23-10-2026 reemplaza «todas las versiones» en los
+    // proyectores de estadio por las de hasta 5000K (la Tabla 4 limita el alumbrado deportivo a
+    // 5000K o 3000K según la clase del recinto)
     const versions = Object.fromEntries(Object.entries(DS1_CERTIFIED_LINES).map(([line, l]) => [line, l.versions]));
     expect(versions).toEqual({
       bestled: [2200, 2700],
@@ -488,9 +493,10 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
       island: [2200, 2700],
       slim: [2200, 2700],
       pagoda: [1600, 2700],
-      estadioModular: 'all',
-      estadio: 'all',
+      estadioModular: { maxKelvin: 5000 },
+      estadio: { maxKelvin: 5000 },
     });
+    expect(DS1_SPORTS_MAX_KELVIN).toBe(5000);
     expect(DS1_WARM_KELVIN).toEqual([2200, 2700]);
     for (const [line, l] of Object.entries(DS1_CERTIFIED_LINES)) expect(l.ids.length, line).toBeGreaterThan(0);
     expect(DS1_CERTIFIED_IDS).toHaveLength(33);
@@ -523,8 +529,9 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     expect(certifiedKelvin(island, ALL)).toEqual([2200, 2700]);
     expect(certifiedKelvin(slim, ALL)).toEqual([2200, 2700]); // no la de 3000K ni las frías
     expect(certifiedKelvin(pagoda, ALL)).toEqual([1600, 2700]); // no la de 4000K ni la de 5000K
-    expect(certifiedKelvin(estadio, ALL)).toEqual(ALL); // todas, también las frías
-    expect(certifiedKelvin(modular, ALL)).toEqual(ALL);
+    // Estadios: hasta 5000K, no la fría de 6000K ni la de 6500K (23-10-2026)
+    expect(certifiedKelvin(estadio, ALL)).toEqual([1600, 2200, 2700, 3000, 4000, 5000]);
+    expect(certifiedKelvin(modular, ALL)).toEqual([1600, 2200, 2700, 3000, 4000, 5000]);
     expect(certifiedKelvin(other, ALL)).toEqual([]);
     expect(certifiedKelvin(undefined, ALL)).toEqual([]);
   });
@@ -583,14 +590,37 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     for (const text of ['La de 2200K tiene certificado D.S. N°1/2022.', 'Las de 1600K, 2700K y 4000K tienen certificado D.S. N°1/2022.']) {
       expect(ds1Issues(text, pagoda), text).not.toEqual([]);
     }
-    // Proyectores de estadio: todas sus versiones, pero sin la sigla ni la luz azul
+    // Proyectores de estadio (23-10-2026): solo las versiones de hasta 5000K, nombradas en la
+    // oración del certificado; nunca sin límite, en una de más de 5000K ni en «todas sus
+    // versiones»; sin la sigla ni la luz azul
     for (const id of [DS1_CERTIFIED_LINES.estadio.ids[0], DS1_CERTIFIED_LINES.estadioModular.ids[0]]) {
       const stadium = { certified: ds1Certificate(id) };
-      for (const text of ['Este proyector tiene certificado D.S. N°1/2022.', 'Tiene certificado D.S. N°1/2022 en todas sus versiones, también en 5000K.']) {
+      for (const text of [
+        'Para alumbrado deportivo, sus versiones cálida de 2700K, neutra de 4000K y fría de 5000K tienen certificado D.S. N°1/2022.',
+        'Para alumbrado deportivo, su versión cálida de 3000K tiene certificado D.S. N°1/2022. La fría de 6000K no lo tiene.',
+        'Tienen certificado D.S. N°1/2022 sus versiones de 2200K, 2700K, 4000K y 5000K.',
+        'La neutra (4000K) tiene certificado D.S. N°1/2022.',
+        '¿Qué versiones tienen certificado D.S. N°1/2022?',
+        '¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl.',
+      ]) {
         expect(ds1Issues(text, stadium), `${id}: ${text}`).toEqual([]);
       }
-      for (const text of ['Certificación SEC y DS1.', 'En canchas, la de 2700K tiene 7% de luz azul y certificado D.S. N°1/2022.']) {
-        expect(ds1Issues(text, stadium), `${id}: ${text}`).not.toEqual([]);
+      for (const [text, problem] of [
+        ['Este proyector tiene certificado D.S. N°1/2022.', /sin decir de qué versiones \(solo las de hasta 5000K\)/],
+        ['Para alumbrado deportivo, tiene certificado D.S. N°1/2022.', /sin decir de qué versiones/],
+        ['Tiene certificado D.S. N°1/2022 en todas sus versiones, también en 5000K.', /de todas las versiones/],
+        ['Tiene certificado D.S. N°1/2022 en sus cuatro temperaturas de color, desde 2200K.', /de todas las versiones/],
+        ['Las versiones de 3000K y 6000K tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(6000K/],
+        ['La fría de 6500K cumple el D.S. N°1/2022.', /sin decir de qué versiones/],
+        ['La de 3000K y la fría tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(fría/],
+        ['La de 3000K tiene certificado D.S. N°1/2022. La de 6000K también lo tiene.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        ['Certificación SEC y DS1.', /sigla «DS1»/],
+        ['En canchas, la de 2700K tiene 7% de luz azul y certificado D.S. N°1/2022.', /luz azul a canchas/],
+      ] as const) {
+        expect(
+          ds1Issues(text, stadium).some(p => problem.test(p)),
+          `${id}: ${text}`,
+        ).toBe(true);
       }
     }
     // Fuera de las líneas certificadas (o sin id), ni siquiera en 2200K
@@ -598,6 +628,40 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     for (const id of [other, undefined]) {
       expect(ds1Issues('Las versiones de 2200K y 2700K tienen certificado D.S. N°1/2022.', { certified: ds1Certificate(id) })).not.toEqual([]);
     }
+  });
+
+  it('estadios: el certificado solo en las versiones de hasta 5000K que el producto tiene entre sus variantes; sin ninguna, asesoría', () => {
+    // Las opciones de las variantes como las da Jumpseller (ProductFacts.variantOptions). La
+    // verificación contra el catálogo real va en content.test.ts (checkFacts), que el robot de
+    // sincronización solo informa.
+    const ficha = (description: string): ProductContent => ({ metaTitle: '', metaDescription: '', description, keyBenefits: [], useCases: [], faq: [] });
+    const [estadio300, , estadio600] = DS1_CERTIFIED_LINES.estadio.ids;
+    const modular800 = DS1_CERTIFIED_LINES.estadioModular.ids[7];
+    const options300 = ['Color de Temperatura: Luz Cálida - 3000K', 'Color de Temperatura: Luz Fría- 6000K'];
+    const options600 = ['Color de Temperatura: Luz Fría- 6000K'];
+    const options800 = ['Color de Luz: Luz Cálida - 1% Luz Azul', 'Color de Luz: Luz Cálida - 7% Luz Azul', 'Color de Luz: Luz Neutra – 4000K', 'Color de Luz: Luz fría - 5000K'];
+
+    // Con una versión de hasta 5000K: la nombra; la de más, en otra oración que no lo afirma
+    const ok300 = 'Para alumbrado deportivo, su versión cálida de 3000K tiene certificado D.S. N°1/2022. La fría de 6000K no lo tiene.';
+    expect(ds1VariantIssues(ficha(ok300), estadio300, options300)).toEqual([]);
+    for (const text of ['La de 5000K tiene certificado D.S. N°1/2022.', 'Las de 3000K y 4000K tienen certificado D.S. N°1/2022.', 'La de 3000K tiene certificado D.S. N°1/2022. La de 2700K también lo tiene.']) {
+      expect(ds1VariantIssues(ficha(text), estadio300, options300), text).toContainEqual(expect.stringContaining('en una versión que el producto no tiene'));
+    }
+    // Sin ninguna de hasta 5000K (el de 600W, solo 6000K): ninguna afirmación, solo asesoría
+    for (const text of ['Para alumbrado deportivo, tiene certificado D.S. N°1/2022.', 'La de 5000K tiene certificado D.S. N°1/2022.']) {
+      expect(ds1VariantIssues(ficha(text), estadio600, options600), text).toContainEqual(expect.stringContaining('no tiene versiones de hasta 5000K (sus variantes: 6000K)'));
+    }
+    expect(ds1VariantIssues(ficha('¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl.'), estadio600, options600)).toEqual([]);
+    expect(ds1VariantIssues(ficha('La fría de 6000K no lo tiene.'), estadio600, options600)).toEqual([]);
+    // Una cálida que Jumpseller no da con su cifra (el modular de 800W) cuenta como de hasta 5000K
+    const ok800 = 'Para alumbrado deportivo, sus versiones de tono cálido, la neutra de 4000K y la fría de 5000K tienen certificado D.S. N°1/2022.';
+    expect(ds1VariantIssues(ficha(ok800), modular800, options800)).toEqual([]);
+    expect(ds1VariantIssues(ficha('La cálida de 2700K tiene certificado D.S. N°1/2022.'), modular800, options800)).toContainEqual(
+      expect.stringContaining('en una versión que el producto no tiene (2700K'),
+    );
+    // Las demás líneas certificadas no dependen de las variantes: las revisa ds1ContentIssues
+    const slim = DS1_CERTIFIED_LINES.slim.ids[0];
+    expect(ds1VariantIssues(ficha('Las de 2200K y 2700K tienen certificado D.S. N°1/2022.'), slim, [])).toEqual([]);
   });
 
   it('fichas SEO: una pregunta sobre la norma no se responde con el % de luz azul (se lee como «cumple»)', () => {
@@ -659,6 +723,8 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
       'Las BESTLED y la Flyhawk tienen certificado D.S. N°1.',
       'Las líneas BESTLED, Flyhawk y Solar industrial All in One tienen certificado D.S. N°1 en todas sus versiones.',
       'El proyector de estadio modular tiene certificado D.S. N°1 en 2700K.',
+      'Los proyectores de estadio tienen certificado D.S. N°1 en todas sus versiones.',
+      'Los proyectores de estadio tienen certificado D.S. N°1 hasta 5000K.',
       'La Island tiene certificado D.S. N°1 en sus versiones de 2200K y 2700K.',
       'La Pagoda LED solar UFO tiene certificado D.S. N°1 en todas sus versiones.',
       'Los Slim SMD tienen certificado D.S. N°1 en 2200K y 2700K.',

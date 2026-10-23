@@ -5,20 +5,30 @@
 // scripts/content/check.ts) y src/config/contentTruth.test.ts. Solo imports relativos: también
 // lo importa scripts/.
 //
-// Reglas (decisiones del dueño del 17, 18 y 22-10-2026, skill normativa-ds1-elights; lo que
+// Reglas (decisiones del dueño del 17, 18, 22 y 23-10-2026, skill normativa-ds1-elights; lo que
 // dice el dueño prima sobre la skill):
 // - «Certificado D.S. N°1» solo para las 8 líneas con certificado (DS1_CERTIFIED_LINES) y solo en
 //   las versiones que cubre cada una: las cálidas de 2200K y 2700K en BESTLED, Flyhawk, solar
 //   industrial All in One, Island y Slim SMD de 150 a 500W; la ámbar de 1600K y la de 2700K en la
-//   Pagoda solar UFO; todas en los proyectores de estadio, modulares y no modulares (los recintos
-//   deportivos se rigen por temperatura de color según su clase). Las demás versiones no se
-//   mencionan como certificadas. En los Slim (Jumpseller marca «CON DS1» también la de 3000K) y
-//   en la Pagoda, la ficha dice además cuáles no lo tienen, en una oración aparte que no nombra
-//   la norma («La de 3000K y la fría de 6500K no lo tienen»). Al resto no se le afirma: se ofrece
-//   asesoría («¿Necesitas el D.S. N°1? Te asesoramos»).
+//   Pagoda solar UFO; en los proyectores de estadio, modulares y no modulares, las de hasta 5000K
+//   (DS1_SPORTS_MAX_KELVIN). Las demás versiones no se mencionan como certificadas. En los Slim
+//   (Jumpseller marca «CON DS1» también la de 3000K), en la Pagoda y en los estadios que tienen
+//   una versión de más de 5000K, la ficha dice además cuáles no lo tienen, en una oración aparte
+//   que no nombra la norma («La de 3000K y la fría de 6500K no lo tienen»). Al resto no se le
+//   afirma: se ofrece asesoría («¿Necesitas el D.S. N°1? Te asesoramos»).
+// - Proyectores de estadio (decisión del dueño del 23-10-2026, que reemplaza la del 22-10 de
+//   «todas sus versiones»): certificado solo en las versiones de hasta 5000K, mientras el dueño
+//   revisa qué versiones cubren sus certificados. La Tabla 4 del D.S. N°1/2022 limita la
+//   temperatura de color del alumbrado deportivo a 5000K o 3000K según la clase del recinto: con
+//   6000K o 6500K una cancha no puede cumplir. Cada oración del certificado nombra las versiones
+//   de hasta 5000K que el producto tiene de verdad (sus variantes en Jumpseller: lo revisa
+//   ds1VariantIssues, que recibe sus opciones); si no tiene ninguna (el estadio de 600W, solo
+//   6000K), su ficha no lo afirma y ofrece asesoría. El tope de la Tabla 4 no se escribe en la
+//   web (el decreto la publica como imagen): la ficha nombra sus versiones, no el tope.
 // - Una versión sin certificado tampoco se cuela por otro camino: nombrada sin «K» («y 3000») o
-//   por su tono («la fría», «la neutra») en la oración del certificado, ni con «también lo
-//   tiene», «está certificada» o «el mismo certificado» en otra oración.
+//   por su tono sin su temperatura («la fría», «la neutra»; «la fría de 5000K» sí, en un estadio)
+//   en la oración del certificado, ni con «también lo tiene», «está certificada» o «el mismo
+//   certificado» en otra oración.
 // - Preguntas por producto o por versión: isDs1Certified(id), isDs1CertifiedKelvin(id, kelvin)
 //   y ds1Line(id), con la regla de su línea.
 // - La clasificación para Áreas de Protección Especial («apta para…») solo está documentada en
@@ -30,13 +40,29 @@
 // - En una ficha SEO, con o sin certificado, el «% de luz azul» no va en el mismo bloque
 //   (pregunta y respuesta, sección de la descripción) que nombra la norma: juntos se leen como
 //   que el porcentaje es lo que la cumple.
-// No depende de datos de Jumpseller: solo de los textos que se le pasan y de la lista de
-// productos certificados, que es un dato del dueño.
+// No depende de datos de Jumpseller: solo de los textos que se le pasan (también las opciones de
+// las variantes, en ds1VariantIssues) y de la lista de productos certificados, que es un dato
+// del dueño.
 
 import type { ProductContent } from './types';
 
-/** Versiones con certificado D.S. N°1 de una línea: sus temperaturas de color (K), o todas. */
-export type Ds1Versions = readonly number[] | 'all';
+/**
+ * Versiones con certificado D.S. N°1 de una línea: sus temperaturas de color (K), o un tope (las
+ * de hasta maxKelvin, en los proyectores de estadio).
+ */
+export type Ds1Versions = readonly number[] | { readonly maxKelvin: number };
+
+/**
+ * Tope de los proyectores de estadio (decisión del dueño, 23-10-2026): certificado solo en sus
+ * versiones de hasta 5000K. La Tabla 4 del D.S. N°1/2022 limita la temperatura de color del
+ * alumbrado deportivo a 5000K o 3000K según la clase del recinto.
+ */
+export const DS1_SPORTS_MAX_KELVIN = 5000;
+
+/** ¿Esas versiones certificadas incluyen la de esa temperatura de color (K)? */
+export function ds1CoversKelvin(versions: Ds1Versions, kelvin: number): boolean {
+  return 'maxKelvin' in versions ? kelvin <= versions.maxKelvin : versions.includes(kelvin);
+}
 
 export interface Ds1Line {
   /** Productos de la línea (ids de Jumpseller). */
@@ -56,11 +82,11 @@ export const DS1_WARM_KELVIN: readonly number[] = [2200, 2700];
 export type Ds1LineKey = 'bestled' | 'flyhawk' | 'solarIndustrial' | 'island' | 'slim' | 'pagoda' | 'estadioModular' | 'estadio';
 
 /**
- * Líneas con certificado D.S. N°1 y sus versiones certificadas, según el dueño (22-10-2026): la
- * lista completa, 8 líneas y 33 productos. Para sumar otra, la decisión del dueño (pregunta 8
- * del informe UX). Las BESTLED tienen además su certificado detallado en la ficha editorial
- * (overlay/editorial.ts, PR #78): 2200K con clasificación para Áreas de Protección Especial y
- * 2700K para el resto del país.
+ * Líneas con certificado D.S. N°1 y sus versiones certificadas, según el dueño (22-10-2026; los
+ * proyectores de estadio, hasta 5000K desde el 23-10-2026): la lista completa, 8 líneas y 33
+ * productos. Para sumar otra, la decisión del dueño (pregunta 8 del informe UX). Las BESTLED
+ * tienen además su certificado detallado en la ficha editorial (overlay/editorial.ts, PR #78):
+ * 2200K con clasificación para Áreas de Protección Especial y 2700K para el resto del país.
  */
 export const DS1_CERTIFIED_LINES: Readonly<Record<Ds1LineKey, Ds1Line>> = {
   /** ALUMBRADO PÚBLICO BESTLED 40, 60, 90, 120, 150, 200 y 250W. */
@@ -81,14 +107,22 @@ export const DS1_CERTIFIED_LINES: Readonly<Record<Ds1LineKey, Ds1Line>> = {
   slim: { ids: [2340515, 2340521, 2340383, 2340385, 2993067], versions: DS1_WARM_KELVIN },
   /** PAGODA LED SOLAR UFO 300W ALL IN ONE: la ámbar de 1600K y la cálida de 2700K. */
   pagoda: { ids: [27936170], versions: [1600, 2700] },
-  /** PROYECTOR LED DE ESTADIO MODULAR 100 a 1000W: todas sus versiones. */
+  /**
+   * PROYECTOR LED DE ESTADIO MODULAR 100 a 1000W: las versiones de hasta 5000K (23-10-2026). Hoy
+   * todas sus variantes lo son: cálida (de 2700K, o sin cifra en la de 800W), neutra de 4000K y
+   * fría de 5000K.
+   */
   estadioModular: {
     ids: [24657400, 24663380, 24669150, 24696340, 24696451, 24697125, 24698439, 32913027, 32913142],
-    versions: 'all',
+    versions: { maxKelvin: DS1_SPORTS_MAX_KELVIN },
     sports: true,
   },
-  /** PROYECTOR LED DE ESTADIO 300, 500 y 600W y ESTADIO REDONDO 1000W: todas sus versiones. */
-  estadio: { ids: [3313196, 3283555, 4450187, 3309140], versions: 'all', sports: true },
+  /**
+   * PROYECTOR LED DE ESTADIO 300, 500 y 600W y ESTADIO REDONDO 1000W: las versiones de hasta
+   * 5000K (23-10-2026). La fría de 6000K de los de 300 y 500W no lo tiene, y el de 600W, que solo
+   * se vende en 6000K, tampoco: su ficha ofrece asesoría.
+   */
+  estadio: { ids: [3313196, 3283555, 4450187, 3309140], versions: { maxKelvin: DS1_SPORTS_MAX_KELVIN }, sports: true },
 };
 
 /** Productos (id de Jumpseller) con certificado D.S. N°1: los de DS1_CERTIFIED_LINES. */
@@ -108,12 +142,12 @@ export function isDs1Certified(jumpsellerId?: number): boolean {
 
 /**
  * ¿La versión de esa temperatura de color (K) del producto tiene certificado D.S. N°1? En los
- * proyectores de estadio, todas; en las demás líneas, solo las de su lista; fuera de las líneas,
- * ninguna.
+ * proyectores de estadio, las de hasta 5000K; en las demás líneas, solo las de su lista; fuera de
+ * las líneas, ninguna.
  */
 export function isDs1CertifiedKelvin(jumpsellerId: number | undefined, kelvin: number): boolean {
   const versions = ds1Line(jumpsellerId)?.versions;
-  return versions === 'all' || (versions ?? []).includes(kelvin);
+  return versions !== undefined && ds1CoversKelvin(versions, kelvin);
 }
 
 /**
@@ -166,19 +200,32 @@ const BARE_KELVIN =
 /**
  * Versiones sin certificado nombradas por su tono, sin la cifra: «la fría», «las neutras», «el
  * blanco frío», «la luz natural». En las líneas certificadas por versión, el certificado es de
- * las cálidas (o de la ámbar de 1600K y la de 2700K, en la Pagoda), nunca de estas.
+ * las cálidas (o de la ámbar de 1600K y la de 2700K, en la Pagoda), nunca de estas. En los
+ * proyectores de estadio, la neutra de 4000K y la fría de 5000K sí lo tienen: el tono pasa solo
+ * seguido de una temperatura certificada (TONE_KELVIN).
  */
 const UNCERTIFIED_TONE =
   /(?<![\p{L}\p{N}])(?:fr[ií]as?|neutras?|(?:blanco|tono|color)\s+(?:fr[ií]o|neutro|natural)|(?:luz|blanca|la|las|versi[oó]n|versiones)\s+naturale?s?)(?![\p{L}\p{N}])/giu;
+/** La temperatura de color que sigue a un tono: «la fría de 5000K», «neutra (4000K)», «fría - 5000K». */
+const TONE_KELVIN = /^\s*(?:de\s+|\(\s*|[-–]\s*)?(\d{1,2}\.?\d{3})\s?(?:[Kk](?![\p{L}\p{N}])|[Kk]elvin)/u;
+const kelvinValue = (digits: string) => Number(digits.replace('.', ''));
 /** Temperaturas de color de una oración, con «K» o sin ella. */
-const kelvinIn = (sentence: string): number[] =>
-  [...sentence.matchAll(KELVIN), ...sentence.matchAll(BARE_KELVIN)].map(m => Number(m[1].replace('.', '')));
-/** Lo que una oración nombra de versiones sin certificado: sus temperaturas («3000K») y sus tonos («la fría»). */
-function uncertifiedVersions(sentence: string, kelvin: readonly number[]): string[] {
+const kelvinIn = (sentence: string): number[] => [...sentence.matchAll(KELVIN), ...sentence.matchAll(BARE_KELVIN)].map(m => kelvinValue(m[1]));
+/**
+ * Lo que una oración nombra de versiones sin certificado: sus temperaturas («3000K») y sus tonos
+ * («la fría»), salvo un tono seguido de una temperatura certificada («la fría de 5000K», en un
+ * proyector de estadio).
+ */
+function uncertifiedVersions(sentence: string, versions: Ds1Versions): string[] {
   const others = kelvinIn(sentence)
-    .filter(k => !kelvin.includes(k))
+    .filter(k => !ds1CoversKelvin(versions, k))
     .map(k => `${k}K`);
-  const tones = [...sentence.matchAll(UNCERTIFIED_TONE)].map(m => m[0].toLowerCase());
+  const tones = [...sentence.matchAll(UNCERTIFIED_TONE)]
+    .filter(m => {
+      const kelvin = sentence.slice((m.index ?? 0) + m[0].length).match(TONE_KELVIN);
+      return !kelvin || !ds1CoversKelvin(versions, kelvinValue(kelvin[1]));
+    })
+    .map(m => m[0].toLowerCase());
   return [...new Set([...others, ...tones])];
 }
 /**
@@ -215,7 +262,10 @@ export function sentences(text: string): string[] {
  * - las temperaturas de color de una línea certificada (su ficha SEO): cada oración que afirma
  *   el certificado nombra una de esas versiones, y ninguna otra temperatura ni «todas sus
  *   versiones».
- * - 'all': una línea certificada en todas sus versiones (los proyectores de estadio).
+ * - { maxKelvin }: una línea certificada hasta un tope (los proyectores de estadio, hasta 5000K
+ *   desde el 23-10-2026): cada oración que afirma el certificado nombra una versión de hasta ese
+ *   tope, y ninguna de más ni «todas sus versiones». Que el producto tenga esas versiones lo
+ *   revisa ds1VariantIssues, con sus variantes.
  * - true: un texto ya aprobado por el dueño (la ficha editorial de las BESTLED, que reparte las
  *   variantes en varias oraciones, y las oraciones aprobadas de una introducción de categoría).
  * Fuera de un texto aprobado, la norma va como «D.S. N°1/2022», sin la sigla, y sin la
@@ -229,6 +279,9 @@ export interface Ds1Options {
 
 /** «2200K y 2700K», «1600K y 2700K». */
 const kelvinList = (kelvin: readonly number[]) => kelvin.map(k => `${k}K`).join(', ').replace(/, ([^,]*)$/, ' y $1');
+/** «solo las de 2200K y 2700K», «solo las de hasta 5000K». */
+const onlyVersions = (versions: Ds1Versions) =>
+  'maxKelvin' in versions ? `solo las de hasta ${versions.maxKelvin}K` : `solo las de ${kelvinList(versions)}`;
 
 /**
  * Lo que falla en una oración que afirma el certificado de un producto certificado solo en
@@ -236,25 +289,28 @@ const kelvinList = (kelvin: readonly number[]) => kelvin.map(k => `${k}K`).join(
  * certificado…?», que responde la oración siguiente), nombra otra versión (por su temperatura,
  * con o sin «K», o por su tono: «la fría», «la neutra») o lo extiende a todas.
  */
-function versionsIssue(sentence: string, kelvin: readonly number[]): string | null {
+function versionsIssue(sentence: string, versions: Ds1Versions): string | null {
   const named = kelvinIn(sentence);
-  const others = uncertifiedVersions(sentence, kelvin);
-  const only = `solo las de ${kelvinList(kelvin)}`;
-  if (!sentence.endsWith('?') && !named.some(k => kelvin.includes(k))) return `sin decir de qué versiones (${only})`;
+  const others = uncertifiedVersions(sentence, versions);
+  const only = onlyVersions(versions);
+  if (!sentence.endsWith('?') && !named.some(k => ds1CoversKelvin(versions, k))) return `sin decir de qué versiones (${only})`;
   if (others.length) return `junto a una versión sin certificado (${others.join(', ')}; ${only})`;
   if (ALL_VARIANTS.test(sentence)) return `de todas las versiones (${only})`;
   return null;
 }
+
+/** Sin nombrar la norma, ¿la oración dice que una versión tiene el certificado? («también lo tiene», «está certificada»). */
+const extendsCertificate = (sentence: string) => !sentence.endsWith('?') && !NEGATION.test(sentence) && CERTIFICATE_REFERENCE.test(sentence);
 
 /**
  * Lo que falla en una oración que no nombra la norma pero extiende el certificado a una versión
  * sin certificado («La de 3000K también lo tiene», «La versión de 4000K está certificada»). Decir
  * cuáles no lo tienen («La de 3000K y la fría no lo tienen») y preguntarlo están bien.
  */
-function uncertifiedReferenceIssue(sentence: string, kelvin: readonly number[]): string | null {
-  if (sentence.endsWith('?') || NEGATION.test(sentence) || !CERTIFICATE_REFERENCE.test(sentence)) return null;
-  const others = uncertifiedVersions(sentence, kelvin);
-  return others.length ? `extiende el certificado D.S. N°1 a una versión sin certificado (${others.join(', ')}; solo las de ${kelvinList(kelvin)})` : null;
+function uncertifiedReferenceIssue(sentence: string, versions: Ds1Versions): string | null {
+  if (!extendsCertificate(sentence)) return null;
+  const others = uncertifiedVersions(sentence, versions);
+  return others.length ? `extiende el certificado D.S. N°1 a una versión sin certificado (${others.join(', ')}; ${onlyVersions(versions)})` : null;
 }
 
 /**
@@ -336,10 +392,12 @@ export function contentBlocks(c: ProductContent): string[] {
 }
 
 /**
- * Todas las reglas del D.S. N°1/2022 sobre la ficha SEO (content/<id>.json) de un producto: si
- * es de una línea certificada (DS1_CERTIFIED_LINES), el certificado solo en sus versiones
- * certificadas; si no, o sin id, ningún certificado. En los proyectores de recintos deportivos
- * (las líneas de estadio), nada de luz azul, aunque el texto no nombre la cancha.
+ * Las reglas del D.S. N°1/2022 sobre la ficha SEO (content/<id>.json) de un producto que no
+ * dependen de Jumpseller: si es de una línea certificada (DS1_CERTIFIED_LINES), el certificado
+ * solo en sus versiones certificadas (en los estadios, las de hasta 5000K); si no, o sin id,
+ * ningún certificado. En los proyectores de recintos deportivos (las líneas de estadio), nada de
+ * luz azul, aunque el texto no nombre la cancha. Que un estadio tenga de verdad la versión que
+ * nombra lo revisa ds1VariantIssues, con sus variantes.
  */
 export function ds1ContentIssues(c: ProductContent, jumpsellerId?: number): string[] {
   const blocks = contentBlocks(c);
@@ -354,4 +412,42 @@ export function ds1ContentIssues(c: ProductContent, jumpsellerId?: number): stri
     ...(sports ? [sports] : []),
     ...blocks.flatMap(b => normBlueLightIssue(b) ?? []),
   ];
+}
+
+/** Una versión cálida o ámbar que Jumpseller nombra sin su temperatura («Luz Cálida - 1% Luz Azul»). */
+const WARM_OPTION = /c[aá]lid|[aá]mbar/i;
+
+/**
+ * El certificado D.S. N°1 de un proyector de estadio (línea con tope de temperatura de color),
+ * contra sus versiones reales: las opciones de sus variantes en Jumpseller («Color de Luz: Luz
+ * fría - 5000K»; ProductFacts.variantOptions). Cada oración que afirma el certificado, o que sin
+ * nombrar la norma dice que una versión lo tiene, nombra solo versiones de hasta el tope que el
+ * producto tiene; si no tiene ninguna (el estadio de 600W, solo en 6000K), la ficha no lo afirma
+ * y ofrece asesoría. Una cálida sin cifra («Luz Cálida - 1% Luz Azul», en el modular de 800W)
+ * cuenta como versión de hasta el tope. Lo que no depende de las variantes (el tope, «todas sus
+ * versiones», la luz azul) lo revisa ds1ContentIssues; en las demás líneas, nada que agregar.
+ */
+export function ds1VariantIssues(c: ProductContent, jumpsellerId: number | undefined, variantOptions: readonly string[]): string[] {
+  const versions = ds1Line(jumpsellerId)?.versions;
+  if (!versions || !('maxKelvin' in versions)) return [];
+  const max = versions.maxKelvin;
+  const kelvin = [...new Set(variantOptions.flatMap(o => [...o.matchAll(KELVIN)].map(m => kelvinValue(m[1]))))].sort((a, b) => a - b);
+  const own = kelvin.filter(k => k <= max);
+  const warmWithoutKelvin = variantOptions.some(o => WARM_OPTION.test(o) && !o.match(KELVIN));
+  const variants = kelvin.length ? `sus variantes: ${kelvinList(kelvin)}` : 'sus variantes no dicen su temperatura de color';
+  const issues: string[] = [];
+  for (const s of sentences(contentBlocks(c).join('\n'))) {
+    const claim = NORM.test(s) && CLAIM.test(s);
+    if (!claim && !extendsCertificate(s)) continue;
+    const short = s.length > 140 ? `${s.slice(0, 140)}…` : s;
+    if (claim && !own.length && !warmWithoutKelvin) {
+      issues.push(`afirma el D.S. N°1, pero el producto no tiene versiones de hasta ${max}K (${variants}): su ficha ofrece asesoría: "${short}"`);
+      continue;
+    }
+    const missing = [...new Set(kelvinIn(s).filter(k => k <= max && !own.includes(k)))];
+    if (missing.length) {
+      issues.push(`afirma el D.S. N°1 en una versión que el producto no tiene (${kelvinList(missing)}; ${variants}): "${short}"`);
+    }
+  }
+  return issues;
 }

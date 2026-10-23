@@ -82,20 +82,31 @@ mayúsculas sostenidas, signos de exclamación en serie.
 
 Lo verifican `src/data/catalog/ds1.ts` y `npm run content -- check`. Tienen certificado
 D.S. N°1 solo las 8 líneas de `DS1_CERTIFIED_LINES` (decisiones del dueño, 22-10-2026; 33
-productos), cada una en sus versiones:
+productos; los proyectores de estadio, desde el 23-10-2026), cada una en sus versiones:
 
 | Línea | Versiones con certificado |
 |---|---|
 | BESTLED (ficha editorial), Flyhawk, solar industrial All in One, Island (ornamental) y Slim SMD de 150 a 500W | Las cálidas de **2200K y 2700K** (en los Slim, no la de 3000K) |
 | Pagoda LED solar UFO 300W | La ámbar de **1600K** y la cálida de **2700K** |
-| Proyectores de estadio, modulares y no modulares | **Todas** (recintos deportivos: van por temperatura de color según la clase) |
+| Proyectores de estadio, modulares y no modulares | Las de **hasta 5000K** que el producto tiene (no la fría de 6000K ni la de 6500K: con ellas una cancha no puede cumplir) |
 
 Las demás versiones no se mencionan como certificadas. En los Slim SMD de 150 a 500W (Jumpseller
-marca "CON DS1" también la de 3000K) y en la Pagoda, la ficha dice además cuáles no lo tienen,
-en una oración aparte que no nombra la norma: "La de 3000K y la fría de 6500K no lo tienen" o
-"La neutra de 4000K y la fría de 5000K no lo tienen" (en la misma oración que el certificado, el
-detector lee esas temperaturas como certificadas). El resto de los productos no tiene
-certificado, aunque Jumpseller diga "DS1" en su tabla (los Slim de 30, 50 y 100W, por ejemplo).
+marca "CON DS1" también la de 3000K), en la Pagoda y en los estadios con una versión de más de
+5000K, la ficha dice además cuáles no lo tienen, en una oración aparte que no nombra la norma:
+"La de 3000K y la fría de 6500K no lo tienen", "La neutra de 4000K y la fría de 5000K no lo
+tienen" o "La fría de 6000K no lo tiene" (en la misma oración que el certificado, el detector lee
+esas temperaturas como certificadas). El resto de los productos no tiene certificado, aunque
+Jumpseller diga "DS1" en su tabla (los Slim de 30, 50 y 100W, por ejemplo).
+
+Proyectores de estadio (decisión del dueño del 23-10-2026, que reemplaza la del 22-10 de "todas
+sus versiones", mientras el dueño revisa qué versiones cubren sus certificados): la Tabla 4 del
+D.S. N°1/2022 limita la temperatura de color del alumbrado deportivo a 5000K o 3000K según la
+clase del recinto. La oración del certificado nombra las versiones de hasta 5000K que el producto
+tiene entre sus variantes de Jumpseller (no las de la descripción): "Para alumbrado deportivo,
+sus versiones cálida de 2700K, neutra de 4000K y fría de 5000K tienen certificado
+D.S. N°1/2022". Si el producto no tiene ninguna (el estadio de 600W, solo en 6000K), su ficha no
+lo afirma y ofrece asesoría. `checkFacts` lo revisa contra las variantes (`ds1VariantIssues`).
+El tope de la Tabla 4 no se escribe en la web: la ficha nombra sus versiones, no el tope.
 
 Para preguntar por un producto o una versión: `isDs1Certified(id)`,
 `isDs1CertifiedKelvin(id, kelvin)` y `ds1Line(id)` (en `src/data/catalog/ds1.ts`).
@@ -105,10 +116,13 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
   temperatura en esa oración, sin "todas sus versiones" y sin subtítulos como "**Certificado
   D.S. N°1/2022**" a secas ("**Certificado D.S. N°1/2022 en 2200K y 2700K**" sí). Una pregunta
   ("¿Qué versiones tienen certificado D.S. N°1/2022?") puede no nombrarla si la respuesta lo
-  hace. En los proyectores de estadio basta "Este proyector tiene certificado D.S. N°1/2022".
+  hace. En los proyectores de estadio tampoco basta "Este proyector tiene certificado
+  D.S. N°1/2022": se nombran sus versiones de hasta 5000K, sin "todas sus versiones" ni "sus
+  cuatro temperaturas de color".
   La guarda lee como versión sin certificado también la cifra sin "K" ("y 3000") y el tono
-  ("la fría", "la neutra"), y en otra oración sin la norma, "también lo tiene", "está
-  certificada" o "el mismo certificado" junto a una versión sin certificado.
+  ("la fría", "la neutra"; en un estadio, "la fría de 5000K" sí, porque lleva su temperatura), y
+  en otra oración sin la norma, "también lo tiene", "está certificada" o "el mismo certificado"
+  junto a una versión sin certificado.
 - La clasificación para Áreas de Protección Especial ("apta para…") solo está documentada en
   las BESTLED: en las demás no se escribe. Sí se puede decir que la de 2200K es la que se pide
   en las Áreas de Protección Especial.
@@ -140,8 +154,8 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
   nunca en una ficha de canchas, estadios o gimnasios: ahí la norma fija una temperatura de
   color máxima según la clase del recinto (I, II o III) y el apagado entre las 00:00 y las
   07:00, salvo eventos autorizados. Los proyectores de estadio, modulares y no modulares, dicen
-  su certificado, pero su ficha no habla de luz azul en ninguna parte, aunque no nombre la
-  cancha (la guarda lo revisa por línea).
+  su certificado en sus versiones de hasta 5000K, pero su ficha no habla de luz azul en ninguna
+  parte, aunque no nombre la cancha (la guarda lo revisa por línea).
 - El "% de luz azul" no va en el mismo bloque que nombra la norma: ni en la respuesta a una
   pregunta sobre el D.S. N°1/2022, ni en una sección cuyo subtítulo la nombra, ni en el mismo
   beneficio. El 1 % y el 7 % son los límites del decreto, y juntos se leen como "cumple". El
@@ -155,7 +169,8 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
 - En canchas, la respuesta sobre la norma no ofrece versiones por temperatura de color: según
   la skill normativa-ds1-elights, la fría de 6000K o 6500K queda sobre el tope de cualquier
   clase (la Tabla 4 del decreto está como imagen, así que el tope en Kelvin no se escribe en la
-  web). Se pide el uso y la clase del recinto y se asesora. Una cancha o un galpón techado sin muros sigue siendo alumbrado
+  web). Se pide el uso y la clase del recinto y se asesora. Decir qué versiones tienen el
+  certificado no es recomendar una: va igual, en su oración. Una cancha o un galpón techado sin muros sigue siendo alumbrado
   exterior (art. 3 a): se escribe "exteriores, incluidos los techados sin muros", nunca "al
   aire libre", y la luz fría queda para "interiores cerrados, con muros".
 - Fechas verificadas: alumbrado exterior nuevo, desde el 19 de octubre de 2026 en todo Chile;
