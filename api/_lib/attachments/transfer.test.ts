@@ -76,6 +76,13 @@ describe('transfer', () => {
     expect(transferReport([{ nombre: 'd.pdf', ext: 'pdf', status: 'missing' }])?.needsFollowUp).toBe(false);
   });
 
+  it('reservado por otro envío (en curso): nota, sin correo de seguimiento', () => {
+    expect(transferReport([{ nombre: 'e.dwg', ext: 'dwg', status: 'busy' }])).toEqual({
+      lines: ['Adjuntos: 0 de 1 quedaron en Archivos.', '"e.dwg": ya adjuntado en el envío anterior o en curso.'],
+      needsFollowUp: false,
+    });
+  });
+
   it('cada motivo tiene su texto', () => {
     expect(failureText('bad_content', 'xlsx')).toBe('no es un XLSX válido');
     expect(failureText('too_old', 'pdf')).toBe('venció: se subió hace más de 2 horas');

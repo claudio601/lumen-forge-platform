@@ -126,6 +126,8 @@ describe('sniffType: primeros bytes', () => {
     ['dxf', bytes('  0\r\nSECTION\r\n  2\r\nHEADER\r\n'), 'DXF de texto'],
     ['dxf', bytes('999\nhecho con un programa\n0\nSECTION\n2\nHEADER\n'), 'DXF con comentario 999'],
     ['dxf', bytes('AutoCAD Binary DXF\r\n\x1a\x00'), 'DXF binario'],
+    // Marca BOM de UTF-8 (EF BB BF) al comienzo: varios programas la agregan al exportar
+    ['dxf', new TextEncoder().encode('\ufeff  0\r\nSECTION\r\n  2\r\nHEADER\r\n'), 'DXF de texto con BOM'],
   ];
   it.each(good)('%s bueno: %s', (ext, data) => {
     expect(sniffType(data)).toBe(ext);
@@ -140,6 +142,7 @@ describe('sniffType: primeros bytes', () => {
     ['dwg', bytes('AC20')],
     ['dxf', bytes('SECTION\n0\n')],
     ['dxf', bytes('0\nSECTIONS\n')],
+    ['dxf', new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode('SECTION\n0\n')])],
     ['xlsx', bytes('PK\x05\x06')],
     ['pdf', new Uint8Array()],
   ];

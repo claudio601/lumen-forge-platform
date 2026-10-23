@@ -23,7 +23,10 @@
 //      clientPayload ({"size": n}, nunca más de 20 MB); sin multipart: 400.
 //   5. Sin almacén Blob configurado: 503 'unavailable' (el formulario sigue sin archivos).
 //   6. Topes del sitio (D2, quota.ts): techo de lo guardado en Blob y 200 archivos / 1 GB
-//      por día: 429 'daily_limit'. Redis caído: 503 'unavailable'.
+//      por día: 429 'daily_limit'. Redis caído: 503 'unavailable'. En producción, sin el
+//      total que deja el barrido diario (no corrió en 3 días: falta CRON_SECRET, está mal o
+//      el cron está apagado): 503 'unavailable', y un aviso a ventas una vez al día. Así
+//      nunca se suben archivos que nadie va a borrar.
 //   7. Permiso con addRandomSuffix y validUntil a 10 minutos. El CDN de Blob rechaza lo
 //      que no lo cumpla. Sin onUploadCompleted: ese aviso no llega a localhost ni a las
 //      previews con SSO, y create.ts no lo necesita.
@@ -37,7 +40,16 @@ import { handleUpload, handleUploadPresigned } from '@vercel/blob/client';
 import { issueSignedToken } from '@vercel/blob';
 import { checkRateLimit, getClientIp, isAllowedOrigin } from '../_lib/auth.js';
 import { ATTACHMENT_TYPES, MAX_FILE_BYTES, MAX_FILES, MAX_TOTAL_BYTES, UPLOAD_PATHNAME_RE, type AttachmentExt } from '../_lib/attachments/rules.js';
-import { blobStoreConfigured, checkCapacity, reserveUpload, type UnavailableCode } from '../_lib/attachments/quota.js';
+import {
+  blobStoreConfigured,
+  checkCapacity,
+  claimDailyAlert,
+  reserveUpload,
+  type CapacityResult,
+  type UnavailableCode,
+} from '../_lib/attachments/quota.js';
+import { notifySales } from '../_lib/notify/salesEmail.js';
+import { SITE_URL } from '../_lib/site.js';
 
 const LOG = '[AttachmentUpload]';
 const ALLOWED_METHODS = ['POST'];
@@ -89,6 +101,33 @@ function methodConfigured(type: string): boolean {
 const unavailableText = (code: UnavailableCode) =>
   code === 'daily_limit' ? 'Upload limit reached for today' : 'Uploads unavailable';
 
+/**
+ * En producción, el barrido diario no dejó su total en 3 días: los permisos quedan cerrados.
+ * Avisa a ventas una vez al día (quota.ts, claimDailyAlert). Nunca rechaza.
+ */
+async function alertIfSweepMissing(capacity: CapacityResult): Promise<void> {
+  if (capacity.ok !== false || capacity.reason !== 'no_sweep') return;
+  if (!(await claimDailyAlert('sin-barrido'))) return;
+  const host = new URL(SITE_URL).host;
+  await notifySales(
+    {
+      modo: 'Aviso del sitio: archivos adjuntos',
+      nombre: `Sitio ${host} (aviso automático)`,
+      email: 'ventas@elights.cl',
+      telefono: '-',
+      cuerpo: [
+        `Adjuntos del cotizador (${host})`,
+        'ALERTA: el barrido diario de archivos adjuntos no ha corrido en los últimos 3 días (o todavía no corre por primera vez).',
+        'Mientras tanto, el sitio no recibe archivos adjuntos: las solicitudes llegan sin archivos y el formulario pide mandarlos a ventas@elights.cl.',
+        'Revisar en Vercel la variable CRON_SECRET y el cron de /api/cron/blob-sweep (Settings → Cron Jobs), y avisar a quien mantiene el sitio.',
+      ].join('\n'),
+      total: '-',
+      asunto: 'ALERTA: el sitio no recibe archivos adjuntos',
+    },
+    LOG
+  );
+}
+
 async function handleStatus(req: VercelRequest, res: VercelResponse, payload: Json): Promise<void> {
   if (!checkRateLimit('status:' + getClientIp(req), RATE_LIMIT).allowed) {
     reply(res, 429, 'rate_limited', 'Too many requests. Try again later.');
@@ -109,7 +148,8 @@ async function handleStatus(req: VercelRequest, res: VercelResponse, payload: Js
   }
   const capacity = await checkCapacity({ files, bytes });
   if (capacity.ok === false) {
-    console.warn(`${LOG} Consulta: sin subida (${capacity.code})`);
+    console.warn(`${LOG} Consulta: sin subida (${capacity.code}: ${capacity.reason})`);
+    await alertIfSweepMissing(capacity);
     res.status(200).json({ available: false, code: capacity.code });
     return;
   }
@@ -170,7 +210,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const capacity = await reserveUpload(size);
   if (capacity.ok === false) {
-    console.warn(`${LOG} Permiso negado: ${capacity.code}`);
+    console.warn(`${LOG} Permiso negado: ${capacity.code} (${capacity.reason})`);
+    await alertIfSweepMissing(capacity);
     reply(res, capacity.code === 'daily_limit' ? 429 : 503, capacity.code, unavailableText(capacity.code));
     return;
   }

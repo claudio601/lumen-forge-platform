@@ -30,8 +30,10 @@
 // Versión 1.6 (especificación «Adjuntar archivos» del 2026-10-22, aprobada por el dueño con las
 // decisiones D1 a D3): el cotizador recibe archivos (bases de licitación, fichas técnicas,
 // planos o planillas). Pasan por un almacén privado y temporal de Vercel Blob y quedan en la
-// pestaña Archivos del negocio en Pipedrive (§2, §5 y §7). Upstash no cambia: los topes de
-// subida cuentan archivos y bytes, sin datos personales; §9 tampoco cambia.
+// pestaña Archivos del negocio en Pipedrive (§2, §5 y §7). Upstash (§5) guarda además, por 48
+// horas, la ruta de cada archivo en Blob con el número de su negocio en Pipedrive (reserva y
+// reintento del traspaso, api/_lib/attachments/quota.ts); los topes de subida cuentan archivos
+// y bytes, sin datos personales. §9 no cambia.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -312,7 +314,7 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de
-        seguimiento.
+        seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.
       </li>
       <li>
         <strong>Jumpseller:</strong> plataforma de ventas: catálogo, imágenes de productos, links de pago y registro de pedidos.

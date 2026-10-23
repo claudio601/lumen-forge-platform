@@ -15,12 +15,20 @@
 // dicen cuál falta. Si no queda tiempo en la función, el archivo queda en Blob con su clave
 // «pendiente» y el barrido diario lo reintenta.
 //
+// Tiempo: cada paso recibe lo que queda hasta el plazo (`deadline`), medido justo antes de
+// empezarlo: head() y get() dejan al menos 10 s para Pipedrive, y la subida a Pipedrive
+// empieza solo si quedan 10 s. Lo que no alcanza queda «pendiente». Así la función nunca se
+// corta a mitad de una subida (un archivo que Pipedrive alcanzó a guardar no se vuelve a subir).
+//
+// Cada archivo se reserva antes de traspasarlo (clave «pendiente» con SET NX, quota.ts): si
+// el cliente reenvía mientras el primer traspaso sigue, el segundo no lo duplica.
+//
 // Los logs llevan la posición del archivo y un código de motivo: nunca el nombre ni la ruta.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { BlobNotFoundError, del, get, head } from '@vercel/blob';
 import { pipedriveUploadFile } from '../pipedrive/client.js';
-import { markDone, markPending } from './quota.js';
+import { claimPending, markDone } from './quota.js';
 import {
   ATTACHMENT_TYPES,
   MAX_FILE_BYTES,
@@ -40,7 +48,9 @@ export const CREATE_MAX_DURATION_S = 60;
 /** Al final de la función quedan 10 s para la nota y el correo de fallas. */
 const END_MARGIN_MS = 10_000;
 /** Un archivo empieza solo si quedan al menos 15 s (uno de 20 MB, de Blob a Pipedrive). */
-const MIN_FILE_WINDOW_MS = 15_000;
+export const MIN_FILE_WINDOW_MS = 15_000;
+/** La subida a Pipedrive empieza solo si quedan al menos 10 s; head() y get() se los dejan. */
+const MIN_UPLOAD_WINDOW_MS = 10_000;
 /** Pipedrive: 60 s por archivo como máximo. */
 const UPLOAD_TIMEOUT_MS = 60_000;
 const HEAD_TIMEOUT_MS = 4_000;
@@ -63,7 +73,11 @@ export interface InspectedAttachment extends AttachmentRef {
   blob: BlobMeta | null | undefined;
 }
 
-export type OutcomeStatus = 'attached' | 'missing' | 'failed' | 'pending';
+/**
+ * attached: quedó en Archivos; missing: ya no está en Blob; failed: no se pudo (se borró, D3);
+ * pending: sin tiempo, queda en Blob para el barrido; busy: otro traspaso lo tiene reservado.
+ */
+export type OutcomeStatus = 'attached' | 'missing' | 'failed' | 'pending' | 'busy';
 
 export type FailureCode =
   | 'too_big'
@@ -84,9 +98,9 @@ export interface TransferOutcome {
 
 const errorName = (err: unknown) => (err instanceof Error ? err.constructor.name || err.name : typeof err);
 
-async function headMeta(pathname: string): Promise<BlobMeta | null | undefined> {
+async function headMeta(pathname: string, timeoutMs = HEAD_TIMEOUT_MS): Promise<BlobMeta | null | undefined> {
   try {
-    const h = await head(pathname, { abortSignal: AbortSignal.timeout(HEAD_TIMEOUT_MS) });
+    const h = await head(pathname, { abortSignal: AbortSignal.timeout(timeoutMs) });
     return { url: h.url, size: h.size, uploadedAt: new Date(h.uploadedAt), contentType: h.contentType };
   } catch (err) {
     return err instanceof BlobNotFoundError ? null : undefined;
@@ -141,13 +155,18 @@ async function readAll(stream: ReadableStream<Uint8Array>, max: number): Promise
   return data;
 }
 
-/** Borra de Blob sin lanzar (un error queda en el log, sin rutas; el barrido limpia después). */
-export async function deleteFromBlob(urlsOrPathnames: string[], log: string): Promise<void> {
-  if (!urlsOrPathnames.length) return;
+/**
+ * Borra de Blob sin lanzar (un error queda en el log, sin rutas; el barrido limpia después).
+ * true si Blob confirmó el borrado.
+ */
+export async function deleteFromBlob(urlsOrPathnames: string[], log: string): Promise<boolean> {
+  if (!urlsOrPathnames.length) return true;
   try {
     await del(urlsOrPathnames);
+    return true;
   } catch (err) {
     console.warn(`${log} Blob del() FAIL (${urlsOrPathnames.length}) | ${errorName(err)}`);
+    return false;
   }
 }
 
@@ -160,21 +179,30 @@ function checkMeta(meta: BlobMeta, ext: AttachmentExt, maxAgeMs: number, now: nu
 
 /**
  * Traspasa un archivo y lo borra de Blob (adjuntado o no). Antes de borrar, marca su clave
- * «pendiente» como terminada, así el barrido no lo reintenta. Nunca lanza.
+ * «pendiente» como terminada, así el barrido no lo reintenta. Si no alcanza el tiempo hasta
+ * `deadline` (o algo falla cuando ya no queda tiempo), no lo borra: queda «pendiente» para el
+ * barrido. Nunca lanza.
  */
 export async function transferOne(
   item: InspectedAttachment,
   {
     dealId,
-    timeoutMs = UPLOAD_TIMEOUT_MS,
+    deadline,
     maxAgeMs = MAX_UPLOAD_AGE_MS,
     now = Date.now(),
-  }: { dealId: number; timeoutMs?: number; maxAgeMs?: number; now?: number }
+  }: { dealId: number; deadline: number; maxAgeMs?: number; now?: number }
 ): Promise<TransferOutcome> {
   const outcome = (status: OutcomeStatus, code?: FailureCode): TransferOutcome =>
     code ? { nombre: item.nombre, ext: item.ext, status, code } : { nombre: item.nombre, ext: item.ext, status };
+  /** Lo que queda hasta el plazo, medido ahora. */
+  const left = () => deadline - Date.now();
 
-  const meta = item.blob === undefined ? await headMeta(item.pathname) : item.blob;
+  let meta = item.blob;
+  if (meta === undefined) {
+    const headMs = Math.min(HEAD_TIMEOUT_MS, left() - MIN_UPLOAD_WINDOW_MS);
+    if (headMs < 1_000) return outcome('pending');
+    meta = await headMeta(item.pathname, headMs);
+  }
   if (meta === null) return outcome('missing');
 
   let result: TransferOutcome;
@@ -183,7 +211,9 @@ export async function transferOne(
     if (invalid) {
       result = outcome('failed', invalid);
     } else {
-      const got = await get(item.pathname, { access: 'private', abortSignal: AbortSignal.timeout(GET_TIMEOUT_MS) });
+      const getMs = Math.min(GET_TIMEOUT_MS, left() - MIN_UPLOAD_WINDOW_MS);
+      if (getMs < 1_000) return outcome('pending');
+      const got = await get(item.pathname, { access: 'private', abortSignal: AbortSignal.timeout(getMs) });
       if (!got || got.statusCode !== 200 || !got.stream) {
         result = got === null ? outcome('missing') : outcome('failed', 'read_failed');
       } else {
@@ -193,12 +223,15 @@ export async function transferOne(
         } else if (!matchesExtension(data, item.ext)) {
           result = outcome('failed', 'bad_content');
         } else {
+          // El tiempo de Pipedrive se mide recién ahora, después de leer el archivo
+          const uploadMs = Math.min(UPLOAD_TIMEOUT_MS, left());
+          if (uploadMs < MIN_UPLOAD_WINDOW_MS) return outcome('pending');
           const up = await pipedriveUploadFile({
             dealId,
             fileName: item.nombre,
             contentType: ATTACHMENT_TYPES[item.ext],
             data,
-            timeoutMs: Math.max(1_000, Math.min(UPLOAD_TIMEOUT_MS, timeoutMs)),
+            timeoutMs: uploadMs,
           });
           result = up.success
             ? outcome('attached')
@@ -207,6 +240,9 @@ export async function transferOne(
       }
     }
   } catch {
+    // La lectura se cortó: si ya no queda tiempo, lo más probable es el límite de la función
+    // (queda pendiente para el barrido); si queda, es una falla de Blob.
+    if (left() < MIN_FILE_WINDOW_MS) return outcome('pending');
     result = outcome('failed', 'read_failed');
   }
 
@@ -216,29 +252,35 @@ export async function transferOne(
 }
 
 /**
- * Traspasa los archivos de una solicitud al negocio, de a uno. Marca antes todos como
- * pendientes (para el barrido). Un archivo que ya no cabe en el tiempo de la función queda
- * en Blob como pendiente. Nunca lanza.
+ * Traspasa los archivos de una solicitud al negocio, de a uno. Antes reserva todos (clave
+ * «pendiente» con el negocio, SET NX): lo que otro traspaso ya tiene reservado no se toca
+ * ('busy'), y lo que no alcance a terminar queda para el barrido. Un archivo que ya no cabe
+ * en el tiempo de la función queda en Blob como pendiente. Nunca lanza.
  */
 export async function transferAttachments(
   items: InspectedAttachment[],
   { dealId, deadline, log }: { dealId: number; deadline: number; log: string }
 ): Promise<TransferOutcome[]> {
   const present = items.filter((i) => i.blob !== null).map((i) => i.pathname);
-  if (present.length && !(await markPending(present, dealId))) {
+  const claims = present.length ? await claimPending(present, dealId) : new Map<string, string>();
+  if ([...claims.values()].includes('error')) {
     console.warn(`${log} Adjuntos: Redis no guardó las claves pendientes (sin reintento del barrido)`);
   }
 
   const outcomes: TransferOutcome[] = [];
   for (const [index, item] of items.entries()) {
     const label = `${log} Adjunto ${index + 1}/${items.length}`;
-    const remaining = deadline - Date.now();
-    if (item.blob !== null && remaining < MIN_FILE_WINDOW_MS) {
+    if (claims.get(item.pathname) === 'taken') {
+      outcomes.push({ nombre: item.nombre, ext: item.ext, status: 'busy' });
+      console.warn(`${label} busy: reservado por otro envío | dealId: ${dealId}`);
+      continue;
+    }
+    if (item.blob !== null && deadline - Date.now() < MIN_FILE_WINDOW_MS) {
       outcomes.push({ nombre: item.nombre, ext: item.ext, status: 'pending' });
       console.warn(`${label} pendiente: sin tiempo en la función (lo reintenta el barrido)`);
       continue;
     }
-    const result = await transferOne(item, { dealId, timeoutMs: remaining });
+    const result = await transferOne(item, { dealId, deadline });
     outcomes.push(result);
     if (result.status === 'attached') console.log(`${label} OK | dealId: ${dealId}`);
     else console.warn(`${label} ${result.status}${result.code ? ': ' + result.code : ''} | dealId: ${dealId}`);
@@ -280,6 +322,7 @@ export function transferReport(outcomes: TransferOutcome[]): { lines: string[]; 
   const failed = outcomes.filter((o) => o.status === 'failed');
   const pending = outcomes.filter((o) => o.status === 'pending');
   const missing = outcomes.filter((o) => o.status === 'missing');
+  const busy = outcomes.filter((o) => o.status === 'busy');
 
   const lines = [`Adjuntos: ${attached} de ${outcomes.length} quedaron en Archivos.`];
   const failures = failed.map((o) => `No se pudo adjuntar "${o.nombre}" (${failureText(o.code ?? 'read_failed', o.ext)}).`);
@@ -292,5 +335,6 @@ export function transferReport(outcomes: TransferOutcome[]): { lines: string[]; 
     );
   }
   for (const o of missing) lines.push(`"${o.nombre}": ya adjuntado en el envío anterior o vencido.`);
+  for (const o of busy) lines.push(`"${o.nombre}": ya adjuntado en el envío anterior o en curso.`);
   return { lines, needsFollowUp: failed.length > 0 || pending.length > 0 };
 }

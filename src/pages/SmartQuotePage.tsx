@@ -284,6 +284,16 @@ const SmartQuotePage = () => {
     void send([]);
   };
 
+  // Para el lector de pantalla (el botón deshabilitado no se anuncia): la etapa del envío y el
+  // avance de la subida cada 25 %, no en cada evento.
+  const sendingStatus = !sending
+    ? ''
+    : progress === null
+      ? 'Enviando…'
+      : progress < 25
+        ? 'Subiendo archivos…'
+        : `Subiendo archivos… ${Math.floor(progress / 25) * 25}\u00a0%`;
+
   if (submitted) {
     // Los datos del proyecto (no los de contacto) van en el resumen para imprimir
     const projectData = [
@@ -451,6 +461,7 @@ const SmartQuotePage = () => {
                 <><Send className="h-5 w-5" /> Solicitar propuesta técnica</>
               )}
             </Button>
+            <p role="status" className="sr-only">{sendingStatus}</p>
             {/* Junto al botón (el fieldset separa con space-y-6: !mt-3 lo acerca) */}
             <div className="text-center !mt-3">
               <p className="text-sm text-muted-foreground">{responseTimePromise}</p>

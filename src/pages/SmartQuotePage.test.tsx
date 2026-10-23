@@ -699,15 +699,19 @@ describe('SmartQuotePage: adjuntar archivos', () => {
 
     // Va la mitad del primero (200 de 1000 bytes) y el segundo todavía no empieza: de a uno
     expect(await screen.findByRole('button', { name: /Subiendo archivos… 20\u00a0%/ })).toBeDisabled();
+    // El lector de pantalla oye la etapa, y el avance solo cada 25 % (no en cada evento)
+    expect(screen.getByRole('status')).toHaveTextContent(/^Subiendo archivos…$/);
     expect(uploadPresigned).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Quitar bases.pdf' })).toBeDisabled();
     expect(fileInput()).toBeDisabled();
     // El primero terminó (400 de 1000 bytes) y el segundo espera: 40 %
     await act(async () => { releaseFirst(); });
     expect(await screen.findByRole('button', { name: /Subiendo archivos… 40\u00a0%/ })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent(/^Subiendo archivos… 25\s%$/); // con espacio duro
     expect(uploadPresigned).toHaveBeenCalledTimes(2);
     await act(async () => { releaseSecond(); });
     expect(await screen.findByRole('button', { name: /Enviando…/ })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent(/^Enviando…$/);
     expect(n).toBe(1);
     await act(async () => { releaseCreate(); });
 

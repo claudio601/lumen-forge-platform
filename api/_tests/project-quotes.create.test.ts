@@ -1071,6 +1071,64 @@ describe('POST /api/project-quotes/create: adjuntos', () => {
     expect(fake.mails).toHaveLength(1);
   });
 
+  it('reenvío mientras el primer traspaso sigue: la reserva (SET NX) evita subir dos veces el mismo archivo', async () => {
+    let release: () => void = () => {};
+    vi.mocked(pipedriveUploadFile).mockImplementation(
+      () => new Promise((resolve) => { release = () => resolve({ success: true, data: { id: 50 } } as never); })
+    );
+    const archivos = [uploaded('plano.dwg')];
+    expect((await send({ ...base, archivos })).statusCode).toBe(201);
+    await vi.waitFor(() => expect(pipedriveUploadFile).toHaveBeenCalledTimes(1));
+    // La respuesta 201 se perdió y el cliente envía otra vez: el archivo sigue en Blob
+    vi.mocked(createDeal).mockResolvedValue({ dealId: 999, status: 'skipped_duplicate' });
+    const firstTransfers = registered.length;
+    expect((await send({ ...base, archivos })).statusCode).toBe(200);
+    await Promise.all(registered.slice(firstTransfers).map((r) => r.promise));
+    expect(pipedriveUploadFile).toHaveBeenCalledTimes(1);
+    expect(notes().at(-1)?.content).toBe('Adjuntos: 0 de 1 quedaron en Archivos.\n"plano.dwg": ya adjuntado en el envío anterior o en curso.');
+    release();
+    await settled();
+    expect(pipedriveUploadFile).toHaveBeenCalledTimes(1);
+    expect(stored.size).toBe(0);
+    expect(fake.data.get(pendingKey(archivos[0].pathname))?.value).toBe('0');
+    // Nada que pedirle al cliente: sin correo de seguimiento (el de la solicitud, dos veces)
+    expect(fake.mails).toHaveLength(2);
+  });
+
+  it('el tiempo de Pipedrive se mide después de leer el archivo: la subida nunca pasa del plazo de la función', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const start = Date.parse('2026-11-20T14:00:00Z');
+    vi.setSystemTime(start);
+    vi.mocked(get).mockImplementation(async (pathname: string) => {
+      const f = stored.get(pathname);
+      vi.setSystemTime(Date.now() + 15_000); // Blob tardó 15 s en entregar el archivo
+      return { statusCode: 200, stream: new Blob([f!.data]).stream(), headers: new Headers(), blob: {} } as never;
+    });
+    await send({ ...base, archivos: [uploaded('plano.dwg', { size: 19 * MB })] });
+    await settled();
+    const [{ timeoutMs }] = uploads();
+    // 60 s del maxDuration, menos 10 s de margen, menos los 15 s de Blob
+    expect(timeoutMs).toBeLessThanOrEqual(60_000 - 10_000 - 15_000);
+    expect(timeoutMs).toBeGreaterThanOrEqual(10_000);
+  });
+
+  it('si después de leer el archivo ya no quedan 10 s, no se sube: queda pendiente para el barrido', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T14:00:00Z'));
+    vi.mocked(get).mockImplementation(async (pathname: string) => {
+      const f = stored.get(pathname);
+      vi.setSystemTime(Date.now() + 42_000);
+      return { statusCode: 200, stream: new Blob([f!.data]).stream(), headers: new Headers(), blob: {} } as never;
+    });
+    const archivos = [uploaded('plano.dwg')];
+    await send({ ...base, archivos });
+    await settled();
+    expect(pipedriveUploadFile).not.toHaveBeenCalled();
+    expect(stored.has(archivos[0].pathname)).toBe(true);
+    expect(fake.data.get(pendingKey(archivos[0].pathname))?.value).toBe('999');
+    expect(notes()[1].content).toContain('"plano.dwg" quedó pendiente');
+  });
+
   it('CRM caído: 200 crm failed, se borran todos los archivos y el correo ATENCIÓN lo dice', async () => {
     vi.mocked(createDeal).mockRejectedValue(new Error('[deals] down'));
     const archivos = [uploaded('bases.pdf'), uploaded('plano.dwg')];

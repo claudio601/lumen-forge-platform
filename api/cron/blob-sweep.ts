@@ -6,20 +6,27 @@
 // Lo llama el cron de Vercel una vez al día (vercel.json → crons), solo en producción. Exige
 // `Authorization: Bearer <CRON_SECRET>` (Vercel lo manda solo si CRON_SECRET existe); sin el
 // secreto configurado responde 401 a todo. El almacén es el mismo para las previews y
-// producción, así que también limpia las pruebas.
+// producción, así que también limpia las pruebas. El cron de Vercel puede llamar dos veces la
+// misma ejecución: un candado en Redis (5 minutos) deja correr solo una.
 //
-//   1. Lista cotizador/ (de a 1.000, con cursor).
-//   2. Reintento: un archivo de más de 1 hora que todavía tiene su clave «pendiente» (ruta →
-//      negocio, quota.ts) quedó a medio traspasar porque la función se cortó. Se vuelve a
-//      pasar a Pipedrive (transfer.ts), hasta 3 por barrido y dentro de los primeros 25 s, y
-//      una nota en el negocio dice cómo terminó. Pipedrive lo recibe con el nombre
+// Orden (lo que protege la cuota y el plazo de la Política va primero, los reintentos al final):
+//   1. Lista cotizador/ (de a 1.000, con cursor) y lee las claves «pendiente» (ruta → negocio,
+//      quota.ts) de lo que tenga más de 1 hora, con MGET de a 50 en paralelo.
+//   2. Borra lo que tenga 23 h o más. Con la hora variable del cron de Hobby (±59 min), un
+//      huérfano vive menos de 48 h. Un pendiente que llega a esa edad sin reintento se borra
+//      igual y la nota del negocio lo dice (D3).
+//   3. Suma lo que queda, más lo que no se pudo borrar, y lo deja en Redis
+//      (STORED_BYTES_KEY). Es el techo del permiso de subida (unos 8 GB) y su señal de que
+//      el barrido corre (en producción, sin esa clave no hay permisos).
+//   4. Reintenta los pendientes de 1 h a 23 h (la función de create.ts se cortó): hasta 3, y
+//      cada uno solo si quedan 30 s; cada paso recibe lo que queda hasta el plazo (60 s del
+//      maxDuration menos 10 s para las notas y el correo). Pipedrive lo recibe con el nombre
 //      «archivo-<8 caracteres>.<ext>»: el nombre original está en la nota principal (no se
-//      guarda en Redis, porque podría traer datos del cliente).
-//   3. Borra lo que tenga más de 24 h (un huérfano vive como máximo unas 48 h). Un
-//      pendiente que no alcanzó a reintentarse se borra igual y la nota lo dice (D3).
-//   4. Suma lo que queda y lo deja en Redis (STORED_BYTES_KEY): el permiso de subida no
-//      entrega permisos si llega al techo (unos 8 GB). Al llegar, avisa a ventas.
-//   5. Si un reintento falló o el almacén llegó al techo, un correo a ventas lo dice.
+//      guarda en Redis, porque podría traer datos del cliente). Lo que no alcanza se borra en
+//      el barrido siguiente, con su nota.
+//   5. Una nota por negocio dice cómo terminó. Un correo a ventas avisa si un reintento falló,
+//      si el almacén llegó al techo, si algo no se pudo borrar o si Redis no guardó el total.
+//      Si el barrido entero falla (500), también avisa.
 //
 // Los logs llevan solo cantidades y pesos: nunca rutas ni nombres de archivo.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -34,18 +41,28 @@ import { UPLOAD_PREFIX, pathnameExt, type AttachmentExt } from '../_lib/attachme
 import {
   PENDING_TTL_S,
   STORED_CEILING_BYTES,
+  acquireSweepLock,
   blobStoreConfigured,
-  readPending,
+  markDone,
+  readPendingMany,
   recordStoredBytes,
 } from '../_lib/attachments/quota.js';
 import { deleteFromBlob, transferOne, transferReport, type TransferOutcome } from '../_lib/attachments/transfer.js';
 
 const LOG = '[BlobSweep]';
 
-export const DELETE_AFTER_MS = 24 * 3600_000;
+/** 23 h: con la hora variable del cron de Hobby (±59 min), un huérfano vive menos de 48 h. */
+export const DELETE_AFTER_MS = 23 * 3600_000;
 export const RETRY_AFTER_MS = 3600_000;
 export const MAX_RETRIES_PER_RUN = 3;
-export const RETRY_BUDGET_MS = 25_000;
+/** maxDuration del barrido en vercel.json (blob-sweep.test.ts revisa que coincidan). */
+export const SWEEP_MAX_DURATION_S = 60;
+/** Al final quedan 10 s para las notas y el correo. */
+const END_MARGIN_MS = 10_000;
+/** Un reintento empieza solo si quedan al menos 30 s hasta el plazo. */
+export const MIN_RETRY_WINDOW_MS = 30_000;
+/** El candado dura más que la función: una llamada repetida del cron no corre de nuevo. */
+const LOCK_TTL_S = 300;
 const PAGE_LIMIT = 1000;
 const MAX_PAGES = 20;
 const DELETE_BATCH = 100;
@@ -80,68 +97,111 @@ async function listAll(): Promise<ListBlobResultBlob[]> {
   return blobs;
 }
 
-/** Nota del reintento en el negocio. */
-function retryNoteLines(outcomes: TransferOutcome[]): string[] {
+/** Nota del barrido en el negocio. */
+function sweepNoteLines(outcomes: TransferOutcome[]): string[] {
   const report = transferReport(outcomes);
   return [
-    'Reintento del barrido diario (adjuntos que quedaron pendientes en el envío):',
+    'Barrido diario de adjuntos (archivos que quedaron pendientes en el envío):',
     ...(report ? report.lines : [`Adjuntos: ${outcomes.length} de ${outcomes.length} quedaron en Archivos.`]),
     'El nombre original de cada archivo está en la nota principal.',
   ];
 }
 
+/** Aviso del sitio a ventas@elights.cl (sin datos de clientes). */
+function alertSales(lines: string[], asunto: string): Promise<boolean> {
+  return notifySales(
+    {
+      modo: 'Aviso del sitio: archivos adjuntos',
+      nombre: `Sitio ${SITE_HOST} (aviso automático)`,
+      email: 'ventas@elights.cl',
+      telefono: '-',
+      cuerpo: [`Barrido diario de adjuntos del cotizador (${SITE_HOST})`, ...lines].join('\n'),
+      total: '-',
+      asunto,
+    },
+    LOG
+  );
+}
+
 export interface SweepSummary {
   listed: number;
   deleted: number;
+  undeleted: number;
   retried: number;
   storedBytes: number;
   ceilingReached: boolean;
 }
 
-export async function sweep(now: number = Date.now()): Promise<SweepSummary> {
-  const startedAt = Date.now();
+export async function sweep(now: number = Date.now(), startedAt: number = Date.now()): Promise<SweepSummary> {
+  const deadline = startedAt + SWEEP_MAX_DURATION_S * 1000 - END_MARGIN_MS;
   const blobs = await listAll();
-  const toDelete: string[] = [];
+  const ageOf = (blob: ListBlobResultBlob) => now - new Date(blob.uploadedAt).getTime();
+
+  // 1. Claves «pendiente» de lo que tenga más de 1 hora
+  const candidates = blobs.filter((b) => pathnameExt(b.pathname) && ageOf(b) >= RETRY_AFTER_MS);
+  const pending = await readPendingMany(candidates.map((b) => b.pathname));
+  if (!pending.ok) console.warn(`${LOG} Redis no respondió al leer los pendientes (sin reintentos)`);
+
   const byDeal = new Map<number, TransferOutcome[]>();
-  let stored = 0;
-  let retried = 0;
+  const record = (dealId: number, outcome: TransferOutcome) => {
+    const outcomes = byDeal.get(dealId) ?? [];
+    outcomes.push(outcome);
+    byDeal.set(dealId, outcomes);
+  };
 
-  for (const blob of blobs) {
-    const age = now - new Date(blob.uploadedAt).getTime();
+  // 2. Borrar lo de 23 h o más (un pendiente sin reintento: la nota lo dice)
+  const old = blobs.filter((b) => ageOf(b) >= DELETE_AFTER_MS);
+  const expired: string[] = [];
+  for (const blob of old) {
+    const dealId = pending.deals.get(blob.pathname);
     const ext = pathnameExt(blob.pathname);
-    if (ext && age >= RETRY_AFTER_MS) {
-      const dealId = await readPending(blob.pathname);
-      if (dealId) {
-        const nombre = retryFileName(blob.pathname, ext);
-        const outcomes = byDeal.get(dealId) ?? [];
-        byDeal.set(dealId, outcomes);
-        if (retried < MAX_RETRIES_PER_RUN && Date.now() - startedAt < RETRY_BUDGET_MS) {
-          retried++;
-          // head() lo hace transferOne (blob: undefined): list() no trae el tipo.
-          outcomes.push(
-            await transferOne(
-              { pathname: blob.pathname, nombre, ext, blob: undefined },
-              { dealId, maxAgeMs: PENDING_TTL_S * 1000 }
-            )
-          );
-          continue; // transferOne ya lo borró
-        }
-        if (age >= DELETE_AFTER_MS) outcomes.push({ nombre, ext, status: 'failed', code: 'not_retried' });
-      }
+    if (!dealId || !ext) continue;
+    record(dealId, { nombre: retryFileName(blob.pathname, ext), ext, status: 'failed', code: 'not_retried' });
+    expired.push(blob.pathname);
+  }
+  let deleted = 0;
+  let undeleted = 0;
+  let undeletedBytes = 0;
+  for (let i = 0; i < old.length; i += DELETE_BATCH) {
+    const batch = old.slice(i, i + DELETE_BATCH);
+    if (await deleteFromBlob(batch.map((b) => b.url), LOG)) {
+      deleted += batch.length;
+    } else {
+      undeleted += batch.length;
+      undeletedBytes += batch.reduce((sum, b) => sum + b.size, 0);
     }
-    if (age >= DELETE_AFTER_MS) toDelete.push(blob.url);
-    else stored += blob.size;
+  }
+  // Su nota sale una sola vez, aunque el borrado haya fallado
+  await Promise.all(expired.map((p) => markDone(p)));
+
+  // 3. Total guardado: lo nuevo y lo que no se pudo borrar
+  const young = blobs.filter((b) => ageOf(b) < DELETE_AFTER_MS);
+  const stored = young.reduce((sum, b) => sum + b.size, 0) + undeletedBytes;
+  const recorded = await recordStoredBytes(stored);
+  if (!recorded) console.warn(`${LOG} Redis no guardó el total (el permiso no ve el techo)`);
+  const ceilingReached = stored >= STORED_CEILING_BYTES;
+
+  // 4. Reintentos, con lo que quede de tiempo
+  let retried = 0;
+  for (const blob of young) {
+    const dealId = pending.deals.get(blob.pathname);
+    const ext = pathnameExt(blob.pathname);
+    if (!dealId || !ext) continue;
+    if (retried >= MAX_RETRIES_PER_RUN || deadline - Date.now() < MIN_RETRY_WINDOW_MS) break;
+    retried++;
+    // head() lo hace transferOne (blob: undefined): list() no trae el tipo.
+    const outcome = await transferOne(
+      { pathname: blob.pathname, nombre: retryFileName(blob.pathname, ext), ext, blob: undefined },
+      { dealId, deadline, maxAgeMs: PENDING_TTL_S * 1000 }
+    );
+    // Sin tiempo: sigue pendiente y el barrido siguiente lo borra con su nota
+    if (outcome.status !== 'pending') record(dealId, outcome);
   }
 
-  for (let i = 0; i < toDelete.length; i += DELETE_BATCH) {
-    await deleteFromBlob(toDelete.slice(i, i + DELETE_BATCH), LOG);
-  }
-
-  // Notas de los reintentos, una por negocio.
+  // 5. Notas de cada negocio y aviso a ventas
   const followUp: string[] = [];
   for (const [dealId, outcomes] of byDeal) {
-    if (!outcomes.length) continue;
-    const lines = retryNoteLines(outcomes);
+    const lines = sweepNoteLines(outcomes);
     try {
       const note = await pipedrivePost('/notes', { content: lines.join('\n').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'), deal_id: dealId });
       if (!note.success) console.warn(`${LOG} Nota en Pipedrive FAIL | dealId: ${dealId}`);
@@ -151,40 +211,41 @@ export async function sweep(now: number = Date.now()): Promise<SweepSummary> {
     if (transferReport(outcomes)?.needsFollowUp) followUp.push('', `Negocio ${dealId} en Pipedrive:`, ...lines.slice(1));
   }
 
-  if (!(await recordStoredBytes(stored))) console.warn(`${LOG} Redis no guardó el total (el permiso no ve el techo)`);
-  const ceilingReached = stored >= STORED_CEILING_BYTES;
-
-  if (ceilingReached || followUp.length) {
-    const alert = ceilingReached
-      ? [
-          `ALERTA: el almacenamiento temporal de archivos del cotizador tiene ${gb(stored)} (techo: ${gb(STORED_CEILING_BYTES)}).`,
-          'Mientras siga sobre el techo, el sitio no recibe archivos adjuntos: las solicitudes llegan sin archivos y el formulario pide mandarlos a ventas@elights.cl.',
-          'Revisar el almacén Blob en Vercel (Storage) y avisar a quien mantiene el sitio.',
-        ]
-      : [];
-    await notifySales(
-      {
-        modo: 'Aviso del sitio: archivos adjuntos',
-        nombre: `Sitio ${SITE_HOST} (aviso automático)`,
-        email: 'ventas@elights.cl',
-        telefono: '-',
-        cuerpo: [`Barrido diario de adjuntos del cotizador (${SITE_HOST})`, ...alert, ...followUp].join('\n'),
-        total: '-',
-        asunto: ceilingReached ? 'ALERTA: adjuntos del sitio sobre el techo' : 'Adjuntos del sitio: revisar reintentos',
-      },
-      LOG
+  const alert: string[] = [];
+  if (ceilingReached) {
+    alert.push(
+      `ALERTA: el almacenamiento temporal de archivos del cotizador tiene ${gb(stored)} (techo: ${gb(STORED_CEILING_BYTES)}).`,
+      'Mientras siga sobre el techo, el sitio no recibe archivos adjuntos: las solicitudes llegan sin archivos y el formulario pide mandarlos a ventas@elights.cl.',
+      'Revisar el almacén Blob en Vercel (Storage) y avisar a quien mantiene el sitio.'
+    );
+  }
+  if (undeleted) {
+    alert.push(
+      `No se pudieron borrar ${undeleted} archivo(s) de más de 23 horas del almacenamiento temporal. El barrido de mañana lo reintenta; si se repite, avisar a quien mantiene el sitio.`
+    );
+  }
+  if (!recorded) {
+    alert.push(
+      'Redis (Upstash) no guardó el total del almacenamiento temporal: si se repite 3 días seguidos, el sitio deja de recibir archivos adjuntos. Avisar a quien mantiene el sitio.'
+    );
+  }
+  if (alert.length || followUp.length) {
+    await alertSales(
+      [...alert, ...followUp],
+      ceilingReached ? 'ALERTA: adjuntos del sitio sobre el techo' : alert.length ? 'Adjuntos del sitio: revisar el barrido' : 'Adjuntos del sitio: revisar reintentos'
     );
   }
 
-  const summary = { listed: blobs.length, deleted: toDelete.length, retried, storedBytes: stored, ceilingReached };
+  const summary = { listed: blobs.length, deleted, undeleted, retried, storedBytes: stored, ceilingReached };
   console.log(
-    `${LOG} Listados: ${summary.listed} | borrados: ${summary.deleted} | reintentos: ${retried} | ` +
-      `guardado: ${gb(stored)}` + (ceilingReached ? ' | SOBRE EL TECHO' : '')
+    `${LOG} Listados: ${summary.listed} | borrados: ${deleted}` + (undeleted ? ` | sin borrar: ${undeleted}` : '') +
+      ` | reintentos: ${retried} | guardado: ${gb(stored)}` + (ceilingReached ? ' | SOBRE EL TECHO' : '')
   );
   return summary;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  const startedAt = Date.now();
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     res.status(405).json({ ok: false, error: 'Method not allowed' });
@@ -199,10 +260,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(200).json({ ok: true, skipped: 'no_store' });
     return;
   }
+  // Sin Redis el barrido corre igual (borrar es lo importante); con el candado tomado, no.
+  if ((await acquireSweepLock(LOCK_TTL_S)) === 'busy') {
+    console.warn(`${LOG} Otro barrido está corriendo: nada que hacer`);
+    res.status(200).json({ ok: true, skipped: 'running' });
+    return;
+  }
   try {
-    res.status(200).json({ ok: true, ...(await sweep()) });
+    res.status(200).json({ ok: true, ...(await sweep(Date.now(), startedAt)) });
   } catch (err) {
-    console.error(`${LOG} FAIL | ${err instanceof Error ? err.constructor.name || err.name : typeof err}`);
+    const name = err instanceof Error ? err.constructor.name || err.name : typeof err;
+    console.error(`${LOG} FAIL | ${name}`);
+    await alertSales(
+      [
+        `ALERTA: el barrido diario de archivos adjuntos falló (${name}).`,
+        'Los archivos que los clientes adjuntan pueden quedar más de 48 horas en el almacenamiento temporal. Revisar el registro de la función en Vercel y avisar a quien mantiene el sitio.',
+      ],
+      'ALERTA: falló el barrido de adjuntos del sitio'
+    );
     res.status(500).json({ ok: false, error: 'Sweep failed' });
   }
 }

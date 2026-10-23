@@ -2,7 +2,7 @@
 // Permiso de subida de los adjuntos del cotizador (POST /api/project-quotes/upload): método,
 // origen en producción, ruta, tipo según la extensión, peso declarado, vencimiento a 10
 // minutos, 15 por IP por hora, topes del sitio (D2: 200 archivos y 1 GB al día, techo de lo
-// guardado en Blob) y Redis caído. El SDK de Blob está simulado y Redis es un Upstash falso en
+// guardado en Blob), la señal de vida del barrido en producción y Redis caído. El SDK de Blob está simulado y Redis es un Upstash falso en
 // memoria (fetch simulado): no sale nada a Vercel ni a Upstash. Vive en api/_tests/ para que
 // Vercel no lo despliegue como función.
 
@@ -114,6 +114,7 @@ describe('POST /api/project-quotes/upload', () => {
 
   it('en producción bloquea orígenes desconocidos (403) y acepta nuevo.elights.cl', async () => {
     vi.stubEnv('VERCEL_ENV', 'production');
+    redis.set(STORED_BYTES_KEY, { value: '0' }); // el barrido ya corrió
     const bad = await call(permit(), { origin: 'https://spam.example' });
     expect(bad.statusCode).toBe(403);
     expect(handleUploadPresigned).not.toHaveBeenCalled();
@@ -319,6 +320,52 @@ describe('POST /api/project-quotes/upload', () => {
     expect(text).toContain('Permiso OK | pdf | presignado');
     expect(text).toContain('Permiso negado: daily_limit');
     expect(text).not.toContain(UUID);
+  });
+
+  describe('señal de vida del barrido (producción)', () => {
+    const PROD = { origin: 'https://nuevo.elights.cl' };
+    beforeEach(() => {
+      vi.stubEnv('VERCEL_ENV', 'production');
+    });
+
+    it('sin el total que deja el barrido (no corrió en 3 días o nunca): 503 unavailable, sin sumar a los topes', async () => {
+      const res = await call(permit(), PROD);
+      expect(res.statusCode).toBe(503);
+      expect(codeOf(res)).toBe('unavailable');
+      expect(handleUploadPresigned).not.toHaveBeenCalled();
+      expect(redis.has(dayKeys().files)).toBe(false);
+      expect(logged()).toContain('Permiso negado: unavailable (no_sweep)');
+      expect((await call(status(1, MB), PROD)).body).toEqual({ available: false, code: 'unavailable' });
+    });
+
+    it('con el total (aunque sea 0): hay permiso', async () => {
+      redis.set(STORED_BYTES_KEY, { value: '0', ttl: 3 * 24 * 3600 });
+      expect((await call(permit(), PROD)).statusCode).toBe(200);
+      expect((await call(status(1, MB), PROD)).body).toEqual({ available: true });
+    });
+
+    it('avisa a ventas una vez al día, sin datos de clientes ni otro canal que el correo', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-11-20T14:00:00Z'));
+      for (let i = 0; i < 3; i++) await call(permit(), PROD);
+      await call(status(1, MB), PROD);
+      expect(fake.mails).toHaveLength(1);
+      const [mail] = fake.mails;
+      expect(mail.to_email).toBe('ventas@elights.cl');
+      expect(mail.items_lista).toContain('el barrido diario de archivos adjuntos no ha corrido en los últimos 3 días');
+      expect(mail.items_lista).toContain('CRON_SECRET');
+      expect(mail.items_lista).not.toMatch(/whatsapp|\+56/i);
+      expect(mail.items_lista).not.toContain(UUID);
+      vi.setSystemTime(new Date('2026-11-21T14:00:00Z')); // otro día en Chile
+      await call(permit(), PROD);
+      expect(fake.mails).toHaveLength(2);
+    });
+
+    it('fuera de producción (previews detrás del SSO, local) no se exige: ahí el cron no corre', async () => {
+      vi.stubEnv('VERCEL_ENV', 'preview');
+      expect((await call(permit())).statusCode).toBe(200);
+      expect(fake.mails).toHaveLength(0);
+    });
   });
 
   describe('consulta previa (elights.upload-status)', () => {

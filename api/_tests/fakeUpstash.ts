@@ -1,8 +1,9 @@
 // api/_tests/fakeUpstash.ts
-// Upstash Redis falso, en memoria, para las pruebas de los adjuntos: responde GET, SET … EX y
-// el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts. Se instala como
-// fetch; las llamadas al relay de correo (GAS_RELAY_URL) responden {"status":"ok"}. No es una
-// prueba ni una función: vive en api/_tests/ para que Vercel no lo despliegue.
+// Upstash Redis falso, en memoria, para las pruebas de los adjuntos: responde GET, MGET,
+// SET … [NX] EX y el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts.
+// Se instala como fetch; las llamadas al relay de correo (GAS_RELAY_URL) responden
+// {"status":"ok"}. No es una prueba ni una función: vive en api/_tests/ para que Vercel no
+// lo despliegue.
 
 import { vi } from 'vitest';
 
@@ -35,9 +36,18 @@ export function fakeFetch(redis: FakeRedis) {
     let result: unknown = null;
     if (cmd === 'GET') {
       result = redis.data.get(args[0])?.value ?? null;
+    } else if (cmd === 'MGET') {
+      result = args.map((key) => redis.data.get(key)?.value ?? null);
     } else if (cmd === 'SET') {
-      redis.data.set(args[0], { value: args[1], ttl: Number(args[3]) });
-      result = 'OK';
+      // SET key value [NX] EX ttl
+      const nx = args.includes('NX');
+      const ttl = Number(args[args.indexOf('EX') + 1]);
+      if (nx && redis.data.has(args[0])) {
+        result = null;
+      } else {
+        redis.data.set(args[0], { value: args[1], ttl });
+        result = 'OK';
+      }
     } else if (cmd === 'EVAL' && args[0].includes('INCRBY')) {
       const [, , key, by, ttl] = args;
       const prev = redis.data.get(key);

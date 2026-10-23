@@ -875,9 +875,9 @@ describe('páginas legales y de compra: contenido', () => {
     expect(item('5.', 'Pipedrive')).toBe(
       'Pipedrive (Unión Europea / Estados Unidos): sistema donde registramos y damos seguimiento a solicitudes y clientes, incluidos los archivos que adjuntas.',
     );
-    // Upstash no cambia: los topes de subida no guardan datos personales
+    // Upstash: además, por 48 horas, la reserva del traspaso de cada archivo (ruta en Blob → negocio)
     expect(item('5.', 'Upstash')).toBe(
-      'Upstash Inc.: registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de seguimiento.',
+      'Upstash Inc.: registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.',
     );
     // §7: la viñeta nueva, con el plazo de 48 horas del barrido diario (api/cron/blob-sweep.ts)
     expect(item('7.', 'Archivos que adjuntas en el sitio:')).toBe(

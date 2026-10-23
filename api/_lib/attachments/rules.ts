@@ -120,8 +120,12 @@ const JPEG = [0xff, 0xd8, 0xff];
 const ZIP = [0x50, 0x4b, 0x03, 0x04];
 const DWG = ascii('AC10');
 const DXF_BINARY = ascii('AutoCAD Binary DXF\r\n\x1a\x00');
-/** DXF de texto: comentarios 999 opcionales y después el grupo 0 con SECTION. */
-const DXF_ASCII = /^\ufeff?\s*(?:999\r?\n[^\r\n]*\r?\n\s*)*0\r?\nSECTION\r?\n/;
+/**
+ * DXF de texto: comentarios 999 opcionales y después el grupo 0 con SECTION. sniffType arma
+ * el texto byte a byte (latin-1), así que la marca BOM de UTF-8 (EF BB BF) llega como esos
+ * tres caracteres, no como U+FEFF.
+ */
+const DXF_ASCII = /^(?:\xef\xbb\xbf)?\s*(?:999\r?\n[^\r\n]*\r?\n\s*)*0\r?\nSECTION\r?\n/;
 
 /**
  * Tipo según los primeros bytes: %PDF-, PNG, JPEG, ZIP (XLSX), AC10 (DWG) o un DXF de texto
