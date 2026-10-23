@@ -120,9 +120,13 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
   D.S. N°1/2022": se nombran sus versiones de hasta 5000K, sin "todas sus versiones" ni "sus
   cuatro temperaturas de color".
   La guarda lee como versión sin certificado también la cifra sin "K" ("y 3000") y el tono
-  ("la fría", "la neutra"; en un estadio, "la fría de 5000K" sí, porque lleva su temperatura), y
-  en otra oración sin la norma, "también lo tiene", "está certificada" o "el mismo certificado"
-  junto a una versión sin certificado.
+  ("la fría", "el frío", "la neutra", "la luz de día", "la blanca"; en un estadio, "la fría de
+  5000K" sí, porque lleva su temperatura; en las demás líneas, "la fría de 2700K" es un error),
+  y en otra oración sin la norma, "también lo tiene", "está certificada", "el mismo
+  certificado" o "La de 6000K, también." junto a una versión sin certificado. Tampoco "ambas
+  versiones", "sus dos versiones" ni "igual que la otra versión". La respuesta a una pregunta
+  por el certificado nombra una versión certificada y ninguna sin certificado; cuáles no lo
+  tienen va en una oración con la negación ("La fría de 6000K no lo tiene").
 - La clasificación para Áreas de Protección Especial ("apta para…") solo está documentada en
   las BESTLED: en las demás no se escribe. Sí se puede decir que la de 2200K es la que se pide
   en las Áreas de Protección Especial.
@@ -132,10 +136,15 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
   de las solares, la de 3000K o la fría de los Slim) se nombran solo como opciones, sin
   recomendarlas para ese uso. En los Slim, la fría puede quedar para interiores cerrados.
 - En los proyectores de estadio, el certificado se lee en el contexto del alumbrado deportivo:
-  si la misma oración o sección habla de plazas, se precisa ("Para alumbrado deportivo, este
-  proyector tiene certificado D.S. N°1/2022…"). Para plazas y paseos no se recomienda una
-  versión: asesoría. La luz fría de 6000K no se presenta como la habitual en canchas (supera el
-  tope de cualquier clase de recinto): al cotizar, se pide la clase del recinto.
+  si la misma oración o sección habla de plazas, se precisa ("Para alumbrado deportivo, su
+  versión cálida de 3000K tiene certificado D.S. N°1/2022…"). Para plazas y paseos no se
+  recomienda una versión: asesoría. La luz fría de 6000K no se presenta como la habitual en
+  canchas (supera el tope de cualquier clase de recinto) ni como una opción que dependa de la
+  clase: queda para "interiores cerrados, con muros", y al cotizar se pide el uso y la clase del
+  recinto. Un proyector de estadio que solo se vende en 6000K (el de 600W) no se ofrece para
+  canchas ni estadios exteriores: su ficha lo orienta a recintos interiores cerrados, con muros,
+  y para una cancha exterior deriva a la asesoría y a los proyectores del catálogo con versión
+  cálida.
 - Si Jumpseller no dice "DS1" en la ficha del producto, el certificado no se atribuye a "la
   ficha": se afirma como dato de eLIGHTS.
 - En el resto de los productos, nunca "certificado/certificación DS1", "cumple el D.S. N°1",

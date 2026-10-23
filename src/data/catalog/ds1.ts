@@ -26,9 +26,12 @@
 //   6000K), su ficha no lo afirma y ofrece asesoría. El tope de la Tabla 4 no se escribe en la
 //   web (el decreto la publica como imagen): la ficha nombra sus versiones, no el tope.
 // - Una versión sin certificado tampoco se cuela por otro camino: nombrada sin «K» («y 3000») o
-//   por su tono sin su temperatura («la fría», «la neutra»; «la fría de 5000K» sí, en un estadio)
-//   en la oración del certificado, ni con «también lo tiene», «está certificada» o «el mismo
-//   certificado» en otra oración.
+//   por su tono sin su temperatura («la fría», «el frío», «la neutra», «la luz de día», «la
+//   blanca»; «la fría de 5000K» sí, pero solo en un estadio) en la oración del certificado; con
+//   «ambas versiones», «sus dos versiones» o «igual que la otra versión»; en la respuesta a la
+//   pregunta por el certificado («¿Qué versiones tienen certificado…?»), que además nombra una
+//   versión certificada; ni con «también lo tiene», «está certificada», «el mismo certificado» o
+//   «La de 6000K, también.» en otra oración.
 // - Preguntas por producto o por versión: isDs1Certified(id), isDs1CertifiedKelvin(id, kelvin)
 //   y ds1Line(id), con la regla de su línea.
 // - La clasificación para Áreas de Protección Especial («apta para…») solo está documentada en
@@ -198,14 +201,15 @@ const KELVIN = /(?<![\d.,])(\d{1,2}\.?\d{3})\s?(?:[Kk](?![\p{L}\p{N}])|[Kk]elvin
 const BARE_KELVIN =
   /(?<![\d.,/:°º$-])(\d\.?\d00)(?![\d.,]|\s?(?:[Kk]elvin|[Kk]|lm|l[uú]menes|kW|W|watts?|V|mm|cm|m²|m2|mts?|metros|m|horas|hrs?|h|kg|mAh|Ah|lux|°|º|%)(?![\p{L}\p{N}]))/gu;
 /**
- * Versiones sin certificado nombradas por su tono, sin la cifra: «la fría», «las neutras», «el
- * blanco frío», «la luz natural». En las líneas certificadas por versión, el certificado es de
- * las cálidas (o de la ámbar de 1600K y la de 2700K, en la Pagoda), nunca de estas. En los
- * proyectores de estadio, la neutra de 4000K y la fría de 5000K sí lo tienen: el tono pasa solo
- * seguido de una temperatura certificada (TONE_KELVIN).
+ * Versiones sin certificado nombradas por su tono, sin la cifra: «la fría», «el frío», «las
+ * neutras», «el blanco frío», «la luz natural», «la luz de día», «la blanca». En las líneas
+ * certificadas por versión, el certificado es de las cálidas (o de la ámbar de 1600K y la de
+ * 2700K, en la Pagoda), nunca de estas. En los proyectores de estadio, la neutra de 4000K y la
+ * fría de 5000K sí lo tienen: ahí el tono pasa solo seguido de una temperatura certificada
+ * (TONE_KELVIN).
  */
 const UNCERTIFIED_TONE =
-  /(?<![\p{L}\p{N}])(?:fr[ií]as?|neutras?|(?:blanco|tono|color)\s+(?:fr[ií]o|neutro|natural)|(?:luz|blanca|la|las|versi[oó]n|versiones)\s+naturale?s?)(?![\p{L}\p{N}])/giu;
+  /(?<![\p{L}\p{N}])(?:fr[ií][oa]s?|neutr[oa]s?|(?:blanco|tono|color)\s+(?:fr[ií]o|neutro|natural)|(?:luz|blanca|la|las|versi[oó]n|versiones)\s+naturale?s?|luz\s+(?:de\s+)?d[ií]a|luz\s+diurna|(?:la|las|el|los)\s+blanc[oa]s?(?!\s+(?:c[aá]lid|fr[ií]|neutr|natural)))(?![\p{L}\p{N}])/giu;
 /** La temperatura de color que sigue a un tono: «la fría de 5000K», «neutra (4000K)», «fría - 5000K». */
 const TONE_KELVIN = /^\s*(?:de\s+|\(\s*|[-–]\s*)?(\d{1,2}\.?\d{3})\s?(?:[Kk](?![\p{L}\p{N}])|[Kk]elvin)/u;
 const kelvinValue = (digits: string) => Number(digits.replace('.', ''));
@@ -213,8 +217,10 @@ const kelvinValue = (digits: string) => Number(digits.replace('.', ''));
 const kelvinIn = (sentence: string): number[] => [...sentence.matchAll(KELVIN), ...sentence.matchAll(BARE_KELVIN)].map(m => kelvinValue(m[1]));
 /**
  * Lo que una oración nombra de versiones sin certificado: sus temperaturas («3000K») y sus tonos
- * («la fría»), salvo un tono seguido de una temperatura certificada («la fría de 5000K», en un
- * proyector de estadio).
+ * («la fría»). Solo en una línea con tope de temperatura (los proyectores de estadio) pasa un
+ * tono seguido de una temperatura certificada («la fría de 5000K»); en las líneas certificadas
+ * por versión, un tono frío o neutro con una temperatura cálida («la fría de 2700K») es un error
+ * de redacción y se marca.
  */
 function uncertifiedVersions(sentence: string, versions: Ds1Versions): string[] {
   const others = kelvinIn(sentence)
@@ -222,6 +228,7 @@ function uncertifiedVersions(sentence: string, versions: Ds1Versions): string[] 
     .map(k => `${k}K`);
   const tones = [...sentence.matchAll(UNCERTIFIED_TONE)]
     .filter(m => {
+      if (!('maxKelvin' in versions)) return true;
       const kelvin = sentence.slice((m.index ?? 0) + m[0].length).match(TONE_KELVIN);
       return !kelvin || !ds1CoversKelvin(versions, kelvinValue(kelvin[1]));
     })
@@ -237,9 +244,23 @@ const CERTIFICATE_REFERENCE =
   /\bcertificad[oa]s?\b(?!\s+(?:por\s+(?:la\s+)?)?(?:SEC|Superintendencia|CE|RoHS|ISO|CB|UL|ETL)\b)|\bmismo\s+certificado\b|\bl[oa]s?\s+tienen?\b/iu;
 /** Una negación: «no lo tienen», «sin certificado», «ni la fría». */
 const NEGATION = /(?<![\p{L}\p{N}])(?:no|sin|ni)(?![\p{L}\p{N}])/iu;
-/** El certificado para todas las versiones: «todas sus versiones», «cualquier temperatura», «las cuatro variantes». */
-const ALL_VARIANTS =
-  /\btod[oa]s\s+(?:sus\s+|las\s+|los\s+)?(?:\p{L}+\s+)?(?:versiones|variantes|temperaturas|tonos|colores)\b|\bcualquier(?:a\s+de\s+sus)?\s+(?:versi[oó]n|variante|temperatura|tono|color)|\b(?:sus|las|los)\s+(?:tres|cuatro|cinco)\s+(?:versiones|variantes|temperaturas|tonos|colores)\b/iu;
+const VERSION_NOUNS = String.raw`(?:versiones|variantes|temperaturas|tonos|colores)`;
+/**
+ * El certificado para todas las versiones: «todas sus versiones», «cualquier temperatura», «ambas
+ * versiones», «sus dos versiones», «las cuatro variantes».
+ */
+const ALL_VARIANTS = new RegExp(
+  String.raw`\btod[oa]s\s+(?:sus\s+|las\s+|los\s+)?(?:\p{L}+\s+)?${VERSION_NOUNS}\b|\bcualquier(?:a\s+de\s+sus)?\s+(?:versi[oó]n|variante|temperatura|tono|color)|\bamb[oa]s\s+(?:sus\s+|las\s+|los\s+)?${VERSION_NOUNS}\b|\b(?:sus|las|los)\s+(?:dos|tres|cuatro|cinco)\s+${VERSION_NOUNS}\b`,
+  'iu',
+);
+/** Otra versión, sin nombrarla: «igual que la otra versión», «y las otras». */
+const OTHER_VARIANT =
+  /(?<![\p{L}\p{N}])(?:la|las|el|los|su|sus)\s+otr[oa]s?(?:\s+(?:versi[oó]n|versiones|variantes?|temperaturas?|tonos?|colores?))?(?![\p{L}\p{N}])/iu;
+/**
+ * Una oración que sigue a la del certificado y lo extiende a otra versión sin decir
+ * «certificado»: «La de 6000K, también.», «Lo mismo vale para la fría.», «Igual que la otra».
+ */
+const ALSO = /(?:tambi[eé]n|igual(?:mente)?)\s*[.!]?$|(?<![\p{L}\p{N}])(?:lo\s+mismo|igual\s+que|al\s+igual|asimismo)(?![\p{L}\p{N}])/iu;
 
 /** «Apta también para las Áreas de Protección Especial», «certificada para APE»: la clasificación del certificado. */
 const APE_FIT = /\b(?:apt|certificad|clasificad|homologad)[oa]s?\s+(?:\p{L}+\s+)?(?:para|en)\s+(?:las?\s+)?(?:[aá]reas?\s+de\s+protecci[oó]n\s+especial|APE)\b/iu;
@@ -286,8 +307,9 @@ const onlyVersions = (versions: Ds1Versions) =>
 /**
  * Lo que falla en una oración que afirma el certificado de un producto certificado solo en
  * algunas versiones: no dice de cuáles (salvo una pregunta, «¿Qué versiones tienen
- * certificado…?», que responde la oración siguiente), nombra otra versión (por su temperatura,
- * con o sin «K», o por su tono: «la fría», «la neutra») o lo extiende a todas.
+ * certificado…?», que responde lo que sigue: lo revisa ds1Issues), nombra otra versión (por su
+ * temperatura, con o sin «K», o por su tono: «la fría», «la neutra»), lo extiende a todas
+ * («todas sus versiones», «ambas versiones») o a otra sin nombrarla («igual que la otra versión»).
  */
 function versionsIssue(sentence: string, versions: Ds1Versions): string | null {
   const named = kelvinIn(sentence);
@@ -296,6 +318,7 @@ function versionsIssue(sentence: string, versions: Ds1Versions): string | null {
   if (!sentence.endsWith('?') && !named.some(k => ds1CoversKelvin(versions, k))) return `sin decir de qué versiones (${only})`;
   if (others.length) return `junto a una versión sin certificado (${others.join(', ')}; ${only})`;
   if (ALL_VARIANTS.test(sentence)) return `de todas las versiones (${only})`;
+  if (OTHER_VARIANT.test(sentence)) return `también en otra versión, sin nombrarla (${only})`;
   return null;
 }
 
@@ -303,25 +326,64 @@ function versionsIssue(sentence: string, versions: Ds1Versions): string | null {
 const extendsCertificate = (sentence: string) => !sentence.endsWith('?') && !NEGATION.test(sentence) && CERTIFICATE_REFERENCE.test(sentence);
 
 /**
- * Lo que falla en una oración que no nombra la norma pero extiende el certificado a una versión
- * sin certificado («La de 3000K también lo tiene», «La versión de 4000K está certificada»). Decir
- * cuáles no lo tienen («La de 3000K y la fría no lo tienen») y preguntarlo están bien.
+ * Qué hace cada oración de un texto (un bloque de la ficha) con el certificado D.S. N°1:
+ * - claim: lo afirma (nombra la norma junto a «certificado», «cumple»…); question, si es una
+ *   pregunta («¿Qué versiones tienen certificado D.S. N°1/2022?»).
+ * - answer: responde esa pregunta (las oraciones que la siguen en el bloque, hasta la próxima
+ *   pregunta).
+ * - extension: sin nombrar la norma, dice que una versión lo tiene («también lo tiene», «está
+ *   certificada»), o sigue a una oración del certificado y lo extiende («La de 6000K, también.»,
+ *   «Lo mismo vale para la fría.»).
+ * Con una negación, una respuesta o una extensión dice cuáles no lo tienen: no extiende nada.
  */
-function uncertifiedReferenceIssue(sentence: string, versions: Ds1Versions): string | null {
-  if (!extendsCertificate(sentence)) return null;
+type CertificateRole = 'claim' | 'question' | 'answer' | 'extension' | undefined;
+
+function certificateRoles(list: readonly string[]): CertificateRole[] {
+  let answering = false;
+  let previous: CertificateRole;
+  return list.map(s => {
+    let role: CertificateRole;
+    if (NORM.test(s) && CLAIM.test(s)) role = s.endsWith('?') ? 'question' : 'claim';
+    else if (s.endsWith('?')) role = undefined;
+    else if (answering) role = 'answer';
+    else if (extendsCertificate(s) || (previous !== undefined && ALSO.test(s) && !NEGATION.test(s))) role = 'extension';
+    if (s.endsWith('?')) answering = role === 'question';
+    previous = role;
+    return role;
+  });
+}
+
+/**
+ * Lo que falla en una oración que no nombra la norma pero extiende el certificado (una
+ * respuesta a la pregunta del certificado, «también lo tiene», «La de 6000K, también.»): a una
+ * versión sin certificado, a todas o a otra sin nombrarla. Decir cuáles no lo tienen («La de
+ * 3000K y la fría no lo tienen») y preguntarlo están bien.
+ */
+function continuationIssue(sentence: string, role: CertificateRole, versions: Ds1Versions): string | null {
+  if ((role !== 'answer' && role !== 'extension') || NEGATION.test(sentence)) return null;
+  const only = onlyVersions(versions);
   const others = uncertifiedVersions(sentence, versions);
-  return others.length ? `extiende el certificado D.S. N°1 a una versión sin certificado (${others.join(', ')}; ${onlyVersions(versions)})` : null;
+  if (others.length) return `extiende el certificado D.S. N°1 a una versión sin certificado (${others.join(', ')}; ${only})`;
+  if (ALL_VARIANTS.test(sentence)) return `extiende el certificado D.S. N°1 a todas las versiones (${only})`;
+  if (OTHER_VARIANT.test(sentence)) return `extiende el certificado D.S. N°1 a otra versión, sin nombrarla (${only})`;
+  return null;
 }
 
 /**
  * Afirmaciones normativas que el sitio no puede hacer, oración por oración: el D.S. N°43 como
  * vigente, el certificado D.S. N°1 de un producto sin certificado (también con la sigla «DS1»
- * como sello) o de una versión sin certificado, la clasificación para Áreas de Protección
- * Especial fuera de un texto aprobado y la luz azul junto a canchas o recintos deportivos.
+ * como sello) o de una versión sin certificado (también en la respuesta a una pregunta por el
+ * certificado, o en la oración que sigue con «también»), la clasificación para Áreas de
+ * Protección Especial fuera de un texto aprobado y la luz azul junto a canchas o recintos
+ * deportivos. Una pregunta por el certificado se puede responder en lo que sigue del texto (en
+ * una ficha SEO, cada bloque por separado: ds1ContentIssues), pero esa respuesta nombra una
+ * versión certificada.
  */
 export function ds1Issues(text: string, { certified }: Ds1Options): string[] {
   const issues: string[] = [];
-  for (const s of sentences(text)) {
+  const list = sentences(text);
+  const roles = typeof certified === 'object' ? certificateRoles(list) : [];
+  list.forEach((s, i) => {
     const short = s.length > 140 ? `${s.slice(0, 140)}…` : s;
     const claim = NORM.test(s) && CLAIM.test(s);
     if (DS43.test(s) && !REPEALED.test(s)) issues.push(`cita el D.S. N°43 (sin efecto desde el 19-10-2024): "${short}"`);
@@ -330,8 +392,15 @@ export function ds1Issues(text: string, { certified }: Ds1Options): string[] {
       const issue = versionsIssue(s, certified);
       if (issue) issues.push(`afirma el D.S. N°1 ${issue}: "${short}"`);
     }
+    if (typeof certified === 'object' && roles[i] === 'question') {
+      const answer: string[] = [];
+      for (let j = i + 1; j < list.length && roles[j] !== undefined && roles[j] !== 'question'; j++) answer.push(list[j]);
+      if (answer.length && !answer.some(a => kelvinIn(a).some(k => ds1CoversKelvin(certified, k)))) {
+        issues.push(`afirma el D.S. N°1 en una pregunta cuya respuesta no dice de qué versiones (${onlyVersions(certified)}): "${short}"`);
+      }
+    }
     if (typeof certified === 'object' && !claim) {
-      const issue = uncertifiedReferenceIssue(s, certified);
+      const issue = continuationIssue(s, roles[i], certified);
       if (issue) issues.push(`${issue}: "${short}"`);
     }
     if (certified && certified !== true && APE_FIT.test(s)) {
@@ -339,7 +408,7 @@ export function ds1Issues(text: string, { certified }: Ds1Options): string[] {
     }
     if (certified !== true && DS1_ABBREVIATION.test(s)) issues.push(`usa la sigla «DS1» como sello (va «D.S. N°1/2022»): "${short}"`);
     if (BLUE_LIGHT.test(s) && SPORTS.test(s)) issues.push(`aplica la luz azul a canchas o recintos deportivos (se rigen por temperatura de color): "${short}"`);
-  }
+  });
   return issues;
 }
 
@@ -408,7 +477,8 @@ export function ds1ContentIssues(c: ProductContent, jumpsellerId?: number): stri
     sportsBlueLightIssue(text) ??
     (line?.sports && blue ? `menciona la luz azul ("${blue[0]}") en la ficha de un proyector de recintos deportivos (se rigen por temperatura de color)` : null);
   return [
-    ...ds1Issues(text, { certified: line?.versions ?? false }),
+    // Bloque por bloque: la respuesta a una pregunta por el certificado es la de su pregunta frecuente
+    ...blocks.flatMap(b => ds1Issues(b, { certified: line?.versions ?? false })),
     ...(sports ? [sports] : []),
     ...blocks.flatMap(b => normBlueLightIssue(b) ?? []),
   ];
@@ -420,12 +490,13 @@ const WARM_OPTION = /c[aá]lid|[aá]mbar/i;
 /**
  * El certificado D.S. N°1 de un proyector de estadio (línea con tope de temperatura de color),
  * contra sus versiones reales: las opciones de sus variantes en Jumpseller («Color de Luz: Luz
- * fría - 5000K»; ProductFacts.variantOptions). Cada oración que afirma el certificado, o que sin
- * nombrar la norma dice que una versión lo tiene, nombra solo versiones de hasta el tope que el
- * producto tiene; si no tiene ninguna (el estadio de 600W, solo en 6000K), la ficha no lo afirma
- * y ofrece asesoría. Una cálida sin cifra («Luz Cálida - 1% Luz Azul», en el modular de 800W)
- * cuenta como versión de hasta el tope. Lo que no depende de las variantes (el tope, «todas sus
- * versiones», la luz azul) lo revisa ds1ContentIssues; en las demás líneas, nada que agregar.
+ * fría - 5000K»; ProductFacts.variantOptions). Cada oración que afirma el certificado, que
+ * responde la pregunta por el certificado o que sin nombrar la norma dice que una versión lo
+ * tiene («también lo tiene», «La de 4000K, también.») nombra solo versiones de hasta el tope que
+ * el producto tiene; si no tiene ninguna (el estadio de 600W, solo en 6000K), la ficha no lo
+ * afirma y ofrece asesoría. Una cálida sin cifra («Luz Cálida - 1% Luz Azul», en el modular de
+ * 800W) cuenta como versión de hasta el tope. Lo que no depende de las variantes (el tope, «todas
+ * sus versiones», la luz azul) lo revisa ds1ContentIssues; en las demás líneas, nada que agregar.
  */
 export function ds1VariantIssues(c: ProductContent, jumpsellerId: number | undefined, variantOptions: readonly string[]): string[] {
   const versions = ds1Line(jumpsellerId)?.versions;
@@ -436,18 +507,24 @@ export function ds1VariantIssues(c: ProductContent, jumpsellerId: number | undef
   const warmWithoutKelvin = variantOptions.some(o => WARM_OPTION.test(o) && !o.match(KELVIN));
   const variants = kelvin.length ? `sus variantes: ${kelvinList(kelvin)}` : 'sus variantes no dicen su temperatura de color';
   const issues: string[] = [];
-  for (const s of sentences(contentBlocks(c).join('\n'))) {
-    const claim = NORM.test(s) && CLAIM.test(s);
-    if (!claim && !extendsCertificate(s)) continue;
-    const short = s.length > 140 ? `${s.slice(0, 140)}…` : s;
-    if (claim && !own.length && !warmWithoutKelvin) {
-      issues.push(`afirma el D.S. N°1, pero el producto no tiene versiones de hasta ${max}K (${variants}): su ficha ofrece asesoría: "${short}"`);
-      continue;
-    }
-    const missing = [...new Set(kelvinIn(s).filter(k => k <= max && !own.includes(k)))];
-    if (missing.length) {
-      issues.push(`afirma el D.S. N°1 en una versión que el producto no tiene (${kelvinList(missing)}; ${variants}): "${short}"`);
-    }
+  for (const block of contentBlocks(c)) {
+    const list = sentences(block);
+    const roles = certificateRoles(list);
+    list.forEach((s, i) => {
+      const role = roles[i];
+      const claim = role === 'claim' || role === 'question';
+      // Una respuesta o una extensión con una negación dice cuáles no lo tienen
+      if (!role || (!claim && NEGATION.test(s))) return;
+      const short = s.length > 140 ? `${s.slice(0, 140)}…` : s;
+      if (claim && !own.length && !warmWithoutKelvin) {
+        issues.push(`afirma el D.S. N°1, pero el producto no tiene versiones de hasta ${max}K (${variants}): su ficha ofrece asesoría: "${short}"`);
+        return;
+      }
+      const missing = [...new Set(kelvinIn(s).filter(k => k <= max && !own.includes(k)))];
+      if (missing.length) {
+        issues.push(`afirma el D.S. N°1 en una versión que el producto no tiene (${kelvinList(missing)}; ${variants}): "${short}"`);
+      }
+    });
   }
   return issues;
 }

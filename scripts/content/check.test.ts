@@ -437,6 +437,39 @@ describe('verificación del contenido SEO', () => {
       expect.stringContaining('no tiene versiones de hasta 5000K'),
     );
     expect(ds1(checkFacts({ ...good, description: '¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl.' }, facts600))).toEqual([]);
+    // También en la respuesta a la pregunta por el certificado y en la oración que sigue con «también»
+    const faq = (question: string, answer: string) => ({ ...good, faq: [...good.faq.slice(1), { question, answer }] });
+    expect(ds1(checkFacts(faq('¿Qué versiones tienen certificado D.S. N°1/2022?', 'Para alumbrado deportivo, la de 2700K.'), facts300))).toContainEqual(
+      expect.stringContaining('en una versión que el producto no tiene (2700K; sus variantes: 3000K y 6000K)'),
+    );
+    expect(ds1(checkFacts({ ...good, description: 'La de 3000K tiene certificado D.S. N°1/2022. La de 4000K, también.' }, facts300))).toContainEqual(
+      expect.stringContaining('en una versión que el producto no tiene (4000K'),
+    );
+  });
+
+  it('D.S. N°1: en los estadios de 300 y 500W, que tienen dos versiones (una de 6000K), ni «ambas» ni «sus dos versiones», ni la respuesta ni el «también» que la extienden', () => {
+    const ds1 = (problems: string[]) => problems.filter(p => /D\.S\. N°1/.test(p));
+    const [estadio300, estadio500] = DS1_CERTIFIED_LINES.estadio.ids;
+    expect([estadio300, estadio500]).toEqual([3313196, 3283555]);
+    for (const [id, warm] of [
+      [estadio300, '3000K'],
+      [estadio500, '2200K'],
+    ] as const) {
+      for (const [text, problem] of [
+        [`Ambas versiones, incluida la cálida de ${warm}, tienen certificado D.S. N°1/2022.`, /de todas las versiones/],
+        [`Sus dos versiones, incluida la de ${warm}, tienen certificado D.S. N°1/2022.`, /de todas las versiones/],
+        [`Las dos versiones tienen certificado D.S. N°1/2022: la de ${warm} y la otra.`, /de todas las versiones/],
+        [`La de ${warm} tiene certificado D.S. N°1/2022, igual que la otra versión.`, /también en otra versión, sin nombrarla/],
+        [`La de ${warm} tiene certificado D.S. N°1/2022. La de 6000K, también.`, /extiende el certificado D\.S\. N°1 a una versión sin certificado \(6000K/],
+        [`La de ${warm} y la luz de día tienen certificado D.S. N°1/2022.`, /junto a una versión sin certificado \(luz de día/],
+      ] as const) {
+        expect(ds1(checkRules({ ...good, description: text }, id)).some(p => problem.test(p)), `${id}: ${text}`).toBe(true);
+      }
+      const answer = { ...good, faq: [...good.faq.slice(1), { question: '¿Qué versiones tienen certificado D.S. N°1/2022?', answer: `La cálida de ${warm} y la fría de 6000K.` }] };
+      expect(ds1(checkRules(answer, id)), String(id)).toContainEqual(expect.stringContaining('extiende el certificado D.S. N°1 a una versión sin certificado (6000K'));
+      const ok = { ...good, description: `Para alumbrado deportivo, su versión cálida de ${warm} tiene certificado D.S. N°1/2022. La fría de 6000K no lo tiene.` };
+      expect(ds1(checkRules(ok, id)), String(id)).toEqual([]);
+    }
   });
 
   it('D.S. N°1: en los Slim SMD la de 3000K no tiene certificado, y en la Pagoda solar UFO son la de 1600K y la de 2700K', () => {

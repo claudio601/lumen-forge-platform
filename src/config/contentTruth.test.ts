@@ -584,6 +584,21 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     for (const text of ['La de 3000K y la fría de 6500K no lo tienen.', 'Las de 2200K y 2700K tienen certificado D.S. N°1/2022, exigible desde el 19-10-2026.']) {
       expect(ds1Issues(text, slim), text).toEqual([]);
     }
+    // Un tono frío o neutro con una temperatura cálida es un error de redacción: en las líneas
+    // certificadas por versión se sigue marcando (solo los estadios aceptan «la fría de 5000K»)
+    for (const text of [
+      'La fría de 2700K tiene certificado D.S. N°1/2022.',
+      'La neutra (2200K) y la de 2700K tienen certificado D.S. N°1/2022.',
+      'La de 2200K tiene certificado D.S. N°1/2022. La fría - 2700K está certificada.',
+    ]) {
+      expect(ds1Issues(text, slim), text).not.toEqual([]);
+      expect(ds1Issues(text, island), text).not.toEqual([]);
+    }
+    // La respuesta a la pregunta por el certificado tampoco nombra una versión sin certificado
+    expect(ds1Issues('¿Qué versiones tienen certificado D.S. N°1/2022?\nLas de 2200K, 2700K y 3000K.', slim)).toContainEqual(
+      expect.stringContaining('extiende el certificado D.S. N°1 a una versión sin certificado (3000K'),
+    );
+    expect(ds1Issues('¿Qué versiones tienen certificado D.S. N°1/2022?\nLas cálidas de 2200K y 2700K. La de 3000K no lo tiene.', slim)).toEqual([]);
     // Pagoda: la ámbar de 1600K y la de 2700K, no la de 2200K ni las frías
     const pagoda = { certified: ds1Certificate(DS1_CERTIFIED_LINES.pagoda.ids[0]) };
     expect(ds1Issues('Sus versiones ámbar de 1600K y cálida de 2700K tienen certificado D.S. N°1/2022.', pagoda)).toEqual([]);
@@ -601,6 +616,9 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
         'Tienen certificado D.S. N°1/2022 sus versiones de 2200K, 2700K, 4000K y 5000K.',
         'La neutra (4000K) tiene certificado D.S. N°1/2022.',
         '¿Qué versiones tienen certificado D.S. N°1/2022?',
+        '¿Qué versiones tienen certificado D.S. N°1/2022?\nPara alumbrado deportivo, la cálida de 3000K. La fría de 6000K no lo tiene.',
+        'La de 3000K tiene certificado D.S. N°1/2022. También se cotiza en fría de 6000K, sin certificado.',
+        'Tiene certificado D.S. N°1/2022 en la luz blanca cálida de 2700K.',
         '¿Necesitas el D.S. N°1/2022? Te asesoramos: escríbenos a ventas@elights.cl.',
       ]) {
         expect(ds1Issues(text, stadium), `${id}: ${text}`).toEqual([]);
@@ -614,6 +632,19 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
         ['La fría de 6500K cumple el D.S. N°1/2022.', /sin decir de qué versiones/],
         ['La de 3000K y la fría tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(fría/],
         ['La de 3000K tiene certificado D.S. N°1/2022. La de 6000K también lo tiene.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        // «Ambas», «sus dos versiones»: los estadios de 300 y 500W tienen dos, una de 6000K
+        ['Ambas versiones, incluida la cálida de 3000K, tienen certificado D.S. N°1/2022.', /de todas las versiones/],
+        ['Sus dos versiones, incluida la de 2200K, tienen certificado D.S. N°1/2022.', /de todas las versiones/],
+        ['La de 3000K tiene certificado D.S. N°1/2022, igual que la otra versión.', /también en otra versión, sin nombrarla/],
+        // La respuesta a una pregunta por el certificado, y la oración que sigue con «también»
+        ['¿Qué versiones tienen certificado D.S. N°1/2022?\nLa cálida de 3000K y la fría de 6000K.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        ['¿Tiene certificado D.S. N°1/2022?\nSí, para alumbrado deportivo.', /pregunta cuya respuesta no dice de qué versiones/],
+        ['La de 3000K tiene certificado D.S. N°1/2022. La de 6000K, también.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6000K/],
+        ['La de 3000K tiene certificado D.S. N°1/2022. Lo mismo vale para la de 6500K.', /extiende el certificado D.S. N°1 a una versión sin certificado \(6500K/],
+        // Otros nombres de la fría: «frío», «luz de día», «la blanca»
+        ['Tiene certificado D.S. N°1/2022 en sus tonos cálido de 2200K y frío.', /junto a una versión sin certificado \(frío/],
+        ['Tiene certificado D.S. N°1/2022 en 2200K y en luz de día.', /junto a una versión sin certificado \(luz de día/],
+        ['La de 3000K y la blanca tienen certificado D.S. N°1/2022.', /junto a una versión sin certificado \(la blanca/],
         ['Certificación SEC y DS1.', /sigla «DS1»/],
         ['En canchas, la de 2700K tiene 7% de luz azul y certificado D.S. N°1/2022.', /luz azul a canchas/],
       ] as const) {
@@ -644,7 +675,13 @@ describe('D.S. N°1/2022: el contenido propio solo afirma lo documentado', () =>
     // Con una versión de hasta 5000K: la nombra; la de más, en otra oración que no lo afirma
     const ok300 = 'Para alumbrado deportivo, su versión cálida de 3000K tiene certificado D.S. N°1/2022. La fría de 6000K no lo tiene.';
     expect(ds1VariantIssues(ficha(ok300), estadio300, options300)).toEqual([]);
-    for (const text of ['La de 5000K tiene certificado D.S. N°1/2022.', 'Las de 3000K y 4000K tienen certificado D.S. N°1/2022.', 'La de 3000K tiene certificado D.S. N°1/2022. La de 2700K también lo tiene.']) {
+    for (const text of [
+      'La de 5000K tiene certificado D.S. N°1/2022.',
+      'Las de 3000K y 4000K tienen certificado D.S. N°1/2022.',
+      'La de 3000K tiene certificado D.S. N°1/2022. La de 2700K también lo tiene.',
+      'La de 3000K tiene certificado D.S. N°1/2022. La de 4000K, también.',
+      '¿Qué versiones tienen certificado D.S. N°1/2022?\nLa de 2700K.',
+    ]) {
       expect(ds1VariantIssues(ficha(text), estadio300, options300), text).toContainEqual(expect.stringContaining('en una versión que el producto no tiene'));
     }
     // Sin ninguna de hasta 5000K (el de 600W, solo 6000K): ninguna afirmación, solo asesoría
