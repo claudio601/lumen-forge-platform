@@ -75,6 +75,26 @@ export function parseKelvin(name: string): number {
   return m ? Number(m[1]) : 0;
 }
 
+/**
+ * Todas las temperaturas de color de un texto: "Luz Cálida 2200K - 1% Luz Azul" → [2200];
+ * "Luz fría 6400k" → [6400]. Sin temperatura ("Luz Cálida - 1% Luz Azul"), []: el % de luz
+ * azul no se traduce a kelvin (src/lib/variants.ts).
+ */
+export function parseKelvins(text: string): number[] {
+  return [...text.matchAll(/(\d{4})\s*K\b/gi)].map(m => Number(m[1]));
+}
+
+/**
+ * Temperaturas de color de un producto (auditoría UX, B-05): las de las opciones de todas sus
+ * variantes en Jumpseller (también la única, cuando tiene una sola); si ninguna trae temperatura,
+ * la del nombre. Sin repetir y de menor a mayor.
+ */
+export function productKelvins(s: Pick<SnapshotProduct, 'name' | 'variants'>): number[] {
+  const fromVariants = s.variants.flatMap(v => v.options.flatMap(o => parseKelvins(o.value)));
+  const found = fromVariants.length ? fromVariants : parseKelvins(s.name);
+  return [...new Set(found)].sort((a, b) => a - b);
+}
+
 /** Grado de protección desde el nombre: "... IP66 IK08" → "IP66". */
 export function parseIp(name: string): string | undefined {
   const m = name.match(/\bIP\s?(\d{2})\b/i);
@@ -144,7 +164,8 @@ export function skuOwners(snapshot: readonly SnapshotProduct[]): Map<string, Set
  * - SKU: el de Jumpseller; si no tiene, el legado; si no, el de su única variante,
  *   pero solo si ningún otro producto usa ese SKU (en Jumpseller hay SKUs repetidos).
  * - orden: el del catálogo legado ("Relevancia"); los productos nuevos van al final.
- * - variantes: con más de una, van todas (el cliente elige en la ficha); con una sola, su id.
+ * - variantes: con más de una, van todas (el cliente elige en la ficha); con una sola, su id y,
+ *   para la búsqueda, su SKU y sus opciones.
  * alsoReserved: ids que ya no están en siteIds pero nunca se reutilizan (los retirados).
  */
 export function baseFromSnapshot(
@@ -179,6 +200,7 @@ export function baseFromSnapshot(
       categories: [...s.categories],
       watts: parseWatts(s.name),
       kelvin: parseKelvin(s.name),
+      kelvins: productKelvins(s),
       lumens: ov.lumens ?? 0,
       ...(ip ? { ip } : {}),
       image: s.images[0]?.url ?? '',
@@ -187,7 +209,9 @@ export function baseFromSnapshot(
       featured: s.featured,
       brand: s.brand ?? ov.brand ?? '',
       jumpseller_id: s.jumpseller_id,
-      ...(singleVariant ? { jumpseller_variant_id: singleVariant.id } : {}),
+      ...(singleVariant
+        ? { jumpseller_variant_id: singleVariant.id, singleVariant: { sku: singleVariant.sku, options: singleVariant.options } }
+        : {}),
       // Más de una variante: se elige en la ficha (precio, SKU y opciones de Jumpseller)
       ...(s.variants.length > 1 ? { variants: s.variants } : {}),
     };

@@ -18,7 +18,14 @@ export interface Product {
   /** Todas las categorías del sitio a las que pertenece (filtros del catálogo). */
   categories: string[];
   watts: number;
+  /** Temperatura de color que trae el nombre (0 si no la trae). */
   kelvin: number;
+  /**
+   * Todas las temperaturas de color en que se vende (auditoría UX, B-05): las de las opciones de
+   * sus variantes en Jumpseller; si ninguna la trae, la del nombre. Sin repetir, de menor a
+   * mayor; [] si no se conoce. El filtro del catálogo usa «alguna variante tiene esa temperatura».
+   */
+  kelvins: number[];
   lumens: number;
   ip?: string;
   image: string;
@@ -35,6 +42,11 @@ export interface Product {
    * (src/lib/variants.ts) las muestra con etiquetas limpias, y la tarjeta pide elegir.
    */
   variants?: ProductVariant[];
+  /**
+   * SKU y opciones de la única variante (productos con una sola), que pueden ser distintos de
+   * los del producto («PLC20GC», «Luz Cálida»): la búsqueda los indexa como los de `variants`.
+   */
+  singleVariant?: Pick<ProductVariant, 'sku' | 'options'>;
   cri?: number;
   voltage?: string;
   beamAngle?: number;
