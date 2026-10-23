@@ -1,20 +1,24 @@
 // scripts/redirects/build.ts
 // Las redirecciones de vercel.json. Se generan: `npm run redirects:write` escribe
 // buildRedirects() en vercel.json y scripts/vercel-config.test.ts exige que sean iguales.
-// Nunca editarlas a mano: después de cambiar src/data/catalog/renamed-ids.ts o
-// scripts/redirects/legacy-urls.json, correr `npm run redirects:write`.
+// Nunca editarlas a mano: después de cambiar src/data/catalog/renamed-ids.ts,
+// UNPUBLISHED_RENAMED (abajo) o scripts/redirects/legacy-urls.json, correr
+// `npm run redirects:write`.
 //
 //   1. Rutas que solo redirigen (REDIRECT_ROUTES): 307 al mismo destino que su <Navigate>
 //      en src/routes.tsx. Temporal: el sitio todavía no es el dominio principal.
 //   2. Ids de producto renombrados (src/data/catalog/renamed-ids.ts): 301 de cada id
 //      anterior al vigente, con o sin barra final. Vercel conserva la consulta (?gclid=…).
+//      Si el producto ya no se publica (UNPUBLISHED_RENAMED), el 301 va a su categoría o a
+//      /catalogo, como las filas `category` de legacy-urls.json.
 //   3. URLs de elights.cl en Jumpseller (legacy-urls.json, PR 08): 301 de cada URL vieja a
 //      su página en el sitio nuevo, con o sin barra final. También conserva la consulta.
 //
-// Solo depende de tablas congeladas o mantenidas a mano: renamed-ids.ts, legacy-ids.ts, los
-// ids ya registrados en site-ids.generated.ts (el robot solo agrega, nunca cambia uno), los
-// slugs de categories.config.ts y legacy-urls.json. No mira qué productos se publican ni el
-// snapshot: así la sincronización con Jumpseller nunca la cambia ni hace fallar sus pruebas.
+// Solo depende de tablas congeladas o mantenidas a mano: renamed-ids.ts, UNPUBLISHED_RENAMED,
+// legacy-ids.ts, los ids ya registrados en site-ids.generated.ts (el robot solo agrega, nunca
+// cambia uno), los slugs de categories.config.ts y legacy-urls.json. No mira qué productos se
+// publican ni el snapshot: así la sincronización con Jumpseller nunca la cambia ni hace fallar
+// sus pruebas. Cuando un producto sale o vuelve al catálogo, check:prerender avisa.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
@@ -40,10 +44,52 @@ const TEMPORARY: RedirectRule[] = [{ source: '/carro{/}?', destination: '/solici
 
 const bySource = (a: RedirectRule, b: RedirectRule) => (a.source < b.source ? -1 : a.source > b.source ? 1 : 0);
 
-/** Un 301 por cada id anterior, directo al id vigente (sin cadenas), ordenados por fuente. */
-export function renamedIdRedirects(): RedirectRule[] {
-  return Object.values(RENAMED_SITE_IDS)
-    .flatMap(r => r.previous.map(old => ({ source: `${productPath(old)}{/}?`, destination: productPath(r.id), statusCode: 301 as const })))
+const CATEGORY_SLUGS = new Set(categories.map(c => c.slug));
+
+/**
+ * Productos renombrados que ya no se publican: jumpseller_id → slug de su categoría en
+ * categories.config.ts, o null si no se conoce (entonces, /catalogo). Sus ids anteriores no van
+ * a la ficha, que da 404, sino ahí: lo mismo que las filas `category` de legacy-urls.json.
+ * Se mantiene a mano, como esas filas: check:prerender avisa cuando un id renombrado llega a un
+ * producto no publicado (agregarlo aquí) y cuando uno de estos vuelve a publicarse (quitarlo,
+ * para que su 301 vuelva a la ficha). Después, `npm run redirects:write`.
+ */
+export const UNPUBLISHED_RENAMED: Readonly<Record<number, string | null>> = {
+  // Campanas UFO NF8 de 100, 150, 200 y 300W: ya no se publican en Jumpseller. Van a su
+  // categoría, igual que sus URLs de elights.cl en legacy-urls.json (2026-10-22).
+  24031164: 'campanas-led',
+  24040212: 'campanas-led',
+  24040292: 'campanas-led',
+  24043701: 'campanas-led',
+};
+
+/**
+ * Destino de los ids anteriores de un producto renombrado: su ficha, con el id vigente, o, si ya
+ * no se publica (`unpublished`), su categoría o /catalogo.
+ */
+export function renamedIdDestination(jid: number, unpublished: Readonly<Record<number, string | null>> = UNPUBLISHED_RENAMED): string {
+  const renamed = RENAMED_SITE_IDS[jid];
+  if (!renamed) throw new Error(`renamedIdDestination: el producto ${jid} no está en src/data/catalog/renamed-ids.ts`);
+  if (!Object.hasOwn(unpublished, jid)) return productPath(renamed.id);
+  const slug = unpublished[jid];
+  if (slug === null) return '/catalogo';
+  if (!CATEGORY_SLUGS.has(slug)) throw new Error(`UNPUBLISHED_RENAMED: producto ${jid} → categoría "${slug}", que no está en categories.config.ts`);
+  return categoryPath(slug);
+}
+
+/**
+ * Un 301 por cada id anterior, directo al id vigente (sin cadenas), o a la categoría si el
+ * producto ya no se publica; ordenados por fuente.
+ */
+export function renamedIdRedirects(unpublished: Readonly<Record<number, string | null>> = UNPUBLISHED_RENAMED): RedirectRule[] {
+  for (const jid of Object.keys(unpublished).map(Number)) {
+    if (!RENAMED_SITE_IDS[jid]) throw new Error(`UNPUBLISHED_RENAMED: el producto ${jid} no está en src/data/catalog/renamed-ids.ts`);
+  }
+  return Object.entries(RENAMED_SITE_IDS)
+    .flatMap(([jid, r]) => {
+      const destination = renamedIdDestination(Number(jid), unpublished);
+      return r.previous.map(old => ({ source: `${productPath(old)}{/}?`, destination, statusCode: 301 as const }));
+    })
     .sort(bySource);
 }
 
@@ -129,7 +175,6 @@ export function currentSiteId(jid: number): string | undefined {
   return RENAMED_SITE_IDS[jid]?.id ?? SITE_IDS[jid] ?? LEGACY_SITE_IDS[jid];
 }
 
-const CATEGORY_SLUGS = new Set(categories.map(c => c.slug));
 /**
  * Páginas fijas a las que puede ir una URL vieja (`path`): las prerenderizadas de STATIC_ROUTES
  * (incluye '/') y /buscar (spa.html, lee ?q=). /cotizacion y /solicitar-pedido no: dependen de
