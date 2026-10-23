@@ -36,7 +36,11 @@ const TABLE_3_5 = [
   'reason', 'http_status', 'error_message',
 ];
 const STATE = ['site_platform', 'elights_env', 'meta_consent'];
-/** Regex del activador T09 del contenedor (especificación 6.3). */
+/**
+ * Regex del activador T09 del contenedor (especificación 6.3). guia_cta_click (las guías) todavía
+ * no está en la especificación de la agencia (v1.3): mientras no lo sume, check-gtm-export lo
+ * anota en vez de bloquear (PENDING_SITE_EVENTS).
+ */
 const T09 =
   /^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click|guia_cta_click)$/;
 

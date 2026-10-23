@@ -41,6 +41,10 @@ export const GUIDES: readonly GuideMeta[] = [
     isPillar: true,
     target: 'norma lumínica',
     intent: 'normativa',
+    // «Publicada el» es el día en que la guía sale en el sitio y no cambia nunca (plan §1.7). Si la
+    // fusión a main no es el 23-10-2026, ese día se cambian estas tres fechas y la primera línea
+    // del historial (content/<slug>.ts), y se vuelven a revisar las fuentes («Plazos revisados»,
+    // «Fuentes revisadas» y cada `reviewed`).
     datePublished: '2026-10-23T00:00:00-03:00',
     dateModified: '2026-10-23T00:00:00-03:00',
     publishedLabel: '23-10-2026',

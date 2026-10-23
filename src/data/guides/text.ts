@@ -83,7 +83,7 @@ function blockLinks(block: GuideBlock): { text: string; to: GuideLink; ifGuide?:
     case 'table':
       return block.rows.flatMap(row => row.flatMap(richLinks));
     case 'ds1-lines':
-      return block.items.map(item => ({ text: item.name, to: { products: item.products } }));
+      return block.items.filter(item => !item.noLink).map(item => ({ text: item.name, to: { products: item.products } }));
   }
 }
 

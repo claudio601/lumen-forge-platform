@@ -96,6 +96,11 @@ export interface Ds1BlockItem {
   products: readonly number[];
   /** Versiones con certificado que nombra, en kelvin, de menor a mayor. */
   kelvin: readonly number[];
+  /**
+   * El nombre va sin enlace: la ficha vende también una versión que ninguna cancha puede usar
+   * (un proyector de estadio de más de 5000K; plan §1.5). guides.test.ts lo exige.
+   */
+  noLink?: true;
 }
 
 export type GuideBlock =

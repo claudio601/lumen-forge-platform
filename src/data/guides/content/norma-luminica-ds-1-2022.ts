@@ -476,8 +476,9 @@ const guide: GuideContent = {
               products: [24696340, 24657400, 32913142, 24663380, 24669150, 24698439, 24696451, 24697125],
               kelvin: [2700, 4000, 5000],
             },
-            { line: 'estadio', name: 'Proyector LED de estadio 300W', products: [3313196], kelvin: [3000] },
-            { line: 'estadio', name: 'Proyector LED de estadio 500W', products: [3283555], kelvin: [2200] },
+            // Sin enlace: sus fichas venden también la de 6000K, que no se enlaza (plan §1.5)
+            { line: 'estadio', name: 'Proyector LED de estadio 300W', products: [3313196], kelvin: [3000], noLink: true },
+            { line: 'estadio', name: 'Proyector LED de estadio 500W', products: [3283555], kelvin: [2200], noLink: true },
             { line: 'estadio', name: 'Proyector LED de estadio redondo 1000W', products: [3309140], kelvin: [2200, 2700, 4000, 5000] },
           ],
         },

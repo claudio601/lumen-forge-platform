@@ -8,6 +8,8 @@
 // nombres de los productos, fichas despublicadas) solo avisa: un texto desactualizado nunca
 // bloquea los precios.
 
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, relative, sep } from 'node:path';
 import { createElement } from 'react';
 import { renderToString } from 'react-dom/server';
 import { render, waitFor } from '@testing-library/react';
@@ -40,7 +42,7 @@ import { findRuleBreaking } from '../../../scripts/jumpseller/descriptions';
 import { GUIDE_AUTHORS, GUIDES, GUIDES_INDEX, PLANNED_GUIDE_SLUGS, guideMeta, guidePath, guideTitle, isPublishedGuide } from './index';
 import { guideContentSlugs } from './content';
 import { ds1ItemSentence, KELVIN_TONE, kelvinText } from './ds1-block';
-import { ds1LineGroups } from './ds1-lines';
+import { ds1LineGroups, optionKelvin } from './ds1-lines';
 import { guideLinks, guideTexts, sectionTexts } from './text';
 import type { Ds1BlockItem, GuideContent } from './types';
 
@@ -65,8 +67,20 @@ const A = {
 const MANDATORY = A.A4;
 
 /**
+ * El OK del dueño a las oraciones del bloque «Luminarias con certificado» de cada guía (las de
+ * APPROVED_DS1_BLOCK y las de APPROVED_CERTIFICATE_SENTENCES): 'pendiente' hasta que lo dé, y
+ * entonces la fecha del OK («dd-mm-aaaa»). Mientras diga 'pendiente', esas oraciones son una
+ * propuesta, no un texto aprobado, y la guía no se fusiona a main (la prueba lo avisa).
+ */
+const DS1_BLOCK_OWNER_OK: Readonly<Record<string, string>> = {
+  // Pedido con la PR de G1 el 23-10-2026 (decisión 7 de decisiones-dueno.md)
+  'norma-luminica-ds-1-2022': 'pendiente',
+};
+
+/**
  * Las únicas oraciones de cada guía que juntan el certificado con la norma: las aprueba el dueño
- * (decisión 6 del plan). Una oración nueva con el certificado se agrega aquí solo con su OK.
+ * (decisión 6 del plan). Una oración nueva con el certificado se agrega aquí solo con su OK, que
+ * se anota en DS1_BLOCK_OWNER_OK. La de G1: PENDIENTE DE OK.
  */
 const APPROVED_CERTIFICATE_SENTENCES: Readonly<Record<string, readonly string[]>> = {
   'norma-luminica-ds-1-2022': ['Estas luminarias tienen certificado D.S. N°1/2022 solo en las versiones que se nombran.'],
@@ -76,8 +90,9 @@ const APPROVED_CERTIFICATE_SENTENCES: Readonly<Record<string, readonly string[]>
 const APPROVED_NORM_BLUE_LIGHT: ReadonlySet<string> = new Set([A.A8]);
 
 /**
- * El bloque «Luminarias con certificado» de cada guía, tal como lo aprueba el dueño: lo genera
- * ds1LineGroups (DS1_CERTIFIED_LINES y las variantes de Jumpseller) y lo escribe Claude.
+ * El bloque «Luminarias con certificado» de cada guía, tal como lo aprueba el dueño (su OK, en
+ * DS1_BLOCK_OWNER_OK; el de G1: PENDIENTE): lo genera ds1LineGroups (DS1_CERTIFIED_LINES y las
+ * variantes de Jumpseller) y lo escribe Claude.
  */
 const APPROVED_DS1_BLOCK: Readonly<Record<string, readonly string[]>> = {
   'norma-luminica-ds-1-2022': [
@@ -119,6 +134,16 @@ const variantOptions = new Map(
   jumpsellerSnapshot.map(p => [p.jumpseller_id, [...new Set((p.variants ?? []).flatMap(v => v.options.map(o => `${o.name}: ${o.value}`)))]] as const),
 );
 const productName = (id: number) => products.find(p => p.jumpseller_id === id)?.name;
+/**
+ * Las versiones que vende un proyector de estadio por sobre el tope de su certificado (5000K): la
+ * de 6000K del estadio de 300 y de 500W. Ninguna cancha puede usarlas, y el plan (§1.5) no enlaza
+ * esas fichas. En las demás líneas, nada (sus fichas se enlazan nombrando sus versiones).
+ */
+const sportsOverMax = (id: number): number[] => {
+  const line = ds1Line(id);
+  if (!line || !('maxKelvin' in line.versions)) return [];
+  return optionKelvin(variantOptions.get(id) ?? []).filter(k => !ds1CoversKelvin(line.versions, k));
+};
 
 describe('guías: formato', () => {
   it('cada ficha de index.ts tiene su cuerpo en content/, y al revés (solo guías aprobadas en el repo)', () => {
@@ -169,6 +194,14 @@ describe('guías: formato', () => {
       if (g.dateModified !== g.datePublished) expect(g.modifiedLabel, g.slug).toBe(label(g.dateModified));
       else expect(g.modifiedLabel, g.slug).toBeUndefined();
       expect(GUIDE_AUTHORS[g.author], g.slug).toBeDefined();
+    }
+  });
+
+  it('el historial empieza con la publicación, el mismo día de «Publicada el» (si la fusión es otro día, cambian juntas)', () => {
+    for (const g of GUIDES) {
+      const { history } = contentOf(g.slug);
+      expect(history[0]?.date, g.slug).toBe(g.publishedLabel);
+      if (g.modifiedLabel) expect(history.map(h => h.date), g.slug).toContain(g.modifiedLabel);
     }
   });
 
@@ -268,6 +301,15 @@ describe('guías: D.S. N°1/2022', () => {
 describe('guías: el bloque de luminarias con certificado (DS1_CERTIFIED_LINES)', () => {
   const withBlock = contents.filter(({ c }) => ds1Items(c).length > 0);
 
+  it('cada bloque tiene anotado el OK del dueño (su fecha) o queda «pendiente» (la prueba avisa: no fusionar)', () => {
+    expect(Object.keys(DS1_BLOCK_OWNER_OK).sort()).toEqual(Object.keys(APPROVED_DS1_BLOCK).sort());
+    expect(Object.keys(APPROVED_CERTIFICATE_SENTENCES).every(slug => slug in DS1_BLOCK_OWNER_OK)).toBe(true);
+    for (const [slug, ok] of Object.entries(DS1_BLOCK_OWNER_OK)) {
+      expect(ok, slug).toMatch(/^(?:pendiente|\d{2}-\d{2}-\d{4})$/);
+      if (ok === 'pendiente') console.warn(`[guías] ${slug}: las oraciones del bloque «Luminarias con certificado» esperan el OK del dueño; no fusionar`);
+    }
+  });
+
   it('se lee tal como lo aprobó el dueño', () => {
     expect(withBlock.map(x => x.slug)).toEqual(Object.keys(APPROVED_DS1_BLOCK));
     for (const { slug, c } of withBlock) {
@@ -310,6 +352,22 @@ describe('guías: el bloque de luminarias con certificado (DS1_CERTIFIED_LINES)'
     const norm = (list: { line: string; products: readonly number[]; kelvin: readonly number[] }[]) =>
       list.map(g => `${g.line}|${[...g.products].sort((a, b) => a - b).join(',')}|${g.kelvin.join(',')}`);
     for (const { slug, c } of withBlock) expect(norm(ds1Items(c)), slug).toEqual(norm(groups));
+  });
+
+  it.skipIf(isSyncBot)('no enlaza la ficha de un proyector de estadio que vende una versión de más de 5000K (plan §1.5): ese ítem va sin enlace', () => {
+    for (const { slug, c } of contents) {
+      // Ningún enlace de la guía (texto o bloque) lleva a una de esas fichas, ni como alternativa
+      for (const l of guideLinks(c)) {
+        if (!('products' in l.to)) continue;
+        for (const id of l.to.products) expect(sportsOverMax(id), `${slug}#${l.section}: ${l.text} (${id})`).toEqual([]);
+      }
+      // Y el bloque deja sin enlace justo esos ítems (los demás sí enlazan su ficha)
+      for (const item of ds1Items(c)) {
+        expect(!!item.noLink, `${slug}: ${item.name}`).toBe(item.products.some(id => sportsOverMax(id).length > 0));
+      }
+    }
+    expect(sportsOverMax(3313196)).toEqual([6000]); // estadio 300W
+    expect(sportsOverMax(3283555)).toEqual([6000]); // estadio 500W
   });
 
   it.skipIf(isSyncBot)('las potencias del nombre de cada ítem son las de sus productos en Jumpseller', () => {
@@ -386,6 +444,48 @@ describe('guías: enlaces', () => {
   });
 });
 
+describe('guías: el bundle principal (plan §5.8)', () => {
+  // La raíz del repo: vitest corre desde ahí (en jsdom, import.meta.url no es un archivo)
+  const ROOT = process.cwd();
+  // Imports estáticos (no los import() dinámicos, que son otros trozos), sin los de solo tipos
+  const STATIC_IMPORT = /^\s*(?:import|export)\s+(?!type\s)(?:[^;'"]*?\s+from\s+)?['"]([^'"]+)['"]/gm;
+
+  function resolveImport(from: string, spec: string): string | null {
+    const base = spec.startsWith('@/') ? join(ROOT, 'src', spec.slice(2)) : spec.startsWith('.') ? join(dirname(from), spec) : null;
+    if (!base) return null; // un paquete
+    for (const file of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')]) {
+      if (/\.tsx?$/.test(file) && existsSync(file)) return file;
+    }
+    return null; // css, json o imágenes
+  }
+
+  /** Los archivos que carga la entrada del navegador sin import() dinámico: el bundle principal. */
+  function staticGraph(entry: string): string[] {
+    const seen = new Set<string>();
+    const stack = [join(ROOT, entry)];
+    while (stack.length) {
+      const file = stack.pop()!;
+      if (seen.has(file)) continue;
+      seen.add(file);
+      for (const m of readFileSync(file, 'utf8').matchAll(STATIC_IMPORT)) {
+        const next = resolveImport(file, m[1]);
+        if (next) stack.push(next);
+      }
+    }
+    return [...seen].map(f => relative(ROOT, f).split(sep).join('/'));
+  }
+
+  it('ni la lista de guías ni sus cuerpos: el pie, la cabecera y la app no importan src/data/guides (salvo paths.ts)', () => {
+    expect(existsSync(join(ROOT, 'src/main.tsx'))).toBe(true);
+    const graph = staticGraph('src/main.tsx');
+    // La prueba mira lo que debe: el marco del sitio está en el grafo
+    for (const f of ['src/App.tsx', 'src/routes.tsx', 'src/components/layout/Header.tsx', 'src/components/layout/Footer.tsx']) expect(graph).toContain(f);
+    expect(graph.filter(f => f.startsWith('src/data/guides/') && f !== 'src/data/guides/paths.ts')).toEqual([]);
+    // Ni la lista de rutas (arrastra el catálogo y la lista de guías)
+    expect(graph).not.toContain('src/lib/seo/routes.ts');
+  });
+});
+
 describe('guías: la página', () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -444,6 +544,12 @@ describe('guías: la página', () => {
     }
     // Ni el estadio de 600W (solo 6000K) ni el modular de 800W (ficha por corregir)
     expect(section.innerHTML).not.toMatch(/estadio-600w|modular-800w|6000K|6500K/);
+    // El estadio de 300W y el de 500W se nombran sin enlace: sus fichas venden también la de 6000K
+    const linked = [...section.querySelectorAll('a')].map(a => a.textContent);
+    expect(linked).not.toContain('Proyector LED de estadio 300W');
+    expect(linked).not.toContain('Proyector LED de estadio 500W');
+    expect(linked).toContain('Proyector LED de estadio redondo 1000W');
+    expect(section.innerHTML).not.toMatch(/proyector-led-de-estadio-(?:300|500)w/);
     // Las oraciones que llevan a guías sin publicar (G3, G4, G5 y G7) no se ven todavía
     expect(root.textContent).not.toMatch(/lee la guía|Para revisarlo paso a paso/);
     // Los llamados: el correo de las Áreas de Protección Especial y la propuesta técnica (§3.3)

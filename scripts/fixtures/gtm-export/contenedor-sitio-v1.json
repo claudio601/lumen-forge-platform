@@ -1701,7 +1701,7 @@
               {
                 "type": "TEMPLATE",
                 "key": "arg1",
-                "value": "^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click|guia_cta_click)$"
+                "value": "^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click)$"
               }
             ]
           }

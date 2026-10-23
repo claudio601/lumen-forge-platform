@@ -72,7 +72,7 @@ function Block({ block, pagePath }: { block: GuideBlock; pagePath: string }): Re
         <ul data-ds1-lines="">
           {block.items.map(item => (
             <li key={item.name}>
-              <GuideLinkView text={item.name} to={{ products: item.products }} pagePath={pagePath} />
+              {item.noLink ? item.name : <GuideLinkView text={item.name} to={{ products: item.products }} pagePath={pagePath} />}
               {ds1ItemTail(item)}
             </li>
           ))}
