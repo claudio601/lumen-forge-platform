@@ -205,22 +205,22 @@
     },
     {
       "source": "/producto/w-ip65-24031164{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-100w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
       "source": "/producto/w-ip65-24040212{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-150w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
       "source": "/producto/w-ip65-24040292{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-200w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
       "source": "/producto/w-ip65-24043701{/}?",
-      "destination": "/producto/campana-led-ufo-nf8-300w-110lm-w-ip65",
+      "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
     {
