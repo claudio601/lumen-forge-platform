@@ -15,6 +15,18 @@
 // El aviso del bot (privacyNotice.ts) informa la finalidad nueva. TWILIO_RETENTION_DAYS es el
 // plazo configurado en la consola de Twilio (400, confirmado por el dueño); su respaldo sigue
 // encendido (decisión del dueño, 2026-10-18) y §7 lo informa.
+// Versión 1.5 (PR 14, decisiones del dueño del 2026-10-22): «Publicidad en Meta», con el píxel de
+// Meta que carga el contenedor de Google Tag Manager solo con ese consentimiento y junto con la
+// medición de visitas (§3, §5, §7 y §10); Meta recibe a lo más PageView, Lead y Contact, con un
+// solo parámetro, content_name, de una lista cerrada de 8 valores (tipo de solicitud o medio de
+// contacto), sin coincidencia avanzada ni datos de clientes; sin públicos ni remarketing; Google
+// Analytics conserva los datos 14 meses (verificado en GA4 el 2026-10-22). El píxel envía la
+// dirección completa de la página y el sitio anterior (src/lib/analytics.ts quita de la URL los
+// ids de clic sin su consentimiento); el fbclid viene de cualquier enlace de Facebook o Instagram;
+// Contact sale con el clic en WhatsApp, correo o teléfono. Google Ads (_gcl_ls) y el píxel de
+// Meta también guardan datos en el almacenamiento local del navegador, y se borran al retirar el
+// permiso. Agregar un evento o un parámetro hacia Meta, o crear públicos, exige otra versión de
+// esta política.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -35,9 +47,13 @@
 //   en el correo a ventas@ (api/_lib/forms/consent.ts).
 // - Origen de la visita (src/lib/attribution.ts): solo para saber de dónde vienen las
 //   solicitudes, nunca se sube a Google Ads ni a Meta; oposición con su interruptor.
-// - Aviso de cookies básico (src/lib/cookieConsent.ts y CookieConsent.tsx) con 4 categorías:
-//   necesarias, origen de la visita, medición de visitas y medición de anuncios. Duraciones:
-//   decisión 12 meses, _ga 13 meses (src/lib/analytics.ts), _gcl_ 90 días.
+// - Aviso de cookies básico (src/lib/cookieConsent.ts y CookieConsent.tsx) con 5 categorías:
+//   necesarias, origen de la visita, medición de visitas, medición de anuncios de Google y
+//   Publicidad en Meta (las dos últimas requieren la de visitas). Duraciones: decisión 12 meses,
+//   _ga 13 meses (cookie_expires de la etiqueta de Google en el contenedor), _gcl_ y _gcl_ls 90
+//   días, _fbp y _fbc 90 días. src/lib/analytics.ts carga el contenedor (VITE_GTM_ID) solo en
+//   elights.cl y www, y al retirar un permiso borra las cookies y el almacenamiento local de
+//   Google y de Meta y recarga la página.
 // - Transportistas (§5): los mismos de /despacho, desde REGION_CARRIERS (src/config/business.ts).
 // - Archivo de versiones: public/legal/<página>-v<X.Y>.html (npm run legal:archive).
 // Al cambiar este texto, sube LEGAL_VERSION (api/_lib/forms/consent.ts) y corre
@@ -83,6 +99,10 @@ const PURPOSES: [string, string][] = [
   ['Medir visitas con Google Analytics (solo en elights.cl)', 'Tu consentimiento, dado en el aviso de cookies'],
   [
     'Que Google Ads registre, con sus propias cookies, si una visita desde nuestros anuncios terminó en una solicitud o en un contacto con nosotros, como un clic para escribirnos por WhatsApp (solo en elights.cl)',
+    'Tu consentimiento, dado en el aviso de cookies',
+  ],
+  [
+    'Que Meta registre, con su píxel y sus cookies, las páginas que visitas y si nos enviaste una solicitud (y de qué tipo) o hiciste clic para contactarnos (y por qué medio), para medir nuestros anuncios en Facebook e Instagram (solo en elights.cl)',
     'Tu consentimiento, dado en el aviso de cookies',
   ],
   [
@@ -192,7 +212,9 @@ const PrivacidadPage = () => (
       mismas finalidades, sobre la base de la autorización que nos das al enviarnos una solicitud (en el sitio, al marcar la
       casilla «Leí la Política de privacidad y autorizo…»; por correo o WhatsApp, con tu mensaje escrito) y de las obligaciones
       legales que nos aplican. Ordenar y priorizar tu solicitud es parte de responderla. Para saber de dónde vienen las
-      solicitudes usamos el origen de tu visita solo internamente, con fines estadísticos, como permite esa ley. En ese período, la
+      solicitudes usamos el origen de tu visita solo internamente, con fines estadísticos, como permite esa ley. La medición con
+      cookies (Google Analytics, medición de anuncios de Google y Publicidad en Meta) se basa, también en ese período, en la
+      autorización que das en el aviso de cookies. En ese período, la
       revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle;
       el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. Desde el 1 de
       diciembre de 2026 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
@@ -206,7 +228,11 @@ const PrivacidadPage = () => (
       Los parámetros de campaña (como gclid o fbclid) que van con tu solicitud los usamos solo para saber de dónde vienen nuestras
       solicitudes: no los subimos a Google Ads ni a Meta. Si en elights.cl aceptas la medición de anuncios de Google en el aviso
       de cookies, es Google quien registra, con sus propias cookies, si tu visita desde un anuncio terminó en una solicitud o en
-      un contacto con nosotros (por ejemplo, un clic para escribirnos por WhatsApp).
+      un contacto con nosotros (por ejemplo, un clic para escribirnos por WhatsApp). Si en elights.cl aceptas «Publicidad en
+      Meta», es Meta quien registra con su píxel y sus cookies (como _fbp y _fbc) las páginas que visitas (con su dirección
+      completa y el sitio desde el que llegaste), el identificador del clic (fbclid) si llegaste desde un enlace de Facebook o
+      Instagram, y si nos enviaste una solicitud (y de qué tipo) o hiciste clic para contactarnos (y por qué medio). Para medir
+      visitas y anuncios no enviamos a Google ni a Meta tu nombre, correo ni teléfono.
     </p>
 
     <h2>4. Priorización de solicitudes y respuestas automáticas</h2>
@@ -243,7 +269,8 @@ const PrivacidadPage = () => (
 
     <h2>5. Con quién compartimos tus datos</h2>
     <p>
-      No vendemos tus datos ni los entregamos a terceros para que hagan su propia publicidad. Los compartimos solo con:
+      No vendemos tus datos ni los entregamos a terceros para que hagan su propia publicidad, salvo lo que registra el píxel de
+      Meta si aceptas «Publicidad en Meta» (ver más abajo). Los compartimos solo con:
     </p>
     <p>
       <strong>Proveedores que los tratan por encargo nuestro (encargados):</strong>
@@ -297,6 +324,13 @@ const PrivacidadPage = () => (
         no le enviamos tus datos de contacto.
       </li>
       <li>
+        <strong>Meta (Publicidad en Meta):</strong> solo en elights.cl y si lo aceptas en el aviso de cookies, Meta recibe con su
+        píxel las páginas que visitas, con su dirección completa y el sitio desde el que llegaste, el identificador del clic si
+        llegaste desde un enlace de Facebook o Instagram, y si nos enviaste una solicitud (pedido, cotización, cotizador, estudio
+        lumínico o instalación) o hiciste clic para contactarnos (por WhatsApp, correo o teléfono). Lo trata según su propia
+        política y lo usa también para sus propios anuncios. No le enviamos tu nombre, correo ni teléfono.
+      </li>
+      <li>
         <strong>Autoridades, tribunales y asesores</strong> (por ejemplo, el Servicio de Impuestos Internos o nuestro contador),
         cuando la ley lo exige o para defender nuestros derechos.
       </li>
@@ -340,9 +374,13 @@ const PrivacidadPage = () => (
         registro del origen de tu visita, lo seguimos respetando en ese navegador.
       </li>
       <li>
-        <strong>Cookies de Google</strong> (si las aceptas): las de Google Analytics, hasta 13 meses; las de medición de anuncios,
-        hasta 90 días. Google Analytics conserva los datos de medición asociados a sus cookies por 2 meses; después solo quedan
-        informes agregados. Lo que registra Google Ads lo conserva Google según su propia política.
+        <strong>Cookies de Google</strong> (si las aceptas): las de Google Analytics, hasta 13 meses; las de medición de anuncios
+        y su copia en el almacenamiento local de tu navegador (_gcl_ls), hasta 90 días. Google Analytics conserva los datos de medición asociados a sus cookies hasta 14 meses desde tu última
+        visita; después solo quedan informes agregados. Lo que registra Google Ads lo conserva Google según su propia política.
+      </li>
+      <li>
+        <strong>Cookies de Meta</strong> (si las aceptas): las del píxel, como _fbp y _fbc, y lo que guarda en el almacenamiento
+        local de tu navegador, hasta 90 días. Lo que registra Meta lo conserva según su propia política.
       </li>
       <li>
         <strong>Registro técnico de pedidos (Upstash):</strong> 30 días.
@@ -463,25 +501,36 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Google Analytics</strong> (solo en elights.cl): se carga solo si aceptas la medición de visitas en el aviso de
-        cookies; antes de que decidas no se carga nada de Google. Instala las cookies _ga y _ga_… por hasta 13 meses para contar
-        visitas y saber qué páginas y botones se usan (por ejemplo, agregar productos a la lista, enviar un formulario o abrir
-        WhatsApp). Google registra por su cuenta la página por la que entraste, el sitio anterior y los parámetros de campaña,
-        sin tus datos de contacto.
+        cookies; antes de que decidas no se carga nada de Google ni de Meta. Instala las cookies _ga y _ga_… por hasta 13 meses
+        para contar visitas y saber qué páginas y botones se usan (por ejemplo, agregar productos a la lista, enviar un formulario
+        o abrir WhatsApp). Google registra por su cuenta la página por la que entraste, el sitio anterior y los parámetros de
+        campaña, sin tus datos de contacto.
       </li>
       <li>
         <strong>Medición de anuncios de Google</strong> (solo en elights.cl): solo si la aceptas, y requiere la medición de
-        visitas. Usa cookies de Google (_gcl_…, hasta 90 días) para saber si una visita desde nuestros anuncios terminó en una
-        solicitud o en un contacto con nosotros (por ejemplo, un clic para escribirnos por WhatsApp). No usamos anuncios
-        personalizados ni remarketing.
+        visitas. Usa cookies de Google (_gcl_…, hasta 90 días) y su copia en el almacenamiento local de tu navegador (_gcl_ls)
+        para saber si una visita desde nuestros anuncios terminó en una solicitud o en un contacto con nosotros (por ejemplo, un clic para escribirnos por WhatsApp). No activa anuncios
+        personalizados de Google.
       </li>
       <li>
-        No usamos el píxel de Meta. Si lo agregamos, o si usamos anuncios personalizados, te pediremos tu consentimiento de nuevo y
-        actualizaremos esta política.
+        <strong>Publicidad en Meta</strong> (solo en elights.cl): solo si la aceptas, y requiere la medición de visitas. Carga el
+        píxel de Meta, que guarda en tu navegador cookies, como _fbp y _fbc, y datos en el almacenamiento local por hasta 90 días,
+        y le envía a Meta las páginas que visitas, con su dirección completa y el sitio desde el que llegaste, el identificador del
+        clic (fbclid) si llegaste desde un enlace de Facebook o Instagram, y si nos enviaste una solicitud y de qué tipo (pedido,
+        cotización, cotizador, estudio lumínico o instalación) o hiciste clic para contactarnos y por qué medio (WhatsApp, correo
+        o teléfono). Como todo servicio que se carga en tu navegador, Meta recibe también datos técnicos de tu conexión, como tu
+        dirección IP. No le enviamos tu nombre ni tus datos de contacto. Meta también usa estos datos para sus propios anuncios,
+        según su política.
+      </li>
+      <li>
+        No creamos públicos con tus visitas ni hacemos remarketing, ni en Google ni en Meta. Si lo hacemos, te pediremos tu
+        consentimiento de nuevo y actualizaremos esta política.
       </li>
       <li>
         Puedes cambiar tu decisión cuando quieras con el botón{' '}
         <CookieSettingsButton className="font-medium text-primary underline hover:no-underline" />, aquí o al pie de cada página. Si
-        retiras un permiso, dejamos de medir en esa misma página y borramos de tu navegador las cookies de Google de este sitio.
+        retiras un permiso, la página se vuelve a cargar: dejamos de medir en esa misma página y borramos de tu navegador lo que
+        Google y Meta guardaron en este sitio con ese permiso (cookies y almacenamiento local).
       </li>
       <li>Los enlaces a WhatsApp abren ese servicio, que se rige por su propia política.</li>
     </ul>

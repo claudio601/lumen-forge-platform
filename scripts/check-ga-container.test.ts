@@ -5,9 +5,13 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  DEFAULT_ADS_ID,
   DEFAULT_GA_ID,
   EXPECTED_KEY_EVENTS,
   FORM_EXCLUSION_SELECTORS,
+  MANUAL_CHECKS,
+  adsGateVerdict,
+  isAdsId,
   containerUrl,
   downloadContainer,
   excludesSiteForms,
@@ -24,6 +28,13 @@ import {
 
 /** El contenedor como estaba el 2026-10-14 (sintético). */
 const TODAY = readFileSync(new URL('./fixtures/ga-container/gtag-2026-10-14.txt', import.meta.url), 'utf8');
+/** La etiqueta de Google Ads como estaba el 2026-10-16 (sintético). */
+const ADS_TODAY = readFileSync(new URL('./fixtures/ga-container/gtag-aw-2026-10-16.txt', import.meta.url), 'utf8');
+
+/** Regla de evento clave para un evento (como las del fixture). */
+const keyEventRule = (name: string) =>
+  `["map","matchingRules","{\\"type\\":5,\\"args\\":[{\\"stringValue\\":\\"${name}\\"},{\\"contextValue\\":{\\"namespaceType\\":1,\\"keyParts\\":[\\"eventName\\"]}}]}"]`;
+const LAST_RULE = keyEventRule('close_convert_lead');
 
 /** Reemplaza un trozo exacto; falla si no está (así el fixture y la prueba no se desalinean). */
 function swap(text: string, from: string, to: string): string {
@@ -38,6 +49,8 @@ const APPROVED = [
   (t: string) => swap(t, '["map","exclusionSelector",""]', `["map","exclusionSelector","${EXCLUSION}"]`),
   (t: string) => swap(t, '"vtp_historyEvents":true', '"vtp_historyEvents":false'),
   (t: string) => swap(t, '"vtp_redactEmail":false', '"vtp_redactEmail":true'),
+  // El día del cambio, generate_lead pasa a evento clave (especificación 5.1)
+  (t: string) => swap(t, LAST_RULE, `${LAST_RULE},${keyEventRule('generate_lead')}`),
 ].reduce((t, f) => f(t), TODAY);
 
 const flagsOf = (js: string) => readContainerFlags(extractContainerTags(js));
@@ -80,6 +93,8 @@ describe('check-ga-container: lectura del contenedor', () => {
       redactEmail: false,
       googleSignals: 'LIMITED_EXTERNAL',
       keyEvents: ['close_convert_lead', 'purchase', 'qualify_lead', 'whatsapp_click'],
+      // En la etiqueta de GA4 las __ccd_em_* son la medición mejorada (solo cuenta para Google Ads)
+      autoEvents: ['__ccd_em_page_view', '__ccd_em_scroll', '__ccd_em_outbound_click', '__ccd_em_form', '__ccd_em_download', '__ccd_em_video'],
     });
   });
 
@@ -171,14 +186,15 @@ describe('check-ga-container: variantes del formato', () => {
 });
 
 describe('check-ga-container: puerta', () => {
-  it('el contenedor de hoy NO pasa: detección sin exclusión, page_view por historial y sin redacción', () => {
+  it('el contenedor de hoy NO pasa: detección sin exclusión, page_view por historial, sin redacción y sin generate_lead como evento clave', () => {
     const v = gateVerdict(flagsOf(TODAY));
     expect(v.approved).toBe(false);
-    expect(v.failures).toHaveLength(3);
+    expect(v.failures).toHaveLength(4);
     expect(v.failures[0]).toMatch(/^La detección automática de datos de usuario está activa \(correo: sí, teléfono: sí, dirección: sí\) sin excluir/);
     expect(v.failures[0]).toContain(`«${EXCLUSION}»`);
     expect(v.failures[1]).toMatch(/page_view por cambios en el historial/);
     expect(v.failures[2]).toMatch(/redacción de correo del flujo está apagada/);
+    expect(v.failures[3]).toContain('sobran: ninguno; faltan: generate_lead');
     expect(v.notes.join(' ')).toContain('LIMITED_EXTERNAL');
   });
 
@@ -218,20 +234,31 @@ describe('check-ga-container: puerta', () => {
   });
 
   it('si cambian los eventos clave no pasa; con la lista nueva anotada (--key-events) sí', () => {
-    const withLead = swap(
+    const swapped = swap(
       APPROVED,
       '{\\"stringValue\\":\\"qualify_lead\\"}',
-      '{\\"stringValue\\":\\"generate_lead\\"}',
+      '{\\"stringValue\\":\\"view_item\\"}',
     );
-    expect(flagsOf(withLead).keyEvents).toEqual(['close_convert_lead', 'generate_lead', 'purchase', 'whatsapp_click']);
-    const v = gateVerdict(flagsOf(withLead));
+    expect(flagsOf(swapped).keyEvents).toEqual(['close_convert_lead', 'generate_lead', 'purchase', 'view_item', 'whatsapp_click']);
+    const v = gateVerdict(flagsOf(swapped));
     expect(v.approved).toBe(false);
-    expect(v.failures).toEqual([expect.stringContaining('sobran: generate_lead; faltan: qualify_lead')]);
-    expect(gateVerdict(flagsOf(withLead), ['purchase', 'whatsapp_click', 'generate_lead', 'close_convert_lead']).approved).toBe(true);
+    expect(v.failures).toEqual([expect.stringContaining('sobran: view_item; faltan: qualify_lead')]);
+    expect(gateVerdict(flagsOf(swapped), ['purchase', 'whatsapp_click', 'generate_lead', 'close_convert_lead', 'view_item']).approved).toBe(true);
   });
 
-  it('los eventos clave esperados son los del contenedor del 2026-10-14 (generate_lead no es evento clave)', () => {
-    expect([...EXPECTED_KEY_EVENTS].sort()).toEqual(['close_convert_lead', 'purchase', 'qualify_lead', 'whatsapp_click']);
+  it('los eventos clave esperados son los del contenedor del 2026-10-14 más generate_lead (se marca el día del cambio)', () => {
+    expect([...EXPECTED_KEY_EVENTS].sort()).toEqual(['close_convert_lead', 'generate_lead', 'purchase', 'qualify_lead', 'whatsapp_click']);
+    // Hasta el día del cambio, la lista anterior se puede pasar con --key-events
+    expect(gateVerdict(flagsOf(swap(APPROVED, `,${keyEventRule('generate_lead')}`, ''))).failures).toEqual([
+      expect.stringContaining('sobran: ninguno; faltan: generate_lead'),
+    ]);
+  });
+
+  it('lo que se revisa a mano dice la retención de la política 1.5: 14 meses, eventos y usuarios', () => {
+    const text = MANUAL_CHECKS.join('\n');
+    expect(text).toContain('retención de datos en 14 meses, de eventos y de usuarios');
+    expect(text).toContain('Restablecer los datos de usuario con cada actividad nueva');
+    expect(text).not.toMatch(/(?<!1)2 meses/);
   });
 
   it('el informe muestra cada bandera, los errores con ::error y lo que falta revisar a mano', () => {
@@ -241,11 +268,70 @@ describe('check-ga-container: puerta', () => {
     expect(text).toContain('Page_view por historial del navegador: sí');
     expect(text).toContain('Redacción de correo: no');
     expect(text).toContain('Eventos clave: close_convert_lead, purchase, qualify_lead, whatsapp_click');
-    expect(lines.filter(l => l.startsWith('::error title=Puerta de la Etapa 3::'))).toHaveLength(3);
-    expect(text).toContain('La puerta no pasa: 3 punto(s).');
+    expect(lines.filter(l => l.startsWith('::error title=Puerta de la Etapa 3::'))).toHaveLength(4);
+    expect(text).toContain('La puerta no pasa: 4 punto(s).');
     expect(text).toMatch(/Términos de tratamiento de datos/);
     expect(text).toMatch(/Prueba de red con el contenedor real sin enviar hits/);
     expect(formatReport('G-TEST000000', flagsOf(APPROVED), gateVerdict(flagsOf(APPROVED))).join('\n')).toContain('La etiqueta de Google pasa la puerta.');
+  });
+});
+
+describe('check-ga-container: etiqueta de Google Ads (AW-…)', () => {
+  /** La etiqueta de Ads con la exclusión de formularios y la detección automática de eventos apagada. */
+  const ADS_APPROVED = [
+    (t: string) => swap(t, '["map","exclusionSelector",""]', `["map","exclusionSelector","${EXCLUSION}"]`),
+    (t: string) => t.replace(/"vtp_enable(OutboundClick|Scroll|Download|HistoryEvents|Form|Video|PageView)":true/g, '"vtp_enable$1":false'),
+    (t: string) => swap(t, '  ,{"function":"__ccd_em_form","priority":5,"vtp_includeParams":false,"tag_id":6}\n', ''),
+    (t: string) => swap(t, '  ,{"function":"__ccd_em_page_view","priority":4,"vtp_historyEvents":true,"vtp_deferPageView":true,"vtp_includeParams":true,"tag_id":7}\n', ''),
+  ].reduce((t, f) => f(t), ADS_TODAY);
+
+  it('lee la detección automática de eventos: banderas de __ogt_auto_events y etiquetas __ccd_em_*', () => {
+    const f = flagsOf(ADS_TODAY);
+    expect(f.autoEvents).toEqual(['OutboundClick', 'Scroll', 'Download', 'HistoryEvents', 'Form', 'Video', 'PageView', '__ccd_em_form', '__ccd_em_page_view']);
+    expect(f.userData).toMatchObject({ present: true, auto: true, email: true, phone: false, address: false, exclusions: [] });
+    expect(flagsOf(ADS_APPROVED).autoEvents).toEqual([]);
+  });
+
+  it('la etiqueta de hoy NO pasa: datos de usuario sin exclusión y detección automática de eventos activa', () => {
+    const v = adsGateVerdict(flagsOf(ADS_TODAY));
+    expect(v.approved).toBe(false);
+    expect(v.failures).toHaveLength(2);
+    expect(v.failures[0]).toMatch(/^La detección automática de datos de usuario está activa \(correo: sí, teléfono: no, dirección: no\) sin excluir/);
+    expect(v.failures[1]).toMatch(/^La detección automática de eventos sigue activa \(OutboundClick, .*__ccd_em_page_view\)/);
+    // Se apaga antes de la fase A2 (adelanto D8, especificación v1.3 6.1-7), no en el paso 0
+    expect(v.failures[1]).toContain('Apagarla en la etiqueta de Google de Ads antes de la fase A2 (adelanto D8, sección 6.1-7)');
+    expect(v.failures[1]).not.toContain('paso 0');
+  });
+
+  it('con la exclusión (o la detección apagada) y sin eventos automáticos pasa; los eventos clave y la redacción de GA4 no aplican', () => {
+    expect(adsGateVerdict(flagsOf(ADS_APPROVED))).toEqual({ approved: true, failures: [], notes: [] });
+    const userDataOff = swap(ADS_APPROVED, `"${EXCLUSION}"`, '""').replace('"vtp_isAutoEnabled":true', '"vtp_isAutoEnabled":false');
+    expect(adsGateVerdict(flagsOf(userDataOff)).approved).toBe(true);
+    // Solo una etiqueta __ccd_em_* que quede ya cierra la puerta
+    const withForm = swap(ADS_APPROVED, '  ,{"function":"__ccd_ads_last"', '  ,{"function":"__ccd_em_form","tag_id":6}\n  ,{"function":"__ccd_ads_last"');
+    expect(adsGateVerdict(flagsOf(withForm)).failures).toEqual([expect.stringContaining('(__ccd_em_form)')]);
+  });
+
+  it('una bandera de eventos que no se puede leer cierra la puerta', () => {
+    const unknown = swap(ADS_APPROVED, '"vtp_enableForm":false', '"vtp_enableForm":["macro",3]');
+    expect(flagsOf(unknown).autoEvents).toBeNull();
+    expect(adsGateVerdict(flagsOf(unknown)).failures).toEqual([expect.stringMatching(/^No se pudo leer la detección automática de eventos/)]);
+  });
+
+  it('argumentos e informe: AW-774649578, con lo que falta revisar a mano en Google Ads', () => {
+    expect(DEFAULT_ADS_ID).toBe('AW-774649578');
+    expect(isAdsId(DEFAULT_ADS_ID)).toBe(true);
+    expect(isAdsId(DEFAULT_GA_ID)).toBe(false);
+    expect(parseArgs(['AW-774649578'])).toEqual({ id: 'AW-774649578', keyEvents: EXPECTED_KEY_EVENTS });
+    expect(containerUrl(DEFAULT_ADS_ID)).toBe('https://www.googletagmanager.com/gtag/js?id=AW-774649578');
+    const text = formatReport('AW-000000000', flagsOf(ADS_TODAY), adsGateVerdict(flagsOf(ADS_TODAY))).join('\n');
+    expect(text).toContain('Detección automática de eventos: OutboundClick');
+    expect(text).toContain('La puerta no pasa: 2 punto(s).');
+    expect(text).toMatch(/conversiones mejoradas para clientes potenciales apagadas/);
+    expect(text).not.toMatch(/Eventos clave|Redacción de correo/);
+    const ok = formatReport('AW-000000000', flagsOf(ADS_APPROVED), adsGateVerdict(flagsOf(ADS_APPROVED))).join('\n');
+    expect(ok).toContain('Detección automática de eventos: apagada');
+    expect(ok).toContain('La etiqueta de Google Ads pasa la puerta.');
   });
 });
 

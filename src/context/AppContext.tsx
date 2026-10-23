@@ -4,6 +4,8 @@ import type { Product } from '@/data/catalog/types';
 import { RENAMED_FROM } from '@/data/catalog/renamed-ids';
 // Identidad de cada línea: producto + variante (src/lib/quoteLine.ts)
 import { quoteItemKey, quoteLineKey } from '@/lib/quoteLine';
+import { requestSku } from '@/lib/variantSku';
+import { sendEvent } from '@/lib/analytics';
 
 // Variante elegida al cotizar. unitPrice es CON IVA (base); displayPrice aplica el toggle
 // B2B (÷1,19) al renderizar. variantId y label: la variante de Jumpseller y su etiqueta
@@ -109,6 +111,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const addToQuote = (product: Product, qty = 1, notes?: string, selection?: QuoteSelection) => {
     const key = quoteLineKey(product.id, selection?.cct, selection?.variantId);
+    // GA4 (solo con la medición de visitas): un evento por «Cotizar», con el SKU que va en la
+    // cotización. No es conversión de Google Ads ni evento de Meta (especificación 4.1, fila 6).
+    sendEvent('add_to_quote', { item_id: selection?.sku ?? requestSku(product), quantity: qty });
     setQuoteCart(prev => {
       const existing = prev.find(i => quoteItemKey(i) === key);
       if (existing) return prev.map(i => quoteItemKey(i) === key ? { ...i, quantity: i.quantity + qty } : i);

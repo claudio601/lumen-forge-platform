@@ -194,8 +194,9 @@ const SmartQuotePage = () => {
     setSending(true);
     try {
       const ref = await submitProjectQuote(buildPayload());
-      // Conversión solo cuando el servidor confirmó la solicitud
-      trackLead('cotizador', { project_type: form.tipoProyecto });
+      // Conversión solo si el servidor confirmó la solicitud con su referencia PY- (la trampa
+      // contra bots responde { success: true } sin ella). La referencia no se envía.
+      if (ref) trackLead('cotizador', { project_type: form.tipoProyecto });
       toast.success('Propuesta solicitada', { description: responseTimePromise });
       setReference(ref);
       setSubmitted(true);
@@ -205,7 +206,7 @@ const SmartQuotePage = () => {
       const reason = err instanceof SubmitError ? err.reason : 'exception';
       const httpStatus = err instanceof SubmitError ? err.httpStatus : 0;
       const code = err instanceof SubmitError ? err.code : undefined;
-      sendEvent('cotizador_submit_error', { reason, httpStatus });
+      sendEvent('cotizador_submit_error', { reason, http_status: httpStatus });
       if (code === CONSENT_ERROR_CODE) {
         // El servidor no recibió la casilla: el aviso va junto a ella, sin mensaje general
         setErrorMsg('');

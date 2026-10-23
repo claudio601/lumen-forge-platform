@@ -1,13 +1,19 @@
 // src/components/legal/CookieConsent.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Aviso de cookies y diálogo «Configurar cookies» (Etapa 2 · PR 13). Se monta una vez, en
-// AppLayout (App.tsx). Los textos y la decisión vienen de src/lib/cookieConsent.ts.
+// Aviso de cookies y diálogo «Configurar cookies» (Etapa 2 · PR 13; PR 14: «Publicidad en
+// Meta»). Se monta una vez, en AppLayout (App.tsx). Los textos y la decisión vienen de
+// src/lib/cookieConsent.ts.
 //
-// Dónde se abre solo: en los dominios que miden (elights.cl y www, ver analytics.ts) y en
+// Dónde se abre solo: en los dominios que miden (elights.cl y www, ver analytics.ts), en el
+// modo de prueba de GTM (host de VITE_GTM_TEST_HOSTS con gtm_debug, solo en esa pestaña) y en
 // los hosts de prueba de VITE_COOKIE_BANNER_HOSTS (solo Preview de Vercel; ahí muestra las
-// categorías de Google pero GA no se carga). En los demás (nuevo.elights.cl, localhost) no
-// se abre solo y el botón del pie abre un panel informativo: Necesarias, el interruptor del
-// origen de la visita y «En esta dirección del sitio no usamos cookies…».
+// categorías de Google y de Meta pero GTM no se carga). En los demás (nuevo.elights.cl,
+// localhost) no se abre solo y el botón del pie abre un panel informativo: Necesarias, el
+// interruptor del origen de la visita y «En esta dirección del sitio no usamos cookies…».
+//
+// Categorías: medición de visitas, medición de anuncios de Google y Publicidad en Meta. Las dos
+// últimas requieren la primera (apagarla las apaga). «Aceptar» y «Aceptar cookies» encienden
+// las tres; «Rechazar» y «Rechazar cookies» las apagan.
 //
 // Hidratación: devuelve null en el servidor y en el primer render del navegador. El modo se
 // decide en un useEffect, nunca en un inicializador de useState (en el navegador React
@@ -18,8 +24,9 @@
 // En el teléfono va encima del botón de WhatsApp (fixed bottom-6 right-6 z-50); desde sm,
 // abajo a la izquierda. Nada en el flujo de la página (sin CLS).
 //
-// Efectos de una decisión (de esta pestaña o de otra): analytics.applyCookieChoice() y, si
-// el visitante se opuso al origen de la visita, clearAttribution(). Rechazar no lo borra.
+// Efectos de una decisión (de esta pestaña o de otra): si el visitante se opuso al origen de la
+// visita, clearAttribution() (Rechazar no lo borra), y analytics.applyCookieChoice(). Retirar un
+// permiso con GTM cargado recarga esta pestaña; desde otra pestaña, no (analytics.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -51,8 +58,12 @@ const googleHost = () => analyticsAvailable() || bannerTestHost();
 /** Los interruptores al abrir el diálogo: la decisión vigente; sin ella, todo apagado salvo el origen. */
 function savedDraft(): CookieChoice {
   const c = getCookieChoice();
-  return { analytics: c?.analytics ?? false, ads: c?.ads ?? false, origin: !isOriginOptedOut() };
+  return { analytics: c?.analytics ?? false, ads: c?.ads ?? false, meta: c?.meta ?? false, origin: !isOriginOptedOut() };
 }
+
+/** Lo que encienden «Aceptar» y «Aceptar cookies», y lo que apagan los dos «Rechazar». */
+const ALL_ON = { analytics: true, ads: true, meta: true } as const;
+const ALL_OFF = { analytics: false, ads: false, meta: false } as const;
 
 /** Rechazar y Aceptar llevan exactamente las mismas clases (y la misma variante). */
 const DECIDE_CLASS = 'flex-1';
@@ -83,7 +94,7 @@ function CategoryRow({ id, title, text, children }: RowProps) {
 export default function CookieConsent() {
   const [mode, setMode] = useState<Mode>('hidden');
   const [google, setGoogle] = useState(false);
-  const [draft, setDraft] = useState<CookieChoice>({ analytics: false, ads: false, origin: true });
+  const [draft, setDraft] = useState<CookieChoice>({ ...ALL_OFF, origin: true });
   const titleRef = useRef<HTMLHeadingElement>(null);
   const uid = useId();
 
@@ -97,10 +108,10 @@ export default function CookieConsent() {
       setMode('settings');
     };
     window.addEventListener(OPEN_COOKIE_SETTINGS_EVENT, onOpen);
-    const unsubscribe = subscribe(choice => {
+    const unsubscribe = subscribe((choice, source) => {
       if (!choice) return;
-      applyCookieChoice(choice);
       if (choice.origin === false) clearAttribution();
+      applyCookieChoice(choice, { otherTab: source === 'other-tab' });
       // Decidió en otra pestaña: el aviso de esta se va
       setMode(m => (m === 'banner' ? 'hidden' : m));
     });
@@ -117,8 +128,8 @@ export default function CookieConsent() {
     setMode('hidden');
   };
   // Aceptar y Rechazar conservan la oposición al origen, si la hay; Rechazar no lo apaga.
-  const accept = () => decide({ analytics: true, ads: true, origin: !isOriginOptedOut() });
-  const reject = () => decide({ analytics: false, ads: false, origin: !isOriginOptedOut() });
+  const accept = () => decide({ ...ALL_ON, origin: !isOriginOptedOut() });
+  const reject = () => decide({ ...ALL_OFF, origin: !isOriginOptedOut() });
   const openSettings = () => {
     setDraft(savedDraft());
     setMode('settings');
@@ -163,6 +174,7 @@ export default function CookieConsent() {
     origin: `${uid}-origin`,
     analytics: `${uid}-analytics`,
     ads: `${uid}-ads`,
+    meta: `${uid}-meta`,
   };
   const originSwitch = (
     <Switch
@@ -206,8 +218,8 @@ export default function CookieConsent() {
                 <CategoryRow id={ids.analytics} title={T.analyticsTitle} text={T.analyticsText}>
                   <Switch
                     checked={draft.analytics}
-                    // Apagar la medición de visitas apaga también la de anuncios
-                    onCheckedChange={analytics => setDraft(d => ({ ...d, analytics, ads: analytics && d.ads }))}
+                    // Apagar la medición de visitas apaga también la de anuncios y Meta
+                    onCheckedChange={analytics => setDraft(d => ({ ...d, analytics, ads: analytics && d.ads, meta: analytics && d.meta }))}
                     aria-labelledby={`${ids.analytics}-title`}
                     aria-describedby={`${ids.analytics}-text`}
                   />
@@ -221,25 +233,34 @@ export default function CookieConsent() {
                     aria-describedby={`${ids.ads}-text`}
                   />
                 </CategoryRow>
+                <CategoryRow id={ids.meta} title={T.metaTitle} text={T.metaText}>
+                  <Switch
+                    checked={draft.analytics && draft.meta}
+                    disabled={!draft.analytics}
+                    onCheckedChange={meta => setDraft(d => ({ ...d, meta: d.analytics && meta }))}
+                    aria-labelledby={`${ids.meta}-title`}
+                    aria-describedby={`${ids.meta}-text`}
+                  />
+                </CategoryRow>
               </>
             )}
           </div>
 
           {google ? (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" size="sm" className={DECIDE_CLASS} onClick={() => decide({ ...draft, analytics: false, ads: false })}>
+              <Button type="button" size="sm" className={DECIDE_CLASS} onClick={() => decide({ ...draft, ...ALL_OFF })}>
                 {T.rejectAll}
               </Button>
               <Button type="button" size="sm" variant="outline" className={DECIDE_CLASS} onClick={() => decide(draft)}>
                 {T.save}
               </Button>
-              <Button type="button" size="sm" className={DECIDE_CLASS} onClick={() => decide({ ...draft, analytics: true, ads: true })}>
+              <Button type="button" size="sm" className={DECIDE_CLASS} onClick={() => decide({ ...draft, ...ALL_ON })}>
                 {T.acceptAll}
               </Button>
             </div>
           ) : (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button type="button" size="sm" className={DECIDE_CLASS} onClick={() => decide({ analytics: false, ads: false, origin: draft.origin })}>
+              <Button type="button" size="sm" className={DECIDE_CLASS} onClick={() => decide({ ...ALL_OFF, origin: draft.origin })}>
                 {T.save}
               </Button>
               <Button type="button" size="sm" variant="outline" className={DECIDE_CLASS} onClick={closeSettings}>

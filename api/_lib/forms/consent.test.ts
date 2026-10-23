@@ -78,6 +78,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.4 (PR 13z): la Política agrega la revisión de las conversaciones con el asistente de
   // WhatsApp para mejorarlo (y el aviso del bot la informa); las casillas no cambian.
   '1.4': CONSENT_TEXTS_SINCE_1_2,
+  // 1.5 (PR 14): la Política agrega «Publicidad en Meta» (píxel de Meta con su consentimiento) y
+  // la retención de 14 meses de Google Analytics; las casillas no cambian.
+  '1.5': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

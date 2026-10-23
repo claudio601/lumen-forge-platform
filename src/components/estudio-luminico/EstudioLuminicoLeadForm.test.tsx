@@ -61,6 +61,18 @@ describe('EstudioLuminicoLeadForm', () => {
     expect(body.telefono).toBe('+56 9 0000 0901');
   });
 
+  it('generate_lead solo con la referencia en la respuesta: { success: true } sin ella (trampa contra bots) no cuenta', async () => {
+    vi.stubGlobal('fetch', reply(200, '{"success":true}'));
+    render(form());
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(trackLead).not.toHaveBeenCalled();
+    // El intento sí se mide (estudio_luminico_form_submit), con los nombres de la tabla 3.5
+    expect(sendEvent).toHaveBeenCalledWith('estudio_luminico_form_submit', expect.objectContaining({ tipo_proyecto: expect.any(String) }));
+  });
+
   it.each([
     ['400', reply(400, '{"success":false,"error":"Validation failed"}'), 400, /Revisa los datos/],
     ['403', reply(403, '{"success":false,"error":"Forbidden"}'), 403, /WhatsApp al \+56 9 9127 3128 o a ventas@elights\.cl/],
@@ -82,7 +94,7 @@ describe('EstudioLuminicoLeadForm', () => {
     expect(trackLead).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/Nombre completo/)).toHaveValue('PRUEBA ETAPA 2 (09a)');
     expect(screen.getByLabelText(/Dimensiones aproximadas/)).toHaveValue('PRUEBA 10x20 m');
-    expect(sendEvent).toHaveBeenCalledWith('estudio_luminico_form_submit_error', expect.objectContaining({ httpStatus }));
+    expect(sendEvent).toHaveBeenCalledWith('estudio_luminico_form_submit_error', expect.objectContaining({ http_status: httpStatus }));
     await waitFor(() => expect(screen.getByRole('button', { name: /SOLICITAR COTIZACION/ })).toBeEnabled());
   });
 

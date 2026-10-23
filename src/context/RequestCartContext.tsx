@@ -85,9 +85,9 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
         const existing = prev.find((i) => requestLineKey(i) === key);
         if (existing) {
           sendEvent('request_cart_add', {
-            sku: incoming.sku,
+            item_id: incoming.sku,
             quantity: qty,
-            unitPrice: incoming.unitPrice,
+            unit_price: incoming.unitPrice,
           });
           // Misma línea: suma cantidad y toma el precio vigente del catálogo.
           return prev.map((i) =>
@@ -97,9 +97,9 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
           );
         }
         sendEvent('request_cart_add', {
-          sku: incoming.sku,
+          item_id: incoming.sku,
           quantity: qty,
-          unitPrice: incoming.unitPrice,
+          unit_price: incoming.unitPrice,
         });
         return [...prev, { ...incoming, quantity: qty }];
       });
@@ -111,7 +111,7 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
     setItems((prev) => {
       const item = prev.find((i) => requestLineKey(i) === lineKey);
       if (item) {
-        sendEvent('request_cart_remove', { sku: item.sku });
+        sendEvent('request_cart_remove', { item_id: item.sku });
       }
       return prev.filter((i) => requestLineKey(i) !== lineKey);
     });

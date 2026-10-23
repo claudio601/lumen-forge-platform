@@ -217,9 +217,9 @@ describe('check-prerender: consentimiento (PR 13)', () => {
   const plain = (head = '', body = '<main><h1>Inicio</h1></main>') =>
     `<!doctype html><html lang="es"><head><title>x</title>${head}</head><body><div id="root"><header>eLIGHTS</header>${body}${footer}</div></body></html>`;
 
-  it('una página sin aviso ni Google, con el botón del pie, no tiene problemas', () => {
+  it('una página sin aviso, Google ni Meta, con el botón del pie, no tiene problemas', () => {
     const f = consentFacts(plain());
-    expect(f).toEqual({ banners: 0, bannerText: false, google: [], footerCookieButtons: 1, consentBoxes: [], forms: [] });
+    expect(f).toEqual({ banners: 0, bannerText: false, google: [], meta: [], footerCookieButtons: 1, consentBoxes: [], forms: [] });
     expect(consentIssues(f, { footer: true })).toEqual([]);
   });
 
@@ -251,6 +251,21 @@ describe('check-prerender: consentimiento (PR 13)', () => {
     ]);
     const preconnect = plain('<link rel="preconnect" href="https://www.google-analytics.com"/>');
     expect(consentIssues(consentFacts(preconnect), { footer: true })).toEqual(['trae Google Analytics antes del consentimiento: google-analytics.com']);
+  });
+
+  it('detecta el píxel de Meta antes del consentimiento: su snippet, su <noscript> con la imagen o una llamada a fbq', () => {
+    const snippet = plain(
+      "<script>!function(f,b,e,v,n,t,s){n=f.fbq=function(){};t=b.createElement(e);t.src=v}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','590822921694460');fbq('track','PageView');</script>",
+    );
+    expect(consentIssues(consentFacts(snippet), { footer: true })).toEqual([
+      'trae el píxel de Meta antes del consentimiento: connect.facebook.net, fbevents, fbq(',
+    ]);
+    const noscript = plain('<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=590822921694460&ev=PageView&noscript=1"/></noscript>');
+    expect(consentIssues(consentFacts(noscript), { footer: true })).toEqual(['trae el píxel de Meta antes del consentimiento: facebook.com/tr']);
+    // Nombrar a Meta, Facebook o el píxel en el texto (Política de privacidad, aviso) no es un rastro
+    const text = plain('', '<main><h1>Privacidad</h1><p>Publicidad en Meta: el píxel de Meta mide nuestros anuncios en Facebook e Instagram (fbclid).</p></main>');
+    expect(consentFacts(text).meta).toEqual([]);
+    expect(consentIssues(consentFacts(text), { footer: true })).toEqual([]);
   });
 
   it('el botón «Configurar cookies» debe estar una vez en el pie (spa.html no lo exige)', () => {
@@ -301,7 +316,7 @@ describe('check-prerender: consentimiento (PR 13)', () => {
   it('el resumen del registro dice «todo bien» solo si no hubo problemas de consentimiento', () => {
     const ok = consentSummary(0);
     expect(ok).toBe(
-      `[check-prerender] Consentimiento: sin aviso de cookies ni Google en el HTML; «${COOKIE_TEXTS.footerButton}» en el pie; ` +
+      `[check-prerender] Consentimiento: sin aviso de cookies, Google ni Meta en el HTML; «${COOKIE_TEXTS.footerButton}» en el pie; ` +
         'casillas sin marcar en /cotizador, /instalacion, /estudio-luminico',
     );
     // Con el aviso en el HTML (lo que encontró la mutación del aviso en el servidor): solo el conteo

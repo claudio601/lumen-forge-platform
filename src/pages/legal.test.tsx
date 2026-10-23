@@ -500,7 +500,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(security).toContain('pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje');
     const hrefs = [...main.querySelectorAll('a')].map(a => a.getAttribute('href'));
     expect(hrefs).toContain('mailto:ventas@elights.cl?subject=Datos%20personales');
-    expect(main.querySelectorAll('table tbody tr')).toHaveLength(11);
+    expect(main.querySelectorAll('table tbody tr')).toHaveLength(12); // 1.5: suma la finalidad de Meta
     expect(main.querySelector('table')?.parentElement?.className).toContain('overflow-x-auto'); // legible en el teléfono
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
   });
@@ -663,6 +663,8 @@ describe('páginas legales y de compra: contenido', () => {
       'Ordenar y priorizar tu solicitud es parte de responderla.',
       'usamos el origen de tu visita solo internamente, con fines estadísticos',
       'Desde el 1 de diciembre de 2026 rigen las bases de la tabla',
+      // La medición con cookies no se basa en la autorización de la solicitud: también en la transición, en el aviso de cookies
+      'La medición con cookies (Google Analytics, medición de anuncios de Google y Publicidad en Meta) se basa, también en ese período, en la autorización que das en el aviso de cookies.',
       'la casilla queda como constancia de que leíste esta política',
     ]) {
       expect(bases, s).toContain(s);
@@ -679,8 +681,8 @@ describe('páginas legales y de compra: contenido', () => {
       'guardamos solo tu correo y la constancia (versión y fechas) por 4 años',
       'Constancia de tus autorizaciones (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.',
       'Tu decisión sobre cookies: 12 meses en tu navegador',
-      'las de Google Analytics, hasta 13 meses; las de medición de anuncios, hasta 90 días',
-      'por 2 meses',
+      'las de Google Analytics, hasta 13 meses; las de medición de anuncios y su copia en el almacenamiento local de tu navegador (_gcl_ls), hasta 90 días',
+      'hasta 14 meses desde tu última visita',
     ]) {
       expect(retention, s).toContain(s);
     }
@@ -695,16 +697,18 @@ describe('páginas legales y de compra: contenido', () => {
       'Sin tu consentimiento, este sitio no instala cookies en tu navegador.',
       'Rechazar las cookies no lo desactiva.',
       'se guarda 12 meses en el almacenamiento local de tu navegador',
-      'antes de que decidas no se carga nada de Google',
+      'antes de que decidas no se carga nada de Google ni de Meta',
       'Instala las cookies _ga y _ga_… por hasta 13 meses',
       '(_gcl_…, hasta 90 días)',
       'requiere la medición de visitas',
-      'No usamos anuncios personalizados ni remarketing.',
-      'No usamos el píxel de Meta.',
-      'dejamos de medir en esa misma página y borramos de tu navegador las cookies de Google de este sitio',
+      'No activa anuncios personalizados de Google.',
+      'No creamos públicos con tus visitas ni hacemos remarketing, ni en Google ni en Meta.',
+      'la página se vuelve a cargar: dejamos de medir en esa misma página y borramos de tu navegador lo que Google y Meta guardaron en este sitio con ese permiso (cookies y almacenamiento local)',
+      'su copia en el almacenamiento local de tu navegador (_gcl_ls)',
     ]) {
       expect(cookies.text, s).toContain(s);
     }
+    expect(cookies.text).not.toContain('No usamos el píxel de Meta');
     expect(cookies.text).not.toMatch(/etiquetas de publicidad de Google|no instala cookies propias/);
     // El botón del pie, también aquí (estático: el prerender lo dibuja igual)
     const buttons = cookies.els.flatMap(el => [...el.querySelectorAll('button')]);
@@ -714,7 +718,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(COOKIE_CONSENT_MAX_AGE_MS).toBe(365 * 24 * 60 * 60 * 1000); // 12 meses
     expect(COOKIE_TEXTS.settingsDescription).toContain('Guardamos tu decisión 12 meses');
     expect(COOKIE_TEXTS.analyticsText).toContain('(_ga y _ga_…, hasta 13 meses)');
-    expect(COOKIE_TEXTS.adsText).toContain('(_gcl_…, hasta 90 días)');
+    expect(COOKIE_TEXTS.adsText).toContain('(_gcl_…, hasta 90 días) y su copia en el almacenamiento local de tu navegador (_gcl_ls)');
     expect(cookies.text).toContain(`interruptor «${COOKIE_TEXTS.originTitle}» en «${COOKIE_TEXTS.footerButton}»`);
     // Para lo ya enviado: el canal de datos personales, como dice el diálogo
     expect(COOKIE_TEXTS.originText).toContain('escríbenos a ventas@elights.cl con el asunto «Datos personales»');
@@ -748,9 +752,13 @@ describe('páginas legales y de compra: contenido', () => {
     expect(COOKIE_TEXTS.analyticsText).toContain(buttons);
     expect(section(main, '10.').text).toContain(buttons);
     expect(text).not.toMatch(/de forma agregada|qué páginas se usan/);
-    // §7: los 2 meses son de Google Analytics; lo que registra Google Ads, según la política de Google
+    // §7: los 14 meses son de Google Analytics (verificado en GA4 el 2026-10-22, eventos y usuarios,
+    // con el reinicio por actividad nueva); lo que registra Google Ads, según la política de Google
     const retention = section(main, '7.').text;
-    expect(retention).toContain('Google Analytics conserva los datos de medición asociados a sus cookies por 2 meses');
+    expect(retention).toContain(
+      'Google Analytics conserva los datos de medición asociados a sus cookies hasta 14 meses desde tu última visita; después solo quedan informes agregados.',
+    );
+    expect(retention).not.toMatch(/(?<!1)2 meses/);
     expect(retention).toContain('Lo que registra Google Ads lo conserva Google según su propia política.');
     expect(retention).not.toContain('asociados a esas cookies');
     // §10: la decisión no queda en nuestros sistemas, pero con GA cada medición lleva lo permitido (Consent Mode)
@@ -758,6 +766,85 @@ describe('páginas legales y de compra: contenido', () => {
       'No es una cookie y no la guardamos en nuestros sistemas; si aceptas Google Analytics, cada medición le informa a Google qué permitiste.'
     );
     expect(text).not.toContain('no sale de tu navegador');
+  });
+
+  it('/politica-de-privacidad (PR 14, versión 1.5): «Publicidad en Meta» dice lo mismo que el aviso y que el techo de la especificación', async () => {
+    const { main, text } = await page('/politica-de-privacidad');
+    const clean = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    // Tabla de finalidades: la de Meta, con el consentimiento del aviso como base
+    const rows = [...main.querySelectorAll('table tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(clean));
+    const meta = rows.find(([p]) => p.startsWith('Que Meta registre'));
+    expect(meta, 'falta la finalidad de Meta').toBeDefined();
+    expect(meta![0]).toBe(
+      'Que Meta registre, con su píxel y sus cookies, las páginas que visitas y si nos enviaste una solicitud (y de qué tipo) o hiciste clic para contactarnos (y por qué medio), para medir nuestros anuncios en Facebook e Instagram (solo en elights.cl)',
+    );
+    expect(meta![1]).toBe('Tu consentimiento, dado en el aviso de cookies');
+    // §3: la copia que va con la solicitud no se sube; lo que registra Meta, en paralelo a Google
+    const bases = section(main, '3.').text;
+    expect(bases).toContain('no los subimos a Google Ads ni a Meta');
+    expect(bases).toContain(
+      'Si en elights.cl aceptas «Publicidad en Meta», es Meta quien registra con su píxel y sus cookies (como _fbp y _fbc) las páginas que visitas (con su dirección completa y el sitio desde el que llegaste), el identificador del clic (fbclid) si llegaste desde un enlace de Facebook o Instagram, y si nos enviaste una solicitud (y de qué tipo) o hiciste clic para contactarnos (y por qué medio).',
+    );
+    expect(bases).toContain('Para medir visitas y anuncios no enviamos a Google ni a Meta tu nombre, correo ni teléfono.');
+    // §5: Meta usa los datos para su propia publicidad (solo con el consentimiento); Google no
+    const sharing = section(main, '5.').text;
+    expect(sharing).toContain(
+      'No vendemos tus datos ni los entregamos a terceros para que hagan su propia publicidad, salvo lo que registra el píxel de Meta si aceptas «Publicidad en Meta» (ver más abajo).',
+    );
+    const metaItem = section(main, '5.').els.flatMap(el => [...el.querySelectorAll('li')]).map(clean).find(t => t.startsWith('Meta (Publicidad en Meta):'));
+    expect(metaItem, 'falta Meta entre los destinatarios de §5').toBeDefined();
+    for (const s of [
+      'solo en elights.cl y si lo aceptas en el aviso de cookies',
+      'las páginas que visitas, con su dirección completa y el sitio desde el que llegaste',
+      'el identificador del clic si llegaste desde un enlace de Facebook o Instagram',
+      'hiciste clic para contactarnos',
+      '(pedido, cotización, cotizador, estudio lumínico o instalación)',
+      '(por WhatsApp, correo o teléfono)',
+      'lo usa también para sus propios anuncios',
+      'No le enviamos tu nombre, correo ni teléfono.',
+    ]) {
+      expect(metaItem, s).toContain(s);
+    }
+    // §7: las cookies de Meta y su plazo
+    expect(section(main, '7.').text).toContain(
+      'Cookies de Meta (si las aceptas): las del píxel, como _fbp y _fbc, y lo que guarda en el almacenamiento local de tu navegador, hasta 90 días.',
+    );
+    // §10: la categoría, que requiere la medición de visitas, el techo de lo que recibe Meta, la IP y que no hay públicos
+    const cookies = section(main, '10.').els.flatMap(el => [...el.querySelectorAll('li')]).map(clean);
+    const pixel = cookies.find(t => t.startsWith('Publicidad en Meta (solo en elights.cl)'));
+    expect(pixel, 'falta «Publicidad en Meta» en §10').toBeDefined();
+    for (const s of [
+      'solo si la aceptas, y requiere la medición de visitas',
+      'guarda en tu navegador cookies, como _fbp y _fbc, y datos en el almacenamiento local por hasta 90 días',
+      'las páginas que visitas, con su dirección completa y el sitio desde el que llegaste, el identificador del clic (fbclid) si llegaste desde un enlace de Facebook o Instagram',
+      'y de qué tipo (pedido, cotización, cotizador, estudio lumínico o instalación)',
+      'o hiciste clic para contactarnos y por qué medio (WhatsApp, correo o teléfono)',
+      'como tu dirección IP',
+      'No le enviamos tu nombre ni tus datos de contacto.',
+      'Meta también usa estos datos para sus propios anuncios, según su política.',
+    ]) {
+      expect(pixel, s).toContain(s);
+    }
+    // Lo mismo que el aviso (src/lib/cookieTexts.ts)
+    expect(COOKIE_TEXTS.metaTitle).toBe('Publicidad en Meta');
+    expect(COOKIE_TEXTS.metaText).toContain('Requiere la medición de visitas.');
+    expect(COOKIE_TEXTS.metaText).toContain('cookies como _fbp y _fbc, y datos en el almacenamiento local, hasta 90 días');
+    expect(COOKIE_TEXTS.banner).toContain('Meta');
+    // El fbclid no es solo de anuncios (Facebook e Instagram lo agregan a cualquier enlace) y
+    // Contact sale con el clic, aunque la persona no llegue a escribir: lo dicen el aviso y la política
+    for (const [where, s] of [['diálogo', COOKIE_TEXTS.metaText], ['política', text]] as const) {
+      expect(s, where).not.toMatch(/identificador del anuncio|nos contactaste/);
+    }
+    expect(COOKIE_TEXTS.metaText).toContain('con su dirección completa y el sitio desde el que llegaste');
+    // Nada de lo que la política no permite: coincidencia avanzada, públicos ni remarketing
+    expect(text).not.toMatch(/coincidencia avanzada|públicos personalizados|No usamos el píxel de Meta/i);
+    // Los 8 valores de content_name, ni uno más: 5 tipos de solicitud y 3 medios de contacto
+    expect(pixel!.match(/\(([^)]*)\)/g)).toEqual([
+      '(solo en elights.cl)',
+      '(fbclid)',
+      '(pedido, cotización, cotizador, estudio lumínico o instalación)',
+      '(WhatsApp, correo o teléfono)',
+    ]);
   });
 
   it('la versión 1.0 publicada sigue entre las anteriores (sus archivos no se borran)', () => {

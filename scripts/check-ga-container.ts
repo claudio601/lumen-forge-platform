@@ -1,26 +1,37 @@
 // scripts/check-ga-container.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Puerta de la Etapa 3 (Etapa 2 · PR 13, design.consentMode, punto 7). Revisa la configuración
-// que trae la etiqueta de Google de la propiedad GA4 que comparte la tienda (G-C06JF3ZNH5) antes
-// del cambio de dominio. El sitio ya carga GA en modo básico y solo con consentimiento; lo que
-// sigue depende de ajustes que hace la agencia en la etiqueta y en GA4:
+// Puerta de la Etapa 3 (Etapa 2 · PR 13, design.consentMode, punto 7; PR 14, especificación
+// 5.1 y 6.1). Revisa la configuración pública de las etiquetas de Google que comparte la tienda
+// antes del cambio de dominio: la de GA4 (G-C06JF3ZNH5, por defecto) y la de Google Ads
+// (AW-774649578). El sitio carga el contenedor GTM en modo básico y solo con consentimiento; lo
+// que sigue depende de ajustes que hace la agencia en las etiquetas y en GA4.
+// GA4 (G-…):
 //   1. Detección automática de datos de usuario (__ogt_1p_data_v2): apagada, o con los
 //      formularios del sitio excluidos con FORM_EXCLUSION_SELECTORS (los 5 llevan
 //      data-elights-form). Si no, Google podría leer el correo y el teléfono de los formularios.
 //   2. Page_view por cambios en el historial del navegador (medición mejorada): apagados.
 //      RouteTracker (src/App.tsx) ya manda uno por navegación; con los dos se contaría doble.
 //   3. Redacción de correo del flujo (__ccd_auto_redact): activa (por /buscar?q=).
-//   4. Eventos clave (__ccd_conversion_marking): los de EXPECTED_KEY_EVENTS. Si la agencia
-//      marca otro (por ejemplo generate_lead), se anota en el plan y se actualiza la lista.
-//   Google Signals (__ogt_google_signals) solo se informa: el sitio manda
-//   allow_google_signals: false y allow_ad_personalization_signals: false por código.
+//   4. Eventos clave (__ccd_conversion_marking): los de EXPECTED_KEY_EVENTS, con generate_lead,
+//      que la agencia marca el día del cambio (especificación 5.1). Hasta entonces la puerta lo
+//      da como faltante. Si la agencia marca otro, se anota en el plan y se actualiza la lista.
+//   Google Signals (__ogt_google_signals) solo se informa: la etiqueta de Google del contenedor
+//   lleva allow_google_signals: false y allow_ad_personalization_signals: false.
+// Google Ads (AW-…, sección 6.1-7):
+//   1. Detección automática de datos de usuario: la misma regla que en GA4 (apagada, o con los
+//      formularios excluidos).
+//   2. Detección automática de eventos apagada: ninguna bandera vtp_enable… activa en
+//      __ogt_auto_events y ninguna etiqueta __ccd_em_* (formularios, page_view por historial…).
+//      Si no, Google Ads recibiría un page_view por cada cambio de ruta del sitio.
 // Lo que no se ve en el contenedor (Términos de tratamiento de datos, uso compartido
-// «Productos y servicios de Google», retención de 2 meses, eventos que importa Google Ads) y la
-// prueba de red sin enviar hits se revisan a mano; el informe lo recuerda al final.
+// «Productos y servicios de Google», retención de 14 meses, eventos que importa Google Ads,
+// conversiones mejoradas para clientes potenciales) y la prueba de red sin enviar hits se
+// revisan a mano; el informe lo recuerda al final.
 //
 // Uso (manual; no corre en CI ni en npm test):
 //   npm run check:ga-container                          (G-C06JF3ZNH5)
 //   npm run check:ga-container -- G-XXXXXXXXXX
+//   npm run check:ga-container -- AW-774649578          (etiqueta de Google Ads)
 //   npm run check:ga-container -- --file reports/ga/gtag.js      (copia guardada, sin red)
 //   npm run check:ga-container -- --key-events purchase,whatsapp_click,qualify_lead
 //
@@ -42,8 +53,14 @@ import { fileURLToPath } from 'node:url';
 /** Propiedad GA4 de la tienda (la misma que usará elights.cl desde la Etapa 3). */
 export const DEFAULT_GA_ID = 'G-C06JF3ZNH5';
 
-/** Eventos clave del contenedor al 2026-10-14 (generate_lead no es evento clave). */
-export const EXPECTED_KEY_EVENTS: readonly string[] = ['close_convert_lead', 'purchase', 'qualify_lead', 'whatsapp_click'];
+/** Etiqueta de Google de Google Ads de eLIGHTS (la de las 5 conversiones del sitio). */
+export const DEFAULT_ADS_ID = 'AW-774649578';
+
+/**
+ * Eventos clave después del cambio de dominio: los del contenedor al 2026-10-14 más
+ * generate_lead, que la agencia marca el día del cambio (especificación 5.1).
+ */
+export const EXPECTED_KEY_EVENTS: readonly string[] = ['close_convert_lead', 'generate_lead', 'purchase', 'qualify_lead', 'whatsapp_click'];
 
 /** Exclusión que se pide a la agencia en la detección automática de datos de usuario. */
 export const FORM_EXCLUSION_SELECTORS: readonly string[] = [
@@ -53,6 +70,10 @@ export const FORM_EXCLUSION_SELECTORS: readonly string[] = [
 ];
 
 const GA_ID = /^G-[A-Z0-9]{4,20}$/;
+const ADS_ID = /^AW-\d{6,12}$/;
+
+/** El ID es de una etiqueta de Google Ads (AW-…). */
+export const isAdsId = (id: string) => ADS_ID.test(id);
 const DOWNLOAD_TIMEOUT_MS = 20_000;
 
 export const containerUrl = (id: string) => `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
@@ -193,6 +214,12 @@ export interface ContainerFlags {
   googleSignals: string | null;
   /** Eventos clave, ordenados. */
   keyEvents: string[];
+  /**
+   * Detección automática de eventos (Google Ads): las banderas vtp_enable… activas de
+   * __ogt_auto_events y las etiquetas __ccd_em_*. Vacía si está apagada. null si hay una bandera
+   * que no se puede leer.
+   */
+  autoEvents: string[] | null;
 }
 
 const simpleKey = (k: string) => k.toLowerCase().replace(/[^a-z]/g, '');
@@ -325,6 +352,16 @@ export function readContainerFlags(tags: readonly ContainerTag[]): ContainerFlag
     ),
   ].sort();
 
+  let autoEvents: string[] | null = [];
+  for (const t of byFn('__ogt_auto_events')) {
+    for (const [k, v] of Object.entries(t)) {
+      if (!/^vtp_enable/.test(k) || k === 'vtp_enableInPageEventsHidden') continue;
+      if (v === true) autoEvents?.push(k.replace(/^vtp_enable/, ''));
+      else if (v !== false) autoEvents = null;
+    }
+  }
+  if (autoEvents) autoEvents.push(...tags.map(t => t.function).filter(f => f.startsWith('__ccd_em_')));
+
   return {
     tagFunctions: tags.map(t => t.function),
     userData,
@@ -333,6 +370,7 @@ export function readContainerFlags(tags: readonly ContainerTag[]): ContainerFlag
     redactEmail,
     googleSignals: signals.length ? [...new Set(signals)].join(', ') : null,
     keyEvents,
+    autoEvents: autoEvents && [...new Set(autoEvents)],
   };
 }
 
@@ -356,11 +394,10 @@ export function excludesSiteForms(exclusions: readonly string[]): boolean {
 
 const yesNo = (v: boolean | null) => (v === null ? '¿?' : v ? 'sí' : 'no');
 
-export function gateVerdict(flags: ContainerFlags, expectedKeyEvents: readonly string[] = EXPECTED_KEY_EVENTS): GateVerdict {
+/** Detección automática de datos de usuario: apagada o con los formularios del sitio excluidos. */
+function userDataFailures(flags: ContainerFlags): string[] {
   const failures: string[] = [];
-  const notes: string[] = [];
   const recommended = FORM_EXCLUSION_SELECTORS.join(', ');
-
   const ud = flags.userData;
   const autoOn = ud.auto !== false && [ud.email, ud.phone, ud.address].some(v => v !== false);
   if (ud.present && autoOn && !excludesSiteForms(ud.exclusions)) {
@@ -375,6 +412,12 @@ export function gateVerdict(flags: ContainerFlags, expectedKeyEvents: readonly s
       );
     }
   }
+  return failures;
+}
+
+export function gateVerdict(flags: ContainerFlags, expectedKeyEvents: readonly string[] = EXPECTED_KEY_EVENTS): GateVerdict {
+  const failures: string[] = userDataFailures(flags);
+  const notes: string[] = [];
 
   if (flags.historyPageViews === true) {
     failures.push(
@@ -403,21 +446,59 @@ export function gateVerdict(flags: ContainerFlags, expectedKeyEvents: readonly s
   }
 
   notes.push(
-    `Google Signals en el contenedor: ${flags.googleSignals ?? 'no aparece'} (el sitio manda allow_google_signals: false y allow_ad_personalization_signals: false por código).`,
+    `Google Signals en el contenedor: ${flags.googleSignals ?? 'no aparece'} (la etiqueta de Google del contenedor GTM lleva allow_google_signals: false y allow_ad_personalization_signals: false).`,
   );
   return { approved: failures.length === 0, failures, notes };
+}
+
+/**
+ * Puerta de la etiqueta de Google Ads (AW-…): detección automática de datos de usuario apagada
+ * o con los formularios excluidos, y detección automática de eventos apagada (6.1-7).
+ */
+export function adsGateVerdict(flags: ContainerFlags): GateVerdict {
+  const failures = userDataFailures(flags);
+  if (flags.autoEvents === null) {
+    failures.push('No se pudo leer la detección automática de eventos: revisar a mano en la etiqueta de Google de Ads.');
+  } else if (flags.autoEvents.length) {
+    failures.push(
+      `La detección automática de eventos sigue activa (${flags.autoEvents.join(', ')}). Apagarla en la etiqueta de Google de Ads ` +
+        'antes de la fase A2 (adelanto D8, sección 6.1-7): si no, Google Ads recibiría un page_view por cada cambio de ruta y los envíos de formularios.',
+    );
+  }
+  return { approved: failures.length === 0, failures, notes: [] };
 }
 
 /** Lo que la puerta pide y el contenedor no muestra (se revisa a mano). */
 export const MANUAL_CHECKS: readonly string[] = [
   'GA4: Términos de tratamiento de datos aceptados y uso compartido «Productos y servicios de Google» apagado.',
-  'GA4: retención de datos de eventos en 2 meses (lo que dice la Política de privacidad §7).',
+  'GA4: retención de datos en 14 meses, de eventos y de usuarios, con «Restablecer los datos de usuario con cada actividad nueva» activado (lo que dice la Política de privacidad §7, versión 1.5).',
   'Google Ads: qué eventos se importan como conversiones (anotarlo en el plan).',
   'Prueba de red con el contenedor real sin enviar hits (design.consentMode, punto 8).',
 ];
 
+/** Lo que la puerta de Google Ads pide y la etiqueta no muestra. */
+export const MANUAL_CHECKS_ADS: readonly string[] = [
+  'Google Ads: conversiones mejoradas para clientes potenciales apagadas, y ninguna acción de conversión creada automáticamente.',
+  'Google Ads: las etiquetas AW-774649578 y G-C06JF3ZNH5 siguen separadas (sin combinar ni como destinos una de otra).',
+];
+
 export function formatReport(id: string, flags: ContainerFlags, verdict: GateVerdict): string[] {
   const ud = flags.userData;
+  if (isAdsId(id)) {
+    return [
+      `[check-ga-container] ${id}: ${flags.tagFunctions.length} etiquetas`,
+      `  Detección automática de datos de usuario: ${
+        ud.present
+          ? `${yesNo(ud.auto)} (correo: ${yesNo(ud.email)}, teléfono: ${yesNo(ud.phone)}, dirección: ${yesNo(ud.address)}); excluye: ${ud.exclusions.join(', ') || 'nada'}`
+          : 'no hay etiqueta'
+      }`,
+      `  Detección automática de eventos: ${flags.autoEvents === null ? '¿?' : flags.autoEvents.join(', ') || 'apagada'}`,
+      ...verdict.failures.map(f => `::error title=Puerta de la Etapa 3::${f}`),
+      verdict.approved ? '[check-ga-container] La etiqueta de Google Ads pasa la puerta.' : `[check-ga-container] La puerta no pasa: ${verdict.failures.length} punto(s).`,
+      'Falta revisar a mano (no se ve en la etiqueta):',
+      ...MANUAL_CHECKS_ADS.map(c => `  - ${c}`),
+    ];
+  }
   const lines = [
     `[check-ga-container] ${id}: ${flags.tagFunctions.length} etiquetas`,
     `  Detección automática de datos de usuario: ${
@@ -482,7 +563,7 @@ export function parseArgs(argv: readonly string[]): CliArgs {
         .split(',')
         .map(s => s.trim())
         .filter(Boolean);
-    } else if (GA_ID.test(a)) args.id = a;
+    } else if (GA_ID.test(a) || ADS_ID.test(a)) args.id = a;
     else throw new Error(`argumento desconocido: ${a}`);
   }
   return args;
@@ -494,7 +575,7 @@ async function main(argv: readonly string[]) {
     args = parseArgs(argv);
   } catch (err) {
     console.error(`[check-ga-container] ${(err as Error).message}`);
-    console.error('Uso: npm run check:ga-container [-- G-XXXXXXXXXX] [--file copia.js] [--key-events a,b,c]');
+    console.error('Uso: npm run check:ga-container [-- G-XXXXXXXXXX | AW-XXXXXXXXX] [--file copia.js] [--key-events a,b,c]');
     process.exit(2);
   }
   let js: string;
@@ -512,7 +593,7 @@ async function main(argv: readonly string[]) {
     process.exit(2);
   }
   const flags = readContainerFlags(tags);
-  const verdict = gateVerdict(flags, args.keyEvents);
+  const verdict = isAdsId(args.id) ? adsGateVerdict(flags) : gateVerdict(flags, args.keyEvents);
   for (const line of formatReport(args.id, flags, verdict)) console.log(line);
   process.exit(verdict.approved ? 0 : 1);
 }

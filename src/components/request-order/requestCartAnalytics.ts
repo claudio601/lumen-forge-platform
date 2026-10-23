@@ -10,5 +10,5 @@ import { sendEvent } from '@/lib/analytics';
 /** subtotal: CON IVA, sea cual sea el modo de precios. */
 export function trackRequestCartView(itemCount: number, subtotal: number): void {
   if (itemCount <= 0) return;
-  sendEvent('request_cart_view', { itemCount, subtotal });
+  sendEvent('request_cart_view', { item_count: itemCount, subtotal });
 }

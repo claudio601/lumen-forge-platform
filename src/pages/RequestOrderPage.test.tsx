@@ -182,7 +182,7 @@ describe('/solicitar-pedido: casillas de privacidad, términos y novedades', () 
     submit();
     const heading = await screen.findByRole('heading', { name: 'Solicitud enviada' });
     expect(heading.closest('[data-elights-form]')).toHaveAttribute('data-elights-form', 'solicitar-pedido');
-    expect(sendEvent).toHaveBeenCalledWith('request_form_start', { customerType: 'persona' });
+    expect(sendEvent).toHaveBeenCalledWith('request_form_start', { customer_type: 'persona' });
     const params = [...vi.mocked(sendEvent).mock.calls, ...vi.mocked(trackLead).mock.calls].map(([, p]) => p ?? {});
     for (const p of params) {
       expect(Object.keys(p)).not.toEqual(expect.arrayContaining([expect.stringMatching(/commune|comuna|reference/i)]));
@@ -191,6 +191,25 @@ describe('/solicitar-pedido: casillas de privacidad, términos y novedades', () 
     }
     // El lead es solo el tipo de formulario y cuántos productos: nada que lo una al negocio en Pipedrive
     expect(trackLead).toHaveBeenCalledWith('solicitud_pedido', { item_count: 1 });
+  });
+
+  it('generate_lead solo con la referencia RC- en la respuesta: con ella, exactamente uno', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage();
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(trackLead).toHaveBeenCalledTimes(1);
+  });
+
+  it('{ success: true } sin referencia (la trampa contra bots responde así, sin crear nada): ningún generate_lead', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ success: true }) })));
+    await renderPage();
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(trackLead).not.toHaveBeenCalled();
   });
 });
 

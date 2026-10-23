@@ -234,7 +234,7 @@ describe('Analytics: request_cart_view igual desde la puerta y desde el menú', 
     seedLists();
     renderHeader('/catalogo');
     const [a, b] = products;
-    const expected = { itemCount: 7, subtotal: a.price * 2 + b.price * 5 };
+    const expected = { item_count: 7, subtotal: a.price * 2 + b.price * 5 };
     const doors = screen.getByRole('navigation', { name: 'Tus listas' });
     fireEvent.click(await within(doors).findByRole('link', { name: /^Pedido \(7\)/ }));
     expect(sendEvent).toHaveBeenCalledTimes(1);

@@ -64,7 +64,7 @@ describe('InstallationLeadForm', () => {
     expect(trackLead).toHaveBeenCalledTimes(1);
     // Sin la comuna (PR 13): a Google Analytics no va nada que ayude a identificar a la persona
     expect(trackLead).toHaveBeenCalledWith('instalacion', { tipo_proyecto: 'Oficina' });
-    expect(sendEvent).toHaveBeenCalledWith('instalacion_form_submit_attempt', { tipoProyecto: 'Oficina' });
+    expect(sendEvent).toHaveBeenCalledWith('instalacion_form_submit_attempt', { tipo_proyecto: 'Oficina' });
 
     const body = sentBody();
     expect(body).toMatchObject({
@@ -99,11 +99,11 @@ describe('InstallationLeadForm', () => {
     expect(screen.getByLabelText(/Nombre completo/)).toHaveValue(NAME);
     expect(screen.getByLabelText(/Descripción breve/)).toHaveValue(DESCRIPCION);
     expect(privacyBox()).toBeChecked();
-    expect(sendEvent).toHaveBeenCalledWith('instalacion_form_submit_failure', { tipoProyecto: 'Oficina', error_message: 'http_' + httpStatus });
+    expect(sendEvent).toHaveBeenCalledWith('instalacion_form_submit_failure', { tipo_proyecto: 'Oficina', error_message: 'http_' + httpStatus });
     await waitFor(() => expect(screen.getByRole('button', { name: /SOLICITAR EVALUACIÓN/ })).toBeEnabled());
   });
 
-  it('el campo trampa oculto se envía con lo que tenga', async () => {
+  it('el campo trampa oculto se envía con lo que tenga; la respuesta { success: true } sin referencia no es conversión', async () => {
     vi.stubGlobal('fetch', reply(200, '{"success":true}'));
     render(form());
     fillForm();
@@ -111,6 +111,8 @@ describe('InstallationLeadForm', () => {
     submit();
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
     expect(sentBody().website).toBe('http://spam.example');
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    expect(trackLead).not.toHaveBeenCalled();
   });
 
   it.each([

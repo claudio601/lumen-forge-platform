@@ -84,9 +84,9 @@ describe('catálogo: GA sin page_view falsos', () => {
 
   it.each([
     ['sin decisión de cookies', null],
-    ['con la medición aceptada (decisión sembrada)', { analytics: true, ads: true, origin: true }],
+    ['con la medición aceptada (decisión sembrada)', { analytics: true, ads: true, meta: true, origin: true }],
   ])('cambiar un filtro sin ?page no envía otro page_view (%s)', async (_, choice) => {
-    if (choice) localStorage.setItem('elights_cookie_consent', JSON.stringify({ v: 1, at: new Date().toISOString(), ...choice }));
+    if (choice) localStorage.setItem('elights_cookie_consent', JSON.stringify({ v: 2, at: new Date().toISOString(), ...choice }));
     renderAt('/catalogo/paneles-led');
     await screen.findByText(`${count('paneles-led')} productos encontrados`, undefined, WAIT);
     vi.mocked(sendPageView).mockClear();
@@ -103,15 +103,16 @@ describe('aviso de cookies (PR 13)', () => {
   });
   afterEach(() => localStorage.clear());
 
-  it('fuera de elights.cl no aparece solo, nada carga Google y el pie abre el panel informativo', async () => {
+  it('fuera de elights.cl no aparece solo, nada carga Google ni Meta y el pie abre el panel informativo', async () => {
     renderAt('/');
     const footer = screen.getByRole('contentinfo');
     await new Promise(r => setTimeout(r, 50));
     expect(screen.queryByRole('region', { name: 'Aviso de cookies' })).toBeNull();
     expect(document.querySelector('script[src*="googletagmanager"]')).toBeNull();
+    expect(document.querySelector('script[src*="facebook"]')).toBeNull();
     fireEvent.click(within(footer).getByRole('button', { name: 'Configurar cookies' }));
     const dialog = await screen.findByRole('dialog', { name: 'Configurar cookies' }, WAIT);
-    expect(dialog).toHaveTextContent('En esta dirección del sitio no usamos cookies, Google Analytics ni medición de anuncios');
+    expect(dialog).toHaveTextContent('En esta dirección del sitio no usamos cookies, Google Analytics, medición de anuncios ni el píxel de Meta');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cerrar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), WAIT);
     expect(localStorage.getItem('elights_cookie_consent')).toBeNull();
