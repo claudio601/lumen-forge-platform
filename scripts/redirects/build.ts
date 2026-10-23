@@ -34,7 +34,7 @@ export interface RedirectRule {
 }
 
 /** Límite propio (Vercel acepta 2.048 redirecciones en vercel.json). */
-export const MAX_REDIRECTS = 1000;
+export const MAX_REDIRECTS = 1500;
 
 const TEMPORARY: RedirectRule[] = [{ source: '/carro{/}?', destination: '/solicitar-pedido', permanent: false }];
 

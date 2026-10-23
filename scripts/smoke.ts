@@ -8,7 +8,7 @@
 //   npm run smoke -- <url-preview> --compare https://nuevo.elights.cl
 //   npm run smoke -- <url> --json reports/smoke/produccion.json
 //   npm run smoke -- https://nuevo.elights.cl --legacy   (cada fila de scripts/redirects/legacy-urls.json
-//                                                         y cada destino, de a una cada 500 ms: ~7 min)
+//                                                         y cada destino, de a una cada 500 ms: ~14 min)
 //
 // Solo hace GET. Los webhooks (Jumpseller, WhatsApp, Pipedrive) responden 405
 // antes de procesar nada, así que el chequeo no tiene efectos. Nunca sigue redirecciones.
@@ -64,8 +64,8 @@ const RENAMED_SMOKE_IDS = [4122715, 25888711];
 /**
  * URLs de elights.cl que revisa el chequeo (PR 08), con el destino de legacy-urls.json: una
  * ficha con el mismo id (y la consulta de Google Ads), una categoría (con barra final), fichas
- * renombradas con %C3%BA, con coma y con puntos, /home, /search (conserva ?q=) y una página
- * legal (PR 12).
+ * renombradas con %C3%BA, con coma y con puntos, /home, /search (conserva ?q=), una página
+ * legal (PR 12) y el blog de Jumpseller, que va a /guias (decisión del dueño, 2026-10-23).
  */
 const LEGACY_SMOKE = [
   '/alumbrado-publico-bestled-120w-ip66-ik08?gclid=smoke',
@@ -77,9 +77,10 @@ const LEGACY_SMOKE = [
   '/home',
   '/search?q=panel',
   '/terms-and-conditions',
+  '/blog',
 ];
-/** URLs de elights.cl sin regla a propósito (404): un producto de prueba y el blog. */
-const LEGACY_SMOKE_NOT_FOUND = ['/producto-test-checkout', '/blog'];
+/** URLs de elights.cl sin regla a propósito (404 definitivo): un producto de prueba y la entrada oculta del blog sobre la luz fría. */
+const LEGACY_SMOKE_NOT_FOUND = ['/producto-test-checkout', '/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno'];
 
 /** Fila de una URL de elights.cl: 301 al destino que le da legacy-urls.json. */
 function legacyRedirectTarget(path: string): Target {
@@ -351,7 +352,7 @@ export async function runSmoke(base: string, opts: { all?: boolean; legacy?: boo
     }
   };
   if (opts.legacy) {
-    // De a una URL, sin sitemap ni assets: son unas 800 (las filas de legacy-urls.json y sus destinos)
+    // De a una URL, sin sitemap ni assets: son unas 1.700 (las filas de legacy-urls.json y sus destinos)
     const rows: Row[] = [];
     for (const t of legacyTargets()) {
       rows.push(await safeRow(t));

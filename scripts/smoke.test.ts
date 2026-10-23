@@ -73,12 +73,15 @@ describe('chequeo de humo', () => {
       { path: '/search?q=panel', kind: 'redirect', to: '/buscar', expectedStatus: 301 },
       // PR 12: página legal de Jumpseller a su página nueva
       { path: '/terms-and-conditions', kind: 'redirect', to: '/terminos-y-condiciones', expectedStatus: 301 },
+      // El blog de Jumpseller, al índice de las guías (decisión del dueño, 2026-10-23)
+      { path: '/blog', kind: 'redirect', to: '/guias', expectedStatus: 301 },
     ]);
-    expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/guias/no-existe', '/producto-test-checkout', '/blog']);
-    // Las dos últimas no tienen regla a propósito
-    for (const path of ['/producto-test-checkout', '/blog']) {
+    const luzFria = '/la-luz-fria-led-puede-danar-los-ojos-y-enturbiar-el-sueno';
+    expect(paths('notfound')).toEqual(['/no-existe', '/producto/no-existe', '/catalogo/no-existe', '/catalogo/x/y', '/guias/no-existe', '/producto-test-checkout', luzFria]);
+    // Las dos últimas no tienen regla a propósito: 404 definitivo
+    for (const path of ['/producto-test-checkout', luzFria]) {
       const row = LEGACY_URLS.find(u => u.source === path);
-      expect(row?.gone ?? row?.pending, path).toBeTruthy();
+      expect(row?.gone, path).toBeTruthy();
     }
     expect(paths('api')).toHaveLength(9);
     expect(paths('api')).toContain('/api/project-quotes/create');
