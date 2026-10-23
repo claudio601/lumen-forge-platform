@@ -8,7 +8,7 @@
 //   npm run smoke -- <url-preview> --compare https://nuevo.elights.cl
 //   npm run smoke -- <url> --json reports/smoke/produccion.json
 //   npm run smoke -- https://nuevo.elights.cl --legacy   (cada fila de scripts/redirects/legacy-urls.json
-//                                                         y cada destino, de a una cada 500 ms: ~7 min)
+//                                                         y cada destino, de a una cada 500 ms: ~14 min)
 //
 // Solo hace GET. Los webhooks (Jumpseller, WhatsApp, Pipedrive) responden 405
 // antes de procesar nada, así que el chequeo no tiene efectos. Nunca sigue redirecciones.
@@ -351,7 +351,7 @@ export async function runSmoke(base: string, opts: { all?: boolean; legacy?: boo
     }
   };
   if (opts.legacy) {
-    // De a una URL, sin sitemap ni assets: son unas 800 (las filas de legacy-urls.json y sus destinos)
+    // De a una URL, sin sitemap ni assets: son unas 1.700 (las filas de legacy-urls.json y sus destinos)
     const rows: Row[] = [];
     for (const t of legacyTargets()) {
       rows.push(await safeRow(t));
