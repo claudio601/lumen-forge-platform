@@ -37,8 +37,8 @@ export const LEGAL_VERSION: string = '1.5';
 // La 1.5 (PR 14: «Publicidad en Meta» y Google Analytics 14 meses) rige desde la fusión: si la
 // fusión no es el 23-10-2026, se cambian las dos fechas justo antes de fusionar (y se corre
 // npm run legal:archive). La 1.4 se publicó el 21-10-2026 (PR #90 y #102).
-export const LEGAL_UPDATED: string = '2026-10-23';
-export const LEGAL_UPDATED_LABEL: string = '23 de octubre de 2026';
+export const LEGAL_UPDATED: string = '2026-10-22';
+export const LEGAL_UPDATED_LABEL: string = '22 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
 export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4'];
