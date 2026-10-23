@@ -191,9 +191,9 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(price()).toMatch(/^desde\s*\$442\.800/);
     const radio = (name: RegExp) => [...container.querySelectorAll<HTMLElement>('[role="radio"]')].find(r => name.test(r.closest('label')!.textContent!))!;
     await act(async () => { fireEvent.click(radio(/^80W/)); });
-    await act(async () => { fireEvent.click(radio(/^Cálida 2200K/)); });
+    await act(async () => { fireEvent.click(radio(/^Ámbar 2200K/)); });
     expect(price()).toMatch(/^\$514\.800/);
-    expect(container.textContent).toContain('Elegiste: 80W · Cálida 2200K.');
+    expect(container.textContent).toContain('Elegiste: 80W · Ámbar 2200K.');
   });
 
   it('el HTML de las fichas con selector no lleva el texto crudo de Jumpseller; en las BESTLED, ningún «% de luz azul»', async () => {
