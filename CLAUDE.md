@@ -288,4 +288,17 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
 
 ---
 
+## 16. Guías (/guias)
+
+Plan completo: `~/proyectos/elights-blog-2026-10/plan-blog.md` (uso interno, no va al repo).
+
+- **Contenido**: `src/data/guides/index.ts` (ficha liviana de cada guía publicada: H1, metaTitle sin la marca, fechas ISO fijas, autor, `index`) y `src/data/guides/content/<slug>.ts` (cuerpo, un trozo de JS por guía). En el repo solo hay guías **aprobadas por el dueño**: el borrador vive en `~/proyectos/elights-blog-2026-10/borradores/` (el repo es público). Para despublicar, se sacan la ficha y el archivo de `content/`.
+- **Texto aprobado = texto publicado**: al pasar una guía al sitio solo cambia el formato. Los enlaces son destinos tipados (categoría, guía, ruta, fichas por `jumpseller_id`, correo, ancla, fuente oficial). Una oración que lleva a una guía aún no publicada va en `{ ifGuide }` y se muestra sola cuando esa guía se publique.
+- **Publicada sin indexar** (`index: false`): se prerenderiza y se ve en `/guias`, pero lleva noindex (sin canonical) y queda fuera del sitemap (`noindexGuideRoutes()` en `src/lib/seo/routes.ts`; lo vigila check-prerender). Las guías de la norma (G1, G3, G4) salen así hasta el OK del dueño, guía por guía.
+- **D.S. N°1/2022**: el bloque «Luminarias con certificado» sale de `DS1_CERTIFIED_LINES` y de las variantes de Jumpseller (`src/data/guides/ds1-lines.ts`); sus oraciones, y toda oración que junte el certificado con la norma, las aprueba el dueño (listas en `src/data/guides/guides.test.ts`). 2200K = «ámbar», 2700K = «cálida»; estadios, solo hasta 5000K.
+- **Medición**: `guia_cta_click` (link_type `guia_texto` o `guia_recuadro`) al hacer clic hacia `/cotizador` o `/estudio-luminico`. Para que llegue a GA4, la agencia debe sumarlo al activador T09 del contenedor.
+- **Pruebas**: `src/data/guides/guides.test.ts` (formato, reglas del sitio, D.S. N°1, enlaces y la página), `src/config/contentTruth.test.ts` (frases retiradas, `src/test/retired.ts`), `src/ssr-hydration.test.tsx`, check-prerender y el chequeo de humo (fila `unindexed`).
+
+---
+
 > Actualizar este archivo después de cada corrección significativa o decisión de arquitectura.
