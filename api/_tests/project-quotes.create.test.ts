@@ -13,16 +13,26 @@ vi.mock('../_lib/pipedrive/persons.js', () => ({ findOrCreatePerson: vi.fn() }))
 vi.mock('../_lib/pipedrive/organizations.js', () => ({ findOrCreateOrganization: vi.fn() }));
 vi.mock('../_lib/pipedrive/deals.js', () => ({ createDeal: vi.fn() }));
 vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}) }));
-vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn() }));
+vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(), pipedriveUploadFile: vi.fn() }));
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn() }));
+// Adjuntos: Blob simulado (head, get, del); los errores de verdad, para BlobNotFoundError.
+vi.mock('@vercel/blob', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vercel/blob')>()),
+  head: vi.fn(),
+  get: vi.fn(),
+  del: vi.fn(async () => {}),
+}));
 
 import handler, { validateProjectQuote } from '../project-quotes/create';
 import { ILLUMINATION_LEVELS, PROJECT_TYPES } from '../_lib/forms/projectQuote';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
 import { createDeal } from '../_lib/pipedrive/deals.js';
-import { pipedrivePost } from '../_lib/pipedrive/client.js';
+import { pipedrivePost, pipedriveUploadFile } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import { BlobNotFoundError, del, get, head } from '@vercel/blob';
+import { pendingKey } from '../_lib/attachments/quota';
+import { UPSTASH_URL, createFakeRedis, fakeFetch, type FakeRedis } from './fakeUpstash';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -96,6 +106,8 @@ describe('POST /api/project-quotes/create', () => {
     vi.mocked(createDeal).mockReset().mockResolvedValue({ dealId: 999, status: 'created' });
     vi.mocked(pipedrivePost).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
     vi.mocked(waitUntil).mockClear();
+    vi.mocked(head).mockClear();
+    vi.mocked(del).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '1');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '2');
     vi.stubGlobal('fetch', relay('{"status":"ok"}'));
@@ -104,6 +116,16 @@ describe('POST /api/project-quotes/create', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('sin archivos no se toca Blob (como antes de los adjuntos)', async () => {
+    const res = await call(full);
+    expect(res.statusCode).toBe(201);
+    expect(head).not.toHaveBeenCalled();
+    expect(del).not.toHaveBeenCalled();
+    expect(pipedriveUploadFile).not.toHaveBeenCalled();
+    expect(notes()).toHaveLength(1);
+    expect(notes()[0].content).not.toContain('ARCHIVOS');
+  });
 
   it('GET responde 405 con Allow: POST', async () => {
     const res = await call(undefined, { method: 'GET' });
@@ -324,7 +346,11 @@ describe('POST /api/project-quotes/create', () => {
     vi.mocked(createDeal).mockRejectedValue(new Error('[deals] down'));
     const res = await call(base);
     expect(res.statusCode).toBe(502);
-    expect(res.body).toMatchObject({ success: false });
+    expect(res.body).toEqual({
+      success: false,
+      error: 'No pudimos registrar tu solicitud. Inténtalo de nuevo o escríbenos a ventas@elights.cl.',
+    });
+    expect(JSON.stringify(res.body)).not.toMatch(/whatsapp/i);
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 
@@ -797,6 +823,359 @@ describe('POST /api/project-quotes/create: privacidad', () => {
     for (const text of [notes()[0].content, gasBodies()[0].items_lista]) {
       expect(text).toContain('"marketing":true');
       expect(lastConsentRecord(text)).toMatchObject({ marketing: false, src: 'web', at: AT });
+    }
+  });
+});
+
+// --- Adjuntos (especificación «Adjuntar archivos», 22-10-2026) ---
+// El navegador ya subió los archivos a Blob y manda `archivos: [{ pathname, nombre }]`. Se
+// responde 201/200 sin esperarlos; un waitUntil registrado antes de responder los pasa de a
+// uno a Pipedrive (POST /files) y los borra de Blob. Si uno falla, se borra igual (D3) y una
+// segunda nota y un correo a ventas dicen cuál falta. Blob y Pipedrive están simulados; Redis
+// es un Upstash falso en memoria (claves «pendiente» para el barrido).
+
+const UUID8 = '3f2b8c1e-9a4d-4e6f-8b7a-';
+const MB = 1024 * 1024;
+const enc = (text: string) => new TextEncoder().encode(text);
+const CONTENT = {
+  pdf: enc('%PDF-1.7\n'),
+  dwg: enc('AC1032\0\0'),
+  xlsx: new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00]),
+  dxf: enc('  0\nSECTION\n  2\nHEADER\n'),
+};
+const TYPES: Record<string, string> = {
+  pdf: 'application/pdf',
+  dwg: 'image/vnd.dwg',
+  dxf: 'image/vnd.dxf',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
+
+interface StoredFile { pathname: string; url: string; size: number; uploadedAt: Date; contentType: string; data: Uint8Array }
+let stored: Map<string, StoredFile>;
+let fileSeq = 0;
+/** Un archivo que el navegador ya subió a Blob; devuelve la referencia que manda a create.ts. */
+function uploaded(nombre: string, { size = MB, data, minutesAgo = 2, ext = nombre.split('.').pop() as string } = {} as {
+  size?: number; data?: Uint8Array; minutesAgo?: number; ext?: string;
+}) {
+  const pathname = `cotizador/${UUID8}${String(++fileSeq).padStart(12, '0')}-Sufijo${fileSeq}.${ext}`;
+  stored.set(pathname, {
+    pathname,
+    url: `https://store.private.blob.vercel-storage.com/${pathname}`,
+    size,
+    uploadedAt: new Date(Date.now() - minutesAgo * 60_000),
+    contentType: TYPES[ext],
+    data: data ?? CONTENT[ext as keyof typeof CONTENT],
+  });
+  return { pathname, nombre };
+}
+
+let fake: FakeRedis;
+let current: { statusCode: number } | null = null;
+/** waitUntil registrados, con el estado de la respuesta en ese momento (0: antes de responder). */
+let registered: { statusAtRegistration: number; promise: Promise<unknown> }[];
+const settled = () => Promise.all(registered.map((r) => r.promise));
+/** Como call(), pero deja la respuesta en `current` para saber si ya se respondió. */
+function send(body: unknown) {
+  const res = {
+    statusCode: 0,
+    body: undefined as unknown,
+    headers: {} as Record<string, string>,
+    status(code: number) { this.statusCode = code; return this; },
+    json(b: unknown) { this.body = b; return this; },
+    setHeader(k: string, v: string) { this.headers[k] = v; },
+  };
+  current = res;
+  const req = { method: 'POST', headers: { 'x-forwarded-for': `10.5.0.${++ipSeq}` }, body, socket: { remoteAddress: '127.0.0.1' } };
+  return (handler as unknown as (q: unknown, s: unknown) => Promise<void>)(req, res).then(() => res);
+}
+const uploads = () => vi.mocked(pipedriveUploadFile).mock.calls.map(([args]) => args);
+const deletedUrls = () => vi.mocked(del).mock.calls.flatMap(([arg]) => (Array.isArray(arg) ? arg : [arg]));
+
+describe('POST /api/project-quotes/create: adjuntos', () => {
+  beforeEach(() => {
+    stored = new Map();
+    fileSeq = 0;
+    registered = [];
+    current = null;
+    fake = createFakeRedis();
+    vi.mocked(findOrCreatePerson).mockReset().mockResolvedValue({ personId: 11, action: 'created' });
+    vi.mocked(findOrCreateOrganization).mockReset().mockResolvedValue({ organizationId: 22, action: 'created' });
+    vi.mocked(createDeal).mockReset().mockResolvedValue({ dealId: 999, status: 'created' });
+    vi.mocked(pipedrivePost).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    vi.mocked(pipedriveUploadFile).mockReset().mockResolvedValue({ success: true, data: { id: 50 } } as never);
+    vi.mocked(waitUntil).mockReset().mockImplementation((promise: Promise<unknown>) => {
+      registered.push({ statusAtRegistration: current?.statusCode ?? 0, promise });
+    });
+    vi.mocked(head).mockReset().mockImplementation(async (pathname: string) => {
+      const f = stored.get(pathname);
+      if (!f) throw new BlobNotFoundError();
+      return { url: f.url, downloadUrl: f.url, pathname, size: f.size, uploadedAt: f.uploadedAt, contentType: f.contentType, contentDisposition: '', cacheControl: '', etag: 'e' };
+    });
+    vi.mocked(get).mockReset().mockImplementation(async (pathname: string) => {
+      const f = stored.get(pathname);
+      if (!f) return null;
+      return { statusCode: 200, stream: new Blob([f.data]).stream(), headers: new Headers(), blob: {} } as never;
+    });
+    vi.mocked(del).mockReset().mockImplementation(async (arg: string | string[]) => {
+      for (const url of Array.isArray(arg) ? arg : [arg]) {
+        for (const [p, f] of stored) if (f.url === url || p === url) stored.delete(p);
+      }
+    });
+    vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '1');
+    vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '2');
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', UPSTASH_URL);
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'token-de-prueba');
+    vi.stubGlobal('fetch', fakeFetch(fake));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('201 antes de adjuntar: el traspaso va en un waitUntil registrado antes de responder', async () => {
+    let release: () => void = () => {};
+    vi.mocked(pipedriveUploadFile).mockImplementation(
+      () => new Promise((resolve) => { release = () => resolve({ success: true, data: { id: 50 } } as never); })
+    );
+    const archivos = [uploaded('bases.pdf')];
+    const res = await send({ ...base, archivos });
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toEqual({ success: true, reference: refOf(res), dealId: 999 });
+    // El correo y el traspaso se registraron antes de responder
+    expect(registered.length).toBeGreaterThanOrEqual(2);
+    expect(registered.every((r) => r.statusAtRegistration === 0)).toBe(true);
+    // El traspaso sigue después de la respuesta
+    await vi.waitFor(() => expect(pipedriveUploadFile).toHaveBeenCalledTimes(1));
+    expect(stored.size).toBe(1);
+    release();
+    await settled();
+    expect(stored.size).toBe(0);
+  });
+
+  it('la nota principal y el correo listan los archivos con su peso', async () => {
+    const archivos = [
+      uploaded('bases.pdf', { size: 2.1 * MB }),
+      uploaded('plano.dwg', { size: 14 * MB }),
+      uploaded('planilla.xlsx', { size: 85 * 1024 }),
+    ];
+    const res = await send({ ...full, archivos });
+    expect(res.statusCode).toBe(201);
+    await settled();
+    const line = 'Archivos que envió el cliente (3): bases.pdf (2,1 MB), plano.dwg (14 MB), planilla.xlsx (85 KB). Quedan en la pestaña Archivos del negocio.';
+    const [note] = notes();
+    expect(note.content).toContain('--- COMENTARIOS ---\nPRUEBA ETAPA 2 (09d) - no cotizar\n\n--- ARCHIVOS ---\n' + line + '\n\nSin productos ni precios');
+    const [mail] = fake.mails;
+    expect(mail.items_lista).toContain('Plazo: PRUEBA 3 meses\n\n' + line + '\n\n');
+    // Todo quedó en Archivos: sin segunda nota ni segundo correo
+    expect(notes()).toHaveLength(1);
+    expect(fake.mails).toHaveLength(1);
+  });
+
+  it('sube de a uno, con el nombre, el tipo y el negocio, y borra cada archivo después de subirlo', async () => {
+    const archivos = [uploaded('bases.pdf'), uploaded('plano.dwg'), uploaded('corte.dxf')];
+    await send({ ...base, archivos });
+    await settled();
+    expect(uploads().map((u) => [u.dealId, u.fileName, u.contentType])).toEqual([
+      [999, 'bases.pdf', 'application/pdf'],
+      [999, 'plano.dwg', 'image/vnd.dwg'],
+      [999, 'corte.dxf', 'image/vnd.dxf'],
+    ]);
+    expect(Array.from(uploads()[1].data as Uint8Array)).toEqual(Array.from(CONTENT.dwg));
+    const getOrder = vi.mocked(get).mock.invocationCallOrder;
+    const upOrder = vi.mocked(pipedriveUploadFile).mock.invocationCallOrder;
+    const delOrder = vi.mocked(del).mock.invocationCallOrder;
+    expect(delOrder).toHaveLength(3);
+    for (let i = 0; i < 3; i++) {
+      expect(getOrder[i]).toBeLessThan(upOrder[i]);
+      expect(upOrder[i]).toBeLessThan(delOrder[i]);
+      if (i < 2) expect(delOrder[i]).toBeLessThan(getOrder[i + 1]);
+    }
+    expect(stored.size).toBe(0);
+    // Las claves «pendiente» quedan terminadas (0): el barrido no las reintenta
+    for (const a of archivos) expect(fake.data.get(pendingKey(a.pathname))?.value).toBe('0');
+  });
+
+  it('un archivo que no es lo que dice: se borra igual (D3) y la nota y el correo dicen cuál falta', async () => {
+    const archivos = [uploaded('bases.pdf'), uploaded('plano.dwg', { data: enc('MZ este es un .exe') }), uploaded('ficha.pdf')];
+    const res = await send({ ...base, archivos });
+    expect(res.statusCode).toBe(201);
+    await settled();
+    expect(uploads().map((u) => u.fileName)).toEqual(['bases.pdf', 'ficha.pdf']);
+    expect(stored.size).toBe(0);
+    const report = 'Adjuntos: 2 de 3 quedaron en Archivos.\nNo se pudo adjuntar "plano.dwg" (no es un DWG válido). Pedirlo al cliente por correo.';
+    const [, second] = notes();
+    expect(second.deal_id).toBe(999);
+    expect(second.content).toBe(report);
+    expect(fake.mails).toHaveLength(2);
+    const followUp = fake.mails[1];
+    expect(followUp.items_lista).toBe(`Adjuntos del cotizador ${refOf(res)} (negocio 999 en Pipedrive)\n` + report);
+    expect(followUp.reply_to).toBe(EMAIL);
+    expect(followUp).not.toHaveProperty('comentarios');
+  });
+
+  it.each([
+    ['vencido (más de 2 horas)', () => uploaded('plano.dwg', { minutesAgo: 121 }), 'venció: se subió hace más de 2 horas'],
+    ['de más de 20 MB', () => uploaded('plano.dwg', { size: 20 * MB + 1 }), 'pesa más de 20 MB'],
+    ['con otro tipo en Blob', () => { const r = uploaded('plano.dwg'); stored.get(r.pathname)!.contentType = 'application/pdf'; return r; }, 'no es un tipo de archivo permitido'],
+  ])('archivo %s: no se sube, se borra y la nota lo dice', async (_name, make, reason) => {
+    const ref = make();
+    await send({ ...base, archivos: [ref] });
+    await settled();
+    expect(pipedriveUploadFile).not.toHaveBeenCalled();
+    expect(stored.size).toBe(0);
+    expect(notes()[1].content).toContain(`No se pudo adjuntar "plano.dwg" (${reason}).`);
+  });
+
+  it('si Pipedrive rechaza el archivo (413), se borra y la nota lo dice', async () => {
+    vi.mocked(pipedriveUploadFile).mockResolvedValue({ success: false, data: null, error: 'HTTP 413: Payload Too Large' } as never);
+    await send({ ...base, archivos: [uploaded('bases.pdf', { size: 19.9 * MB })] });
+    await settled();
+    expect(stored.size).toBe(0);
+    expect(notes()[1].content).toContain('No se pudo adjuntar "bases.pdf" (Pipedrive lo rechazó por su tamaño). Pedirlo al cliente por correo.');
+  });
+
+  it('sin tiempo en la función: el resto queda en Blob como pendiente y la nota y el correo lo dicen', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-20T14:00:00Z'));
+    vi.mocked(pipedriveUploadFile).mockImplementation(async () => {
+      vi.setSystemTime(new Date(Date.now() + 40_000)); // una subida lenta
+      return { success: true, data: { id: 50 } } as never;
+    });
+    const archivos = [uploaded('bases.pdf'), uploaded('plano.dwg')];
+    await send({ ...base, archivos });
+    await settled();
+    expect(uploads()).toHaveLength(1);
+    expect(stored.has(archivos[1].pathname)).toBe(true);
+    expect(fake.data.get(pendingKey(archivos[1].pathname))?.value).toBe('999');
+    expect(fake.data.get(pendingKey(archivos[1].pathname))?.ttl).toBe(48 * 3600);
+    const [, second] = notes();
+    expect(second.content).toContain('Adjuntos: 1 de 2 quedaron en Archivos.');
+    expect(second.content).toContain('"plano.dwg" quedó pendiente');
+    expect(second.content).toContain('el barrido diario lo reintenta');
+    expect(fake.mails).toHaveLength(2);
+  });
+
+  it('reenvío: se adjunta lo que siga en Blob; lo demás, «ya adjuntado en el envío anterior o vencido»', async () => {
+    vi.mocked(createDeal).mockResolvedValue({ dealId: 555, status: 'skipped_duplicate' });
+    const already = { pathname: `cotizador/${UUID8}000000000999-Sufijo.pdf`, nombre: 'ficha.pdf' }; // ya no está en Blob
+    const archivos = [uploaded('plano.dwg'), already];
+    const res = await send({ ...base, archivos });
+    expect(res.statusCode).toBe(200);
+    await settled();
+    expect(uploads().map((u) => [u.dealId, u.fileName])).toEqual([[555, 'plano.dwg']]);
+    const [main, second] = notes();
+    expect(main.content.startsWith('Reenvío del mismo formulario')).toBe(true);
+    expect(main.content).toContain('Archivos que envió el cliente (2): plano.dwg (1 MB), ficha.pdf.');
+    expect(second.content).toBe('Adjuntos: 1 de 2 quedaron en Archivos.\n"ficha.pdf": ya adjuntado en el envío anterior o vencido.');
+    // Nada que pedirle al cliente: sin correo de seguimiento
+    expect(fake.mails).toHaveLength(1);
+  });
+
+  it('CRM caído: 200 crm failed, se borran todos los archivos y el correo ATENCIÓN lo dice', async () => {
+    vi.mocked(createDeal).mockRejectedValue(new Error('[deals] down'));
+    const archivos = [uploaded('bases.pdf'), uploaded('plano.dwg')];
+    const res = await send({ ...base, archivos });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ crm: 'failed', dealId: null });
+    await settled();
+    expect(pipedriveUploadFile).not.toHaveBeenCalled();
+    expect(stored.size).toBe(0);
+    expect(fake.mails).toHaveLength(2);
+    expect(fake.mails[1].items_lista.startsWith(
+      `ATENCIÓN: la solicitud ${refOf(res)} NO quedó en Pipedrive. Crear el negocio a mano.\n` +
+        'El cliente adjuntó 2 archivos que no se guardaron: pedírselos por correo.\n\n'
+    )).toBe(true);
+    expect(fake.mails[1].items_lista).toContain(fake.mails[0].items_lista);
+  });
+
+  it('honeypot: 200 como siempre, sin correo ni Pipedrive, y se borran las referencias', async () => {
+    const archivos = [uploaded('bases.pdf'), uploaded('plano.dwg')];
+    const res = await send({ ...base, website: 'http://spam', archivos });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ success: true });
+    await settled();
+    expect(stored.size).toBe(0);
+    expect(head).not.toHaveBeenCalled();
+    expect(pipedriveUploadFile).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+    expect(fake.mails).toHaveLength(0);
+  });
+
+  it.each([
+    ['sin la casilla de privacidad', (b: Record<string, unknown>) => ({ ...b, consent: { ...CONSENT, privacy: false } })],
+    ['con un teléfono inválido', (b: Record<string, unknown>) => ({ ...b, telefono: '1' })],
+  ])('400 %s: los archivos quedan en Blob (el cliente reenvía las mismas referencias)', async (_name, change) => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(consentGraceUntil());
+    const archivos = [uploaded('bases.pdf')];
+    const res = await send(change({ ...base, archivos }));
+    expect(res.statusCode).toBe(400);
+    await settled();
+    expect(stored.size).toBe(1);
+    expect(head).not.toHaveBeenCalled();
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it('502 (fallan Pipedrive y el correo): los archivos quedan en Blob para el reintento', async () => {
+    vi.mocked(createDeal).mockRejectedValue(new Error('[deals] down'));
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('fetch failed'); }));
+    const res = await send({ ...base, archivos: [uploaded('bases.pdf')] });
+    expect(res.statusCode).toBe(502);
+    await settled();
+    expect(stored.size).toBe(1);
+    expect(del).not.toHaveBeenCalled();
+  });
+
+  it('referencias mal formadas, repetidas o sobrantes: se descartan y quedan anotadas, nunca 400', async () => {
+    const ok = [uploaded('a.pdf'), uploaded('b.pdf'), uploaded('c.pdf'), uploaded('d.pdf'), uploaded('e.pdf')];
+    const archivos = [
+      ok[0],
+      ok[0],
+      { pathname: 'cotizador/../secreto.pdf', nombre: 'x.pdf' },
+      { pathname: 'https://evil.example/x.pdf', nombre: 'x.pdf' },
+      ...ok.slice(1),
+      uploaded('sobrante.pdf'),
+    ];
+    const res = await send({ ...base, archivos });
+    expect(res.statusCode).toBe(201);
+    await settled();
+    expect(uploads().map((u) => u.fileName)).toEqual(['a.pdf', 'b.pdf', 'c.pdf', 'd.pdf', 'e.pdf']);
+    expect(notes()[0].content).toContain('Se descartaron 4 referencias de archivo no válidas.');
+    expect(fake.mails[0].items_lista).toContain('Se descartaron 4 referencias de archivo no válidas.');
+    expect((await send({ ...base, archivos: 'no es una lista' })).statusCode).toBe(201);
+  });
+
+  it('un nombre con HTML o rutas llega limpio y escapado a la nota', async () => {
+    await send({ ...base, archivos: [{ ...uploaded('x.dwg'), nombre: 'C:\\planos\\<b>plano<b> & "corte".dwg' }] });
+    await settled();
+    const [note] = notes();
+    expect(note.content).toContain('Archivos que envió el cliente (1): bplanob &amp; corte.dwg (1 MB).');
+    expect(note.content).not.toMatch(/<b>|planos/);
+    expect(uploads()[0].fileName).toBe('bplanob & corte.dwg');
+  });
+
+  it('los archivos no cambian la referencia PY-', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-12T15:10:00Z'));
+    const a = await send(base);
+    const b = await send({ ...base, archivos: [uploaded('bases.pdf')] });
+    expect(refOf(a)).toMatch(/^PY-/);
+    expect(refOf(b)).toBe(refOf(a));
+    await settled();
+  });
+
+  it('los logs no llevan nombres de archivo ni rutas: solo cuántos son y un código de motivo', async () => {
+    const secretName = 'Licitación Juan Pérez 76.123.456-7.pdf';
+    await send({ ...base, archivos: [uploaded(secretName), uploaded('plano.dwg', { data: enc('nada') }), { pathname: 'mala', nombre: 'oculto.pdf' }] });
+    vi.mocked(createDeal).mockRejectedValueOnce(new Error('[deals] down'));
+    await send({ ...base, comentarios: 'otro', archivos: [uploaded('otro-secreto.pdf')] });
+    await send({ ...base, website: 'x', archivos: [uploaded('honeypot-secreto.pdf')] });
+    await settled();
+    const text = logged();
+    expect(text).toContain('Adjuntos: 2 | descartados: 1');
+    expect(text).toContain('Adjunto 2/2 failed: bad_content');
+    for (const leak of ['Licitación', 'Juan', '76.123', 'plano', 'oculto', 'otro-secreto', 'honeypot-secreto', 'cotizador/', UUID8]) {
+      expect(text).not.toContain(leak);
     }
   });
 });

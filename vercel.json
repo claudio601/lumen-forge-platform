@@ -2585,5 +2585,19 @@
         }
       ]
     }
+  ],
+  "functions": {
+    "api/project-quotes/create.ts": {
+      "maxDuration": 60
+    },
+    "api/cron/blob-sweep.ts": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/blob-sweep",
+      "schedule": "0 9 * * *"
+    }
   ]
 }

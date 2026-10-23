@@ -124,7 +124,10 @@ export interface Row extends Target, PageInfo {
   bytes: number;
 }
 
-/** Funciones de api/ que responden 405 a un GET. api/cron/followups no: responde 501. */
+/**
+ * Funciones de api/ que responden 405 a un GET. Las dos de api/cron/ no: followups responde
+ * 501 y blob-sweep, 401 sin CRON_SECRET (el cron de Vercel la llama con GET).
+ */
 export const API_FUNCTIONS = [
   '/api/jumpseller/webhook',
   '/api/whatsapp/webhook',
@@ -134,6 +137,7 @@ export const API_FUNCTIONS = [
   '/api/installation-leads/create',
   '/api/estudio-luminico/create',
   '/api/project-quotes/create',
+  '/api/project-quotes/upload',
 ];
 
 /** Rutas a revisar: las mismas en cada ejecución para poder comparar. */

@@ -47,6 +47,8 @@ const cfg = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 
   headers?: Rule[];
   cleanUrls?: boolean;
   trailingSlash?: boolean;
+  functions?: Record<string, Record<string, unknown>>;
+  crons?: { path: string; schedule: string }[];
 };
 
 // Una regla "literal" empieza con un segmento fijo que no es api (ni '/api' seguido de un
@@ -117,6 +119,32 @@ describe('vercel.json', () => {
   it('sin cleanUrls ni trailingSlash (convertirían los POST de los webhooks en redirecciones)', () => {
     expect(cfg.cleanUrls).toBeUndefined();
     expect(cfg.trailingSlash).toBeUndefined();
+  });
+
+  // Adjuntos del cotizador: `functions` solo fija maxDuration de funciones que existen (hasta 60 s,
+  // el máximo de Hobby sin Fluid compute: si se activa, revisar este tope) y `crons` solo llama
+  // funciones de api/cron/, una vez al día (lo que permite Hobby).
+  it('functions y crons: solo maxDuration de funciones existentes y crons diarios de api/cron/', () => {
+    const isFunction = (file: string) => {
+      try {
+        return /^api\/(?!_)[^/]+\/[^/]+\.ts$/.test(file) && !file.endsWith('.test.ts') && readFileSync(new URL('../' + file, import.meta.url)).length > 0;
+      } catch {
+        return false;
+      }
+    };
+    for (const [file, options] of Object.entries(cfg.functions ?? {})) {
+      expect(isFunction(file), file).toBe(true);
+      expect(Object.keys(options), file).toEqual(['maxDuration']);
+      expect(options.maxDuration, file).toBeGreaterThan(0);
+      expect(options.maxDuration, file).toBeLessThanOrEqual(60);
+    }
+    expect(cfg.functions?.['api/project-quotes/create.ts']?.maxDuration).toBe(60);
+    for (const cron of cfg.crons ?? []) {
+      expect(cron.path, cron.path).toMatch(/^\/api\/cron\/[a-z0-9-]+$/);
+      expect(isFunction(cron.path.slice(1) + '.ts'), cron.path).toBe(true);
+      expect(cron.schedule, cron.path).toMatch(/^\d{1,2} \d{1,2} \* \* \*$/);
+    }
+    expect(cfg.crons).toEqual([{ path: '/api/cron/blob-sweep', schedule: '0 9 * * *' }]);
   });
 
   it('la guarda de /api reconoce las fuentes que alcanzan las funciones', () => {

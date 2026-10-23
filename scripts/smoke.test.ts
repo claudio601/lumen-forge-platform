@@ -78,9 +78,11 @@ describe('chequeo de humo', () => {
       const row = LEGACY_URLS.find(u => u.source === path);
       expect(row?.gone ?? row?.pending, path).toBeTruthy();
     }
-    expect(paths('api')).toHaveLength(8);
+    expect(paths('api')).toHaveLength(9);
     expect(paths('api')).toContain('/api/project-quotes/create');
+    expect(paths('api')).toContain('/api/project-quotes/upload');
     expect(paths('api')).not.toContain('/api/cron/followups'); // responde 501: no es una falla
+    expect(paths('api')).not.toContain('/api/cron/blob-sweep'); // 401 sin CRON_SECRET: tampoco
     expect(paths('file')).toEqual(expect.arrayContaining(['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico']));
     expect(new Set(t.map(x => x.path)).size).toBe(t.length);
   });

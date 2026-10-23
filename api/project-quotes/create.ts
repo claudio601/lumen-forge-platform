@@ -24,6 +24,22 @@
 //      -> CRM falla y el correo salió: 200 { success, reference, dealId: null, crm: 'failed' }
 //         + segundo correo "ATENCIÓN ... Crear el negocio a mano."
 //      -> Fallan ambos: 502
+//   7. Adjuntos (`archivos: [{ pathname, nombre }]`, hasta 5; api/_lib/attachments/): el
+//      navegador ya los subió a Vercel Blob con el permiso de /api/project-quotes/upload.
+//      Una referencia mal formada, repetida o sobrante se descarta y queda anotada: nunca
+//      da 400. Antes del correo, head() de cada una (peso para la lista). El correo y la
+//      nota principal suman «Archivos que envió el cliente (3): …». Se responde sin esperar
+//      los adjuntos: un waitUntil, registrado antes de responder, los pasa de a uno a la
+//      pestaña Archivos del negocio (transfer.ts) y los borra de Blob. Si uno falla, se
+//      borra igual (D3) y una segunda nota y un correo a ventas dicen cuál falta.
+//      Casos especiales:
+//        - CRM caído (crm: 'failed'): del() de todos y el correo ATENCIÓN lo dice;
+//        - reenvío: se adjunta lo que siga en Blob; lo demás, «ya adjuntado en el envío
+//          anterior o vencido»;
+//        - honeypot: 200, como siempre, y del() de las referencias;
+//        - 400 y 502: los archivos quedan en Blob (el cliente reenvía las mismas
+//          referencias); el barrido diario (api/cron/blob-sweep.ts) borra lo que quede.
+//      Los adjuntos no entran en la referencia PY- ni en el log (solo cuántos son).
 //
 // El correo y la nota terminan con la constancia "PRIVACIDAD Y AUTORIZACIONES" y el origen
 // de la visita (clave `attribution`, api/_lib/forms/attribution.ts). El origen es
@@ -36,6 +52,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { waitUntil } from '@vercel/functions';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
 import { createDeal } from '../_lib/pipedrive/deals.js';
@@ -58,6 +75,16 @@ import {
 } from '../_lib/forms/projectQuote.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
+import { parseAttachmentRefs } from '../_lib/attachments/rules.js';
+import {
+  attachmentListLines,
+  deleteFromBlob,
+  inspectAttachments,
+  transferAttachments,
+  transferDeadline,
+  transferReport,
+  type InspectedAttachment,
+} from '../_lib/attachments/transfer.js';
 
 const LOG = '[ProjectQuote]';
 const ALLOWED_METHODS = ['POST'];
@@ -291,12 +318,14 @@ function projectLines(q: ProjectQuote): string[] {
  * línea de PRODUCTOS SOLICITADOS lleva la referencia para encontrar el negocio. Razón
  * social, RUT, giro, dirección y comentarios solo viajan si el cliente los dejó. `consent`:
  * la constancia PRIVACIDAD Y AUTORIZACIONES; `origen`: la sección ORIGEN DE LA VISITA, al final.
+ * `archivos`: la lista de adjuntos (attachmentListLines), antes de la constancia.
  */
 export function buildProjectQuoteEmail(
   q: ProjectQuote,
   ref: string,
   origen: string[] = [],
-  consent: string[] = []
+  consent: string[] = [],
+  archivos: string[] = []
 ): SalesEmail {
   const comentarios = q.comentarios ?? '';
   const longComment = comentarios.length > EMAIL_COMMENT_FIELD;
@@ -309,6 +338,7 @@ export function buildProjectQuoteEmail(
       `Cotizador de proyecto ${ref} (nuevo.elights.cl/cotizador)`,
       ...projectLines(q),
       ...(longComment ? ['', 'Comentarios del cliente (completos):', comentarios] : []),
+      ...(archivos.length ? ['', ...archivos] : []),
       ...(consent.length ? ['', ...consent] : []),
       ...(origen.length ? ['', ...origen] : []),
     ].join('\n'),
@@ -334,7 +364,8 @@ const chileDateTime = (date: Date) =>
 /**
  * Nota del deal con todos los datos, la constancia de privacidad y el origen; un reenvío del
  * mismo formulario lo dice al comienzo. `now`: el instante de la solicitud (el mismo de la
- * constancia).
+ * constancia). `archivos`: la sección ARCHIVOS (attachmentListLines), después de los
+ * comentarios.
  */
 export function buildProjectQuoteNote(
   q: ProjectQuote,
@@ -344,7 +375,8 @@ export function buildProjectQuoteNote(
     now = new Date(),
     origen = [],
     consent = [],
-  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[] } = {}
+    archivos = [],
+  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[]; archivos?: string[] } = {}
 ): string {
   const fecha = chileDateTime(now);
   return escapeHtml([
@@ -371,6 +403,7 @@ export function buildProjectQuoteNote(
     '--- COMENTARIOS ---',
     q.comentarios ?? '(sin comentarios)',
     '',
+    ...(archivos.length ? ['--- ARCHIVOS ---', ...archivos, ''] : []),
     'Sin productos ni precios: preparar propuesta y responder con link de pago de Jumpseller.',
     'source: cotizador | landingPath: /cotizador',
     ...(consent.length ? ['', ...consent] : []),
@@ -390,6 +423,43 @@ async function addNote(dealId: number, content: string, ref: string): Promise<vo
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+/** «El cliente adjuntó 3 archivos que no se guardaron: pedírselos por correo.» */
+export function lostAttachmentsLine(count: number): string {
+  return count === 1
+    ? 'El cliente adjuntó 1 archivo que no se guardó: pedírselo por correo.'
+    : `El cliente adjuntó ${count} archivos que no se guardaron: pedírselos por correo.`;
+}
+
+/**
+ * Después de responder (waitUntil): pasa los adjuntos al negocio, de a uno. Si alguno no
+ * quedó en Archivos, una segunda nota lo dice; si falta alguno (falla o quedó pendiente),
+ * también un correo a ventas. Nunca rechaza.
+ */
+async function attachToDeal(
+  items: InspectedAttachment[],
+  { dealId, reference, email, startedAt, ref }: { dealId: number; reference: string; email: SalesEmail; startedAt: number; ref: string }
+): Promise<void> {
+  try {
+    const outcomes = await transferAttachments(items, { dealId, deadline: transferDeadline(startedAt), log: ref });
+    const report = transferReport(outcomes);
+    if (!report) return;
+    await addNote(dealId, escapeHtml(report.lines.join('\n')), ref);
+    if (report.needsFollowUp) {
+      await notifySales(
+        {
+          ...email,
+          comentarios: undefined,
+          cuerpo: [`Adjuntos del cotizador ${reference} (negocio ${dealId} en Pipedrive)`, ...report.lines].join('\n'),
+          asunto: `Adjuntos ${reference}: revisar archivos`,
+        },
+        ref
+      );
+    }
+  } catch (err) {
+    console.error(`${ref} Adjuntos FAIL | dealId: ${dealId} | ${err instanceof Error ? err.name : typeof err}`);
+  }
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -414,9 +484,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const body = req.body;
 
-  // Campo oculto "website": solo lo llenan bots. Se responde OK sin crear nada.
+  // Campo oculto "website": solo lo llenan bots. Se responde OK sin crear nada (y se borra
+  // lo que haya subido).
   if (isHoneypotTriggered(body)) {
     console.warn(`${LOG} Honeypot activado`);
+    const { refs } = parseAttachmentRefs(body);
+    if (refs.length) waitUntil(deleteFromBlob(refs.map((r) => r.pathname), LOG));
     res.status(200).json({ success: true });
     return;
   }
@@ -455,8 +528,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const ref = `${LOG} ${reference}`;
   console.log(`${ref} Procesando | tipo: ${quote.tipoProyecto} | m2: ${quote.m2} | hasCompany: ${hasCompany}`);
 
+  // Adjuntos: informativos como el origen (nunca 400). head() de cada uno para listar su
+  // peso; el log solo dice cuántos son.
+  const attachments = parseAttachmentRefs(body);
+  const files = attachments.refs.length ? await inspectAttachments(attachments.refs) : [];
+  const archivos = attachmentListLines(files, attachments.discarded);
+  if (files.length || attachments.discarded) {
+    console.log(`${ref} Adjuntos: ${files.length}` + (attachments.discarded ? ` | descartados: ${attachments.discarded}` : ''));
+  }
+
   // ── Paso 1: correo a ventas ANTES de Pipedrive (si el CRM falla, el lead no se pierde) ──
-  const email = buildProjectQuoteEmail(quote, reference, origen, consent.section);
+  const email = buildProjectQuoteEmail(quote, reference, origen, consent.section, archivos);
   const mail = notifySales(email, ref);
 
   // ── Paso 2: Pipedrive ───────────────────────────────────────────────────────
@@ -518,7 +600,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // createDeal no guarda notas: el detalle va aparte, también en un reenvío.
     await addNote(
       dealId,
-      buildProjectQuoteNote(quote, reference, { resend: status !== 'created', now: at, origen, consent: consent.section }),
+      buildProjectQuoteNote(quote, reference, { resend: status !== 'created', now: at, origen, consent: consent.section, archivos }),
       ref
     );
 
@@ -531,10 +613,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (await mail) {
       // El correo salió: el lead no se pierde. Segundo correo para crear el negocio a mano.
+      // Sin negocio, los adjuntos no tienen dónde quedar: se borran y el correo lo dice.
+      if (files.length) waitUntil(deleteFromBlob(files.map((f) => f.blob?.url ?? f.pathname), ref));
       notifySales(
         {
           ...email,
-          cuerpo: `ATENCIÓN: la solicitud ${reference} NO quedó en Pipedrive. Crear el negocio a mano.\n\n` + email.cuerpo,
+          cuerpo:
+            `ATENCIÓN: la solicitud ${reference} NO quedó en Pipedrive. Crear el negocio a mano.\n` +
+            (files.length ? lostAttachmentsLine(files.length) + '\n' : '') +
+            '\n' +
+            email.cuerpo,
           asunto: `ATENCIÓN ${reference} sin Pipedrive`,
         },
         ref
@@ -543,13 +631,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
 
+    // Los adjuntos quedan en Blob: el cliente reintenta con las mismas referencias.
     res.status(502).json({
       success: false,
-      error: 'No pudimos registrar tu solicitud. Inténtalo de nuevo o escríbenos por WhatsApp.',
+      error: 'No pudimos registrar tu solicitud. Inténtalo de nuevo o escríbenos a ventas@elights.cl.',
     });
     return;
   }
 
-  // ── Paso 3: respuesta ───────────────────────────────────────────────────────
+  // ── Paso 3: adjuntos (después de responder) y respuesta ─────────────────────
+  if (files.length) {
+    waitUntil(attachToDeal(files, { dealId, reference, email, startedAt: at.getTime(), ref }));
+  }
   res.status(status === 'created' ? 201 : 200).json({ success: true, reference, dealId });
 }
