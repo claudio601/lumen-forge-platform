@@ -9,7 +9,7 @@ import { useConsentFields } from '@/components/legal/ConsentFields';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE, type ConsentInput } from '../../../api/_lib/forms/consent';
 // Topes de largo: los mismos del servidor (el correo a ventas lleva la nota completa); las
 // respuestas al D.S. N°1/2022 son las claves que acepta el servidor
-import { ESTUDIO_MAX_LENGTHS, isRequiereDs1, type RequiereDs1 } from '../../../api/estudio-luminico/validation';
+import { ESTUDIO_MAX_LENGTHS, isRequiereDs1, type RequiereDs1 } from '../../../api/_lib/forms/estudioLuminicoValidation';
 
 // ── Tipos del formulario ──────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ const NORMATIVAS = [
 // D.S. N°1/2022 (auditoría UX, E-03): pregunta aparte de la normativa objetivo, porque se suma a
 // cualquiera de ellas en un proyecto exterior. Un recinto techado sin muros (multicancha, galpón
 // abierto) también es alumbrado exterior (art. 3 a del decreto): el "no" es solo el cerrado. El servidor la agrega a la nota y al correo
-// (api/estudio-luminico/validation.ts); no pasa por el mapeo protegido de Pipedrive.
+// (api/_lib/forms/estudioLuminicoValidation.ts); no pasa por el mapeo protegido de Pipedrive.
 const REQUIERE_DS1: readonly { value: '' | RequiereDs1; label: string }[] = [
   { value: '', label: 'Sin indicar' },
   { value: 'si', label: 'Sí, me lo exigen (bases, mandante o municipio)' },
@@ -162,7 +162,7 @@ async function submitEstudioLead(payload: EstudioLuminicoFormPayload): Promise<s
   return typeof data.leadRef === 'string' ? data.leadRef : '';
 }
 
-// Tope de la descripcion: el mismo que api/estudio-luminico/validation.ts
+// Tope de la descripcion: el mismo que api/_lib/forms/estudioLuminicoValidation.ts
 // (MAX_DESCRIPCION_PROYECTO), para que la nota completa quepa en el correo a ventas.
 const MAX_DESCRIPCION = 2000;
 
@@ -241,7 +241,7 @@ const EstudioLuminicoLeadForm = () => {
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       return 'Ingresa un correo electrónico válido.';
     if (!form.telefono.trim()) return 'El teléfono es requerido.';
-    // Misma regla que el servidor (api/estudio-luminico/validation.ts)
+    // Misma regla que el servidor (api/_lib/forms/estudioLuminicoValidation.ts)
     const phoneDigits = form.telefono.replace(/\D/g, '').length;
     if (phoneDigits < 8 || phoneDigits > 15) return 'El teléfono debe tener entre 8 y 15 dígitos.';
     if (!form.tipoProyecto) return 'Selecciona el tipo de proyecto.';

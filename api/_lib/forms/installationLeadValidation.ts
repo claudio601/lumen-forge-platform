@@ -1,10 +1,10 @@
-// api/installation-leads/validation.ts
+// api/_lib/forms/installationLeadValidation.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Validacion del InstallationLeadPayload antes de entrar al pipeline CRM.
 // Espeja las reglas de validacion del formulario frontend (InstallationLeadForm).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { InstallationLeadPayload } from '../_lib/crm/installation-types.js';
+import type { InstallationLeadPayload } from '../crm/installation-types.js';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 

@@ -127,6 +127,71 @@ export async function pipedriveDelete<T>(
   return request<T>('DELETE', path, { params });
 }
 
+const UPLOAD_TIMEOUT_MS = 60_000;
+
+/**
+ * Sube un archivo a un negocio: POST /files, multipart con `file` y `deal_id`. No fija el
+ * Content-Type (fetch arma el multipart con su boundary). Tiempo límite: 60 s. Nunca lanza:
+ * devuelve { success, data } o { success: false, error }. El log nunca lleva el nombre del
+ * archivo (es un dato del cliente), ni lo que responde Pipedrive.
+ */
+export async function pipedriveUploadFile<T = { id: number }>({
+  dealId,
+  fileName,
+  contentType,
+  data,
+  timeoutMs = UPLOAD_TIMEOUT_MS,
+}: {
+  dealId: number;
+  fileName: string;
+  contentType: string;
+  data: Uint8Array | ArrayBuffer | Blob;
+  timeoutMs?: number;
+}): Promise<PipedriveApiResponse<T>> {
+  const path = '/files';
+  const scrub = (text: string) => (fileName ? text.split(fileName).join('[archivo]') : text).substring(0, 300);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const form = new FormData();
+    form.append('file', data instanceof Blob ? data : new Blob([data as Uint8Array], { type: contentType }), fileName);
+    form.append('deal_id', String(dealId));
+
+    const res = await fetch(buildUrl(path), {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+      body: form,
+    });
+
+    if (!res.ok) {
+      const errorBody = await res.text().catch(() => 'no body');
+      console.error(`[Pipedrive] POST ${path} -> ${res.status} ${res.statusText} | dealId: ${dealId}`);
+      return {
+        success: false,
+        data: null,
+        error: `HTTP ${res.status}: ${res.statusText}`,
+        error_info: scrub(errorBody),
+      };
+    }
+
+    const json = (await res.json()) as PipedriveApiResponse<T>;
+    if (!json.success) {
+      console.error(`[Pipedrive] POST ${path} -> API error | dealId: ${dealId}`);
+      return { success: false, data: null, error: scrub(String(json.error ?? 'API error')) };
+    }
+    return json;
+  } catch (err: unknown) {
+    const isAbort = err instanceof Error && err.name === 'AbortError';
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`[Pipedrive] POST ${path} -> ${isAbort ? 'TIMEOUT' : 'FETCH_ERROR'} | dealId: ${dealId}`);
+    return { success: false, data: null, error: isAbort ? 'Request timeout' : scrub(message) };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 /**
  * Paginated GET: fetches all pages and returns combined data array.
  * Use for listing deals, persons, etc. where results may span multiple pages.

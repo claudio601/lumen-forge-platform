@@ -362,3 +362,72 @@ function sleep(ms: number): Promise<void> {
 }
 
 export { LOCK_WAIT_MS, LOCK_RETRY_CHECK_MS };
+
+// --- Contadores con vencimiento (adjuntos del cotizador) ---
+// Solo números: nunca datos personales (api/_lib/attachments/quota.ts). Sin log propio:
+// quien llama decide qué registrar. Redis caído o sin configurar: { ok: false }.
+
+export type CounterResult = { ok: true; value: number } | { ok: false; error: string };
+
+/** INCRBY y, si la clave todavía no vence, EXPIRE: en un solo EVAL atómico. */
+const INCREMENT_WITH_TTL_SCRIPT =
+  `local v = redis.call('INCRBY', KEYS[1], ARGV[1]) ` +
+  `if redis.call('TTL', KEYS[1]) < 0 then redis.call('EXPIRE', KEYS[1], ARGV[2]) end ` +
+  `return v`;
+
+/**
+ * Suma `by` al contador `key` y devuelve el valor nuevo. La primera suma le fija el
+ * vencimiento (`ttlSeconds`); las siguientes no lo alargan.
+ */
+export async function incrementCounter(key: string, by: number, ttlSeconds: number): Promise<CounterResult> {
+  const res = await redisCommand<number>('EVAL', INCREMENT_WITH_TTL_SCRIPT, '1', key, Math.trunc(by), Math.trunc(ttlSeconds));
+  if (res.ok === false) return { ok: false, error: res.error };
+  return { ok: true, value: Number(res.result) };
+}
+
+/** Valor de un contador (0 si la clave no existe o venció; `exists` lo distingue de un 0 guardado). */
+export async function readCounter(
+  key: string
+): Promise<{ ok: true; value: number; exists: boolean } | { ok: false; error: string }> {
+  const res = await redisCommand<string | null>('GET', key);
+  if (res.ok === false) return { ok: false, error: res.error };
+  const value = Number(res.result ?? 0);
+  return { ok: true, value: Number.isFinite(value) ? value : 0, exists: res.result !== null && res.result !== undefined };
+}
+
+/** Varios contadores en un MGET: null en la posición de una clave que no existe. */
+export async function readCounters(
+  keys: string[]
+): Promise<{ ok: true; values: (number | null)[] } | { ok: false; error: string }> {
+  if (!keys.length) return { ok: true, values: [] };
+  const res = await redisCommand<(string | null)[]>('MGET', ...keys);
+  if (res.ok === false) return { ok: false, error: res.error };
+  const raw = Array.isArray(res.result) ? res.result : [];
+  return {
+    ok: true,
+    values: keys.map((_, i) => {
+      const v = raw[i];
+      if (v === null || v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }),
+  };
+}
+
+/** Fija un contador solo si la clave no existe (SET key value NX EX ttl). `set`: si lo fijó. */
+export async function setCounterIfAbsent(
+  key: string,
+  value: number,
+  ttlSeconds: number
+): Promise<{ ok: true; set: boolean } | { ok: false; error: string }> {
+  const res = await redisCommand<string | null>('SET', key, Math.trunc(value), 'NX', 'EX', Math.trunc(ttlSeconds));
+  if (res.ok === false) return { ok: false, error: res.error };
+  return { ok: true, set: res.result === 'OK' };
+}
+
+/** Fija un contador con vencimiento (SET key value EX ttl). */
+export async function writeCounter(key: string, value: number, ttlSeconds: number): Promise<CounterResult> {
+  const res = await redisCommand<string>('SET', key, Math.trunc(value), 'EX', Math.trunc(ttlSeconds));
+  if (res.ok === false) return { ok: false, error: res.error };
+  return { ok: true, value: Math.trunc(value) };
+}

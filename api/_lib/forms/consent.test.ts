@@ -81,6 +81,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.5 (PR 14): la Política agrega «Publicidad en Meta» (píxel de Meta con su consentimiento) y
   // la retención de 14 meses de Google Analytics; las casillas no cambian.
   '1.5': CONSENT_TEXTS_SINCE_1_2,
+  // 1.6 (adjuntos del cotizador): la Política agrega los archivos que se adjuntan en el sitio
+  // (§2, §5 y §7: Vercel Blob temporal y la pestaña Archivos de Pipedrive); las casillas no cambian.
+  '1.6': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { assetRefs, buildTargets, bypassHeaders, compareStable, inspectHtml, legacyTargets, rowIssues, type Row } from './smoke';
+import { assetRefs, buildTargets, bypassHeaders, compareStable, inspectHtml, legacyTargets, newFunctions, rowIssues, type Row } from './smoke';
 import { LEGACY_URLS } from './redirects/build';
 
 const row = (path: string, kind: Row['kind'], status: number, type = 'application/json', extra: Partial<Row> = {}): Row => ({
@@ -80,9 +80,11 @@ describe('chequeo de humo', () => {
       const row = LEGACY_URLS.find(u => u.source === path);
       expect(row?.gone ?? row?.pending, path).toBeTruthy();
     }
-    expect(paths('api')).toHaveLength(8);
+    expect(paths('api')).toHaveLength(9);
     expect(paths('api')).toContain('/api/project-quotes/create');
+    expect(paths('api')).toContain('/api/project-quotes/upload');
     expect(paths('api')).not.toContain('/api/cron/followups'); // responde 501: no es una falla
+    expect(paths('api')).not.toContain('/api/cron/blob-sweep'); // 401 sin CRON_SECRET: tampoco
     expect(paths('file')).toEqual(expect.arrayContaining(['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico']));
     expect(new Set(t.map(x => x.path)).size).toBe(t.length);
   });
@@ -210,5 +212,14 @@ describe('chequeo de humo', () => {
     const prod = [row('/api/whatsapp/webhook', 'api', 405), row('/', 'page', 200, 'text/html'), row('/assets/a.js', 'file', 200)];
     const prev = [row('/api/whatsapp/webhook', 'api', 404, 'text/html'), row('/', 'page', 404, 'text/html'), row('/assets/a.js', 'file', 404)];
     expect(compareStable(prev, prod)).toEqual(['/api/whatsapp/webhook: 405 application/json -> 404 text/html']);
+  });
+
+  it('una función nueva (404 en producción, 405 en la preview) se informa sin fallar; una que desaparece, falla', () => {
+    const prod = [row('/api/project-quotes/upload', 'api', 404, 'text/plain; charset=utf-8'), row('/api/cron/followups', 'api', 405)];
+    const preview = [row('/api/project-quotes/upload', 'api', 405), row('/api/cron/followups', 'api', 404, 'text/plain; charset=utf-8')];
+    expect(compareStable(preview, prod)).toEqual(['/api/cron/followups: 405 application/json -> 404 text/plain; charset=utf-8']);
+    expect(newFunctions(preview, prod)).toEqual(['/api/project-quotes/upload']);
+    // Un archivo que pasa de 404 a 405 no es una función nueva
+    expect(compareStable([row('/robots.txt', 'file', 405)], [row('/robots.txt', 'file', 404)])).toHaveLength(1);
   });
 });

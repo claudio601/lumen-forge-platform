@@ -1,10 +1,10 @@
-// api/estudio-luminico/validation.ts
+// api/_lib/forms/estudioLuminicoValidation.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Validacion server-side del EstudioLuminicoPayload.
 // Espeja las reglas de validacion del formulario frontend.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types.js';
+import type { EstudioLuminicoPayload } from '../crm/estudio-luminico-types.js';
 
 export interface EstudioValidationResult {
   valid: boolean;

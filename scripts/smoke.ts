@@ -126,7 +126,10 @@ export interface Row extends Target, PageInfo {
   bytes: number;
 }
 
-/** Funciones de api/ que responden 405 a un GET. api/cron/followups no: responde 501. */
+/**
+ * Funciones de api/ que responden 405 a un GET. Las dos de api/cron/ no: followups responde
+ * 501 y blob-sweep, 401 sin CRON_SECRET (el cron de Vercel la llama con GET).
+ */
 export const API_FUNCTIONS = [
   '/api/jumpseller/webhook',
   '/api/whatsapp/webhook',
@@ -136,6 +139,7 @@ export const API_FUNCTIONS = [
   '/api/installation-leads/create',
   '/api/estudio-luminico/create',
   '/api/project-quotes/create',
+  '/api/project-quotes/upload',
 ];
 
 /** Rutas a revisar: las mismas en cada ejecución para poder comparar. */
@@ -371,6 +375,13 @@ export async function runSmoke(base: string, opts: { all?: boolean; legacy?: boo
 }
 
 /** Filas de api/ y archivos que cambian de estado o tipo entre dos despliegues. */
+/**
+ * Función de api/ que agrega esta versión: en la base (producción) todavía no existe (404) y
+ * en el destino responde el 405 de toda función a un GET. Es la diferencia esperada de la PR
+ * que la crea: se informa, pero no hace fallar la comparación.
+ */
+const isNewFunction = (r: Row, o: Row) => r.kind === 'api' && o.status === 404 && r.status === 405;
+
 export function compareStable(a: Row[], b: Row[]): string[] {
   const byPath = new Map(b.map(r => [r.path, r]));
   const diffs: string[] = [];
@@ -379,11 +390,21 @@ export function compareStable(a: Row[], b: Row[]): string[] {
     if (r.path.startsWith('/assets/')) continue; // el hash cambia en cada build
     const o = byPath.get(r.path);
     if (!o) continue;
+    if (isNewFunction(r, o)) continue;
     if (r.status !== o.status || r.type !== o.type) {
       diffs.push(`${r.path}: ${o.status} ${o.type} -> ${r.status} ${r.type}`);
     }
   }
   return diffs;
+}
+
+/** Funciones nuevas respecto de la base (ver isNewFunction): solo se informan. */
+export function newFunctions(a: Row[], b: Row[]): string[] {
+  const byPath = new Map(b.map(r => [r.path, r]));
+  return a.filter(r => {
+    const o = byPath.get(r.path);
+    return o !== undefined && isNewFunction(r, o);
+  }).map(r => r.path);
 }
 
 function printRows(label: string, rows: Row[], all: boolean, legacy = false) {
@@ -453,6 +474,8 @@ async function main() {
     const diffs = compareStable(rows, other);
     console.log(`\nComparado con ${compareBase}: ${diffs.length ? diffs.length + ' diferencias en api/ o archivos' : 'api/ y archivos iguales'}`);
     diffs.forEach(d => console.log(`  ${d}`));
+    const added = newFunctions(rows, other);
+    if (added.length) console.log(`  Funciones nuevas (404 allá, 405 acá; esperado en la PR que las crea): ${added.join(', ')}`);
     failed = [...failed, ...diffs];
   }
   if (failed.length) {
