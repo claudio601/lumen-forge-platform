@@ -26,7 +26,8 @@ export interface SeoProps {
    * el JPEG de la marca (DEFAULT_OG), con sus medidas.
    */
   image?: OgImage;
-  type?: 'website' | 'product';
+  /** og:type: 'article' en las guías (plan del blog, §5.3). */
+  type?: 'website' | 'product' | 'article';
   jsonLd?: JsonLd[];
 }
 

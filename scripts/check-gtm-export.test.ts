@@ -9,6 +9,7 @@ import {
   CONTENT_NAME_TABLES,
   CONTENT_NAME_VALUES,
   EVENT_PARAMS,
+  PENDING_SITE_EVENTS,
   SITE_EVENTS,
   formatExportReport,
   hostRule,
@@ -61,6 +62,21 @@ describe('check-gtm-export: el contenedor de la tabla 6.4 pasa', () => {
     const a = (await import(/* @vite-ignore */ ANALYTICS)) as { SITE_EVENTS: readonly string[]; EVENT_PARAMS: readonly string[] };
     expect([...SITE_EVENTS]).toEqual([...a.SITE_EVENTS]);
     expect([...EVENT_PARAMS]).toEqual([...a.EVENT_PARAMS]);
+    // Los eventos nuevos que la agencia aún no tiene son eventos del sitio
+    for (const e of PENDING_SITE_EVENTS) expect(SITE_EVENTS).toContain(e);
+  });
+
+  it('el contenedor de la v1.3 (T09 sin guia_cta_click, evento nuevo de las guías) pasa con una nota; con él, sin la nota', () => {
+    const t09 = (e: GtmExport) => param(triggerNamed(e, 'T09').customEventFilter![0], 'arg1');
+    expect(t09(FIXTURE).value).not.toContain('guia_cta_click');
+    let v = reviewExport(FIXTURE);
+    expect(v.approved).toBe(true);
+    expect(v.notes.join(' ')).toMatch(/«T09[^»]*» no incluye guia_cta_click: .* no llega a GA4/);
+    const e = clone();
+    t09(e).value = t09(e).value.replace(')$', '|guia_cta_click)$');
+    v = reviewExport(e);
+    expect(v.approved).toBe(true);
+    expect(v.notes.join(' ')).not.toMatch(/guia_cta_click/);
   });
 
   it('content_name: 8 valores, los 5 tipos de formulario y los 3 medios de contacto, ni uno más', () => {
@@ -265,10 +281,25 @@ describe('check-gtm-export: activadores', () => {
     expect(issuesOf(e, 'GA01')).toEqual(['debe dispararse una vez por página (ONCE_PER_LOAD)']);
   });
 
-  it('T09 debe aceptar justo los eventos del sitio: sin los elights_* ni gtm.*', () => {
+  it('T09 debe aceptar justo los eventos del sitio: sin los elights_* ni gtm.*, y el informe dice qué sobra', () => {
     const e = clone();
     param(triggerNamed(e, 'T09').customEventFilter![0], 'arg1').value = '.*';
-    expect(issuesOf(e, 'GA03')).toEqual(['un activador de disparo no es de la tabla 6.3', 'activadores ninguno (deben ser site_events)']);
+    expect(issuesOf(e, 'GA03')).toEqual([
+      'un activador de disparo no es de la tabla 6.3',
+      'activadores ninguno (deben ser site_events)',
+      expect.stringMatching(/^«T09[^»]*» acepta eventos que no son del sitio: elights_page_view, elights_consent_update, elights_meta_granted y \d+ más$/),
+    ]);
+  });
+
+  it('T09 sin un evento acordado no pasa, y el informe lo nombra', () => {
+    const e = clone();
+    const p = param(triggerNamed(e, 'T09').customEventFilter![0], 'arg1');
+    p.value = p.value.replace('|instalacion_cta_final_click', '');
+    expect(issuesOf(e, 'GA03')).toEqual([
+      'un activador de disparo no es de la tabla 6.3',
+      'activadores ninguno (deben ser site_events)',
+      expect.stringMatching(/^a «T09[^»]*» le faltan eventos del sitio \(tabla 3\.4\): instalacion_cta_final_click$/),
+    ]);
   });
 
   it('Meta: PageView con T03 y T11, Contact con los 3 clics y Lead con T10', () => {
