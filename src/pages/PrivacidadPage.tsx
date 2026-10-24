@@ -81,6 +81,9 @@
 //   comentarios, archivos ni datos del proyecto. Vence a los 12 meses y AppLayout borra lo vencido
 //   al abrir cualquier página. Desmarcar o «Borrar mis datos guardados»
 //   (DeleteSavedContactButton) lo borran. Retirar un permiso de cookies no lo toca.
+// - Búsquedas medidas (§10; src/lib/searchTracking.ts, claimSearch): sessionStorage
+//   'elights_search_tracked', hasta 50 marcas «clave de la entrada del historial + resumen (hash)
+//   de la consulta», sin el texto; se escribe con o sin consentimiento y queda solo en el navegador.
 // - Archivo de versiones: public/legal/<página>-v<X.Y>.html (npm run legal:archive).
 // Al cambiar este texto, sube LEGAL_VERSION (api/_lib/forms/consent.ts) y corre
 // npm run legal:archive.
@@ -531,6 +534,8 @@ const PrivacidadPage = () => (
       <li>
         Usa el <strong>almacenamiento de sesión</strong> de tu navegador, que se borra al cerrar la pestaña, para recordar tu lista
         de cotización, tu lista de pedido y si ves los precios con o sin IVA. Es necesario para que el sitio funcione como pides.
+        También anota qué búsquedas ya contamos en esa pestaña (un resumen, sin el texto que escribiste), para no contar dos veces
+        la misma; esa anotación queda solo en tu navegador.
       </li>
       <li>
         También anota ahí el <strong>origen de tu visita</strong> (punto 2). No es una cookie y solo sale de tu navegador cuando
