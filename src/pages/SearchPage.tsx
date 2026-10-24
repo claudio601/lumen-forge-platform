@@ -9,7 +9,7 @@ import { contactEmail, responseTimePromise } from '@/config/business';
 import { ADVISORY_LINK } from '@/config/navigation';
 import { searchProducts, searchRequestMailto, searchSuggestions, searchWords } from '@/lib/productSearch';
 import { trackSearch } from '@/lib/analytics';
-import { claimSearch } from '@/lib/searchTracking';
+import { claimSearch, isHeaderMeasured, SEARCH_SETTLE_MS } from '@/lib/searchTracking';
 import { isNotFoundSearch } from '@/lib/notFound';
 
 /**
@@ -68,12 +68,6 @@ const NoResults = ({ query, onSearch }: { query: string; onSearch: (q: string) =
   );
 };
 
-/**
- * Una búsqueda se mide (search, auditoría UX KPI 9) cuando el texto queda quieto este tiempo: la
- * lista cambia con cada letra, y «pan», «pane», «panel» serían tres búsquedas.
- */
-const SEARCH_SETTLE_MS = 1000;
-
 const SearchPage = () => {
   const [params] = useSearchParams();
   const initialQ = params.get('q') || '';
@@ -98,18 +92,21 @@ const SearchPage = () => {
   // Medición (search con results_count, nunca el texto): una vez por búsqueda, cuando el texto
   // queda quieto. Cada consulta (sin tildes ni mayúsculas, por palabras) se cuenta una vez por
   // entrada del historial (claimSearch, en sessionStorage): volver desde una ficha con «Atrás» o
-  // recargar no la repite; buscarla de nuevo desde el encabezado (otra entrada) sí. El texto que
-  // precargó la 404, sin cambios, no se mide (lo eligió la 404). Sin consentimiento o fuera de
-  // elights.cl, trackSearch no envía nada.
+  // recargar no la repite; buscarla de nuevo desde el encabezado (otra entrada) sí. Sin cambios,
+  // no se mide el texto que precargó la 404 (lo eligió la 404) ni el que ya midieron las
+  // sugerencias del encabezado. Sin consentimiento o fuera de elights.cl, trackSearch no envía nada.
   const searchKey = useMemo(() => searchWords(query).join(' '), [query]);
-  const notFoundKey = useMemo(() => (isNotFoundSearch(navState) ? searchWords(initialQ).join(' ') : null), [navState, initialQ]);
+  const skipKey = useMemo(
+    () => (isNotFoundSearch(navState) || isHeaderMeasured(navState) ? searchWords(initialQ).join(' ') : null),
+    [navState, initialQ],
+  );
   useEffect(() => {
-    if (!searchKey || searchKey === notFoundKey) return;
+    if (!searchKey || searchKey === skipKey) return;
     const timer = window.setTimeout(() => {
       if (claimSearch(navKey, searchKey)) trackSearch(n, pathname);
     }, SEARCH_SETTLE_MS);
     return () => window.clearTimeout(timer);
-  }, [searchKey, notFoundKey, navKey, n, pathname]);
+  }, [searchKey, skipKey, navKey, n, pathname]);
 
   return (
     <div className="container py-8">
