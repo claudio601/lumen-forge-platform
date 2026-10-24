@@ -1,4 +1,4 @@
-import { Zap, Shield, Truck, Phone, Award, Clock, Users, Lightbulb } from 'lucide-react';
+import { Zap, Shield, Truck, Mail, Award, Clock, Users, Lightbulb } from 'lucide-react';
 import { trustClaims } from '@/config/business';
 
 // Items que provienen de business.ts (fuente única de verdad)
@@ -12,7 +12,7 @@ const reasonsFromConfig = [
 
 // Items complementarios (no comerciales, no requieren centralización)
 const reasonsLocal = [
-  { icon: Phone,     title: 'Soporte técnico',    desc: 'Asesoría para elegir el producto correcto, por WhatsApp o correo.' },
+  { icon: Mail,      title: 'Soporte técnico',    desc: 'Asesoría por correo para elegir el producto correcto.' },
   { icon: Users,     title: 'Precios para empresas', desc: 'Ve los precios netos (sin IVA) y pide una cotización formal con factura.' },
   { icon: Lightbulb, title: 'Estudio lumínico DIALux', desc: 'Simulamos tu recinto con las luminarias propuestas y te enviamos el informe en PDF.' },
 ];

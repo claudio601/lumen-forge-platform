@@ -53,7 +53,7 @@ const Footer = () => {
               style={{backgroundColor:'rgba(37,211,102,0.1)',color:'#25D366',border:'1px solid rgba(37,211,102,0.2)'}}
             >
               <MessageCircle className="h-3.5 w-3.5" />
-              WhatsApp directo
+              Escríbenos por WhatsApp
             </a>
           </div>
           <div>
