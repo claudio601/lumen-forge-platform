@@ -207,7 +207,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     const text = root.textContent ?? '';
     expect(text).toContain('Despacho en hasta 2 días hábiles');
     expect(text).toContain('Garantía según ficha (mín. 6 meses)');
-    expect(text).toContain('Asesoría técnica por WhatsApp');
+    expect(text).toContain('Asesoría técnica por correo');
     expect(text).toContain('Garantía según producto');
     expect(text).toContain('Certificaciones por producto'); // no "Productos certificados" para todo el catálogo
     expect(text).toContain('Cotización formal y despacho a todo Chile'); // barra superior
@@ -303,7 +303,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text).not.toMatch(/experiencia en/i);
     expect(text).toContain('¿Sirve para licitaciones?');
     expect(text).toContain('indícala en el formulario');
-    expect(text).toContain('¿Prefieres consultar directamente?');
+    expect(text).toContain('¿Prefieres dejar tu solicitud por WhatsApp?');
     const faq = [...root.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent === 'Preguntas frecuentes')!;
     expect(faq.textContent).not.toMatch(/\bSi\. |\b(?:Cuanto|que formato|Que normativas)\b/);
     // El texto propio de la página (los formularios tienen sus propios tests de etiquetas)

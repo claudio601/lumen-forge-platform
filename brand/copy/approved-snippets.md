@@ -20,7 +20,7 @@ Catálogo técnico de iluminación LED profesional. Despacho a todo Chile, preci
 
 - Despacho en hasta 2 días hábiles
 - Garantía según ficha (mín. 6 meses)
-- Asesoría técnica por WhatsApp
+- Asesoría técnica por correo (en WhatsApp atiende un asistente automático que solo toma solicitudes)
 - Despacho desde Santiago
 
 Pendientes de confirmar (PR 11, 2026-10):

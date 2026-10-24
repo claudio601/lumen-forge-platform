@@ -295,7 +295,7 @@ const EstudioLuminicoPage = () => {
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold border-2 text-white transition-all hover:bg-white/10"
               style={{ borderColor: 'rgba(37,211,102,0.5)', color: '#4ADE80' }}
             >
-              Consultar por WhatsApp
+              Escríbenos por WhatsApp
             </a>
           </div>
 
@@ -635,9 +635,9 @@ const EstudioLuminicoPage = () => {
             <EstudioLuminicoLeadForm />
           </div>
 
-          {/* 11. CTA alternativo WhatsApp */}
+          {/* 11. CTA alternativo WhatsApp (ahí un asistente automático toma la solicitud) */}
           <p className="text-center text-gray-400 text-xs mt-5">
-            ¿Prefieres consultar directamente?{' '}
+            ¿Prefieres dejar tu solicitud por WhatsApp?{' '}
             <a
               href={waEstudioLuminico}
               target="_blank"
@@ -645,7 +645,7 @@ const EstudioLuminicoPage = () => {
               className="font-semibold hover:underline"
               style={{ color: '#67E8F9' }}
             >
-              Consultar por WhatsApp
+              Escríbenos por WhatsApp
             </a>
           </p>
         </div>

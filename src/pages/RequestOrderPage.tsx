@@ -50,7 +50,7 @@ import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import ProcessSteps from '@/components/forms/ProcessSteps';
 
 const SEO_TITLE = 'Solicitud de Pedido | eLIGHTS Chile';
-const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización.';
+const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te enviamos la cotización por correo.';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 const REGIONS = [

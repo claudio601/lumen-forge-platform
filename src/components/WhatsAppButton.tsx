@@ -17,6 +17,8 @@ const WhatsAppButton = () => {
             <span className="font-semibold text-sm">Escríbenos por WhatsApp</span>
             <button onClick={() => setExpanded(false)}><X className="h-4 w-4" /></button>
           </div>
+          {/* Ahí atiende un asistente automático que toma la solicitud; el equipo responde por correo (dueño, 2026-10-24) */}
+          <p className="text-xs text-muted-foreground mb-2">Un asistente automático toma tu solicitud y te enviamos la cotización por correo.</p>
           <p className="text-xs text-muted-foreground mb-3">{businessHours}</p>
           <a
             href={waBase}
