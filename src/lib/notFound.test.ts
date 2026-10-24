@@ -2,7 +2,7 @@
 // Las palabras de una URL sin página (auditoría UX, B-10): precargan el buscador de la 404.
 
 import { describe, expect, it } from 'vitest';
-import { NOT_FOUND_URL, searchTermsFromPath } from './notFound';
+import { NOT_FOUND_SEARCH_STATE, NOT_FOUND_URL, isNotFoundSearch, searchTermsFromPath } from './notFound';
 
 describe('searchTermsFromPath: las palabras de la URL para el buscador de la 404', () => {
   it('un producto que salió del catálogo: las palabras de su id, sin /producto', () => {
@@ -41,5 +41,12 @@ describe('searchTermsFromPath: las palabras de la URL para el buscador de la 404
     expect(searchTermsFromPath('/')).toBe('');
     expect(searchTermsFromPath('/producto/')).toBe('');
     expect(searchTermsFromPath('/---/')).toBe('');
+  });
+});
+
+describe('isNotFoundSearch: la navegación a /buscar con el texto que precargó la 404', () => {
+  it('solo con NOT_FOUND_SEARCH_STATE', () => {
+    expect(isNotFoundSearch(NOT_FOUND_SEARCH_STATE)).toBe(true);
+    for (const other of [null, undefined, 'fromNotFound', {}, { fromNotFound: 'true' }]) expect(isNotFoundSearch(other)).toBe(false);
   });
 });

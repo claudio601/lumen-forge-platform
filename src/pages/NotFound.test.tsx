@@ -1,19 +1,24 @@
 // src/pages/NotFound.test.tsx
-// Página 404 útil (auditoría UX, B-10): el buscador precargado con las palabras de la URL, las 6
-// categorías principales (las del pie) y el correo a ventas para un producto que ya no está. Sin
-// WhatsApp en la página (queda para después de la marcha blanca del bot). Que responda 404 y con
-// noindex lo prueban ssr-hydration.test.tsx, check:prerender y el chequeo de humo.
+// Página 404 útil (auditoría UX, B-10): el buscador precargado con las palabras de la URL que
+// encuentran productos, las 6 categorías principales (las del pie) y el correo a ventas para un
+// producto que ya no está. Sin WhatsApp en la página (queda para después de la marcha blanca del
+// bot). Que responda 404 y con noindex lo prueban ssr-hydration.test.tsx, check:prerender y el
+// chequeo de humo.
 
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { categories, mainCategories } from '@/data/catalog/categories.config';
+import { products } from '@/data/products';
+import { isNotFoundSearch } from '@/lib/notFound';
+import { notFoundSearch } from '@/lib/notFoundSearch';
+import { searchProducts } from '@/lib/productSearch';
 import NotFound from './NotFound';
 
 function SearchProbe() {
-  const { pathname, search } = useLocation();
-  return <p data-testid="buscar">{pathname + search}</p>;
+  const { pathname, search, state } = useLocation();
+  return <p data-testid="buscar" data-from-not-found={String(isNotFoundSearch(state))}>{pathname + search}</p>;
 }
 
 function renderAt(url: string) {
@@ -30,6 +35,13 @@ function renderAt(url: string) {
 }
 
 const field = () => screen.getByRole('searchbox', { name: 'Buscar productos' }) as HTMLInputElement;
+/** La 404 precarga el buscador al cargar notFoundSearch (import()). */
+const prefilled = (value: string) => waitFor(() => expect(field().value).toBe(value));
+/** Un producto dado de baja: la URL de una ficha real con otra potencia. */
+const RETIRED = (() => {
+  const p = products.find(x => /-\d+w-/.test(x.id))!;
+  return `/producto/${p.id.replace(/-(\d+)w-/, (_m, n) => `-${Number(n) + 7}w-`)}`;
+})();
 
 describe('404 útil (B-10)', () => {
   it('el h1 sigue siendo «404» (check:prerender lo exige en 404.html)', () => {
@@ -38,19 +50,41 @@ describe('404 útil (B-10)', () => {
     expect(screen.getByText('Página no encontrada')).toBeInTheDocument();
   });
 
-  it('el buscador llega con las palabras de la URL y busca en /buscar', () => {
-    renderAt('/producto/lineal-led-flat-40w-120-cm-ip20-6500k?gclid=abc#x');
-    expect(field().value).toBe('lineal led flat 40w 120 cm ip20 6500k');
+  it('un producto dado de baja: el buscador llega con las palabras de la URL que encuentran productos', async () => {
+    renderAt(`${RETIRED}?gclid=abc#x`);
+    const q = notFoundSearch(RETIRED);
+    expect(q).not.toBe('');
+    expect(searchProducts(products, q).length).toBeGreaterThan(0);
+    await prefilled(q);
     fireEvent.submit(screen.getByRole('search'));
-    expect(screen.getByTestId('buscar')).toHaveTextContent('/buscar?q=lineal%20led%20flat%2040w%20120%20cm%20ip20%206500k');
+    expect(screen.getByTestId('buscar')).toHaveTextContent(`/buscar?q=${encodeURIComponent(q)}`);
+    // Sin cambios: /buscar no mide esa búsqueda (la eligió la 404)
+    expect(screen.getByTestId('buscar')).toHaveAttribute('data-from-not-found', 'true');
   });
 
-  it('se puede cambiar la búsqueda; vacía, lleva a /buscar', () => {
+  it('si nada de la URL encuentra productos, el buscador queda vacío; lo escrito sí se mide', async () => {
     renderAt('/una/url/que/no/existe');
-    expect(field().value).toBe('una url que no existe');
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Escríbenos a ventas@elights.cl' }).getAttribute('href')).toContain('existe'));
+    await prefilled('');
     fireEvent.change(field(), { target: { value: '  proyector 200W ' } });
     fireEvent.submit(screen.getByRole('search'));
     expect(screen.getByTestId('buscar')).toHaveTextContent('/buscar?q=proyector%20200W');
+    expect(screen.getByTestId('buscar')).toHaveAttribute('data-from-not-found', 'false');
+  });
+
+  it('vacía, lleva a /buscar', async () => {
+    renderAt('/producto/no-existe');
+    await prefilled('');
+    fireEvent.submit(screen.getByRole('search'));
+    expect(screen.getByTestId('buscar')).toHaveTextContent(/^\/buscar$/);
+  });
+
+  it('si la persona escribe antes de que cargue la búsqueda, no se le cambia el texto', async () => {
+    renderAt(RETIRED);
+    fireEvent.change(field(), { target: { value: 'campana' } });
+    await import('@/lib/notFoundSearch');
+    await new Promise(r => setTimeout(r, 0));
+    expect(field().value).toBe('campana');
   });
 
   it('sin JavaScript también busca: formulario GET a /buscar con el campo q', () => {
@@ -73,13 +107,17 @@ describe('404 útil (B-10)', () => {
     expect(Math.min(...counts)).toBeGreaterThanOrEqual(Math.max(...categories.filter(c => !mainCategories().includes(c)).map(c => c.productCount)));
   });
 
-  it('«¿Buscabas un producto que ya no está?»: correo a ventas, prellenado con lo que se busca, sin WhatsApp', () => {
+  it('«¿Buscabas un producto que ya no está?»: correo a ventas, con todas las palabras de la URL o lo escrito, sin WhatsApp', async () => {
     const { container } = renderAt('/producto/foco-que-no-existe');
     const section = screen.getByRole('heading', { name: '¿Buscabas un producto que ya no está?' }).closest('section')!;
     const mail = within(section).getByRole('link', { name: 'Escríbenos a ventas@elights.cl' });
-    const href = mail.getAttribute('href')!;
-    expect(href.startsWith('mailto:ventas@elights.cl?subject=')).toBe(true);
-    expect(new URLSearchParams(href.split('?')[1]).get('subject')).toBe('Busco: foco que no existe');
+    const subject = () => new URLSearchParams(mail.getAttribute('href')!.split('?')[1]).get('subject');
+    await prefilled(notFoundSearch('/producto/foco-que-no-existe'));
+    expect(mail.getAttribute('href')!.startsWith('mailto:ventas@elights.cl?subject=')).toBe(true);
+    // El buscador lleva solo lo que encuentra productos; el correo, qué producto era
+    expect(subject()).toBe('Busco: foco que no existe');
+    fireEvent.change(field(), { target: { value: 'foco solar' } });
+    expect(subject()).toBe('Busco: foco solar');
     fireEvent.change(field(), { target: { value: '' } });
     expect(mail.getAttribute('href')).toBe('mailto:ventas@elights.cl');
     expect(section).toHaveTextContent('Te respondemos por correo el mismo día hábil.');

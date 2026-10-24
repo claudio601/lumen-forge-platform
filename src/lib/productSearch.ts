@@ -479,6 +479,31 @@ export function searchProducts(products: readonly Product[], query: string): Pro
   return runClauses(index, parseQuery(index, query));
 }
 
+// ── La 404 (B-10) ─────────────────────────────────────────────────────────────
+
+/**
+ * Lo que de una consulta larga sí encuentra productos, para precargar el buscador de la 404 con
+ * las palabras de la URL (auditoría UX, B-10): la búsqueda exige todas las palabras, y la URL de
+ * un producto dado de baja trae su potencia, su medida o su IP, que ya no están. En orden, cada
+ * palabra se queda si con ella la búsqueda sigue trayendo productos. Como se escribieron (con
+ * tildes) y con las medidas juntas («120 cm»). Sin palabras de una letra, y sin empezar por una de
+ * menos de 3 («no» trae cualquier cosa). '' si ninguna encuentra nada o si solo quedan genéricas
+ * («led»).
+ */
+export function searchThatFinds(products: readonly Product[], query: string): string {
+  const index = searchIndex(products);
+  let kept: string[] = [];
+  let specific = false;
+  for (const span of searchWordSpans(query)) {
+    if (span.word.length < 2 || (!kept.length && span.word.length < 3)) continue;
+    const next = [...kept, query.slice(span.start, span.end)];
+    if (!runClauses(index, parseQuery(index, next.join(' '))).length) continue;
+    kept = next;
+    specific ||= !isGeneric(span.word);
+  }
+  return specific ? kept.join(' ') : '';
+}
+
 // ── Sin resultados (B-04) ─────────────────────────────────────────────────────
 
 /**

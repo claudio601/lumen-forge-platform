@@ -19,6 +19,7 @@ import App from '@/App';
 import { serverTree } from '@/entry-server';
 import { preloadRoute, staticPage } from '@/routes';
 import { NOT_FOUND_ATTR, NOT_FOUND_URL } from '@/lib/notFound';
+import { notFoundSearch } from '@/lib/notFoundSearch';
 import { prerenderedRoutes, STATIC_ROUTES } from '@/lib/seo/routes';
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
@@ -230,8 +231,9 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex, follow');
   });
 
-  it('404.html (auditoría UX, B-10): el buscador llega vacío en el HTML y, al hidratar, con las palabras de la URL', async () => {
-    const url = '/producto/lineal-led-flat-40w-120-cm-ip20-6500k?gclid=abc';
+  it('404.html (auditoría UX, B-10): el buscador llega vacío en el HTML y, al hidratar, con las palabras de la URL que encuentran productos', async () => {
+    const path = '/producto/lineal-led-flat-40w-120-cm-ip20-6500k';
+    const url = `${path}?gclid=abc`;
     const { container, html, errors, mismatches } = await hydrate(NOT_FOUND_URL, url, false, true);
     expect(errors).toEqual([]);
     expect(mismatches).toEqual([]);
@@ -241,7 +243,9 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(server.querySelectorAll('main section a[href^="/catalogo/"]')).toHaveLength(6);
     expect(server.querySelector('main a[href="mailto:ventas@elights.cl"]')?.textContent).toBe('Escríbenos a ventas@elights.cl');
     const field = () => container.querySelector<HTMLInputElement>('main input[name="q"]')!;
-    await waitFor(() => expect(field().value).toBe('lineal led flat 40w 120 cm ip20 6500k'));
+    const expected = notFoundSearch(path);
+    expect(expected).not.toBe('');
+    await waitFor(() => expect(field().value).toBe(expected));
     expect(container.querySelector('main h1')?.textContent).toBe('404');
   });
 

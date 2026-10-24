@@ -9,6 +9,8 @@ import { contactEmail, responseTimePromise } from '@/config/business';
 import { ADVISORY_LINK } from '@/config/navigation';
 import { searchProducts, searchRequestMailto, searchSuggestions, searchWords } from '@/lib/productSearch';
 import { trackSearch } from '@/lib/analytics';
+import { claimSearch } from '@/lib/searchTracking';
+import { isNotFoundSearch } from '@/lib/notFound';
 
 /**
  * Salida cuando la búsqueda no da resultados (auditoría UX, B-04): un correo prellenado a ventas,
@@ -84,7 +86,7 @@ const SearchPage = () => {
   };
   // Cada búsqueda desde el header estando ya en /buscar es una navegación nueva
   // (location.key cambia aunque ?q sea el mismo): el campo vuelve a seguir a ?q.
-  const { key: navKey, pathname } = useLocation();
+  const { key: navKey, pathname, state: navState } = useLocation();
   useEffect(() => { setQuery(initialQ); }, [initialQ, navKey]);
 
   // Búsqueda tolerante (auditoría UX, B-03): sin tildes, por palabras, con los SKU de las
@@ -94,20 +96,20 @@ const SearchPage = () => {
   const n = results.length;
 
   // Medición (search con results_count, nunca el texto): una vez por búsqueda, cuando el texto
-  // queda quieto. La misma consulta (sin tildes ni mayúsculas, por palabras) no se repite, salvo
-  // que llegue de nuevo desde el encabezado (otra navegación). Sin consentimiento o fuera de
+  // queda quieto. Cada consulta (sin tildes ni mayúsculas, por palabras) se cuenta una vez por
+  // entrada del historial (claimSearch, en sessionStorage): volver desde una ficha con «Atrás» o
+  // recargar no la repite; buscarla de nuevo desde el encabezado (otra entrada) sí. El texto que
+  // precargó la 404, sin cambios, no se mide (lo eligió la 404). Sin consentimiento o fuera de
   // elights.cl, trackSearch no envía nada.
   const searchKey = useMemo(() => searchWords(query).join(' '), [query]);
-  const lastTracked = useRef('');
+  const notFoundKey = useMemo(() => (isNotFoundSearch(navState) ? searchWords(initialQ).join(' ') : null), [navState, initialQ]);
   useEffect(() => {
-    const key = `${navKey} ${searchKey}`;
-    if (!searchKey || lastTracked.current === key) return;
+    if (!searchKey || searchKey === notFoundKey) return;
     const timer = window.setTimeout(() => {
-      lastTracked.current = key;
-      trackSearch(n, pathname);
+      if (claimSearch(navKey, searchKey)) trackSearch(n, pathname);
     }, SEARCH_SETTLE_MS);
     return () => window.clearTimeout(timer);
-  }, [searchKey, navKey, n, pathname]);
+  }, [searchKey, notFoundKey, navKey, n, pathname]);
 
   return (
     <div className="container py-8">

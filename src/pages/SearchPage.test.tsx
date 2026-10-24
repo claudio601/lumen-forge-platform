@@ -4,8 +4,9 @@
 // para después de la marcha blanca del bot. Nunca stock.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, within, fireEvent, act } from '@testing-library/react';
+import { render, screen, within, fireEvent, act, cleanup } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import type { ComponentProps } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
 import { AppProvider } from '@/context/AppContext';
 import { RequestCartProvider } from '@/context/RequestCartContext';
@@ -13,6 +14,7 @@ import { ADVISORY_LINK } from '@/config/navigation';
 import { products } from '@/data/products';
 import { searchProducts } from '@/lib/productSearch';
 import { trackSearch } from '@/lib/analytics';
+import { NOT_FOUND_SEARCH_STATE } from '@/lib/notFound';
 import SearchPage from './SearchPage';
 
 // El evento search (auditoría UX, KPI 9): se espía trackSearch; el envío real (consentimiento,
@@ -137,6 +139,34 @@ function HeaderSearch() {
   return <button type="button" onClick={() => navigate('/buscar?q=panel')}>buscar en el encabezado</button>;
 }
 
+function OpenProduct() {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate('/producto/x')}>abrir una ficha</button>;
+}
+
+function GoBack() {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(-1)}>atrás</button>;
+}
+
+/** /buscar con un botón para abrir una ficha, y la ficha con «Atrás». */
+function renderWithProduct(entry: NonNullable<ComponentProps<typeof MemoryRouter>['initialEntries']>[number]) {
+  return render(
+    <HelmetProvider>
+      <MemoryRouter initialEntries={[entry]}>
+        <AppProvider>
+          <RequestCartProvider>
+            <Routes>
+              <Route path="/buscar" element={<><OpenProduct /><SearchPage /></>} />
+              <Route path="/producto/:id" element={<GoBack />} />
+            </Routes>
+          </RequestCartProvider>
+        </AppProvider>
+      </MemoryRouter>
+    </HelmetProvider>,
+  );
+}
+
 describe('/buscar: medición de la búsqueda (search con results_count, KPI 9)', () => {
   /** Lo que espera la medición para que el texto quede quieto (SEARCH_SETTLE_MS). */
   const SETTLE = 1000;
@@ -207,5 +237,48 @@ describe('/buscar: medición de la búsqueda (search con results_count, KPI 9)',
     renderAt('/buscar');
     wait(SETTLE * 3);
     expect(trackSearch).not.toHaveBeenCalled();
+  });
+
+  it('ir a una ficha y volver con «Atrás» no repite la búsqueda (la misma entrada del historial)', () => {
+    renderWithProduct('/buscar?q=campana');
+    wait(SETTLE);
+    expect(trackSearch).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'abrir una ficha' }));
+    fireEvent.click(screen.getByRole('button', { name: 'atrás' }));
+    wait(SETTLE * 2);
+    expect(trackSearch).toHaveBeenCalledTimes(1);
+    // Una búsqueda que se escribió en esa entrada tampoco se repite al volver
+    type('panel');
+    wait(SETTLE);
+    expect(trackSearch).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'abrir una ficha' }));
+    fireEvent.click(screen.getByRole('button', { name: 'atrás' }));
+    type('panel');
+    wait(SETTLE * 2);
+    expect(trackSearch).toHaveBeenCalledTimes(2);
+  });
+
+  it('recargar la página (la misma entrada, la marca queda en sessionStorage) no repite la búsqueda', () => {
+    const entry = { pathname: '/buscar', search: '?q=campana', key: 'entrada1' };
+    const first = renderWithProduct(entry);
+    wait(SETTLE);
+    first.unmount();
+    renderWithProduct(entry);
+    wait(SETTLE * 2);
+    expect(trackSearch).toHaveBeenCalledTimes(1);
+    // Otra entrada (otra búsqueda desde el encabezado), la misma consulta: sí
+    cleanup();
+    renderWithProduct({ ...entry, key: 'entrada2' });
+    wait(SETTLE);
+    expect(trackSearch).toHaveBeenCalledTimes(2);
+  });
+
+  it('el texto que precargó la 404, sin cambios, no se mide; si la persona lo cambia, sí', () => {
+    renderWithProduct({ pathname: '/buscar', search: '?q=campana%20led', state: NOT_FOUND_SEARCH_STATE });
+    wait(SETTLE * 2);
+    expect(trackSearch).not.toHaveBeenCalled();
+    type('campana led 100w');
+    wait(SETTLE);
+    expect(vi.mocked(trackSearch).mock.calls).toEqual([[searchProducts(products, 'campana led 100w').length, '/buscar']]);
   });
 });

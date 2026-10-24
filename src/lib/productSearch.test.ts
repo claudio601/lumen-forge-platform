@@ -12,8 +12,10 @@ import {
   searchProducts,
   searchRequestMailto,
   searchSuggestions,
+  searchThatFinds,
   searchWords,
 } from './productSearch';
+import { searchTermsFromPath } from './notFound';
 
 const search = (q: string) => searchProducts(products, q);
 const ids = (list: readonly Product[]) => new Set(list.map(p => p.id));
@@ -418,5 +420,48 @@ describe('sin resultados (B-04)', () => {
     }
     const subject = new URLSearchParams(searchRequestMailto('a'.repeat(119) + '😀 más').split('?')[1]).get('subject');
     expect(subject).toBe(`Busco: ${'a'.repeat(119)}😀`);
+  });
+});
+
+describe('la 404 (B-10): lo que de las palabras de la URL sí encuentra productos', () => {
+  /** Un catálogo chico, para fijar la regla sin depender de Jumpseller. */
+  const fake = (sku: string, name: string): Product =>
+    ({ id: sku.toLowerCase(), sku, name, brand: '', kelvins: [], categories: [] }) as unknown as Product;
+  const mini = [
+    fake('NF8-150', 'CAMPANA LED UFO NF8 150W 110LM/W IP65'),
+    fake('NF8-200', 'CAMPANA LED UFO NF8 200W 110LM/W IP65'),
+    fake('LF40', 'LINEAL LED FLAT 40W 120 CM IP20'),
+    fake('APB60', 'ALUMBRADO PÚBLICO BESTLED 60W IP66'),
+  ];
+  const finds = (q: string) => searchThatFinds(mini, q);
+
+  it('un producto dado de baja: se queda con las palabras que siguen encontrando (sin su potencia)', () => {
+    expect(searchProducts(mini, 'campana led ufo nf8 100w 110lm w ip65')).toEqual([]);
+    expect(finds('campana led ufo nf8 100w 110lm w ip65')).toBe('campana led ufo nf8 110lm ip65');
+    expect(finds('lineal led flat 60w 120 cm ip20 6500k')).toBe('lineal led flat 120 cm ip20');
+  });
+
+  it('como se escribieron: con tildes y con las medidas juntas', () => {
+    expect(finds('alumbrado público bestled 97w')).toBe('alumbrado público bestled');
+    expect(finds('lineal 120 cm')).toBe('lineal 120 cm');
+  });
+
+  it('sin palabras de una letra, ni empezar por una de menos de 3; vacío si nada encuentra o si solo queda «led»', () => {
+    expect(finds('no campana')).toBe('campana');
+    expect(finds('una url que no existe')).toBe('');
+    expect(finds('led que no existe')).toBe('');
+    expect(finds('')).toBe('');
+  });
+
+  it('en el catálogo real: nunca precarga una búsqueda sin resultados, y la ficha con otra potencia encuentra algo', () => {
+    for (const p of products) {
+      const own = searchThatFinds(products, searchTermsFromPath(`/producto/${p.id}`));
+      if (own) expect(search(own).length, p.id).toBeGreaterThan(0);
+      if (!/\d+w/.test(p.id)) continue;
+      const other = `/producto/${p.id.replace(/(\d+)w/, (_m, n) => `${Number(n) + 7}w`)}`;
+      const q = searchThatFinds(products, searchTermsFromPath(other));
+      expect(q, other).not.toBe('');
+      expect(search(q).length, other).toBeGreaterThan(0);
+    }
   });
 });

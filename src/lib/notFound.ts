@@ -13,6 +13,18 @@ export const NOT_FOUND_URL = '/__no-encontrada__';
 export const NOT_FOUND_ATTR = 'data-not-found';
 
 /**
+ * Estado de la navegación de la 404 a /buscar con el texto precargado, sin cambios. /buscar no
+ * mide esa búsqueda (search, auditoría UX KPI 9): las palabras las eligió la 404, para que
+ * encuentren productos, no la persona. Si la persona las cambia, sí se mide.
+ */
+export const NOT_FOUND_SEARCH_STATE = { fromNotFound: true } as const;
+
+/** La navegación llegó de la 404 con el texto precargado (NOT_FOUND_SEARCH_STATE). */
+export function isNotFoundSearch(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as { fromNotFound?: unknown }).fromNotFound === true;
+}
+
+/**
  * Partes de una ruta que no dicen qué se buscaba: las rutas del sitio (/producto, /catalogo…) y
  * las de la tienda anterior en Jumpseller (/products, /search…).
  */
@@ -27,7 +39,8 @@ const MAX_TERMS_LENGTH = 80;
 const WORD = /\d+(?:[.,]\d+)*[\p{L}\p{N}]*|[\p{L}\p{N}]+/gu;
 
 /**
- * Las palabras de una URL sin página, para precargar el buscador de la 404 (auditoría UX, B-10):
+ * Las palabras de una URL sin página, para el buscador de la 404 (auditoría UX, B-10; de ellas, la
+ * 404 precarga las que encuentran productos, src/lib/notFoundSearch.ts):
  * «/producto/lineal-led-flat-40w-120-cm-ip20-6500k» → «lineal led flat 40w 120 cm ip20 6500k».
  * Solo la ruta (ni la consulta ni el #), decodificada y en minúsculas; sin las partes de ruta
  * (ROUTE_WORDS), sin extensiones (.html, .php), sin ids de 5 cifras o más, sin repetir y hasta 8
