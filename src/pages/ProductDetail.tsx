@@ -494,7 +494,7 @@ const ProductDetail = () => {
                                               <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
-                                                                            Consultar por WhatsApp
+                                                                            Escríbenos por WhatsApp
                                                             </Button>
                                               </a>
                                   </div>

@@ -11,9 +11,10 @@
 // salvo entre 1024 y 1279 px: ahí las puertas con texto le quitaban al buscador el espacio para
 // escribir, así que el total del pedido y la palabra "Instalación" (queda la llave, con su
 // título) se ven desde xl, y el buscador tiene un piso de 15rem.
+// - Sugerencias al escribir en el buscador de escritorio (HeaderSearch, pedido del dueño 2026-10-24).
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     Search, FileText, Menu, ChevronDown,
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium,
@@ -26,6 +27,7 @@ import { categories, PUBLISHED_PRODUCT_COUNT } from '@/data/catalog/categories.c
 import { cn } from '@/lib/utils';
 import TopInfoBar from './TopInfoBar';
 import MobileMenu from './MobileMenu';
+import HeaderSearch from './HeaderSearch';
 import Logo from '../Logo';
 import RequestCartDrawer, { HEADER_DOOR_CLASS } from '@/components/request-order/RequestCartDrawer';
 
@@ -40,17 +42,7 @@ const doorLayout = 'w-full sm:w-auto';
 
 const Header = () => {
     const { quoteCount, isB2B, toggleB2B, loaded } = useApp();
-    const [search, setSearch] = useState('');
     const [catOpen, setCatOpen] = useState(false);
-    const navigate = useNavigate();
-
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (search.trim()) {
-            navigate(`/buscar?q=${encodeURIComponent(search.trim())}`);
-            setSearch('');
-        }
-    };
 
     return (
         // -top-7: el alto de la barra violeta bajo md (TopInfoBar, h-7). Al bajar, la barra
@@ -107,19 +99,7 @@ const Header = () => {
                             </>
                         )}
                     </div>
-                    <form onSubmit={handleSearch} className="flex-1 min-w-[15rem] max-w-xl hidden md:flex">
-                        <div className="relative w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                placeholder="Buscar por SKU, producto, watts, kelvin..."
-                                aria-label="Buscar productos"
-                                className="w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                            />
-                        </div>
-                    </form>
+                    <HeaderSearch />
                     <div className="flex items-center gap-1 ml-auto">
                         <button
                             onClick={toggleB2B}

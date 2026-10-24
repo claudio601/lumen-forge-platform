@@ -79,7 +79,7 @@ const InstalacionPage = () => {
               className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl font-bold border-2 text-white transition-all hover:bg-white/10"
               style={{ borderColor: 'rgba(37,211,102,0.5)', color: '#4ADE80' }}
             >
-              Hablar por WhatsApp
+              Escríbenos por WhatsApp
             </a>
           </div>
         </div>
@@ -186,14 +186,14 @@ const InstalacionPage = () => {
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Solicita tu evaluación</h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
-              Completa el formulario y te contactaremos para revisar tu proyecto y definir la mejor propuesta.
+              Completa el formulario y te contactaremos por correo o por teléfono para revisar tu proyecto y definir la mejor propuesta.
             </p>
           </div>
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl">
             <InstallationLeadForm />
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">
-            ¿Prefieres escribir directo?{' '}
+            ¿Prefieres no llenar el formulario? Escríbenos por{' '}
             <a
               href={waInstalacion}
               target="_blank"
@@ -202,13 +202,14 @@ const InstalacionPage = () => {
             >
               WhatsApp
             </a>{' '}
-            o{' '}
+            o por{' '}
             <a
               href={'mailto:' + contactEmailInstalacion}
               className="text-primary-foreground hover:underline"
             >
               correo
             </a>
+            .
           </p>
         </div>
       </section>

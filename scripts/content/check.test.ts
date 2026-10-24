@@ -139,6 +139,13 @@ describe('verificación del contenido SEO', () => {
     expect(problems).toContain('trae URLs: "https://"');
   });
 
+  it('rechaza WhatsApp: lo atiende un asistente automático, la asesoría es por correo', () => {
+    for (const text of ['Te asesoramos por WhatsApp.', 'Escríbenos al Whatsapp o a ventas@elights.cl.', 'Consulta por whats app.']) {
+      expect(rules(text).some(p => p.startsWith('menciona WhatsApp')), text).toBe(true);
+    }
+    expect(rules('Te asesoramos por correo en ventas@elights.cl.').some(p => p.startsWith('menciona WhatsApp'))).toBe(false);
+  });
+
   const rules = (text: string) => checkRules({ ...good, description: text });
   const FLEET = 'afirma que eLIGHTS tiene camiones, flota o reparto propio (no está confirmado)';
   const ARRIVAL = 'promete que el pedido llega en 2 días hábiles';

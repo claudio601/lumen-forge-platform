@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, Shield, Phone, Truck, type LucideIcon } from 'lucide-react';
+import { Clock, Shield, Mail, Truck, type LucideIcon } from 'lucide-react';
 import { freeShippingShort } from '@/config/business';
 
 // Despacho sin costo: monto y zona confirmados por el dueño el 2026-10-14 (PR 12b). El texto
@@ -7,6 +7,8 @@ import { freeShippingShort } from '@/config/business';
 // comunas excluidas; reemplaza "Despacho desde Santiago", así siguen siendo 4 avisos.
 // Sin certificaciones generales (PR 11). La garantía de cada producto está en su ficha; la
 // legal es de 6 meses. src/config/contentTruth.test.ts vigila las frases retiradas.
+// La asesoría va por correo. En WhatsApp atiende un asistente automático que solo toma
+// solicitudes (dueño, 2026-10-24).
 //
 // Lista que se envuelve según el ancho de cada aviso, no grilla de columnas iguales: ese aviso
 // es casi el doble de largo que los otros y en una columna de un cuarto (o de la mitad en el
@@ -16,7 +18,7 @@ import { freeShippingShort } from '@/config/business';
 const benefits: { icon: LucideIcon; text: string; to?: string }[] = [
   { icon: Clock, text: 'Despacho en hasta 2 días hábiles' },
   { icon: Shield, text: 'Garantía según ficha (mín. 6 meses)' },
-  { icon: Phone, text: 'Asesoría técnica por WhatsApp' },
+  { icon: Mail, text: 'Asesoría técnica por correo' },
   { icon: Truck, text: freeShippingShort, to: '/despacho' },
 ];
 

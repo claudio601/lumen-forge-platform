@@ -9,7 +9,7 @@ import { contactEmail, waInstaladores } from '@/config/business';
 // empresa del encabezado, cotización formal con factura, asesoría y despacho).
 const benefits = [
   'Precios con IVA o netos (sin IVA) en todo el catálogo',
-  'Asesoría técnica por WhatsApp o correo',
+  'Asesoría técnica por correo',
   'Cotización formal con factura',
   'Despacho en hasta 2 días hábiles',
 ];
