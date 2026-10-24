@@ -35,14 +35,21 @@ const TABLE_3_5 = [
   'link_url', 'link_type', 'item_id', 'quantity', 'unit_price', 'subtotal', 'customer_type',
   'reason', 'http_status', 'error_message',
 ];
+/**
+ * Parámetros nuevos del sitio que la especificación de la agencia (v1.3) todavía no tiene:
+ * results_count (search, auditoría UX KPI 9). check-gtm-export los anota (PENDING_EVENT_PARAMS).
+ */
+const NEW_PARAMS = ['results_count'];
+/** Las claves que lleva cada evento: la tabla 3.5 y los parámetros nuevos. */
+const EVENT_KEYS = [...TABLE_3_5, ...NEW_PARAMS];
 const STATE = ['site_platform', 'elights_env', 'meta_consent'];
 /**
- * Regex del activador T09 del contenedor (especificación 6.3). guia_cta_click (las guías) todavía
- * no está en la especificación de la agencia (v1.3): mientras no lo sume, check-gtm-export lo
- * anota en vez de bloquear (PENDING_SITE_EVENTS).
+ * Regex del activador T09 del contenedor (especificación 6.3). guia_cta_click (las guías) y search
+ * (la búsqueda, auditoría UX KPI 9) todavía no están en la especificación de la agencia (v1.3):
+ * mientras no los sume, check-gtm-export los anota en vez de bloquear (PENDING_SITE_EVENTS).
  */
 const T09 =
-  /^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click|guia_cta_click)$/;
+  /^(generate_lead|whatsapp_click|contact_email_click|contact_phone_click|add_to_quote|request_cart_add|request_cart_view|request_cart_remove|request_form_start|request_form_submit_error|cotizacion_form_submit_error|cotizador_submit_error|estudio_luminico_form_submit|estudio_luminico_form_submit_error|instalacion_form_view|instalacion_form_submit_attempt|instalacion_form_submit_failure|estudio_luminico_cta_hero_click|instalacion_cta_hero_click|instalacion_cta_final_click|guia_cta_click|search)$/;
 
 interface Env {
   gtm?: string | null;
@@ -328,9 +335,9 @@ describe('carga de GTM (sección 3.2)', () => {
 });
 
 describe('eventos y parámetros (tablas 3.4 y 3.5)', () => {
-  it('EVENT_PARAMS es la tabla 3.5, las claves de estado son las 3 y SITE_EVENTS cumple la regex de T09', async () => {
+  it('EVENT_PARAMS es la tabla 3.5 más los parámetros nuevos, las claves de estado son las 3 y SITE_EVENTS cumple la regex de T09', async () => {
     const { a } = await load();
-    expect([...a.EVENT_PARAMS]).toEqual(TABLE_3_5);
+    expect([...a.EVENT_PARAMS]).toEqual(EVENT_KEYS);
     expect([...a.STATE_KEYS]).toEqual(STATE);
     for (const name of a.SITE_EVENTS) expect(name).toMatch(T09);
     expect(a.SITE_EVENTS).toHaveLength(T09.source.split('|').length);
@@ -347,7 +354,7 @@ describe('eventos y parámetros (tablas 3.4 y 3.5)', () => {
     clickContactLinks();
     m.a.applyCookieChoice(m.cc.setCookieChoice(ALL)); // la misma decisión: elights_consent_update
     m.a.sendPageView('/');
-    const expected = ['event', ...TABLE_3_5].sort();
+    const expected = ['event', ...EVENT_KEYS].sort();
     const others = events().filter(e => e.event !== 'elights_consent_update');
     expect(others.length).toBeGreaterThan(8);
     for (const e of others) {
@@ -392,6 +399,33 @@ describe('eventos y parámetros (tablas 3.4 y 3.5)', () => {
     ]);
     // Valores propios de link_type: no se mezclan con los de contacto (tabla de Meta Contact)
     for (const e of eventsNamed('guia_cta_click')) expect(['whatsapp', 'email', 'phone']).not.toContain(e.link_type);
+  });
+
+  it('search (auditoría UX, KPI 9): cuántos resultados y la página, sin el texto buscado', async () => {
+    window.history.replaceState({}, '', '/buscar?q=foco%20galp%C3%B3n');
+    const m = await load();
+    decide(m, VISITS);
+    m.a.trackSearch(0, '/buscar');
+    m.a.trackSearch(12, '/buscar');
+    const searches = eventsNamed('search');
+    expect(searches.map(e => [e.results_count, e.page_path])).toEqual([[0, '/buscar'], [12, '/buscar']]);
+    for (const e of searches) {
+      expect(Object.keys(e).sort()).toEqual(['event', ...EVENT_KEYS].sort());
+      expect('search_term' in e).toBe(false);
+      expect(e.form_type).toBeUndefined();
+    }
+    // results_count no se arrastra a los eventos que siguen
+    m.a.sendEvent('add_to_quote', { item_id: 'x' });
+    expect(eventsNamed('add_to_quote')[0].results_count).toBeUndefined();
+  });
+
+  it('search: sin decisión o con Rechazar, nada (fuera de elights.cl: «dónde se carga»)', async () => {
+    const m = await load();
+    m.a.trackSearch(3, '/buscar');
+    expectNothingLoaded();
+    decide(m, REJECT);
+    m.a.trackSearch(0, '/buscar');
+    expectNothingLoaded();
   });
 
   it('guia_cta_click: sin decisión o con Rechazar, nada', async () => {
@@ -615,7 +649,7 @@ describe('Publicidad en Meta', () => {
     expect(window.location.search).toBe('?fbclid=F1');
     expect(steps().slice(before)).toEqual(['consent update', 'elights_consent_update', 'elights_meta_granted']);
     expect(eventsNamed('elights_consent_update')[0]).toMatchObject({ meta_consent: 'granted', analytics_consent: 'granted', ads_consent: 'denied' });
-    expect(Object.keys(eventsNamed('elights_meta_granted')[0]).sort()).toEqual(['event', ...TABLE_3_5].sort());
+    expect(Object.keys(eventsNamed('elights_meta_granted')[0]).sort()).toEqual(['event', ...EVENT_KEYS].sort());
     expect(m.reload).not.toHaveBeenCalled();
   });
 
@@ -894,6 +928,7 @@ describe('dónde se carga', () => {
     decide(m, ALL);
     m.a.sendPageView('/');
     m.a.trackLead('solicitud_pedido');
+    m.a.trackSearch(0, '/buscar');
     clickContactLinks();
     expectNothingLoaded();
   });

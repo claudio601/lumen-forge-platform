@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MessageCircle } from 'lucide-react';
-import { categories } from '@/data/catalog/categories.config';
+import { mainCategories } from '@/data/catalog/categories.config';
 import Logo from '@/components/Logo';
 import { waBase, whatsappDisplayNumber, contactEmail, businessHours } from '@/config/business';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_RUT } from '@/config/site';
@@ -32,7 +32,7 @@ const linkClass = 'block text-sm text-background/60 hover:text-primary transitio
 const headingClass = 'font-semibold text-background mb-3 text-sm uppercase tracking-wider';
 
 const Footer = () => {
-  const topCats = [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, 6);
+  const topCats = mainCategories();
 
   return (
     <footer className="gradient-dark text-muted mt-16">

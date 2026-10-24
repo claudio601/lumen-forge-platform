@@ -9,6 +9,7 @@ import {
   CONTENT_NAME_TABLES,
   CONTENT_NAME_VALUES,
   EVENT_PARAMS,
+  PENDING_EVENT_PARAMS,
   PENDING_SITE_EVENTS,
   SITE_EVENTS,
   formatExportReport,
@@ -64,6 +65,32 @@ describe('check-gtm-export: el contenedor de la tabla 6.4 pasa', () => {
     expect([...EVENT_PARAMS]).toEqual([...a.EVENT_PARAMS]);
     // Los eventos nuevos que la agencia aún no tiene son eventos del sitio
     for (const e of PENDING_SITE_EVENTS) expect(SITE_EVENTS).toContain(e);
+    for (const k of PENDING_EVENT_PARAMS) expect(EVENT_PARAMS).toContain(k);
+  });
+
+  it('search (auditoría UX, KPI 9): T09 de la v1.3 sin search y GA03 sin results_count pasan con una nota cada uno; con ellos, sin notas', () => {
+    const t09 = (e: GtmExport) => param(triggerNamed(e, 'T09').customEventFilter![0], 'arg1');
+    const ga03Rows = (e: GtmExport) => param(tagNamed(e, 'GA03'), 'eventSettingsTable') as unknown as { list: { map: GtmParam[] }[] };
+    expect(t09(FIXTURE).value).not.toMatch(/\|search\b/);
+    let v = reviewExport(FIXTURE);
+    expect(v.approved).toBe(true);
+    expect(v.notes.join(' ')).toMatch(/«T09[^»]*» no incluye guia_cta_click, search: .* no llega a GA4/);
+    expect(v.notes.join(' ')).toMatch(/«GA03[^»]*» no envía results_count: .*variable \(DLV\) y la fila en GA03/);
+    const e = clone();
+    t09(e).value = t09(e).value.replace(')$', '|guia_cta_click|search)$');
+    const rows = ga03Rows(e).list;
+    rows.push({
+      map: [
+        { type: 'TEMPLATE', key: 'parameter', value: 'results_count' },
+        { type: 'TEMPLATE', key: 'parameterValue', value: '{{DLV - results_count}}' },
+      ],
+    });
+    v = reviewExport(e);
+    expect(v.approved).toBe(true);
+    expect(v.notes.join(' ')).not.toMatch(/search|results_count/);
+    // Un parámetro que no es del sitio sigue bloqueando
+    rows.push({ map: [{ type: 'TEMPLATE', key: 'parameter', value: 'search_term' }, { type: 'TEMPLATE', key: 'parameterValue', value: 'x' }] });
+    expect(issuesOf(e, 'GA03')).toEqual(['parámetros que no son de la tabla 3.5: search_term']);
   });
 
   it('el contenedor de la v1.3 (T09 sin guia_cta_click, evento nuevo de las guías) pasa con una nota; con él, sin la nota', () => {
@@ -71,7 +98,7 @@ describe('check-gtm-export: el contenedor de la tabla 6.4 pasa', () => {
     expect(t09(FIXTURE).value).not.toContain('guia_cta_click');
     let v = reviewExport(FIXTURE);
     expect(v.approved).toBe(true);
-    expect(v.notes.join(' ')).toMatch(/«T09[^»]*» no incluye guia_cta_click: .* no llega a GA4/);
+    expect(v.notes.join(' ')).toMatch(/«T09[^»]*» no incluye [^:]*\bguia_cta_click\b[^:]*: .* no llega a GA4/);
     const e = clone();
     t09(e).value = t09(e).value.replace(')$', '|guia_cta_click)$');
     v = reviewExport(e);
