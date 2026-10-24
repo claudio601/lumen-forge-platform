@@ -9,6 +9,7 @@ import { renderToString } from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import EstudioLuminicoLeadForm from './EstudioLuminicoLeadForm';
+import { SITE_URL } from '@/config/site';
 import { CONSENT_ERRORS, LEGAL_VERSION, parseConsent } from '../../../api/_lib/forms/consent';
 import { REQUIERE_DS1_LABELS, validateEstudioPayload } from '../../../api/_lib/forms/estudioLuminicoValidation';
 
@@ -423,5 +424,65 @@ describe('EstudioLuminicoLeadForm: casillas de privacidad y novedades', () => {
       expect(Object.keys(p)).not.toEqual(expect.arrayContaining([expect.stringMatching(/commune|comuna/i)]));
       expect(JSON.stringify(p)).not.toContain('Santiago');
     }
+  });
+});
+
+// Caja «Estudio DIALux» de las fichas (auditoría UX, E-02, src/lib/studyLink.ts): la dirección
+// preselecciona el tipo de proyecto y anota la ficha, después de hidratar y sin pisar nada.
+describe('EstudioLuminicoLeadForm: desde la caja de una ficha', () => {
+  let root: ReturnType<typeof hydrateRoot> | undefined;
+  afterEach(() => {
+    act(() => root?.unmount());
+    root = undefined;
+    document.body.innerHTML = '';
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  const FROM_BOX = '/estudio-luminico?tipo=industria_bodega&producto=campana-led-ufo-200w#solicitar';
+  const at = (entry: string) => <MemoryRouter initialEntries={[entry]}><EstudioLuminicoLeadForm /></MemoryRouter>;
+  const tipo = () => screen.getByLabelText(/Tipo de proyecto/) as HTMLSelectElement;
+  const desc = () => screen.getByLabelText(/Descripción del proyecto/) as HTMLTextAreaElement;
+  const NOTE = `Producto de referencia: ${SITE_URL}/producto/campana-led-ufo-200w`;
+
+  it('tipo preseleccionado y la ficha en la descripción; el envío los lleva', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"leadRef":"ESTL-x"}'));
+    render(at(FROM_BOX));
+    await waitFor(() => expect(tipo().value).toBe('industria_bodega'));
+    expect(desc().value).toBe(NOTE);
+    fillForm(); // escribe el mismo tipo y deja la descripción
+    submit();
+    expect(await screen.findByText('Solicitud recibida')).toBeInTheDocument();
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(body).toMatchObject({ tipoProyecto: 'industria_bodega', descripcionProyecto: NOTE });
+  });
+
+  it('un tipo que no es del formulario o un id con otra forma no se usan', () => {
+    render(at('/estudio-luminico?tipo=hackeo&producto=%3Cscript%3E'));
+    expect(tipo().value).toBe('');
+    expect(desc().value).toBe('');
+  });
+
+  it('sin consulta, el formulario queda igual que siempre', () => {
+    render(at('/estudio-luminico'));
+    expect(tipo().value).toBe('');
+    expect(desc().value).toBe('');
+  });
+
+  it('el HTML estático no cambia con la consulta, y se preselecciona al hidratar sin errores', async () => {
+    const consoleErrors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(at(FROM_BOX));
+    document.body.appendChild(container);
+    expect(container.querySelector('select[name="tipoProyecto"] option[selected]')?.getAttribute('value') ?? '').toBe('');
+    expect(container.querySelector('textarea')!.textContent).toBe('');
+    consoleErrors.mockClear();
+    const errors: unknown[] = [];
+    await act(async () => { root = hydrateRoot(container, at(FROM_BOX), { onRecoverableError: (e) => errors.push(e) }); });
+    expect(errors).toEqual([]);
+    expect(consoleErrors.mock.calls.map((args) => args.map(String).join(' ')).filter((m) => /did not match|server HTML|hydrat/i.test(m))).toEqual([]);
+    expect((within(container).getByLabelText(/Tipo de proyecto/) as HTMLSelectElement).value).toBe('industria_bodega');
+    expect((within(container).getByLabelText(/Descripción del proyecto/) as HTMLTextAreaElement).value).toBe(NOTE);
   });
 });

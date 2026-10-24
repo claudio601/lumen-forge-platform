@@ -1,0 +1,209 @@
+// Ficha, entrega 6 de la auditoría UX: la cantidad se escribe (D-03), la caja «Estudio DIALux
+// (servicio cotizado)» en las fichas de proyecto (E-02) y «Pedir documentos técnicos» en todas
+// (D-02, paso 1). Sin valores fijos del catálogo: los productos se eligen por una propiedad.
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
+import { AppProvider } from '@/context/AppContext';
+import { RequestCartProvider } from '@/context/RequestCartContext';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import ProductDetail from './ProductDetail';
+import EstudioLuminicoPage from './EstudioLuminicoPage';
+import { products, type Product } from '@/data/products';
+import { contactEmail } from '@/config/business';
+import { SITE_URL } from '@/config/site';
+import { requestSku } from '@/lib/variantSku';
+import { variantAxes, variantLabel } from '@/lib/variants';
+import { STUDY_BOX_CATEGORIES, studyBoxHref } from '@/lib/studyLink';
+import { DIALUX_BOX_TEXT } from '@/config/navigation';
+import { MAX_LINE_QUANTITY } from '@/lib/quantity';
+import { expectedLineSku } from '@/test/variantRule';
+
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() } }));
+vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn(), trackGuideCta: vi.fn() }));
+
+function renderPdp(product: Product) {
+  return render(
+    <HelmetProvider>
+      <TooltipProvider>
+        <AppProvider>
+          <RequestCartProvider>
+            <MemoryRouter initialEntries={[`/producto/${product.id}`]}>
+              <Routes>
+                <Route path="/producto/:id" element={<ProductDetail />} />
+                <Route path="/estudio-luminico" element={<EstudioLuminicoPage />} />
+              </Routes>
+            </MemoryRouter>
+          </RequestCartProvider>
+        </AppProvider>
+      </TooltipProvider>
+    </HelmetProvider>,
+  );
+}
+
+const inStudyList = (p: Product) => [p.category, ...p.categories].some(c => c in STUDY_BOX_CATEGORIES);
+// Sin variantes que elegir: los botones agregan de inmediato
+const simple = (p: Product) => (p.variants?.length ?? 0) <= 1 && !p.cctVariants?.length && p.price > 1000;
+const campana = products.find(p => p.category === 'campanas-led' && simple(p));
+const proyector = products.find(p => p.categories.every(c => c === 'proyectores-led') && p.category === 'proyectores-led');
+const panel = products.find(p => !inStudyList(p) && simple(p))!;
+const bestled = products.find(p => p.datasheetUrl)!;
+const oneAxis = products.find(p => (p.variants?.length ?? 0) > 1 && variantAxes(p).length === 1)!;
+
+const savedRequest = () => JSON.parse(sessionStorage.getItem('elights_request_cart') ?? '[]');
+const savedQuote = () => JSON.parse(sessionStorage.getItem('elights_quote') ?? '[]');
+// El nombre accesible junta los espacios repetidos de algunos nombres de Jumpseller
+const named = (p: Product) => p.name.replace(/\s+/g, ' ').trim();
+const quantityField = (p: Product) => screen.getByRole('spinbutton', { name: `Cantidad de ${named(p)}` }) as HTMLInputElement;
+const box = () => document.querySelector('[data-dialux-box]') as HTMLElement | null;
+const docsLink = () => screen.getByRole('link', { name: 'Pedir documentos técnicos' });
+/** Asunto y cuerpo del correo prellenado. */
+function mail(href: string) {
+  const [address, query] = href.replace(/^mailto:/, '').split('?');
+  const params = new URLSearchParams(query);
+  return { address, subject: params.get('subject'), body: params.get('body') };
+}
+
+beforeEach(() => sessionStorage.clear());
+afterEach(() => { sessionStorage.clear(); vi.restoreAllMocks(); });
+
+describe('ficha: la cantidad se escribe (D-03)', () => {
+  it('campo «Cantidad» con el nombre del producto, entre − y + con nombre', () => {
+    renderPdp(panel);
+    expect(screen.getByText('Cantidad', { selector: 'label' })).toBeInTheDocument();
+    expect(quantityField(panel).value).toBe('1');
+    expect(screen.getByRole('button', { name: `Restar una unidad de ${named(panel)}` })).toBeDisabled();
+    expect(screen.getByRole('button', { name: `Sumar una unidad de ${named(panel)}` })).toBeEnabled();
+  });
+
+  it('escribir 40: el subtotal es por 40, y la solicitud y la cotización reciben 40', async () => {
+    const { container } = renderPdp(panel);
+    fireEvent.change(quantityField(panel), { target: { value: '40' } });
+    const subtotal = `$${(panel.price * 40).toLocaleString('es-CL')}`;
+    expect(container.textContent?.replace(/\s/g, ' ')).toContain(`Subtotal: ${subtotal}`);
+
+    fireEvent.click(screen.getByRole('button', { name: /Solicitar pedido/ }));
+    await waitFor(() => expect(savedRequest()).toHaveLength(1));
+    expect(savedRequest()[0]).toMatchObject({ jumpsellerId: panel.jumpseller_id, quantity: 40 });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /^Cotizar$/ })[0]);
+    await waitFor(() => expect(savedQuote()).toHaveLength(1));
+    expect(savedQuote()[0]).toMatchObject({ quantity: 40 });
+  });
+
+  it('más del tope del servidor queda en el tope; agregar otra vez no lo pasa', async () => {
+    renderPdp(panel);
+    fireEvent.change(quantityField(panel), { target: { value: '50000' } });
+    expect(quantityField(panel).value).toBe(String(MAX_LINE_QUANTITY));
+    const request = screen.getByRole('button', { name: /Solicitar pedido/ });
+    fireEvent.click(request);
+    fireEvent.click(request);
+    await waitFor(() => expect(savedRequest()[0]?.quantity).toBe(MAX_LINE_QUANTITY));
+    const quote = screen.getAllByRole('button', { name: /^Cotizar$/ })[0];
+    fireEvent.click(quote);
+    fireEvent.click(quote);
+    await waitFor(() => expect(savedQuote()[0]?.quantity).toBe(MAX_LINE_QUANTITY));
+  });
+});
+
+describe('ficha: caja «Estudio DIALux (servicio cotizado)» (E-02)', () => {
+  it.skipIf(!campana)('campana: la caja bajo los botones, con su texto y el enlace al formulario con el tipo y la ficha', () => {
+    const p = campana!;
+    renderPdp(p);
+    const aside = box()!;
+    expect(aside).not.toBeNull();
+    expect(within(aside).getByText(DIALUX_BOX_TEXT.title)).toBeInTheDocument();
+    expect(within(aside).getByText(DIALUX_BOX_TEXT.text)).toBeInTheDocument();
+    const link = within(aside).getByRole('link', { name: DIALUX_BOX_TEXT.button });
+    expect(link.getAttribute('href')).toBe(`/estudio-luminico?tipo=industria_bodega&producto=${p.id}#solicitar`);
+    expect(screen.getByRole('complementary', { name: DIALUX_BOX_TEXT.title })).toBe(aside);
+    // Después de los botones principales
+    const request = screen.getByRole('button', { name: /Solicitar pedido/ });
+    expect(request.compareDocumentPosition(aside) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it.skipIf(!proyector)('proyector: el enlace no preselecciona el tipo', () => {
+    renderPdp(proyector!);
+    expect(within(box()!).getByRole('link').getAttribute('href')).toBe(`/estudio-luminico?producto=${proyector!.id}#solicitar`);
+  });
+
+  it('una ficha fuera de esas categorías no la lleva', () => {
+    renderPdp(panel);
+    expect(box()).toBeNull();
+    expect(screen.queryByText(DIALUX_BOX_TEXT.title)).not.toBeInTheDocument();
+  });
+
+  it.skipIf(!campana)('el enlace abre el formulario del estudio con el tipo preseleccionado y la ficha anotada, y baja al formulario', async () => {
+    const p = campana!;
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView');
+    renderPdp(p);
+    fireEvent.click(within(box()!).getByRole('link', { name: DIALUX_BOX_TEXT.button }));
+    const tipo = await screen.findByLabelText(/Tipo de proyecto/) as HTMLSelectElement;
+    await waitFor(() => expect(tipo.value).toBe('industria_bodega'));
+    expect((screen.getByLabelText(/Descripción del proyecto/) as HTMLTextAreaElement).value)
+      .toBe(`Producto de referencia: ${SITE_URL}/producto/${p.id}`);
+    expect(scroll.mock.contexts.some(el => (el as Element).id === 'solicitar')).toBe(true);
+  });
+
+  it('la llevan justo las fichas de las cinco categorías', () => {
+    for (const p of products) expect(Boolean(studyBoxHref(p)), p.id).toBe(inStudyList(p));
+  });
+});
+
+describe('ficha: «Pedir documentos técnicos» (D-02, paso 1)', () => {
+  it('sin variante: correo a ventas con el producto, el SKU de la línea y la ficha', () => {
+    renderPdp(panel);
+    const { address, subject, body } = mail(docsLink().getAttribute('href')!);
+    const sku = requestSku(panel);
+    expect(address).toBe(contactEmail);
+    expect(address).toBe('ventas@elights.cl');
+    expect(subject).toBe(`Documentos técnicos: ${panel.name} (SKU ${sku})`);
+    expect(body).toContain(`Producto: ${panel.name}\r\n`);
+    expect(body).toContain(`SKU: ${sku}\r\n`);
+    expect(body).toContain(`Ficha: ${SITE_URL}/producto/${panel.id}\r\n`);
+    // No promete documentos que el producto puede no tener
+    expect(body).not.toMatch(/IES|LDT|certificad|D\.\s?S\.|DS ?1|SEC/);
+    expect(screen.getByText(`Abre un correo a ${contactEmail} con el producto y el SKU.`)).toBeInTheDocument();
+    expect(docsLink().getAttribute('aria-describedby')).toBe(screen.getByText(/^Abre un correo a/).id);
+  });
+
+  it('con la variante elegida: su etiqueta y su SKU en el asunto', () => {
+    const p = oneAxis;
+    const [axis] = variantAxes(p);
+    renderPdp(p);
+    const radios = within(screen.getByRole('radiogroup', { name: axis.legend })).getAllByRole('radio');
+    fireEvent.click(radios[0]);
+    const v = p.variants!.find(x => x.options.find(o => o.name === axis.name)?.value === axis.choices[0].value)!;
+    const sku = expectedLineSku(p.jumpseller_id, v.id);
+    const { subject, body } = mail(docsLink().getAttribute('href')!);
+    expect(subject).toBe(`Documentos técnicos: ${p.name} – ${variantLabel(p, v)} (SKU ${sku})`);
+    expect(body).toContain(`SKU: ${sku}\r\n`);
+  });
+
+  it('el botón no espera la variante: los documentos se piden por producto', () => {
+    renderPdp(oneAxis);
+    expect(screen.getByRole('button', { name: /Solicitar pedido/ })).toBeDisabled();
+    expect(mail(docsLink().getAttribute('href')!).subject).toBe(`Documentos técnicos: ${oneAxis.name} (SKU ${requestSku(oneAxis)})`);
+  });
+
+  it('con ficha PDF: «Ficha técnica» junto al botón, en el bloque «Documentos técnicos»', () => {
+    renderPdp(bestled);
+    const block = screen.getByRole('region', { name: 'Documentos técnicos' });
+    expect(within(block).getByRole('link', { name: 'Ficha técnica' }).getAttribute('href')).toBe(bestled.datasheetUrl);
+    expect(within(block).getByRole('link', { name: 'Pedir documentos técnicos' })).toBeInTheDocument();
+  });
+
+  it('en todas las fichas, siempre a ventas@elights.cl', () => {
+    // Una muestra por categoría: cada ficha dibuja el mismo bloque
+    const sample = [...new Map(products.map(p => [p.category, p])).values()];
+    for (const p of sample) {
+      const { unmount } = renderPdp(p);
+      const href = docsLink().getAttribute('href')!;
+      expect(href.startsWith(`mailto:${contactEmail}?subject=`), p.id).toBe(true);
+      expect(mail(href).subject, p.id).toContain(p.name);
+      unmount();
+    }
+  });
+});

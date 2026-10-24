@@ -237,3 +237,39 @@ describe('/solicitar-pedido: botones de cada fila con nombre propio', () => {
     expect(new Set(names).size).toBe(6);
   });
 });
+
+// Auditoría UX, D-03: la cantidad de cada fila se escribe. Viaja al servidor como siempre (el
+// servidor recalcula los precios desde el catálogo).
+describe('/solicitar-pedido: la cantidad se escribe', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { sessionStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  const label = () => `${product.name}, ${product.sku || `JS-${product.jumpseller_id}`}`.replace(/\s+/g, ' ');
+  const field = () => screen.getByRole('spinbutton', { name: `Cantidad de ${label()}` }) as HTMLInputElement;
+
+  it('escribir 40: la fila, el total y el envío llevan 40', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage();
+    fireEvent.change(field(), { target: { value: '40' } });
+    expect(field().value).toBe('40');
+    const total = `$${String(product.price * 40).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+    expect(screen.getAllByText(total).length).toBeGreaterThan(0);
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0].quantity).toBe(40));
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(sentBody().items).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 40 })]);
+  });
+
+  it('borrar el número no quita la línea; − en 1 sí, como antes', async () => {
+    await renderPage();
+    fireEvent.change(field(), { target: { value: '' } });
+    fireEvent.blur(field());
+    expect(field().value).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: `Restar una unidad de ${label()}` }));
+    await waitFor(() => expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument());
+  });
+});

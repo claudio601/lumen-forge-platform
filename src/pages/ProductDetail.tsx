@@ -20,13 +20,17 @@ import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
-    FileText, Minus, Plus, Download, MessageCircle, Zap,
+    FileText, Download, Mail, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
-import { waProductUrl } from '@/config/business';
+import { contactEmail, docsRequestMailto, waProductUrl } from '@/config/business';
+import { absoluteUrl } from '@/config/site';
+import QuantityStepper from '@/components/forms/QuantityStepper';
+import DialuxStudyBox from '@/components/catalog/DialuxStudyBox';
+import { studyBoxHref } from '@/lib/studyLink';
 import RequestOrderButton from '@/components/request-order/RequestOrderButton';
 import Seo from '@/components/Seo';
 import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from '@/lib/seo/jsonld';
@@ -114,6 +118,9 @@ const ProductDetail = () => {
     // Variante elegida: opción por eje (nombre de la opción en Jumpseller → valor)
     const [selection, setSelection] = useState<VariantSelection>({});
     const hintId = useId();
+    const qtyId = useId();
+    const docsTitleId = useId();
+    const docsHintId = useId();
 
     if (!found) {
           return (
@@ -249,7 +256,12 @@ const ProductDetail = () => {
     // del producto ni el interno JS-…)
     const headerSku = chosen ? variantSku(chosen) : product.sku;
     // Consultas por WhatsApp con la variante elegida (SKU + variante), no el SKU base.
-    const waUrl = waProductUrl(chosenLabel ? `${product.name} – ${chosenLabel}` : product.name, skuFinal);
+    const lineName = chosenLabel ? `${product.name} – ${chosenLabel}` : product.name;
+    const waUrl = waProductUrl(lineName, skuFinal);
+    // «Pedir documentos técnicos»: el mismo producto, variante y SKU, con la dirección de la ficha
+    const docsMailto = docsRequestMailto(lineName, skuFinal, absoluteUrl(productUrlPath));
+    // Caja del estudio DIALux: solo en proyectores, campanas, alumbrado, antiexplosivos y solares
+    const studyHref = studyBoxHref(product);
 
     // Sin la variante, los botones no agregan nada (como hasta ahora en las BESTLED)
     const ctaDisabled = hasVariantChoice && !chosen;
@@ -425,17 +437,10 @@ const ProductDetail = () => {
                                   />
                                 )}
 
-                          {/* Selector de cantidad */}
+                          {/* Cantidad: se escribe o se cambia con − y + (auditoría UX, D-03) */}
                                   <div className="flex flex-wrap items-center gap-3 mb-4">
-                                              <div className="flex items-center border rounded-lg">
-                                                            <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(Math.max(1, qty - 1))}>
-                                                                            <Minus className="h-4 w-4" />
-                                                            </button>
-                                                            <span className="px-4 text-sm font-semibold min-w-[3rem] text-center">{qty}</span>
-                                                            <button className="p-2 hover:bg-accent transition-colors" onClick={() => setQty(qty + 1)}>
-                                                                            <Plus className="h-4 w-4" />
-                                                            </button>
-                                              </div>
+                                              <label htmlFor={qtyId} className="text-sm font-medium">Cantidad</label>
+                                              <QuantityStepper id={qtyId} variant="pdp" name={product.name} value={qty} onChange={setQty} />
                                               <span className="text-sm text-muted-foreground">
                                                             Subtotal{showFromPrice ? ' desde' : ''}:{' '}
                                                 {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(frozenUnitPrice * qty)}{' '}
@@ -467,19 +472,6 @@ const ProductDetail = () => {
                         
                           {/* Acciones secundarias */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                              {product.datasheetUrl && (
-                                                            <a
-                                                              href={product.datasheetUrl}
-                                                              target="_blank"
-                                                              rel="noopener noreferrer"
-                                                              download
-                                                            >
-                                                              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
-                                                                <Download className="h-3.5 w-3.5" />
-                                                                Ficha técnica
-                                                              </Button>
-                                                            </a>
-                                              )}
                                               <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
@@ -487,6 +479,34 @@ const ProductDetail = () => {
                                                             </Button>
                                               </a>
                                   </div>
+
+                          {/* Estudio DIALux (servicio cotizado), en las fichas de proyecto (auditoría UX, E-02) */}
+                          {studyHref && <DialuxStudyBox href={studyHref} />}
+
+                          {/* Documentos técnicos, en todas las fichas (auditoría UX, D-02, paso 1): la ficha PDF
+                              si existe y el correo prellenado a ventas con el producto y el SKU de la línea */}
+                                  <section aria-labelledby={docsTitleId} className="mt-6 border-t pt-4" data-docs-block="">
+                                              <h2 id={docsTitleId} className="text-sm font-semibold mb-2">Documentos técnicos</h2>
+                                              <div className="flex flex-wrap gap-2">
+                                                {product.datasheetUrl && (
+                                                            <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
+                                                              <a href={product.datasheetUrl} target="_blank" rel="noopener noreferrer" download>
+                                                                <Download className="h-3.5 w-3.5" />
+                                                                Ficha técnica
+                                                              </a>
+                                                            </Button>
+                                                )}
+                                                            <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
+                                                              <a href={docsMailto} aria-describedby={docsHintId}>
+                                                                <Mail className="h-3.5 w-3.5" />
+                                                                Pedir documentos técnicos
+                                                              </a>
+                                                            </Button>
+                                              </div>
+                                              <p id={docsHintId} className="mt-2 text-xs text-muted-foreground">
+                                                Abre un correo a {contactEmail} con el producto y el SKU.
+                                              </p>
+                                  </section>
                         </div>
                 </div>
           
