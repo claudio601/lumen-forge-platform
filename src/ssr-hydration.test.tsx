@@ -230,6 +230,21 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex, follow');
   });
 
+  it('404.html (auditoría UX, B-10): el buscador llega vacío en el HTML y, al hidratar, con las palabras de la URL', async () => {
+    const url = '/producto/lineal-led-flat-40w-120-cm-ip20-6500k?gclid=abc';
+    const { container, html, errors, mismatches } = await hydrate(NOT_FOUND_URL, url, false, true);
+    expect(errors).toEqual([]);
+    expect(mismatches).toEqual([]);
+    const server = document.createElement('div');
+    server.innerHTML = html;
+    expect(server.querySelector('main form[role="search"][action="/buscar"] input[name="q"]')?.getAttribute('value')).toBe('');
+    expect(server.querySelectorAll('main section a[href^="/catalogo/"]')).toHaveLength(6);
+    expect(server.querySelector('main a[href="mailto:ventas@elights.cl"]')?.textContent).toBe('Escríbenos a ventas@elights.cl');
+    const field = () => container.querySelector<HTMLInputElement>('main input[name="q"]')!;
+    await waitFor(() => expect(field().value).toBe('lineal led flat 40w 120 cm ip20 6500k'));
+    expect(container.querySelector('main h1')?.textContent).toBe('404');
+  });
+
   it('desde la página 404 se navega normal, y al volver atrás se ve otra vez la 404', async () => {
     const { container } = await hydrate(NOT_FOUND_URL, '/producto/no-existe', false, true);
     const home = [...container.querySelectorAll('main a')].find(a => a.textContent === 'Volver al inicio')!;

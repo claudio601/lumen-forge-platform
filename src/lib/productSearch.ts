@@ -27,7 +27,6 @@
 import type { Product } from '@/data/catalog/types';
 import { categories, popularSearches } from '@/data/catalog/categories.config';
 import { GENERIC_SEARCH_WORDS, SEARCH_SYNONYMS } from '@/data/catalog/search-synonyms';
-import { contactEmail } from '@/config/business';
 
 // ── Texto ─────────────────────────────────────────────────────────────────────
 
@@ -514,19 +513,6 @@ export function searchSuggestions(products: readonly Product[], query: string, m
   return out;
 }
 
-/** Largo máximo de la consulta en el correo prellenado, en caracteres. */
-const MAIL_QUERY_MAX = 120;
-
-/** Medio par sustituto (UTF-16) sin su otra mitad: encodeURIComponent no lo acepta. */
-const isLoneSurrogate = (ch: string) => ch.length === 1 && ch.charCodeAt(0) >= 0xd800 && ch.charCodeAt(0) <= 0xdfff;
-
-/** Correo prellenado a ventas: asunto «Busco: {consulta}» y el mismo texto en el cuerpo. */
-export function searchRequestMailto(query: string): string {
-  // Se corta por caracteres, no por unidades UTF-16: un emoji partido en la posición 120 haría
-  // fallar encodeURIComponent, y la página quedaría en blanco.
-  const chars = Array.from(query.trim().replace(/\s+/g, ' ')).filter(ch => !isLoneSurrogate(ch));
-  const q = chars.slice(0, MAIL_QUERY_MAX).join('');
-  const subject = `Busco: ${q}`;
-  const body = `Hola, busco: ${q}\r\n\r\nCantidad aproximada:\r\nComuna de despacho:\r\n`;
-  return `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
+// El correo prellenado vive en su propio módulo (sin el índice de búsqueda): lo usa también la
+// página 404, que va en el trozo de las guías y del catálogo.
+export { searchRequestMailto } from './searchMailto';

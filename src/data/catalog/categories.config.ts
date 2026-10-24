@@ -38,6 +38,14 @@ export const categories: Category[] = [
   { id: 'poste', name: 'Poste', slug: 'poste', icon: 'UtilityPole', productCount: CATEGORY_PRODUCT_COUNTS['poste'] ?? 0, subcategories: [] },
 ];
 
+/**
+ * Las categorías principales: las que más productos publicados tienen (a igualdad, en el orden de
+ * arriba). Las usan el pie («Catálogo») y la página 404 (auditoría UX, B-10).
+ */
+export function mainCategories(count = 6): Category[] {
+  return [...categories].sort((a, b) => b.productCount - a.productCount).slice(0, count);
+}
+
 export const popularSearches = [
   'Panel LED',
   'Proyector LED',
