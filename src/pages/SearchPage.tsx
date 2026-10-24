@@ -7,7 +7,8 @@ import Seo from '@/components/Seo';
 import { Button } from '@/components/ui/button';
 import { contactEmail, responseTimePromise } from '@/config/business';
 import { ADVISORY_LINK } from '@/config/navigation';
-import { searchProducts, searchRequestMailto, searchSuggestions } from '@/lib/productSearch';
+import { searchProducts, searchRequestMailto, searchSuggestions, searchWords } from '@/lib/productSearch';
+import { trackSearch } from '@/lib/analytics';
 
 /**
  * Salida cuando la búsqueda no da resultados (auditoría UX, B-04): un correo prellenado a ventas,
@@ -65,6 +66,12 @@ const NoResults = ({ query, onSearch }: { query: string; onSearch: (q: string) =
   );
 };
 
+/**
+ * Una búsqueda se mide (search, auditoría UX KPI 9) cuando el texto queda quieto este tiempo: la
+ * lista cambia con cada letra, y «pan», «pane», «panel» serían tres búsquedas.
+ */
+const SEARCH_SETTLE_MS = 1000;
+
 const SearchPage = () => {
   const [params] = useSearchParams();
   const initialQ = params.get('q') || '';
@@ -77,7 +84,7 @@ const SearchPage = () => {
   };
   // Cada búsqueda desde el header estando ya en /buscar es una navegación nueva
   // (location.key cambia aunque ?q sea el mismo): el campo vuelve a seguir a ?q.
-  const { key: navKey } = useLocation();
+  const { key: navKey, pathname } = useLocation();
   useEffect(() => { setQuery(initialQ); }, [initialQ, navKey]);
 
   // Búsqueda tolerante (auditoría UX, B-03): sin tildes, por palabras, con los SKU de las
@@ -85,6 +92,22 @@ const SearchPage = () => {
   const results = useMemo(() => searchProducts(products, query), [query]);
   const shown = query.trim();
   const n = results.length;
+
+  // Medición (search con results_count, nunca el texto): una vez por búsqueda, cuando el texto
+  // queda quieto. La misma consulta (sin tildes ni mayúsculas, por palabras) no se repite, salvo
+  // que llegue de nuevo desde el encabezado (otra navegación). Sin consentimiento o fuera de
+  // elights.cl, trackSearch no envía nada.
+  const searchKey = useMemo(() => searchWords(query).join(' '), [query]);
+  const lastTracked = useRef('');
+  useEffect(() => {
+    const key = `${navKey} ${searchKey}`;
+    if (!searchKey || lastTracked.current === key) return;
+    const timer = window.setTimeout(() => {
+      lastTracked.current = key;
+      trackSearch(n, pathname);
+    }, SEARCH_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchKey, navKey, n, pathname]);
 
   return (
     <div className="container py-8">

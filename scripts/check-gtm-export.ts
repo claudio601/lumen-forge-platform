@@ -25,7 +25,8 @@
 //      página con Inicialización y elights_consent_update. T07: link_url contiene
 //      ventas@elights.cl y no contiene subject=Datos (decisión 13: solo ventas@). T09: justo los
 //      eventos del sitio, y el informe nombra el que falta o sobra; un evento nuevo que la
-//      especificación aún no tiene (PENDING_SITE_EVENTS: guia_cta_click) puede faltar: nota.
+//      especificación aún no tiene (PENDING_SITE_EVENTS: guia_cta_click y search) puede faltar: nota.
+//      Lo mismo con un parámetro nuevo que GA03 aún no envía (PENDING_EVENT_PARAMS: results_count).
 //   5. Ajustes: send_page_view: false, Signals y personalización apagados y cookies de 395 días
 //      en GA4; la etiqueta de Google de Ads con sus cookies por defecto (_gcl_…, 90 días);
 //      conversiones sin valor, sin ID de transacción ni conversiones mejoradas; vinculador sin
@@ -114,6 +115,7 @@ export const SITE_EVENTS: readonly string[] = [
   'instalacion_cta_hero_click',
   'instalacion_cta_final_click',
   'guia_cta_click',
+  'search',
 ];
 
 /**
@@ -121,17 +123,26 @@ export const SITE_EVENTS: readonly string[] = [
  * en las tablas 3.4, 3.5 y 6.3). Si el T09 de la exportación no los incluye, es una nota y no un
  * problema: el evento llega a la capa de datos pero no a GA4 hasta que la agencia lo sume. Cuando
  * la agencia publique la versión de la especificación que los trae, se sacan de esta lista y
- * vuelven a bloquear. guia_cta_click: los llamados de las guías (plan del blog, §5.5).
+ * vuelven a bloquear. guia_cta_click: los llamados de las guías (plan del blog, §5.5). search: la
+ * búsqueda en /buscar, con results_count (auditoría UX, §7.2 y KPI 9).
  */
-export const PENDING_SITE_EVENTS: readonly string[] = ['guia_cta_click'];
+export const PENDING_SITE_EVENTS: readonly string[] = ['guia_cta_click', 'search'];
 
 /** Parámetros de evento del sitio (tabla 3.5, sin las claves de estado). */
 export const EVENT_PARAMS: readonly string[] = [
   'page_location', 'page_path', 'form_type', 'currency', 'item_count', 'lead_type', 'project_type',
   'tipo_proyecto', 'tiene_planos', 'objetivo_proyecto', 'normativa_objetivo', 'urgencia_proyecto',
   'link_url', 'link_type', 'item_id', 'quantity', 'unit_price', 'subtotal', 'customer_type',
-  'reason', 'http_status', 'error_message',
+  'reason', 'http_status', 'error_message', 'results_count',
 ];
+
+/**
+ * Parámetros del sitio que la especificación de la agencia todavía no tiene (la v1.3 no los nombra
+ * en la tabla 3.5). Si GA03 no los envía, es una nota y no un problema: el evento llega a GA4 sin
+ * ese dato hasta que la agencia sume la variable (DLV) y la fila en GA03. results_count: los
+ * resultados de una búsqueda (search, KPI 9).
+ */
+export const PENDING_EVENT_PARAMS: readonly string[] = ['results_count'];
 
 /** content_name: la lista cerrada de 8 valores (decisión 1a del dueño; Política de privacidad 1.5). */
 export const CONTENT_NAME_VALUES: readonly string[] = [
@@ -747,7 +758,18 @@ export function reviewExport(exp: GtmExport, opts: CheckOptions = {}): ExportVer
     if (expected && !sameSet(roles.filter((r): r is TriggerRole => r !== null), expected)) {
       issues.push(`activadores ${roles.filter(Boolean).join(', ') || 'ninguno'} (deben ser ${expected.join(', ')})`);
     }
-    if (kind === 'GA_EVENTS') siteEventsTriggerReview(ix, tag, issues, notes);
+    if (kind === 'GA_EVENTS') {
+      siteEventsTriggerReview(ix, tag, issues, notes);
+      // Parámetros nuevos del sitio que la especificación aún no tiene (PENDING_EVENT_PARAMS)
+      const sent = settingsTable(tag, 'eventSettingsTable');
+      const unsent = PENDING_EVENT_PARAMS.filter(k => !(k in sent));
+      if (unsent.length) {
+        notes.push(
+          `«${tag.name}» no envía ${unsent.join(', ')}: es un parámetro nuevo del sitio que la especificación de la agencia aún no ` +
+            'tiene (tabla 3.5). No bloquea, pero hasta que la agencia sume su variable (DLV) y la fila en GA03 no llega a GA4.',
+        );
+      }
+    }
     if ((kind === 'G01' || kind === 'G02' || kind === 'GA01') && tag.tagFiringOption !== 'ONCE_PER_LOAD') {
       issues.push('debe dispararse una vez por página (ONCE_PER_LOAD)');
     }

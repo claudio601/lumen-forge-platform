@@ -3,16 +3,24 @@
 // hay resultados (correo prellenado a ventas, asesoría técnica y sugerencias). Sin WhatsApp: queda
 // para después de la marcha blanca del bot. Nunca stock.
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, within, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, within, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AppProvider } from '@/context/AppContext';
 import { RequestCartProvider } from '@/context/RequestCartContext';
 import { ADVISORY_LINK } from '@/config/navigation';
 import { products } from '@/data/products';
 import { searchProducts } from '@/lib/productSearch';
+import { trackSearch } from '@/lib/analytics';
 import SearchPage from './SearchPage';
+
+// El evento search (auditoría UX, KPI 9): se espía trackSearch; el envío real (consentimiento,
+// dominios) lo prueba src/lib/analytics.test.ts.
+vi.mock('@/lib/analytics', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/analytics')>()),
+  trackSearch: vi.fn(),
+}));
 
 function renderAt(url: string) {
   return render(
@@ -120,5 +128,84 @@ describe('/buscar: sin resultados (B-04)', () => {
     renderAt(`/buscar?q=${encodeURIComponent(q)}`);
     const section = screen.getByRole('region', { name: '¿No lo encuentras? Te lo buscamos' });
     expect(within(section).getByRole('link', { name: /ventas@elights\.cl/ }).getAttribute('href')).toMatch(/^mailto:ventas@elights\.cl\?/);
+  });
+});
+
+/** Como el buscador del encabezado: cada búsqueda es una navegación nueva a /buscar?q=. */
+function HeaderSearch() {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate('/buscar?q=panel')}>buscar en el encabezado</button>;
+}
+
+describe('/buscar: medición de la búsqueda (search con results_count, KPI 9)', () => {
+  /** Lo que espera la medición para que el texto quede quieto (SEARCH_SETTLE_MS). */
+  const SETTLE = 1000;
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.useFakeTimers();
+    vi.mocked(trackSearch).mockClear();
+  });
+  afterEach(() => vi.useRealTimers());
+  const wait = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+  const type = (value: string) => fireEvent.change(screen.getByRole('textbox', { name: 'Buscar productos' }), { target: { value } });
+
+  it('al llegar con ?q= (encabezado, 404, /search de elights.cl): una búsqueda con sus resultados y la página', () => {
+    renderAt('/buscar?q=reflector');
+    wait(SETTLE - 1);
+    expect(trackSearch).not.toHaveBeenCalled();
+    wait(1);
+    expect(trackSearch).toHaveBeenCalledTimes(1);
+    expect(trackSearch).toHaveBeenCalledWith(searchProducts(products, 'reflector').length, '/buscar');
+  });
+
+  it('al escribir, una sola búsqueda cuando el texto queda quieto; sin resultados, results_count 0', () => {
+    renderAt('/buscar');
+    for (const partial of ['p', 'pa', 'pal', 'palabra', NONSENSE]) {
+      type(partial);
+      wait(300);
+    }
+    expect(trackSearch).not.toHaveBeenCalled();
+    wait(SETTLE);
+    expect(vi.mocked(trackSearch).mock.calls).toEqual([[0, '/buscar']]);
+  });
+
+  it('la misma búsqueda (otras mayúsculas, tildes o espacios) no se cuenta dos veces; vacía, no se cuenta', () => {
+    renderAt('/buscar?q=galpón');
+    wait(SETTLE);
+    type('  Galpon ');
+    wait(SETTLE);
+    type('');
+    wait(SETTLE);
+    expect(trackSearch).toHaveBeenCalledTimes(1);
+    type('campana');
+    wait(SETTLE);
+    expect(trackSearch).toHaveBeenCalledTimes(2);
+  });
+
+  it('la misma búsqueda otra vez desde el encabezado (otra navegación) sí se cuenta', () => {
+    render(
+      <HelmetProvider>
+        <MemoryRouter initialEntries={['/buscar?q=panel']}>
+          <AppProvider>
+            <RequestCartProvider>
+              <Routes>
+                <Route path="/buscar" element={<><HeaderSearch /><SearchPage /></>} />
+              </Routes>
+            </RequestCartProvider>
+          </AppProvider>
+        </MemoryRouter>
+      </HelmetProvider>,
+    );
+    wait(SETTLE);
+    fireEvent.click(screen.getByRole('button', { name: 'buscar en el encabezado' }));
+    wait(SETTLE);
+    expect(trackSearch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(trackSearch).mock.calls[1]).toEqual([searchProducts(products, 'panel').length, '/buscar']);
+  });
+
+  it('sin búsqueda, nada', () => {
+    renderAt('/buscar');
+    wait(SETTLE * 3);
+    expect(trackSearch).not.toHaveBeenCalled();
   });
 });

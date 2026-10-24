@@ -89,6 +89,8 @@ export const EVENT_PARAMS = [
   'reason',
   'http_status',
   'error_message',
+  // Búsqueda (auditoría UX, KPI 9): parámetro nuevo, aún fuera de la tabla 3.5 de la agencia
+  'results_count',
 ] as const;
 export type EventParam = (typeof EVENT_PARAMS)[number];
 /** Lo que pasa quien llama (page_location la pone este módulo). */
@@ -121,6 +123,8 @@ export const SITE_EVENTS = [
   'instalacion_cta_final_click',
   // Guías (plan del blog, §5.5): clic en un llamado hacia /cotizador o /estudio-luminico
   'guia_cta_click',
+  // Búsqueda en /buscar, desde el encabezado o en la página (auditoría UX, §7.2 y KPI 9)
+  'search',
 ] as const;
 export type SiteEvent = (typeof SITE_EVENTS)[number];
 
@@ -669,6 +673,17 @@ export type GuideCtaPlace = 'guia_texto' | 'guia_recuadro';
  */
 export function trackGuideCta(place: GuideCtaPlace, linkUrl: string, pagePath: string): void {
   sendEvent('guia_cta_click', { link_url: linkUrl, link_type: place, page_path: pagePath });
+}
+
+/**
+ * Una búsqueda en /buscar (auditoría UX, §7.2; KPI 9, «% de search con results_count = 0»): el
+ * evento recomendado de GA4 (search) con cuántos productos encontró (results_count) y la página
+ * (page_path, sin la consulta). Sin el texto buscado: search_term espera la pregunta 22 de la
+ * auditoría (si la política lo permite). Como todo evento, solo con la medición de visitas
+ * aceptada y en los dominios que miden (sendEvent). Solo a GA4, nunca a Meta ni a Google Ads.
+ */
+export function trackSearch(resultsCount: number, pagePath: string): void {
+  sendEvent('search', { results_count: resultsCount, page_path: pagePath });
 }
 
 export type LeadFormType = 'solicitud_pedido' | 'cotizacion' | 'cotizador' | 'estudio_luminico' | 'instalacion';
