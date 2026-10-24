@@ -14,6 +14,23 @@
 // - Sin el texto buscado: se guarda la clave de la entrada y un resumen (hash) de la consulta.
 //   Hasta 50 marcas; las más antiguas salen primero. Cada lectura y escritura va en try/catch.
 
+/**
+ * Una búsqueda se mide cuando el texto queda quieto este tiempo (en /buscar y en las sugerencias
+ * del encabezado): la lista cambia con cada letra, y «pan», «pane», «panel» serían tres búsquedas.
+ */
+export const SEARCH_SETTLE_MS = 1000;
+
+/**
+ * Estado de la navegación del encabezado a /buscar cuando las sugerencias ya midieron esa misma
+ * búsqueda: /buscar no la cuenta otra vez mientras el texto no cambie.
+ */
+export const HEADER_MEASURED_STATE = { measuredInHeader: true } as const;
+
+/** La navegación llegó del encabezado con la búsqueda ya medida (HEADER_MEASURED_STATE). */
+export function isHeaderMeasured(state: unknown): boolean {
+  return typeof state === 'object' && state !== null && (state as { measuredInHeader?: unknown }).measuredInHeader === true;
+}
+
 const STORAGE_KEY = 'elights_search_tracked';
 const MAX_MARKS = 50;
 /** Clave de React Router para la primera entrada de la carga (sin estado en el historial). */

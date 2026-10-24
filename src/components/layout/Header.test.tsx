@@ -16,7 +16,7 @@ import { ADVISORY_LINK } from '@/config/navigation';
 import { sendEvent } from '@/lib/analytics';
 import Header from './Header';
 
-vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn() }));
+vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackSearch: vi.fn() }));
 
 let currentPath = '';
 function PathProbe() {
@@ -97,7 +97,7 @@ describe('encabezado: puertas «Cotización (n)» y «Pedido (n)» (F-04)', () =
     const total = within(pedido).getByText(/^· \$/);
     expect(total).toHaveClass('hidden', 'xl:inline');
     expect(screen.getByText('Instalación')).toHaveClass('hidden', 'xl:inline');
-    expect(screen.getByRole('textbox', { name: 'Buscar productos' }).closest('form')).toHaveClass('flex-1', 'min-w-[15rem]');
+    expect(screen.getByRole('combobox', { name: 'Buscar productos' }).closest('form')).toHaveClass('flex-1', 'min-w-[15rem]');
   });
 });
 
@@ -117,8 +117,9 @@ describe('encabezado compacto en el teléfono (A-02)', () => {
   it('el buscador del teléfono se pliega en la lupa, que lleva a /buscar', () => {
     renderHeader();
     expect(screen.getByRole('link', { name: 'Buscar productos' })).toHaveAttribute('href', '/buscar');
-    // Un solo campo de búsqueda en el encabezado: el de escritorio (md:flex)
-    const fields = screen.getAllByRole('textbox');
+    // Un solo campo de búsqueda en el encabezado: el de escritorio (md:flex), con sugerencias
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    const fields = screen.getAllByRole('combobox');
     expect(fields).toHaveLength(1);
     expect(fields[0].closest('form')).toHaveClass('hidden', 'md:flex');
   });

@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { products, categories, type Product } from '@/data/products';
 import { GENERIC_SEARCH_WORDS, SEARCH_SYNONYMS } from '@/data/catalog/search-synonyms';
 import {
+  highlightMatches,
   normalizeSearchText,
   searchIndex,
   searchProducts,
@@ -463,5 +464,33 @@ describe('la 404 (B-10): lo que de las palabras de la URL sí encuentra producto
       expect(q, other).not.toBe('');
       expect(search(q).length, other).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('sugerencias del encabezado: lo escrito en negrita', () => {
+  /** Los trozos marcados, unidos con «|». */
+  const bold = (text: string, q: string) => highlightMatches(text, q).filter(p => p.match).map(p => p.text).join('|');
+
+  it('al comienzo de una palabra, sin tildes ni mayúsculas, como está escrito el nombre', () => {
+    expect(bold('PROYECTOR LED ANTIVANDÁLICO 70W IP66', 'antiva')).toBe('ANTIVA');
+    expect(bold('ALUMBRADO PÚBLICO BESTLED 60W', 'publico')).toBe('PÚBLICO');
+    expect(bold('Panel LED 60x60 Luz Cálida', 'CALIDA panel')).toBe('Panel|Cálida');
+  });
+
+  it('no marca dentro de una palabra, ni un número solo dentro de otro número', () => {
+    expect(bold('FUENTE DE PODER SWITCHING', 'tch')).toBe('');
+    expect(bold('PROYECTOR 1000W', '100')).toBe('');
+    expect(bold('PROYECTOR 100W', '100')).toBe('100');
+  });
+
+  it('las medidas y unidades como las junta la búsqueda: «100 watts» marca «100W», «ip 66» marca «IP66»', () => {
+    expect(bold('PROYECTOR LED 100W IP66', '100 watts ip 66')).toBe('100W|IP66');
+  });
+
+  it('los trozos vuelven a armar el nombre completo, también sin coincidencias', () => {
+    for (const p of products.slice(0, 50)) {
+      expect(highlightMatches(p.name, 'led 100w').map(x => x.text).join('')).toBe(p.name);
+    }
+    expect(highlightMatches('', 'led')).toEqual([]);
   });
 });
