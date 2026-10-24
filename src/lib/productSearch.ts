@@ -490,8 +490,11 @@ export interface HighlightPart {
 /**
  * El texto (el nombre de un producto) en trozos, con lo que coincide con las palabras de la
  * consulta marcado: cada palabra escrita, al comienzo de una palabra del texto, sin tildes ni
- * mayúsculas («antiva» marca «ANTIVA» en «ANTIVANDÁLICO»). Un número solo marca el mismo número
- * («100» no marca «1000W»). Lo que llegó por sinónimo o con una letra de diferencia no se marca.
+ * mayúsculas («antiva» marca «ANTIVA» en «ANTIVANDÁLICO»), también en singular («proyectores»
+ * marca «PROYECTOR»), con coma decimal («14,4w» y «14.4w» marcan «14,4W») y después de la «x» de
+ * una medida («18w» marca «18W» en «2X18W»). Un número solo marca el mismo número («100» no marca
+ * «1000W»). Lo que llegó por sinónimo, con una letra de diferencia o unido sin guion («triproof»
+ * por «TRI-PROOF») no se marca.
  */
 export function highlightMatches(text: string, query: string): HighlightPart[] {
   // Normalizado carácter a carácter, con la posición de cada uno en el original
@@ -505,12 +508,16 @@ export function highlightMatches(text: string, query: string): HighlightPart[] {
     at += ch.length;
   }
   origin.push(text.length);
+  // Los números como los lee la búsqueda (no cambia el largo: origin sigue sirviendo)
+  normalized = cleanNumbers(normalized);
+  const startsWord = (p: number) =>
+    p === 0 || !/[a-z0-9]/.test(normalized[p - 1]) || (normalized[p - 1] === 'x' && /[0-9]/.test(normalized[p - 2] ?? ''));
   const marked = new Array<boolean>(text.length).fill(false);
-  for (const word of new Set(searchWords(query))) {
+  for (const word of new Set(searchWords(query).flatMap(forms))) {
     const lone = NUMBER.test(word);
     for (let p = normalized.indexOf(word); p !== -1; p = normalized.indexOf(word, p + 1)) {
       const end = p + word.length;
-      if (p > 0 && /[a-z0-9]/.test(normalized[p - 1])) continue;
+      if (!startsWord(p)) continue;
       if (lone && /[0-9.]/.test(normalized[end] ?? '')) continue;
       marked.fill(true, origin[p], origin[end]);
     }

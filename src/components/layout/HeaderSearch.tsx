@@ -8,7 +8,8 @@
 //   entrar a la caja): el encabezado va en todas las páginas y la primera carga no crece.
 // - Patrón combobox de ARIA: flechas para recorrer, Enter para abrir la fila marcada (sin ninguna
 //   marcada, /buscar como antes), Escape para cerrar. Las filas no son enlaces (dentro de un
-//   option no va nada que reciba el foco): se abren con clic o Enter.
+//   option no va nada que reciba el foco): se abren con clic o Enter. El mouse solo resalta: Enter
+//   abre únicamente la fila marcada con las flechas, y salir de la caja la desmarca.
 // - Medición (search, KPI 9): como en /buscar, una vez cuando el texto queda quieto, o antes si
 //   se elige un producto. Si después se abre /buscar con la misma búsqueda, va con
 //   HEADER_MEASURED_STATE y no se cuenta dos veces.
@@ -57,11 +58,15 @@ const HeaderSearch = () => {
   const { key: navKey, pathname } = useLocation();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  /** La fila marcada con las flechas (la que abre Enter). */
   const [active, setActive] = useState(-1);
+  /** La fila bajo el mouse: solo el fondo. */
+  const [hovered, setHovered] = useState(-1);
   const [engine, setEngine] = useState<Engine | null>(null);
   const [focused, setFocused] = useState(false);
-  /** La búsqueda (sus palabras) que ya midieron las sugerencias. */
+  /** La búsqueda (sus palabras) que ya revisaron las sugerencias, y la que además enviaron. */
   const measured = useRef('');
+  const sent = useRef('');
 
   const warmUp = () => {
     if (!engine) loadEngine().then(setEngine, () => { enginePromise = undefined; });
@@ -71,8 +76,10 @@ const HeaderSearch = () => {
   useEffect(() => {
     setOpen(false);
     setActive(-1);
+    setHovered(-1);
     setQuery('');
     measured.current = '';
+    sent.current = '';
   }, [navKey]);
 
   const term = query.trim();
@@ -84,10 +91,17 @@ const HeaderSearch = () => {
   /** Las filas: los productos y, al final, la de /buscar. */
   const rows = shown.length + 1;
 
+  // Ya contada en esta entrada del historial (por ejemplo, desde /buscar), claimSearch no la
+  // cuenta otra vez; entonces /buscar sí la cuenta como búsqueda nueva, igual que sin la pausa.
   const measure = () => {
     if (!searchKey || measured.current === searchKey) return;
     measured.current = searchKey;
-    if (claimSearch(navKey, searchKey)) trackSearch(results.length, pathname);
+    if (claimSearch(navKey, searchKey)) {
+      trackSearch(results.length, pathname);
+      sent.current = searchKey;
+    } else {
+      sent.current = '';
+    }
   };
 
   // La fila marcada con las flechas, siempre a la vista (la lista se desplaza en pantallas bajas)
@@ -105,7 +119,7 @@ const HeaderSearch = () => {
 
   const goToSearch = () => {
     if (!term) return;
-    const state = searchKey && measured.current === searchKey ? HEADER_MEASURED_STATE : undefined;
+    const state = searchKey && sent.current === searchKey ? HEADER_MEASURED_STATE : undefined;
     navigate(`/buscar?q=${encodeURIComponent(term)}`, state ? { state } : undefined);
     setQuery('');
     setOpen(false);
@@ -151,6 +165,10 @@ const HeaderSearch = () => {
     goToSearch();
   };
 
+  /** Fondo bajo el mouse; la fila marcada con las flechas lleva además una barra (contraste ≥ 3:1). */
+  const rowState = (i: number) =>
+    active === i ? 'bg-accent shadow-[inset_3px_0_0_hsl(var(--primary))]' : hovered === i ? 'bg-accent' : '';
+
   const n = results.length;
   const status = !visible ? '' : n ? `${n} resultado${n !== 1 ? 's' : ''}. Usa las flechas para recorrerlos.` : `No encontramos productos para «${term}».`;
 
@@ -172,6 +190,7 @@ const HeaderSearch = () => {
             setQuery(e.target.value);
             setOpen(true);
             setActive(-1);
+            setHovered(-1);
             warmUp();
           }}
           onFocus={() => {
@@ -183,6 +202,8 @@ const HeaderSearch = () => {
           onBlur={() => {
             setFocused(false);
             setOpen(false);
+            setActive(-1);
+            setHovered(-1);
           }}
           onKeyDown={onKeyDown}
           placeholder="Buscar por SKU, producto, watts, kelvin..."
@@ -193,13 +214,16 @@ const HeaderSearch = () => {
             encabezado le haría esconder cada botón por separado en vez del encabezado entero. */}
         {focused && <p role="status" className="sr-only">{status}</p>}
         {/* Siempre en el DOM (aria-controls apunta aquí); vacío y oculto mientras no hay sugerencias.
-            mousedown sin efecto: el clic no le quita el foco a la caja antes de elegir. */}
+            mousedown sin efecto: el clic no le quita el foco a la caja antes de elegir. tabIndex -1:
+            con la lista desplazable, Chrome la haría una parada de Tab (y el foco caería al body). */}
         <ul
           id={LISTBOX_ID}
           role="listbox"
           aria-label="Sugerencias de búsqueda"
           hidden={!visible}
+          tabIndex={-1}
           onMouseDown={e => e.preventDefault()}
+          onMouseLeave={() => setHovered(-1)}
           className="absolute left-0 right-0 top-full mt-1 z-50 bg-background border rounded-lg shadow-xl pt-1 max-h-[70vh] overflow-y-auto"
         >
           {visible && shown.map((p, i) => {
@@ -210,23 +234,23 @@ const HeaderSearch = () => {
                 id={optionId(i)}
                 role="option"
                 aria-selected={active === i}
-                onMouseEnter={() => setActive(i)}
+                onMouseEnter={() => setHovered(i)}
                 onClick={() => choose(i)}
-                className={cn('flex items-center gap-3 px-3 py-2 cursor-pointer scroll-mb-12', active === i && 'bg-accent')}
+                className={cn('flex items-center gap-3 px-3 py-2 cursor-pointer scroll-mb-14', rowState(i))}
               >
                 <Thumb product={p} />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm leading-snug line-clamp-2">
+                  <span className="text-sm leading-snug line-clamp-2">
                     {engine.highlightMatches(p.name, query).map((part, k) =>
                       part.match ? <strong key={k} className="font-semibold text-foreground">{part.text}</strong> : <span key={k} className="text-foreground/80">{part.text}</span>,
                     )}
                   </span>
-                  {p.sku && <span className="block text-[11px] font-mono text-muted-foreground">{p.sku}</span>}
+                  {p.sku && <span className="block text-[11px] font-mono text-foreground/70">{p.sku}</span>}
                 </span>
                 <span className="shrink-0 text-right">
-                  {from !== undefined && <span className="block text-[10px] text-muted-foreground">desde</span>}
+                  {from !== undefined && <span className="block text-[10px] text-foreground/70">desde</span>}
                   <span className="block text-sm font-semibold tabular-nums">{formatDisplayPrice(from ?? p.price)}</span>
-                  <span className="block text-[10px] text-muted-foreground">{isB2B ? 'neto' : 'c/IVA'}</span>
+                  <span className="block text-[10px] text-foreground/70">{isB2B ? 'neto' : 'c/IVA'}</span>
                 </span>
               </li>
             );
@@ -236,17 +260,18 @@ const HeaderSearch = () => {
               id={optionId(shown.length)}
               role="option"
               aria-selected={active === shown.length}
-              onMouseEnter={() => setActive(shown.length)}
+              onMouseEnter={() => setHovered(shown.length)}
               onClick={() => choose(shown.length)}
-              // Pegada abajo: en pantallas bajas la lista se desplaza y esta fila queda siempre a la vista
+              // Pegada abajo: en pantallas bajas la lista se desplaza y esta fila queda siempre a la
+              // vista. En una línea (truncate), para que su alto no tape la fila de arriba.
               className={cn(
-                'sticky bottom-0 px-3 py-2.5 text-sm cursor-pointer border-t',
+                'sticky bottom-0 px-3 py-2.5 text-sm cursor-pointer border-t bg-background',
                 shown.length === 0 && 'border-t-0',
-                active === shown.length ? 'bg-accent' : 'bg-background',
+                rowState(shown.length),
               )}
             >
               {n > 0 ? (
-                <span className="font-semibold text-primary">
+                <span className="block truncate font-semibold text-primary">
                   Ver {n === 1 ? 'el resultado' : `los ${n} resultados`} para «{term}»
                 </span>
               ) : (

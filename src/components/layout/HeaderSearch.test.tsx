@@ -83,7 +83,8 @@ describe('encabezado: sugerencias al escribir', () => {
     await waitFor(() => expect(options()).toHaveLength(7), WAIT);
     expect(box()).toHaveAttribute('aria-expanded', 'true');
     const rows = options();
-    expected.slice(0, 6).forEach((p, i) => expect(rows[i]).toHaveTextContent(p.name));
+    // toHaveTextContent junta los espacios del texto: el nombre esperado también
+    expected.slice(0, 6).forEach((p, i) => expect(rows[i]).toHaveTextContent(p.name.replace(/\s+/g, ' ').trim()));
     expect(rows[6]).toHaveTextContent(`Ver los ${expected.length} resultados para «proyector»`);
     expect(screen.getByRole('status')).toHaveTextContent(`${expected.length} resultados`);
   });
@@ -142,6 +143,37 @@ describe('encabezado: sugerencias al escribir', () => {
     expect(fireEvent.mouseDown(row)).toBe(false);
     fireEvent.click(row);
     expect(location.pathname).toBe(`/producto/${searchProducts(products, 'tubo')[0].id}`);
+  });
+
+  it('el mouse solo resalta: Enter sin fila marcada con las flechas busca en /buscar', async () => {
+    renderAt();
+    type('proyector');
+    await waitFor(() => expect(options().length).toBeGreaterThan(2), WAIT);
+    fireEvent.mouseEnter(options()[1]);
+    expect(options()[1]).toHaveAttribute('aria-selected', 'false');
+    expect(box()).not.toHaveAttribute('aria-activedescendant');
+    key('Enter');
+    fireEvent.submit(box().closest('form')!);
+    expect(location.pathname + location.search).toBe('/buscar?q=proyector');
+  });
+
+  it('salir de la caja desmarca la fila: al volver, Enter busca lo escrito', async () => {
+    renderAt();
+    type('panel');
+    await waitFor(() => expect(options().length).toBeGreaterThan(2), WAIT);
+    key('ArrowDown');
+    key('ArrowDown');
+    fireEvent.blur(box());
+    fireEvent.focus(box());
+    expect(options().some(o => o.getAttribute('aria-selected') === 'true')).toBe(false);
+    expect(box()).not.toHaveAttribute('aria-activedescendant');
+  });
+
+  it('la lista no es una parada de Tab (tabIndex -1)', async () => {
+    renderAt();
+    type('panel');
+    await waitFor(() => expect(options().length).toBeGreaterThan(0), WAIT);
+    expect(screen.getByRole('listbox')).toHaveAttribute('tabindex', '-1');
   });
 
   it('Escape cierra la lista; otra vez, borra el texto', async () => {
@@ -211,6 +243,17 @@ describe('encabezado: medición de la búsqueda (search, KPI 9)', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Buscar productos' }), { target: { value: 'reflector 100w' } });
     await waitFor(() => expect(trackSearch).toHaveBeenCalledTimes(2), WAIT);
     expect(vi.mocked(trackSearch).mock.calls[1]).toEqual([searchProducts(products, 'reflector 100w').length, '/buscar']);
+  });
+
+  it('ya contada en esta página (/buscar), el encabezado no la cuenta y /buscar sí, como búsqueda nueva', async () => {
+    renderAt('/buscar?q=panel');
+    await waitFor(() => expect(trackSearch).toHaveBeenCalledTimes(1), WAIT);
+    type('panel');
+    await new Promise(r => setTimeout(r, 150));
+    expect(trackSearch).toHaveBeenCalledTimes(1);
+    fireEvent.submit(box().closest('form')!);
+    expect(isHeaderMeasured(location.state)).toBe(false);
+    await waitFor(() => expect(trackSearch).toHaveBeenCalledTimes(2), WAIT);
   });
 
   it('sin medir todavía (Enter enseguida), /buscar la cuenta como siempre', async () => {

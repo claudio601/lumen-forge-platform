@@ -487,6 +487,15 @@ describe('sugerencias del encabezado: lo escrito en negrita', () => {
     expect(bold('PROYECTOR LED 100W IP66', '100 watts ip 66')).toBe('100W|IP66');
   });
 
+  it('en singular, con coma decimal y después de la «x» de una medida, como encuentra la búsqueda', () => {
+    expect(bold('PROYECTOR LED 50W', 'proyectores')).toBe('PROYECTOR');
+    expect(bold('PANEL LED 60X60', 'paneles')).toBe('PANEL');
+    expect(bold('CINTA LED EXTERIOR 14,4W SMD', '14,4w')).toBe('14,4W');
+    expect(bold('CINTA LED EXTERIOR 14,4W SMD', '14.4w')).toBe('14,4W');
+    expect(bold('CANOA LED 2X18W', '18w')).toBe('18W');
+    expect(bold('FOCO 2X18W', 'x18w')).toBe('');
+  });
+
   it('los trozos vuelven a armar el nombre completo, también sin coincidencias', () => {
     for (const p of products.slice(0, 50)) {
       expect(highlightMatches(p.name, 'led 100w').map(x => x.text).join('')).toBe(p.name);
