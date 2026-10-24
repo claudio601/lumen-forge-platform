@@ -8,6 +8,9 @@ import EstudioLuminicoLeadForm from '@/components/estudio-luminico/EstudioLumini
 import { waEstudioLuminico } from '@/config/business';
 import { sendEvent } from '@/lib/analytics';
 import Seo from '@/components/Seo';
+import { useEffect } from 'react';
+import { useLocation, useNavigationType } from 'react-router-dom';
+import { STUDY_FORM_ANCHOR } from '@/lib/studyLink';
 
 // ── Helpers de scroll ─────────────────────────────────────────────────────────
 
@@ -220,7 +223,17 @@ const ReportPreview = ({
 // ── Pagina principal ──────────────────────────────────────────────────────────
 
 const EstudioLuminicoPage = () => {
-  // SEO: actualizar document.title y meta description
+  // Desde la caja «Estudio DIALux» de una ficha (…#solicitar, src/lib/studyLink.ts): la página
+  // llega después de cargar su trozo de JS, cuando ScrollToTop ya no encontró el ancla y subió
+  // arriba. Al montarse, baja al formulario. Solo en un enlace (PUSH): con Atrás, el navegador
+  // devuelve el scroll, y en una carga completa el navegador ya va al ancla.
+  const { hash } = useLocation();
+  const navigationType = useNavigationType();
+  useEffect(() => {
+    if (navigationType === 'PUSH' && hash === `#${STUDY_FORM_ANCHOR}`) {
+      document.getElementById(STUDY_FORM_ANCHOR)?.scrollIntoView();
+    }
+  }, [hash, navigationType]);
 
   return (
     <div className="bg-[#FAFAF7]">

@@ -6,6 +6,8 @@ import { RENAMED_FROM } from '@/data/catalog/renamed-ids';
 import { quoteItemKey, quoteLineKey } from '@/lib/quoteLine';
 import { requestSku } from '@/lib/variantSku';
 import { sendEvent } from '@/lib/analytics';
+// Tope de unidades por línea, el del servidor (la cantidad ahora se escribe)
+import { clampQuantity } from '@/lib/quantity';
 
 // Variante elegida al cotizar. unitPrice es CON IVA (base); displayPrice aplica el toggle
 // B2B (÷1,19) al renderizar. variantId y label: la variante de Jumpseller y su etiqueta
@@ -116,9 +118,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     sendEvent('add_to_quote', { item_id: selection?.sku ?? requestSku(product), quantity: qty });
     setQuoteCart(prev => {
       const existing = prev.find(i => quoteItemKey(i) === key);
-      if (existing) return prev.map(i => quoteItemKey(i) === key ? { ...i, quantity: i.quantity + qty } : i);
+      if (existing) return prev.map(i => quoteItemKey(i) === key ? { ...i, quantity: clampQuantity(i.quantity + qty) } : i);
       return [...prev, {
-        product, quantity: qty, notes,
+        product, quantity: clampQuantity(qty), notes,
         cct: selection?.cct, variantSku: selection?.sku, unitPrice: selection?.unitPrice,
         ...(selection?.variantId != null ? { variantId: selection.variantId } : {}),
         ...(selection?.label ? { variantLabel: selection.label } : {}),
@@ -129,7 +131,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const clearQuote = () => setQuoteCart([]);
   const updateQuoteQty = (lineKey: string, qty: number) => {
     if (qty <= 0) { removeFromQuote(lineKey); return; }
-    setQuoteCart(prev => prev.map(i => quoteItemKey(i) === lineKey ? { ...i, quantity: qty } : i));
+    setQuoteCart(prev => prev.map(i => quoteItemKey(i) === lineKey ? { ...i, quantity: clampQuantity(qty) } : i));
   };
   const quoteCount = quoteCart.reduce((s, i) => s + i.quantity, 0);
 

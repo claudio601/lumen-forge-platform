@@ -5,6 +5,7 @@
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider } from '@/context/AppContext';
@@ -235,5 +236,76 @@ describe('/solicitar-pedido: botones de cada fila con nombre propio', () => {
     const names = screen.getAllByRole('button', { name: /^(Restar una unidad|Sumar una unidad|Quitar) / }).map(b => b.getAttribute('aria-label'));
     expect(names).toHaveLength(6);
     expect(new Set(names).size).toBe(6);
+  });
+});
+
+// Auditoría UX, D-03: la cantidad de cada fila se escribe. Viaja al servidor como siempre (el
+// servidor recalcula los precios desde el catálogo).
+describe('/solicitar-pedido: la cantidad se escribe', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { sessionStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  const label = () => `${product.name}, ${product.sku || `JS-${product.jumpseller_id}`}`.replace(/\s+/g, ' ');
+  const field = () => screen.getByRole('spinbutton', { name: `Cantidad de ${label()}` }) as HTMLInputElement;
+
+  it('escribir 40: la fila, el total y el envío llevan 40', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage();
+    fireEvent.change(field(), { target: { value: '40' } });
+    expect(field().value).toBe('40');
+    const total = `$${String(product.price * 40).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+    expect(screen.getAllByText(total).length).toBeGreaterThan(0);
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0].quantity).toBe(40));
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(sentBody().items).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 40 })]);
+  });
+
+  it('«2.500» con punto de miles, tecla por tecla: la fila y el envío llevan 2500 (no 2)', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage();
+    field().focus();
+    for (const typed of ['2', '2.', '2.5', '2.50', '2.500']) fireEvent.change(field(), { target: { value: typed } });
+    fireEvent.blur(field());
+    expect(field().value).toBe('2500');
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0].quantity).toBe(2500));
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(sentBody().items).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 2500 })]);
+  });
+
+  // Teclado de verdad (userEvent: keydown, input y keyup por tecla; Tab saca el foco)
+  const typeOver = (user: ReturnType<typeof userEvent.setup>, el: HTMLInputElement, text: string) =>
+    user.type(el, text, { initialSelectionStart: 0, initialSelectionEnd: el.value.length });
+
+  for (const leave of ['Tab', 'Enter'] as const) {
+    it(`con el teclado: «1.000» y ${leave}: la fila, aria-valuenow y el envío llevan 1000`, async () => {
+      vi.stubGlobal('fetch', ok());
+      const user = userEvent.setup();
+      await renderPage();
+      await typeOver(user, field(), '1.000');
+      await user.keyboard(`{${leave}}`);
+      expect(field().value).toBe('1000');
+      expect(field()).toHaveAttribute('aria-valuenow', '1000');
+      await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0].quantity).toBe(1000));
+      fillForm();
+      submit();
+      expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+      expect(sentBody().items).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 1000 })]);
+    });
+  }
+
+  it('borrar el número no quita la línea; − en 1 sí, como antes', async () => {
+    await renderPage();
+    fireEvent.change(field(), { target: { value: '' } });
+    fireEvent.blur(field());
+    expect(field().value).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: `Restar una unidad de ${label()}` }));
+    await waitFor(() => expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument());
   });
 });

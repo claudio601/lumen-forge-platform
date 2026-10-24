@@ -9,6 +9,8 @@ import { createContext, startTransition, useContext, useState, useEffect, ReactN
 import type { RequestCartItem } from '@/types/request-order';
 import { sendEvent } from '@/lib/analytics';
 import { normalizeStoredLine, requestLineKey, requestTotals } from '@/lib/requestOrder';
+// Tope de unidades por línea, el del servidor (la cantidad ahora se escribe)
+import { clampQuantity } from '@/lib/quantity';
 
 // ── Tipos del contexto ───────────────────────────────────────────────────────
 interface RequestCartContextType {
@@ -79,7 +81,7 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
   const addItem = useCallback(
     (added: Omit<RequestCartItem, 'quantity'> & { quantity?: number }) => {
       const incoming = normalizeStoredLine(added);
-      const qty = incoming.quantity ?? 1;
+      const qty = clampQuantity(incoming.quantity ?? 1);
       setItems((prev) => {
         const key = requestLineKey(incoming);
         const existing = prev.find((i) => requestLineKey(i) === key);
@@ -92,7 +94,7 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
           // Misma línea: suma cantidad y toma el precio vigente del catálogo.
           return prev.map((i) =>
             requestLineKey(i) === key
-              ? { ...i, quantity: i.quantity + qty, unitPrice: incoming.unitPrice }
+              ? { ...i, quantity: clampQuantity(i.quantity + qty), unitPrice: incoming.unitPrice }
               : i
           );
         }
@@ -123,7 +125,7 @@ export const RequestCartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (requestLineKey(i) === lineKey ? { ...i, quantity: qty } : i))
+      prev.map((i) => (requestLineKey(i) === lineKey ? { ...i, quantity: clampQuantity(qty) } : i))
     );
   }, []);
 
