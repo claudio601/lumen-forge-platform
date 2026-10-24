@@ -7,6 +7,7 @@ import { RequestCartProvider } from '@/context/RequestCartContext';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import ProductDetail from './ProductDetail';
 import proyector100 from '@/data/catalog/content/2252962.json';
+import { products } from '@/data/products';
 
 const BESTLED = 'alumbrado-publico-bestled-150w-ip66-ik08';
 
@@ -45,11 +46,20 @@ describe('ProductDetail: modelo cotización, nunca stock', () => {
 
   it('el JSON-LD del producto es válido y no declara disponibilidad', async () => {
     renderPdp(BESTLED);
+    // La BESTLED cuesta más en 2200K y 2700K (auditoría UX, I-03): el rango de sus variantes, con IVA
+    const prices = products.find(p => p.id === BESTLED)!.variants!.map(v => v.price);
+    expect(new Set(prices).size).toBeGreaterThan(1);
     await waitFor(() => {
       const scripts = [...document.querySelectorAll('script[type="application/ld+json"]')];
       const product = scripts.map(s => JSON.parse(s.textContent || '{}')).find(j => j['@type'] === 'Product');
       expect(product).toBeDefined();
-      expect(product.offers.price).toBeGreaterThan(0);
+      expect(product.offers).toMatchObject({
+        '@type': 'AggregateOffer',
+        priceCurrency: 'CLP',
+        lowPrice: Math.min(...prices),
+        highPrice: Math.max(...prices),
+        offerCount: prices.length,
+      });
       expect(product.offers).not.toHaveProperty('availability');
     });
   });
