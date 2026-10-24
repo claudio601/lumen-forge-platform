@@ -216,7 +216,7 @@ describe.skipIf(!twoAxes)(`ficha con dos opciones (${twoAxes?.name ?? 'ninguna e
     expect(screen.getByText(hintFor(p, v))).toBeInTheDocument();
     // Arriba, solo el SKU propio de la variante (nunca el del producto ni el de otra variante)
     expect(headerSku(container)).toBe(ownSku(p, v));
-    const wa = decodeURIComponent(screen.getByRole('link', { name: /Consultar por WhatsApp/ }).getAttribute('href')!);
+    const wa = decodeURIComponent(screen.getByRole('link', { name: /Escríbenos por WhatsApp/ }).getAttribute('href')!);
     expect(wa).toContain(`${label} (SKU: ${sku})`);
 
     fireEvent.click(requestButton());

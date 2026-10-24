@@ -154,7 +154,7 @@ describe('textos sin respaldo: el código', () => {
   it('el popup de WhatsApp muestra ese horario', () => {
     render(createElement(WhatsAppButton));
     fireEvent.click(screen.getByRole('button', { name: /Contactar por WhatsApp/ }));
-    expect(screen.getByText(businessHours)).toBeInTheDocument();
+    expect(screen.getByText(`Horario del equipo: ${businessHours}`)).toBeInTheDocument();
   });
 });
 
@@ -207,7 +207,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     const text = root.textContent ?? '';
     expect(text).toContain('Despacho en hasta 2 días hábiles');
     expect(text).toContain('Garantía según ficha (mín. 6 meses)');
-    expect(text).toContain('Asesoría técnica por WhatsApp');
+    expect(text).toContain('Asesoría técnica por correo');
     expect(text).toContain('Garantía según producto');
     expect(text).toContain('Certificaciones por producto'); // no "Productos certificados" para todo el catálogo
     expect(text).toContain('Cotización formal y despacho a todo Chile'); // barra superior
@@ -293,7 +293,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text.match(/Net Billing/g)).toHaveLength(1);
     expect(text.match(/Sin compromiso/g)).toHaveLength(1); // la etiqueta del formulario; no se repite bajo el botón
     expect(text).toContain('¿Cómo funciona?');
-    expect(text).toContain('¿Prefieres escribir directo?');
+    expect(text).toContain('¿Prefieres no llenar el formulario? Escríbenos por WhatsApp o por correo');
   });
 
   it('/estudio-luminico: tipos de proyecto sin afirmar experiencia; FAQ con tildes', async () => {
@@ -303,7 +303,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text).not.toMatch(/experiencia en/i);
     expect(text).toContain('¿Sirve para licitaciones?');
     expect(text).toContain('indícala en el formulario');
-    expect(text).toContain('¿Prefieres consultar directamente?');
+    expect(text).toContain('¿Prefieres no llenar el formulario? Escríbenos por WhatsApp');
     const faq = [...root.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent === 'Preguntas frecuentes')!;
     expect(faq.textContent).not.toMatch(/\bSi\. |\b(?:Cuanto|que formato|Que normativas)\b/);
     // El texto propio de la página (los formularios tienen sus propios tests de etiquetas)

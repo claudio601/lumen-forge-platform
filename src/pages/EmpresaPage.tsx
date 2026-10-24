@@ -7,6 +7,7 @@ import LegalLayout from '@/components/legal/LegalLayout';
 import { CompanyFacts } from '@/components/legal/CompanyFacts';
 import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_RUT } from '@/config/site';
+import { responseTimePromise } from '@/config/business';
 
 const EmpresaPage = () => (
   <LegalLayout
@@ -22,7 +23,8 @@ const EmpresaPage = () => (
 
     <h2>Datos de la empresa</h2>
     <CompanyFacts />
-    <p>Te contactamos por el correo, el teléfono o el WhatsApp que nos indiques en tu solicitud.</p>
+    {/* El equipo responde siempre por correo; en WhatsApp atiende un asistente que toma la solicitud (dueño, 2026-10-24) */}
+    <p>{responseTimePromise}</p>
 
     <h2>Cómo trabajamos</h2>
     <ol>
