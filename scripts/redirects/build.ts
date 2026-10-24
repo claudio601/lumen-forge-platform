@@ -2,7 +2,7 @@
 // Las redirecciones de vercel.json. Se generan: `npm run redirects:write` escribe
 // buildRedirects() en vercel.json y scripts/vercel-config.test.ts exige que sean iguales.
 // Nunca editarlas a mano: después de cambiar src/data/catalog/renamed-ids.ts,
-// UNPUBLISHED_RENAMED (abajo) o scripts/redirects/legacy-urls.json, correr
+// UNPUBLISHED_RENAMED (en renamed-ids.ts) o scripts/redirects/legacy-urls.json, correr
 // `npm run redirects:write`.
 //
 //   1. Rutas que solo redirigen (REDIRECT_ROUTES): 307 al mismo destino que su <Navigate>
@@ -24,7 +24,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { LEGACY_SITE_IDS } from '../../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../../src/data/catalog/site-ids.generated';
-import { RENAMED_SITE_IDS } from '../../src/data/catalog/renamed-ids';
+import { RENAMED_SITE_IDS, UNPUBLISHED_RENAMED } from '../../src/data/catalog/renamed-ids';
 import { categories } from '../../src/data/catalog/categories.config';
 import { categoryPath, DYNAMIC_ROUTE_PATTERNS, NOINDEX_ROUTES, productPath, REDIRECT_ROUTES, STATIC_ROUTES } from '../../src/lib/seo/routes';
 
@@ -46,22 +46,7 @@ const bySource = (a: RedirectRule, b: RedirectRule) => (a.source < b.source ? -1
 
 const CATEGORY_SLUGS = new Set(categories.map(c => c.slug));
 
-/**
- * Productos renombrados que ya no se publican: jumpseller_id → slug de su categoría en
- * categories.config.ts, o null si no se conoce (entonces, /catalogo). Sus ids anteriores no van
- * a la ficha, que da 404, sino ahí: lo mismo que las filas `category` de legacy-urls.json.
- * Se mantiene a mano, como esas filas: check:prerender avisa cuando un id renombrado llega a un
- * producto no publicado (agregarlo aquí) y cuando uno de estos vuelve a publicarse (quitarlo,
- * para que su 301 vuelva a la ficha). Después, `npm run redirects:write`.
- */
-export const UNPUBLISHED_RENAMED: Readonly<Record<number, string | null>> = {
-  // Campanas UFO NF8 de 100, 150, 200 y 300W: ya no se publican en Jumpseller. Van a su
-  // categoría, igual que sus URLs de elights.cl en legacy-urls.json (2026-10-22).
-  24031164: 'campanas-led',
-  24040212: 'campanas-led',
-  24040292: 'campanas-led',
-  24043701: 'campanas-led',
-};
+export { UNPUBLISHED_RENAMED };
 
 /**
  * Destino de los ids anteriores de un producto renombrado: su ficha, con el id vigente, o, si ya

@@ -306,7 +306,7 @@ describe('check-prerender: ids renombrados (PR 07) de productos no publicados', 
     expect(r.warnings).toHaveLength(4);
     expect(r.warnings[0]).toBe(
       '/producto/w-ip65-24031164 → /producto/campana-led-ufo-nf8-100w-110lm-w-ip65 (Jumpseller 24031164): llega a un producto no publicado (da 404); ' +
-        'agregarlo a UNPUBLISHED_RENAMED (scripts/redirects/build.ts) con su categoría y correr npm run redirects:write',
+        'agregarlo a UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts) con su categoría y correr npm run redirects:write',
     );
     expect(r.summary).toContain('4 llegan a productos no publicados (dan 404)');
   });
@@ -315,7 +315,7 @@ describe('check-prerender: ids renombrados (PR 07) de productos no publicados', 
     const r = renamedRedirectIssues([...published, all.find(p => p.jumpseller_id === 24031164)!], exists);
     expect(r.warnings).toEqual([
       '/producto/w-ip65-24031164 → /catalogo/campanas-led (Jumpseller 24031164): el producto se publica otra vez; ' +
-        'quitarlo de UNPUBLISHED_RENAMED (scripts/redirects/build.ts) para que vuelva a su ficha y correr npm run redirects:write',
+        'quitarlo de UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts) para que vuelva a su ficha y correr npm run redirects:write',
     ]);
   });
 

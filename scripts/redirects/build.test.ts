@@ -4,7 +4,7 @@
 // qué productos se publican: solo de las tablas.
 
 import { describe, expect, it } from 'vitest';
-import { RENAMED_SITE_IDS } from '../../src/data/catalog/renamed-ids';
+import { RENAMED_DESTINATION_FROM, RENAMED_SITE_IDS } from '../../src/data/catalog/renamed-ids';
 import { buildRedirects, renamedIdDestination, renamedIdRedirects, UNPUBLISHED_RENAMED } from './build';
 
 const ruleFor = (rules: { source: string; destination: string }[], old: string) => rules.find(r => r.source === `/producto/${old}{/}?`);
@@ -30,6 +30,16 @@ describe('ids renombrados de productos no publicados (UNPUBLISHED_RENAMED)', () 
     // Sin las UFO NF8 en la tabla, vuelven a su ficha
     expect(ruleFor(rules, 'w-ip65-24031164')?.destination).toBe('/producto/campana-led-ufo-nf8-100w-110lm-w-ip65');
     expect(rules).toHaveLength(renamedIdRedirects().length);
+  });
+
+  it('dentro de la app (ProductRoute) cada id viejo va al mismo destino que su 301', () => {
+    const rules = renamedIdRedirects();
+    expect(rules.length).toBeGreaterThan(0);
+    for (const r of rules) {
+      const old = r.source.replace(/^\/producto\//, '').replace(/\{\/\}\?$/, '');
+      expect(RENAMED_DESTINATION_FROM.get(old), old).toBe(r.destination);
+    }
+    expect(RENAMED_DESTINATION_FROM.size).toBe(rules.length);
   });
 
   it('cada producto de la tabla es un renombrado, con una categoría de categories.config.ts: si no, redirects:write falla', () => {

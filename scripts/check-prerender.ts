@@ -19,7 +19,7 @@
 //   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404";
 //   - ningún id retirado (src/data/catalog/renamed-ids.ts) tiene página: Vercel aplica su
 //     301 antes que los archivos, así que nunca se vería. Los de productos que ya no se
-//     publican (UNPUBLISHED_RENAMED, scripts/redirects/build.ts) van a su categoría o a
+//     publican (UNPUBLISHED_RENAMED, src/data/catalog/renamed-ids.ts) van a su categoría o a
 //     /catalogo, y esa página se generó;
 //   - URLs de elights.cl (scripts/redirects/legacy-urls.json, PR 08): ninguna fuente con regla
 //     es un archivo de dist/ (su 301 lo taparía), y cada destino de categoría o página fija
@@ -388,7 +388,7 @@ export function renamedRedirectIssues(
     if (publishedJids.has(jid)) republished.push(rule);
     if (!exists(outputPath(destination))) blocking.push(`${rule}: esa página no se generó`);
   }
-  const table = 'UNPUBLISHED_RENAMED (scripts/redirects/build.ts)';
+  const table = 'UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts)';
   const warnings = [
     ...toUnpublished.map(t => `${t}: llega a un producto no publicado (da 404); agregarlo a ${table} con su categoría y correr npm run redirects:write`),
     ...republished.map(t => `${t}: el producto se publica otra vez; quitarlo de ${table} para que vuelva a su ficha y correr npm run redirects:write`),
