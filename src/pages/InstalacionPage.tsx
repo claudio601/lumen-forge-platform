@@ -186,7 +186,7 @@ const InstalacionPage = () => {
             </span>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Solicita tu evaluación</h2>
             <p className="text-gray-300 text-sm max-w-md mx-auto">
-              Completa el formulario y te contactaremos para revisar tu proyecto y definir la mejor propuesta.
+              Completa el formulario y te contactaremos por correo o por teléfono para revisar tu proyecto y definir la mejor propuesta.
             </p>
           </div>
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl">
