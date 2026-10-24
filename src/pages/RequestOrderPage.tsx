@@ -17,7 +17,8 @@
 // puerta «Pedido (n)» del encabezado se ve siempre).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ClipboardList, ArrowLeft, Loader2, Minus, Plus, Trash2, Send } from 'lucide-react';
+import { ClipboardList, ArrowLeft, Loader2, Trash2, Send } from 'lucide-react';
+import QuantityStepper from '@/components/forms/QuantityStepper';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import { useRequestCart } from '@/context/RequestCartContext';
@@ -414,23 +415,8 @@ const RequestOrderPage = () => {
               <p className="text-sm font-medium">{formatCLP(displayPrice(item.unitPrice))}</p>
               <p className="text-[10px] text-muted-foreground normal-case">{priceLabel}</p>
             </div>
-            <div className="flex items-center border rounded-lg">
-              <button
-                aria-label={`Restar una unidad de ${rowName(item)}`}
-                className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
-                onClick={() => updateQty(requestLineKey(item), item.quantity - 1)}
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-              <button
-                aria-label={`Sumar una unidad de ${rowName(item)}`}
-                className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors"
-                onClick={() => updateQty(requestLineKey(item), item.quantity + 1)}
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
+            {/* La cantidad se escribe o se cambia con − y + (auditoría UX, D-03); el − en 1 quita la línea */}
+            <QuantityStepper name={rowName(item)} value={item.quantity} onChange={qty => updateQty(requestLineKey(item), qty)} />
             <button
               aria-label={`Quitar ${rowName(item)} de la solicitud`}
               onClick={() => removeItem(requestLineKey(item))}

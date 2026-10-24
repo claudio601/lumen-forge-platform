@@ -1,8 +1,11 @@
 // src/components/estudio-luminico/EstudioLuminicoLeadForm.tsx
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { contactEmail, whatsappDisplayNumber } from '@/config/business';
+import { absoluteUrl } from '@/config/site';
+import { studyPrefill } from '@/lib/studyLink';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution, type Attribution } from '@/lib/attribution';
 import { useConsentFields } from '@/components/legal/ConsentFields';
@@ -205,6 +208,20 @@ const EstudioLuminicoLeadForm = () => {
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  // Desde la caja «Estudio DIALux» de una ficha (?tipo=…&producto=…, src/lib/studyLink.ts): el
+  // tipo de proyecto y la ficha de referencia, después de hidratar (el HTML estático es uno solo)
+  // y sin pisar lo que el visitante ya escribió.
+  const { search } = useLocation();
+  useEffect(() => {
+    const prefill = studyPrefill(search, TIPOS_PROYECTO.map(t => t.value), absoluteUrl);
+    if (!prefill.tipoProyecto && !prefill.descripcionProyecto) return;
+    setForm(prev => ({
+      ...prev,
+      tipoProyecto: prev.tipoProyecto || prefill.tipoProyecto || '',
+      descripcionProyecto: prev.descripcionProyecto || prefill.descripcionProyecto || '',
+    }));
+  }, [search]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
