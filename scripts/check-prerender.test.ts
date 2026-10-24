@@ -6,6 +6,7 @@ import {
   consentIssues,
   contentIssues,
   expectedOg,
+  expectedPrice,
   inspectHtml,
   isGuideRoute,
   isSyncBotBranch,
@@ -14,6 +15,7 @@ import {
   renamedRedirectIssues,
   structuralIssues,
   type ExpectedOg,
+  type ExpectedPrice,
 } from './check-prerender';
 import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { DEFAULT_OG } from '../src/lib/seo/ogImage';
@@ -39,7 +41,7 @@ function page(opts: { head?: string; body?: string; lang?: string } = {}) {
   return `<!doctype html><html lang="${opts.lang ?? 'es'}"><head>${head}</head><body><div id="root">${body}</div></body></html>`;
 }
 
-const check = (html: string, price: number | undefined = 19900, og: ExpectedOg = EXPECTED_OG) =>
+const check = (html: string, price: ExpectedPrice | undefined = 19900, og: ExpectedOg = EXPECTED_OG) =>
   structuralIssues(ROUTE, inspectHtml(html), { indexable: true, price, siteUrl: SITE, og });
 
 describe('check-prerender: estructura', () => {
@@ -98,6 +100,30 @@ describe('check-prerender: estructura', () => {
       'ficha sin JSON-LD de producto',
     ]);
     expect(check(page(), 21900)).toEqual(['precio del JSON-LD 19900 y en el catálogo 21900']);
+  });
+
+  it('variantes de distinto precio (auditoría UX, I-03): AggregateOffer con el rango del catálogo y nunca availability', () => {
+    const head = page().match(/<head>(.*)<\/head>/)![1];
+    const withOffer = (offers: object) => page({ head: head.replace('{"@type":"Offer","price":19900}', JSON.stringify(offers)) });
+    const range = { low: 118500, high: 130400, count: 4 };
+    const aggregate = { '@type': 'AggregateOffer', lowPrice: 118500, highPrice: 130400, offerCount: 4 };
+    expect(check(withOffer(aggregate), range)).toEqual([]);
+    // Antes: un solo Offer con el precio más bajo
+    expect(check(page(), range)).toEqual(['Offer con precio 19900; las variantes van de 118500 a 130400 (4 variantes): debe ser AggregateOffer']);
+    expect(check(withOffer({ ...aggregate, highPrice: 125000 }), range)).toEqual([
+      'rango del JSON-LD 118500 a 125000 (4 ofertas) y en el catálogo 118500 a 130400 (4 variantes)',
+    ]);
+    expect(check(withOffer(aggregate), 118500)).toEqual(['AggregateOffer en una ficha de un solo precio (118500)']);
+    expect(check(withOffer({ '@type': 'Offer', price: 19900, availability: 'https://schema.org/InStock' }))).toEqual([
+      'el JSON-LD trae availability (no hay control de stock: «Consultar disponibilidad»)',
+    ]);
+  });
+
+  it('expectedPrice: el precio de la ficha, o el rango si las variantes no cuestan lo mismo', () => {
+    const v = (price: number) => ({ id: price, sku: '', price, options: [] });
+    expect(expectedPrice({ price: 19900 })).toBe(19900);
+    expect(expectedPrice({ price: 19900, variants: [v(19900), v(19900)] })).toBe(19900);
+    expect(expectedPrice({ price: 118500, variants: [v(130400), v(118500), v(118500)] })).toEqual({ low: 118500, high: 130400, count: 3 });
   });
 
   it('detecta una página vacía o con partes sin dibujar', () => {

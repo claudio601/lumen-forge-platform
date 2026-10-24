@@ -6,7 +6,9 @@
 //   - canonical igual a su URL, sin noindex, e imagen para compartir JPEG o PNG https, ya
 //     codificada, igual a la que da src/lib/seo/ogImage.ts (la foto de la ficha o la de la
 //     marca), con sus medidas y su texto alternativo, y la misma en twitter:image;
-//   - el JSON-LD se lee, y en las fichas el precio coincide con el catálogo;
+//   - el JSON-LD se lee, y en las fichas el precio coincide con el catálogo: un Offer con su
+//     precio o, si las variantes no cuestan lo mismo, un AggregateOffer con su rango (I-03),
+//     nunca con availability;
 //   - nada quedó "para dibujar en el navegador";
 //   - spa.html y 404.html llevan noindex, y el sitemap lista justo las páginas generadas;
 //   - guías «publicadas sin indexar» (plan del blog, §2.2 y §5.6, fila 10): cada una existe, con
@@ -48,6 +50,7 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'parse5';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
+import type { Product } from '../src/data/catalog/types';
 import { RENAMED_FROM, RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { productImageFacts } from '../src/data/catalog/og-images.generated';
 import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
@@ -163,6 +166,36 @@ export function expectedOg(img: OgImage): ExpectedOg {
 }
 
 /**
+ * Precio que debe traer el JSON-LD de una ficha, leído del catálogo (CON IVA): el de la ficha o,
+ * si sus variantes no cuestan lo mismo, su rango y cuántas son (AggregateOffer, auditoría UX I-03).
+ */
+export type ExpectedPrice = number | { low: number; high: number; count: number };
+
+export function expectedPrice(p: Pick<Product, 'price' | 'variants'>): ExpectedPrice {
+  const prices = (p.variants ?? []).map(v => v.price);
+  const [low, high] = [Math.min(...prices), Math.max(...prices)];
+  return prices.length > 1 && low !== high ? { low, high, count: prices.length } : p.price;
+}
+
+/** La oferta del JSON-LD frente al catálogo: tipo, precio o rango, y nunca disponibilidad. */
+function offerIssues(offers: Record<string, unknown>, want: ExpectedPrice): string[] {
+  const issues: string[] = [];
+  if ('availability' in offers) issues.push('el JSON-LD trae availability (no hay control de stock: «Consultar disponibilidad»)');
+  const type = offers['@type'];
+  if (typeof want === 'number') {
+    if (type === 'AggregateOffer') issues.push(`AggregateOffer en una ficha de un solo precio (${want})`);
+    else if (offers.price !== want) issues.push(`precio del JSON-LD ${String(offers.price)} y en el catálogo ${want}`);
+    return issues;
+  }
+  const range = `${want.low} a ${want.high} (${want.count} variantes)`;
+  if (type !== 'AggregateOffer') issues.push(`${String(type ?? 'oferta sin tipo')} con precio ${String(offers.price)}; las variantes van de ${range}: debe ser AggregateOffer`);
+  else if (offers.lowPrice !== want.low || offers.highPrice !== want.high || offers.offerCount !== want.count) {
+    issues.push(`rango del JSON-LD ${String(offers.lowPrice)} a ${String(offers.highPrice)} (${String(offers.offerCount)} ofertas) y en el catálogo ${range}`);
+  }
+  return issues;
+}
+
+/**
  * Problemas de estructura de una página indexable (o de spa.html / 404.html). unindexed: una guía
  * «publicada sin indexar» (plan del blog, §2.2): la estructura completa de una página, pero con
  * noindex y sin canonical. article: una guía, con su JSON-LD Article (headline = h1) y sus migas,
@@ -171,7 +204,7 @@ export function expectedOg(img: OgImage): ExpectedOg {
 export function structuralIssues(
   route: string,
   f: PageFacts,
-  expect: { indexable: boolean; unindexed?: boolean; article?: boolean; price?: number; siteUrl?: string; og?: ExpectedOg },
+  expect: { indexable: boolean; unindexed?: boolean; article?: boolean; price?: ExpectedPrice; siteUrl?: string; og?: ExpectedOg },
 ): string[] {
   const issues: string[] = [];
   const site = expect.siteUrl ?? SITE_URL;
@@ -226,9 +259,9 @@ export function structuralIssues(
     }
   }
   if (expect.price !== undefined) {
-    const product = parsed.find((d): d is { offers?: { price?: unknown } } => (d as { '@type'?: string })?.['@type'] === 'Product');
+    const product = parsed.find((d): d is { offers?: Record<string, unknown> } => (d as { '@type'?: string })?.['@type'] === 'Product');
     if (!product) issues.push('ficha sin JSON-LD de producto');
-    else if (product.offers?.price !== expect.price) issues.push(`precio del JSON-LD ${String(product.offers?.price)} y en el catálogo ${expect.price}`);
+    else issues.push(...offerIssues(product.offers ?? {}, expect.price));
   }
   if (expect.article) {
     const type = (d: unknown) => (d as { '@type'?: string })?.['@type'];
@@ -475,7 +508,7 @@ function main() {
   const warnings: string[] = [];
   let consentProblems = 0;
   const contentOnlyWarns = isSyncBotBranch();
-  const prices = new Map(products.map(p => [`/producto/${p.id}`, p.price]));
+  const prices = new Map(products.map(p => [`/producto/${p.id}`, expectedPrice(p)]));
   // Imagen para compartir de cada ficha, con la misma regla que la página; el resto, la de la marca
   const productOg = new Map<string, OgImage | undefined>(
     products.map(p => [`/producto/${p.id}`, productOgImage(p.images?.[0], productImageFacts[p.jumpseller_id], p.name)]),

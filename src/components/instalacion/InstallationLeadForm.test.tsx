@@ -103,6 +103,16 @@ describe('InstallationLeadForm', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /SOLICITAR EVALUACIÓN/ })).toBeEnabled());
   });
 
+  it('preferencia de contacto: correo o teléfono, sin WhatsApp; la confirmación dice por dónde', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":777,"dealAction":"created","leadRef":"INST-x"}'));
+    render(form());
+    const options = within(screen.getByLabelText(/Preferencia de contacto/)).getAllByRole('option').map((o) => o.textContent);
+    expect(options).toEqual(['Sin preferencia', 'Llamada telefónica', 'Correo electrónico']);
+    fillForm();
+    submit();
+    expect(await screen.findByText(/te contactará por correo o por teléfono/)).toBeInTheDocument();
+  });
+
   it('el campo trampa oculto se envía con lo que tenga; la respuesta { success: true } sin referencia no es conversión', async () => {
     vi.stubGlobal('fetch', reply(200, '{"success":true}'));
     render(form());
