@@ -79,6 +79,25 @@ export function itemListJsonLd(items: Pick<Product, 'id' | 'name'>[], firstPosit
   };
 }
 
+/**
+ * La oferta de una ficha (auditoría UX, I-03), con los precios CON IVA del catálogo (Jumpseller),
+ * en CLP. Si sus variantes no cuestan lo mismo (las BESTLED 2200K y 2700K, la Flyhawk por
+ * potencia), un AggregateOffer con el rango y una oferta por variante, como lo publica hoy
+ * elights.cl; si no, un Offer con el precio. Nunca availability: no hay control de stock
+ * («Consultar disponibilidad»), y Google no la exige (en Offer es recomendada; AggregateOffer
+ * pide solo lowPrice y priceCurrency).
+ */
+export function productOffer(product: Pick<Product, 'id' | 'price' | 'variants'>): JsonLd {
+  const url = absoluteUrl(`/producto/${product.id}`);
+  const seller = { '@type': 'Organization', name: SITE_NAME };
+  const prices = (product.variants ?? []).map(v => v.price);
+  const [low, high] = [Math.min(...prices), Math.max(...prices)];
+  if (prices.length > 1 && low !== high) {
+    return { '@type': 'AggregateOffer', url, priceCurrency: 'CLP', lowPrice: low, highPrice: high, offerCount: prices.length, seller };
+  }
+  return { '@type': 'Offer', url, priceCurrency: 'CLP', price: product.price, seller };
+}
+
 export function productJsonLd(product: Product, description: string): JsonLd {
   const images = product.images?.length ? product.images : [product.image].filter(Boolean);
   return {
@@ -91,13 +110,7 @@ export function productJsonLd(product: Product, description: string): JsonLd {
     sku: product.sku || product.id,
     mpn: product.sku || product.id,
     ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
-    offers: {
-      '@type': 'Offer',
-      url: absoluteUrl(`/producto/${product.id}`),
-      priceCurrency: 'CLP',
-      price: product.price,
-      seller: { '@type': 'Organization', name: SITE_NAME },
-    },
+    offers: productOffer(product),
   };
 }
 

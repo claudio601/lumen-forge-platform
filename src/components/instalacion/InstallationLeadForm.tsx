@@ -88,14 +88,16 @@ function submitErrorMessage(httpStatus: number, code?: string): string {
 
 const TIPOS_PROYECTO = ['Casa / departamento', 'Oficina', 'Local comercial', 'Bodega', 'Condominio / edificio', 'Proyecto industrial', 'Paneles solares', 'Otro'] as const;
 const TIPOS_CLIENTE = [{ value: '', label: 'Selecciona...' }, { value: 'hogar', label: 'Hogar / Particular' }, { value: 'empresa', label: 'Empresa' }, { value: 'condominio', label: 'Condominio / Edificio' }] as const;
-const PREFS_CONTACTO = [{ value: '', label: 'Sin preferencia' }, { value: 'whatsapp', label: 'WhatsApp' }, { value: 'llamada', label: 'Llamada telefónica' }, { value: 'email', label: 'Correo electrónico' }] as const;
+// El equipo de instalación responde por correo o por teléfono, no por WhatsApp (dueño, 2026-10-24).
+// El servidor sigue aceptando 'whatsapp' de páginas abiertas antes del cambio.
+const PREFS_CONTACTO = [{ value: '', label: 'Sin preferencia' }, { value: 'llamada', label: 'Llamada telefónica' }, { value: 'email', label: 'Correo electrónico' }] as const;
 
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
 const EMPTY_FORM = {
   nombre: '', telefono: '', email: '', comuna: '', tipoProyecto: '', descripcion: '',
   tipoCliente: '' as '' | 'hogar' | 'empresa' | 'condominio',
-  preferenciaContacto: '' as '' | 'whatsapp' | 'llamada' | 'email',
+  preferenciaContacto: '' as '' | 'llamada' | 'email',
 };
 
 type FormValues = typeof EMPTY_FORM;
@@ -223,7 +225,7 @@ const InstallationLeadForm = () => {
       <div data-elights-form="instalacion" className="flex flex-col items-center justify-center gap-4 py-16 text-center">
         <CheckCircle2 className="h-14 w-14 text-green-500" />
         <h3 className="text-xl font-bold text-gray-900">Solicitud recibida</h3>
-        <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisará tu solicitud y te contactará con una propuesta personalizada.</p>
+        <p className="text-gray-500 max-w-sm text-sm leading-relaxed">Nuestro equipo revisará tu solicitud y te contactará por correo o por teléfono con una propuesta personalizada.</p>
         <button onClick={startOver} className="mt-2 text-sm text-primary underline underline-offset-2 hover:text-primary/80 transition-colors">Enviar otra solicitud</button>
       </div>
     );

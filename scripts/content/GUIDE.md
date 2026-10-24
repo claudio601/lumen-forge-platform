@@ -65,7 +65,8 @@ general** (220V de la red chilena, 200 °C de la clase T3, 24V): se escribe sin 
 - La compra es por pedido o cotización: el equipo comercial responde con la cotización
   formal. Atiende a empresas, instaladores eléctricos, constructoras, arquitectos,
   municipios y licitaciones. Se emite factura.
-- Asesoría técnica por WhatsApp o en ventas@elights.cl.
+- Asesoría técnica por correo en ventas@elights.cl. Sin mencionar WhatsApp: lo atiende un
+  asistente automático que solo toma solicitudes (no asesora ni es una persona).
 - Servicio de estudio lumínico DIALux (sin decir que es gratis) e instalación en la Región
   Metropolitana (servicio aparte). Mencionarlos solo cuando aportan (proyectos, alumbrado,
   canchas, bodegas), no en todas las fichas.

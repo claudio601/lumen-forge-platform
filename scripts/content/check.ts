@@ -176,6 +176,7 @@ const FORBIDDEN: [RegExp, string][] = [
   // «D.S. N°1/2022» (la norma de contaminación lumínica) no es declararse «N°1»
   [/(?<!D\.\s?S\.\s?)\bn[°º]\s?1\b|n[uú]mero uno|l[ií]der (?:del|en el) mercado/i, 'se declara líder'],
   [/24\/7/, 'promete atención 24/7'],
+  [/whats\s?app/i, 'menciona WhatsApp (lo atiende un asistente automático que solo toma solicitudes; la asesoría es por correo)'],
   [/checkout|carrito/i, 'menciona checkout o carrito (el sitio cotiza)'],
   [/https?:\/\/|www\./i, 'trae URLs'],
   [/<[a-z/]/i, 'trae HTML'],

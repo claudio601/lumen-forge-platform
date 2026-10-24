@@ -56,7 +56,7 @@ import { REGIONS } from '@/config/regions';
 import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
 
 const SEO_TITLE = 'Solicitud de Pedido | eLIGHTS Chile';
-const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te contactamos con la cotización.';
+const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te enviamos la cotización por correo.';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
 // Las regiones del selector (REGIONS) viven en src/config/regions.ts: la misma lista decide qué

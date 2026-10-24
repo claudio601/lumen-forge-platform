@@ -7,13 +7,16 @@ import { describe, it, expect } from 'vitest';
 import { products, categories, type Product } from '@/data/products';
 import { GENERIC_SEARCH_WORDS, SEARCH_SYNONYMS } from '@/data/catalog/search-synonyms';
 import {
+  highlightMatches,
   normalizeSearchText,
   searchIndex,
   searchProducts,
   searchRequestMailto,
   searchSuggestions,
+  searchThatFinds,
   searchWords,
 } from './productSearch';
+import { searchTermsFromPath } from './notFound';
 
 const search = (q: string) => searchProducts(products, q);
 const ids = (list: readonly Product[]) => new Set(list.map(p => p.id));
@@ -418,5 +421,85 @@ describe('sin resultados (B-04)', () => {
     }
     const subject = new URLSearchParams(searchRequestMailto('a'.repeat(119) + '😀 más').split('?')[1]).get('subject');
     expect(subject).toBe(`Busco: ${'a'.repeat(119)}😀`);
+  });
+});
+
+describe('la 404 (B-10): lo que de las palabras de la URL sí encuentra productos', () => {
+  /** Un catálogo chico, para fijar la regla sin depender de Jumpseller. */
+  const fake = (sku: string, name: string): Product =>
+    ({ id: sku.toLowerCase(), sku, name, brand: '', kelvins: [], categories: [] }) as unknown as Product;
+  const mini = [
+    fake('NF8-150', 'CAMPANA LED UFO NF8 150W 110LM/W IP65'),
+    fake('NF8-200', 'CAMPANA LED UFO NF8 200W 110LM/W IP65'),
+    fake('LF40', 'LINEAL LED FLAT 40W 120 CM IP20'),
+    fake('APB60', 'ALUMBRADO PÚBLICO BESTLED 60W IP66'),
+  ];
+  const finds = (q: string) => searchThatFinds(mini, q);
+
+  it('un producto dado de baja: se queda con las palabras que siguen encontrando (sin su potencia)', () => {
+    expect(searchProducts(mini, 'campana led ufo nf8 100w 110lm w ip65')).toEqual([]);
+    expect(finds('campana led ufo nf8 100w 110lm w ip65')).toBe('campana led ufo nf8 110lm ip65');
+    expect(finds('lineal led flat 60w 120 cm ip20 6500k')).toBe('lineal led flat 120 cm ip20');
+  });
+
+  it('como se escribieron: con tildes y con las medidas juntas', () => {
+    expect(finds('alumbrado público bestled 97w')).toBe('alumbrado público bestled');
+    expect(finds('lineal 120 cm')).toBe('lineal 120 cm');
+  });
+
+  it('sin palabras de una letra, ni empezar por una de menos de 3; vacío si nada encuentra o si solo queda «led»', () => {
+    expect(finds('no campana')).toBe('campana');
+    expect(finds('una url que no existe')).toBe('');
+    expect(finds('led que no existe')).toBe('');
+    expect(finds('')).toBe('');
+  });
+
+  it('en el catálogo real: nunca precarga una búsqueda sin resultados, y la ficha con otra potencia encuentra algo', () => {
+    for (const p of products) {
+      const own = searchThatFinds(products, searchTermsFromPath(`/producto/${p.id}`));
+      if (own) expect(search(own).length, p.id).toBeGreaterThan(0);
+      if (!/\d+w/.test(p.id)) continue;
+      const other = `/producto/${p.id.replace(/(\d+)w/, (_m, n) => `${Number(n) + 7}w`)}`;
+      const q = searchThatFinds(products, searchTermsFromPath(other));
+      expect(q, other).not.toBe('');
+      expect(search(q).length, other).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('sugerencias del encabezado: lo escrito en negrita', () => {
+  /** Los trozos marcados, unidos con «|». */
+  const bold = (text: string, q: string) => highlightMatches(text, q).filter(p => p.match).map(p => p.text).join('|');
+
+  it('al comienzo de una palabra, sin tildes ni mayúsculas, como está escrito el nombre', () => {
+    expect(bold('PROYECTOR LED ANTIVANDÁLICO 70W IP66', 'antiva')).toBe('ANTIVA');
+    expect(bold('ALUMBRADO PÚBLICO BESTLED 60W', 'publico')).toBe('PÚBLICO');
+    expect(bold('Panel LED 60x60 Luz Cálida', 'CALIDA panel')).toBe('Panel|Cálida');
+  });
+
+  it('no marca dentro de una palabra, ni un número solo dentro de otro número', () => {
+    expect(bold('FUENTE DE PODER SWITCHING', 'tch')).toBe('');
+    expect(bold('PROYECTOR 1000W', '100')).toBe('');
+    expect(bold('PROYECTOR 100W', '100')).toBe('100');
+  });
+
+  it('las medidas y unidades como las junta la búsqueda: «100 watts» marca «100W», «ip 66» marca «IP66»', () => {
+    expect(bold('PROYECTOR LED 100W IP66', '100 watts ip 66')).toBe('100W|IP66');
+  });
+
+  it('en singular, con coma decimal y después de la «x» de una medida, como encuentra la búsqueda', () => {
+    expect(bold('PROYECTOR LED 50W', 'proyectores')).toBe('PROYECTOR');
+    expect(bold('PANEL LED 60X60', 'paneles')).toBe('PANEL');
+    expect(bold('CINTA LED EXTERIOR 14,4W SMD', '14,4w')).toBe('14,4W');
+    expect(bold('CINTA LED EXTERIOR 14,4W SMD', '14.4w')).toBe('14,4W');
+    expect(bold('CANOA LED 2X18W', '18w')).toBe('18W');
+    expect(bold('FOCO 2X18W', 'x18w')).toBe('');
+  });
+
+  it('los trozos vuelven a armar el nombre completo, también sin coincidencias', () => {
+    for (const p of products.slice(0, 50)) {
+      expect(highlightMatches(p.name, 'led 100w').map(x => x.text).join('')).toBe(p.name);
+    }
+    expect(highlightMatches('', 'led')).toEqual([]);
   });
 });
