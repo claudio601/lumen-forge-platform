@@ -29,6 +29,7 @@ import {
   MAX_REDIRECTS,
   renamedIdRedirects,
   RESERVED_FIRST_SEGMENTS,
+  UNPUBLISHED_RENAMED,
 } from './redirects/build';
 
 interface Rule {
@@ -263,15 +264,23 @@ describe('vercel.json', () => {
     }
   });
 
-  it('ids renombrados: un 301 por id viejo, al id vigente, sin cadenas', () => {
+  it('ids renombrados: un 301 por id viejo, al id vigente (o a su categoría si ya no se publica), sin cadenas', () => {
     const idRules = redirects.filter(isProductRule);
     const renamed = Object.entries(RENAMED_SITE_IDS).map(([jid, r]) => ({ jid: Number(jid), ...r }));
     // Id vigente de cada producto registrado, publicado o no (sin mirar el catálogo)
     const current = new Map<number, string>(Object.entries({ ...LEGACY_SITE_IDS, ...SITE_IDS }).map(([jid, id]) => [Number(jid), id]));
     for (const r of renamed) current.set(r.jid, r.id);
     const currentPaths = new Set([...current.values()].map(productPath));
+    // Los que ya no se publican están en UNPUBLISHED_RENAMED (a mano): a su categoría o a /catalogo
+    const slugs = new Set(categories.map(c => c.slug));
+    const destinationOf = (jid: number, id: string) => {
+      if (!Object.hasOwn(UNPUBLISHED_RENAMED, jid)) return productPath(id);
+      const slug = UNPUBLISHED_RENAMED[jid];
+      if (slug !== null) expect(slugs.has(slug), `UNPUBLISHED_RENAMED: ${jid} → ${slug}`).toBe(true);
+      return slug === null ? '/catalogo' : categoryPath(slug);
+    };
 
-    const previous = renamed.flatMap(r => r.previous.map(old => ({ old, to: r.id })));
+    const previous = renamed.flatMap(r => r.previous.map(old => ({ old, to: destinationOf(r.jid, r.id) })));
     expect(previous.length).toBeGreaterThanOrEqual(50); // PR 07
     expect(idRules).toHaveLength(previous.length);
     for (const { old, to } of previous) {
@@ -280,7 +289,7 @@ describe('vercel.json', () => {
       // 301 exacto: con `permanent` Vercel respondería 307/308 e ignoraría statusCode
       expect(Object.keys(rules[0]).sort(), old).toEqual(['destination', 'source', 'statusCode']);
       expect(rules[0].statusCode, old).toBe(301);
-      expect(rules[0].destination, old).toBe(productPath(to));
+      expect(rules[0].destination, old).toBe(to);
     }
 
     const sources = idRules.map(r => sourcePaths(r.source)?.[0]);
@@ -288,10 +297,11 @@ describe('vercel.json', () => {
     for (const r of idRules) {
       const source = sourcePaths(r.source)?.[0] ?? r.source;
       expect(currentPaths.has(source), `${r.source} tapa la URL vigente de un producto`).toBe(false);
-      expect(currentPaths.has(r.destination ?? ''), `${r.source} → ${r.destination}`).toBe(true);
+      // A una ficha, solo la del id vigente (las de categoría se revisan arriba: páginas que existen)
+      if (r.destination?.startsWith('/producto/')) expect(currentPaths.has(r.destination), `${r.source} → ${r.destination}`).toBe(true);
       expect(sources, `${r.destination} es a su vez una redirección`).not.toContain(r.destination);
       // Sin barra final, '?' ni '#': Vercel agrega la consulta original (?gclid=…)
-      expect(r.destination).toMatch(/^\/producto\/[a-z0-9]+(-[a-z0-9]+)*$/);
+      expect(r.destination).toMatch(/^\/(producto\/[a-z0-9]+(-[a-z0-9]+)*|catalogo(\/[a-z0-9]+(-[a-z0-9]+)*)?)$/);
     }
     expect(redirects.length).toBeLessThanOrEqual(MAX_REDIRECTS);
   });

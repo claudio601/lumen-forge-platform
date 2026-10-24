@@ -49,7 +49,7 @@ export const RENAMED_SITE_IDS: Readonly<Record<number, RenamedSiteId>> = {
   24031164: { id: 'campana-led-ufo-nf8-100w-110lm-w-ip65', previous: ['w-ip65-24031164'] },
   24040212: { id: 'campana-led-ufo-nf8-150w-110lm-w-ip65', previous: ['w-ip65-24040212'] },
   24040292: { id: 'campana-led-ufo-nf8-200w-110lm-w-ip65', previous: ['w-ip65-24040292'] },
-  // No publicado hoy: su 301 lleva a una 404 (igual que hoy) y vuelve sola si se republica.
+  // No publicado hoy: va a su categoría (UNPUBLISHED_RENAMED, abajo).
   24043701: { id: 'campana-led-ufo-nf8-300w-110lm-w-ip65', previous: ['w-ip65-24043701'] },
   24043822: { id: 'campana-led-ufo-nf8-pro-300w-150lm-w-ip65', previous: ['w-ip65-24043822'] },
   24192756: { id: 'proyector-led-ultra-slim-50w-ip66-negro-c-sensor-de-movimiento', previous: ['sensor-de-movimiento'] },
@@ -78,6 +78,36 @@ export const RENAMED_SITE_IDS: Readonly<Record<number, RenamedSiteId>> = {
   33748560: { id: 'campana-led-ufo-nf9-200w-110lm-w-ip65-22000-lm', previous: ['w-ip65-22000-lm'] },
   34057374: { id: 'proyector-led-solar-500w-ip65-c-panel-solar-c-control-remoto', previous: ['control-remoto-34057374'] },
 };
+
+/**
+ * Renombrados que ya no se publican: jumpseller_id → slug de su categoría (categories.config.ts),
+ * o null si no se conoce (entonces, /catalogo). Sus ids anteriores no van a la ficha, que da 404,
+ * sino ahí: en Vercel con el 301 (scripts/redirects/build.ts, que valida el slug) y dentro de la
+ * app con ProductRoute (RENAMED_DESTINATION_FROM). Se mantiene a mano: check:prerender avisa
+ * cuando un id renombrado llega a un producto no publicado (agregarlo aquí) y cuando uno de
+ * estos vuelve a publicarse (quitarlo). Después, `npm run redirects:write`.
+ */
+export const UNPUBLISHED_RENAMED: Readonly<Record<number, string | null>> = {
+  // Campanas UFO NF8 de 100, 150, 200 y 300W: ya no se publican en Jumpseller. Van a su
+  // categoría, igual que sus URLs de elights.cl en legacy-urls.json (2026-10-22).
+  24031164: 'campanas-led',
+  24040212: 'campanas-led',
+  24040292: 'campanas-led',
+  24043701: 'campanas-led',
+};
+
+/**
+ * Id anterior → destino en el sitio, el mismo del 301: la ficha vigente o, si ya no se publica
+ * (UNPUBLISHED_RENAMED), su categoría o /catalogo. Lo usa ProductRoute (src/routes.tsx).
+ */
+export const RENAMED_DESTINATION_FROM: ReadonlyMap<string, string> = new Map(
+  Object.entries(RENAMED_SITE_IDS).flatMap(([jid, r]) => {
+    // Claves numéricas: nada heredado de Object.prototype (src compila con ES2020, sin Object.hasOwn)
+    const slug = UNPUBLISHED_RENAMED[Number(jid)];
+    const to = slug === undefined ? `/producto/${r.id}` : slug === null ? '/catalogo' : `/catalogo/${slug}`;
+    return r.previous.map(p => [p, to] as const);
+  }),
+);
 
 /**
  * Id anterior → id vigente. Es un Map (no un objeto) para que una URL como

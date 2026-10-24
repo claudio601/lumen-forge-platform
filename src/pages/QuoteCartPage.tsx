@@ -19,7 +19,8 @@ import { quoteItemKey } from '@/lib/quoteLine';
 import { requestSku } from '@/lib/variantSku';
 import { jsImage } from '@/lib/jumpsellerImage';
 import { Link } from 'react-router-dom';
-import { Minus, Plus, Trash2, FileText, Send, ArrowLeft } from 'lucide-react';
+import { Trash2, FileText, Send, ArrowLeft } from 'lucide-react';
+import QuantityStepper from '@/components/forms/QuantityStepper';
 import { Button } from '@/components/ui/button';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
@@ -459,11 +460,8 @@ const QuoteCartPage = () => {
               <span>{formatDisplayPrice(item.unitPrice ?? item.product.price)}</span>
               <span className="block sm:inline sm:ml-1 text-[10px] text-muted-foreground">{priceLabel}</span>
             </div>
-            <div className="flex items-center border rounded-lg">
-              <button aria-label={`Restar una unidad de ${rowName}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity - 1)}><Minus className="h-3 w-3" /></button>
-              <span className="px-3 text-sm font-semibold">{item.quantity}</span>
-              <button aria-label={`Sumar una unidad de ${rowName}`} className="p-2.5 sm:p-1.5 hover:bg-accent transition-colors" onClick={() => updateQuoteQty(key, item.quantity + 1)}><Plus className="h-3 w-3" /></button>
-            </div>
+            {/* La cantidad se escribe o se cambia con − y + (auditoría UX, D-03); el − en 1 quita la línea */}
+            <QuantityStepper name={rowName} value={item.quantity} onChange={qty => updateQuoteQty(key, qty)} />
             <button aria-label={`Quitar ${rowName} de la cotización`} onClick={() => removeFromQuote(key)} className="p-2 -mr-2 sm:p-0 sm:mr-0 text-muted-foreground hover:text-destructive transition-colors">
               <Trash2 className="h-4 w-4" />
             </button>

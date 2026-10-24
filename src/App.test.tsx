@@ -52,6 +52,13 @@ describe('rutas: ids de producto renombrados (PR 07)', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/producto/alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto'), WAIT);
     expect(await screen.findByRole('heading', { level: 1, name: /ALUMBRADO/i }, WAIT)).toBeInTheDocument();
   });
+
+  it('un id viejo de un producto que ya no se publica lleva a su categoría, como el 301 de Vercel', async () => {
+    renderAt('/catalogo');
+    navigate('/producto/w-ip65-24031164?gclid=x');
+    await waitFor(() => expect(window.location.pathname).toBe('/catalogo/campanas-led'), WAIT);
+    expect(window.location.search).toBe('?gclid=x');
+  });
 });
 
 describe('catálogo: la categoría sigue a la URL', () => {

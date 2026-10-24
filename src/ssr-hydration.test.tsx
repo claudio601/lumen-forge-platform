@@ -16,6 +16,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderToString } from 'react-dom/server';
 import { hydrateRoot, type Root } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
@@ -95,6 +96,8 @@ async function hydrate(
   notFound = false,
   decision: CookieChoice | null = null,
   savedContact: SavedContact | null = null,
+  /** Lo que hace el visitante en el HTML estático, antes de que cargue el JavaScript. */
+  beforeHydrate?: (container: HTMLElement) => void,
 ) {
   sessionStorage.clear();
   localStorage.clear();
@@ -117,6 +120,7 @@ async function hydrate(
   if (notFound) container.setAttribute(NOT_FOUND_ATTR, ''); // como scripts/prerender.ts (markNotFound)
   document.body.appendChild(container);
   const serverH1 = container.querySelector('main h1');
+  beforeHydrate?.(container);
   await act(async () => {
     const { notFoundPath, preload } = staticPage(container, new URL(clientUrl, 'http://x').pathname); // como src/main.tsx
     await preload;
@@ -285,6 +289,49 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     container.setAttribute(NOT_FOUND_ATTR, '');
     expect(staticPage(container, '/producto/no-existe').notFoundPath).toBe('/producto/no-existe');
     expect(await staticPage(container, '/producto/no-existe').preload).toEqual(await preloadRoute(NOT_FOUND_URL));
+  });
+});
+
+// Cantidad de la ficha (auditoría UX, D-03) con red lenta: el visitante empieza a escribir en el
+// HTML estático y termina con la página hidratada. Antes, el render que sigue a la hidratación (la
+// sesión se aplica en una transición) cambiaba «1.0» por «1» bajo el cursor y «1.000» quedaba en 100.
+describe('ficha: la cantidad escrita mientras la página se hidrata', () => {
+  const path = `/producto/${flyhawk.id}`;
+  const quantity = (container: HTMLElement) => container.querySelector<HTMLInputElement>('main input[role="spinbutton"]')!;
+  /** Pesos del «Subtotal desde: $…» de la ficha. */
+  const subtotal = (container: HTMLElement) =>
+    Number(container.textContent!.replace(/\s/g, ' ').match(/Subtotal desde: \$([\d.]+)/)![1].replace(/\./g, ''));
+
+  it('«1.0» antes de hidratar y «00» después, con el teclado: 1000 (no 100), y aria-valuenow 1000', async () => {
+    let typed: HTMLInputElement | undefined;
+    const { errors, mismatches, container } = await hydrate(path, path, false, false, null, null, c => {
+      typed = quantity(c);
+      typed.focus();
+      typed.value = '1.0';
+    });
+    expect(errors).toEqual([]);
+    expect(mismatches).toEqual([]);
+    const input = quantity(container);
+    expect(input).toBe(typed); // React reutilizó el campo del HTML
+    expect(input.value).toBe('1.0');
+    const unit = subtotal(container); // cantidad 1
+    const user = userEvent.setup();
+    await user.type(input, '00');
+    await user.tab();
+    expect(input.value).toBe('1000');
+    expect(input.getAttribute('aria-valuenow')).toBe('1000');
+    expect(subtotal(container)).toBe(unit * 1000); // con 100 sería unit * 100
+  });
+
+  it('«1.000» y Tab antes de hidratar: al hidratar, la cantidad es 1000 y se ve «1000»', async () => {
+    const { container } = await hydrate(path, path, false, false, null, null, c => {
+      const input = quantity(c);
+      input.focus();
+      input.value = '1.000';
+      input.blur();
+    });
+    expect(quantity(container).value).toBe('1000');
+    expect(quantity(container).getAttribute('aria-valuenow')).toBe('1000');
   });
 });
 
