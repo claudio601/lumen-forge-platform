@@ -269,6 +269,9 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
 describe('ficha: la cantidad escrita mientras la página se hidrata', () => {
   const path = `/producto/${flyhawk.id}`;
   const quantity = (container: HTMLElement) => container.querySelector<HTMLInputElement>('main input[role="spinbutton"]')!;
+  /** Pesos del «Subtotal desde: $…» de la ficha. */
+  const subtotal = (container: HTMLElement) =>
+    Number(container.textContent!.replace(/\s/g, ' ').match(/Subtotal desde: \$([\d.]+)/)![1].replace(/\./g, ''));
 
   it('«1.0» antes de hidratar y «00» después, con el teclado: 1000 (no 100), y aria-valuenow 1000', async () => {
     let typed: HTMLInputElement | undefined;
@@ -282,12 +285,13 @@ describe('ficha: la cantidad escrita mientras la página se hidrata', () => {
     const input = quantity(container);
     expect(input).toBe(typed); // React reutilizó el campo del HTML
     expect(input.value).toBe('1.0');
+    const unit = subtotal(container); // cantidad 1
     const user = userEvent.setup();
     await user.type(input, '00');
     await user.tab();
     expect(input.value).toBe('1000');
     expect(input.getAttribute('aria-valuenow')).toBe('1000');
-    expect(container.textContent?.replace(/\s/g, ' ')).toMatch(/Subtotal desde: \$[\d.]+\.000 /);
+    expect(subtotal(container)).toBe(unit * 1000); // con 100 sería unit * 100
   });
 
   it('«1.000» y Tab antes de hidratar: al hidratar, la cantidad es 1000 y se ve «1000»', async () => {

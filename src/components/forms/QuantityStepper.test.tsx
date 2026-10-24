@@ -233,6 +233,31 @@ describe('QuantityStepper', () => {
     }
   });
 
+  it('«1.000» completo antes de hidratar, con el foco aún en el campo: 1000 al hidratar, y «1000» al salir', async () => {
+    const onChange = vi.fn();
+    const tree = <><RerenderingHarness onChange={onChange} /><button type="button">después</button></>;
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(tree);
+    document.body.appendChild(container);
+    const input = container.querySelector('input')!;
+    input.focus();
+    input.value = '1.000';
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      await act(async () => { root = hydrateRoot(container, tree); });
+      await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+      expect(input.value).toBe('1.000');
+      expect(input).toHaveAttribute('aria-valuenow', '1000');
+      expect(onChange).toHaveBeenLastCalledWith(1000);
+      await userEvent.setup().tab();
+      expect(input.value).toBe('1000');
+      expect(container.querySelector('output')!.textContent).toBe('1000');
+    } finally {
+      act(() => root?.unmount());
+      container.remove();
+    }
+  });
+
   it('borrado antes de hidratar, con el foco en el campo: lo que se escribe después no se suma al 1', async () => {
     const tree = <RerenderingHarness onChange={vi.fn()} />;
     const container = document.createElement('div');

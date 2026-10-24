@@ -148,7 +148,8 @@ describe('ficha: la cantidad con el teclado (userEvent: keydown, input y keyup p
       await user.tab();
       expect(qty.value).toBe('1000');
       expect(qty).toHaveAttribute('aria-valuenow', '1000');
-      expect(subtotal(container)).not.toBe(unit);
+      const pesos = (text: string) => Number(text.replace(/\D/g, ''));
+      expect(pesos(subtotal(container)!)).toBe(pesos(unit) * 1000); // con 100 sería × 100
       // Enter con el foco en el campo no cambia nada
       await user.click(qty);
       await user.keyboard('{Enter}');
