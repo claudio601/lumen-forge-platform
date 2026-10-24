@@ -7,6 +7,7 @@
 
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HelmetProvider } from 'react-helmet-async';
 import { MemoryRouter } from 'react-router-dom';
 import { AppProvider, useApp } from '@/context/AppContext';
@@ -482,6 +483,28 @@ describe('/cotizacion: la cantidad se escribe', () => {
     expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
     expect(sentBody().products).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 1000 })]);
   });
+
+  // Teclado de verdad (userEvent: keydown, input y keyup por tecla; Tab saca el foco)
+  const typeOver = (user: ReturnType<typeof userEvent.setup>, el: HTMLInputElement, text: string) =>
+    user.type(el, text, { initialSelectionStart: 0, initialSelectionEnd: el.value.length });
+
+  for (const leave of ['Tab', 'Enter'] as const) {
+    it(`con el teclado: «1.000» y ${leave}: la fila, aria-valuenow y el envío llevan 1000`, async () => {
+      vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77,"quoteReference":"NE-x"}'));
+      const user = userEvent.setup();
+      await renderPage();
+      await typeOver(user, field(), '1.000');
+      await user.keyboard(`{${leave}}`);
+      expect(field().value).toBe('1000');
+      expect(field()).toHaveAttribute('aria-valuenow', '1000');
+      expect(screen.getByText(`$${(product.price * 1000).toLocaleString('es-CL')}`)).toBeInTheDocument();
+      await waitFor(() => expect(savedQuote()[0].quantity).toBe(1000));
+      fillContact();
+      submit();
+      expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+      expect(sentBody().products).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 1000 })]);
+    });
+  }
 
   it('borrar el número no quita la línea; − en 1 sí, como antes', async () => {
     await renderPage();

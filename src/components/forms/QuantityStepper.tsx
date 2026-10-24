@@ -11,8 +11,11 @@
 //   ficha no baja de 1. Quitar con el teclado es el botón de la papelera: ni escribir 0 ni la
 //   flecha ↓ quitan la línea.
 // - El HTML estático de la ficha (prerender) ya trae el campo: si el visitante escribe antes de
-//   que la página termine de cargar, al montar se adopta esa cantidad (si no, React la cambiaría
-//   por la del estado en el siguiente render, sin aviso).
+//   que la página termine de cargar, al montar se toma lo escrito (si no, React lo cambiaría por
+//   la cantidad del estado en el siguiente render, sin aviso). Con el foco aún en el campo, como
+//   si se escribiera en ese momento: «1.0» a medio escribir queda a la vista y las teclas que
+//   siguen se suman a eso (antes volvía a «1» y «1.000» terminaba en 100). Fuera del campo, como
+//   al salir de él.
 // - Nombres accesibles con el producto: «Cantidad de …», «Restar una unidad de …» y «Sumar una
 //   unidad de …» (dos filas del mismo producto en dos variantes llevan la variante en el nombre).
 // - Letra de 16 px en el teléfono (14 px desde md, como src/components/ui/input.tsx): con menos,
@@ -42,11 +45,28 @@ const QuantityStepper = ({ value, onChange, name, variant = 'row', id }: Props) 
   const inputRef = useRef<HTMLInputElement>(null);
   const pdp = variant === 'pdp';
 
+  // Lo escrito → la cantidad y lo que se ve. Si es una cantidad, pasa a ser la vigente; queda a
+  // la vista mientras no lo sea, o con punto de miles («1.000»), salvo que pase del tope.
+  const applyText = (text: string) => {
+    const qty = parseQuantity(text);
+    setDraft(qty === null || (text.includes('.') && qty < MAX_LINE_QUANTITY) ? text : null);
+    if (qty !== null && qty !== value) onChange(qty);
+  };
+
   // Lo escrito en el HTML estático antes de hidratar (React lo conserva al hidratar, pero lo
-  // pisaría en el siguiente render): si es una cantidad, pasa a ser la vigente. Solo al montar.
+  // pisaría en el siguiente render). Solo al montar.
   useEffect(() => {
-    const typed = inputRef.current ? parseQuantity(inputRef.current.value) : null;
+    const el = inputRef.current;
+    if (!el || el.value === String(value)) return;
+    if (document.activeElement === el) {
+      // Sigue escribiendo: como una tecla más
+      applyText(el.value);
+      return;
+    }
+    // Ya salió del campo: como al salir, la cantidad escrita o la vigente
+    const typed = parseQuantity(el.value);
     if (typed !== null && typed !== value) onChange(typed);
+    else el.value = String(value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -82,13 +102,7 @@ const QuantityStepper = ({ value, onChange, name, variant = 'row', id }: Props) 
         aria-valuemax={MAX_LINE_QUANTITY}
         aria-label={`Cantidad de ${name}`}
         value={draft ?? String(value)}
-        onChange={e => {
-          const text = e.target.value;
-          const qty = parseQuantity(text);
-          // Con punto de miles («1.000») queda a la vista lo escrito, salvo que pase del tope
-          setDraft(qty === null || (text.includes('.') && qty < MAX_LINE_QUANTITY) ? text : null);
-          if (qty !== null && qty !== value) onChange(qty);
-        }}
+        onChange={e => applyText(e.target.value)}
         onBlur={() => setDraft(null)}
         onKeyDown={e => {
           if (e.key === 'Enter') {

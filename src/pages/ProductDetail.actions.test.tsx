@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AppProvider } from '@/context/AppContext';
@@ -122,6 +123,64 @@ describe('ficha: la cantidad se escribe (D-03)', () => {
     fireEvent.click(quote);
     fireEvent.click(quote);
     await waitFor(() => expect(savedQuote()[0]?.quantity).toBe(MAX_LINE_QUANTITY));
+  });
+});
+
+// Síntoma visto en la preview (Chromium): «1.000» y Tab, antes de elegir la variante, dejaban el
+// campo en «1.000» y aria-valuenow en 1. Era la página sin JavaScript (no había cargado): con la
+// página hidratada, el teclado de verdad deja 1000 en el campo, en el subtotal y en los botones.
+describe('ficha: la cantidad con el teclado (userEvent: keydown, input y keyup por tecla, y Tab)', () => {
+  const typeOver = (user: ReturnType<typeof userEvent.setup>, el: HTMLInputElement, text: string) =>
+    user.type(el, text, { initialSelectionStart: 0, initialSelectionEnd: el.value.length });
+  const subtotal = (container: HTMLElement) => container.textContent?.replace(/\s/g, ' ').match(/Subtotal( desde)?: \$[\d.]+/)?.[0];
+  const [axis] = variantAxes(oneAxis);
+  const chooseFirst = (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(within(screen.getByRole('radiogroup', { name: axis.legend })).getAllByRole('radio')[0]);
+
+  for (const order of ['sin elegir la variante antes', 'con la variante elegida antes'] as const) {
+    it(`producto con variantes, ${order}: «1.000» y Tab dejan 1000 (campo, aria-valuenow y subtotal); Solicitar pedido y Cotizar llevan 1000`, async () => {
+      const user = userEvent.setup();
+      const { container } = renderPdp(oneAxis);
+      if (order === 'con la variante elegida antes') await chooseFirst(user);
+      const qty = quantityField(oneAxis);
+      const unit = subtotal(container)!;
+      await typeOver(user, qty, '1.000');
+      await user.tab();
+      expect(qty.value).toBe('1000');
+      expect(qty).toHaveAttribute('aria-valuenow', '1000');
+      expect(subtotal(container)).not.toBe(unit);
+      // Enter con el foco en el campo no cambia nada
+      await user.click(qty);
+      await user.keyboard('{Enter}');
+      expect(document.activeElement).toBe(qty);
+      expect(qty).toHaveAttribute('aria-valuenow', '1000');
+      if (order === 'sin elegir la variante antes') await chooseFirst(user);
+      const price = Number(subtotal(container)!.replace(/\D/g, '')) / 1000;
+      expect(Number.isInteger(price) && price > 0).toBe(true);
+      expect(qty).toHaveAttribute('aria-valuenow', '1000');
+      await user.click(screen.getByRole('button', { name: /Solicitar pedido/ }));
+      await waitFor(() => expect(savedRequest()).toHaveLength(1));
+      expect(savedRequest()[0]).toMatchObject({ jumpsellerId: oneAxis.jumpseller_id, quantity: 1000, unitPrice: price });
+      await user.click(screen.getAllByRole('button', { name: /^Cotizar$/ })[0]);
+      await waitFor(() => expect(savedQuote()).toHaveLength(1));
+      expect(savedQuote()[0]).toMatchObject({ quantity: 1000 });
+    });
+  }
+
+  it('producto sin variantes: «1.000» y Enter (sin salir del campo) y luego los botones: 1000', async () => {
+    const user = userEvent.setup();
+    renderPdp(panel);
+    const qty = quantityField(panel);
+    await typeOver(user, qty, '1.000');
+    await user.keyboard('{Enter}');
+    expect(qty.value).toBe('1000');
+    expect(qty).toHaveAttribute('aria-valuenow', '1000');
+    await user.click(screen.getByRole('button', { name: /Solicitar pedido/ }));
+    await waitFor(() => expect(savedRequest()).toHaveLength(1));
+    expect(savedRequest()[0]).toMatchObject({ jumpsellerId: panel.jumpseller_id, quantity: 1000 });
+    await user.click(screen.getAllByRole('button', { name: /^Cotizar$/ })[0]);
+    await waitFor(() => expect(savedQuote()).toHaveLength(1));
+    expect(savedQuote()[0]).toMatchObject({ quantity: 1000 });
   });
 });
 
