@@ -193,7 +193,7 @@ const InstalacionPage = () => {
             <InstallationLeadForm />
           </div>
           <p className="text-center text-gray-400 text-xs mt-4">
-            ¿Prefieres escribir directo?{' '}
+            ¿Prefieres no llenar el formulario? Escríbenos por{' '}
             <a
               href={waInstalacion}
               target="_blank"
@@ -202,13 +202,14 @@ const InstalacionPage = () => {
             >
               WhatsApp
             </a>{' '}
-            o{' '}
+            o por{' '}
             <a
               href={'mailto:' + contactEmailInstalacion}
               className="text-primary-foreground hover:underline"
             >
               correo
             </a>
+            .
           </p>
         </div>
       </section>

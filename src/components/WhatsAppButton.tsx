@@ -19,7 +19,7 @@ const WhatsAppButton = () => {
           </div>
           {/* Ahí atiende un asistente automático que toma la solicitud; el equipo responde por correo (dueño, 2026-10-24) */}
           <p className="text-xs text-muted-foreground mb-2">Un asistente automático toma tu solicitud y te enviamos la cotización por correo.</p>
-          <p className="text-xs text-muted-foreground mb-3">{businessHours}</p>
+          <p className="text-xs text-muted-foreground mb-3">Horario del equipo: {businessHours}</p>
           <a
             href={waBase}
             target="_blank"

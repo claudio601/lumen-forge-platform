@@ -29,7 +29,7 @@ export const RETIRED: readonly Retired[] = [
   { re: /precios especiales|tarifas especiales/i, why: 'precios especiales sin confirmar' },
   { re: /descuentos? por (?:proyecto|volumen)/i, why: 'descuentos por proyecto o volumen sin confirmar' },
   { re: /mi cuenta/i, why: 'no hay login (Fase 3)' },
-  { re: /asesor[ií]a[^.;]{0,50}por whats\s?app|whats\s?app directo|hablar por whats\s?app/i, why: 'en WhatsApp atiende un asistente automático que solo toma solicitudes (dueño, 2026-10-24)' },
+  { re: /asesor[ií]a[^.;]{0,50}por whats\s?app|whats\s?app directo|(?:hablar|consultar) por whats\s?app/i, why: 'en WhatsApp atiende un asistente automático que solo toma solicitudes (dueño, 2026-10-24)' },
   {
     re: /certificados SEC|SEC\s*Certificados|t[eé]cnicos? certificados?|electricistas certificados|instalador(?:es)? certificad[oa]s?|certificaci[oó]n de (?:la )?instalaci[oó]n/i,
     why: 'credenciales del equipo sin verificar (la declaración ante la SEC exige instalador autorizado)',

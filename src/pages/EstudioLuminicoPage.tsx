@@ -637,7 +637,7 @@ const EstudioLuminicoPage = () => {
 
           {/* 11. CTA alternativo WhatsApp (ahí un asistente automático toma la solicitud) */}
           <p className="text-center text-gray-400 text-xs mt-5">
-            ¿Prefieres dejar tu solicitud por WhatsApp?{' '}
+            ¿Prefieres no llenar el formulario?{' '}
             <a
               href={waEstudioLuminico}
               target="_blank"
