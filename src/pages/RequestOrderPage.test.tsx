@@ -264,6 +264,20 @@ describe('/solicitar-pedido: la cantidad se escribe', () => {
     expect(sentBody().items).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 40 })]);
   });
 
+  it('«2.500» con punto de miles, tecla por tecla: la fila y el envío llevan 2500 (no 2)', async () => {
+    vi.stubGlobal('fetch', ok());
+    await renderPage();
+    field().focus();
+    for (const typed of ['2', '2.', '2.5', '2.50', '2.500']) fireEvent.change(field(), { target: { value: typed } });
+    fireEvent.blur(field());
+    expect(field().value).toBe('2500');
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)[0].quantity).toBe(2500));
+    fillForm();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(sentBody().items).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 2500 })]);
+  });
+
   it('borrar el número no quita la línea; − en 1 sí, como antes', async () => {
     await renderPage();
     fireEvent.change(field(), { target: { value: '' } });

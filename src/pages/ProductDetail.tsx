@@ -258,8 +258,12 @@ const ProductDetail = () => {
     // Consultas por WhatsApp con la variante elegida (SKU + variante), no el SKU base.
     const lineName = chosenLabel ? `${product.name} – ${chosenLabel}` : product.name;
     const waUrl = waProductUrl(lineName, skuFinal);
-    // «Pedir documentos técnicos»: el mismo producto, variante y SKU, con la dirección de la ficha
-    const docsMailto = docsRequestMailto(lineName, skuFinal, absoluteUrl(productUrlPath));
+    // «Pedir documentos técnicos»: el mismo producto, variante y SKU, con la dirección de la ficha.
+    // Sin la variante completa, una línea por opción (lo marcado, o en blanco para el cliente).
+    const docsChoices = hasVariantChoice && !chosen
+      ? axes.map(a => ({ legend: a.legend, value: a.choices.find(c => c.value === selection[a.name])?.label }))
+      : [];
+    const docsMailto = docsRequestMailto(lineName, skuFinal, absoluteUrl(productUrlPath), docsChoices);
     // Caja del estudio DIALux: solo en proyectores, campanas, alumbrado, antiexplosivos y solares
     const studyHref = studyBoxHref(product);
 
@@ -470,8 +474,23 @@ const ProductDetail = () => {
                                               </Button>
                                   </div>
                         
-                          {/* Acciones secundarias */}
+                          {/* Acciones secundarias. «Ficha técnica» sigue aquí y con este estilo, no en el bloque
+                              «Documentos técnicos»: los PDF de la agencia (public/fichas/APB*.pdf) dicen «Cumple
+                              DS1» para todas las variantes y hay que reemitirlos antes de destacarlos. */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                              {product.datasheetUrl && (
+                                                            <a
+                                                              href={product.datasheetUrl}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              download
+                                                            >
+                                                              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
+                                                                <Download className="h-3.5 w-3.5" />
+                                                                Ficha técnica
+                                                              </Button>
+                                                            </a>
+                                              )}
                                               <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
@@ -483,19 +502,11 @@ const ProductDetail = () => {
                           {/* Estudio DIALux (servicio cotizado), en las fichas de proyecto (auditoría UX, E-02) */}
                           {studyHref && <DialuxStudyBox href={studyHref} />}
 
-                          {/* Documentos técnicos, en todas las fichas (auditoría UX, D-02, paso 1): la ficha PDF
-                              si existe y el correo prellenado a ventas con el producto y el SKU de la línea */}
+                          {/* Documentos técnicos, en todas las fichas (auditoría UX, D-02, paso 1): el correo
+                              prellenado a ventas con el producto y el SKU de la línea */}
                                   <section aria-labelledby={docsTitleId} className="mt-6 border-t pt-4" data-docs-block="">
                                               <h2 id={docsTitleId} className="text-sm font-semibold mb-2">Documentos técnicos</h2>
                                               <div className="flex flex-wrap gap-2">
-                                                {product.datasheetUrl && (
-                                                            <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
-                                                              <a href={product.datasheetUrl} target="_blank" rel="noopener noreferrer" download>
-                                                                <Download className="h-3.5 w-3.5" />
-                                                                Ficha técnica
-                                                              </a>
-                                                            </Button>
-                                                )}
                                                             <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs">
                                                               <a href={docsMailto} aria-describedby={docsHintId}>
                                                                 <Mail className="h-3.5 w-3.5" />

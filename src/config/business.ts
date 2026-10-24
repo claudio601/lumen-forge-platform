@@ -148,16 +148,26 @@ export function waProductUrl(productName: string, sku: string): string {
  * los certificados los entrega el equipo con su respaldo. El cuerpo no nombra ningún documento
  * (ficha, IES, certificados): no todos los productos los tienen, y el cliente escribe cuáles
  * necesita. El SKU es el de la línea (el de la variante elegida, o JS-<id>), el mismo de WhatsApp.
+ * Sin la variante elegida, el cuerpo trae una línea por opción («Temperatura de color:»), con lo
+ * que el cliente ya marcó o en blanco para que la complete: en las BESTLED, por ejemplo, los
+ * certificados son por variante, y así ventas no tiene que volver a preguntar.
  * @param productName  Nombre del producto, con la variante elegida si la hay
  * @param sku          SKU de la línea
  * @param url          Dirección absoluta de la ficha
+ * @param choices      Opciones de la variante sin elegir del todo: rótulo y lo marcado, si hay
  */
-export function docsRequestMailto(productName: string, sku: string, url: string): string {
+export function docsRequestMailto(
+  productName: string,
+  sku: string,
+  url: string,
+  choices: readonly { legend: string; value?: string }[] = [],
+): string {
   const subject = `Documentos técnicos: ${productName} (SKU ${sku})`;
   const body = [
     'Hola, necesito los documentos técnicos de este producto:',
     '',
     `Producto: ${productName}`,
+    ...choices.map(c => (c.value ? `${c.legend}: ${c.value}` : `${c.legend}:`)),
     `SKU: ${sku}`,
     `Ficha: ${url}`,
     '',

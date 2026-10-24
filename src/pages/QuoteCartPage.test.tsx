@@ -469,6 +469,20 @@ describe('/cotizacion: la cantidad se escribe', () => {
     expect(sentBody().products).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 40 })]);
   });
 
+  it('«1.000» con punto de miles, tecla por tecla: la fila y el envío llevan 1000 (no 1)', async () => {
+    vi.stubGlobal('fetch', reply(201, '{"success":true,"dealId":77,"quoteReference":"NE-x"}'));
+    await renderPage();
+    field().focus();
+    for (const typed of ['1', '1.', '1.0', '1.00', '1.000']) fireEvent.change(field(), { target: { value: typed } });
+    fireEvent.blur(field());
+    expect(field().value).toBe('1000');
+    await waitFor(() => expect(savedQuote()[0].quantity).toBe(1000));
+    fillContact();
+    submit();
+    expect(await screen.findByText('Solicitud enviada')).toBeInTheDocument();
+    expect(sentBody().products).toEqual([expect.objectContaining({ jumpsellerId: product.jumpseller_id, quantity: 1000 })]);
+  });
+
   it('borrar el número no quita la línea; − en 1 sí, como antes', async () => {
     await renderPage();
     fireEvent.change(field(), { target: { value: '' } });

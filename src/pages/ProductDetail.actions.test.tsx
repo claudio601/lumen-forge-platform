@@ -16,7 +16,7 @@ import { contactEmail } from '@/config/business';
 import { SITE_URL } from '@/config/site';
 import { requestSku } from '@/lib/variantSku';
 import { variantAxes, variantLabel } from '@/lib/variants';
-import { STUDY_BOX_CATEGORIES, studyBoxHref } from '@/lib/studyLink';
+import { STUDY_BOX_CATEGORIES, STUDY_BOX_EXCLUDED, studyBoxHref } from '@/lib/studyLink';
 import { DIALUX_BOX_TEXT } from '@/config/navigation';
 import { MAX_LINE_QUANTITY } from '@/lib/quantity';
 import { expectedLineSku } from '@/test/variantRule';
@@ -43,12 +43,13 @@ function renderPdp(product: Product) {
   );
 }
 
-const inStudyList = (p: Product) => [p.category, ...p.categories].some(c => c in STUDY_BOX_CATEGORIES);
+const inStudyCategories = (p: Product) => [p.category, ...p.categories].some(c => c in STUDY_BOX_CATEGORIES);
+const inStudyList = (p: Product) => inStudyCategories(p) && !(p.jumpseller_id in STUDY_BOX_EXCLUDED);
 // Sin variantes que elegir: los botones agregan de inmediato
 const simple = (p: Product) => (p.variants?.length ?? 0) <= 1 && !p.cctVariants?.length && p.price > 1000;
 const campana = products.find(p => p.category === 'campanas-led' && simple(p));
 const proyector = products.find(p => p.categories.every(c => c === 'proyectores-led') && p.category === 'proyectores-led');
-const panel = products.find(p => !inStudyList(p) && simple(p))!;
+const panel = products.find(p => !inStudyCategories(p) && simple(p))!;
 const bestled = products.find(p => p.datasheetUrl)!;
 const oneAxis = products.find(p => (p.variants?.length ?? 0) > 1 && variantAxes(p).length === 1)!;
 
@@ -91,6 +92,22 @@ describe('ficha: la cantidad se escribe (D-03)', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /^Cotizar$/ })[0]);
     await waitFor(() => expect(savedQuote()).toHaveLength(1));
     expect(savedQuote()[0]).toMatchObject({ quantity: 40 });
+  });
+
+  it('«1.000» con punto de miles, tecla por tecla: la solicitud y la cotización reciben 1000', async () => {
+    renderPdp(panel);
+    const qty = quantityField(panel);
+    qty.focus();
+    for (const typed of ['1', '1.', '1.0', '1.00', '1.000']) fireEvent.change(qty, { target: { value: typed } });
+    // Tocar el botón saca el foco del campo: la cantidad sigue en 1000
+    fireEvent.blur(qty);
+    expect(qty.value).toBe('1000');
+    fireEvent.click(screen.getByRole('button', { name: /Solicitar pedido/ }));
+    await waitFor(() => expect(savedRequest()).toHaveLength(1));
+    expect(savedRequest()[0]).toMatchObject({ jumpsellerId: panel.jumpseller_id, quantity: 1000 });
+    fireEvent.click(screen.getAllByRole('button', { name: /^Cotizar$/ })[0]);
+    await waitFor(() => expect(savedQuote()).toHaveLength(1));
+    expect(savedQuote()[0]).toMatchObject({ quantity: 1000 });
   });
 
   it('más del tope del servidor queda en el tope; agregar otra vez no lo pasa', async () => {
@@ -147,8 +164,14 @@ describe('ficha: caja «Estudio DIALux (servicio cotizado)» (E-02)', () => {
     expect(scroll.mock.contexts.some(el => (el as Element).id === 'solicitar')).toBe(true);
   });
 
-  it('la llevan justo las fichas de las cinco categorías', () => {
+  it('la llevan justo las fichas de las cinco categorías, salvo las excluidas', () => {
     for (const p of products) expect(Boolean(studyBoxHref(p)), p.id).toBe(inStudyList(p));
+  });
+
+  const tripode = products.find(p => p.jumpseller_id === 3770404);
+  it.skipIf(!tripode)('el trípode para proyector (un accesorio) no la lleva', () => {
+    renderPdp(tripode!);
+    expect(box()).toBeNull();
   });
 });
 
@@ -182,17 +205,38 @@ describe('ficha: «Pedir documentos técnicos» (D-02, paso 1)', () => {
     expect(body).toContain(`SKU: ${sku}\r\n`);
   });
 
-  it('el botón no espera la variante: los documentos se piden por producto', () => {
+  it('el botón no espera la variante: los documentos se piden por producto, con la opción en blanco para el cliente', () => {
+    const [axis] = variantAxes(oneAxis);
     renderPdp(oneAxis);
     expect(screen.getByRole('button', { name: /Solicitar pedido/ })).toBeDisabled();
-    expect(mail(docsLink().getAttribute('href')!).subject).toBe(`Documentos técnicos: ${oneAxis.name} (SKU ${requestSku(oneAxis)})`);
+    const { subject, body } = mail(docsLink().getAttribute('href')!);
+    expect(subject).toBe(`Documentos técnicos: ${oneAxis.name} (SKU ${requestSku(oneAxis)})`);
+    expect(body).toContain(`Producto: ${oneAxis.name}\r\n${axis.legend}:\r\nSKU: `);
   });
 
-  it('con ficha PDF: «Ficha técnica» junto al botón, en el bloque «Documentos técnicos»', () => {
+  it('con la variante elegida, el cuerpo no repite la opción en blanco', () => {
+    const [axis] = variantAxes(oneAxis);
+    renderPdp(oneAxis);
+    fireEvent.click(within(screen.getByRole('radiogroup', { name: axis.legend })).getAllByRole('radio')[0]);
+    expect(mail(docsLink().getAttribute('href')!).body).not.toContain(`${axis.legend}:`);
+  });
+
+  it('BESTLED sin variante: «Temperatura de color:» en blanco (sus certificados son por variante)', () => {
+    renderPdp(bestled);
+    expect(mail(docsLink().getAttribute('href')!).body).toMatch(/\r\nTemperatura de color:\r\nSKU: /);
+  });
+
+  it('con ficha PDF: «Ficha técnica» sigue donde estaba (junto a WhatsApp), fuera del bloque, hasta que la agencia reemita los PDF', () => {
     renderPdp(bestled);
     const block = screen.getByRole('region', { name: 'Documentos técnicos' });
-    expect(within(block).getByRole('link', { name: 'Ficha técnica' }).getAttribute('href')).toBe(bestled.datasheetUrl);
     expect(within(block).getByRole('link', { name: 'Pedir documentos técnicos' })).toBeInTheDocument();
+    expect(within(block).queryByRole('link', { name: 'Ficha técnica' })).not.toBeInTheDocument();
+    const datasheet = screen.getByRole('link', { name: 'Ficha técnica' });
+    expect(datasheet.getAttribute('href')).toBe(bestled.datasheetUrl);
+    // El mismo estilo discreto de antes (enlace gris), no un botón con borde
+    expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
+    const wa = screen.getByRole('link', { name: /Consultar por WhatsApp/ });
+    expect(datasheet.parentElement).toBe(wa.parentElement);
   });
 
   it('en todas las fichas, siempre a ventas@elights.cl', () => {

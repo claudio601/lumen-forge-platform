@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { products } from '@/data/products';
 import { categories } from '@/data/catalog/categories.config';
-import { STUDY_BOX_CATEGORIES, studyBoxHref, studyPrefill, studyProductNote } from './studyLink';
+import { STUDY_BOX_CATEGORIES, STUDY_BOX_EXCLUDED, studyBoxHref, studyPrefill, studyProductNote } from './studyLink';
 import { DIALUX_BOX_TEXT } from '@/config/navigation';
 import { validateEstudioPayload } from '../../api/_lib/forms/estudioLuminicoValidation';
 
@@ -28,16 +28,29 @@ describe('caja del estudio DIALux: qué fichas la llevan', () => {
     }
   });
 
-  it('la llevan las fichas de esas categorías (también como categoría secundaria) y ninguna otra', () => {
+  it('la llevan las fichas de esas categorías (también como categoría secundaria), salvo las excluidas, y ninguna otra', () => {
     let withBox = 0;
     for (const p of products) {
-      const inList = p.categories.some(c => c in STUDY_BOX_CATEGORIES) || p.category in STUDY_BOX_CATEGORIES;
+      const inList = (p.categories.some(c => c in STUDY_BOX_CATEGORIES) || p.category in STUDY_BOX_CATEGORIES) && !(p.jumpseller_id in STUDY_BOX_EXCLUDED);
       const href = studyBoxHref(p);
       expect(Boolean(href), p.id).toBe(inList);
       if (href) withBox++;
     }
     expect(withBox).toBeGreaterThan(0);
     expect(withBox).toBeLessThan(products.length);
+  });
+
+  it('no la llevan los productos que no son una luminaria para calcular (el trípode, la señalética)', () => {
+    const base = { id: 'tripode-para-proyector-led', category: 'proyectores-led', categories: ['proyectores-led'] };
+    expect(studyBoxHref({ ...base, jumpseller_id: 3770404 })).toBeNull();
+    expect(studyBoxHref({ ...base, jumpseller_id: 1 })).not.toBeNull();
+    // Cada excluido que sigue en el catálogo está en una de esas categorías (si no, sobra en la lista)
+    for (const id of Object.keys(STUDY_BOX_EXCLUDED).map(Number)) {
+      const p = products.find(x => x.jumpseller_id === id);
+      if (!p) continue;
+      expect([p.category, ...p.categories].some(c => c in STUDY_BOX_CATEGORIES), String(id)).toBe(true);
+      expect(studyBoxHref(p), p.id).toBeNull();
+    }
   });
 
   it('cada id de ficha tiene la forma que acepta el formulario', () => {

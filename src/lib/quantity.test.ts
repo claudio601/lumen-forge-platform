@@ -21,6 +21,17 @@ describe('cantidad de una línea', () => {
     }
   });
 
+  it('parseQuantity: el punto de miles, como se escribe en Chile («1.000» son mil)', () => {
+    expect(parseQuantity('1.000')).toBe(1000);
+    expect(parseQuantity('2.500')).toBe(2500);
+    expect(parseQuantity(' 9.999 ')).toBe(9999);
+    expect(parseQuantity('12.000')).toBe(MAX_LINE_QUANTITY);
+    // Las teclas intermedias de «1.000» no son una cantidad (no cambian la que había)
+    for (const raw of ['1.', '1.0', '1.00', '1.0000', '0.500', '1..000', '1.000.', '.500', '1,000']) {
+      expect(parseQuantity(raw), JSON.stringify(raw)).toBeNull();
+    }
+  });
+
   it('clampQuantity: entero de 1 al tope', () => {
     expect([0, -3, 1, 2.9, 40, 9999, 10000, 25000, NaN, Infinity].map(clampQuantity)).toEqual([1, 1, 1, 2, 40, 9999, 9999, 9999, 1, 9999]);
   });

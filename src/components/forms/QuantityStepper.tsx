@@ -1,15 +1,25 @@
 // src/components/forms/QuantityStepper.tsx
-// Cantidad que se puede escribir (auditoría UX, D-03): un campo numérico entre − y +. Antes era
-// un número fijo entre dos botones, y pedir 40 luminarias costaba 39 clics.
-// - Cada tecla que deja un entero de 1 a MAX_LINE_QUANTITY cambia la cantidad (el subtotal y el
-//   total siguen al campo). Mientras el campo está vacío o con algo que no es una cantidad
-//   («0», «-»), la cantidad no cambia; al salir del campo vuelve a mostrar la vigente.
+// Cantidad que se puede escribir (auditoría UX, D-03): un campo entre − y +. Antes era un número
+// fijo entre dos botones, y pedir 40 luminarias costaba 39 clics.
+// - Campo de texto con teclado numérico y rol de spinbutton (flechas ↑ y ↓), no type="number":
+//   así se puede escribir «1.000» con punto de miles, como en Chile (con type="number", Chrome
+//   lo dejaba en 1), y la rueda del mouse no cambia la cantidad sin que se note.
+// - Cada tecla que deja una cantidad de 1 a MAX_LINE_QUANTITY la cambia (el subtotal y el total
+//   siguen al campo). Mientras lo escrito no es una cantidad (vacío, «0», «1.»), la cantidad no
+//   cambia; al salir del campo o con Enter vuelve a mostrar la vigente. Enter no saca el foco.
 // - El − de una fila de /cotizacion o /solicitar-pedido en 1 quita la línea, como antes; el de la
-//   ficha no baja de 1. Quitar con el teclado es el botón de la papelera, nunca escribir 0.
+//   ficha no baja de 1. Quitar con el teclado es el botón de la papelera: ni escribir 0 ni la
+//   flecha ↓ quitan la línea.
+// - El HTML estático de la ficha (prerender) ya trae el campo: si el visitante escribe antes de
+//   que la página termine de cargar, al montar se adopta esa cantidad (si no, React la cambiaría
+//   por la del estado en el siguiente render, sin aviso).
 // - Nombres accesibles con el producto: «Cantidad de …», «Restar una unidad de …» y «Sumar una
 //   unidad de …» (dos filas del mismo producto en dos variantes llevan la variante en el nombre).
+// - Letra de 16 px en el teléfono (14 px desde md, como src/components/ui/input.tsx): con menos,
+//   Safari de iPhone amplía la página al tocar el campo. Borde y foco con contraste (auditoría UX,
+//   H-01: borde #8C93A3, 3,1:1 sobre blanco; foco al 100 %).
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { MAX_LINE_QUANTITY, parseQuantity } from '@/lib/quantity';
 import { cn } from '@/lib/utils';
@@ -26,9 +36,19 @@ interface Props {
 }
 
 const QuantityStepper = ({ value, onChange, name, variant = 'row', id }: Props) => {
-  // Lo escrito mientras no es una cantidad (vacío al borrar para escribir otra); null = la vigente
+  // Lo escrito, mientras no se muestra la cantidad tal cual: vacío al borrar para escribir otra,
+  // «1.» a medio escribir o «1.000» con punto de miles. null = se muestra la vigente.
   const [draft, setDraft] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const pdp = variant === 'pdp';
+
+  // Lo escrito en el HTML estático antes de hidratar (React lo conserva al hidratar, pero lo
+  // pisaría en el siguiente render): si es una cantidad, pasa a ser la vigente. Solo al montar.
+  useEffect(() => {
+    const typed = inputRef.current ? parseQuantity(inputRef.current.value) : null;
+    if (typed !== null && typed !== value) onChange(typed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const step = (next: number) => {
     setDraft(null);
@@ -39,7 +59,7 @@ const QuantityStepper = ({ value, onChange, name, variant = 'row', id }: Props) 
   const icon = pdp ? 'h-4 w-4' : 'h-3 w-3';
 
   return (
-    <div className="flex items-center border rounded-lg">
+    <div className="flex items-center border border-[#8C93A3] rounded-lg">
       <button
         type="button"
         aria-label={`Restar una unidad de ${name}`}
@@ -50,32 +70,41 @@ const QuantityStepper = ({ value, onChange, name, variant = 'row', id }: Props) 
         <Minus className={icon} />
       </button>
       <input
+        ref={inputRef}
         id={id}
-        type="number"
+        type="text"
         inputMode="numeric"
-        min={1}
-        max={MAX_LINE_QUANTITY}
-        step={1}
+        enterKeyHint="done"
+        autoComplete="off"
+        role="spinbutton"
+        aria-valuenow={value}
+        aria-valuemin={1}
+        aria-valuemax={MAX_LINE_QUANTITY}
         aria-label={`Cantidad de ${name}`}
         value={draft ?? String(value)}
         onChange={e => {
-          const qty = parseQuantity(e.target.value);
-          if (qty === null) {
-            setDraft(e.target.value);
-            return;
-          }
-          setDraft(null);
-          if (qty !== value) onChange(qty);
+          const text = e.target.value;
+          const qty = parseQuantity(text);
+          // Con punto de miles («1.000») queda a la vista lo escrito, salvo que pase del tope
+          setDraft(qty === null || (text.includes('.') && qty < MAX_LINE_QUANTITY) ? text : null);
+          if (qty !== null && qty !== value) onChange(qty);
         }}
         onBlur={() => setDraft(null)}
         onKeyDown={e => {
-          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Enter') {
+            // Confirma sin quitar el foco ni enviar nada
+            e.preventDefault();
+            setDraft(null);
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            step(value + 1);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            step(Math.max(1, value - 1));
+          }
         }}
-        // La rueda del mouse sobre el campo enfocado cambiaría la cantidad sin que se note
-        onWheel={e => e.currentTarget.blur()}
         className={cn(
-          'bg-transparent text-center text-sm font-semibold tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm',
-          '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+          'bg-transparent text-center text-base md:text-sm font-semibold tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm',
           pdp ? 'w-16 h-9' : 'w-12 h-8',
         )}
       />

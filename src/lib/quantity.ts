@@ -14,13 +14,17 @@ export function clampQuantity(n: number): number {
   return Math.min(MAX_LINE_QUANTITY, Math.max(1, Math.floor(n)));
 }
 
+/** Entero con punto de miles, como se escribe en Chile: «1.000», «12.500». */
+const CHILEAN_THOUSANDS = /^[1-9]\d{0,2}(\.\d{3})+$/;
+
 /**
  * Lo escrito en el campo → cantidad, o null si no es un entero positivo (vacío, 0, «-», «2,5»,
- * «1e3»). Más de MAX_LINE_QUANTITY queda en el tope.
+ * «1.5», «1e3»). Acepta el punto de miles («1.000» son mil, no uno). Más de MAX_LINE_QUANTITY
+ * queda en el tope.
  */
 export function parseQuantity(raw: string): number | null {
   const text = raw.trim();
-  if (!/^\d+$/.test(text)) return null;
-  const n = Number(text);
+  if (!/^\d+$/.test(text) && !CHILEAN_THOUSANDS.test(text)) return null;
+  const n = Number(text.replace(/\./g, ''));
   return n >= 1 ? Math.min(MAX_LINE_QUANTITY, n) : null;
 }
