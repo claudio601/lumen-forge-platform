@@ -295,7 +295,7 @@ describe('ficha: «Pedir documentos técnicos» (D-02, paso 1)', () => {
     expect(datasheet.getAttribute('href')).toBe(bestled.datasheetUrl);
     // El mismo estilo discreto de antes (enlace gris), no un botón con borde
     expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
-    const wa = screen.getByRole('link', { name: /Consultar por WhatsApp/ });
+    const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
     expect(datasheet.parentElement).toBe(wa.parentElement);
   });
 
