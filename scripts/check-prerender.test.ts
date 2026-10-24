@@ -12,10 +12,12 @@ import {
   isSyncBotBranch,
   legacyRedirectIssues,
   notFoundMarkerIssues,
+  renamedRedirectIssues,
   structuralIssues,
   type ExpectedOg,
   type ExpectedPrice,
 } from './check-prerender';
+import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { DEFAULT_OG } from '../src/lib/seo/ogImage';
 import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
 import { CONSENT_FORMS } from '../api/_lib/forms/consent';
@@ -275,6 +277,54 @@ describe('check-prerender: URLs de elights.cl (PR 08)', () => {
     const encoded = [{ source: '/p%C3%BAblico', category: 'solar' }];
     expect(legacyRedirectIssues(encoded, [], f => f === 'público' || f === 'catalogo/solar/index.html').blocking).toEqual([
       '/p%C3%BAblico: su 301 tapa el archivo dist/público',
+    ]);
+  });
+});
+
+describe('check-prerender: ids renombrados (PR 07) de productos no publicados', () => {
+  // Las tablas reales (renamed-ids.ts y UNPUBLISHED_RENAMED); el catálogo y la build se simulan
+  const all = Object.entries(RENAMED_SITE_IDS).map(([jid, r]) => ({ id: r.id, jumpseller_id: Number(jid) }));
+  const total = Object.values(RENAMED_SITE_IDS).reduce((n, r) => n + r.previous.length, 0);
+  const ufoNf8 = [24031164, 24040212, 24040292, 24043701];
+  const published = all.filter(p => !ufoNf8.includes(p.jumpseller_id));
+  const built = new Set(['catalogo/index.html', 'catalogo/campanas-led/index.html']);
+  const exists = (file: string) => built.has(file);
+
+  it('las UFO NF8 no publicadas van a su categoría: sin bloqueos ni avisos', () => {
+    const r = renamedRedirectIssues(published, exists);
+    expect(r.blocking).toEqual([]);
+    expect(r.warnings).toEqual([]);
+    expect(r.summary).toBe(
+      `Ids renombrados: ${total} redirecciones 301 (${total - 4} a fichas, 4 a categorías o al catálogo); ` +
+        '0 llegan a productos no publicados (dan 404); 0 productos publicados van a su categoría',
+    );
+  });
+
+  it('sin la tabla (como antes), los 4 llegan a una ficha que no existe y avisan', () => {
+    const r = renamedRedirectIssues(published, exists, {});
+    expect(r.blocking).toEqual([]);
+    expect(r.warnings).toHaveLength(4);
+    expect(r.warnings[0]).toBe(
+      '/producto/w-ip65-24031164 → /producto/campana-led-ufo-nf8-100w-110lm-w-ip65 (Jumpseller 24031164): llega a un producto no publicado (da 404); ' +
+        'agregarlo a UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts) con su categoría y correr npm run redirects:write',
+    );
+    expect(r.summary).toContain('4 llegan a productos no publicados (dan 404)');
+  });
+
+  it('avisa si un producto de la tabla vuelve a publicarse (su 301 debe volver a la ficha)', () => {
+    const r = renamedRedirectIssues([...published, all.find(p => p.jumpseller_id === 24031164)!], exists);
+    expect(r.warnings).toEqual([
+      '/producto/w-ip65-24031164 → /catalogo/campanas-led (Jumpseller 24031164): el producto se publica otra vez; ' +
+        'quitarlo de UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts) para que vuelva a su ficha y correr npm run redirects:write',
+    ]);
+  });
+
+  it('bloquea si falta la página de la categoría o del catálogo de destino', () => {
+    expect(renamedRedirectIssues(published, () => false, { 24031164: 'campanas-led', 24040212: null, 24040292: 'campanas-led', 24043701: 'campanas-led' }).blocking).toEqual([
+      '/producto/w-ip65-24031164 → /catalogo/campanas-led (Jumpseller 24031164): esa página no se generó',
+      '/producto/w-ip65-24040212 → /catalogo (Jumpseller 24040212): esa página no se generó',
+      '/producto/w-ip65-24040292 → /catalogo/campanas-led (Jumpseller 24040292): esa página no se generó',
+      '/producto/w-ip65-24043701 → /catalogo/campanas-led (Jumpseller 24043701): esa página no se generó',
     ]);
   });
 });

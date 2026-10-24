@@ -18,8 +18,9 @@
 //     FAQPage. La regla de siempre no cambia: una página indexable con noindex bloquea;
 //   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404";
 //   - ningún id retirado (src/data/catalog/renamed-ids.ts) tiene página: Vercel aplica su
-//     301 antes que los archivos, así que nunca se vería. Un 301 que llega a un producto no
-//     publicado (da 404) solo se informa;
+//     301 antes que los archivos, así que nunca se vería. Los de productos que ya no se
+//     publican (UNPUBLISHED_RENAMED, src/data/catalog/renamed-ids.ts) van a su categoría o a
+//     /catalogo, y esa página se generó;
 //   - URLs de elights.cl (scripts/redirects/legacy-urls.json, PR 08): ninguna fuente con regla
 //     es un archivo de dist/ (su 301 lo taparía), y cada destino de categoría o página fija
 //     se generó (o es /buscar, que sirve spa.html).
@@ -33,7 +34,9 @@
 //     /estudio-luminico traen las dos casillas sin marcar dentro de su data-elights-form.
 // Avisos (nunca bloquean): un 301 de elights.cl que llega a un producto no publicado (da 404:
 // cambiar su fila a la categoría), y un producto publicado cuyo permalink de Jumpseller no
-// tiene fila en legacy-urls.json (agregarla antes de la Etapa 3). Sin red: solo datos locales.
+// tiene fila en legacy-urls.json (agregarla antes de la Etapa 3). Lo mismo con los ids
+// renombrados: uno que llega a un producto no publicado (agregarlo a UNPUBLISHED_RENAMED) y
+// uno de esa tabla que vuelve a publicarse (quitarlo). Sin red: solo datos locales.
 // Contenido (bloquea, salvo en la PR diaria del robot de Jumpseller, donde solo avisa):
 //   - frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" en el texto
 //     visible. Las reglas miran el contexto: "48 horas" de un ensayo de niebla salina no
@@ -48,7 +51,7 @@ import { parse } from 'parse5';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
 import type { Product } from '../src/data/catalog/types';
-import { RENAMED_FROM } from '../src/data/catalog/renamed-ids';
+import { RENAMED_FROM, RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { productImageFacts } from '../src/data/catalog/og-images.generated';
 import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
 import { indexableRoutes, noindexGuideRoutes, productPath } from '../src/lib/seo/routes';
@@ -56,7 +59,7 @@ import { findPolicyBreaking } from './jumpseller/descriptions';
 import { KNOWN_PHRASES } from './known-phrases';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
-import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
+import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, renamedIdDestination, UNPUBLISHED_RENAMED, type LegacyUrl } from './redirects/build';
 import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
 import { CONSENT_FIELD_NAMES, type ConsentForm } from '../api/_lib/forms/consent';
 
@@ -355,6 +358,48 @@ export function legacyRedirectIssues(
 }
 
 /**
+ * Cruza los 301 de ids renombrados (PR 07) con los productos publicados y la build. Como en las
+ * URLs de elights.cl, el catálogo solo avisa: los destinos salen de tablas a mano (renamed-ids.ts
+ * y UNPUBLISHED_RENAMED) y la PR del robot de Jumpseller nunca falla por ellas. Bloquea si falta
+ * la página de una categoría de destino.
+ */
+export function renamedRedirectIssues(
+  published: readonly { id: string; jumpseller_id: number }[],
+  exists: (file: string) => boolean,
+  unpublished: Readonly<Record<number, string | null>> = UNPUBLISHED_RENAMED,
+): LegacyCheck {
+  const blocking: string[] = [];
+  const toUnpublished: string[] = [];
+  const republished: string[] = [];
+  const publishedJids = new Set(published.map(p => p.jumpseller_id));
+  const publishedPaths = new Set(published.map(p => productPath(p.id)));
+  let rules = 0;
+  let toCategory = 0;
+  for (const [key, r] of Object.entries(RENAMED_SITE_IDS)) {
+    const jid = Number(key);
+    const destination = renamedIdDestination(jid, unpublished);
+    const rule = `${r.previous.map(productPath).join(', ')} → ${destination} (Jumpseller ${jid})`;
+    rules += r.previous.length;
+    if (destination.startsWith('/producto/')) {
+      if (!publishedPaths.has(destination)) toUnpublished.push(rule);
+      continue;
+    }
+    toCategory += r.previous.length;
+    if (publishedJids.has(jid)) republished.push(rule);
+    if (!exists(outputPath(destination))) blocking.push(`${rule}: esa página no se generó`);
+  }
+  const table = 'UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts)';
+  const warnings = [
+    ...toUnpublished.map(t => `${t}: llega a un producto no publicado (da 404); agregarlo a ${table} con su categoría y correr npm run redirects:write`),
+    ...republished.map(t => `${t}: el producto se publica otra vez; quitarlo de ${table} para que vuelva a su ficha y correr npm run redirects:write`),
+  ];
+  const summary =
+    `Ids renombrados: ${rules} redirecciones 301 (${rules - toCategory} a fichas, ${toCategory} a categorías o al catálogo); ` +
+    `${toUnpublished.length} llegan a productos no publicados (dan 404); ${republished.length} productos publicados van a su categoría`;
+  return { blocking, warnings, summary };
+}
+
+/**
  * Formularios con página estática (PR 13). /solicitar-pedido y /cotizacion dependen de la
  * sesión y usan spa.html: sus casillas las prueban sus propias pruebas.
  */
@@ -525,11 +570,11 @@ function main() {
   for (const route of unindexed) if (locs.includes(route)) blocking.push(`sitemap: ${route} es una guía sin indexar y no debe estar`);
 
   // Ids renombrados (PR 07)
-  const published = new Set(products.map(p => p.id));
   for (const old of RENAMED_FROM.keys()) {
     if (read(outputPath(productPath(old)))) blocking.push(`${productPath(old)}: tiene página, pero su 301 (id retirado) la tapa`);
   }
-  const toUnpublished = [...RENAMED_FROM].filter(([, id]) => !published.has(id));
+  const renamed = renamedRedirectIssues(products, file => existsSync(join(dist, file)));
+  blocking.push(...renamed.blocking);
 
   // URLs de elights.cl (PR 08)
   const legacy = legacyRedirectIssues(LEGACY_URLS, products, file => existsSync(join(dist, file)));
@@ -557,14 +602,12 @@ function main() {
       (unindexed.length ? `: ${unindexed.join(', ')}` : ''),
   );
   console.log(`[check-prerender] Imagen para compartir: ${ownPhotos} fichas con su foto, ${productOg.size - ownPhotos} con la imagen de la marca`);
-  console.log(
-    `[check-prerender] Ids renombrados: ${RENAMED_FROM.size} redirecciones 301; ${toUnpublished.length} llegan a productos no publicados (dan 404)` +
-      (toUnpublished.length ? `: ${toUnpublished.map(([old, id]) => `${old} → ${id}`).join(', ')}` : ''),
-  );
+  console.log(`[check-prerender] ${renamed.summary}`);
   console.log(`[check-prerender] ${legacy.summary}`);
   console.log(consentSummary(consentProblems));
   for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);
+  for (const w of renamed.warnings) console.log(`::warning title=Ids renombrados::${w}`);
   for (const w of legacy.warnings) console.log(`::warning title=URLs de elights.cl::${w}`);
   if (blocking.length) {
     for (const b of blocking) console.log(`::error title=Página estática::${b}`);
