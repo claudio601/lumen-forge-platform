@@ -126,6 +126,42 @@ describe('aviso de cookies (PR 13)', () => {
   });
 });
 
+// «Recordar mis datos» (especificación del 23-10-2026, §2 y §5): lo vencido se borra al abrir
+// cualquier página, sin pasar por un formulario (Política §7). Lo vigente no se toca.
+describe('recordar mis datos: limpieza al abrir el sitio', () => {
+  const KEY = 'elights_contact';
+  const DAY = 24 * 60 * 60 * 1000;
+  const data = { nombre: 'PRUEBA - borrar', email: 'prueba-recordar@example.com', telefono: '+56 9 0000 0930' };
+  beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+  });
+  afterEach(() => localStorage.clear());
+
+  it.each(['/', '/catalogo/paneles-led', '/empresa'])('en %s: lo vencido (más de 12 meses) se borra y lo vigente queda', async (url) => {
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, at: new Date(Date.now() - 366 * DAY).toISOString(), data }));
+    const { unmount } = renderAt(url);
+    await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull(), WAIT);
+    unmount();
+    const fresh = JSON.stringify({ v: 1, at: new Date(Date.now() - 30 * DAY).toISOString(), data });
+    localStorage.setItem(KEY, fresh);
+    renderAt(url);
+    await screen.findAllByRole('contentinfo', undefined, WAIT);
+    await new Promise(r => setTimeout(r, 50));
+    expect(localStorage.getItem(KEY)).toBe(fresh);
+  });
+
+  it('un valor ilegible o de otra versión también se borra al abrir el sitio', async () => {
+    localStorage.setItem(KEY, '{"v":1,"at":');
+    const first = renderAt('/');
+    await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull(), WAIT);
+    first.unmount();
+    localStorage.setItem(KEY, JSON.stringify({ v: 2, at: new Date().toISOString(), data }));
+    renderAt('/');
+    await waitFor(() => expect(localStorage.getItem(KEY)).toBeNull(), WAIT);
+  });
+});
+
 describe('catálogo: ?page inválido', () => {
   beforeEach(() => sessionStorage.clear());
 

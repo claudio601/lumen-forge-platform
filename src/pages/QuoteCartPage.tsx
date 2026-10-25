@@ -9,7 +9,11 @@
 // - F-03: la confirmación con el plazo de respuesta, 3 pasos y un resumen para imprimir.
 // Entrega 3 (F-04): la franja de 3 pasos bajo el título, también con la lista vacía (la puerta
 // «Cotización (n)» del encabezado se ve siempre), y la lista vacía ofrece la asesoría técnica.
-import { useEffect, useState } from 'react';
+// «Recordar mis datos» (especificación del 23-10-2026): la casilla va después de los datos de
+// empresa y antes de los comentarios. Lo guardado se lee cuando ya se leyó la sesión (`loaded`):
+// completa los campos vacíos y el tipo de cliente (setChosenType directo; después manda el
+// selector). Un envío confirmado con la casilla marcada guarda lo enviado (useRememberContact).
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { quoteItemKey } from '@/lib/quoteLine';
 import { requestSku } from '@/lib/variantSku';
@@ -32,6 +36,7 @@ import FieldError from '@/components/forms/FieldError';
 import FormErrorAlert from '@/components/forms/FormErrorAlert';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import ProcessSteps from '@/components/forms/ProcessSteps';
+import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
 import { ADVISORY_LINK } from '@/config/navigation';
 
 type CustomerType = 'persona' | 'empresa';
@@ -229,6 +234,23 @@ const QuoteCartPage = () => {
     razonSocial: '', giro: '', direccion: '', comentarios: '',
   });
   const fe = useFieldErrors<QuoteField, QuoteValues>('qc-', validateField, FIELD_ORDER);
+  // «Recordar mis datos en este dispositivo»: al final de los datos de contacto
+  const remember = useRememberContact('cotizacion', { className: 'sm:col-span-2' });
+  // Lo guardado se lee una vez, después de la sesión: va después del efecto del tipo de cliente
+  // para que el tipo guardado gane sobre el modo del encabezado
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!loaded || prefilled.current) return;
+    prefilled.current = true;
+    const saved = remember.prefill();
+    if (!saved) return;
+    setForm(prev => fillEmpty(prev, {
+      nombre: saved.nombre, email: saved.email, telefono: saved.telefono,
+      razonSocial: saved.empresa, giro: saved.giro, direccion: saved.direccion, rutEmpresa: saved.rut,
+    }));
+    if (saved.tipoCliente) setChosenType(saved.tipoCliente);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
 
   const fmt = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
 
@@ -237,6 +259,7 @@ const QuoteCartPage = () => {
     const next = { ...form, [name]: e.target.value };
     setForm(next);
     fe.onChange(name, { ...next, isEmpresa });
+    if (name === 'email') remember.onEmailChange(e.target.value);
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -279,7 +302,7 @@ const QuoteCartPage = () => {
 
     try {
       // Un solo envío: el servidor manda el correo a ventas y crea el negocio en Pipedrive
-      const confirmed = await submitQuote({
+      const payload = {
         sourceSystem: 'nuevo_elights',
         quoteReference: quoteRef,
         customerType,
@@ -311,10 +334,17 @@ const QuoteCartPage = () => {
         website,
         attribution: getAttribution(),
         consent: consent.payload(),
-      });
+      };
+      const confirmed = await submitQuote(payload);
 
       // Conversión solo si el servidor confirmó la solicitud con su referencia (no se envía)
       if (confirmed) trackLead('cotizacion', { lead_type: isEmpresa ? 'B2B' : 'B2C', item_count: quoteCart.length });
+      // Con la misma condición y la casilla marcada, se guarda lo enviado (no el formulario)
+      remember.afterSubmit(Boolean(confirmed), {
+        nombre: payload.customer.name, email: payload.customer.email, telefono: payload.customer.phone,
+        tipoCliente: payload.customerType, empresa: payload.organization?.name,
+        giro: payload.company?.giro, direccion: payload.company?.address, rut: payload.company?.rut,
+      });
       // Lo enviado queda para el resumen de la confirmación (la lista se vacía)
       setSent({
         reference: quoteRef,
@@ -511,6 +541,8 @@ const QuoteCartPage = () => {
               <FieldError id={fe.errorId(field.name)} message={fe.errors[field.name]} />
             </div>
           ))}
+          {/* Recordar mis datos: después de la empresa, antes de los comentarios y lejos de las casillas de privacidad */}
+          {remember.field}
           <div className="sm:col-span-2">
             <label htmlFor="qc-comentarios" className="text-sm font-medium mb-1 block">Comentarios del proyecto / requerimiento</label>
             <textarea {...fe.fieldProps('comentarios')} name="comentarios" value={form.comentarios} onChange={handleChange} onBlur={handleBlur} rows={3} maxLength={MAX_COMENTARIOS} className={inputClass + ' resize-none'} />

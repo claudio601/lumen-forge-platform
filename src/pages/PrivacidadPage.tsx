@@ -34,6 +34,14 @@
 // horas, la ruta de cada archivo en Blob con el número de su negocio en Pipedrive (reserva y
 // reintento del traspaso, api/_lib/attachments/quota.ts); los topes de subida cuentan archivos
 // y bytes, sin datos personales. §9 no cambia.
+// Versión 1.7 (especificación «Recordar mis datos en este dispositivo» del 2026-10-23, aprobada
+// por el dueño con sus 4 decisiones): una casilla opcional en los cinco formularios guarda en el
+// almacenamiento local del navegador los datos de contacto que se enviaron, para completar los
+// formularios al volver (§2, §3, §7 y §10). Se guarda el RUT solo si es válido (decisión 1), dura
+// 12 meses desde el último envío con la casilla marcada (decisión 2), la casilla aparece marcada
+// si ya hay datos y se desmarca sola si cambia el correo (decisión 3), y el botón «Borrar mis
+// datos guardados» va en §10, junto a «Configurar cookies» (decisión 4). No son cookies ni pasan
+// por el aviso: los textos de las casillas y COOKIE_CONSENT_VERSION no cambian.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -66,6 +74,16 @@
 //   api/_lib/attachments/): se suben a Vercel Blob (privado) solo al enviar, pasan al negocio en
 //   Pipedrive y se borran de Blob; si uno no llega, se borra igual (D3) y el barrido diario
 //   (api/cron/blob-sweep.ts) borra lo que tenga más de 24 h: nada queda más de unas 48 h.
+// - Recordar mis datos (§2, §3, §7 y §10; src/lib/savedContact.ts y
+//   src/components/forms/RememberContact.tsx): localStorage 'elights_contact', solo con la casilla
+//   marcada y un envío confirmado; nombre, correo, teléfono, tipo de cliente, la empresa (razón
+//   social, giro, dirección y RUT válido), comuna y región, y la fecha del último envío. Nunca
+//   comentarios, archivos ni datos del proyecto. Vence a los 12 meses y AppLayout borra lo vencido
+//   al abrir cualquier página. Desmarcar o «Borrar mis datos guardados»
+//   (DeleteSavedContactButton) lo borran. Retirar un permiso de cookies no lo toca.
+// - Búsquedas medidas (§10; src/lib/searchTracking.ts, claimSearch): sessionStorage
+//   'elights_search_tracked', hasta 50 marcas «clave de la entrada del historial + resumen (hash)
+//   de la consulta», sin el texto; se escribe con o sin consentimiento y queda solo en el navegador.
 // - Archivo de versiones: public/legal/<página>-v<X.Y>.html (npm run legal:archive).
 // Al cambiar este texto, sube LEGAL_VERSION (api/_lib/forms/consent.ts) y corre
 // npm run legal:archive.
@@ -74,6 +92,7 @@ import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { EmailLink } from '@/components/legal/CompanyFacts';
 import CookieSettingsButton from '@/components/legal/CookieSettingsButton';
+import DeleteSavedContactButton, { SavedContactClearedNotice } from '@/components/legal/DeleteSavedContactButton';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_REPRESENTATIVE, LEGAL_RUT } from '@/config/site';
 import { REGION_CARRIERS } from '@/config/business';
 
@@ -106,6 +125,10 @@ const PURPOSES: [string, string][] = [
   [
     'Enviarte novedades y ofertas por correo, solo si marcas la casilla opcional de un formulario',
     'Tu consentimiento, que puedes retirar cuando quieras',
+  ],
+  [
+    'Recordar tus datos en tu navegador para completar los formularios, solo si marcas esa casilla',
+    'Tu consentimiento, que retiras desmarcando la casilla',
   ],
   ['Medir visitas con Google Analytics (solo en elights.cl)', 'Tu consentimiento, dado en el aviso de cookies'],
   [
@@ -185,7 +208,8 @@ const PrivacidadPage = () => (
       <li>
         <strong>Tus autorizaciones y decisiones:</strong> que leíste esta política y autorizaste usar tus datos para responder
         (y, en la solicitud de pedido, que aceptaste los términos), si quieres recibir novedades, la versión de los textos y la
-        fecha y hora del envío. En tu navegador guardamos tu decisión sobre cookies.
+        fecha y hora del envío. En tu navegador guardamos tu decisión sobre cookies y, si lo pides, tus datos de contacto (punto
+        10).
       </li>
       <li>
         <strong>Datos técnicos:</strong> dirección IP, tipo de navegador y registros de funcionamiento y seguridad del sitio y del
@@ -230,7 +254,8 @@ const PrivacidadPage = () => (
       legales que nos aplican. Ordenar y priorizar tu solicitud es parte de responderla. Para saber de dónde vienen las
       solicitudes usamos el origen de tu visita solo internamente, con fines estadísticos, como permite esa ley. La medición con
       cookies (Google Analytics, medición de anuncios de Google y Publicidad en Meta) se basa, también en ese período, en la
-      autorización que das en el aviso de cookies. En ese período, la
+      autorización que das en el aviso de cookies. Recordar tus datos en tu navegador se basa en la autorización que das al
+      marcar esa casilla. En ese período, la
       revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle;
       el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. Desde el 1 de
       diciembre de 2026 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
@@ -396,6 +421,10 @@ const PrivacidadPage = () => (
         registro del origen de tu visita, lo seguimos respetando en ese navegador.
       </li>
       <li>
+        <strong>Datos que pides recordar en tu navegador:</strong> 12 meses desde tu último envío con la casilla marcada; después
+        no los usamos y los borramos en tu próxima visita.
+      </li>
+      <li>
         <strong>Cookies de Google</strong> (si las aceptas): las de Google Analytics, hasta 13 meses; las de medición de anuncios
         y su copia en el almacenamiento local de tu navegador (_gcl_ls), hasta 90 días. Google Analytics conserva los datos de medición asociados a sus cookies hasta 14 meses desde tu última
         visita; después solo quedan informes agregados. Lo que registra Google Ads lo conserva Google según su propia política.
@@ -505,6 +534,8 @@ const PrivacidadPage = () => (
       <li>
         Usa el <strong>almacenamiento de sesión</strong> de tu navegador, que se borra al cerrar la pestaña, para recordar tu lista
         de cotización, tu lista de pedido y si ves los precios con o sin IVA. Es necesario para que el sitio funcione como pides.
+        También anota qué búsquedas ya contamos en esa pestaña (un resumen, sin el texto que escribiste), para no contar dos veces
+        la misma; esa anotación queda solo en tu navegador.
       </li>
       <li>
         También anota ahí el <strong>origen de tu visita</strong> (punto 2). No es una cookie y solo sale de tu navegador cuando
@@ -516,6 +547,17 @@ const PrivacidadPage = () => (
       <li>
         Tu <strong>decisión sobre cookies</strong> se guarda 12 meses en el almacenamiento local de tu navegador. No es una cookie y
         no la guardamos en nuestros sistemas; si aceptas Google Analytics, cada medición le informa a Google qué permitiste.
+      </li>
+      <li>
+        Si marcas <strong>«Recordar mis datos en este dispositivo»</strong>, guardamos en el almacenamiento local de tu navegador
+        tu nombre, correo, teléfono, comuna y región, si compras como persona o empresa, los datos de tu empresa (razón social,
+        RUT, giro y dirección) y la fecha de tu último envío, para completar los formularios cuando vuelvas. No son cookies, no
+        dependen del aviso de cookies y no los guardamos en nuestros sistemas: salen de tu navegador solo cuando envías un
+        formulario. Nunca guardamos ahí tus comentarios, tus archivos ni los datos de tu proyecto. Puedes borrarlos desmarcando
+        la casilla en cualquier formulario o con el botón «
+        <DeleteSavedContactButton className="font-medium text-primary underline hover:no-underline" />». No la marques en un
+        computador compartido.
+        <SavedContactClearedNotice />
       </li>
       <li>
         <strong>Imágenes de productos:</strong> se cargan desde los servidores de Jumpseller, que reciben datos técnicos de tu

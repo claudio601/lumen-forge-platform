@@ -15,6 +15,10 @@
 // - F-03: la confirmación con el plazo de respuesta, 3 pasos y un resumen para imprimir.
 // Entrega 3 (F-04): la franja de 3 pasos bajo el título, también con la solicitud vacía (la
 // puerta «Pedido (n)» del encabezado se ve siempre).
+// «Recordar mis datos» (especificación del 23-10-2026): la casilla va después de la región y
+// antes de las notas. Lo guardado se lee cuando ya se leyó la sesión (`loaded`): completa los
+// campos vacíos, y la región y el tipo si siguen en su valor inicial (EMPTY_FORM). Un envío
+// confirmado con la casilla marcada guarda lo enviado, con la comuna y la región (useRememberContact).
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList, ArrowLeft, Loader2, Trash2, Send } from 'lucide-react';
@@ -49,16 +53,15 @@ import FieldError from '@/components/forms/FieldError';
 import FormErrorAlert from '@/components/forms/FormErrorAlert';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import ProcessSteps from '@/components/forms/ProcessSteps';
+import { REGIONS } from '@/config/regions';
+import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
 
 const SEO_TITLE = 'Solicitud de Pedido | eLIGHTS Chile';
 const SEO_DESCRIPTION = 'Envía tu solicitud de pedido de iluminación LED. Revisamos disponibilidad y te enviamos la cotización por correo.';
 
 // ── Formulario ──────────────────────────────────────────────────────────────
-const REGIONS = [
-  'Arica y Parinacota', 'Tarapaca', 'Antofagasta', 'Atacama', 'Coquimbo',
-  'Valparaiso', 'Región Metropolitana', "O'Higgins", 'Maule', 'Nuble',
-  'Biobio', 'La Araucania', 'Los Rios', 'Los Lagos', 'Aysen', 'Magallanes',
-];
+// Las regiones del selector (REGIONS) viven en src/config/regions.ts: la misma lista decide qué
+// región guardada se acepta al recordar los datos (src/lib/savedContact.ts).
 
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
@@ -193,6 +196,22 @@ const RequestOrderPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
+  // «Recordar mis datos en este dispositivo»: al final de los datos de contacto
+  const remember = useRememberContact('solicitar-pedido', { className: 'sm:col-span-2' });
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!loaded || prefilled.current) return;
+    prefilled.current = true;
+    const saved = remember.prefill();
+    if (!saved) return;
+    // Con EMPTY_FORM como valor inicial: la región y el tipo se completan solo si siguen en el suyo
+    setForm((prev) => fillEmpty(prev, {
+      fullName: saved.nombre, email: saved.email, phone: saved.telefono,
+      companyName: saved.empresa, rut: saved.rut, commune: saved.comuna,
+      region: saved.region, customerType: saved.tipoCliente,
+    }, EMPTY_FORM));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
   const [status, setStatus] = useState<FormState>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [sent, setSent] = useState<SentOrder | null>(null);
@@ -206,6 +225,7 @@ const RequestOrderPage = () => {
     const next = { ...form, [name]: value } as FormValues;
     setForm(next);
     if (isField(name)) fe.onChange(name, next);
+    if (name === 'email') remember.onEmailChange(value);
     // Al pasar a persona, los datos de empresa dejan de revisarse
     if (name === 'customerType') COMPANY_ONLY.forEach((f) => fe.onChange(f, next));
   };
@@ -340,9 +360,15 @@ const RequestOrderPage = () => {
       // Conversión solo si la respuesta trae la referencia RC-: la trampa contra bots responde
       // { success: true } sin ella y sin crear nada. La referencia decide, pero no se envía:
       // uniría la medición con el negocio en Pipedrive (Política §10: sin datos de contacto).
-      if (typeof data?.requestReference === 'string' && data.requestReference) {
+      const confirmed = typeof data?.requestReference === 'string' && Boolean(data.requestReference);
+      if (confirmed) {
         trackLead('solicitud_pedido', { item_count: items.length });
       }
+      // Con la misma condición y la casilla marcada, se guarda lo enviado (no el formulario)
+      remember.afterSubmit(confirmed, {
+        nombre: payload.fullName, email: payload.email, telefono: payload.phone, tipoCliente: payload.customerType,
+        empresa: payload.companyName, rut: payload.rut, comuna: payload.commune, region: payload.region,
+      });
 
       // Lo enviado queda para el resumen de la confirmación (el carrito se vacía)
       setSent({ reference: data.requestReference, lines: items, mode });
@@ -587,6 +613,7 @@ const RequestOrderPage = () => {
               onBlur={handleBlur}
               placeholder="Ej: Las Condes, Maipú..."
               className={inputClass}
+              autoComplete="address-level2"
               aria-required="true"
             />
             <FieldError id={fe.errorId('commune')} message={fe.errors.commune} />
@@ -604,6 +631,7 @@ const RequestOrderPage = () => {
               onChange={handleChange}
               onBlur={handleBlur}
               className={inputClass}
+              autoComplete="address-level1"
               aria-required="true"
             >
               {REGIONS.map((r) => (
@@ -614,6 +642,9 @@ const RequestOrderPage = () => {
             </select>
             <FieldError id={fe.errorId('region')} message={fe.errors.region} />
           </div>
+
+          {/* Recordar mis datos: al final de los datos de contacto, antes de las notas y lejos de las casillas de privacidad */}
+          {remember.field}
 
           {/* Notas */}
           <div className="sm:col-span-2">

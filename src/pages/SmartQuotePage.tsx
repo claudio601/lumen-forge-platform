@@ -8,6 +8,9 @@
 // de a uno y directo a Vercel Blob (attachments.ts); luego viaja `archivos` con sus rutas.
 // Si uno falla: «Reintentar» o «Enviar sin ese archivo»; con el tope del día (D2): «Enviar sin
 // archivos». Lo ya subido no se vuelve a subir al reintentar.
+// «Recordar mis datos» (especificación del 23-10-2026): la casilla va al final de «Datos de
+// contacto»; al hidratar se completan los campos vacíos con lo guardado y un envío confirmado
+// con la casilla marcada guarda lo enviado (useRememberContact). El cuerpo no cambia.
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Zap, AlertCircle } from 'lucide-react';
@@ -19,6 +22,7 @@ import Seo from '@/components/Seo';
 import { useConsentFields } from '@/components/legal/ConsentFields';
 import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import FileAttachments from '@/components/forms/FileAttachments';
+import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
 import { uploadPending, type AttachmentItem, type UploadProblem } from '@/components/forms/attachments';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 // Las listas, los topes y la lectura de los m² son los mismos del servidor (api/project-quotes/create.ts)
@@ -122,6 +126,8 @@ const SmartQuotePage = () => {
   // Casillas de privacidad y novedades: siempre sin marcar (también en el HTML del prerender).
   // Sin el mb-5 por defecto: el fieldset del formulario ya separa los bloques con space-y-6.
   const consent = useConsentFields('solicitud', { className: 'min-w-0' });
+  // «Recordar mis datos en este dispositivo»: al final de los datos de contacto
+  const remember = useRememberContact('cotizador', { className: 'sm:col-span-2' });
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
@@ -145,10 +151,21 @@ const SmartQuotePage = () => {
 
   useEffect(() => {
     setHydrated(true);
+    // Lo guardado se lee recién ahora: el HTML del prerender y el primer render no cambian
+    const saved = remember.prefill();
+    if (saved) {
+      setForm(prev => fillEmpty(prev, {
+        nombre: saved.nombre, email: saved.email, telefono: saved.telefono,
+        razonSocial: saved.empresa, giro: saved.giro, direccion: saved.direccion, rutEmpresa: saved.rut,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'email') remember.onEmailChange(value);
   };
 
   /** Las mismas reglas que el servidor; null si el formulario está bien. */
@@ -231,13 +248,19 @@ const SmartQuotePage = () => {
         archivos = upload.items.map((item) => ({ pathname: item.pathname as string, nombre: item.file.name }));
       }
       setProgress(null);
+      const payload = buildPayload();
       const { reference: ref, crmFailed } = await submitProjectQuote({
-        ...buildPayload(),
+        ...payload,
         ...(archivos.length ? { archivos } : {}),
       });
       // Conversión solo si el servidor confirmó la solicitud con su referencia PY- (la trampa
       // contra bots responde { success: true } sin ella). La referencia no se envía.
       if (ref) trackLead('cotizador', { project_type: form.tipoProyecto });
+      // Con la misma condición y la casilla marcada, se guarda lo enviado (no el formulario)
+      remember.afterSubmit(Boolean(ref), {
+        nombre: payload.nombre, email: payload.email, telefono: payload.telefono,
+        empresa: payload.razonSocial, giro: payload.giro, direccion: payload.direccion, rut: payload.rutEmpresa,
+      });
       toast.success('Propuesta solicitada', { description: responseTimePromise });
       setReference(ref);
       // Sin negocio en Pipedrive los adjuntos no quedan guardados: la confirmación no los cuenta
@@ -440,6 +463,8 @@ const SmartQuotePage = () => {
                   <label htmlFor="sq-direccion" className="text-sm font-medium mb-1 block">Dirección</label>
                   <input id="sq-direccion" name="direccion" value={form.direccion} onChange={handleChange} maxLength={200} autoComplete="street-address" className={inputClass} />
                 </div>
+                {/* Al final de los datos de contacto, lejos de las casillas de privacidad */}
+                {remember.field}
               </div>
             </div>
             {/* Dentro del fieldset: antes de hidratar, las casillas también quedan deshabilitadas */}
