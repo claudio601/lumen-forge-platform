@@ -87,6 +87,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.7 (recordar mis datos): la Política agrega la casilla opcional que guarda los datos de
   // contacto en el navegador (§2, §3, §7 y §10); las casillas de privacidad y novedades no cambian.
   '1.7': CONSENT_TEXTS_SINCE_1_2,
+  // 1.8 (link de pago de Flow): la Política corrige de dónde vienen los datos del pago y a quién
+  // llegan (§2, §5 y §7: Flow y sus medios, sin Mercado Pago); las casillas no cambian.
+  '1.8': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

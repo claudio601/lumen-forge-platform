@@ -232,6 +232,13 @@ describe('páginas legales y de compra: todas', () => {
       for (const amount of amountsIn(description)) expect(amount, `${path}: monto en la descripción`).toBe(THRESHOLD);
       if (FREE_RE.test(description)) expect(claimIssues(description), `${path}: description`).toEqual([]);
       expect(description, `${path}: description`).not.toMatch(THREE_MONTHS);
+      // el link de pago es de Flow y Mercado Pago ya no se usa (dueño, 2026-10-25)
+      expect(description, `${path}: description`).not.toMatch(/mercado ?pago|jumpseller/i);
+      if (path === '/medios-de-pago') {
+        expect(description).toContain('link de pago de Flow');
+        expect(description).not.toMatch(/sin inter[eé]s|Khipu|ETpay|FlowPay|más de 30/i); // no activos en Flow
+        expect(description.length).toBeLessThanOrEqual(160);
+      }
       if (path === '/despacho') {
         expect([...description.matchAll(DAY_COUNTS)].map(m => m[0])).toEqual(['2 días hábiles']);
         expect(description).toContain('Despacho en hasta 2 días hábiles');
@@ -400,7 +407,10 @@ describe('páginas legales y de compra: contenido', () => {
     const regiones = section(main, 'Regiones').text;
     expect(regiones).toContain('El despacho a regiones va por pagar, vía Starken, PDQ u otro operador.');
     expect(text).not.toMatch(/Cruz del Sur|Chilexpress|ECOEx|retiro en tienda/i);
-    expect(section(main, 'Costo del despacho').text).toContain('lo muestran por separado, o indican que va sin costo o por pagar.');
+    // la cotización detalla el despacho; el link de Flow cobra un solo monto (dueño, 2026-10-25)
+    expect(section(main, 'Costo del despacho').text).toContain(
+      'la cotización lo muestra por separado, o indica que va sin costo o por pagar. El link de pago cobra el total de la cotización.',
+    );
     // Seguimiento solo por correo (dueño, 2026-10-16): el WhatsApp lo atiende un asistente que no
     // responde consultas de pedidos.
     const seguimiento = section(main, 'Seguimiento').text;
@@ -461,14 +471,20 @@ describe('páginas legales y de compra: contenido', () => {
     expect([0, 999, 1000, 250000, 249999.6, 1234567].map(clp)).toEqual(['$0', '$999', '$1.000', '$250.000', '$250.000', '$1.234.567']);
   });
 
-  it('/medios-de-pago: link de pago (Webpay vía Flow o Mercado Pago), transferencia, crédito caso a caso; sin orden de compra', async () => {
+  it('/medios-de-pago: link de pago de Flow con los medios activos, transferencia, crédito caso a caso; sin orden de compra', async () => {
     const { text } = await page('/medios-de-pago');
-    for (const s of ['link de pago', 'Webpay (a través de Flow)', 'Mercado Pago', `cuenta de ${LEGAL_NAME}`, 'cheque a 30 o 60 días', 'vale vista', 'boleta electrónica', 'factura electrónica', 'incluyen IVA']) {
+    // Los medios activos en la cuenta Flow (panel revisado el 2026-10-25)
+    for (const s of ['Link de pago de Flow', 'flow.cl', 'tarjeta de crédito o débito, por Webpay', 'Onepay', 'MACH', 'Servipag', 'Banca.me', `cuenta de ${LEGAL_NAME}`, 'cheque a 30 o 60 días', 'vale vista', 'boleta electrónica', 'factura electrónica', 'incluyen IVA']) {
       expect(text, s).toContain(s);
     }
-    expect(text).toContain('Crédito acordado: cuando recibimos el cheque o el vale vista.'); // desde ahí corre el despacho
+    // desde ahí corre el despacho
+    expect(text).toContain('Si pagas en efectivo con el cupón de Servipag, cuando lo pagas en la sucursal.');
+    expect(text).toContain('Crédito acordado: cuando recibimos el cheque o el vale vista.');
     expect(text).not.toMatch(/orden de compra|Mercado Público/i);
-    expect(text).not.toMatch(/cuotas|tarjeta de cr[eé]dito o d[eé]bito/i); // no confirmado (C13)
+    // el link no es de Jumpseller y Mercado Pago ya no se usa (dueño, 2026-10-25)
+    expect(text).not.toMatch(/Jumpseller|Mercado Pago/i);
+    // no están activos en la cuenta Flow
+    expect(text).not.toMatch(/sin inter[eé]s|Khipu|ETpay|FlowPay|más de 30/i);
   });
 
   it('/politica-de-privacidad: responsable, encargados (sin Axiom), plazos, derechos, cookies y canal "Datos personales"', async () => {
@@ -478,6 +494,16 @@ describe('páginas legales y de compra: contenido', () => {
     }
     expect(text).not.toContain('Axiom');
     expect(text).toContain('no los subimos a Google Ads ni a Meta');
+    // §2 y §5 (versión 1.8): el link de pago es de Flow; Jumpseller, catálogo y solicitudes de su tienda; sin Mercado Pago
+    expect(section(main, '2.').text).toContain('Si pagas con el link de pago, Flow nos informa el estado de tu pago.');
+    expect(section(main, '5.').text).toContain(
+      'Jumpseller: plataforma de ventas: catálogo, precios e imágenes de productos, y registro de las solicitudes hechas en nuestra tienda de Jumpseller.',
+    );
+    expect(section(main, '5.').text).toContain(
+      'Medios de pago: Flow (flow.cl), la plataforma con la que cobramos, y el medio que elijas al pagar (Transbank para Webpay y Onepay, MACH, Servipag o Banca.me): reciben los datos de tu pago y los que ingresas al pagar.',
+    );
+    expect(section(main, '7.').text).toContain('Registro técnico de las solicitudes de nuestra tienda de Jumpseller (Upstash): 30 días.');
+    expect(text).not.toMatch(/Mercado Pago|links de pago|pedido pagado|Registro técnico de pedidos/i);
     // §5: los transportistas de /despacho (REGION_CARRIERS), sin Chilexpress ni Cruz del Sur (PR 12b, versión 1.1)
     expect(section(main, '5.').text).toContain(`Transportistas (${REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono`);
     // §4: una persona revisa y responde cada solicitud registrada (en WhatsApp, sin correo no hay registro: prueba de la PR 13x)
@@ -883,7 +909,7 @@ describe('páginas legales y de compra: contenido', () => {
     );
     // Upstash: además, por 48 horas, la reserva del traspaso de cada archivo (ruta en Blob → negocio)
     expect(item('5.', 'Upstash')).toBe(
-      'Upstash Inc.: registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.',
+      'Upstash Inc.: registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.',
     );
     // §7: la viñeta nueva, con el plazo de 48 horas del barrido diario (api/cron/blob-sweep.ts)
     expect(item('7.', 'Archivos que adjuntas en el sitio:')).toBe(

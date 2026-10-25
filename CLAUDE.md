@@ -28,7 +28,7 @@
 
 ## 3. Modelo comercial: cotización → link de pago (decisión del dueño, 2026-09-29)
 
-- El sitio **no tiene checkout propio**. Todo flujo termina en una solicitud (pedido o cotización) que llega a Pipedrive + email; el vendedor responde con un **link de pago de Jumpseller**.
+- El sitio **no tiene checkout propio**. Todo flujo termina en una solicitud (pedido o cotización) que llega a Pipedrive + email; el vendedor responde con un **link de pago de Flow** (flow.cl; el pedido queda solo en Flow, no en Jumpseller). Mercado Pago ya no se usa.
 - **Nunca mostrar stock** ("En stock" / "Sin stock"): no hay control de bodega y algunos productos se compran en plaza. Texto estándar: **"Consultar disponibilidad"**.
 - **Jumpseller es la única fuente de verdad** de precios, nombres, imágenes, categorías y productos activos. El contenido editorial (fichas BESTLED, FAQ, SEO) se mantiene aparte, asociado por `jumpseller_id`.
 - **Despacho**: "Despacho en hasta 2 días hábiles" (versión larga: "y a veces el mismo día"). Nunca "24–48 h" ni "muchas veces". En regiones, los 2 días hábiles son hasta entregar el pedido al transportista y el tiempo de viaje se informa en la cotización; no prometer flota propia (sin confirmar, PR 11b).

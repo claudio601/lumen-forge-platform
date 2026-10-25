@@ -414,7 +414,7 @@ export default async function handler(
     dealId = dealResult.dealId;
 
     // createDeal no guarda las notas: el detalle de productos (con ids de Jumpseller para
-    // el link de pago), la constancia y el origen se agregan aparte, también en un reenvío
+    // armar la cotización), la constancia y el origen se agregan aparte, también en un reenvío
     // con la misma referencia (sin negocio nuevo). No bloquea: el deal ya existe. Si falla,
     // la constancia queda solo en el correo: el aviso lleva la referencia, nunca datos.
     if (dealResult.status === 'created' || dealResult.status === 'skipped_duplicate') {

@@ -1,7 +1,11 @@
 // /medios-de-pago: cómo se paga y cuándo queda confirmado el pago (PR 12). Misma URL que
-// en elights.cl (fila `served` en legacy-urls.json). Medios: los de elights.cl/medios-de-pago
-// (transferencia, Webpay a través de Flow, Mercado Pago y crédito caso a caso para clientes
-// frecuentes). La orden de compra y Mercado Público no se publican: sin confirmar.
+// en elights.cl (fila `served` en legacy-urls.json). El link de pago es de Flow (flow.cl), no de
+// Jumpseller, y Mercado Pago ya no se usa (correcciones del dueño, 2026-10-25). Sus medios son
+// los activos en la cuenta Flow de eLIGHTS (panel revisado el 2026-10-25, solo lectura): Webpay
+// (tarjetas de crédito y débito), Onepay y otras billeteras, MACH, Servipag (bancos y efectivo) y
+// Banca.me (cuotas sin tarjeta). No están activas las cuotas sin interés ni la transferencia por
+// Khipu o ETpay. Si cambian en Flow, cambia esta página. Además: transferencia y crédito caso a
+// caso para clientes frecuentes. La orden de compra y Mercado Público no se publican: sin confirmar.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -11,7 +15,7 @@ import { LEGAL_NAME } from '@/config/site';
 const MediosPagoPage = () => (
   <LegalLayout
     path="/medios-de-pago"
-    description="Paga con link de pago (Webpay o Mercado Pago) o por transferencia, solo después de recibir tu cotización. Boleta o factura electrónica. Precios con IVA."
+    description="Paga con el link de pago de Flow (tarjetas, billeteras, Servipag o cuotas con Banca.me) o por transferencia, después de recibir tu cotización. Precios con IVA."
   >
     <p>
       En eLIGHTS no hay cobros automáticos. Pagas solo después de recibir nuestra cotización con el link de pago, cuando ya
@@ -22,8 +26,17 @@ const MediosPagoPage = () => (
     <h2>Cómo puedes pagar</h2>
     <ol>
       <li>
-        <strong>Link de pago.</strong> Con la cotización te mandamos un link de pago de nuestra plataforma de ventas (Jumpseller).
-        Ahí puedes pagar con Webpay (a través de Flow) o con Mercado Pago.
+        <strong>Link de pago de Flow.</strong> Con la cotización te mandamos un link de pago de Flow (flow.cl), la plataforma con
+        la que cobramos. Ahí puedes pagar con:
+        <ul>
+          <li>tarjeta de crédito o débito, por Webpay;</li>
+          <li>billeteras digitales, como Onepay o MACH;</li>
+          <li>Servipag, desde tu banco o en efectivo, con un cupón que pagas en una sucursal;</li>
+          <li>
+            cuotas sin tarjeta de crédito, con Banca.me, si te aprueba: antes de aceptar ves el interés y el costo total.
+          </li>
+        </ul>
+        Los medios disponibles pueden cambiar: valen los que aparecen en tu link.
       </li>
       <li>
         <strong>Transferencia bancaria</strong> a la cuenta de {LEGAL_NAME}. Los datos de la cuenta van en tu cotización. Nunca te
@@ -37,14 +50,15 @@ const MediosPagoPage = () => (
 
     <h2>Seguridad de tu pago</h2>
     <p>
-      No recibimos ni guardamos los datos de tu tarjeta. Los ingresas directamente en la plataforma de pago, que los procesa con
-      sus propias medidas de seguridad. Nunca te pediremos datos de tarjetas ni claves por correo, teléfono o WhatsApp.
+      No recibimos ni guardamos los datos de tu tarjeta. Los ingresas directamente en Flow o en el medio de pago que elijas, que
+      los procesan con sus propias medidas de seguridad. Nunca te pediremos datos de tarjetas ni claves por correo, teléfono o WhatsApp.
     </p>
 
     <h2>Cuándo se confirma tu pago</h2>
     <ul>
       <li>
-        <strong>Link de pago:</strong> al terminar el pago.
+        <strong>Link de pago:</strong> al terminar el pago. Si pagas en efectivo con el cupón de Servipag, cuando lo pagas en la
+        sucursal.
       </li>
       <li>
         <strong>Transferencia:</strong> cuando el dinero se acredita en nuestra cuenta. Si nos mandas el comprobante a{' '}

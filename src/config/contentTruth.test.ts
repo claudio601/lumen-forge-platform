@@ -198,6 +198,9 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     it(`${path}: sin frases retiradas (texto y atributos)`, async () => {
       const { html } = await page(path);
       expect(retiredIn(html, true)).toEqual([]);
+      // El link de pago es de Flow y ya no se usa Mercado Pago (dueño, 2026-10-25). Solo en el HTML:
+      // fuera de RETIRED porque los comentarios del código sí los nombran para explicarlo.
+      expect(html).not.toMatch(/mercado ?pago|links? de pago[^.<]{0,60}jumpseller|jumpseller[^.<]{0,60}links? de pago/i);
       expect(html).toContain(businessHours); // pie de página
     });
   }

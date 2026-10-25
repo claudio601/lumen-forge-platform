@@ -96,7 +96,7 @@ export interface Product {
     // Precio CON IVA de la variante. Si está ausente, se usa product.price como fallback.
     price?: number;
     // ID de variante en Jumpseller para esta CCT. Identifica la variante exacta en
-    // solicitudes/cotizaciones (link de pago); si falta, cae a product.jumpseller_id.
+    // solicitudes y cotizaciones; si falta, cae a product.jumpseller_id.
     jumpseller_variant_id?: number;
   }>;
 
