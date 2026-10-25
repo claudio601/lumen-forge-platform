@@ -35,12 +35,10 @@
  */
 export const LEGAL_VERSION: string = '1.7';
 // La 1.7 («Recordar mis datos en este dispositivo»: la Política §2, §3, §7 y §10) rige desde la
-// fusión, el mismo día en que aparece la casilla. La fecha es PROVISIONAL (23-10-2026, el día
-// del borrador): se ajusta antes de fusionar, cambiando las dos constantes y corriendo
-// npm run legal:archive. La 1.6 (adjuntos del cotizador) se publicó el 23-10-2026 (PR #105); la
+// fusión, el mismo día en que aparece la casilla: el 25-10-2026 (PR #112). La 1.6 (adjuntos del cotizador) se publicó el 23-10-2026 (PR #105); la
 // 1.5, el 22-10-2026 (PR #103); la 1.4, el 21-10-2026 (PR #90 y #102).
-export const LEGAL_UPDATED: string = '2026-10-23';
-export const LEGAL_UPDATED_LABEL: string = '23 de octubre de 2026';
+export const LEGAL_UPDATED: string = '2026-10-25';
+export const LEGAL_UPDATED_LABEL: string = '25 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
 export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6'];
