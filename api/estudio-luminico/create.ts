@@ -40,7 +40,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
-import type { PipedriveDeal } from '../_lib/crm/types.js';
+import type { PipedriveDeal, PipedriveDealSearchItem } from '../_lib/crm/types.js';
 import {
   mapEstudioPayloadToDealParams,
   buildEstudioLeadRef,
@@ -98,7 +98,7 @@ async function findExistingEstudioDeal(
   }
 
   try {
-    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>(
+    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDealSearchItem }> }>(
       '/deals/search',
       { term: leadRef, fields: 'custom_fields', exact_match: 'true', limit: '5' }
     );
@@ -106,11 +106,14 @@ async function findExistingEstudioDeal(
     if (!res.success || !res.data?.items) return null;
 
     for (const { item } of res.data.items) {
-      if (item.pipeline_id === pipelineId && item.status === 'open') {
-        const full = await pipedriveGet<PipedriveDeal>('/deals/' + item.id);
-        if (full.success && full.data && String(full.data[fieldKey]) === leadRef) {
-          return full.data;
-        }
+      // /deals/search no trae pipeline_id: el pipeline y el estado se miran en el deal completo
+      const full = await pipedriveGet<PipedriveDeal>('/deals/' + item.id);
+      if (
+        full.success && full.data &&
+        full.data.pipeline_id === pipelineId && full.data.status === 'open' &&
+        String(full.data[fieldKey]) === leadRef
+      ) {
+        return full.data;
       }
     }
   } catch (err) {

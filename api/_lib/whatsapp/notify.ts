@@ -25,10 +25,16 @@ export interface NotifyParams {
     summary: string;
     dealId?: number;    // disponible cuando pipedriveLead creo o encontro el deal
   personId?: number;  // disponible desde WhatsAppDealResult.personId
+  /**
+   * El cierre se junto con un negocio abierto del mismo numero (deduplicacion de 7 dias): la
+   * tarea se crea igual, sin mirar la marca de 24h. Antes cada cierre creaba su propio negocio
+   * y su tarea; asi ventas sigue recibiendo el mismo aviso, en un solo negocio.
+   */
+  existingDeal?: boolean;
 }
 
 export async function notifyTeam(params: NotifyParams): Promise<void> {
-    const { phone, name, message, summary, dealId, personId } = params;
+    const { phone, name, message, summary, dealId, personId, existingDeal } = params;
 
   // 1. Log estructurado — siempre, visible en Vercel dashboard
   console.log(
@@ -56,7 +62,7 @@ export async function notifyTeam(params: NotifyParams): Promise<void> {
   // Skips on hit (already created in a previous webhook). On fail-open
   // (missing env var or option), proceeds to create — better an eventual
   // duplicate than a silent no-op.
-  if (await hasFollowup24Created(dealId)) {
+  if (!existingDeal && await hasFollowup24Created(dealId)) {
         console.log(
                 `${LOG_PREFIX} dedup_followup_24h_skipped dealId=${dealId} phone=${phone}`
         );

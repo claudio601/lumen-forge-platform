@@ -277,7 +277,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const { flowResult, dealResult, reply } = turn;
 
   const wantsHuman = flowResult.wantsHuman || signals.wantsHuman;
-    const shouldNotify = dealResult.action === 'created' || wantsHuman;
+    // 'found': el cierre se junto con el negocio abierto del mismo numero (ventana de 7 dias). Avisa
+    // igual que un negocio nuevo: ventas recibe una tarea por cierre, como antes de la deduplicacion.
+    const shouldNotify = dealResult.action === 'created' || dealResult.action === 'found' || wantsHuman;
 
   if (shouldNotify) {
         try {
@@ -288,6 +290,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                           summary: claudeSummary,
                           dealId: dealResult.dealId,
                           personId: dealResult.personId,
+                          existingDeal: dealResult.action === 'found',
                 });
         } catch (err) {
                 console.error(LOG_PREFIX + ' Notify error (non-fatal):', err);
