@@ -619,6 +619,11 @@
       "statusCode": 301
     },
     {
+      "source": "/alumbrado-publico-mini-cross-200w-ip66-ik08{/}?",
+      "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
       "source": "/alumbrado-publico-mini-cross-50w-ip66-ik08-1{/}?",
       "destination": "/catalogo/alumbrado-publico",
       "statusCode": 301
@@ -646,6 +651,11 @@
     {
       "source": "/alumbrado-publico{/}?",
       "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
+      "source": "/amp-de-bajo-consumo-200w-e40-luz-fria{/}?",
+      "destination": "/catalogo/ampolletas-led",
       "statusCode": 301
     },
     {
@@ -686,6 +696,11 @@
     {
       "source": "/ampolleta-led-6-70w-gu10-opal-1{/}?",
       "destination": "/producto/amp-led-ar111-15-150w",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolleta-led-alta-potencia-100w-e40-luz-fria{/}?",
+      "destination": "/catalogo/ampolletas-led",
       "statusCode": 301
     },
     {
@@ -829,12 +844,27 @@
       "statusCode": 301
     },
     {
+      "source": "/ampolletas_led/alta-potencia{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas_led/ampolleta-led-bola{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
       "source": "/ampolletas_led/ar111{/}?",
       "destination": "/catalogo/ampolletas-led",
       "statusCode": 301
     },
     {
       "source": "/ampolletas_led/bola{/}?",
+      "destination": "/catalogo/ampolletas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/ampolletas_led/cfl-ahorro-de-energia{/}?",
       "destination": "/catalogo/ampolletas-led",
       "statusCode": 301
     },
@@ -1564,6 +1594,11 @@
       "statusCode": 301
     },
     {
+      "source": "/canoa-antiexplosiva-fluorescente-herm%C3%A9tica-2x36w-ip66-ik08-120-cm.-c/tubos-c/kit-de-emergencia{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
       "source": "/canoa-doble-para-tubo-led-1200-mm{/}?",
       "destination": "/producto/canoa-doble-para-tubo-led-1200-mm",
       "statusCode": 301
@@ -2074,6 +2109,11 @@
       "statusCode": 301
     },
     {
+      "source": "/cinta_led/perfiles-de-aluminio{/}?",
+      "destination": "/catalogo/cinta-led",
+      "statusCode": 301
+    },
+    {
       "source": "/cinta_led/perfil{/}?",
       "destination": "/catalogo/cinta-led",
       "statusCode": 301
@@ -2225,6 +2265,11 @@
     },
     {
       "source": "/emergencia-led/kit-emergencia{/}?",
+      "destination": "/catalogo/emergencia-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/emergencia-led/lum-emergencia{/}?",
       "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
@@ -2959,6 +3004,11 @@
       "statusCode": 301
     },
     {
+      "source": "/ilumin-exterior/alumbrado-vial{/}?",
+      "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
       "source": "/ilumin-exterior/canoas{/}?",
       "destination": "/catalogo/iluminacion-exterior",
       "statusCode": 301
@@ -3004,6 +3054,11 @@
       "statusCode": 301
     },
     {
+      "source": "/ilumin-interior/puzzle-led{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
       "source": "/ilumin-interior/riel-mono{/}?",
       "destination": "/catalogo/focos-a-riel",
       "statusCode": 301
@@ -3016,6 +3071,11 @@
     {
       "source": "/ilumina-tus-noches-de-verano-para-que-sean-inolvidables{/}?",
       "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/iluminacion-antiexplosiva/estancos-hermeticos-fluorescentes-antiexplosivos{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
       "statusCode": 301
     },
     {
@@ -3596,6 +3656,11 @@
     {
       "source": "/luminaria-led-tri-proof-a-prueba-de-explosion-atex-20w-1{/}?",
       "destination": "/producto/luminaria-led-tri-proof-a-prueba-de-explosion-atex-40w",
+      "statusCode": 301
+    },
+    {
+      "source": "/luminaria-led-tri-proof-a-prueba-de-explosion-atex-20w{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
       "statusCode": 301
     },
     {
@@ -5139,6 +5204,11 @@
       "statusCode": 301
     },
     {
+      "source": "/proyector-led-a-prueba-de-explosion-200w{/}?",
+      "destination": "/catalogo/iluminacion-antiexplosiva",
+      "statusCode": 301
+    },
+    {
       "source": "/proyector-led-a-prueba-de-explosion-50w-2{/}?",
       "destination": "/producto/campana-led-ufo-a-prueba-de-explosion-50w",
       "statusCode": 301
@@ -6219,6 +6289,26 @@
       "statusCode": 301
     },
     {
+      "source": "/proyector-led-ultra-thin-100w-ip66-negro{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-150w-ip66-negro{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-300w-ip66-negro{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-ultra-thin-50w-ip66-negro{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
       "source": "/proyector-led-ultra-thin-smd-10w-ip65-negro-copiar{/}?",
       "destination": "/producto/proyector-led-ultra-slim-10w-ip66-negro",
       "statusCode": 301
@@ -6330,6 +6420,11 @@
     },
     {
       "source": "/proyector_led/estadio-modular{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector_led/solar{/}?",
       "destination": "/catalogo/proyectores-led",
       "statusCode": 301
     },
@@ -6451,6 +6546,21 @@
     {
       "source": "/rieles{/}?",
       "destination": "/catalogo/focos-a-riel",
+      "statusCode": 301
+    },
+    {
+      "source": "/search/aplique{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
+      "source": "/search/embutido{/}?",
+      "destination": "/catalogo/paneles-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/search/sobrepuesto{/}?",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
