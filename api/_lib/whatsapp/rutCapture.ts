@@ -12,7 +12,7 @@
 // Los correos y enlaces se sacan del texto antes de buscar. Lo reconoce el codigo, no Claude:
 // el RUT no se agrega a lo que extrae Claude (politica de privacidad, datos que se piden).
 
-import { formatRut, rutCheckDigit } from '../../../src/lib/rut';
+import { rutCheckDigit } from '../rut.js';
 
 export type RutTipo = 'empresa' | 'persona' | 'organismo_publico' | 'comunidad';
 
@@ -59,7 +59,8 @@ function toFound(rawBody: string, rawDv: string): RutFound | undefined {
   if (body.length < 7 || body.length > 8) return undefined;
   const dv = rawDv.toUpperCase();
   const valido = rutCheckDigit(body) === dv;
-  return { rut: formatRut(body + dv), valido, ...(valido ? { tipo: rutTipo(Number(body)) } : {}) };
+  const rut = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+  return { rut, valido, ...(valido ? { tipo: rutTipo(Number(body)) } : {}) };
 }
 
 function candidates(text: string, re: RegExp): RutFound[] {

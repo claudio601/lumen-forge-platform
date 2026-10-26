@@ -97,6 +97,7 @@ export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, nec
 // (o el paso del flujo fallo): nunca se dice "quedo registrada".
 export const MSG_DEAL_FAILED = 'No pude registrar tu solicitud por un problema t\u00e9cnico. Por favor, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
 // [RUT-VALIDO] El RUT no calza con su digito verificador: se pide de nuevo, una sola vez.
+// Texto aprobado por el dueno (2026-10-26).
 export const MSG_RUT_INVALID = 'El RUT que me enviaste no calza con su d\u00edgito verificador. \u00bfMe lo escribes de nuevo, con guion y d\u00edgito verificador? Por ejemplo: 12.345.678-5.';
 export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
 // [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio
