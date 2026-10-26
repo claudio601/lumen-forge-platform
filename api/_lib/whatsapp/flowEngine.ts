@@ -1,7 +1,7 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui — la regla real vive en webhook.ts.
 import { findRut, isBusinessRut } from './rutCapture.js';
-import type { RutTipo } from './rutCapture.js';
+import type { RutFound, RutTipo } from './rutCapture.js';
 
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
 export type CaptureStatus = 'complete' | 'partial' | 'incomplete';
@@ -48,6 +48,9 @@ export interface FlowState {
   deal?: 'registered' | 'failed';
   // [RUT-VALIDO] Ya se pidio de nuevo un RUT cuyo digito verificador no calzaba (se pide una vez).
   rutRetryAsked?: boolean;
+  // [RUT-VALIDO] La ultima respuesta del bot pidio el RUT (la etapa 3 de una empresa o la
+  // repregunta): solo el mensaje que la contesta puede traer el numero solo, sin guion.
+  rutAskedLast?: boolean;
 }
 
 export interface FlowResult {
@@ -58,6 +61,9 @@ export interface FlowResult {
   captured: CapturedFields;
   wantsHuman: boolean;
   closedFlow: boolean;
+  // [RUT-VALIDO] Un RUT que llega despues del cierre se suma a un negocio ya registrado: si
+  // Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no lo marca como fallido).
+  rutUpdate?: boolean;
 }
 
 // [COPY-v3] Mensaje inicial
@@ -409,8 +415,22 @@ type ClaudeFields = {
  * repregunta de un RUT que no calzaba. Solo entonces vale el numero sin guion ni la palabra "RUT".
  */
 function rutAsked(state: FlowState): boolean {
-  if (state.rutRetryAsked && state.captured.rut_valido === false) return true;
-  return state.stage === 'stage3' && state.leadType === 'B2B' && !state.captured.rut;
+  return Boolean(state.rutAskedLast);
+}
+
+/** [RUT-VALIDO] La respuesta pide el RUT: MSG3_B2B, la repregunta por el RUT o MSG_RUT_INVALID. */
+function asksForRut(reply: string): boolean {
+  return reply === MSG_RUT_INVALID || reply.includes('RUT de la empresa');
+}
+
+/**
+ * [RUT-VALIDO] El RUT que reemplaza al capturado, o undefined. Un RUT valido no se reemplaza,
+ * salvo uno de persona por uno valido de empresa (B12: "personales en vez de empresa"); uno que
+ * no calza, si (por el corregido).
+ */
+function acceptedRut(current: CapturedFields, found: RutFound | undefined): RutFound | undefined {
+  if (!found || !current.rut_valido) return found;
+  return current.rut_tipo === 'persona' && isBusinessRut(found) ? found : undefined;
 }
 
 // PASO 1: MERGE de los campos del flujo de productos (sin cambios de reglas; ver B3/B4 en la PR 2).
@@ -432,8 +452,9 @@ function mergeProductFields(
   // [CIERRE-HONESTO] el de Claude solo si es texto con forma de correo (una lista hacia caer el webhook)
   const correoFound = emailFrom(claudeParsed.correo) ?? extractEmail(body);
   if (correoFound) merged.correo = correoFound;
-  // [RUT-VALIDO] Un RUT valido no se reemplaza; uno que no calza, si (por el corregido).
-  const rutFound = merged.rut_valido ? undefined : findRut(body, { asked: rutAsked(state) });
+  // [RUT-VALIDO] Un RUT valido no se reemplaza (salvo el de persona por el de empresa); uno que
+  // no calza, si (por el corregido).
+  const rutFound = acceptedRut(merged, findRut(body, { asked: rutAsked(state) }));
   if (rutFound) {
     merged.rut = rutFound.rut;
     merged.rut_valido = rutFound.valido;
@@ -476,7 +497,39 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
   return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true };
 }
 
+/**
+ * [RUT-VALIDO] Conversacion cerrada con el negocio registrado: un RUT valido que llega despues (el
+ * corregido tras la repregunta, el que falto o el de la empresa en vez del personal) se suma al
+ * negocio. webhook.ts lo junta con el negocio abierto del mismo numero (ventana de 7 dias): nota
+ * con el RUT y tarea para ventas. La respuesta es la misma de la conversacion cerrada.
+ */
+function lateRut(phone: string, state: FlowState, body: string): FlowResult | undefined {
+  if (state.isInstallFlow) return undefined;
+  const found = acceptedRut(state.captured, findRut(body, { asked: rutAsked(state) }));
+  if (!found?.valido) return undefined;
+  const captured: CapturedFields = { ...state.captured, rut: found.rut, rut_valido: true, rut_tipo: found.tipo };
+  const leadType: LeadType = isBusinessRut(found) ? 'B2B' : state.leadType;
+  const captureStatus = computeCaptureStatus(captured, leadType);
+  const next: FlowState = { ...state, captured, captureStatus, leadType };
+  saveFlowState(phone, next);
+  console.log('[flowEngine] RUT valido despues del cierre — se suma al negocio registrado');
+  return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+}
+
 export function processFlowStep(
+  phone: string,
+  body: string,
+  claudeParsed: ClaudeFields,
+  signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
+): FlowResult {
+  const result = flowStep(phone, body, claudeParsed, signals);
+  // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
+  const state = flowStates.get(phone);
+  if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply) });
+  return result;
+}
+
+function flowStep(
   phone: string,
   body: string,
   claudeParsed: ClaudeFields,
@@ -492,6 +545,8 @@ export function processFlowStep(
       return continueClosedWithoutDeal(phone, state, body, claudeParsed);
     }
     if (!newRequest) {
+      const late = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
+      if (late) return late;
       return {
         reply: closedReply(state),
         shouldCreateDeal: false,
@@ -504,7 +559,7 @@ export function processFlowStep(
     }
     console.log('[flowEngine] nuevo requerimiento, reset para: ' + body.substring(0, 60));
     clearFlowState(phone);
-    return processFlowStep(phone, body, claudeParsed, signals);
+    return flowStep(phone, body, claudeParsed, signals);
   }
 
   // [EXECUTIVE-RE] Guard

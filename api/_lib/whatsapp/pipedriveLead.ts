@@ -10,6 +10,7 @@ import type { QuoteCustomer } from '../crm/types.js';
 import { TIPO_SERVICIO } from '../crm/tipo-servicio.js';
 import { looksLikePersonName } from './flowEngine.js';
 import type { CapturedFields, CaptureStatus } from './flowEngine.js';
+import { isBusinessRut } from './rutCapture.js';
 
 const LOG_PREFIX = '[pipedriveLead]';
 
@@ -226,6 +227,8 @@ function detectLeadType(body: string, captured?: CapturedFields): 'B2B' | 'B2C' 
     const B2B_RE = /empresa|constructora|obra|factura|licitaci[oó]n|proveedor|s\.a\.|spa|ltda|ingeniería|arquitectura|instalador/i;
     const text = body + ' ' + (fmt(captured?.nombre_o_empresa) ?? '');
     if (B2B_RE.test(text)) return 'B2B';
+    // [RUT-VALIDO] Un RUT valido de empresa, organismo o comunidad (no de persona) es B2B.
+    if (isBusinessRut({ valido: captured?.rut_valido === true, tipo: captured?.rut_tipo })) return 'B2B';
     if (body.length > 20) return 'B2C';
   return 'Unknown';
 }

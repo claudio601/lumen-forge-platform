@@ -171,3 +171,27 @@ describe('RUT en la nota (PR 6, B12)', () => {
     expect(noteContent()).not.toContain('RUT empresa');
   });
 });
+
+describe('tipo de cliente del negocio según el RUT (PR 6, B12)', () => {
+  const base: WhatsAppLeadParams = {
+    phone: PHONE,
+    name: 'Perfil Prueba',
+    summary: 'Pide paneles LED.',
+    body: 'compras@comercial-prueba.example.com',
+    captured: { producto: 'paneles LED', correo: 'compras@comercial-prueba.example.com' },
+    captureStatus: 'complete',
+  };
+  const leadType = () => (vi.mocked(createDeal).mock.calls[0][0] as { leadType?: string }).leadType;
+
+  it('un RUT válido de empresa marca el negocio como B2B, aunque el último mensaje no lo diga', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' } });
+    expect(leadType()).toBe('B2B');
+  });
+
+  it('uno de persona o uno que no calza, no', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '11.111.111-1', rut_valido: true, rut_tipo: 'persona' } });
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '77.123.456-8', rut_valido: false } });
+    const types = vi.mocked(createDeal).mock.calls.map(([params]) => (params as { leadType?: string }).leadType);
+    expect(types).toEqual(['B2C', 'B2C']);
+  });
+});

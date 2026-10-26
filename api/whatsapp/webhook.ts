@@ -127,10 +127,15 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   let reply = flowResult.reply;
     if (flowResult.shouldCreateDeal) {
           const registered = (dealResult.action === 'created' || dealResult.action === 'found') && typeof dealResult.dealId === 'number';
-          recordDealOutcome(phone, registered, conversationId);
-          if (!registered) {
-                  console.warn(LOG_PREFIX + ' Negocio no confirmado (' + dealResult.action + ') — respondiendo MSG_DEAL_FAILED');
-                  reply = MSG_DEAL_FAILED;
+          if (flowResult.rutUpdate && !registered) {
+                  // [RUT-VALIDO] El RUT llego despues del cierre: el negocio ya estaba registrado y sigue.
+                  console.warn(LOG_PREFIX + ' RUT posterior al cierre sin confirmar en Pipedrive (' + dealResult.action + ') — el negocio anterior sigue');
+          } else {
+                  recordDealOutcome(phone, registered, conversationId);
+                  if (!registered) {
+                          console.warn(LOG_PREFIX + ' Negocio no confirmado (' + dealResult.action + ') — respondiendo MSG_DEAL_FAILED');
+                          reply = MSG_DEAL_FAILED;
+                  }
           }
     }
 

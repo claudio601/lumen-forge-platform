@@ -1,10 +1,13 @@
 // api/_lib/whatsapp/rutCapture.test.ts
 // Bot de WhatsApp, PR 6 del plan (B12): cuándo un texto trae un RUT, si calza y de qué tipo es.
 // Solo RUT inventados con dígito verificador válido (módulo 11) y su versión con el dígito
-// cambiado; ninguno es de un cliente. Celulares +569000…, correos @example.com.
+// cambiado; ninguno es de un cliente. Celulares +569000… o 9XXXXXXXX inventados, correos
+// @example.com. La segunda parte cubre lo que encontró la revisión de la #121: rangos de montos,
+// ID de licitación, celulares cuando el bot pidió el RUT, cuerpos con puntos sin dígito
+// verificador y el nombre «Rut».
 
 import { describe, expect, it } from 'vitest';
-import { findRut, isBusinessRut, rutTipo } from './rutCapture';
+import { RUT_EXAMPLE, findRut, isBusinessRut, rutTipo } from './rutCapture';
 
 const EMPRESA = { rut: '77.123.456-9', valido: true, tipo: 'empresa' };
 
@@ -92,5 +95,156 @@ describe('validación y tipo', () => {
     expect(isBusinessRut(findRut('11.111.111-1'))).toBe(false);
     expect(isBusinessRut(findRut('77.123.456-8'))).toBe(false);
     expect(isBusinessRut(undefined)).toBe(false);
+  });
+});
+
+describe('rangos de montos e ID de licitación (revisión de la #121)', () => {
+  it.each([
+    ['rango con puntos y guion', 'presupuesto entre 1.000.000-2.000.000'],
+    ['rango con espacios', 'presupuesto: 2.500.000 - 3.000.000 aprox'],
+    ['con signo peso', 'tengo $1.500.000-2.000.000'],
+    ['signo peso y espacio', '$ 1.500.000-2'],
+    ['rango de lúmenes', 'entre 1.200.000-1.500.000 lúmenes'],
+    ['"millones"', 'entre 1.000.000 - 2 millones'],
+    ['"presupuesto" antes', 'presupuesto 1.500.000-2'],
+    ['ID de licitación de Mercado Público', 'licitación ID 1057501-9-LE24'],
+    ['código con guion antes', 'código LE24-1057501-9'],
+  ])('%s: no es un RUT', (_caso, text) => {
+    expect(findRut(text)).toBeUndefined();
+  });
+
+  it('un RUT con la palabra "RUT" gana aunque el mismo mensaje traiga un rango o un ID', () => {
+    expect(findRut('RUT 77 123 456 9, presupuesto 1.000.000-2.000.000')).toEqual(EMPRESA);
+    expect(findRut('RUT 77 123 456 9, para la licitación 1057501-5-LE24')).toEqual(EMPRESA);
+  });
+
+  it('un RUT al final de una oración o entre guiones de lista sí cuenta', () => {
+    expect(findRut('Mi RUT es 77.123.456-9.')).toEqual(EMPRESA);
+    expect(findRut('Comercial Prueba SpA - 77.123.456-9 - compras@comercial-prueba.example.com')).toEqual(EMPRESA);
+    expect(findRut('RUT 77.123.456-9 300 paneles')).toEqual(EMPRESA);
+  });
+});
+
+describe('cuerpo con puntos o espacios: tiene que estar agrupado como un RUT', () => {
+  it.each([
+    ['"RUT" y el cuerpo con puntos, sin dígito verificador', 'mi RUT es 76.543.216'],
+    ['lo mismo, seguido de texto', 'RUT 12.345.678 y necesito 20 paneles'],
+    ['cuerpo con espacios, sin dígito verificador', 'RUT 12 345 678'],
+    ['celular agrupado 9 XXXX XXXX', 'RUT 9 8765 4325'],
+  ])('%s: no es un RUT', (_caso, text) => {
+    expect(findRut(text)).toBeUndefined();
+  });
+
+  it('el cuerpo con puntos sin dígito verificador tampoco pasa cuando el bot pidió el RUT', () => {
+    expect(findRut('el rut es 76.543.216, compras@comercial-prueba.example.com', { asked: true })).toBeUndefined();
+  });
+
+  it('un número que viene después no anula el RUT ("RUT 771234569 30 paneles")', () => {
+    expect(findRut('Comercial Prueba SpA, RUT 771234569 30 paneles')).toEqual(EMPRESA);
+    expect(findRut('RUT 77123456 9 30 paneles')).toEqual(EMPRESA);
+    expect(findRut('RUT 77.123.456 9 30 paneles')).toEqual(EMPRESA);
+  });
+});
+
+describe('más formas de escribir un RUT', () => {
+  it.each([
+    ['espacios entre grupos y guion', '77 123 456-9'],
+    ['comas entre grupos', '77,123,456-9'],
+    ['dos espacios alrededor del guion', '77.123.456  -  9'],
+    ['guion de cifra (U+2012)', '77.123.456‒9'],
+    ['pegado a un correo', '77.123.456-9,compras@comercial-prueba.example.com'],
+    ['"RUT de mi empresa:"', 'RUT de mi empresa: 77123456 9'],
+    ['"RUT de facturación"', 'RUT de facturación 77123456 9'],
+    ['"el rut es el"', 'el rut es el 771234569'],
+    ['"El RUT de mi empresa es", con espacios', 'El RUT de mi empresa es 77 123 456 9, compras@comercial-prueba.example.com'],
+    ['"Rut de la constructora:"', 'Rut de la constructora: 77 123 456 9'],
+  ])('%s', (_caso, text) => {
+    expect(findRut(text)).toEqual(EMPRESA);
+  });
+
+  it('con espacios entre grupos y sin guion, cuando el bot pidió el RUT', () => {
+    expect(findRut('77 123 456 9', { asked: true })).toEqual(EMPRESA);
+  });
+});
+
+describe('cuando el bot pidió el RUT: celulares, montos y pedidos', () => {
+  it.each([
+    ['celular', 'mi celular es 912345678'],
+    ['celular cuyo dígito calza', 'mi celular es 900017774'],
+    ['fono fijo', 'fono 222345678'],
+    ['whatsapp', 'whatsapp 987654325'],
+    ['llámame', 'llámame al 912345678, compras@comercial-prueba.example.com'],
+    ['con +56 y espacio', '+56 912345678'],
+    ['monto', 'presupuesto $15000000'],
+    ['pedido', 'mi pedido es el 10045678'],
+    ['celular al final, con el correo', 'mi correo es compras@comercial-prueba.example.com y mi celular 900017774'],
+    ['"te lo mando después" y el celular', 'el rut te lo mando después, mi celular es 987654325, compras@comercial-prueba.example.com'],
+    ['nombre y celular seguido (sin palabra de teléfono)', 'Juan Prueba 912345678 juan.prueba@example.com'],
+  ])('%s: no es un RUT', (_caso, text) => {
+    expect(findRut(text, { asked: true })).toBeUndefined();
+  });
+
+  it('un número de 9 dígitos que empieza con 9 vale como respuesta solo si es todo el mensaje (sin el correo)', () => {
+    expect(findRut('965432108', { asked: true })).toEqual({ rut: '96.543.210-8', valido: true, tipo: 'empresa' });
+    expect(findRut('965432108, compras@comercial-prueba.example.com', { asked: true })?.rut).toBe('96.543.210-8');
+  });
+
+  it('el RUT junto a un celular con su palabra: gana el RUT', () => {
+    const text = 'Comercial Prueba SpA, 771234569, cel 912345678, compras@comercial-prueba.example.com';
+    expect(findRut(text, { asked: true })).toEqual(EMPRESA);
+  });
+
+  it('"total 30 paneles" antes no tapa el RUT (hay dígitos entre medio)', () => {
+    expect(findRut('Comercial Prueba SpA, total 30 paneles, 771234569', { asked: true })).toEqual(EMPRESA);
+  });
+});
+
+describe('el nombre «Rut»', () => {
+  it.each([
+    ['firma con celular agrupado', 'Saludos\nRut\n9 8765 4325'],
+    ['nombre y celular seguido', 'Rut 987654325'],
+    ['nombre, apellido y celular', 'Rut de la Fuente, cel 912345678'],
+    ['nombre y "mi número es"', 'Rut, mi número es 912345678'],
+  ])('%s: no es un RUT', (_caso, text) => {
+    expect(findRut(text)).toBeUndefined();
+  });
+
+  it('un RUT que empieza con 9, seguido, vale con "RUT" en mayúsculas o con algo entre medio', () => {
+    const SA = { rut: '96.543.210-8', valido: true, tipo: 'empresa' };
+    expect(findRut('RUT 965432108')).toEqual(SA);
+    expect(findRut('Rut: 965432108')).toEqual(SA);
+    expect(findRut('rut es 965432108')).toEqual(SA);
+  });
+});
+
+describe('si hay varios RUT', () => {
+  it('gana el de empresa aunque el de persona venga antes', () => {
+    expect(findRut('Soy Ana Prueba, RUT 11.111.111-1, la empresa es 77.123.456-9')).toEqual(EMPRESA);
+  });
+
+  it('si ninguno calza, gana el que viene después de la palabra "RUT"', () => {
+    expect(findRut('77.123.456-7 o RUT 77 123 456 8')).toEqual({ rut: '77.123.456-8', valido: false });
+  });
+});
+
+describe('el ejemplo de la repregunta', () => {
+  it('calza su dígito verificador, pero copiado no se toma como RUT', () => {
+    expect(findRut('RUT ' + RUT_EXAMPLE.replace(/\.|-/g, ''))).toBeUndefined();
+    expect(findRut('Por ejemplo: ' + RUT_EXAMPLE)).toBeUndefined();
+    expect(findRut(RUT_EXAMPLE, { asked: true })).toBeUndefined();
+  });
+});
+
+describe('mensajes largos', () => {
+  it.each([
+    ['letras sin espacios', 'a'.repeat(65_536)],
+    ['dígitos sin espacios', '1'.repeat(65_536)],
+    ['cuerpos con guion repetidos', '1234567-'.repeat(8_192)],
+    ['"RUT" y espacios', 'RUT ' + ' '.repeat(65_536)],
+    ['arrobas', 'x@'.repeat(32_768)],
+  ])('%s: responde en menos de 50 ms', (_caso, text) => {
+    const start = performance.now();
+    findRut(text, { asked: true });
+    expect(performance.now() - start).toBeLessThan(50);
   });
 });
