@@ -5,7 +5,7 @@
 // Cotizador de proyecto (/cotizador; /contact y /contactos también llegan aquí).
 // El visitante describe su proyecto (tipo, m², altura...) y deja sus datos. No hay
 // productos ni precios: ventas prepara la propuesta y responde con un link de pago
-// de Jumpseller. Reemplaza el envío por EmailJS desde el navegador.
+// de Flow. Reemplaza el envío por EmailJS desde el navegador.
 //
 // Flujo (orden crítico — no modificar):
 //   1. Método (405 con Allow: POST)
@@ -404,7 +404,7 @@ export function buildProjectQuoteNote(
     q.comentarios ?? '(sin comentarios)',
     '',
     ...(archivos.length ? ['--- ARCHIVOS ---', ...archivos, ''] : []),
-    'Sin productos ni precios: preparar propuesta y responder con link de pago de Jumpseller.',
+    'Sin productos ni precios: preparar propuesta y responder con link de pago de Flow.',
     'source: cotizador | landingPath: /cotizador',
     ...(consent.length ? ['', ...consent] : []),
     ...(origen.length ? ['', ...origen] : []),

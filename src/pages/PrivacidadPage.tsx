@@ -42,6 +42,11 @@
 // si ya hay datos y se desmarca sola si cambia el correo (decisión 3), y el botón «Borrar mis
 // datos guardados» va en §10, junto a «Configurar cookies» (decisión 4). No son cookies ni pasan
 // por el aviso: los textos de las casillas y COOKIE_CONSENT_VERSION no cambian.
+// Versión 1.8 (correcciones del dueño, 2026-10-25): el link de pago es de Flow, no de Jumpseller,
+// y ya no se usa Mercado Pago (§2, §5 y §7). Los medios de §5 son los activos en la cuenta Flow (los
+// mismos de MediosPagoPage.tsx). Jumpseller queda como catálogo y como registro de las
+// solicitudes de su tienda, que llegan por su webhook (api/_lib/jumpseller/eventPolicy.ts), y
+// Upstash relaciona cada una con su negocio en Pipedrive (api/_lib/idempotency/redis.ts).
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -223,9 +228,9 @@ const PrivacidadPage = () => (
     </p>
     <p>
       <strong>De dónde vienen:</strong> casi todos nos los das tú en los formularios, por correo o por WhatsApp. Si nos escribes
-      por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp. Los datos de pago y
-      despacho de tu compra vienen de la plataforma del link de pago (Jumpseller). Los parámetros de campaña vienen del enlace
-      con el que llegaste.
+      por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp. Si pagas con el link de
+      pago, Flow nos informa el estado de tu pago. Si haces tu solicitud en nuestra tienda de Jumpseller, sus datos vienen de
+      esa plataforma. Los parámetros de campaña vienen del enlace con el que llegaste.
     </p>
 
     <h2>3. Para qué los usamos y con qué base legal</h2>
@@ -338,11 +343,12 @@ const PrivacidadPage = () => (
         conversaciones (punto 4).
       </li>
       <li>
-        <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada pedido pagado con su ficha en nuestro sistema de
-        seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.
+        <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller
+        con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.
       </li>
       <li>
-        <strong>Jumpseller:</strong> plataforma de ventas: catálogo, imágenes de productos, links de pago y registro de pedidos.
+        <strong>Jumpseller:</strong> plataforma de ventas: catálogo, precios e imágenes de productos, y registro de las solicitudes
+        hechas en nuestra tienda de Jumpseller.
       </li>
     </ul>
     <p>
@@ -350,7 +356,8 @@ const PrivacidadPage = () => (
     </p>
     <ul>
       <li>
-        <strong>Medios de pago</strong> (Flow y Transbank para Webpay, Mercado Pago): reciben los datos que ingresas al pagar.
+        <strong>Medios de pago:</strong> Flow (flow.cl), la plataforma con la que cobramos, y el medio que elijas al pagar
+        (Transbank para Webpay y Onepay, MACH, Servipag o Banca.me): reciben los datos de tu pago y los que ingresas al pagar.
       </li>
       <li>
         <strong>Transportistas</strong> ({REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono para
@@ -434,7 +441,7 @@ const PrivacidadPage = () => (
         local de tu navegador, hasta 90 días. Lo que registra Meta lo conserva según su propia política.
       </li>
       <li>
-        <strong>Registro técnico de pedidos (Upstash):</strong> 30 días.
+        <strong>Registro técnico de las solicitudes de nuestra tienda de Jumpseller (Upstash):</strong> 30 días.
       </li>
       <li>
         <strong>Asistente de WhatsApp:</strong> guarda solo en memoria temporal el historial reciente de la conversación, los datos

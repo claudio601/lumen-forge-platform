@@ -5,7 +5,7 @@
 // (toggle B2B) o alterado a mano.
 //
 // Todos los montos son CON IVA (decisión del dueño, 2026-09-30): coinciden con lo que
-// cobra el link de pago de Jumpseller.
+// cobra el link de pago de Flow.
 
 import { priceIndex, type PriceIndexEntry } from './price-index.generated.js';
 

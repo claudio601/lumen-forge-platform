@@ -195,7 +195,7 @@ describe('POST /api/project-quotes/create', () => {
       'Giro: PRUEBA giro',
       'Dirección: PRUEBA dirección 123',
       '--- COMENTARIOS ---\nPRUEBA ETAPA 2 (09d) - no cotizar',
-      'Sin productos ni precios: preparar propuesta y responder con link de pago de Jumpseller.',
+      'Sin productos ni precios: preparar propuesta y responder con link de pago de Flow.',
     ]) {
       expect(note.content).toContain(text);
     }

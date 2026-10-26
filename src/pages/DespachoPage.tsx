@@ -73,8 +73,8 @@ const DespachoPage = () => (
 
     <h2>Costo del despacho</h2>
     <p>
-      El costo del despacho no está incluido en el precio de los productos. Antes de que pagues, la cotización y el link de pago
-      lo muestran por separado, o indican que va sin costo o por pagar.
+      El costo del despacho no está incluido en el precio de los productos. Antes de que pagues, la cotización lo muestra por
+      separado, o indica que va sin costo o por pagar. El link de pago cobra el total de la cotización.
     </p>
     <p>
       Para pedidos grandes o de proyecto (por ejemplo, entregas en obra o en varias partes), acordamos las condiciones en la
