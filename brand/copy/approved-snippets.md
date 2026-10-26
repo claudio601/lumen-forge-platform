@@ -36,7 +36,7 @@ Los textos vigentes están en `src/config/business.ts` (`trustClaims`):
 
 - **Catálogo técnico amplio:** Amplia variedad de productos técnicos. Consulta disponibilidad antes de grandes proyectos.
 - **Garantía según producto:** Todos los productos tienen la garantía legal de 6 meses desde la recepción. Si un producto tiene una garantía mayor, su ficha la indica.
-- **Despacho a todo Chile:** Enviamos por Starken, Cruz del Sur, PDQ, ECOEx y otros. También despachamos con el operador logístico que prefiera el cliente.
+- **Despacho a todo Chile:** A regiones, por pagar, vía Starken, Cruz del Sur, ECOEx, Varmontt, Samex, PDQ, Pullman Cargo, Chilexpress, Transportes Mena u otro operador. También despachamos con el operador logístico que prefiera el cliente.
 - **Certificaciones por producto:** Cada ficha indica las certificaciones del producto (SEC, DS1, CE u otras) cuando las tiene.
 - **Despacho en hasta 2 días hábiles:** Despachamos en hasta 2 días hábiles, y a veces el mismo día; a regiones, vía operador logístico.
 

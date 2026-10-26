@@ -33,16 +33,17 @@
  * LEGAL_UPDATED no mueve el margen de CONSENT_GRACE_DAYS días: se cuenta desde
  * CONSENT_SINCE_DATE (consentGraceUntil), que no cambia al subir la versión.
  */
-export const LEGAL_VERSION: string = '1.8';
-// La 1.8 (el link de pago es de Flow y ya no se usa Mercado Pago: la Política §2, §5 y §7) rige desde
-// la fusión. La 1.7 («Recordar mis datos en este dispositivo»: la Política §2, §3, §7 y §10) se
-// publicó el 25-10-2026 (PR #112); la 1.6 (adjuntos del cotizador), el 23-10-2026 (PR #105); la
+export const LEGAL_VERSION: string = '1.9';
+// La 1.9 (la lista de transportistas del dueño en la Política §5, desde REGION_CARRIERS) rige desde
+// la fusión. La 1.8 (el link de pago es de Flow y ya no se usa Mercado Pago: la Política §2, §5 y
+// §7) se publicó el 25-10-2026 (PR #118); la 1.7 («Recordar mis datos en este dispositivo»: la
+// Política §2, §3, §7 y §10), el mismo día (PR #112); la 1.6 (adjuntos del cotizador), el 23-10-2026 (PR #105); la
 // 1.5, el 22-10-2026 (PR #103); la 1.4, el 21-10-2026 (PR #90 y #102).
-export const LEGAL_UPDATED: string = '2026-10-25';
-export const LEGAL_UPDATED_LABEL: string = '25 de octubre de 2026';
+export const LEGAL_UPDATED: string = '2026-10-26';
+export const LEGAL_UPDATED_LABEL: string = '26 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
-export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7'];
+export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'];
 
 /** Páginas con versión y archivo permanente (LegalLayout con `updated`). */
 export const LEGAL_VERSIONED_PATHS = [

@@ -104,9 +104,6 @@ const FORBIDDEN = [
   'comunas excluidas',
   'No tenemos',
   'retiro en oficina',
-  'Chilexpress',
-  'Cruz del Sur',
-  'ECOEx',
 ];
 
 /** El único monto que dicen las páginas legales: el del despacho sin costo, desde la constante. */
@@ -402,11 +399,11 @@ describe('páginas legales y de compra: contenido', () => {
       'Costo del despacho',
       'Retiro en bodega',
     ]);
-    // Regiones: con las palabras del dueño (sin los transportistas de la versión anterior)
-    expect(REGION_CARRIERS).toBe('Starken, PDQ u otro operador');
+    // Regiones: la lista de transportistas del dueño (2026-10-25, versión 1.9), la misma de la Política §5
+    expect(REGION_CARRIERS).toBe('Starken, Cruz del Sur, ECOEx, Varmontt, Samex, PDQ, Pullman Cargo, Chilexpress, Transportes Mena u otro operador');
     const regiones = section(main, 'Regiones').text;
-    expect(regiones).toContain('El despacho a regiones va por pagar, vía Starken, PDQ u otro operador.');
-    expect(text).not.toMatch(/Cruz del Sur|Chilexpress|ECOEx|retiro en tienda/i);
+    expect(regiones).toContain(`El despacho a regiones va por pagar, vía ${REGION_CARRIERS}.`);
+    expect(text).not.toMatch(/retiro en tienda/i);
     // la cotización detalla el despacho; el link de Flow cobra un solo monto (dueño, 2026-10-25)
     expect(section(main, 'Costo del despacho').text).toContain(
       'la cotización lo muestra por separado, o indica que va sin costo o por pagar. El link de pago cobra el total de la cotización.',
@@ -504,7 +501,7 @@ describe('páginas legales y de compra: contenido', () => {
     );
     expect(section(main, '7.').text).toContain('Registro técnico de las solicitudes de nuestra tienda de Jumpseller (Upstash): 30 días.');
     expect(text).not.toMatch(/Mercado Pago|links de pago|pedido pagado|Registro técnico de pedidos/i);
-    // §5: los transportistas de /despacho (REGION_CARRIERS), sin Chilexpress ni Cruz del Sur (PR 12b, versión 1.1)
+    // §5: los transportistas de /despacho (REGION_CARRIERS): la lista del dueño del 2026-10-25 (versión 1.9)
     expect(section(main, '5.').text).toContain(`Transportistas (${REGION_CARRIERS}, incluido el que elijas): reciben tu nombre, dirección y teléfono`);
     // §4: una persona revisa y responde cada solicitud registrada (en WhatsApp, sin correo no hay registro: prueba de la PR 13x)
     expect(text).toContain('una persona de nuestro equipo revisa y responde cada solicitud que queda registrada en nuestro sistema de seguimiento');

@@ -49,6 +49,7 @@ import {
   FREE_SHIPPING_THRESHOLD_CLP,
   freeShippingShort,
   PICKUP_PLACE,
+  REGION_CARRIERS,
   responseTimePromise,
   trustClaims,
   waInstaladores,
@@ -215,9 +216,8 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text).toContain('Certificaciones por producto'); // no "Productos certificados" para todo el catálogo
     expect(text).toContain('Cotización formal y despacho a todo Chile'); // barra superior
     expect(text).not.toMatch(/env[ií]o gratis/i);
-    // Regiones con las palabras del dueño (PR 12b): sin la lista de transportistas de elights.cl
-    expect(text).toContain('A regiones, por pagar, vía Starken, PDQ u otro operador.');
-    expect(text).not.toMatch(/ECOEx|Cruz del Sur/);
+    // Regiones con la lista de transportistas del dueño (2026-10-25)
+    expect(text).toContain(`A regiones, por pagar, vía ${REGION_CARRIERS}.`);
   });
 
   it('inicio: el despacho sin costo, una vez, con el texto de la constante y enlace a sus condiciones', async () => {

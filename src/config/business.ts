@@ -101,8 +101,12 @@ export const freeShippingExcludedList = [
 /** El despacho sin costo en pocas palabras (barra de confianza del inicio, que enlaza a /despacho). */
 export const freeShippingShort = `Despacho sin costo sobre ${clp(FREE_SHIPPING_THRESHOLD_CLP)} en la ${FREE_SHIPPING_AREA.name}`;
 
-/** Despacho a regiones: por pagar, con estos transportistas (palabras del dueño). */
-export const REGION_CARRIERS = 'Starken, PDQ u otro operador';
+/**
+ * Despacho a regiones: por pagar, con estos transportistas (lista del dueño, 2026-10-25; antes,
+ * desde la PR 12b, «Starken, PDQ u otro operador»). Sale también en la Política §5: cambiarla
+ * exige subir LEGAL_VERSION.
+ */
+export const REGION_CARRIERS = 'Starken, Cruz del Sur, ECOEx, Varmontt, Samex, PDQ, Pullman Cargo, Chilexpress, Transportes Mena u otro operador';
 
 /**
  * Retiro en bodega, sin costo de despacho. La dirección exacta se entrega solo cuando el pago
