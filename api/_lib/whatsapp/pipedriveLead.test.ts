@@ -139,3 +139,35 @@ describe('fallas de Pipedrive', () => {
     await expect(ensureWhatsAppDeal(params)).rejects.toThrow('Pipedrive 500');
   });
 });
+
+describe('RUT en la nota (PR 6, B12)', () => {
+  const base: WhatsAppLeadParams = {
+    phone: PHONE,
+    name: 'Perfil Prueba',
+    summary: 'Pide paneles LED para una oficina.',
+    body: 'Necesito 30 paneles LED',
+    captured: { producto: 'paneles LED', correo: 'compras@comercial-prueba.example.com' },
+    captureStatus: 'complete',
+  };
+
+  it('un RUT válido sale con formato y su tipo', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' } });
+    expect(noteContent()).toContain('RUT: 77.123.456-9 (empresa)');
+  });
+
+  it('un RUT de organismo público lo dice', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '61.234.567-8', rut_valido: true, rut_tipo: 'organismo_publico' } });
+    expect(noteContent()).toContain('RUT: 61.234.567-8 (organismo publico)');
+  });
+
+  it('un RUT que no calza queda marcado como inválido', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '77.123.456-8', rut_valido: false } });
+    expect(noteContent()).toContain('RUT: 77.123.456-8 (INVALIDO: no calza el digito verificador)');
+  });
+
+  it('sin RUT, un guion (ya no dice "RUT empresa")', async () => {
+    await ensureWhatsAppDeal(base);
+    expect(noteContent()).toContain('RUT: -');
+    expect(noteContent()).not.toContain('RUT empresa');
+  });
+});

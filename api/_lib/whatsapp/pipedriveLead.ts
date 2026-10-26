@@ -69,6 +69,21 @@ function resolveLead(c: CapturedFields) {
     };
 }
 
+const RUT_TIPO_LABEL: Record<NonNullable<CapturedFields['rut_tipo']>, string> = {
+    empresa: 'empresa',
+    persona: 'persona',
+    organismo_publico: 'organismo publico',
+    comunidad: 'comunidad',
+};
+
+/** [RUT-VALIDO] El RUT con su tipo, o marcado si el digito verificador no calza. */
+function rutLine(c: CapturedFields): string {
+    const rut = fmt(c.rut);
+    if (!rut) return '-';
+    if (c.rut_valido === false) return rut + ' (INVALIDO: no calza el digito verificador)';
+    return c.rut_tipo ? rut + ' (' + RUT_TIPO_LABEL[c.rut_tipo] + ')' : rut;
+}
+
 function buildNote(p: WhatsAppLeadParams): string {
     const c = p.captured ?? {};
     const lead = resolveLead(c);
@@ -76,7 +91,7 @@ function buildNote(p: WhatsAppLeadParams): string {
           '== Lead WhatsApp eLIGHTS ==',
           'Telefono: ' + p.phone,
           'Nombre/empresa: ' + (lead.nombre ?? fmt(p.name) ?? '-'),
-          'RUT empresa: ' + (fmt(c.rut_empresa) ?? '-'),
+          'RUT: ' + rutLine(c),
           'Correo: ' + (lead.correo ?? '-'),
           '---',
           'Producto: ' + (fmt(c.producto) ?? '-'),
