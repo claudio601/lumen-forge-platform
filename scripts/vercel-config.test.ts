@@ -413,6 +413,42 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     expect(urls.filter(u => u.pending !== undefined).map(u => u.source)).toEqual([]);
   });
 
+  it('URL finales de Google Ads que daban 404 (lista de la agencia, 2026-10-26): cada una va a su categoría', () => {
+    const bySource = new Map(urls.map(u => [u.source, u]));
+    const adsFinalUrls: Record<string, string> = {
+      'https://elights.cl/alumbrado-publico-mini-cross-200w-ip66-ik08': 'alumbrado-publico',
+      'https://elights.cl/ilumin-exterior/alumbrado-vial': 'alumbrado-publico',
+      'https://elights.cl/amp-de-bajo-consumo-200w-e40-luz-fria': 'ampolletas-led',
+      'https://elights.cl/ampolleta-led-alta-potencia-100w-e40-luz-fria': 'ampolletas-led',
+      'https://elights.cl/ampolletas_led/alta-potencia': 'ampolletas-led',
+      'https://elights.cl/ampolletas_led/ampolleta-led-bola': 'ampolletas-led',
+      'https://elights.cl/ampolletas_led/cfl-ahorro-de-energia': 'ampolletas-led',
+      'https://elights.cl/canoa-antiexplosiva-fluorescente-hermética-2x36w-ip66-ik08-120-cm.-c/tubos-c/kit-de-emergencia': 'iluminacion-antiexplosiva',
+      'https://elights.cl/iluminacion-antiexplosiva/estancos-hermeticos-fluorescentes-antiexplosivos': 'iluminacion-antiexplosiva',
+      'https://elights.cl/luminaria-led-tri-proof-a-prueba-de-explosion-atex-20w': 'iluminacion-antiexplosiva',
+      'https://elights.cl/proyector-led-a-prueba-de-explosion-200w': 'iluminacion-antiexplosiva',
+      'https://elights.cl/proyector-led-ultra-thin-50w-ip66-negro': 'proyectores-led',
+      'https://elights.cl/proyector-led-ultra-thin-100w-ip66-negro': 'proyectores-led',
+      'https://elights.cl/proyector-led-ultra-thin-150w-ip66-negro': 'proyectores-led',
+      'https://elights.cl/proyector-led-ultra-thin-300w-ip66-negro': 'proyectores-led',
+      // La subcategoría «Solar» de PROYECTOR LED, como /proyector-solar
+      'https://elights.cl/proyector_led/solar': 'proyectores-led',
+      'https://elights.cl/cinta_led/perfiles-de-aluminio': 'cinta-led',
+      'https://elights.cl/emergencia-led/lum-emergencia': 'emergencia-led',
+      'https://elights.cl/ilumin-interior/puzzle-led': 'paneles-led',
+      // Búsquedas de Jumpseller: a la categoría con más resultados
+      'https://elights.cl/search/aplique': 'iluminacion-exterior',
+      'https://elights.cl/search/embutido': 'paneles-led',
+      'https://elights.cl/search/sobrepuesto': 'paneles-led',
+    };
+    for (const [url, slug] of Object.entries(adsFinalUrls)) {
+      // La ruta que manda el navegador (é → %C3%A9)
+      const row = bySource.get(new URL(url).pathname);
+      expect(row, url).toBeDefined();
+      expect(legacyDestination(row!), url).toBe(categoryPath(slug));
+    }
+  });
+
   it('el esquema exige exactamente un destino por fila, sin campos desconocidos ni motivos vacíos', () => {
     const load = (...rows: unknown[]) => () => loadLegacyUrls(JSON.stringify({ urls: rows }));
     expect(load({ source: '/x', product: 1 }, { source: '/y', gone: 'motivo', note: 'nota' })).not.toThrow();
