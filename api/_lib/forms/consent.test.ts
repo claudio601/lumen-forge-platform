@@ -90,6 +90,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.8 (link de pago de Flow): la Política corrige de dónde vienen los datos del pago y a quién
   // llegan (§2, §5 y §7: Flow y sus medios, sin Mercado Pago); las casillas no cambian.
   '1.8': CONSENT_TEXTS_SINCE_1_2,
+  // 1.9 (transportistas): la Política §5 nombra la lista de transportistas del dueño; las casillas
+  // no cambian.
+  '1.9': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

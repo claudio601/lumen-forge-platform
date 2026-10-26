@@ -47,6 +47,8 @@
 // mismos de MediosPagoPage.tsx). Jumpseller queda como catálogo y como registro de las
 // solicitudes de su tienda, que llegan por su webhook (api/_lib/jumpseller/eventPolicy.ts), y
 // Upstash relaciona cada una con su negocio en Pipedrive (api/_lib/idempotency/redis.ts).
+// Versión 1.9 (dueño, 2026-10-25): §5 nombra la lista completa de transportistas con que
+// despachamos (REGION_CARRIERS, la misma de /despacho), que pasó de 3 a 10 nombres.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
