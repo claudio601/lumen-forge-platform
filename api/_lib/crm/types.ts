@@ -214,6 +214,17 @@ export interface PipedriveDeal {
   [key: string]: unknown;
 }
 
+/**
+ * A deal as /deals/search returns it, which is not the full deal: it has no pipeline_id (the
+ * pipeline, when present, comes as an undocumented `pipeline: { id }`). Pipeline and status are
+ * checked on the full deal (GET /deals/{id}). With no index signature, tsc rejects item.pipeline_id.
+ */
+export interface PipedriveDealSearchItem {
+  id: number;
+  title?: string;
+  status?: string;
+}
+
 export interface PipedriveActivity {
   id: number;
   subject: string;

@@ -371,3 +371,49 @@ describe('plazo de Twilio (15 s): una respuesta tardía no da el aviso por mostr
     expect((await sendMessage(phone, 'Hola')).body).toBe(buildTwiML(MSG1));
   });
 });
+
+describe('deduplicación: un cierre que se junta con el negocio abierto del mismo número', () => {
+  it('el negocio ya existía (found): igual se avisa a ventas, marcado como negocio existente', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(
+      claudeOk({
+        producto: 'ampolletas LED',
+        tipo_de_luz: 'calida',
+        cantidad: '10',
+        proyecto_o_uso: 'casa',
+        comuna_o_ciudad: 'Maipú',
+        nombre: 'Persona Prueba',
+        correo: 'prueba-13w@example.com',
+        qualifiesForDeal: true,
+      }),
+    );
+    vi.mocked(ensureWhatsAppDeal).mockResolvedValueOnce({ action: 'found', dealId: 303, personId: 202 });
+
+    const res = await sendMessage(phone, 'Necesito 10 ampolletas LED luz cálida para mi casa en Maipú. Soy Persona Prueba, prueba-13w@example.com');
+    expect(res.body).toBe(withNotice(MSG4));
+
+    expect(notifyTeam).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(notifyTeam).mock.calls[0][0]).toMatchObject({ dealId: 303, personId: 202, existingDeal: true });
+  });
+
+  it('un negocio nuevo (created) va sin la marca de negocio existente', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(
+      claudeOk({
+        producto: 'ampolletas LED',
+        tipo_de_luz: 'calida',
+        cantidad: '10',
+        proyecto_o_uso: 'casa',
+        comuna_o_ciudad: 'Maipú',
+        nombre: 'Persona Prueba',
+        correo: 'prueba-13w@example.com',
+        qualifiesForDeal: true,
+      }),
+    );
+
+    await sendMessage(phone, 'Necesito 10 ampolletas LED luz cálida para mi casa en Maipú. Soy Persona Prueba, prueba-13w@example.com');
+
+    expect(notifyTeam).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(notifyTeam).mock.calls[0][0]).toMatchObject({ dealId: 101, existingDeal: false });
+  });
+});

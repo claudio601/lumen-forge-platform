@@ -290,4 +290,33 @@ describe('notifyTeam — followup_24h idempotency (Ticket A H1 fix)', () => {
 
     errorSpy.mockRestore();
   });
+
+  // =========================================================================
+  // TEST 7 — existing open deal (dedup) -> activity created even if flag = "Sí"
+  // =========================================================================
+  it('TEST 7: existingDeal + flag = YES_ID -> createActivity called, flag not read', async () => {
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: makeDeal(YES_ID),
+    });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { id: 9002 },
+    });
+    (pipedrivePut as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: true,
+      data: { id: 4242 },
+    });
+
+    await notifyTeam({ ...BASE_PARAMS, existingDeal: true });
+
+    const activityCall = (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find(
+      (c) => c[0] === '/activities'
+    );
+    expect(activityCall).toBeDefined();
+    expect((activityCall![1] as Record<string, unknown>).deal_id).toBe(4242);
+    expect(
+      (pipedriveGet as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === '/deals/4242')
+    ).toBeUndefined();
+  });
 });

@@ -30,7 +30,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
-import type { PipedriveDeal } from '../_lib/crm/types.js';
+import type { PipedriveDeal, PipedriveDealSearchItem } from '../_lib/crm/types.js';
 import {
   mapInstallationPayloadToDealParams,
   buildInstallationLeadRef,
@@ -83,7 +83,7 @@ function isAuthorized(req: VercelRequest): boolean {
 async function findExistingInstallationDeal(leadRef: string, pipelineId: number): Promise<PipedriveDeal | null> {
   const fieldKey = process.env.PIPEDRIVE_INSTALL_FIELD_LEAD_REF;
   if (!fieldKey) { console.warn(LOG_PREFIX + ' PIPEDRIVE_INSTALL_FIELD_LEAD_REF not set — skipping idempotency check'); return null; }
-  const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>('/deals/search', { term: leadRef, fields: 'custom_fields', exact_match: 'true', limit: '5' });
+  const res = await pipedriveGet<{ items: Array<{ item: PipedriveDealSearchItem }> }>('/deals/search', { term: leadRef, fields: 'custom_fields', exact_match: 'true', limit: '5' });
   if (!res.success || !res.data?.items) return null;
   for (const { item } of res.data.items) {
     // /deals/search no trae pipeline_id: el pipeline y el estado se miran en el deal completo

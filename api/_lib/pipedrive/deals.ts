@@ -12,6 +12,10 @@
 // Deduplication for nuevo_elights (NON-JUMPSELLER) events:
 //   1. Pipedrive custom field search by PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE (exact match)
 //   2. Create only if no existing deal found with that quoteReference
+//      (dedupOpenWithinDays: only an open deal that moved in the last N days counts)
+//
+// /deals/search items are not full deals and carry no pipeline_id: every lookup checks the
+// pipeline (and status) on the full deal from GET /deals/{id}.
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { getOptionId } from './fieldOptions.js';
 import {
@@ -22,6 +26,7 @@ import {
 } from '../idempotency/redis.js';
 import type {
     PipedriveDeal,
+    PipedriveDealSearchItem,
     CreateDealResult,
     DealResultStatus,
     LeadType,
@@ -48,6 +53,8 @@ export interface CreateDealParams {
     sourceRef?: string;
     jumpsellerEventType?: string;
     allowCreate?: boolean;
+    /** Non-Jumpseller path: only an open deal with the same quoteReference that moved in the last N days is a duplicate. */
+    dedupOpenWithinDays?: number;
     notes?: string;
     tipoServicio?: number;
 }
@@ -81,6 +88,18 @@ function pickBestDeal(deals: PipedriveDeal[]): PipedriveDeal {
     return best;
 }
 
+// GET /deals/{id} for every search result, in parallel (the WhatsApp reply must fit in Twilio's
+// 15 s), keeping the deals in the pipeline: the search item itself has no pipeline_id.
+async function fullDealsInPipeline(
+    items: Array<{ item: PipedriveDealSearchItem }>,
+    pipelineId: number
+  ): Promise<PipedriveDeal[]> {
+    const fulls = await Promise.all(items.map(({ item }) => pipedriveGet<PipedriveDeal>(`/deals/${item.id}`)));
+    return fulls.flatMap((full) =>
+          full.success && full.data && full.data.pipeline_id === pipelineId ? [full.data] : []
+        );
+}
+
 // --- Step A: Search by custom field jumpseller_order_id (exact match) ---
 async function findDealsByJumpsellerCustomField(
     rawOrderId: string,
@@ -88,73 +107,99 @@ async function findDealsByJumpsellerCustomField(
   ): Promise<PipedriveDeal[]> {
     const fieldKey = process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
     if (!fieldKey) return [];
-    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>(
+    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDealSearchItem }> }>(
           '/deals/search',
       { term: rawOrderId, fields: 'custom_fields', exact_match: 'true', limit: '10' }
         );
     if (!res.success || !res.data?.items) return [];
-    const matched: PipedriveDeal[] = [];
-    for (const { item } of res.data.items) {
-          if (item.pipeline_id !== pipelineId) continue;
-          const full = await pipedriveGet<PipedriveDeal>(`/deals/${item.id}`);
-          if (full.success && full.data && String(full.data[fieldKey]) === rawOrderId) {
-                  matched.push(full.data);
-          }
-    }
-    return matched;
+    const deals = await fullDealsInPipeline(res.data.items, pipelineId);
+    return deals.filter((d) => String(d[fieldKey]) === rawOrderId);
+}
+
+// 'JS-1423' must not match a title with JS-14236: the reference ends where the digits end.
+function titleHasReference(title: string, reference: string): boolean {
+    const escaped = reference.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`${escaped}(?!\\d)`).test(title);
+}
+
+// Empty field (or no field configured) or already this value.
+function fieldEmptyOr(deal: PipedriveDeal, key: string | undefined, expected: string): boolean {
+    if (!key) return true;
+    const raw = deal[key];
+    return raw === null || raw === undefined || String(raw).trim() === '' || String(raw) === expected;
 }
 
 // --- Step B: Fallback search by title (legacy deals, pre-custom-field) ---
+// Only a legacy deal qualifies: one that carries another order id or quoteReference is another
+// request whose title happens to contain JS-<id> (titles include names typed by customers).
 async function findDealsByTitle(
     rawOrderId: string,
     pipelineId: number
   ): Promise<PipedriveDeal[]> {
     const searchTerm = `JS-${rawOrderId}`;
-    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>(
+    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDealSearchItem }> }>(
           '/deals/search',
       { term: searchTerm, fields: 'title', exact_match: 'false', limit: '10' }
         );
     if (!res.success || !res.data?.items) return [];
-    const matched: PipedriveDeal[] = [];
-    for (const { item } of res.data.items) {
-          if (item.pipeline_id !== pipelineId) continue;
-          const full = await pipedriveGet<PipedriveDeal>(`/deals/${item.id}`);
-          if (
-                  full.success &&
-                  full.data &&
-                  typeof full.data.title === 'string' &&
-                  full.data.title.includes(searchTerm)
-                ) {
-                  matched.push(full.data);
-          }
-    }
-    return matched;
+    const deals = await fullDealsInPipeline(res.data.items, pipelineId);
+    return deals.filter(
+          (d) =>
+                  typeof d.title === 'string' &&
+                  titleHasReference(d.title, searchTerm) &&
+                  fieldEmptyOr(d, process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID, rawOrderId) &&
+                  fieldEmptyOr(d, process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE, searchTerm)
+        );
 }
 
+// Pipedrive v1 dates come as 'YYYY-MM-DD HH:MM:SS' in UTC (v2: ISO 8601). NaN if unreadable.
+function pipedriveTime(value: unknown): number {
+    if (typeof value !== 'string') return NaN;
+    const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? `${value.replace(' ', 'T')}Z` : value;
+    return Date.parse(iso);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const QUOTE_REF_SEARCH_LIMIT = 10;
+
 // --- Fix 1: Search by quoteReference custom field (nuevo_elights dedup) ---
-async function findDealByQuoteReference(
+// openWithinDays: only an open deal whose update_time is within the last N days counts
+// (WhatsApp: a won or lost deal, or one left without movement, gets a new deal).
+export async function findDealByQuoteReference(
     quoteReference: string,
-    pipelineId: number
+    pipelineId: number,
+    options: { openWithinDays?: number } = {}
   ): Promise<PipedriveDeal | null> {
     const fieldKey = process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE;
     if (!fieldKey) return null;
-    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDeal }> }>(
-          '/deals/search',
-      { term: quoteReference, fields: 'custom_fields', exact_match: 'true', limit: '5' }
-        );
+    const openOnly = options.openWithinDays !== undefined;
+    const query: Record<string, string> = {
+          term: quoteReference,
+          fields: 'custom_fields',
+          exact_match: 'true',
+          limit: String(QUOTE_REF_SEARCH_LIMIT),
+    };
+    if (openOnly) query.status = 'open';
+    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDealSearchItem }> }>('/deals/search', query);
     if (!res.success || !res.data?.items) return null;
-    for (const { item } of res.data.items) {
-          if (item.pipeline_id !== pipelineId) continue;
-          const full = await pipedriveGet<PipedriveDeal>(`/deals/${item.id}`);
-          if (
-                  full.success &&
-                  full.data &&
-                  String(full.data[fieldKey]) === quoteReference
-                ) {
-                  return full.data;
-          }
+    if (res.data.items.length >= QUOTE_REF_SEARCH_LIMIT) {
+          console.warn(`${LOG_PREFIX} quote_ref_search_at_limit quoteReference=${quoteReference} limit=${QUOTE_REF_SEARCH_LIMIT}`);
     }
-    return null;
+    const deals = await fullDealsInPipeline(res.data.items, pipelineId);
+    const matched = deals.filter((d) => String(d[fieldKey]) === quoteReference);
+    if (!openOnly) return matched.length > 0 ? pickBestDeal(matched) : null;
+    const cutoff = Date.now() - options.openWithinDays! * DAY_MS;
+    const recent = matched.filter((d) => d.status === 'open' && pipedriveTime(d.update_time) >= cutoff);
+    if (recent.length < matched.length) {
+          console.log(JSON.stringify({
+                  level: 'info',
+                  event: 'dedup_quote_reference_not_counted',
+                  quoteReference,
+                  dealIds: matched.filter((d) => !recent.includes(d)).map((d) => d.id),
+                  openWithinDays: options.openWithinDays,
+          }));
+    }
+    return recent.length > 0 ? pickBestDeal(recent) : null;
 }
 
 // --- Add a note to a deal ---
@@ -384,7 +429,9 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
   // NON-JUMPSELLER PATH (nuevo_elights): Pipedrive-only dedup by quoteReference
   // Fix 1: search for existing deal by quoteReference before creating.
   // =========================================================================
-  const existingDeal = await findDealByQuoteReference(params.quoteReference, params.pipelineId);
+  const existingDeal = await findDealByQuoteReference(params.quoteReference, params.pipelineId, {
+          openWithinDays: params.dedupOpenWithinDays,
+    });
     if (existingDeal) {
           console.log(JSON.stringify({
                   level: 'info',

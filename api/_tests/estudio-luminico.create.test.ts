@@ -378,7 +378,8 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
     vi.stubEnv('PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF', REF_FIELD);
     const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
     vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
-      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42, pipeline_id: 2, status: 'open' } }] } };
+      // Forma real de /deals/search: sin pipeline_id (el embudo viene como pipeline: { id })
+      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42, type: 'deal', status: 'open', pipeline: { id: 2 } } }] } };
       if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'open', [REF_FIELD]: sentRef() } };
       return { success: false, data: null };
     }) as never);
@@ -387,6 +388,18 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
     const [[, note]] = pdCalls('/notes');
     expect(note.deal_id).toBe(42);
     expect((note.content as string).endsWith(ORIGEN_GADS)).toBe(true);
+  });
+
+  it('negocio con la misma referencia pero ganado: se crea uno nuevo (el estado se mira en el negocio completo)', async () => {
+    vi.stubEnv('PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF', REF_FIELD);
+    const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42, type: 'deal', status: 'won', pipeline: { id: 2 } } }] } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'won', [REF_FIELD]: sentRef() } };
+      return { success: false, data: null };
+    }) as never);
+    const res = await call(base);
+    expect(res.body).toMatchObject({ dealId: 555, dealAction: 'created' });
   });
 
   it('descripción de 2000 caracteres y el origen más largo posible: el correo va completo, sin recorte', async () => {

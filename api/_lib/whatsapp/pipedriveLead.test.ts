@@ -13,7 +13,7 @@ vi.mock('../pipedrive/deals.js', () => ({ createDeal: vi.fn(), updateDeal: vi.fn
 vi.mock('../pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}) }));
 vi.mock('../pipedrive/client.js', () => ({ pipedrivePost: vi.fn() }));
 
-import { ensureWhatsAppDeal } from './pipedriveLead';
+import { ensureWhatsAppDeal, WA_DEDUP_WINDOW_DAYS } from './pipedriveLead';
 import type { WhatsAppLeadParams } from './pipedriveLead';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
 import { createDeal, updateDeal } from '../pipedrive/deals.js';
@@ -102,6 +102,9 @@ describe('datos con otra forma', () => {
     await expect(ensureWhatsAppDeal(odd)).resolves.toMatchObject({ action: 'created', dealId: 9001 });
     expect(findOrCreatePerson).toHaveBeenCalledTimes(1);
     expect(createDeal).toHaveBeenCalledTimes(1);
+    // Ventana de 7 dias (decision del dueno, 2026-10-26): solo cuenta un negocio abierto con movimiento.
+    expect(vi.mocked(createDeal).mock.calls[0][0]).toMatchObject({ quoteReference: 'WA-' + PHONE.replace(/\D/g, ''), dedupOpenWithinDays: WA_DEDUP_WINDOW_DAYS });
+    expect(WA_DEDUP_WINDOW_DAYS).toBe(7);
     const note = noteContent();
     expect(note).not.toContain('[object Object]');
     expect(note).toContain('Cantidad: -');

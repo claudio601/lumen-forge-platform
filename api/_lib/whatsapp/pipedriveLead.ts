@@ -13,6 +13,13 @@ import type { CapturedFields, CaptureStatus } from './flowEngine.js';
 
 const LOG_PREFIX = '[pipedriveLead]';
 
+/**
+ * Ventana de deduplicacion (decision del dueno, 2026-10-26): una conversacion nueva se junta con
+ * el negocio WA- abierto del mismo numero si tuvo movimiento en estos dias. Si el negocio esta
+ * ganado, perdido o quieto por mas tiempo, se crea uno nuevo, que ventas ve como lead nuevo.
+ */
+export const WA_DEDUP_WINDOW_DAYS = 7;
+
 export interface WhatsAppLeadParams {
     phone: string;
     name: string;
@@ -167,6 +174,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         leadType: resolvedLeadType === 'Unknown' ? 'B2C' : resolvedLeadType,
         priorityTier: resolvedPriority,
         quoteReference,
+        dedupOpenWithinDays: WA_DEDUP_WINDOW_DAYS,
         notes: fmt(summary),
         tipoServicio: TIPO_SERVICIO.WHATSAPP,
   });

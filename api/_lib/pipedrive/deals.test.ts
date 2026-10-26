@@ -79,6 +79,21 @@ function makeDeal(
   return deal;
 }
 
+// What /deals/search really returns for a deal: not the full deal and no pipeline_id (the
+// pipeline comes as `pipeline: { id }`). These mocks used to return full deals with pipeline_id,
+// which hid that every lookup discarded what it found.
+function searchItem(deal: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: deal.id,
+    type: 'deal',
+    title: deal.title,
+    status: deal.status,
+    pipeline: { id: deal.pipeline_id },
+    stage: { id: deal.stage_id },
+    custom_fields: [],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -147,7 +162,7 @@ describe('createDeal — Jumpseller deduplication with Redis + Pipedrive', () =>
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
       (path: string, qp?: Record<string, string>) => {
         if (path === '/deals/search' && qp?.fields === 'custom_fields') {
-          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(existingDeal) }] } });
         }
         if (path === '/deals/42') {
           return Promise.resolve({ success: true, data: existingDeal });
@@ -207,7 +222,7 @@ describe('createDeal — Jumpseller deduplication with Redis + Pipedrive', () =>
           return Promise.resolve({ success: true, data: { items: [] } });
         }
         if (path === '/deals/search' && qp?.fields === 'title') {
-          return Promise.resolve({ success: true, data: { items: [{ item: renamedDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(renamedDeal) }] } });
         }
         if (path === '/deals/77') {
           return Promise.resolve({ success: true, data: renamedDeal });
@@ -271,7 +286,7 @@ describe('createDeal — Jumpseller deduplication with Redis + Pipedrive', () =>
         if (path === '/deals/search' && qp?.fields === 'custom_fields') {
           return Promise.resolve({
             success: true,
-            data: { items: [{ item: oldOpen }, { item: newerOpen }, { item: wonDeal }] },
+            data: { items: [{ item: searchItem(oldOpen) }, { item: searchItem(newerOpen) }, { item: searchItem(wonDeal) }] },
           });
         }
         if (path === '/deals/10') return Promise.resolve({ success: true, data: oldOpen });
@@ -330,7 +345,7 @@ describe('createDeal — Jumpseller deduplication with Redis + Pipedrive', () =>
       (path: string, qp?: Record<string, string>) => {
         // Custom field search skipped (no fieldKey) -> falls through to title
         if (path === '/deals/search' && qp?.fields === 'title') {
-          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(existingDeal) }] } });
         }
         if (path === '/deals/200') {
           return Promise.resolve({ success: true, data: existingDeal });
@@ -425,7 +440,7 @@ describe('createDeal — defensive quote_reference backfill', () => {
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
       (path: string, qp?: Record<string, string>) => {
         if (path === '/deals/search' && qp?.fields === 'custom_fields') {
-          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(existingDeal) }] } });
         }
         if (path === '/deals/600') {
           return Promise.resolve({ success: true, data: existingDeal });
@@ -492,7 +507,7 @@ describe('createDeal — defensive quote_reference backfill', () => {
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
       (path: string, qp?: Record<string, string>) => {
         if (path === '/deals/search' && qp?.fields === 'custom_fields') {
-          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(existingDeal) }] } });
         }
         if (path === '/deals/700') {
           return Promise.resolve({ success: true, data: existingDeal });
@@ -550,7 +565,7 @@ describe('createDeal — defensive quote_reference backfill', () => {
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
       (path: string, qp?: Record<string, string>) => {
         if (path === '/deals/search' && qp?.fields === 'custom_fields') {
-          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(existingDeal) }] } });
         }
         if (path === '/deals/800') {
           return Promise.resolve({ success: true, data: existingDeal });
@@ -620,7 +635,7 @@ describe('createDeal — defensive quote_reference backfill', () => {
           return Promise.resolve({ success: true, data: { items: [] } });
         }
         if (path === '/deals/search' && qp?.fields === 'title') {
-          return Promise.resolve({ success: true, data: { items: [{ item: renamedDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(renamedDeal) }] } });
         }
         if (path === '/deals/900') {
           return Promise.resolve({ success: true, data: renamedDeal });
@@ -687,7 +702,7 @@ describe('createDeal — defensive quote_reference backfill', () => {
     (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
       (path: string, qp?: Record<string, string>) => {
         if (path === '/deals/search' && qp?.fields === 'custom_fields') {
-          return Promise.resolve({ success: true, data: { items: [{ item: existingDeal }] } });
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(existingDeal) }] } });
         }
         if (path === '/deals/1000') {
           return Promise.resolve({ success: true, data: existingDeal });
@@ -721,5 +736,197 @@ describe('createDeal — defensive quote_reference backfill', () => {
     expect(skipWarn).toBeDefined();
 
     warnSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// quoteReference dedup on the real /deals/search shape (nuevo_elights and WhatsApp)
+// ---------------------------------------------------------------------------
+
+describe('createDeal — quoteReference dedup with the real search result', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  // Pipedrive v1 date: 'YYYY-MM-DD HH:MM:SS' in UTC.
+  const v1Time = (daysAgo: number) =>
+    new Date(Date.now() - daysAgo * DAY_MS).toISOString().slice(0, 19).replace('T', ' ');
+
+  const WA_REF = 'WA-56900000000';
+  const WA_PARAMS: CreateDealParams = {
+    personId: 1,
+    pipelineId: 2,
+    stageId: 10,
+    title: 'WhatsApp Lead — Test',
+    quoteAmountClp: 0,
+    sourceSystem: 'whatsapp',
+    leadType: 'B2C',
+    priorityTier: 'Normal',
+    quoteReference: WA_REF,
+    dedupOpenWithinDays: 7,
+  };
+
+  function fullDeal(
+    id: number,
+    status: 'open' | 'won' | 'lost',
+    updateTime: string,
+    pipelineId = 2,
+    ref = WA_REF
+  ): Record<string, unknown> {
+    return {
+      id,
+      title: 'WhatsApp Lead — Test',
+      status,
+      pipeline_id: pipelineId,
+      stage_id: 10,
+      update_time: updateTime,
+      add_time: updateTime,
+      cf_quote_ref: ref,
+    };
+  }
+
+  function mockPipedrive(deals: Array<Record<string, unknown>>) {
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/deals/search') {
+        return Promise.resolve({ success: true, data: { items: deals.map((d) => ({ result_score: 1, item: searchItem(d) })) } });
+      }
+      const deal = deals.find((d) => path === `/deals/${d.id}`);
+      return Promise.resolve(deal ? { success: true, data: deal } : { success: false, data: null });
+    });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+  }
+
+  const createdDeal = () =>
+    (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === '/deals');
+  const searchQuery = () =>
+    (pipedriveGet as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === '/deals/search')?.[1] as
+      | Record<string, string>
+      | undefined;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
+    process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE = 'cf_quote_ref';
+    process.env.PIPEDRIVE_DEAL_FIELD_SOURCE_SYSTEM = undefined as unknown as string;
+    process.env.PIPEDRIVE_DEAL_FIELD_LEAD_TYPE = undefined as unknown as string;
+    process.env.PIPEDRIVE_DEAL_FIELD_PRIORITY_TIER = undefined as unknown as string;
+  });
+
+  it('TEST 11: a form reference already in Pipedrive -> skipped_duplicate (the search item has no pipeline_id)', async () => {
+    const existing = fullDeal(31459, 'open', v1Time(0), 2, 'NE-abc1234');
+    mockPipedrive([existing]);
+
+    const result = await createDeal({ ...WA_PARAMS, sourceSystem: 'nuevo_elights', quoteReference: 'NE-abc1234', dedupOpenWithinDays: undefined });
+
+    expect(result).toEqual({ dealId: 31459, status: 'skipped_duplicate' });
+    expect(createdDeal()).toBeUndefined();
+    expect(searchQuery()?.status).toBeUndefined();
+  });
+
+  it('TEST 12: same reference in another pipeline -> a new deal is created', async () => {
+    mockPipedrive([fullDeal(500, 'open', v1Time(0), 3)]);
+
+    const result = await createDeal(WA_PARAMS);
+
+    expect(result).toEqual({ dealId: 999, status: 'created' });
+    expect(createdDeal()).toBeDefined();
+  });
+
+  it('TEST 13: WhatsApp, open deal that moved 2 days ago -> joined to it, searching only open deals', async () => {
+    mockPipedrive([fullDeal(31651, 'open', v1Time(2))]);
+
+    const result = await createDeal(WA_PARAMS);
+
+    expect(result).toEqual({ dealId: 31651, status: 'skipped_duplicate' });
+    expect(createdDeal()).toBeUndefined();
+    expect(searchQuery()).toMatchObject({ term: WA_REF, fields: 'custom_fields', exact_match: 'true', status: 'open' });
+  });
+
+  it('TEST 14: WhatsApp, open deal without movement for 10 days -> new deal, and the log says why', async () => {
+    mockPipedrive([fullDeal(30328, 'open', v1Time(10))]);
+    const logSpy = vi.spyOn(console, 'log');
+
+    const result = await createDeal(WA_PARAMS);
+
+    expect(result).toEqual({ dealId: 999, status: 'created' });
+    const notCounted = logSpy.mock.calls
+      .map((c) => String(c[0]))
+      .find((m) => m.includes('dedup_quote_reference_not_counted'));
+    expect(notCounted).toBeDefined();
+    expect(JSON.parse(notCounted!)).toMatchObject({ dealIds: [30328], openWithinDays: 7 });
+    logSpy.mockRestore();
+  });
+
+  it('TEST 15: WhatsApp, won deal from yesterday -> new deal (a won deal is never reused)', async () => {
+    mockPipedrive([fullDeal(31774, 'won', v1Time(1))]);
+
+    const result = await createDeal(WA_PARAMS);
+
+    expect(result).toEqual({ dealId: 999, status: 'created' });
+  });
+
+  it('TEST 16: WhatsApp, two open deals in the window -> the one that moved last', async () => {
+    mockPipedrive([fullDeal(31687, 'open', v1Time(5)), fullDeal(32012, 'open', v1Time(1))]);
+
+    const result = await createDeal(WA_PARAMS);
+
+    expect(result).toEqual({ dealId: 32012, status: 'skipped_duplicate' });
+  });
+
+  it('TEST 17: Jumpseller title fallback, order 1423 does not take the deal titled JS-14236', async () => {
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-1423',
+    });
+    const other = { ...makeDeal(300, 'open'), title: 'Cotizacion JS-14236 - Otro cliente' };
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'title') {
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(other) }] } });
+        }
+        if (path === '/deals/300') return Promise.resolve({ success: true, data: other });
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const result = await createDeal({
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '1423',
+      sourceRef: 'jumpseller:1423',
+      quoteReference: 'JS-1423',
+      title: 'Cotizacion JS-1423 - Cliente Test',
+    });
+
+    expect(result).toEqual({ dealId: 999, status: 'created' });
+  });
+
+  it('TEST 18: Jumpseller title fallback skips a deal whose title has JS-1423 but whose quoteReference is another request', async () => {
+    (checkIdempotencyForCreate as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 'proceed',
+      lockValue: 'lock-token-1423',
+    });
+    // A form request whose customer typed "JS-1423" in the company name.
+    const other = { ...makeDeal(301, 'open'), title: 'Cotizacion web - Empresa JS-1423', cf_quote_ref: 'NE-abc1234' };
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation(
+      (path: string, qp?: Record<string, string>) => {
+        if (path === '/deals/search' && qp?.fields === 'title') {
+          return Promise.resolve({ success: true, data: { items: [{ item: searchItem(other) }] } });
+        }
+        if (path === '/deals/301') return Promise.resolve({ success: true, data: other });
+        return Promise.resolve({ success: true, data: { items: [] } });
+      }
+    );
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+
+    const result = await createDeal({
+      ...BASE_PARAMS,
+      jumpsellerOrderId: '1423',
+      sourceRef: 'jumpseller:1423',
+      quoteReference: 'JS-1423',
+      title: 'Cotizacion JS-1423 - Cliente Test',
+    });
+
+    expect(result).toEqual({ dealId: 999, status: 'created' });
+    expect(
+      (pipedrivePut as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === '/deals/301')
+    ).toBeUndefined();
   });
 });
