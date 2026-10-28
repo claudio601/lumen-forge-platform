@@ -7181,7 +7181,7 @@
   ],
   "headers": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api(?:/|$)).*)",
       "has": [
         {
           "type": "host",
