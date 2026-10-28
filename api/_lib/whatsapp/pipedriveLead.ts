@@ -31,12 +31,51 @@ export interface WhatsAppLeadParams {
     wantsHuman?: boolean;
     leadType?: 'B2B' | 'B2C' | 'Unknown';
     priorityTier?: 'Alta' | 'Normal';
+    existingDealId?: number;
 }
 
 export interface WhatsAppDealResult {
     dealId?: number;
     personId?: number;
     action: 'created' | 'found' | 'skipped';
+    pendingWrite?: PendingWhatsAppWrite;
+}
+
+/** Solo las operaciones sin confirmar se guardan para el mensaje siguiente. */
+export interface PendingWhatsAppWrite {
+    dealId: number;
+    personId?: number;
+    fields?: Record<string, string>;
+    note?: string;
+}
+
+export async function retryWhatsAppWrite(write: PendingWhatsAppWrite): Promise<PendingWhatsAppWrite | undefined> {
+    const pending = { ...write };
+    if (pending.fields) {
+          try {
+                  await updateDeal(pending.dealId, pending.fields);
+                  delete pending.fields;
+          } catch {
+                  console.error(LOG_PREFIX + ' Campos pendientes en deal ' + pending.dealId);
+          }
+    }
+    if (pending.note) {
+          try {
+                  const result = await pipedrivePost('/notes', {
+                          content: pending.note, deal_id: pending.dealId,
+                          ...(pending.personId ? { person_id: pending.personId } : {}),
+                  });
+                  if (result.success) {
+                          delete pending.note;
+                          console.log(LOG_PREFIX + ' Nota creada en deal ' + pending.dealId);
+                  } else {
+                          console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId);
+                  }
+          } catch {
+                  console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId);
+          }
+    }
+    return pending.fields || pending.note ? pending : undefined;
 }
 
 function waField(key: string): string | undefined {
@@ -93,6 +132,7 @@ function buildNote(p: WhatsAppLeadParams): string {
           'Telefono: ' + p.phone,
           'Nombre/empresa: ' + (lead.nombre ?? fmt(p.name) ?? '-'),
           'RUT: ' + rutLine(c),
+          ...(c.rut_ambiguos?.length ? ['varios RUT en el mensaje: revisar', ...c.rut_ambiguos] : []),
           'Correo: ' + (lead.correo ?? '-'),
           '---',
           'Producto: ' + (fmt(c.producto) ?? '-'),
@@ -153,12 +193,12 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
   const pipelineId = parseInt(process.env.PIPEDRIVE_PIPELINE_ID ?? '0', 10);
     const stageId = parseInt(process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID ?? '0', 10);
 
-  if (!pipelineId || !stageId) {
+  if (!params.existingDealId && (!pipelineId || !stageId)) {
         console.warn(LOG_PREFIX + ' PIPEDRIVE_PIPELINE_ID or PIPEDRIVE_STAGE_NEW_LEAD_ID not set — skipping');
         return { action: 'skipped' };
   }
 
-  await initFieldOptions();
+  if (!params.existingDealId) await initFieldOptions();
 
   // [CIERRE-HONESTO] Lo que se arma aqui (campos y nota) va antes de crear la persona: un dato
   // raro ya no deja una persona sin negocio. El correo y el nombre de instalacion llegan a la persona.
@@ -169,6 +209,12 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
 
   const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body, resolvedLeadType);
     const noteContent = buildNote(params);
+
+  // La correccion tardia usa el negocio guardado, sin buscar abiertos ni crear otro.
+  if (params.existingDealId) {
+        const pendingWrite = await retryWhatsAppWrite({ dealId: params.existingDealId, fields: waCustomFields, note: noteContent });
+        return { dealId: params.existingDealId, action: 'found', ...(pendingWrite ? { pendingWrite } : {}) };
+  }
 
   const customer: QuoteCustomer = {
         name: installName(captured) ?? (name || phone),
@@ -202,25 +248,14 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         console.log(LOG_PREFIX + ' dedup_quote_reference_hit dealId=' + dealId);
   }
 
-  // [CIERRE-HONESTO] En su propio try: si Pipedrive rechaza los campos, la nota se escribe igual.
-  if (Object.keys(waCustomFields).length > 0) {
-        try {
-                await updateDeal(dealId, waCustomFields);
-        } catch (err) {
-                console.error(LOG_PREFIX + ' Error actualizando campos del deal (non-fatal):', err);
-        }
-  }
-
-  // Nota estructurada al deal (siempre, para historial)
-  try {
-        await pipedrivePost('/notes', { content: noteContent, deal_id: dealId, person_id: personId });
-        console.log(LOG_PREFIX + ' Nota creada en deal ' + dealId);
-  } catch (err) {
-        console.error(LOG_PREFIX + ' Error creando nota (non-fatal):', err);
-  }
+  const pendingWrite = await retryWhatsAppWrite({
+        dealId, personId,
+        ...(Object.keys(waCustomFields).length ? { fields: waCustomFields } : {}),
+        note: noteContent,
+  });
 
   console.log(LOG_PREFIX + ' Deal ' + dealId + ' (' + dealAction + ') for ' + phone);
-    return { dealId, personId, action: dealAction };
+    return { dealId, personId, action: dealAction, ...(pendingWrite ? { pendingWrite } : {}) };
 }
 
 function detectLeadType(body: string, captured?: CapturedFields): 'B2B' | 'B2C' | 'Unknown' {

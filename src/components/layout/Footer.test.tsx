@@ -70,7 +70,7 @@ describe('pie de página', () => {
     const footer = renderFooter();
     const text = footer.textContent ?? '';
     expect(text).toContain('eLIGHTS.CL SpA');
-    expect(text).toContain('RUT 76.947.784-6');
+    expect(text).toContain('RUT 76.947.784-5');
     expect(text).toContain('Santiago, Chile');
     expect(text).toContain(businessHours);
     expect(text).not.toContain('9:00-18:00');
@@ -79,10 +79,10 @@ describe('pie de página', () => {
 
   it('línea legal: en el teléfono la comuna baja a su propia línea, centrada y sin un "·" colgando', () => {
     const footer = renderFooter();
-    const rut = within(footer).getByText(/RUT 76\.947\.784-6/);
+    const rut = within(footer).getByText(/RUT 76\.947\.784-5/);
     expect(rut).toHaveClass('whitespace-nowrap');
     const line = rut.parentElement!;
-    expect(line.textContent?.replace(/\s+/g, ' ').trim()).toMatch(/^© \d{4} eLIGHTS\.CL SpA · RUT 76\.947\.784-6 · Santiago, Chile$/);
+    expect(line.textContent?.replace(/\s+/g, ' ').trim()).toMatch(/^© \d{4} eLIGHTS\.CL SpA · RUT 76\.947\.784-5 · Santiago, Chile$/);
     expect(line.parentElement).toHaveClass('text-center', 'sm:text-left');
     // El segundo "·" solo se ve desde sm; en el teléfono lo reemplaza el salto de línea
     expect(line.querySelector('br')).toHaveClass('sm:hidden');

@@ -218,8 +218,8 @@ describe('el nombre «Rut»', () => {
 });
 
 describe('si hay varios RUT', () => {
-  it('gana el de empresa aunque el de persona venga antes', () => {
-    expect(findRut('Soy Ana Prueba, RUT 11.111.111-1, la empresa es 77.123.456-9')).toEqual(EMPRESA);
+  it('sin pertenencia explicita no elige el de empresa sobre el de persona', () => {
+    expect(findRut('Soy Ana Prueba, RUT 11.111.111-1, la empresa es 77.123.456-9')).toBeUndefined();
   });
 
   it('si ninguno calza, gana el que viene después de la palabra "RUT"', () => {
@@ -246,5 +246,52 @@ describe('mensajes largos', () => {
     const start = performance.now();
     findRut(text, { asked: true });
     expect(performance.now() - start).toBeLessThan(50);
+  });
+});
+
+
+describe('R121-01: candidatos con guion y contexto ajeno al RUT', () => {
+  it.each([
+    '+56 90001777-4', 'celular 90001777-4', 'pedido 77123456-9', 'APB77123456-9',
+    'fono 90001777-4', 'teléfono 90001777-4', 'orden 77123456-9', 'N° 77123456-9', 'nro. 77123456-9',
+    'Ñ77123456-9', '77123456-9Ñ',
+  ])('%s: sin RUT, tambien si se habia pedido', (text) => {
+    expect(findRut(text)).toBeUndefined();
+    expect(findRut(text, { asked: true })).toBeUndefined();
+  });
+});
+
+describe('R121-02: pertenencia de varios RUT', () => {
+  it.each(['mi RUT', 'nuestro RUT', 'RUT de mi empresa'])('%s identifica el RUT del cliente', (prefix) => {
+    expect(findRut('Proveedor: 77.123.456-9; ' + prefix + ' 11.111.111-1')).toEqual({ rut: '11.111.111-1', valido: true, tipo: 'persona' });
+  });
+
+  it('una cotizacion pegada no gana sobre «Mi RUT»', () => {
+    expect(findRut('Mi RUT es 11.111.111-1. Cotizacion: RUT de la empresa 77.123.456-9')).toEqual({ rut: '11.111.111-1', valido: true, tipo: 'persona' });
+  });
+
+  it('«de la empresa» y dos pertenencias distintas siguen siendo ambiguos', () => {
+    expect(findRut('11.111.111-1; RUT de la empresa 77.123.456-9')).toBeUndefined();
+    expect(findRut('mi RUT 11.111.111-1; nuestro RUT 77.123.456-9')).toBeUndefined();
+  });
+
+  it('repetir el mismo RUT con distintos formatos no genera ambiguedad', () => {
+    expect(findRut('RUT 77123456-9; 77.123.456-9')).toEqual(EMPRESA);
+  });
+});
+
+
+describe('segunda tanda: pertenencia después del número', () => {
+  it.each(['es mi RUT', 'es nuestro RUT'])('%s reconoce al dueño a la derecha', suffix => {
+    expect(findRut('77.123.456-9 es del proveedor y 11.111.111-1 ' + suffix))
+      .toEqual({ rut: '11.111.111-1', valido: true, tipo: 'persona' });
+  });
+
+  it.each([
+    '77.123.456-9 es del proveedor y 11.111.111-1 es el RUT de facturación',
+    '77.123.456-9 es mi RUT y 11.111.111-1 es nuestro RUT',
+    '77.123.456-9 es del proveedor y 11.111.111-1. Por favor, guarden este dato: es mi RUT',
+  ])('sin pertenencia única cercana sigue ambiguo: %s', text => {
+    expect(findRut(text)).toBeUndefined();
   });
 });

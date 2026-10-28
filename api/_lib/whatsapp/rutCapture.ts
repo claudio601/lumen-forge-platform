@@ -47,16 +47,15 @@ const SPACE = '[ \\u00a0]';
 const BODY = `\\d{1,2}(?:\\.\\d{3}){2}|\\d{1,2}(?:${SPACE}\\d{3}){2}|\\d{1,2}(?:,\\d{3}){2}|\\d{7,8}`;
 // Antes del cuerpo no puede venir otro digito, punto o coma (es parte de otro numero), un guion
 // (un codigo: "LE24-1057501-9") ni "$" o "+" (un monto o un telefono).
-const NOT_AFTER = `(?<![\\d.,$+]|${DASH}|[$+]${SPACE}*)`;
-// Lo mismo y, para el numero solo, tampoco el codigo de pais ("+56 912345678").
-const NOT_AFTER_BARE = `(?<![\\d.,$+]|${DASH}|[$+]${SPACE}*|\\+?56${SPACE}+)`;
+// Tampoco letras ni el codigo de pais ("+56 912345678").
+const NOT_AFTER = `(?<![\\p{L}\\d.,$+]|${DASH}|[$+]${SPACE}*|\\+?56${SPACE}+)`;
 // Despues del digito verificador no puede venir otra letra o digito, un punto o una coma con
 // mas digitos ("1.000.000-2.000.000"), otro guion ("1057501-9-LE24") ni "millones" o "pesos".
-const END = `(?![0-9a-z]|[.,]\\d|${DASH}|\\s*(?:mill|lucas|pesos|clp\\b|uf\\b|mm\\b))`;
+const END = `(?![0-9\\p{L}]|[.,]\\d|${DASH}|\\s*(?:mill|lucas|pesos|clp\\b|uf\\b|mm\\b))`;
 
 const WITH_DASH_RE = new RegExp(
   `${NOT_AFTER}(${BODY})(${SPACE}{0,2}${DASH}${SPACE}{0,2})([0-9k])${END}`,
-  'gi',
+  'giu',
 );
 // Despues de "RUT" (o "R.U.T."), con un relleno corto de palabras conocidas ("es", "de la
 // empresa", ":", "n°"). Una palabra que no esta en la lista corta el relleno: en "Rut Perez, cel
@@ -69,19 +68,17 @@ const SEP = '[\\s:#,]*';
 const KEYWORD_RE = new RegExp(
   `\\b(R\\.?U\\.?T)\\b(\\.?(?:${SEP}(?:${FILLER})(?![a-zà-ÿ]))*${SEP})` +
     `(${BODY})(${SPACE}{0,2}${DASH}?${SPACE}{0,2})([0-9k])${END}`,
-  'gi',
+  'giu',
 );
 // Solo cuando el bot pidio el RUT: el numero solo, con o sin puntos.
-const BARE_RE = new RegExp(`${NOT_AFTER_BARE}(${BODY})(${SPACE}?)([0-9k])${END}`, 'gi');
+const BARE_RE = new RegExp(`${NOT_AFTER}(${BODY})(${SPACE}?)([0-9k])${END}`, 'giu');
 
 // Palabras que anuncian otra cosa justo antes del numero (sin digitos entre medio).
 const BEFORE = (words: string) => new RegExp(`(?:(?<![a-zà-ÿ])(?:${words})(?![a-zà-ÿ])|\\$)[^\\d\\n;]{0,15}$`, 'i');
-// Un monto ("presupuesto 1.500.000-2.000.000"), para el RUT con guion.
-const AMOUNT_BEFORE = BEFORE('presupuesto|monto|pesos|clp');
-// Para el numero solo: ademas un telefono, un pedido o un precio.
+// Tanto con guion como sin el: excluir montos, telefonos, pedidos y folios.
 const NOT_RUT_BEFORE = BEFORE(
   'presupuesto|monto|pesos|clp|uf|total|valor|precio|cel|celu|celular|fono|tel|tel[eé]fono|' +
-    'whats?app|wsp|wasap|m[oó]vil|ll[aá]m[ae]me|llamar|pedido|orden|oc|folio|boleta|cotizaci[oó]n',
+    'whats?app|wsp|wasap|m[oó]vil|ll[aá]m[ae]me|llamar|pedido|orden|oc|folio|boleta|cotizaci[oó]n|n[°º.]|nro\\.?',
 );
 
 /**
@@ -133,23 +130,24 @@ type Source = 'dash' | 'keyword' | 'bare';
 interface Candidate extends RutFound {
   source: Source;
   index: number;
+  end: number;
 }
 
 function candidates(clean: string, asked: boolean): Candidate[] {
   const out: Candidate[] = [];
-  const add = (source: Source, index: number, found: RutFound | undefined) => {
-    if (found && found.rut !== RUT_EXAMPLE) out.push({ ...found, source, index });
+  const add = (source: Source, index: number, end: number, found: RutFound | undefined) => {
+    if (found && found.rut !== RUT_EXAMPLE) out.push({ ...found, source, index, end });
   };
   for (const m of clean.matchAll(WITH_DASH_RE)) {
-    if (AMOUNT_BEFORE.test(clean.slice(Math.max(0, m.index - 40), m.index))) continue;
-    add('dash', m.index, toFound(m[1], m[3]));
+    if (NOT_RUT_BEFORE.test(clean.slice(Math.max(0, m.index - 40), m.index))) continue;
+    add('dash', m.index, m.index + m[0].length, toFound(m[1], m[3]));
   }
   for (const m of clean.matchAll(KEYWORD_RE)) {
     // "Rut 987654321": el nombre Rut y un celular. Un RUT que empieza con 9 y va seguido se
     // acepta con "RUT" en mayusculas o con algo entre medio ("Rut: 965432107", "rut es ...").
     const explicit = m[1] === 'RUT' || m[1].includes('.') || m[2].trim() !== '';
     if (!explicit && mobileShaped(m[3], m[4])) continue;
-    add('keyword', m.index, toFound(m[3], m[5]));
+    add('keyword', m.index, m.index + m[0].length, toFound(m[3], m[5]));
   }
   if (asked) {
     for (const m of clean.matchAll(BARE_RE)) {
@@ -159,7 +157,7 @@ function candidates(clean: string, asked: boolean): Candidate[] {
         const rest = clean.slice(0, m.index) + clean.slice(m.index + m[0].length);
         if (/[0-9a-zà-ÿ]/i.test(rest)) continue;
       }
-      add('bare', m.index, toFound(m[1], m[3]));
+      add('bare', m.index, m.index + m[0].length, toFound(m[1], m[3]));
     }
   }
   return out;
@@ -167,18 +165,29 @@ function candidates(clean: string, asked: boolean): Candidate[] {
 
 const SOURCE_ORDER: Record<Source, number> = { keyword: 0, dash: 1, bare: 2 };
 
-/**
- * El RUT que trae el texto, o undefined. Si hay varios, gana el primero valido que no es de
- * persona, despues el primero valido y, si ninguno lo es, el que viene despues de la palabra
- * "RUT", el que trae guion y el numero solo, en ese orden. `asked`: el ultimo mensaje del bot
- * pidio el RUT.
- */
+/** Con varios RUT validos distintos, solo «mi» o «nuestro» resuelven la pertenencia. */
+export function inspectRut(text: string, options: { asked?: boolean } = {}): { found?: RutFound; ambiguous?: string[] } {
+  const clean = withoutContacts(text);
+  const all = candidates(clean, Boolean(options.asked));
+  const valid = [...new Set(all.filter((c) => c.valido).map((c) => c.rut))];
+  let best: Candidate | undefined;
+  if (valid.length > 1) {
+    const owned = all.filter((c) => c.valido && (/\b(?:mi|nuestro)\s+(?:(?:r\.?u\.?t\.?|es|de|la|el|empresa|n[uú]mero)\b[\s:,.]*)*$/i.test(clean.slice(Math.max(0, c.index - 60), c.index)) ||
+      /^[\s,.:]*(?:es\s+)?(?:mi|nuestro)\s+r\.?u\.?t\.?\b/i.test(clean.slice(c.end, c.end + 30))));
+    const ownRuts = [...new Set(owned.map((c) => c.rut))];
+    if (ownRuts.length !== 1) return { ambiguous: valid };
+    best = owned[0];
+  } else {
+    const rank = (c: Candidate) => c.valido ? 0 : 1 + SOURCE_ORDER[c.source];
+    best = all.sort((a, b) => rank(a) - rank(b) || a.index - b.index)[0];
+  }
+  if (!best) return {};
+  return { found: { rut: best.rut, valido: best.valido, ...(best.tipo ? { tipo: best.tipo } : {}) } };
+}
+
+/** `asked`: el ultimo mensaje del bot pidio el RUT; solo entonces vale el numero solo. */
 export function findRut(text: string, options: { asked?: boolean } = {}): RutFound | undefined {
-  const all = candidates(withoutContacts(text), Boolean(options.asked));
-  const rank = (c: Candidate) => (isBusinessRut(c) ? 0 : c.valido ? 1 : 2 + SOURCE_ORDER[c.source]);
-  const best = all.sort((a, b) => rank(a) - rank(b) || a.index - b.index)[0];
-  if (!best) return undefined;
-  return { rut: best.rut, valido: best.valido, ...(best.tipo ? { tipo: best.tipo } : {}) };
+  return inspectRut(text, options).found;
 }
 
 /** Solo un RUT valido de empresa (no de persona) convierte el lead en B2B. */

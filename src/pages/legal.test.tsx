@@ -584,12 +584,12 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '2.').text).toContain(
       'Tus mensajes: lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo, WhatsApp o desde el sitio.',
     );
-    // §7: memoria temporal; Twilio y Anthropic según las condiciones que aceptamos (encargados, §5), no
+    // §7: conversación en Upstash por 7 días; Twilio y Anthropic según las condiciones que aceptamos (encargados, §5), no
     // «según sus propias políticas» ni «plazos breves»
     const items = section(main, '7.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
     const item = (start: string) => items.find(t => t.startsWith(start)) ?? '';
-    expect(item('Asistente de WhatsApp:')).toContain(
-      'guarda solo en memoria temporal el historial reciente de la conversación, los datos que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad.',
+    expect(item('Asistente de WhatsApp:')).toBe(
+      'Asistente de WhatsApp: guarda en Upstash el historial reciente de la conversación, los datos que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad, hasta 7 días después de tu último mensaje. Lo que registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes.',
     );
     // Desde la 1.4, Twilio (con su plazo configurado) y Anthropic van por separado
     expect(item('Anthropic')).toContain(
@@ -906,7 +906,7 @@ describe('páginas legales y de compra: contenido', () => {
     );
     // Upstash: además, por 48 horas, la reserva del traspaso de cada archivo (ruta en Blob → negocio)
     expect(item('5.', 'Upstash')).toBe(
-      'Upstash Inc.: registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.',
+      'Upstash Inc.: registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud. También guarda la conversación con el asistente de WhatsApp.',
     );
     // §7: la viñeta nueva, con el plazo de 48 horas del barrido diario (api/cron/blob-sweep.ts)
     expect(item('7.', 'Archivos que adjuntas en el sitio:')).toBe(
@@ -1012,4 +1012,13 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
     const footerLinks = [...root.querySelectorAll('footer a')].map(a => a.getAttribute('href'));
     for (const { path } of LEGAL_PAGES) expect(footerLinks).toContain(path);
   });
+});
+
+
+it('política 1.10: fecha provisional y versión anterior publicada', () => {
+  expect(LEGAL_VERSION).toBe('1.10');
+  expect(LEGAL_UPDATED).toBe('2026-10-30');
+  expect(LEGAL_UPDATED_LABEL).toBe('30 de octubre de 2026');
+  expect(LEGAL_ARCHIVE).toContain('1.9');
+  expect(LEGAL_RUT).toBe('76.947.784-5');
 });

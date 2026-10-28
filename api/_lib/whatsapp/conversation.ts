@@ -1,10 +1,4 @@
-// api/_lib/whatsapp/conversation.ts
-// Historial conversacional en memoria por numero de telefono.
-//
-// LIMITACION CONOCIDA v1: Vercel Functions son stateless.
-// Este Map vive en la instancia del proceso — el historial persiste
-// mientras la instancia este caliente, pero se pierde en cold starts.
-// Aceptable para v1. v2: migrar a Vercel KV o Redis.
+// Historial en memoria; webhook.ts lo recupera y guarda en Upstash en cada turno.
 
 export interface ConversationTurn {
     role: 'user' | 'assistant';
@@ -17,7 +11,7 @@ const MAX_TURNS = 12; // 6 pares user/assistant
 const conversations = new Map<string, ConversationTurn[]>();
 
 export function getHistory(phone: string): ConversationTurn[] {
-    return conversations.get(phone) ?? [];
+    return [...(conversations.get(phone) ?? [])];
 }
 
 export function addTurn(phone: string, turn: ConversationTurn): void {
@@ -34,4 +28,8 @@ export function addTurn(phone: string, turn: ConversationTurn): void {
 
 export function clearHistory(phone: string): void {
     conversations.delete(phone);
+}
+
+export function restoreHistory(phone: string, turns: ConversationTurn[]): void {
+    conversations.set(phone, turns.slice(-MAX_TURNS));
 }
