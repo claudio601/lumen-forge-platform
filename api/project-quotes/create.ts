@@ -64,6 +64,7 @@ import { normalizePhone } from '../_lib/crm/validation.js';
 import type { DealResultStatus, LeadType } from '../_lib/crm/types.js';
 import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } from '../_lib/auth.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
+import { SITE_URL } from '../_lib/site.js';
 import {
   ILLUMINATION_LEVELS,
   MAX_ALTURA,
@@ -335,7 +336,7 @@ export function buildProjectQuoteEmail(
     email: q.email,
     telefono: q.telefono,
     cuerpo: [
-      `Cotizador de proyecto ${ref} (nuevo.elights.cl/cotizador)`,
+      `Cotizador de proyecto ${ref} (${SITE_URL}/cotizador)`,
       ...projectLines(q),
       ...(longComment ? ['', 'Comentarios del cliente (completos):', comentarios] : []),
       ...(archivos.length ? ['', ...archivos] : []),
@@ -383,7 +384,7 @@ export function buildProjectQuoteNote(
     ...(resend
       ? [`Reenvío del mismo formulario (${fecha}): misma referencia ${ref}, no se creó un negocio nuevo.`, '']
       : []),
-    '=== COTIZADOR DE PROYECTO (nuevo.elights.cl/cotizador) ===',
+    `=== COTIZADOR DE PROYECTO (${SITE_URL}/cotizador) ===`,
     `Referencia: ${ref}`,
     `Fecha: ${fecha}`,
     '',

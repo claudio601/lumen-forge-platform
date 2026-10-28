@@ -391,10 +391,22 @@ describe('se conserva lo que no viene de Jumpseller', () => {
       expect(p, String(id)).toBeDefined();
       for (const k of EDITORIAL_KEYS) {
         if (k === 'cctVariants') continue;
+        // El fixture histórico no cambia: las fichas PDF ahora usan rutas del mismo sitio.
+        if (k === 'datasheetUrl') {
+          expect(p[k], `${id}.${k}`).toBe(new URL(l.datasheetUrl!).pathname);
+          continue;
+        }
         expect(p[k], `${id}.${k}`).toEqual(withEditorialEdits(l[k]));
       }
     }
     for (const id of Object.keys(editorialOverlay)) expect(snapById.has(Number(id))).toBe(true);
+  });
+
+  it.each(BESTLED_WATTS)('BESTLED %iW enlaza una ficha PDF relativa que existe en public/fichas', (watts) => {
+    const p = products.find(x => BESTLED.includes(x.jumpseller_id) && x.watts === watts)!;
+    expect(p.datasheetUrl).toBe(`/fichas/APB${watts}.pdf`);
+    const pdf = readFileSync(join(__dirname, '../public', p.datasheetUrl!));
+    expect(pdf.subarray(0, 5).toString('ascii')).toBe('%PDF-');
   });
 
   it('los cambios intencionales al editorial se aplicaron en los BESTLED', () => {
