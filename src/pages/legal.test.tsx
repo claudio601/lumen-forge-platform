@@ -1017,8 +1017,8 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
 
 it('política 1.10: fecha provisional y versión anterior publicada', () => {
   expect(LEGAL_VERSION).toBe('1.10');
-  expect(LEGAL_UPDATED).toBe('2026-10-30');
-  expect(LEGAL_UPDATED_LABEL).toBe('30 de octubre de 2026');
+  expect(LEGAL_UPDATED).toBe('2026-10-28');
+  expect(LEGAL_UPDATED_LABEL).toBe('28 de octubre de 2026');
   expect(LEGAL_ARCHIVE).toContain('1.9');
   expect(LEGAL_RUT).toBe('76.947.784-5');
 });
