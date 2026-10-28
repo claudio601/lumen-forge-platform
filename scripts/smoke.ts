@@ -343,7 +343,10 @@ export function rowIssues(r: Row, opts: { base?: string; expectedOrigin?: string
     case 'observe':
       break;
   }
-  if (new URL(base).hostname === 'nuevo.elights.cl' && !/^\/api(?:\/|$)/.test(r.path.split('?')[0])) {
+  // Vercel no agrega cabeceras a sus redirecciones (301/307): no se exige noindex en ellas.
+  // Google no indexa una redirección; el destino sí lleva la cabecera.
+  const isRedirect = r.status >= 300 && r.status < 400;
+  if (new URL(base).hostname === 'nuevo.elights.cl' && !isRedirect && !/^\/api(?:\/|$)/.test(r.path.split('?')[0])) {
     want(/\bnoindex\b/i.test(r.xRobots), 'sin X-Robots-Tag: noindex en nuevo.elights.cl');
   }
   if (r.kind === 'page' && ['elights.cl', 'www.elights.cl'].includes(new URL(base).hostname)) {
