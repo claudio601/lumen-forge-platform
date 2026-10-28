@@ -15,7 +15,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB40.pdf",
+    "datasheetUrl": "/fichas/APB40.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 40W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 40W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 40W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.",
@@ -303,7 +303,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB60.pdf",
+    "datasheetUrl": "/fichas/APB60.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 60W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 60W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 60W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.",
@@ -592,7 +592,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB90.pdf",
+    "datasheetUrl": "/fichas/APB90.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 90W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 90W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 90W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well ELG-100-36A. Garantía 5 años.",
@@ -880,7 +880,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB120.pdf",
+    "datasheetUrl": "/fichas/APB120.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 120W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 120W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 120W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.",
@@ -1176,7 +1176,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB200.pdf",
+    "datasheetUrl": "/fichas/APB200.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 200W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 200W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 200W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.",
@@ -1472,7 +1472,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB150.pdf",
+    "datasheetUrl": "/fichas/APB150.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 150W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 150W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 150W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.",
@@ -1768,7 +1768,7 @@ export const editorialOverlay: Readonly<Record<number, EditorialFields>> = {
       4000,
       5000
     ],
-    "datasheetUrl": "https://nuevo.elights.cl/fichas/APB250.pdf",
+    "datasheetUrl": "/fichas/APB250.pdf",
     "metaTitle": "Luminaria LED Alumbrado Público BESTLED 250W IP66 | eLIGHTS",
     "metaDescription": "Luminaria LED 250W para alumbrado público. Certificada SEC y DS1 cielos oscuros (variantes 2200K Ámbar y 2700K Cálida). IP66, IK08. Despacho a todo Chile.",
     "shortDescription": "Luminaria LED de alumbrado público 250W con certificación SEC y DS1 MMA cielos oscuros (variantes 2200K y 2700K). Chip Philips Lumileds 2835, driver Mean Well. Garantía 5 años.",
