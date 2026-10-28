@@ -35,11 +35,12 @@ async function request<T>(
   options?: {
     body?: Record<string, unknown>;
     params?: Record<string, string>;
+    timeoutMs?: number;
   }
 ): Promise<PipedriveApiResponse<T>> {
   const url = buildUrl(path, options?.params);
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), options?.timeoutMs ?? TIMEOUT_MS);
 
   try {
     const fetchOptions: RequestInit = {
@@ -99,9 +100,10 @@ async function request<T>(
 
 export async function pipedriveGet<T>(
   path: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  timeoutMs?: number
 ): Promise<PipedriveApiResponse<T>> {
-  return request<T>('GET', path, { params });
+  return request<T>('GET', path, { params, timeoutMs });
 }
 
 export async function pipedrivePost<T>(
