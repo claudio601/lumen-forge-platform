@@ -23,6 +23,7 @@ vi.mock('@vercel/blob', async (importOriginal) => ({
   del: vi.fn(async () => {}),
 }));
 
+import { SITE_URL } from '../_lib/site.js';
 import handler, { validateProjectQuote } from '../project-quotes/create';
 import { ILLUMINATION_LEVELS, PROJECT_TYPES } from '../_lib/forms/projectQuote';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
@@ -278,7 +279,8 @@ describe('POST /api/project-quotes/create', () => {
       modo_precio: 'Proyecto (sin precios)',
       total: '-',
     });
-    expect(mail.items_lista.split('\n')[0]).toBe(`Cotizador de proyecto ${reference} (nuevo.elights.cl/cotizador)`);
+    expect(mail.items_lista.split('\n')[0]).toBe(`Cotizador de proyecto ${reference} (${SITE_URL}/cotizador)`);
+    expect(notes()[0].content).toContain(`=== COTIZADOR DE PROYECTO (${SITE_URL}/cotizador) ===`);
     expect(mail.items_lista).toContain('Tipo de proyecto: Bodega');
     expect(mail.items_lista).toContain('m2 aproximados: 1200');
     for (const key of ['razon_social', 'rut_empresa', 'giro', 'direccion', 'comentarios']) {

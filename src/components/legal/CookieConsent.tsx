@@ -4,10 +4,10 @@
 // Meta»). Se monta una vez, en AppLayout (App.tsx). Los textos y la decisión vienen de
 // src/lib/cookieConsent.ts.
 //
-// Dónde se abre solo: en los dominios que miden (elights.cl y www, ver analytics.ts), en el
+// Dónde se abre solo: en los dominios que miden (elights.cl, www y nuevo, ver analytics.ts), en el
 // modo de prueba de GTM (host de VITE_GTM_TEST_HOSTS con gtm_debug, solo en esa pestaña) y en
 // los hosts de prueba de VITE_COOKIE_BANNER_HOSTS (solo Preview de Vercel; ahí muestra las
-// categorías de Google y de Meta pero GTM no se carga). En los demás (nuevo.elights.cl,
+// categorías de Google y de Meta pero GTM no se carga). En los demás (previews sin configurar,
 // localhost) no se abre solo y el botón del pie abre un panel informativo: Necesarias, el
 // interruptor del origen de la visita y «En esta dirección del sitio no usamos cookies…».
 //

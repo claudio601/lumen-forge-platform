@@ -9,13 +9,14 @@
 //   revisar no deja dato (la ficha usa la imagen de la marca) y se reintenta la próxima
 //   vez. Nunca bloquea la sincronización.
 
+import { SITE_URL } from '../../api/_lib/site';
 import type { ProductImageFacts, SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
 import { encodeImageUrl, ogImageIssue, OG_MAX_BYTES } from '../../src/lib/seo/ogImage';
 
 /** Bytes que se piden de cada foto: alcanzan para las medidas de todos los JPEG del catálogo (el más lejano, a 25.607). */
 export const PROBE_BYTES = 65_536;
 export const IMAGE_HOST = 'images.jumpseller.com';
-const USER_AGENT = 'eLIGHTS-catalog-sync (+https://nuevo.elights.cl)';
+const USER_AGENT = `eLIGHTS-catalog-sync (+${SITE_URL})`;
 
 /** fetch mínimo para las fotos (el de client.ts no tiene cuerpo binario y no se toca). */
 export type ImageFetch = (
