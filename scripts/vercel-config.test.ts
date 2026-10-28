@@ -54,11 +54,11 @@ const cfg = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 
 
 // Una regla "literal" empieza con un segmento fijo que no es api (ni '/api' seguido de un
 // comodín como '/api(.*)'); las de sourcePaths no pueden nombrar /api ni nada bajo /api/.
-// Las fuentes con comodín solo se aceptan si excluyen api/ con un lookahead negativo.
+// Las fuentes con comodín solo se aceptan si excluyen /api y /api/ con un lookahead negativo.
 const excludesApi = (source: string) => {
   const paths = sourcePaths(source);
   if (paths) return paths.every(p => p !== '/api' && !p.startsWith('/api/'));
-  return (/^\/(?!api(\/|$))[A-Za-z0-9._~%-]/.test(source) && !/^\/api(?![A-Za-z0-9_-])/.test(source)) || source.startsWith('/((?!api/).*)');
+  return (/^\/(?!api(\/|$))[A-Za-z0-9._~%-]/.test(source) && !/^\/api(?![A-Za-z0-9_-])/.test(source)) || source === '/((?!api(?:/|$)).*)';
 };
 
 /** URL vieja de elights.cl tal como la manda el navegador: segmentos de [a-z0-9._,-] o bytes no ASCII en %XX mayúscula. */
@@ -149,10 +149,10 @@ describe('vercel.json', () => {
   });
 
   it('la guarda de /api reconoce las fuentes que alcanzan las funciones', () => {
-    for (const source of ['/api/(.*)', '/api(.*)', '/api{/}?', '/api:path*', '/api', '/api/x{/}?', '/(.*)', '/:path*']) {
+    for (const source of ['/api/(.*)', '/api(.*)', '/api{/}?', '/api:path*', '/api', '/api/x{/}?', '/(.*)', '/:path*', '/((?!api/).*)', '/((?!api(?:/|$)).*)/api']) {
       expect(excludesApi(source), source).toBe(false);
     }
-    for (const source of ['/carro{/}?', '/(buscar|cotizacion){/}?', '/((?!api/).*)', '/apiario', '/producto/w-ip66{/}?', '/campana_led{/}?', '/apiario/x{/}?']) {
+    for (const source of ['/carro{/}?', '/(buscar|cotizacion){/}?', '/((?!api(?:/|$)).*)', '/apiario', '/producto/w-ip66{/}?', '/campana_led{/}?', '/apiario/x{/}?']) {
       expect(excludesApi(source), source).toBe(true);
     }
   });
@@ -214,6 +214,21 @@ describe('vercel.json', () => {
     }
     for (const h of cfg.headers ?? []) expect(excludesApi(h.source), `cabecera ${h.source}`).toBe(true);
     for (const r of (cfg.rewrites ?? []).slice(1)) expect(r.source.startsWith('/api')).toBe(false);
+  });
+
+  it.each([
+    ['6.1.0', pathToRegexp61],
+    ['6.3.0', pathToRegexp63],
+  ] as const)('la cabecera excluye /api completo y cubre las páginas (compilador %s)', (_version, compile) => {
+    const header = cfg.headers?.find(h => h.headers?.some(v => v.key === 'X-Robots-Tag'));
+    expect(header?.source).toBe('/((?!api(?:/|$)).*)');
+    const re = compile(header!.source, [], { strict: true, sensitive: true, delimiter: '/' });
+    for (const path of ['/api', '/api/', '/api/jumpseller/webhook', '/api/whatsapp/webhook', '/api/pipedrive/webhook', '/api/quotes/create']) {
+      expect(re.test(path), path).toBe(false);
+    }
+    for (const path of ['/', '/catalogo', '/catalogo/', '/producto/panel-led', '/Catalogo', '/apiario', '/robots.txt']) {
+      expect(re.test(path), path).toBe(true);
+    }
   });
 
   it('sin comodín fuera de /api: una URL sin archivo ni regla recibe 404.html con estado 404', () => {

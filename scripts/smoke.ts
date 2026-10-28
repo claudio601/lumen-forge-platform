@@ -7,6 +7,7 @@
 //   npm run smoke -- https://nuevo.elights.cl --all   (además, todas las páginas del sitemap y sus assets)
 //   npm run smoke -- <url-preview> --compare https://nuevo.elights.cl
 //   npm run smoke -- <url> --json reports/smoke/produccion.json
+//   npm run smoke -- https://elights.cl --all --expected-origin https://elights.cl
 //   npm run smoke -- https://nuevo.elights.cl --legacy   (cada fila de scripts/redirects/legacy-urls.json
 //                                                         y cada destino, de a una cada 500 ms: ~14 min)
 //
@@ -14,7 +15,7 @@
 // antes de procesar nada, así que el chequeo no tiene efectos. Nunca sigue redirecciones.
 //
 // Cada fila se juzga según su tipo (PR 05, 404 reales):
-//   page      200, HTML con canonical y sin noindex
+//   page      200, HTML con canonical y og:url del origen esperado, sin noindex en el HTML
 //   spa       200, HTML con noindex (spa.html: /buscar, /cotizacion, /solicitar-pedido)
 //   unindexed 200, HTML de una guía «publicada sin indexar» (plan del blog, §2.2): noindex en su
 //             HTML, sin canonical y sin la marca de 404.html
@@ -44,7 +45,9 @@ import { products } from '../src/data/catalog/index';
 import { categories } from '../src/data/catalog/categories.config';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
-import { indexableGuideRoutes, NOINDEX_ROUTES, noindexGuideRoutes, STATIC_ROUTES } from '../src/lib/seo/routes';
+import { indexableGuideRoutes, indexableRoutes, NOINDEX_ROUTES, noindexGuideRoutes, STATIC_ROUTES } from '../src/lib/seo/routes';
+import { SITE_URL } from '../src/config/site';
+import { buildRobots } from './generate-sitemap';
 import { LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
 
 export type Kind = 'page' | 'spa' | 'unindexed' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
@@ -111,6 +114,7 @@ export function legacyTargets(urls: readonly LegacyUrl[] = LEGACY_URLS): Target[
 export interface PageInfo {
   title: string;
   canonical: string;
+  ogUrl: string;
   robots: string;
   ogImage: string;
   h1: number;
@@ -125,6 +129,8 @@ export interface Row extends Target, PageInfo {
   location: string;
   xRobots: string;
   bytes: number;
+  /** Solo se conserva el contenido de sitemap.xml y robots.txt. */
+  body: string;
 }
 
 /**
@@ -155,9 +161,12 @@ export function buildTargets(): Target[] {
     // Las guías: las indexables como páginas; las publicadas sin indexar, con su noindex
     ...[...pages, ...productPaths, ...categoryPaths, ...indexableGuideRoutes()].map(as('page')),
     ...noindexGuideRoutes().map(as('unindexed')),
+    // Respuesta de hoy: si el dueño decide otro destino, cambiar esta fila a propósito.
+    ...['/cart', '/checkout', '/customer', '/orders', '/admin', '/attachments', '/quote', '/Catalogo'].map(as('notfound')),
+    { path: '/catalogo/', kind: 'page' }, // 200 con canonical y og:url sin barra final
     // Con y sin barra final: la regla de vercel.json acepta las dos (son los formularios de venta)
     ...['/buscar', '/buscar?q=panel', '/cotizacion', '/solicitar-pedido', '/cotizacion/', '/solicitar-pedido/'].map(as('spa')),
-    ...['/carro', '/carro/'].map(path => ({ path, kind: 'redirect' as const, to: '/solicitar-pedido' })),
+    ...['/carro', '/carro/', '/carro?origen=prueba'].map(path => ({ path, kind: 'redirect' as const, to: '/solicitar-pedido' })),
     // Ids renombrados: 301 al id vigente, con o sin barra final, y la consulta (gclid) se conserva
     ...RENAMED_SMOKE_IDS.flatMap(jid => {
       const { id, previous } = RENAMED_SITE_IDS[jid];
@@ -171,7 +180,7 @@ export function buildTargets(): Target[] {
       as('file'),
     ),
     ...API_FUNCTIONS.map(as('api')),
-    ...['/carro?origen=prueba', '/catalogo/', `${productPaths[0]}/`, '/Catalogo', '/index.html', '/api/no-existe'].map(as('observe')),
+    ...[`${productPaths[0]}/`, '/index.html', '/api/no-existe'].map(as('observe')),
   ];
 }
 
@@ -186,6 +195,7 @@ export function inspectHtml(html: string): PageInfo {
   return {
     title,
     canonical: attr(canonicalTag, 'href'),
+    ogUrl: attr(html.match(/<meta[^>]+property=["']og:url["'][^>]*>/i)?.[0] ?? '', 'content'),
     robots: attr(robotsTag, 'content'),
     ogImage: attr(ogTag, 'content'),
     h1: (html.match(/<h1[\s>]/gi) ?? []).length,
@@ -199,16 +209,66 @@ export function assetRefs(html: string): string[] {
   return [...new Set([...html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+)["']/g)].map(m => m[1]))];
 }
 
-const canonicalPath = (url: string) => {
+const absoluteUrl = (value: string, base?: string): URL | undefined => {
   try {
-    return new URL(url).pathname;
+    return new URL(value, base);
   } catch {
-    return url;
+    return undefined;
   }
 };
 
+export interface SmokeOptions {
+  all?: boolean;
+  legacy?: boolean;
+  /** Origen SEO esperado; nunca se deduce del host de preview. */
+  expectedOrigin?: string;
+}
+
+/** Solo un origen HTTP(S), sin ruta, credenciales, consulta ni fragmento. */
+export function parseOrigin(value: string): string {
+  const url = absoluteUrl(value);
+  if (!url || !/^https?:$/.test(url.protocol) || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error(`origen inválido: ${value}`);
+  }
+  return url.origin;
+}
+
+/** Contrato del sitemap generado: XML urlset, sin duplicados y con todas las rutas indexables. */
+export function inspectSitemap(xml: string, origin = SITE_URL, routes = indexableRoutes()): { paths: string[]; issues: string[] } {
+  const issues: string[] = [];
+  const content = xml.trim().replace(/^<\?xml version="1\.0" encoding="UTF-8"\?>\s*/, '');
+  const urlset = content.match(/^<urlset\s+xmlns=(["'])http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9\1\s*>([\s\S]*)<\/urlset>$/);
+  if (!urlset) return { paths: [], issues: ['sitemap: XML urlset inválido'] };
+  const entries = [...urlset[2].matchAll(/<url>\s*<loc>([^<]+)<\/loc>\s*<\/url>/g)];
+  if (!entries.length || urlset[2].replace(/<url>\s*<loc>[^<]+<\/loc>\s*<\/url>/g, '').trim()) {
+    issues.push('sitemap: entradas XML inválidas o vacías');
+  }
+  const urls = entries.map(m => m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'"));
+  const expected = new Set(routes.map(path => origin + path));
+  const seen = new Set<string>();
+  for (const value of urls) {
+    const url = absoluteUrl(value);
+    if (!url || url.origin !== origin || url.username || url.password) issues.push(`sitemap: origen incorrecto en ${value}`);
+    if (!expected.has(value)) issues.push(`sitemap: URL no indexable o inesperada ${value}`);
+    if (seen.has(value)) issues.push(`sitemap: URL duplicada ${value}`);
+    seen.add(value);
+  }
+  const missing = [...expected].filter(url => !seen.has(url));
+  if (missing.length) issues.push(`sitemap: faltan ${missing.length} URLs indexables (primera: ${missing[0]})`);
+  return { paths: issues.length ? [] : urls.map(value => new URL(value).pathname), issues };
+}
+
+/** El archivo generado permite el sitio, excluye API y anuncia solo el sitemap esperado. */
+export function robotsIssues(body: string, origin = SITE_URL): string[] {
+  const lines = (text: string) => text.split(/\r?\n/).map(line => line.replace(/#.*$/, '').trim()).filter(Boolean);
+  return JSON.stringify(lines(body)) === JSON.stringify(lines(buildRobots(origin))) ? [] :
+    [`robots: se esperaba User-agent: *, Allow: /, Disallow: /api/ y Sitemap: ${origin}/sitemap.xml`];
+}
+
 /** Qué no cumple una fila según su tipo. Vacío: está bien. */
-export function rowIssues(r: Row): string[] {
+export function rowIssues(r: Row, opts: { base?: string; expectedOrigin?: string } = {}): string[] {
+  const base = new URL(opts.base ?? SITE_URL).origin;
+  const origin = parseOrigin(opts.expectedOrigin ?? SITE_URL);
   if (r.status === 0) return [`sin respuesta (${r.type})`];
   if (r.location.startsWith('https://vercel.com/sso-api')) {
     return ['vista previa protegida por Vercel: usar VERCEL_AUTOMATION_BYPASS_SECRET o el navegador integrado'];
@@ -226,7 +286,11 @@ export function rowIssues(r: Row): string[] {
       status(200);
       want(html, `tipo ${r.type || '(vacío)'}, se esperaba HTML`);
       want(!!r.canonical, 'sin canonical');
-      want(!r.canonical || canonicalPath(r.canonical) === r.path.split('?')[0], `canonical ${r.canonical} no es la de esta URL`);
+      {
+        const path = r.path.split('?')[0].replace(/(.)\/$/, '$1');
+        want(!r.canonical || r.canonical === origin + path, `canonical ${r.canonical} no es la de esta URL (se esperaba ${origin + path})`);
+        want(r.ogUrl === origin + path, `og:url ${r.ogUrl || '(vacío)'} no es la de esta URL (se esperaba ${origin + path})`);
+      }
       want(!noindex, 'tiene noindex');
       want(!r.notFoundMark, 'es la página 404');
       break;
@@ -252,21 +316,38 @@ export function rowIssues(r: Row): string[] {
       break;
     case 'redirect': {
       status(r.expectedStatus ?? 307);
-      const location = r.location ? new URL(r.location, 'https://x') : undefined;
+      const location = r.location ? absoluteUrl(r.location, new URL(r.path, base).href) : undefined;
       want(location?.pathname === r.to, `lleva a "${r.location}", se esperaba ${r.to}`);
+      if (r.location) want(!!location && location.origin === base && !location.username && !location.password,
+        `Location ${r.location} no tiene el origen permitido ${base}`);
       const query = r.path.includes('?') ? r.path.slice(r.path.indexOf('?')) : '';
-      if (query) want(location?.search === query, `"${r.location}" no conserva la consulta ${query}`);
+      if (query || location?.search) want(location?.search === query, `"${r.location}" no conserva la consulta ${query || '(vacía)'}`);
+      if (location) want(!location.hash, `Location ${r.location} agrega un fragmento`);
       break;
     }
     case 'file':
       status(200);
       want(!html, 'devuelve HTML en vez del archivo');
+      if (r.path === '/sitemap.xml') {
+        want(['application/xml', 'text/xml'].includes(r.type), `tipo ${r.type}, se esperaba XML`);
+        issues.push(...inspectSitemap(r.body, origin).issues);
+      }
+      if (r.path === '/robots.txt') {
+        want(r.type === 'text/plain', `tipo ${r.type}, se esperaba text/plain`);
+        issues.push(...robotsIssues(r.body, origin));
+      }
       break;
     case 'api':
       status(405);
       break;
     case 'observe':
       break;
+  }
+  if (new URL(base).hostname === 'nuevo.elights.cl' && !/^\/api(?:\/|$)/.test(r.path.split('?')[0])) {
+    want(/\bnoindex\b/i.test(r.xRobots), 'sin X-Robots-Tag: noindex en nuevo.elights.cl');
+  }
+  if (r.kind === 'page' && ['elights.cl', 'www.elights.cl'].includes(new URL(base).hostname)) {
+    want(!/\bnoindex\b/i.test(r.xRobots), 'X-Robots-Tag: noindex en una página indexable del dominio principal');
   }
   return issues;
 }
@@ -294,7 +375,7 @@ export function bypassHeaders(
 const redact = (text: string, headers: Record<string, string>) =>
   Object.values(headers).reduce((t, secret) => t.split(secret).join('***'), text);
 
-const EMPTY: PageInfo = { title: '', canonical: '', robots: '', ogImage: '', h1: 0, jsonLd: 0, notFoundMark: false };
+const EMPTY: PageInfo = { title: '', canonical: '', ogUrl: '', robots: '', ogImage: '', h1: 0, jsonLd: 0, notFoundMark: false };
 
 async function fetchRow(base: string, target: Target, headers: Record<string, string>, assets?: Set<string>): Promise<Row> {
   const res = await fetch(new URL(target.path, base), {
@@ -303,7 +384,8 @@ async function fetchRow(base: string, target: Target, headers: Record<string, st
     signal: AbortSignal.timeout(20_000),
   });
   const type = (res.headers.get('content-type') ?? '').split(';')[0].trim();
-  const body = target.kind === 'file' && type !== 'text/html' ? '' : await res.text();
+  const seoFile = ['/sitemap.xml', '/robots.txt'].includes(target.path);
+  const body = target.kind === 'file' && type !== 'text/html' && !seoFile ? '' : await res.text();
   if (assets && type === 'text/html') for (const a of assetRefs(body)) assets.add(a);
   return {
     ...target,
@@ -312,16 +394,9 @@ async function fetchRow(base: string, target: Target, headers: Record<string, st
     location: res.headers.get('location') ?? '',
     xRobots: res.headers.get('x-robots-tag') ?? '',
     bytes: body.length,
+    body: seoFile ? body : '',
     ...(type === 'text/html' ? inspectHtml(body) : EMPTY),
   };
-}
-
-/** Rutas de todas las páginas del sitemap del despliegue. */
-async function sitemapPaths(base: string, headers: Record<string, string>): Promise<string[]> {
-  const res = await fetch(new URL('/sitemap.xml', base), { headers, redirect: 'manual', signal: AbortSignal.timeout(20_000) });
-  if (res.status !== 200) throw new Error(`--all: no se pudo leer ${base}/sitemap.xml (estado ${res.status})`);
-  const xml = await res.text();
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => new URL(m[1]).pathname);
 }
 
 /** Corre fn sobre cada elemento, de a `size` en paralelo, conservando el orden. */
@@ -341,14 +416,15 @@ async function inPool<T, R>(items: T[], size: number, fn: (item: T) => Promise<R
 /** --legacy: pausa entre una URL y la siguiente (2 por segundo como máximo). */
 const LEGACY_DELAY_MS = 500;
 
-export async function runSmoke(base: string, opts: { all?: boolean; legacy?: boolean } = {}): Promise<Row[]> {
+export async function runSmoke(base: string, opts: SmokeOptions = {}): Promise<Row[]> {
+  const origin = parseOrigin(opts.expectedOrigin ?? SITE_URL);
   const headers = bypassHeaders(base);
   const assets = new Set<string>();
   const safeRow = async (t: Target): Promise<Row> => {
     try {
       return await fetchRow(base, t, headers, assets);
     } catch (err) {
-      return { ...t, ...EMPTY, status: 0, type: `ERROR ${redact((err as Error).message, headers)}`, location: '', xRobots: '', bytes: 0 };
+      return { ...t, ...EMPTY, status: 0, type: `ERROR ${redact((err as Error).message, headers)}`, location: '', xRobots: '', bytes: 0, body: '' };
     }
   };
   if (opts.legacy) {
@@ -360,13 +436,16 @@ export async function runSmoke(base: string, opts: { all?: boolean; legacy?: boo
     }
     return rows;
   }
-  let targets = buildTargets();
+  const targets = buildTargets();
+  const rows = await inPool(targets, 8, safeRow);
   if (opts.all) {
     const known = new Set(targets.map(t => t.path));
-    const pages = (await sitemapPaths(base, headers)).filter(p => !known.has(p)).map(path => ({ path, kind: 'page' as const }));
-    targets = [...targets, ...pages];
+    const sitemap = rows.find(r => r.path === '/sitemap.xml')!;
+    // Un sitemap inválido falla en su propia fila; nunca se pierden sus hosts al extraer rutas.
+    const paths = rowIssues(sitemap, { base, expectedOrigin: origin }).length ? [] : inspectSitemap(sitemap.body, origin).paths;
+    const pages = paths.filter(p => !known.has(p)).map(path => ({ path, kind: 'page' as const }));
+    rows.push(...await inPool(pages, 8, safeRow));
   }
-  const rows = await inPool(targets, 8, safeRow);
   // Assets con hash: el JS principal siempre; con --all, todos los que cargan las páginas.
   const assetTargets = [...assets]
     .filter(a => opts.all || /\/assets\/index-[^/]+\.js$/.test(a))
@@ -408,11 +487,11 @@ export function newFunctions(a: Row[], b: Row[]): string[] {
   }).map(r => r.path);
 }
 
-function printRows(label: string, rows: Row[], all: boolean, legacy = false) {
+function printRows(label: string, rows: Row[], all: boolean, legacy = false, expectedOrigin = SITE_URL) {
   console.log(`\n${label}`);
   const fixed = new Set(buildTargets().map(t => t.path));
   for (const r of rows) {
-    const issues = rowIssues(r);
+    const issues = rowIssues(r, { base: label, expectedOrigin });
     // Con --all, las páginas del sitemap y los assets que están bien no se listan (se resumen abajo)
     if (all && !issues.length && ((r.kind === 'page' && !fixed.has(r.path)) || r.path.startsWith('/assets/'))) continue;
     // Con --legacy, solo las filas que fallan
@@ -447,29 +526,37 @@ async function main() {
   const args = process.argv.slice(2);
   const compareIdx = args.indexOf('--compare');
   const jsonIdx = args.indexOf('--json');
+  const originIdx = args.indexOf('--expected-origin');
+  let expectedOrigin: string;
+  try {
+    expectedOrigin = parseOrigin(originIdx >= 0 ? args[originIdx + 1] ?? '' : SITE_URL);
+  } catch (err) {
+    console.error(String(err));
+    process.exit(2);
+  }
   const all = args.includes('--all');
   const legacy = args.includes('--legacy');
   const compareBase = compareIdx >= 0 ? args[compareIdx + 1] : undefined;
   const jsonOut = jsonIdx >= 0 ? args[jsonIdx + 1] : undefined;
   // La URL a revisar es el único argumento que no es una opción ni el valor de una
-  const values = new Set([compareIdx, jsonIdx].filter(i => i >= 0).map(i => i + 1));
+  const values = new Set([compareIdx, jsonIdx, originIdx].filter(i => i >= 0).map(i => i + 1));
   const positional = args.filter((a, i) => !a.startsWith('--') && !values.has(i));
   const base = positional.length === 1 && /^https?:\/\//.test(positional[0]) ? positional[0] : undefined;
   const badCombo = legacy && (all || compareIdx >= 0);
   if (!base || (compareIdx >= 0 && !/^https?:\/\//.test(compareBase ?? '')) || (jsonIdx >= 0 && !jsonOut) || base === compareBase || badCombo) {
-    console.error('Uso: npm run smoke -- <url> [--all] [--compare <url>] [--json <archivo>]');
-    console.error('     npm run smoke -- <url> --legacy [--json <archivo>]');
+    console.error('Uso: npm run smoke -- <url> [--all] [--compare <url>] [--json <archivo>] [--expected-origin <origen>]');
+    console.error('     npm run smoke -- <url> --legacy [--json <archivo>] [--expected-origin <origen>]');
     process.exit(2);
   }
 
-  const rows = await runSmoke(base, { all, legacy });
-  printRows(base, rows, all, legacy);
+  const rows = await runSmoke(base, { all, legacy, expectedOrigin });
+  printRows(base, rows, all, legacy, expectedOrigin);
   if (jsonOut) {
     mkdirSync(dirname(jsonOut), { recursive: true });
-    writeFileSync(jsonOut, JSON.stringify({ base, at: new Date().toISOString(), rows }, null, 2));
+    writeFileSync(jsonOut, JSON.stringify({ base, expectedOrigin, at: new Date().toISOString(), rows }, null, 2));
   }
 
-  let failed = rows.flatMap(r => rowIssues(r).map(i => `${r.path} (${r.kind}): ${i}`));
+  let failed = rows.flatMap(r => rowIssues(r, { base, expectedOrigin }).map(i => `${r.path} (${r.kind}): ${i}`));
   if (compareBase) {
     const other = await runSmoke(compareBase);
     const diffs = compareStable(rows, other);
