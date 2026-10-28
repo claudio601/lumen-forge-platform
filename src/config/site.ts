@@ -17,7 +17,7 @@ export const SITE_NAME = 'eLIGHTS.cl';
 export const LEGAL_NAME = 'eLIGHTS.CL SpA';
 
 /** RUT de la empresa (no de una persona), que el dueño entregó para publicar. */
-export const LEGAL_RUT = '76.947.784-6';
+export const LEGAL_RUT = '76.947.784-5';
 
 /** Domicilio publicado: solo la comuna (decisión del dueño, 2026-10-01). */
 export const LEGAL_COMUNA = 'Santiago';

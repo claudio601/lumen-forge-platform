@@ -347,6 +347,7 @@ const PrivacidadPage = () => (
       <li>
         <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller
         con su ficha en nuestro sistema de seguimiento y, por 48 horas, cada archivo que adjuntas en el sitio con tu solicitud.
+        También guarda la conversación con el asistente de WhatsApp.
       </li>
       <li>
         <strong>Jumpseller:</strong> plataforma de ventas: catálogo, precios e imágenes de productos, y registro de las solicitudes
@@ -446,9 +447,9 @@ const PrivacidadPage = () => (
         <strong>Registro técnico de las solicitudes de nuestra tienda de Jumpseller (Upstash):</strong> 30 días.
       </li>
       <li>
-        <strong>Asistente de WhatsApp:</strong> guarda solo en memoria temporal el historial reciente de la conversación, los datos
-        que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad. Lo que registramos de la conversación en nuestro
-        sistema de seguimiento sigue el plazo de las solicitudes.
+        <strong>Asistente de WhatsApp:</strong> guarda en Upstash el historial reciente de la conversación, los datos que va
+        reuniendo de tu solicitud y si ya te mostró el aviso de privacidad, hasta 7 días después de tu último mensaje. Lo que
+        registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes.
       </li>
       <li>
         <strong>Copia de revisión del asistente</strong> (punto 4): no guardamos la exportación original; el mismo día la cambiamos

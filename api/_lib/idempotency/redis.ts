@@ -32,17 +32,34 @@ function getRedisConfig(): { url: string; token: string } | null {
 async function redisCommand<T>(
   ...args: (string | number)[]
 ): Promise<{ ok: true; result: T } | { ok: false; unavailable: boolean; error: string }> {
+  return sendRedisCommand<T>(args, false);
+}
+
+/** JSON por POST: los historiales y respuestas no van en la URL de Upstash. */
+export async function redisJsonCommand<T>(...args: (string | number)[]) {
+  return sendRedisCommand<T>(args, true);
+}
+
+/** Comando JSON cuyo tiempo de red respeta el presupuesto restante del candado. */
+export async function redisJsonCommandWithTimeout<T>(timeoutMs: number, ...args: (string | number)[]) {
+  return sendRedisCommand<T>(args, true, Math.max(1, Math.ceil(timeoutMs)));
+}
+
+async function sendRedisCommand<T>(args: (string | number)[], jsonBody: boolean, timeoutMs?: number): Promise<
+  { ok: true; result: T } | { ok: false; unavailable: boolean; error: string }
+> {
   const cfg = getRedisConfig();
   if (!cfg) {
     return { ok: false, unavailable: true, error: 'UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not configured' };
   }
 
-  const url = `${cfg.url}/${args.map(encodeURIComponent).join('/')}`;
+  const url = jsonBody ? cfg.url : `${cfg.url}/${args.map(encodeURIComponent).join('/')}`;
   try {
     const res = await fetch(url, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${cfg.token}` },
-      signal: AbortSignal.timeout(5000),
+      method: jsonBody ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${cfg.token}`, ...(jsonBody ? { 'Content-Type': 'application/json' } : {}) },
+      ...(jsonBody ? { body: JSON.stringify(args) } : {}),
+      signal: AbortSignal.timeout(timeoutMs ?? (jsonBody ? 800 : 5000)),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');

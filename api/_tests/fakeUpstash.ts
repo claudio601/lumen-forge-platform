@@ -32,8 +32,10 @@ export function fakeFetch(redis: FakeRedis) {
     }
     if (!url.startsWith(UPSTASH_URL)) throw new Error('fetch no simulado: ' + new URL(url).host);
     if (redis.down) throw new TypeError('fetch failed');
-    const [cmd, ...args] = new URL(url).pathname.split('/').filter(Boolean).map(decodeURIComponent);
-    // Only SET-created keys expire; callers can also seed persistent fixtures directly.
+    const [cmd, ...args]: string[] = init?.method === 'POST'
+      ? JSON.parse(String(init.body)).map(String)
+      : new URL(url).pathname.split('/').filter(Boolean).map(decodeURIComponent);
+    // Redis aplica el vencimiento antes de GET, NX y EVAL (también con reloj simulado).
     for (const [key, entry] of redis.data) {
       if (entry.expiresAt !== undefined && entry.expiresAt <= Date.now()) redis.data.delete(key);
     }
@@ -43,28 +45,25 @@ export function fakeFetch(redis: FakeRedis) {
     } else if (cmd === 'MGET') {
       result = args.map((key) => redis.data.get(key)?.value ?? null);
     } else if (cmd === 'SET') {
-      // SET key value [NX] EX/PX ttl
+      // SET key value [NX] EX seconds / PX milliseconds
       const nx = args.includes('NX');
       const px = args.includes('PX');
-      const ttl = Number(args[args.indexOf(px ? 'PX' : 'EX') + 1]) / (px ? 1000 : 1);
+      const ttl = Number(args[args.indexOf(px ? 'PX' : 'EX') + 1]);
       if (nx && redis.data.has(args[0])) {
         result = null;
       } else {
-        redis.data.set(args[0], { value: args[1], ttl, expiresAt: Date.now() + ttl * 1000 });
+        redis.data.set(args[0], { value: args[1], ttl, expiresAt: Date.now() + ttl * (px ? 1 : 1000) });
         result = 'OK';
       }
+    } else if (cmd === 'EVAL' && args[0].includes("redis.call('del'")) {
+      const [, , key, token] = args;
+      result = redis.data.get(key)?.value === token ? Number(redis.data.delete(key)) : 0;
     } else if (cmd === 'EVAL' && args[0].includes('INCRBY')) {
       const [, , key, by, ttl] = args;
       const prev = redis.data.get(key);
       const value = Number(prev?.value ?? 0) + Number(by);
-      redis.data.set(key, {
-        value: String(value), ttl: prev?.ttl ?? Number(ttl),
-        expiresAt: prev?.expiresAt ?? Date.now() + Number(ttl) * 1000,
-      });
+      redis.data.set(key, { value: String(value), ttl: prev?.ttl ?? Number(ttl), expiresAt: prev?.expiresAt ?? Date.now() + Number(ttl) * 1000 });
       result = value;
-    } else if (cmd === 'EVAL' && args[0].includes("redis.call('get'")) {
-      const [, , key, owner] = args;
-      result = redis.data.get(key)?.value === owner ? Number(redis.data.delete(key)) : 0;
     } else {
       throw new Error('comando no simulado: ' + cmd);
     }

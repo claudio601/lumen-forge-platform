@@ -12,10 +12,8 @@
 //   que agrega la revisión de las conversaciones para mejorar el asistente);
 //   privacyNotice.test.ts lo comprueba.
 // - Los textos van con escapes \u, como flowEngine.ts, para no arriesgar mojibake.
-// - El registro de "ya mostrado" es un Set en la memoria de la instancia, con el mismo teléfono
-//   que usan conversation.ts y flowEngine.ts (From sin 'whatsapp:'). El aviso puede repetirse:
-//   tras un cold start o un deploy, si el mensaje lo atiende otra instancia de Vercel o al
-//   llegar al tope del registro (MAX_TRACKED).
+// - El registro local se recupera y guarda junto al estado de la conversacion en Upstash.
+//   Si Upstash falla, sigue en memoria; el aviso puede repetirse en otra instancia.
 // - Solo se da por mostrado si la respuesta sale a tiempo. Twilio espera 15 s la respuesta del
 //   webhook y, si se pasa, no envía nada (error 11200), aunque la función siga corriendo. Si
 //   pasaron más de NOTICE_DEADLINE_MS desde que empezó el webhook (Claude o Pipedrive lentos),
@@ -26,8 +24,7 @@
 //   respuesta CON el aviso (lado seguro). Nunca bloquea ni demora la respuesta.
 // - webhook.ts lo llama al armar el TwiML que se envía, después de addTurn y del log QA: el
 //   aviso no entra al historial que va a Claude, ni a Pipedrive, ni a los logs.
-// - Si el estado pasa a Redis (v2 del bot): SET NX con TTL y espera corta; si falla o se demora,
-//   mostrar el aviso. Eso guarda un dato personal nuevo y obliga a cambiar la política.
+
 
 import { SITE_URL } from '../site.js';
 
@@ -107,4 +104,14 @@ const shownTo: NoticeStore = new Set<string>();
 export function withPrivacyNotice(phone: string, reply: string, startedAt: number): string {
   const onTime = Date.now() - startedAt <= NOTICE_DEADLINE_MS;
   return shouldShowPrivacyNotice(shownTo, phone, MAX_TRACKED, onTime) ? appendPrivacyNotice(reply) : reply;
+}
+
+/** Estado del aviso para la persistencia del turno; no cambia el texto ni su plazo. */
+export function privacyNoticeShown(phone: string): boolean {
+  return shownTo.has(phone);
+}
+
+export function restorePrivacyNotice(phone: string, shown: boolean): void {
+  if (shown) shownTo.add(phone);
+  else (shownTo as Set<string>).delete(phone);
 }
