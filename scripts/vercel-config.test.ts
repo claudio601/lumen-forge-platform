@@ -413,6 +413,122 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     expect(urls.filter(u => u.pending !== undefined).map(u => u.source)).toEqual([]);
   });
 
+  it('URL finales de Google Ads que daban 404 (lista de la agencia, 2026-10-26): cada una va a su categoría', () => {
+    const bySource = new Map(urls.map(u => [u.source, u]));
+    const adsFinalUrls: Record<string, string> = {
+      'https://elights.cl/alumbrado-publico-mini-cross-200w-ip66-ik08': 'alumbrado-publico',
+      'https://elights.cl/ilumin-exterior/alumbrado-vial': 'alumbrado-publico',
+      'https://elights.cl/amp-de-bajo-consumo-200w-e40-luz-fria': 'ampolletas-led',
+      'https://elights.cl/ampolleta-led-alta-potencia-100w-e40-luz-fria': 'ampolletas-led',
+      'https://elights.cl/ampolletas_led/alta-potencia': 'ampolletas-led',
+      'https://elights.cl/ampolletas_led/ampolleta-led-bola': 'ampolletas-led',
+      'https://elights.cl/ampolletas_led/cfl-ahorro-de-energia': 'ampolletas-led',
+      'https://elights.cl/canoa-antiexplosiva-fluorescente-hermética-2x36w-ip66-ik08-120-cm.-c/tubos-c/kit-de-emergencia': 'iluminacion-antiexplosiva',
+      'https://elights.cl/iluminacion-antiexplosiva/estancos-hermeticos-fluorescentes-antiexplosivos': 'iluminacion-antiexplosiva',
+      'https://elights.cl/luminaria-led-tri-proof-a-prueba-de-explosion-atex-20w': 'iluminacion-antiexplosiva',
+      'https://elights.cl/proyector-led-a-prueba-de-explosion-200w': 'iluminacion-antiexplosiva',
+      'https://elights.cl/proyector-led-ultra-thin-50w-ip66-negro': 'proyectores-led',
+      'https://elights.cl/proyector-led-ultra-thin-100w-ip66-negro': 'proyectores-led',
+      'https://elights.cl/proyector-led-ultra-thin-150w-ip66-negro': 'proyectores-led',
+      'https://elights.cl/proyector-led-ultra-thin-300w-ip66-negro': 'proyectores-led',
+      // La subcategoría «Solar» de PROYECTOR LED, como /proyector-solar
+      'https://elights.cl/proyector_led/solar': 'proyectores-led',
+      'https://elights.cl/cinta_led/perfiles-de-aluminio': 'cinta-led',
+      'https://elights.cl/emergencia-led/lum-emergencia': 'emergencia-led',
+      'https://elights.cl/ilumin-interior/puzzle-led': 'paneles-led',
+      // Búsquedas de Jumpseller: a la categoría con más resultados
+      'https://elights.cl/search/aplique': 'iluminacion-exterior',
+      'https://elights.cl/search/embutido': 'paneles-led',
+      'https://elights.cl/search/sobrepuesto': 'paneles-led',
+    };
+    for (const [url, slug] of Object.entries(adsFinalUrls)) {
+      // La ruta que manda el navegador (é → %C3%A9)
+      const row = bySource.get(new URL(url).pathname);
+      expect(row, url).toBeDefined();
+      expect(legacyDestination(row!), url).toBe(categoryPath(slug));
+    }
+  });
+
+  it('URL viejas que la 404 de elights.cl redirige con un script del tema (52, copiadas el 2026-10-26): todas tienen destino', () => {
+    const bySource = new Map(urls.map(u => [u.source, u]));
+    // Las 46 que no tenían fila. Los productos que ya no se venden van a su categoría, no a la
+    // ficha que elige el script (criterio del dueño, 2026-10-23)
+    const toCategory: Record<string, string> = {
+      '/alumbrado-publico-led-solar-200w-all-in-one': 'solar',
+      '/alumbrado-publico-led-solar-200w-con-panel-solar': 'solar',
+      '/alumbrado-publico-led-solar-60w-all-in-one-ip65': 'solar',
+      '/alumbrado-publico-mini-cross-50w-ip66-ik08': 'alumbrado-publico',
+      '/alumbrado-publico/mini-cross': 'alumbrado-publico',
+      '/aplique-decorativo-bidireccional-cilindrico-2xe27-ip65-blanco': 'iluminacion-exterior',
+      '/aplique-led-bidireccional-rectangular-16w-ip54-gris': 'iluminacion-exterior',
+      '/campana-led-ufo-nf4-100w-ip66': 'campanas-led',
+      '/campana-led-ufo-nf4-150w-110lm/w-ip66': 'campanas-led',
+      '/campana-led-ufo-nf4-200w-110lm/w-ip66': 'campanas-led',
+      '/campana-led-ufo-nf4-300w-110lmw-ip66': 'campanas-led',
+      '/campana-led-ufo-nf5-150w': 'campanas-led',
+      '/campana-led-ufo-nf7-150w-140lmw-ip65': 'campanas-led',
+      '/campana-led-ufo-nf8-100w-ip65/w': 'campanas-led',
+      '/campana-led-ufo-nf8-150w-ip65/w': 'campanas-led',
+      '/campana-led-ufo-nf8-200w-ip65/w': 'campanas-led',
+      '/campana-led-ufo-nf8-240w-ip65/w': 'campanas-led',
+      '/campana-led-ufo-nf8-300w-ip65/w': 'campanas-led',
+      '/foco-dicroico-led-embutido-smd-3w-niquel': 'paneles-led',
+      '/foco-dicroico-led-embutido-smd-5w-blanco': 'paneles-led',
+      '/foco-dicroico-led-embutido-smd-5w-niquel': 'paneles-led',
+      '/foco-dicroico-led-embutido-smd-7w-blanco': 'paneles-led',
+      '/foco-dicroico-led-embutido-smd-7w-niquel-2': 'paneles-led',
+      '/foco-exterior-empotrado-en-muro-con-rejilla-e27-max-60w': 'iluminacion-exterior',
+      '/foco-led-cob-basculante-codo-20w-6000k-ip33': 'paneles-led',
+      '/foco-led-dirigible-sobrepuesto-10w-luz-calida-ip20': 'focos-a-riel',
+      '/foco-led-solar': 'solar',
+      '/iluminacion_antiexplosiva/canopy': 'iluminacion-antiexplosiva',
+      '/led-wall-washer-12w-ip65-1': 'lineales-led',
+      '/luminaria-industrial-wallpack-led-30w-ip65': 'iluminacion-exterior',
+      '/pagoda-led-solar-ufo-90w-all-in-one': 'solar',
+      '/panel-led-concentrico-opal-12w-ip20': 'paneles-led',
+      '/panel-led-concentrico-opal-25w-ip33': 'paneles-led',
+      '/panel-led-luna-18w-ip65': 'paneles-led',
+      '/panel-led-redondo-embutido-4w-ip44': 'paneles-led',
+      '/proyector-led-cob-20w-gris-ip65-con-sensor-movimiento': 'proyectores-led',
+      '/proyector-led-solar-200w-6500k-ip67': 'proyectores-led',
+      '/proyector-led-solar-200w-light-ip65': 'proyectores-led',
+      '/proyector-led-solar-20w-6500k-ip67': 'proyectores-led',
+      '/proyector-led-solar-60w-6500k-ip67': 'proyectores-led',
+      '/proyector-led-ultra-thin-200w-ip66-negro': 'proyectores-led',
+      '/tortuga-aluminio-redonda-c-rejilla-e27-ip54-blanca': 'iluminacion-exterior',
+      '/tubo-led/24v': 'tubos-led',
+    };
+    const toPage: Record<string, string> = {
+      '/catalogos': '/catalogo',
+      '/mas-elights': '/empresa',
+      '/servicio-al-cliente': '/cotizador',
+    };
+    // Las 6 que ya tenían fila
+    const before = [
+      '/alumbrado-publico-led-solar-90w-all-in-one',
+      '/foco-dicroico-led-embutido-smd-7w-niquel',
+      '/foco-led-codo-basculante-30w-luz-fria-ip33-1',
+      '/iluminacion-antiexplosiva/estancos-hermeticos-fluorescentes-antiexplosivos',
+      '/proyector-led-ultra-thin-150w-ip66-negro',
+      '/proyector-led-ultra-thin-50w-ip66-negro',
+    ];
+    expect(Object.keys(toCategory).length + Object.keys(toPage).length + before.length).toBe(52);
+    const destination = (source: string) => {
+      const row = bySource.get(source);
+      expect(row, source).toBeDefined();
+      return legacyDestination(row!);
+    };
+    for (const [source, slug] of Object.entries(toCategory)) {
+      expect(destination(source), source).toBe(categoryPath(slug));
+    }
+    for (const [source, path] of Object.entries(toPage)) {
+      expect(destination(source), source).toBe(path);
+    }
+    for (const source of before) {
+      expect(destination(source), source).not.toBeNull();
+    }
+  });
+
   it('el esquema exige exactamente un destino por fila, sin campos desconocidos ni motivos vacíos', () => {
     const load = (...rows: unknown[]) => () => loadLegacyUrls(JSON.stringify({ urls: rows }));
     expect(load({ source: '/x', product: 1 }, { source: '/y', gone: 'motivo', note: 'nota' })).not.toThrow();
