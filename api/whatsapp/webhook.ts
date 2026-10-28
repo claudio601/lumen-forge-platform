@@ -12,11 +12,12 @@ import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/wh
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
-import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
+import { ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { processFlowStep, getFlowState, recordDealOutcome, MSG_MEDIA, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
 import { withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
+import { acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, getPendingWrites, setPendingWrites, MESSAGE_RETRY_WAIT_MS } from '../_lib/whatsapp/stateStore.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
 
@@ -25,7 +26,7 @@ const LOG_PREFIX = '[whatsapp/webhook]';
  * creacion del negocio y la anotacion de lo que respondio Pipedrive de un mensaje terminan antes
  * de que el siguiente mensaje del mismo numero entre al flujo. Sin esto, un "gracias" que llega
  * mientras se crea el negocio no sabe si quedo registrado, y el resultado de un negocio podia
- * quedar anotado en un pedido nuevo. Claude corre antes, fuera de la fila. La espera termina,
+ * quedar anotado en un pedido nuevo. El historial se recupera y Claude corre dentro de la fila. La espera termina,
  * a mas tardar, TURN_WAIT_DEADLINE_MS despues de que empezo este webhook (Twilio espera 15 s):
  * si el mensaje anterior todavia no termina, este sigue igual (flowEngine reintenta el registro).
  */
@@ -49,7 +50,7 @@ async function acquirePhoneTurn(phone: string, maxWaitMs: number): Promise<() =>
     };
 }
 
-type DealResult = { dealId?: number; personId?: number; action: 'created' | 'found' | 'skipped' };
+type DealResult = Awaited<ReturnType<typeof ensureWhatsAppDeal>>;
 
 interface FlowTurnInput {
     phone: string;
@@ -107,7 +108,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
         action: 'skipped',
   };
 
-  if (flowResult.shouldCreateDeal) {
+  if (flowResult.shouldCreateDeal && (!flowResult.rutUpdate || getFlowState(phone).dealId)) {
         try {
                 dealResult = await ensureWhatsAppDeal({
                           phone,
@@ -117,7 +118,9 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           captured: flowResult.captured,
                           captureStatus: flowResult.captureStatus,
                           wantsHuman: flowResult.wantsHuman,
+                          ...(flowResult.rutUpdate ? { existingDealId: getFlowState(phone).dealId } : {}),
                 });
+                if (dealResult.pendingWrite) setPendingWrites(phone, [...getPendingWrites(phone), dealResult.pendingWrite]);
         } catch (err) {
                 console.error(LOG_PREFIX + ' Pipedrive error (non-fatal):', err);
         }
@@ -127,10 +130,15 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   let reply = flowResult.reply;
     if (flowResult.shouldCreateDeal) {
           const registered = (dealResult.action === 'created' || dealResult.action === 'found') && typeof dealResult.dealId === 'number';
-          recordDealOutcome(phone, registered, conversationId);
-          if (!registered) {
-                  console.warn(LOG_PREFIX + ' Negocio no confirmado (' + dealResult.action + ') — respondiendo MSG_DEAL_FAILED');
-                  reply = MSG_DEAL_FAILED;
+          if (flowResult.rutUpdate && !registered) {
+                  // [RUT-VALIDO] El RUT llego despues del cierre: el negocio ya estaba registrado y sigue.
+                  console.warn(LOG_PREFIX + ' RUT posterior al cierre sin confirmar en Pipedrive (' + dealResult.action + ') — el negocio anterior sigue');
+          } else {
+                  recordDealOutcome(phone, registered, conversationId, dealResult.dealId);
+                  if (!registered) {
+                          console.warn(LOG_PREFIX + ' Negocio no confirmado (' + dealResult.action + ') — respondiendo MSG_DEAL_FAILED');
+                          reply = MSG_DEAL_FAILED;
+                  }
           }
     }
 
@@ -195,116 +203,141 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const phone = from.replace('whatsapp:', '');
 
-  if (numMedia > 0 && body.trim().length < 3) {
-        console.log(LOG_PREFIX + ' Media from ' + phone + ' [' + messageSid + ']');
-        res.setHeader('Content-Type', 'text/xml');
-        res.status(200).send(buildTwiML(withPrivacyNotice(phone, MSG_MEDIA, startedAt)));
-        return;
-  }
-
-  if (!body.trim()) {
-        res.setHeader('Content-Type', 'text/xml');
-        res.status(200).send(buildTwiML(withPrivacyNotice(phone, 'Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?', startedAt)));
-        return;
-  }
-
-  // Log de entrada: mensaje recibido + estado previo del flujo
-  const stateIn = getFlowState(phone);
-    console.log(LOG_PREFIX + ' msg from ' + phone + ' [' + messageSid + ']: "' + body.substring(0, 80) + '"');
-    console.log(LOG_PREFIX + ' [QA:in] ' + JSON.stringify({
-          stage: stateIn.stage,
-          leadType: stateIn.leadType,
-          repreg: { s1: stateIn.repreguntasStage1, s2: stateIn.repreguntasStage2, s3: stateIn.repreguntasStage3 },
-          slots_prev: {
-                  producto: stateIn.captured.producto ?? null,
-                  tipo_de_luz: stateIn.captured.tipo_de_luz ?? null,
-                  cantidad: stateIn.captured.cantidad ?? null,
-                  proyecto_o_uso: stateIn.captured.proyecto_o_uso ?? null,
-                  comuna_o_ciudad: stateIn.captured.comuna_o_ciudad ?? null,
-          },
-    }));
-
-  const signals = evaluateLeadSignals(body);
-    const history = getHistory(phone);
-
-  // claudeParsed con tipo explícito alineado a lo que espera processFlowStep
-  let claudeParsed: {
-        producto?: string;
-        tipo_de_luz?: string;
-        cantidad?: string;
-        proyecto_o_uso?: string;
-        comuna_o_ciudad?: string;
-        nombre?: string;
-        empresa?: string;
-        correo?: string;
-        wantsHuman?: boolean;
-        qualifiesForDeal?: boolean;
-  } = {};
-    let claudeSummary = 'Consulta de ' + (profileName || phone) + ': "' + body.substring(0, 80) + '"';
-    let aiSource: 'claude' | 'heuristic' = 'heuristic';
-
-  try {
-        const result = await askClaude(history, body, profileName);
-        claudeParsed = result.parsed;
-        claudeSummary = result.summary;
-        aiSource = 'claude';
-        console.log(LOG_PREFIX + ' Claude ok — wantsHuman: ' + result.parsed.wantsHuman);
-        // Log completo del parsing de Claude para QA
-      console.log(LOG_PREFIX + ' [QA:claude] ' + JSON.stringify({
-              producto: result.parsed.producto ?? null,
-              tipo_de_luz: result.parsed.tipo_de_luz ?? null,
-              cantidad: result.parsed.cantidad ?? null,
-              proyecto_o_uso: result.parsed.proyecto_o_uso ?? null,
-              comuna_o_ciudad: result.parsed.comuna_o_ciudad ?? null,
-              nombre: result.parsed.nombre ?? null,
-              empresa: result.parsed.empresa ?? null,
-              correo: result.parsed.correo ?? null,
-              wantsHuman: result.parsed.wantsHuman,
-              qualifiesForDeal: result.parsed.qualifiesForDeal,
-      }));
-  } catch (err) {
-        console.error(LOG_PREFIX + ' Claude failed (non-fatal — usando heuristica):', err);
-  }
-
-  // [CIERRE-HONESTO] Los mensajes de un numero entran al flujo de a uno (ver acquirePhoneTurn).
-  const releaseTurn = await acquirePhoneTurn(phone, TURN_WAIT_DEADLINE_MS - (Date.now() - startedAt));
-  let turn: Awaited<ReturnType<typeof runFlowTurn>>;
-  try {
-        turn = await runFlowTurn({ phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource });
-  } finally {
-        releaseTurn();
-  }
-  const { flowResult, dealResult, reply } = turn;
-
-  const wantsHuman = flowResult.wantsHuman || signals.wantsHuman;
-    // 'found': el cierre se junto con el negocio abierto del mismo numero (ventana de 7 dias). Avisa
-    // igual que un negocio nuevo: ventas recibe una tarea por cierre, como antes de la deduplicacion.
-    const shouldNotify = dealResult.action === 'created' || dealResult.action === 'found' || wantsHuman;
-
-  if (shouldNotify) {
-        try {
-                await notifyTeam({
-                          phone,
-                          name: profileName || phone,
-                          message: body,
-                          summary: claudeSummary,
-                          dealId: dealResult.dealId,
-                          personId: dealResult.personId,
-                          existingDeal: dealResult.action === 'found',
-                });
-        } catch (err) {
-                console.error(LOG_PREFIX + ' Notify error (non-fatal):', err);
+  const claim = await claimMessage(messageSid, MESSAGE_RETRY_WAIT_MS - (Date.now() - startedAt));
+  if (!claim.proceed) {
+        if (claim.response === undefined) {
+              res.status(503).end();
+              return;
         }
+        res.setHeader('Content-Type', 'text/xml');
+        res.status(200).send(claim.response);
+        return;
   }
 
-  console.log(
-        LOG_PREFIX +
-          ' closed=' + flowResult.closedFlow +
-          ' capture=' + flowResult.captureStatus +
-          ' deal=' + dealResult.action +
-          ' notify=' + shouldNotify,
-      );
+  const releaseTurn = await acquirePhoneTurn(phone, TURN_WAIT_DEADLINE_MS - (Date.now() - startedAt));
+  let distributed: Awaited<ReturnType<typeof acquireConversationLock>> | undefined;
+  try {
+    distributed = await acquireConversationLock(phone, TURN_WAIT_DEADLINE_MS - (Date.now() - startedAt));
+    await loadConversation(phone, distributed.acquired);
+    const pending = [];
+    for (const write of getPendingWrites(phone)) {
+          const remaining = await retryWhatsAppWrite(write);
+          if (remaining) pending.push(remaining);
+    }
+    setPendingWrites(phone, pending);
 
-  res.setHeader('Content-Type', 'text/xml');
-    res.status(200).send(buildTwiML(withPrivacyNotice(phone, reply, startedAt)));
+    async function respond(reply: string): Promise<void> {
+          res.setHeader('Content-Type', 'text/xml');
+          const xml = buildTwiML(withPrivacyNotice(phone, reply, startedAt));
+          await persistConversation(phone);
+          await completeMessage(messageSid, xml);
+          res.status(200).send(xml);
+    }
+
+    if (numMedia > 0 && body.trim().length < 3) {
+          console.log(LOG_PREFIX + ' Media from ' + phone + ' [' + messageSid + ']');
+          await respond(MSG_MEDIA);
+          return;
+    }
+
+    if (!body.trim()) {
+          await respond('Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?');
+          return;
+    }
+
+    // Log de entrada: mensaje recibido + estado previo del flujo
+    const stateIn = getFlowState(phone);
+      console.log(LOG_PREFIX + ' msg from ' + phone + ' [' + messageSid + ']: "' + body.substring(0, 80) + '"');
+      console.log(LOG_PREFIX + ' [QA:in] ' + JSON.stringify({
+            stage: stateIn.stage,
+            leadType: stateIn.leadType,
+            repreg: { s1: stateIn.repreguntasStage1, s2: stateIn.repreguntasStage2, s3: stateIn.repreguntasStage3 },
+            slots_prev: {
+                    producto: stateIn.captured.producto ?? null,
+                    tipo_de_luz: stateIn.captured.tipo_de_luz ?? null,
+                    cantidad: stateIn.captured.cantidad ?? null,
+                    proyecto_o_uso: stateIn.captured.proyecto_o_uso ?? null,
+                    comuna_o_ciudad: stateIn.captured.comuna_o_ciudad ?? null,
+            },
+      }));
+
+    const signals = evaluateLeadSignals(body);
+      const history = getHistory(phone);
+
+    // claudeParsed con tipo explícito alineado a lo que espera processFlowStep
+    let claudeParsed: {
+          producto?: string;
+          tipo_de_luz?: string;
+          cantidad?: string;
+          proyecto_o_uso?: string;
+          comuna_o_ciudad?: string;
+          nombre?: string;
+          empresa?: string;
+          correo?: string;
+          wantsHuman?: boolean;
+          qualifiesForDeal?: boolean;
+    } = {};
+      let claudeSummary = 'Consulta de ' + (profileName || phone) + ': "' + body.substring(0, 80) + '"';
+      let aiSource: 'claude' | 'heuristic' = 'heuristic';
+
+    try {
+          const result = await askClaude(history, body, profileName);
+          claudeParsed = result.parsed;
+          claudeSummary = result.summary;
+          aiSource = 'claude';
+          console.log(LOG_PREFIX + ' Claude ok — wantsHuman: ' + result.parsed.wantsHuman);
+          // Log completo del parsing de Claude para QA
+        console.log(LOG_PREFIX + ' [QA:claude] ' + JSON.stringify({
+                producto: result.parsed.producto ?? null,
+                tipo_de_luz: result.parsed.tipo_de_luz ?? null,
+                cantidad: result.parsed.cantidad ?? null,
+                proyecto_o_uso: result.parsed.proyecto_o_uso ?? null,
+                comuna_o_ciudad: result.parsed.comuna_o_ciudad ?? null,
+                nombre: result.parsed.nombre ?? null,
+                empresa: result.parsed.empresa ?? null,
+                correo: result.parsed.correo ?? null,
+                wantsHuman: result.parsed.wantsHuman,
+                qualifiesForDeal: result.parsed.qualifiesForDeal,
+        }));
+    } catch (err) {
+          console.error(LOG_PREFIX + ' Claude failed (non-fatal — usando heuristica):', err);
+    }
+
+    const turn = await runFlowTurn({ phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource });
+    const { flowResult, dealResult, reply } = turn;
+
+    const wantsHuman = flowResult.wantsHuman || signals.wantsHuman;
+      // 'found': el cierre se junto con el negocio abierto del mismo numero (ventana de 7 dias). Avisa
+      // igual que un negocio nuevo: ventas recibe una tarea por cierre, como antes de la deduplicacion.
+      const shouldNotify = dealResult.action === 'created' || dealResult.action === 'found' || wantsHuman;
+
+    if (shouldNotify) {
+          try {
+                  await notifyTeam({
+                            phone,
+                            name: profileName || phone,
+                            message: body,
+                            summary: claudeSummary,
+                            dealId: dealResult.dealId,
+                            personId: dealResult.personId,
+                            existingDeal: dealResult.action === 'found',
+                  });
+          } catch (err) {
+                  console.error(LOG_PREFIX + ' Notify error (non-fatal):', err);
+          }
+    }
+
+    console.log(
+          LOG_PREFIX +
+            ' closed=' + flowResult.closedFlow +
+            ' capture=' + flowResult.captureStatus +
+            ' deal=' + dealResult.action +
+            ' notify=' + shouldNotify,
+        );
+
+    await respond(reply);
+  } finally {
+        try { await distributed?.release(); }
+        finally { releaseTurn(); }
+  }
 }

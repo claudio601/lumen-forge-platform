@@ -9,6 +9,8 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Otro dominio garantiza que el correo y la nota siguen la configuración compartida.
+vi.mock('../_lib/site.js', () => ({ SITE_URL: 'https://sitio.example' }));
 vi.mock('../_lib/pipedrive/persons.js', () => ({ findOrCreatePerson: vi.fn() }));
 vi.mock('../_lib/pipedrive/organizations.js', () => ({ findOrCreateOrganization: vi.fn() }));
 vi.mock('../_lib/pipedrive/deals.js', () => ({ createDeal: vi.fn() }));
@@ -203,6 +205,13 @@ describe('POST /api/project-quotes/create', () => {
     expect(note.content).not.toContain('(no indicado)');
   });
 
+  it.each(['created', 'skipped_duplicate'] as const)('la nota de Pipedrive usa SITE_URL en el enlace al cotizador (%s)', async (status) => {
+    vi.mocked(createDeal).mockResolvedValue({ dealId: 999, status });
+    await call(base);
+    const [note] = notes();
+    expect(note.content.split('\n')).toContain(`=== COTIZADOR DE PROYECTO (${SITE_URL}/cotizador) ===`);
+  });
+
   it('los opcionales vacíos dicen "(no indicado)" en la nota', async () => {
     await call({ ...base, aplicacion: '', ciudad: '   ', altura: null });
     const [note] = notes();
@@ -280,7 +289,6 @@ describe('POST /api/project-quotes/create', () => {
       total: '-',
     });
     expect(mail.items_lista.split('\n')[0]).toBe(`Cotizador de proyecto ${reference} (${SITE_URL}/cotizador)`);
-    expect(notes()[0].content).toContain(`=== COTIZADOR DE PROYECTO (${SITE_URL}/cotizador) ===`);
     expect(mail.items_lista).toContain('Tipo de proyecto: Bodega');
     expect(mail.items_lista).toContain('m2 aproximados: 1200');
     for (const key of ['razon_social', 'rut_empresa', 'giro', 'direccion', 'comentarios']) {

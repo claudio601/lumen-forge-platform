@@ -26,6 +26,12 @@ vi.mock('../idempotency/redis.js', () => ({
   readMapping: vi.fn(),
   writeMapping: vi.fn().mockResolvedValue({ ok: true }),
   releaseLock: vi.fn().mockResolvedValue(undefined),
+  acquireQuoteReferenceLock: vi.fn().mockResolvedValue({ acquired: true }),
+  releaseQuoteReferenceLock: vi.fn().mockResolvedValue(undefined),
+  readQuoteReferenceMapping: vi.fn().mockResolvedValue({ ok: true, dealId: null }),
+  writeQuoteReferenceMapping: vi.fn().mockResolvedValue({ ok: true }),
+  QUOTE_LOCK_TTL_MS: 60_000,
+  LOCK_RETRY_CHECK_MS: 300,
 }));
 
 import { pipedriveGet, pipedrivePost, pipedrivePut } from '../pipedrive/client.js';

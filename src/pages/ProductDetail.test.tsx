@@ -29,6 +29,20 @@ function renderPdp(id: string) {
   );
 }
 
+describe('ProductDetail: fichas PDF BESTLED', () => {
+  it.each([40, 60, 90, 120, 150, 200, 250])('BESTLED %iW: enlace relativo al PDF con descarga y apertura en otra pestaña', (watts) => {
+    renderPdp(`alumbrado-publico-bestled-${watts}w-ip66-ik08`);
+    const link = screen.getByRole('link', { name: 'Ficha técnica' });
+    expect(link).toHaveAttribute('href', `/fichas/APB${watts}.pdf`);
+    expect(link).toHaveAttribute('download');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    // Desde una ficha anidada y con otro dominio, el PDF se resuelve en la raíz del mismo sitio.
+    expect(new URL(link.getAttribute('href')!, `https://sitio.example/producto/bestled-${watts}`).href)
+      .toBe(`https://sitio.example/fichas/APB${watts}.pdf`);
+  });
+});
+
 describe('ProductDetail: modelo cotización, nunca stock', () => {
   beforeEach(() => sessionStorage.clear());
 

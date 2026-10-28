@@ -3,6 +3,8 @@
 // Used to prevent duplicate deal creation when Jumpseller fires parallel
 // or repeated webhooks for the same order.
 
+import { createHash } from 'node:crypto';
+
 const LOG_PREFIX = '[idempotency/redis]';
 
 // TTLs
@@ -30,17 +32,34 @@ function getRedisConfig(): { url: string; token: string } | null {
 async function redisCommand<T>(
   ...args: (string | number)[]
 ): Promise<{ ok: true; result: T } | { ok: false; unavailable: boolean; error: string }> {
+  return sendRedisCommand<T>(args, false);
+}
+
+/** JSON por POST: los historiales y respuestas no van en la URL de Upstash. */
+export async function redisJsonCommand<T>(...args: (string | number)[]) {
+  return sendRedisCommand<T>(args, true);
+}
+
+/** Comando JSON cuyo tiempo de red respeta el presupuesto restante del candado. */
+export async function redisJsonCommandWithTimeout<T>(timeoutMs: number, ...args: (string | number)[]) {
+  return sendRedisCommand<T>(args, true, Math.max(1, Math.ceil(timeoutMs)));
+}
+
+async function sendRedisCommand<T>(args: (string | number)[], jsonBody: boolean, timeoutMs?: number): Promise<
+  { ok: true; result: T } | { ok: false; unavailable: boolean; error: string }
+> {
   const cfg = getRedisConfig();
   if (!cfg) {
     return { ok: false, unavailable: true, error: 'UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not configured' };
   }
 
-  const url = `${cfg.url}/${args.map(encodeURIComponent).join('/')}`;
+  const url = jsonBody ? cfg.url : `${cfg.url}/${args.map(encodeURIComponent).join('/')}`;
   try {
     const res = await fetch(url, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${cfg.token}` },
-      signal: AbortSignal.timeout(5000),
+      method: jsonBody ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${cfg.token}`, ...(jsonBody ? { 'Content-Type': 'application/json' } : {}) },
+      ...(jsonBody ? { body: JSON.stringify(args) } : {}),
+      signal: AbortSignal.timeout(timeoutMs ?? (jsonBody ? 800 : 5000)),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -430,4 +449,76 @@ export async function writeCounter(key: string, value: number, ttlSeconds: numbe
   const res = await redisCommand<string>('SET', key, Math.trunc(value), 'EX', Math.trunc(ttlSeconds));
   if (res.ok === false) return { ok: false, error: res.error };
   return { ok: true, value: Math.trunc(value) };
+}
+
+// --- Quote reference locks (non-Jumpseller: callers fail open on Redis errors) ---
+// Dedup budget (20 s), Redis reads/writes and deal POST (15 s) fit within this lease.
+export const QUOTE_LOCK_TTL_MS = 60_000;
+export const QUOTE_MAPPING_TTL_S = 10 * 60;
+
+function quoteReferenceKeySuffix(quoteReference: string, pipelineId: number): string {
+  // WhatsApp references contain phone numbers; never store them in Redis keys.
+  const referenceHash = createHash('sha256').update(quoteReference).digest('hex');
+  return `${pipelineId}:${referenceHash}`;
+}
+
+export function quoteReferenceLockKey(quoteReference: string, pipelineId: number): string {
+  return `lock:quote-reference:${quoteReferenceKeySuffix(quoteReference, pipelineId)}`;
+}
+
+export function quoteReferenceMappingKey(quoteReference: string, pipelineId: number): string {
+  return `idempotency:quote-reference:${quoteReferenceKeySuffix(quoteReference, pipelineId)}`;
+}
+
+/** Short bridge over Pipedrive search indexing lag. Read under the reference lock. */
+export async function readQuoteReferenceMapping(
+  quoteReference: string,
+  pipelineId: number
+): Promise<{ ok: true; dealId: number | null } | { ok: false; error: string }> {
+  const res = await redisCommand<string | null>('GET', quoteReferenceMappingKey(quoteReference, pipelineId));
+  if (res.ok === false) return { ok: false, error: res.error };
+  if (res.result === null) return { ok: true, dealId: null };
+  const dealId = Number(res.result);
+  if (!Number.isSafeInteger(dealId) || dealId <= 0) return { ok: false, error: 'Invalid quote mapping dealId' };
+  return { ok: true, dealId };
+}
+
+/** Save before releasing the lock; a Redis failure must not fail an already created deal. */
+export async function writeQuoteReferenceMapping(
+  quoteReference: string,
+  pipelineId: number,
+  dealId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await redisCommand<string>(
+    'SET', quoteReferenceMappingKey(quoteReference, pipelineId), dealId, 'EX', QUOTE_MAPPING_TTL_S
+  );
+  if (res.ok === false) return { ok: false, error: res.error };
+  return { ok: true };
+}
+
+export async function acquireQuoteReferenceLock(
+  quoteReference: string,
+  pipelineId: number,
+  lockValue: string
+): Promise<{ acquired: boolean } | { unavailable: true; error: string }> {
+  const res = await redisCommand<string | null>(
+    'SET', quoteReferenceLockKey(quoteReference, pipelineId), lockValue, 'NX', 'PX', QUOTE_LOCK_TTL_MS
+  );
+  // All Redis errors mean unavailable here, including HTTP/auth errors.
+  if (res.ok === false) return { unavailable: true, error: res.error };
+  return { acquired: res.result === 'OK' };
+}
+
+export async function releaseQuoteReferenceLock(
+  quoteReference: string,
+  pipelineId: number,
+  lockValue: string
+): Promise<void> {
+  const script = `if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end`;
+  const res = await redisCommand<number>(
+    'EVAL', script, '1', quoteReferenceLockKey(quoteReference, pipelineId), lockValue
+  );
+  if (res.ok === false) {
+    console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_release_failed', pipelineId, error: res.error }));
+  }
 }
