@@ -93,6 +93,8 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.9 (transportistas): la Política §5 nombra la lista de transportistas del dueño; las casillas
   // no cambian.
   '1.9': CONSENT_TEXTS_SINCE_1_2,
+  // 1.10: conversación en Upstash y RUT de la empresa; las casillas siguen iguales.
+  '1.10': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

@@ -1,5 +1,8 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui — la regla real vive en webhook.ts.
+import { inspectRut, isBusinessRut } from './rutCapture.js';
+import type { RutFound, RutTipo } from './rutCapture.js';
+
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
 export type CaptureStatus = 'complete' | 'partial' | 'incomplete';
 export type LeadType = 'B2B' | 'B2C' | 'Unknown';
@@ -12,7 +15,12 @@ export interface CapturedFields {
   comuna_o_ciudad?: string;
   nombre_o_empresa?: string;
   correo?: string;
-  rut_empresa?: string;
+  // [RUT-VALIDO] RUT con formato NN.NNN.NNN-D (rutCapture.ts). rut_valido: calza el digito
+  // verificador; rut_tipo, solo si es valido. Antes era rut_empresa, sin validar.
+  rut?: string;
+  rut_valido?: boolean;
+  rut_tipo?: RutTipo;
+  rut_ambiguos?: string[];
   // Campos especificos para instalacion
   install_nombre?: string;
   install_correo?: string;
@@ -39,6 +47,12 @@ export interface FlowState {
   // [CIERRE-HONESTO] Resultado del negocio en Pipedrive, segun la respuesta de Pipedrive que
   // anota webhook.ts (recordDealOutcome). Sin valor: no se intento crear.
   deal?: 'registered' | 'failed';
+  dealId?: number;
+  // [RUT-VALIDO] Ya se pidio de nuevo un RUT cuyo digito verificador no calzaba (se pide una vez).
+  rutRetryAsked?: boolean;
+  // [RUT-VALIDO] La ultima respuesta del bot pidio el RUT (la etapa 3 de una empresa o la
+  // repregunta): solo el mensaje que la contesta puede traer el numero solo, sin guion.
+  rutAskedLast?: boolean;
 }
 
 export interface FlowResult {
@@ -49,6 +63,9 @@ export interface FlowResult {
   captured: CapturedFields;
   wantsHuman: boolean;
   closedFlow: boolean;
+  // [RUT-VALIDO] Un RUT que llega despues del cierre se suma a un negocio ya registrado: si
+  // Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no lo marca como fallido).
+  rutUpdate?: boolean;
 }
 
 // [COPY-v3] Mensaje inicial
@@ -87,6 +104,9 @@ export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, nec
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
 // (o el paso del flujo fallo): nunca se dice "quedo registrada".
 export const MSG_DEAL_FAILED = 'No pude registrar tu solicitud por un problema t\u00e9cnico. Por favor, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
+// [RUT-VALIDO] El RUT no calza con su digito verificador: se pide de nuevo, una sola vez.
+// Texto aprobado por el dueno (2026-10-26).
+export const MSG_RUT_INVALID = 'El RUT que me enviaste no calza con su d\u00edgito verificador. \u00bfMe lo escribes de nuevo, con guion y d\u00edgito verificador? Por ejemplo: 12.345.678-5.';
 export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
 // [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio
 // Activa el flujo de captura de lead para instalacion antes de cualquier derivacion
@@ -125,7 +145,6 @@ const CANTIDAD_RE = /\b(\d+)\s*(unidades?|und\.?|u\b|lumin|panel|foco|reflector|
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
 const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
 const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
-const RUT_RE = /\b\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK]\b/;
 
 // NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE — no es señal B2B por si sola
 const B2B_SIGNAL_RE = /empresa|factura|obra|proveedor|licitaci[o\u00f3]n|constructora|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
@@ -268,14 +287,14 @@ export function saveFlowState(phone: string, state: FlowState): void {
  * `conversationId` es el firstMessageAt de la conversacion que pidio el negocio: si mientras tanto
  * empezo otra (un pedido nuevo), el resultado no se anota en la nueva.
  */
-export function recordDealOutcome(phone: string, registered: boolean, conversationId?: number): void {
+export function recordDealOutcome(phone: string, registered: boolean, conversationId?: number, dealId?: number): void {
   const state = flowStates.get(phone);
   if (!state) return;
   if (conversationId !== undefined && state.firstMessageAt !== conversationId) {
     console.log('[flowEngine] resultado del negocio de otra conversacion — no se anota');
     return;
   }
-  saveFlowState(phone, { ...state, deal: registered ? 'registered' : 'failed' });
+  saveFlowState(phone, { ...state, deal: registered ? 'registered' : 'failed', ...(registered && dealId ? { dealId } : {}) });
 }
 
 export function clearFlowState(phone: string): void {
@@ -393,16 +412,49 @@ type ClaudeFields = {
   qualifiesForDeal?: boolean;
 };
 
+/**
+ * [RUT-VALIDO] El ultimo mensaje del bot pidio el RUT: la etapa 3 de una empresa sin RUT, o la
+ * repregunta de un RUT que no calzaba. Solo entonces vale el numero sin guion ni la palabra "RUT".
+ */
+function rutAsked(state: FlowState): boolean {
+  return Boolean(state.rutAskedLast);
+}
+
+/** [RUT-VALIDO] La respuesta pide el RUT: MSG3_B2B, la repregunta por el RUT o MSG_RUT_INVALID. */
+function asksForRut(reply: string): boolean {
+  return reply === MSG_RUT_INVALID || reply.includes('RUT de la empresa');
+}
+
+/**
+ * [RUT-VALIDO] El RUT que reemplaza al capturado, o undefined. Un RUT valido no se reemplaza,
+ * salvo uno de persona por uno valido de empresa (B12: "personales en vez de empresa"); uno que
+ * no calza, si (por el corregido).
+ */
+function acceptedRut(current: CapturedFields, found: RutFound | undefined): RutFound | undefined {
+  if (!found || !current.rut_valido) return found;
+  return current.rut_tipo === 'persona' && isBusinessRut(found) ? found : undefined;
+}
+
 // PASO 1: MERGE de los campos del flujo de productos (sin cambios de reglas; ver B3/B4 en la PR 2).
+// [RUT-VALIDO] rutToConfirm: llego un RUT que no calza y todavia no se pidio de nuevo.
 function mergeProductFields(
   state: FlowState,
   body: string,
   claudeParsed: ClaudeFields,
-): { merged: CapturedFields; leadType: LeadType } {
+): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean } {
   const merged: CapturedFields = { ...state.captured };
+  const inspected = inspectRut(body, { asked: rutAsked(state) });
+  const ruts = inspected.found ? [inspected.found.rut] : inspected.ambiguous ?? [];
+  // La respuesta al pedido de RUT no pisa la cantidad que ya se habia reunido.
+  const quantityBody = ruts.reduce((text, rut) => text.replace(
+    new RegExp(rut.replace(/[.-]/g, '').split('').join('[., \u00a0‐‑‒–—−-]*'), 'gi'), ' ',
+  ), body);
+  const quantity = claudeParsed.cantidad;
+  const quantityIsRut = typeof quantity === 'string' && ruts.some((rut) =>
+    rut.replace(/[.-]/g, '') === quantity.replace(/[.\s-]/g, '').toUpperCase());
   if (claudeParsed.producto) { merged.producto = claudeParsed.producto; } else if (!merged.producto) { const prod = extractProducto(body); if (prod) merged.producto = prod; }
   if (claudeParsed.tipo_de_luz) { merged.tipo_de_luz = claudeParsed.tipo_de_luz; } else if (hasLuzInfo(body)) { const luzMatch = body.match(LUZ_RE); merged.tipo_de_luz = luzMatch ? normalizeLuz(luzMatch[0]) : extractSnippet(body, 40); }
-  if (claudeParsed.cantidad) { merged.cantidad = claudeParsed.cantidad; } else if (hasCantidadInfo(body)) { const m = body.match(CANTIDAD_RE); merged.cantidad = m ? m[0].trim() : extractSnippet(body, 30); }
+  if (quantity && !quantityIsRut) { merged.cantidad = quantity; } else if (hasCantidadInfo(quantityBody)) { const m = quantityBody.match(CANTIDAD_RE); merged.cantidad = m ? m[0].trim() : extractSnippet(quantityBody, 30); }
   if (claudeParsed.proyecto_o_uso) { merged.proyecto_o_uso = claudeParsed.proyecto_o_uso; } else if (!merged.proyecto_o_uso) { const proy = extractProyecto(body); if (proy) merged.proyecto_o_uso = proy; }
   if (claudeParsed.comuna_o_ciudad) { merged.comuna_o_ciudad = claudeParsed.comuna_o_ciudad; } else if (!merged.comuna_o_ciudad) { const ciudad = extractCiudad(body); if (ciudad) merged.comuna_o_ciudad = ciudad; }
   const nombreClaud = claudeParsed.nombre ?? claudeParsed.empresa;
@@ -411,17 +463,27 @@ function mergeProductFields(
   // [CIERRE-HONESTO] el de Claude solo si es texto con forma de correo (una lista hacia caer el webhook)
   const correoFound = emailFrom(claudeParsed.correo) ?? extractEmail(body);
   if (correoFound) merged.correo = correoFound;
-  const rutMatch = body.match(RUT_RE);
-  if (rutMatch) merged.rut_empresa = rutMatch[0];
+  // [RUT-VALIDO] Un RUT valido no se reemplaza (salvo el de persona por el de empresa); uno que
+  // no calza, si (por el corregido).
+  if (inspected.ambiguous) merged.rut_ambiguos = inspected.ambiguous;
+  const rutFound = acceptedRut(merged, inspected.found);
+  if (rutFound) {
+    delete merged.rut_ambiguos;
+    merged.rut = rutFound.rut;
+    merged.rut_valido = rutFound.valido;
+    if (rutFound.tipo) merged.rut_tipo = rutFound.tipo;
+    else delete merged.rut_tipo;
+  }
 
   // Calcular leadType — instalacion NO es señal B2B
+  // [RUT-VALIDO] Solo un RUT valido de empresa es senal B2B (uno de persona, no).
   let leadType: LeadType = state.leadType;
   if (leadType !== 'B2B') {
-    const isB2BSignal = B2B_SIGNAL_RE.test(body) || Boolean(rutMatch) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
+    const isB2BSignal = B2B_SIGNAL_RE.test(body) || isBusinessRut(rutFound) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
     if (isB2BSignal) { leadType = 'B2B'; }
     else if (leadType === 'Unknown' && body.trim().length > 10) { leadType = 'B2C'; }
   }
-  return { merged, leadType };
+  return { merged, leadType, rutToConfirm: Boolean(rutFound && !rutFound.valido && !state.rutRetryAsked) };
 }
 
 /**
@@ -448,7 +510,46 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
   return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true };
 }
 
+/**
+ * [RUT-VALIDO] Conversacion cerrada con el negocio registrado: un RUT valido que llega despues (el
+ * corregido tras la repregunta, el que falto o el de la empresa en vez del personal) se suma al
+ * negocio. webhook.ts usa el dealId guardado, aunque ya este ganado o perdido: nota
+ * con el RUT y tarea para ventas. La respuesta es la misma de la conversacion cerrada.
+ */
+function lateRut(phone: string, state: FlowState, body: string): FlowResult | undefined {
+  if (state.isInstallFlow) return undefined;
+  const inspected = inspectRut(body, { asked: rutAsked(state) });
+  if (inspected.ambiguous) {
+    const captured = { ...state.captured, rut_ambiguos: inspected.ambiguous };
+    saveFlowState(phone, { ...state, captured });
+    return { reply: registeredClosing(state), shouldCreateDeal: true, shouldNotify: false, captureStatus: state.captureStatus, captured, wantsHuman: state.wantsHuman, closedFlow: true, rutUpdate: true };
+  }
+  const found = acceptedRut(state.captured, inspected.found);
+  if (!found?.valido) return undefined;
+  const captured: CapturedFields = { ...state.captured, rut: found.rut, rut_valido: true, rut_tipo: found.tipo };
+  delete captured.rut_ambiguos;
+  const leadType: LeadType = isBusinessRut(found) ? 'B2B' : state.leadType;
+  const captureStatus = computeCaptureStatus(captured, leadType);
+  const next: FlowState = { ...state, captured, captureStatus, leadType };
+  saveFlowState(phone, next);
+  console.log('[flowEngine] RUT valido despues del cierre — se suma al negocio registrado');
+  return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+}
+
 export function processFlowStep(
+  phone: string,
+  body: string,
+  claudeParsed: ClaudeFields,
+  signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
+): FlowResult {
+  const result = flowStep(phone, body, claudeParsed, signals);
+  // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
+  const state = flowStates.get(phone);
+  if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply) });
+  return result;
+}
+
+function flowStep(
   phone: string,
   body: string,
   claudeParsed: ClaudeFields,
@@ -457,13 +558,16 @@ export function processFlowStep(
   const state = getFlowState(phone);
 
   if (state.stage === 'closed') {
-    const newRequest = looksLikeNewRequest(body) || INSTALL_INTENT_RE.test(body);
+    const correctingRut = state.deal === 'registered' && /\brut\b/i.test(body) && /\b(?:corregir|corrijo|correcci[oó]n|correcto|actualizar|cambiar|cambio|modificar)\b/i.test(body);
+    const newRequest = !correctingRut && (looksLikeNewRequest(body) || INSTALL_INTENT_RE.test(body));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
     if (!state.deal && (!newRequest || messageEmail(body, claudeParsed))) {
       return continueClosedWithoutDeal(phone, state, body, claudeParsed);
     }
     if (!newRequest) {
+      const late = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
+      if (late) return late;
       return {
         reply: closedReply(state),
         shouldCreateDeal: false,
@@ -476,7 +580,7 @@ export function processFlowStep(
     }
     console.log('[flowEngine] nuevo requerimiento, reset para: ' + body.substring(0, 60));
     clearFlowState(phone);
-    return processFlowStep(phone, body, claudeParsed, signals);
+    return flowStep(phone, body, claudeParsed, signals);
   }
 
   // [EXECUTIVE-RE] Guard
@@ -569,7 +673,7 @@ export function processFlowStep(
   }
 
   // PASO 1: MERGE
-  const { merged, leadType: currentLeadType } = mergeProductFields(state, body, claudeParsed);
+  const { merged, leadType: currentLeadType, rutToConfirm } = mergeProductFields(state, body, claudeParsed);
 
   // [FIX-PRIORITY] PASO 2: wantsHuman path — REQUIERE correo antes de derivar
   // [FIX-EMAIL-GATE] Si el usuario quiere ejecutivo pero no tiene correo, pedirlo primero
@@ -591,6 +695,14 @@ export function processFlowStep(
       return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: merged, wantsHuman: true, closedFlow: false };
     }
   }
+  // [RUT-VALIDO] Un RUT que no calza se pide de nuevo una sola vez, en la etapa en que estaba. Si
+  // llega otra vez sin calzar, queda marcado como invalido y el flujo sigue.
+  if (rutToConfirm) {
+    saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType, rutRetryAsked: true });
+    console.log('[flowEngine] RUT con digito verificador que no calza — se pide de nuevo una vez');
+    return { reply: MSG_RUT_INVALID, shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false };
+  }
+
   // PASO 3: AVANCE MULTI-STAGE
   let repreg1 = state.repreguntasStage1;
   let repreg2 = state.repreguntasStage2;
@@ -684,7 +796,7 @@ function missingStage2(f: CapturedFields): string[] {
 function missingStage3(f: CapturedFields, leadType: LeadType): string[] {
   const m: string[] = [];
   if (leadType === 'B2B') {
-    if (!f.rut_empresa) m.push('RUT de la empresa');
+    if (!f.rut) m.push('RUT de la empresa');
     if (!f.correo) m.push('correo de contacto');
   } else {
     if (!f.nombre_o_empresa) m.push('nombre');
@@ -740,7 +852,7 @@ function computeInstallCaptureStatus(f: CapturedFields): CaptureStatus {
 }
 
 function computeCaptureStatus(f: CapturedFields, leadType: LeadType = 'Unknown'): CaptureStatus {
-  const contactOk = leadType === 'B2B' ? Boolean(f.rut_empresa && f.correo) : Boolean(f.nombre_o_empresa && f.correo);
+  const contactOk = leadType === 'B2B' ? Boolean(f.rut && f.rut_valido && f.correo) : Boolean(f.nombre_o_empresa && f.correo);
   const baseFields = [f.producto, f.tipo_de_luz, f.cantidad, f.proyecto_o_uso, f.comuna_o_ciudad];
   const baseFilled = baseFields.filter(Boolean).length;
   if (baseFilled >= 5 && contactOk) return 'complete';

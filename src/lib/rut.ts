@@ -6,6 +6,8 @@
 // solicitud por el RUT (perder un lead es peor): api/quotes/create.ts solo lo exige presente
 // y api/request-orders/create.ts lo acepta opcional, tal como llega.
 
+import { rutCheckDigit } from '../../api/_lib/rut';
+
 /**
  * Caracteres que puede traer un RUT escrito a mano: dígitos, K y separadores (también los
  * guiones tipográficos del celular y el signo menos U+2212 de un RUT copiado de un PDF).
@@ -33,19 +35,8 @@ export function cleanRut(input: string): string {
   return input.replace(/[^0-9kK]/g, '').toUpperCase().replace(/^0+/, '');
 }
 
-/** Dígito verificador (módulo 11) de un cuerpo de solo dígitos: '0' a '9' o 'K'. */
-export function rutCheckDigit(body: string): string {
-  let sum = 0;
-  let factor = 2;
-  for (let i = body.length - 1; i >= 0; i--) {
-    sum += Number(body[i]) * factor;
-    factor = factor === 7 ? 2 : factor + 1;
-  }
-  const rest = 11 - (sum % 11);
-  if (rest === 11) return '0';
-  if (rest === 10) return 'K';
-  return String(rest);
-}
+/** Dígito verificador (módulo 11). Una sola fuente, en api/_lib/rut.ts (también la usa el bot). */
+export { rutCheckDigit };
 
 /**
  * Formato de presentación: "111111111" o "11.111.111-1" → "11.111.111-1"; la k pasa a K.
