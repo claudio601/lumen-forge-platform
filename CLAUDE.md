@@ -260,17 +260,21 @@ Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
     - Guardas de `vercel-config.test.ts`: fuente literal con la gramática estricta; compilada con el `path-to-regexp` de Vercel (6.1.0 y 6.3.0, fijados en devDependencies), sin parámetros; sin duplicados al normalizar mayúsculas, codificación y barra final; ningún primer segmento reservado (`RESERVED_FIRST_SEGMENTS` en `build.ts`: api, producto, catalogo, la app (también las páginas legales de la PR 12), `public/`, la build y las rutas de sistema de Jumpseller); una URL que la app sirve es `served`; destinos prerenderizados o `/buscar`; sin cadenas ni bucles.
     - `check:prerender` bloquea si una fuente tapa un archivo de `dist/` o si falta la página de un destino de categoría o página fija; avisa, sin bloquear, de los 301 a productos no publicados y de los permalinks publicados sin fila.
     - Compuerta de la Etapa 3: ninguna fila `pending`; el sitemap vivo de elights.cl no tiene URLs fuera del archivo; y `npm run smoke -- <url> --legacy` pasa después del cambio de dominio.
-- **Chequeo de humo** (`npm run smoke -- <url> [--all] [--compare https://nuevo.elights.cl] [--json reports/smoke/x.json]`, o `npm run smoke -- <url> --legacy`). Solo hace GET y nunca sigue redirecciones; los webhooks responden 405 antes de procesar nada.
+- **Chequeo de humo** (`npm run smoke -- <url> [--all] [--compare https://nuevo.elights.cl] [--expected-origin <origen>] [--json reports/smoke/x.json]`, o `npm run smoke -- <url> --legacy [--expected-origin <origen>]`). Solo hace GET y nunca sigue redirecciones; los webhooks responden 405 antes de procesar nada.
   - Se corre en cada preview, comparando con producción, y después de cada merge (con `--all`: todas las páginas del sitemap y sus assets).
   - Juzga cada fila según su tipo:
-    - página: 200 con canonical y sin noindex;
+    - página: 200 con canonical y `og:url` iguales al origen público esperado más su ruta, sin noindex en el HTML. El origen por defecto es `SITE_URL`; `--expected-origin https://elights.cl` permite comprobar previews y el día del cambio sin aceptar el host de preview como canonical;
     - spa: 200 con noindex;
     - 404: estado 404, noindex y la marca de 404.html;
-    - `/carro`: 307 a `/solicitar-pedido`;
+    - `/carro`, `/carro/` y `/carro?origen=prueba`: 307 a `/solicitar-pedido`, conservando la consulta. En toda redirección, `Location` debe permanecer en el origen consultado (también si es absoluto), con ruta y consulta exactas y sin fragmento;
+    - rutas de sistema de Jumpseller: `/cart`, `/checkout`, `/customer`, `/orders`, `/admin`, `/attachments` y `/quote`: 404 real. Es la respuesta de hoy: si el dueño decide otro destino, se cambia la fila a propósito;
+    - página actual con barra final (`/catalogo/`): 200 con canonical y `og:url` de `/catalogo`; con mayúscula (`/Catalogo`): 404 real;
     - ids renombrados (2, con y sin barra final y con `?gclid=smoke`): 301 al id vigente, conservando la consulta. Antes del merge, producción todavía responde 200 en esas URLs: con `--compare` no cuenta (solo compara `api/` y archivos);
     - URLs de elights.cl (PR 08, destino tomado de `legacy-urls.json`): una ficha con `?gclid=smoke`, `/campana_led` con y sin barra final, fichas renombradas con `%C3%BA`, coma y puntos, `/home` y `/search?q=panel` (→ `/buscar?q=panel`): 301; `/producto-test-checkout` y `/blog`: 404. Antes del merge, producción responde 404 en las que redirigen;
-    - archivo: 200 y no HTML;
+    - archivo: 200 y no HTML. `sitemap.xml`: tipo XML, `urlset` válido y todas las URLs indexables del repo, sin faltantes, extras ni duplicados, en el origen público esperado; `--all` valida el contenido antes de extraer rutas. `robots.txt`: texto con `User-agent: *`, `Allow: /`, `Disallow: /api/` y un solo `Sitemap: <origen esperado>/sitemap.xml`;
     - `api/`: 405.
+  - Cabecera HTTP: `X-Robots-Tag: noindex` obligatoria en `nuevo.elights.cl` fuera de `/api` y `/api/…`; prohibida en páginas indexables de `elights.cl` y `www.elights.cl`. Las previews conservan la política anterior: no se exige ni se prohíbe esa cabecera.
+  - Día del cambio: `npm run smoke -- https://elights.cl --all --expected-origin https://elights.cl` y, por separado, `npm run smoke -- https://elights.cl --legacy --expected-origin https://elights.cl`; comprobar también `nuevo` con el mismo origen SEO esperado.
   - También falla si una función de `api/` o un archivo cambia de estado o de tipo frente a la base comparada.
   - Las vistas previas piden inicio de sesión en Vercel. El chequeo marca ese 302 como falla, en vez de darlo por bueno.
   - Para correrlo en una vista previa, el dueño puede crear el secreto "Protection Bypass for Automation" y dejarlo en `VERCEL_AUTOMATION_BYPASS_SECRET` (`.env.local`). Si no, Claude prueba desde el navegador integrado.
