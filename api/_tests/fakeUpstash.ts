@@ -1,6 +1,6 @@
 // api/_tests/fakeUpstash.ts
 // Upstash Redis falso, en memoria, para las pruebas de los adjuntos: responde GET, MGET,
-// SET … [NX] EX y el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts.
+// SET … [NX] EX/PX, EVAL compare-and-delete y el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts.
 // Se instala como fetch; las llamadas al relay de correo (GAS_RELAY_URL) responden
 // {"status":"ok"}. No es una prueba ni una función: vive en api/_tests/ para que Vercel no
 // lo despliegue.
