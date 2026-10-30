@@ -619,6 +619,11 @@
       "statusCode": 301
     },
     {
+      "source": "/alumbrado-publico-led-solar-vito-400w-all-in-one-industrial{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-400w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
       "source": "/alumbrado-publico-mini-corros-50w-ip66-ik08{/}?",
       "destination": "/catalogo/alumbrado-publico",
       "statusCode": 301

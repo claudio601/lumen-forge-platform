@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '549cc8dbd1be';
+export const SNAPSHOT_HASH = 'db58a80c0d83';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -14242,8 +14242,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 30518805,
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 400W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
-    "permalink": "alumbrado-publico-led-solar-400w-all-in-one-industrial",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 400W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "permalink": "alumbrado-publico-led-solar-vito-400w-all-in-one-industrial",
     "sku": "APS400ALL",
     "price": 359900,
     "brand": "JIE",
@@ -14305,17 +14305,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Neutra - 4000K"
-          }
-        ]
-      },
-      {
-        "id": 110660369,
-        "sku": "APS400ALLF",
-        "price": 359900,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz fría - 5000K"
           }
         ]
       }
