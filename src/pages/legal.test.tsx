@@ -44,6 +44,7 @@ import { PRIVACY_NOTICE } from '../../api/_lib/whatsapp/privacyNotice';
 import { findPolicyBreaking } from '../../scripts/jumpseller/descriptions';
 import { KNOWN_PHRASES } from '../../scripts/known-phrases';
 import { claimIssues, FREE_RE, namedIn, RM_OUTSIDE_SANTIAGO, RM_PROVINCES } from '@/test/freeShipping';
+import { GUIDE_AUTHORS } from '@/data/guides/index';
 import EmpresaPage from './EmpresaPage';
 import TerminosPage from './TerminosPage';
 import CambiosGarantiaPage from './CambiosGarantiaPage';
@@ -218,6 +219,9 @@ describe('páginas legales y de compra: todas', () => {
       const crumbs = ld.find(d => d['@type'] === 'BreadcrumbList');
       expect(crumbs.itemListElement.map((c: { name: string }) => c.name)).toEqual(['Inicio', label]);
       if (path === '/empresa') expect(ld.find(d => d['@type'] === 'Organization')).toMatchObject({ legalName: LEGAL_NAME, taxID: LEGAL_RUT });
+      if (path === '/empresa') {
+        expect(ld.filter(d => d['@type'] === 'Person').map(d => [d.name, d.url])).toEqual(Object.values(GUIDE_AUTHORS).map(a => [a.name, SITE_URL + a.path]));
+      }
       // La descripción es lo que muestran Google y las vistas previas: misma regla de contenido que el cuerpo
       const meta = (sel: string) => document.head.querySelector(sel)?.getAttribute('content') ?? '';
       const description = meta('meta[name="description"]');
@@ -267,6 +271,11 @@ describe('páginas legales y de compra: contenido', () => {
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
     expect(text).not.toMatch(/proveedores@|Postulaci[oó]n|Trabaja con nosotros/i);
     expect(main.querySelector(`a[href="${waBase}"]`)?.getAttribute('target')).toBe('_blank');
+    // La firma de cada guía lleva a /empresa: la página nombra al autor con la reseña que aprobó
+    for (const a of Object.values(GUIDE_AUTHORS)) {
+      expect(a.path).toBe('/empresa');
+      expect(text).toContain(`${a.name}, ${a.bio}`);
+    }
   });
 
   it('/terminos-y-condiciones: vendedor, compra por link de pago, IVA, factura, vigencia, retracto, garantía y ley', async () => {

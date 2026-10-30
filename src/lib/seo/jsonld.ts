@@ -37,6 +37,18 @@ export function organizationJsonLd(): JsonLd {
   };
 }
 
+/** Autor de las guías, en /empresa: la página a la que lleva su firma (plan del blog §1.7). */
+export function personJsonLd(p: { name: string; bio: string; path: string }): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: p.name,
+    description: p.bio,
+    url: absoluteUrl(p.path),
+    worksFor: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL + '/' },
+  };
+}
+
 export function websiteJsonLd(): JsonLd {
   return {
     '@context': 'https://schema.org',
