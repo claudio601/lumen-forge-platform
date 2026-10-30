@@ -8,6 +8,7 @@
 // Configure those same credentials in Pipedrive when registering the webhook
 // (http_auth_user / http_auth_password fields).
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 
@@ -177,7 +178,7 @@ export default async function handler(
       ...result,
     });
   } catch (err) {
-    console.error(`${LOG_PREFIX} Error processing webhook:`, err);
+    console.error(`${LOG_PREFIX} Error processing webhook:`, redact(err, 'error'));
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

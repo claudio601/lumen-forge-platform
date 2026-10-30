@@ -73,6 +73,35 @@ describe('notifyTeam — followup_24h idempotency (Ticket A H1 fix)', () => {
     vi.unstubAllEnvs();
   });
 
+  it('notificación y deduplicación no registran el nombre como campo, el texto libre ni contactos completos', async () => {
+    const params = {
+      ...BASE_PARAMS, phone: '+56 9 1234 5678', name: 'Persona Ficticia',
+      message: 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678',
+      summary: 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678',
+    };
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      vi.mocked(pipedriveGet).mockResolvedValue({ success: true, data: makeDeal(YES_ID) } as never);
+      await notifyTeam(params);
+      vi.mocked(pipedrivePost).mockRejectedValue(new Error(params.summary));
+      await notifyTeam({ ...params, existingDeal: true });
+      const text = [...log.mock.calls, ...error.mock.calls].flat().map(String).join('\n');
+      expect(text).toContain('tel="…5678"');
+      expect(text).toContain('phone=…5678');
+      expect(text).toContain('nombre=sí');
+      expect(text).toContain('deal=4242 person=1010');
+      // El nombre no va como campo; dentro del texto de un error enmascarado no se reconoce.
+      expect(text).not.toContain(`nombre="${params.name}"`);
+      for (const pii of ['12.345.678-5', 'prueba@ejemplo.cl', params.phone, '56912345678']) {
+        expect(text).not.toContain(pii);
+      }
+    } finally {
+      log.mockRestore();
+      error.mockRestore();
+    }
+  });
+
   // =========================================================================
   // TEST 1 — flag empty -> activity created + flag written
   // =========================================================================

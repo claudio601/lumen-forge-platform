@@ -193,7 +193,7 @@ describe('notifySales', () => {
   it('aunque el relay repita los datos del cliente en su respuesta, el log no los lleva', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(console, 'info').mockImplementation(() => {});
-    const m: SalesEmail = { ...base, rutEmpresa: 'RUT-PRUEBA', razonSocial: 'PRUEBA SPA' };
+    const m: SalesEmail = { ...base, rutEmpresa: '12.345.678-5', razonSocial: 'PRUEBA SPA' };
     const echo = 'Invalid email: ' + m.email + ' | ' + m.nombre + ' | ' + m.telefono + ' | ' + m.rutEmpresa;
     vi.stubGlobal('fetch', relay(JSON.stringify({ status: 'error', message: echo })));
     await expect(notifySales(m, '[prueba]')).resolves.toBe(false);
@@ -201,13 +201,16 @@ describe('notifySales', () => {
     await expect(notifySales(m, '[prueba]')).resolves.toBe(false);
     vi.stubGlobal('fetch', relay(JSON.stringify({ status: echo })));
     await expect(notifySales(m, '[prueba]')).resolves.toBe(false);
+    // Un nombre corto también pasa el formato de status del relay: no imprimirlo.
+    vi.stubGlobal('fetch', relay(JSON.stringify({ status: 'PersonaFicticia', message: echo })));
+    await expect(notifySales(m, '[prueba]')).resolves.toBe(false);
 
     const text = [console.log, console.warn, console.error, console.info]
       .flatMap((fn) => vi.mocked(fn).mock.calls.flat()).map(String).join('\n');
     expect(text).toContain('[prueba] GAS relay FAIL: GAS relay: status error');
     expect(text).toContain('[prueba] GAS relay FAIL: GAS relay: HTTP 500, respuesta no JSON');
     expect(text).toContain('[prueba] GAS relay FAIL: GAS relay: status no reconocido');
-    for (const value of [m.email, m.nombre, m.telefono, m.rutEmpresa!, 'Invalid email']) {
+    for (const value of [m.email, m.nombre, m.telefono, m.rutEmpresa!, 'Invalid email', 'PersonaFicticia']) {
       expect(text).not.toContain(value);
     }
   });

@@ -25,6 +25,7 @@
 // El deal en Pipedrive es la fuente de verdad.
 // Si solo llega el email sin deal, la solicitud se pierde operativamente.
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { waitUntil } from '@vercel/functions';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
@@ -290,9 +291,10 @@ export default async function handler(
   // ── LOG: Payload recibido (sin PII; la comuna es texto libre y no va) ──
   const safeLog = {
     itemCount: Array.isArray(body?.items) ? body.items.length : 0,
-    subtotal: body?.subtotal,
-    customerType: body?.customerType,
-    requestReference: body?.requestReference,
+    subtotal: typeof body?.subtotal === 'number' && Number.isFinite(body.subtotal) ? body.subtotal : null,
+    customerType: ['empresa', 'persona'].includes(body?.customerType) ? body.customerType : null,
+    requestReference: typeof body?.requestReference === 'string' && REQUEST_REF_REGEX.test(body.requestReference)
+      ? body.requestReference : '[referencia omitida]',
   };
   console.log(`${LOG} Payload recibido`, safeLog);
 
@@ -324,7 +326,7 @@ export default async function handler(
   const priced = new Map(pricing.lineIndexes.map((idx, n) => [idx, pricing.lines[n]]));
   const unresolved = new Map(pricing.unresolved.map((u) => [u.index, u]));
   if (unresolved.size) {
-    console.warn(`${LOG} Productos sin precio de catálogo (se marcan para revisar) | ref: ${requestReference}`, pricing.unresolved);
+    console.warn(`${LOG} Productos sin precio de catálogo (se marcan para revisar) | ref: ${requestReference}`, pricing.unresolved.map(({ index, quantity }) => ({ index, quantity })));
   }
   const payload: RequestOrderPayload = {
     ...raw,
@@ -427,14 +429,14 @@ export default async function handler(
         });
         if (!note?.success) console.warn(noteFailed);
       } catch (err) {
-        console.warn(`${noteFailed} | ${err instanceof Error ? err.message : 'error desconocido'}`);
+        console.warn(`${noteFailed} | ${redact(err, 'error')}`);
       }
     }
     console.log(
       `${LOG} Pipedrive createDeal OK | dealId: ${dealId} | score: ${score} | tier: ${priorityTier} | leadType: ${leadType}`
     );
   } catch (err) {
-    console.error(`${LOG} Pipedrive createDeal FAIL | error:`, err);
+    console.error(`${LOG} Pipedrive createDeal FAIL | error:`, redact(err, 'error'));
     res.status(502).json({
       success: false,
       error: 'Failed to create deal in CRM. Please try again.',
@@ -450,7 +452,7 @@ export default async function handler(
         console.log(`${LOG} GAS relay OK`);
       })
       .catch((err: unknown) => {
-        console.warn(`${LOG} GAS relay FAIL | error:`, err);
+        console.warn(`${LOG} GAS relay FAIL | error:`, redact(err, 'error'));
       })
   );
 

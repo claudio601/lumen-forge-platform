@@ -135,6 +135,14 @@ describe('la prueba del dueño: RUT con el dígito cambiado', () => {
     expect(sim.deals[0].leadType).toBe('B2B');
     expect(sim.notes).toHaveLength(1);
     expect(sim.notes[0].content).toContain('RUT: 77.123.456-9 (empresa)');
+    const logged = [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat()).map(String).join('\n');
+    for (const pii of ['77.123.456-8', '77.123.456-9', CORREO, phone, phone.slice(1), 'Perfil Prueba', B2B_CLAUDE.empresa]) {
+      expect(logged).not.toContain(pii);
+    }
+    expect(logged).toContain('…' + phone.slice(-4));
+    expect(logged).toContain('SMrut' + seq);
+
   });
 });
 
@@ -189,5 +197,27 @@ describe('un rango de presupuesto no es un RUT', () => {
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2C');
     expect(sim.notes[0].content).toContain('RUT: -');
+  });
+});
+
+describe('QA sin valores libres del cliente o de Claude', () => {
+  it('ningún slot ni resumen permite que un nombre o contacto vuelva al log', async () => {
+    const phone = nextPhone();
+    const privateText = 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678';
+    await send(phone, privateText, {
+      producto: privateText, tipo_de_luz: privateText, cantidad: privateText,
+      proyecto_o_uso: privateText, comuna_o_ciudad: privateText,
+      nombre: 'Persona Ficticia', empresa: 'Empresa Ficticia', correo: 'prueba@ejemplo.cl',
+      summary: privateText,
+    });
+    await send(phone, 'quiero otra consulta nueva', {});
+    const logged = [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat()).map(String).join('\n');
+    for (const pii of ['Persona Ficticia', 'Empresa Ficticia', '12.345.678-5', 'prueba@ejemplo.cl', '+56 9 1234 5678', phone, phone.slice(1)]) {
+      expect(logged).not.toContain(pii);
+    }
+    expect(logged).toContain('[QA:in]');
+    expect(logged).toContain('[QA:out]');
+    expect(logged).toContain('[QA:claude]');
   });
 });

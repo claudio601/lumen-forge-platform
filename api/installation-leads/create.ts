@@ -26,6 +26,7 @@
 // api/_lib/forms/attribution.ts). El origen es informativo: un origen raro se descarta,
 // nunca da 400, y no entra en la referencia ni en el log.
 // ─────────────────────────────────────────────────────────────────────────────
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
@@ -145,15 +146,11 @@ function buildInstallationNote(payload: InstallationLeadPayload, leadRef: string
 async function addNoteToDeal(dealId: number, leadRef: string, content: string): Promise<void> {
   try {
     const res = await pipedrivePost<{ id: number }>('/notes', { content, deal_id: dealId });
-    if (!res.success) console.warn(LOG_PREFIX + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + res.error);
+    if (!res.success) console.warn(LOG_PREFIX + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + redact(res.error, 'error'));
     else console.log(LOG_PREFIX + ' Note added to deal ' + dealId);
   } catch (err) {
-    console.warn(LOG_PREFIX + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + errorMessage(err));
+    console.warn(LOG_PREFIX + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + redact(err, 'error'));
   }
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 async function processInstallationLead(payload: InstallationLeadPayload, leadRef: string, consent: string[], origen: string[]): Promise<InstallationCrmResult> {
@@ -205,7 +202,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // dos veces podría separarlas si cambia la hora entre ambas.
   const leadRef = buildInstallationLeadRef(payload);
   const ref = LOG_PREFIX + ' ' + leadRef;
-  console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto + ' | comuna: ' + payload.comuna);
+  console.log(ref + ' Processing | tipo: ' + payload.tipoProyecto + ' | comuna=' + (payload.comuna ? 'sí' : 'no'));
 
   // Correo a ventas ANTES de Pipedrive: si el CRM falla, el lead no se pierde
   const cuerpo = buildInstallationEmailBody(payload, leadRef, consent.section, origen);
@@ -225,7 +222,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     console.log(ref + ' Done — deal: ' + result.dealId + ' (' + result.dealAction + ') score: ' + result.leadScore);
     res.status(result.dealAction === 'created' ? 201 : 200).json({ success: true, personId: result.personId, dealId: result.dealId, dealAction: result.dealAction, leadScore: result.leadScore, priorityTier: result.priorityTier, leadRef } satisfies InstallationLeadApiResponse);
   } catch (err) {
-    console.error(LOG_PREFIX + ' LEAD SIN CRM ' + leadRef + ' | Pipedrive FAIL: ' + errorMessage(err));
+    console.error(LOG_PREFIX + ' LEAD SIN CRM ' + leadRef + ' | Pipedrive FAIL: ' + redact(err, 'error'));
 
     if (await mail) {
       // El correo salió: el lead no se pierde. Segundo correo para crear el negocio a mano.
