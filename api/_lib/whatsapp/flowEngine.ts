@@ -578,7 +578,7 @@ function flowStep(
         closedFlow: true,
       };
     }
-    console.log('[flowEngine] nuevo requerimiento, reset para: ' + body.substring(0, 60));
+    console.log('[flowEngine] nuevo requerimiento, reset; caracteres=' + body.length);
     clearFlowState(phone);
     return flowStep(phone, body, claudeParsed, signals);
   }
@@ -723,7 +723,7 @@ function flowStep(
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
         const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ?? 'none'));
+        console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 'sí' : 'no'));
         return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg1 >= 1 && missingCritical.length < 2) { currentStage = 'stage2'; continue; }
@@ -743,7 +743,7 @@ function flowStep(
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
         const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ?? 'none'));
+        console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 'sí' : 'no'));
         return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg2 += 1;
@@ -762,7 +762,7 @@ function flowStep(
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ?? 'none'));
+        console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ? 'sí' : 'no'));
         const canCreate3 = canRegister(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
         return { reply: productClosingMsg(canCreate3, wantsHuman, currentLeadType), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }

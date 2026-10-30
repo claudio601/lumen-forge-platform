@@ -2,6 +2,7 @@
 // Base HTTP client for Pipedrive API
 
 import type { PipedriveApiResponse } from '../crm/types.js';
+import { redact } from '../logging/redact.js';
 
 const TIMEOUT_MS = 15_000;
 
@@ -60,10 +61,7 @@ async function request<T>(
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => 'no body');
-      console.error(
-        `[Pipedrive] ${method} ${path} -> ${res.status} ${res.statusText}`,
-        errorBody.substring(0, 300)
-      );
+      console.error(`[Pipedrive] ${method} ${path} -> HTTP ${res.status}`, redact(errorBody.substring(0, 300)));
       return {
         success: false,
         data: null,
@@ -75,17 +73,14 @@ async function request<T>(
     const json = (await res.json()) as PipedriveApiResponse<T>;
 
     if (!json.success) {
-      console.error(`[Pipedrive] ${method} ${path} -> API error:`, json.error);
+      console.error(`[Pipedrive] ${method} ${path} -> API error:`, redact(String(json.error)));
     }
 
     return json;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const isAbort = err instanceof Error && err.name === 'AbortError';
-    console.error(
-      `[Pipedrive] ${method} ${path} -> ${isAbort ? 'TIMEOUT' : 'FETCH_ERROR'}:`,
-      message
-    );
+    console.error(`[Pipedrive] ${method} ${path} -> ${isAbort ? 'TIMEOUT' : 'FETCH_ERROR'}:`, redact(message));
     return {
       success: false,
       data: null,

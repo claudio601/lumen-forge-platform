@@ -36,6 +36,7 @@
 // diferencia este flujo. Ver TODO en estudio-luminico-mapping.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
@@ -117,7 +118,7 @@ async function findExistingEstudioDeal(
       }
     }
   } catch (err) {
-    console.warn(LOG + ' Dedup search failed (non-blocking):', err);
+    console.warn(LOG + ' Dedup search failed (non-blocking):', redact(err, 'error'));
   }
 
   return null;
@@ -168,17 +169,13 @@ async function addNoteToDeal(dealId: number, leadRef: string, noteContent: strin
       deal_id: dealId,
     });
     if (!res.success) {
-      console.error(LOG + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + res.error);
+      console.error(LOG + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + redact(res.error, 'error'));
     } else {
       console.log(LOG + ' Note added to deal ' + dealId);
     }
   } catch (err) {
-    console.error(LOG + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + errorMessage(err));
+    console.error(LOG + ' Note FAIL | dealId: ' + dealId + ' | ref: ' + leadRef + ' | ' + redact(err, 'error'));
   }
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -324,7 +321,7 @@ export default async function handler(
 
     console.log(ref + ' Deal: ' + dealId + ' (' + dealAction + ')');
   } catch (err) {
-    console.error(LOG + ' LEAD SIN CRM ' + leadRef + ' | Pipedrive FAIL: ' + errorMessage(err));
+    console.error(LOG + ' LEAD SIN CRM ' + leadRef + ' | Pipedrive FAIL: ' + redact(err, 'error'));
 
     if (await mail) {
       // El correo salio: el lead no se pierde. Segundo correo para crear el negocio a mano.
