@@ -3,6 +3,7 @@
 
 import { pipedriveGet, pipedrivePost } from './client.js';
 import { getOptionId, getBooleanOptionId } from './fieldOptions.js';
+import { redact } from '../logging/redact.js';
 import type {
   QuoteOrganization,
   PipedriveOrganization,
@@ -93,9 +94,7 @@ export async function findOrCreateOrganization(
     if (optionId !== undefined) {
       body[segmentKey] = optionId;
     } else {
-      console.warn(
-        `${LOG_PREFIX} Could not resolve segment option for "${org.segment}"`
-      );
+      console.warn(`${LOG_PREFIX} Could not resolve segment option for "${redact(org.segment)}"`);
     }
   }
 

@@ -3,6 +3,7 @@
 // Used to prevent duplicate deal creation when Jumpseller fires parallel
 // or repeated webhooks for the same order.
 
+import { redact } from '../logging/redact.js';
 import { createHash } from 'node:crypto';
 
 const LOG_PREFIX = '[idempotency/redis]';
@@ -105,7 +106,7 @@ export async function readMapping(
         event: 'redis_unavailable',
         sourceRef: `jumpseller:${orderId}`,
         op: 'readMapping',
-        error: res.error,
+        error: redact(res.error, 'error'),
       }));
       return { unavailable: true, error: res.error };
     }
@@ -114,7 +115,7 @@ export async function readMapping(
       level: 'warn',
       event: 'redis_read_error',
       sourceRef: `jumpseller:${orderId}`,
-      error: res.error,
+      error: redact(res.error, 'error'),
     }));
     return { found: false };
   }
@@ -148,7 +149,7 @@ export async function writeMapping(
       event: 'redis_write_mapping_failed',
       sourceRef: `jumpseller:${orderId}`,
       dealId,
-      error: res.error,
+      error: redact(res.error, 'error'),
     }));
     return { ok: false, error: res.error };
   }
@@ -184,7 +185,7 @@ export async function acquireLock(
         event: 'redis_unavailable',
         sourceRef: `jumpseller:${orderId}`,
         op: 'acquireLock',
-        error: res.error,
+        error: redact(res.error, 'error'),
       }));
       return { unavailable: true, error: res.error };
     }
@@ -193,7 +194,7 @@ export async function acquireLock(
       level: 'warn',
       event: 'lock_acquire_error',
       sourceRef: `jumpseller:${orderId}`,
-      error: res.error,
+      error: redact(res.error, 'error'),
     }));
     return { acquired: false, contention: true };
   }
@@ -231,7 +232,7 @@ export async function releaseLock(orderId: string, lockValue: string): Promise<v
       level: 'warn',
       event: 'lock_release_failed',
       sourceRef: `jumpseller:${orderId}`,
-      error: res.error,
+      error: redact(res.error, 'error'),
     }));
     return;
   }
@@ -519,6 +520,6 @@ export async function releaseQuoteReferenceLock(
     'EVAL', script, '1', quoteReferenceLockKey(quoteReference, pipelineId), lockValue
   );
   if (res.ok === false) {
-    console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_release_failed', pipelineId, error: res.error }));
+    console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_release_failed', pipelineId, error: redact(res.error, 'error') }));
   }
 }

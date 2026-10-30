@@ -51,6 +51,7 @@
 // nombre ni el RUT.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { waitUntil } from '@vercel/functions';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
@@ -416,14 +417,10 @@ export function buildProjectQuoteNote(
 async function addNote(dealId: number, content: string, ref: string): Promise<void> {
   try {
     const res = await pipedrivePost('/notes', { content, deal_id: dealId });
-    if (!res.success) console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${res.error ?? 'unknown'}`);
+    if (!res.success) console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${redact(res.error, 'error')}`);
   } catch (err) {
-    console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${errorMessage(err)}`);
+    console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${redact(err, 'error')}`);
   }
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 /** «El cliente adjuntó 3 archivos que no se guardaron: pedírselos por correo.» */
@@ -610,7 +607,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         (orgId ? ` | org: ${orgId}` : '') + ` | leadType: ${leadType} | tier: ${priorityTier}`
     );
   } catch (err) {
-    console.error(`${LOG} LEAD SIN CRM ${reference} | Pipedrive FAIL: ${errorMessage(err)}`);
+    console.error(`${LOG} LEAD SIN CRM ${reference} | Pipedrive FAIL: ${redact(err, 'error')}`);
 
     if (await mail) {
       // El correo salió: el lead no se pierde. Segundo correo para crear el negocio a mano.

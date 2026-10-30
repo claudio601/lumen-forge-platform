@@ -2,6 +2,7 @@
 // Crea o reutiliza deal en Pipedrive para leads de WhatsApp.
 // v1: agrega custom fields WA + note estructurada.
 
+import { redact } from '../logging/redact.js';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
 import { createDeal, updateDeal } from '../pipedrive/deals.js';
 import { initFieldOptions } from '../pipedrive/fieldOptions.js';
@@ -254,7 +255,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         note: noteContent,
   });
 
-  console.log(LOG_PREFIX + ' Deal ' + dealId + ' (' + dealAction + ') for ' + phone);
+  console.log(LOG_PREFIX + ' Deal ' + dealId + ' (' + dealAction + ') for ' + redact(phone, 'phone'));
     return { dealId, personId, action: dealAction, ...(pendingWrite ? { pendingWrite } : {}) };
 }
 

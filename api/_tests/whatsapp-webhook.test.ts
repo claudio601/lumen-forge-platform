@@ -185,13 +185,14 @@ describe('el aviso no se filtra a otros datos', () => {
     expect(JSON.stringify(getHistory(phone))).not.toContain('Privacidad:');
   });
 
-  it('el log [QA:out] sigue mostrando la plantilla, sin el aviso', async () => {
+  it('el log [QA:out] registra solo el largo de la respuesta, sin plantilla ni aviso', async () => {
     const phone = nextPhone();
     await sendMessage(phone, 'Hola');
     const qaOut = log.mock.calls.map(c => String(c[0])).find(line => line.includes('[QA:out]'));
     expect(qaOut).toBeDefined();
     const payload = JSON.parse(qaOut!.slice(qaOut!.indexOf('{')));
-    expect(payload.reply_preview).toBe(MSG1.substring(0, 60).replace(/\n/g, ' '));
+    expect(payload.reply_caracteres).toBe(MSG1.length);
+    expect(payload).not.toHaveProperty('reply_preview');
     for (const call of log.mock.calls) {
       expect(String(call[0])).not.toContain('Privacidad:');
     }

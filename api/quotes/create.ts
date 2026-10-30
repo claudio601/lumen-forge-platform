@@ -37,6 +37,7 @@
 // Los logs llevan la referencia, el tipo de cliente y los ids: nunca nombre, correo,
 // teléfono ni RUT.
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateQuotePayload } from '../_lib/crm/validation.js';
 import { processQuoteToCrm, buildSuccessResponse, type CrmProcessingResult } from '../_lib/crm/dedupe.js';
@@ -390,14 +391,10 @@ function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: b
 async function addSiteQuoteNote(dealId: number, content: string, ref: string): Promise<void> {
   try {
     const res = await pipedrivePost('/notes', { content, deal_id: dealId });
-    if (!res.success) console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${res.error ?? 'unknown'}`);
+    if (!res.success) console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${redact(res.error, 'error')}`);
   } catch (err) {
-    console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${errorMessage(err)}`);
+    console.warn(`${ref} Nota en Pipedrive FAIL | dealId: ${dealId} | ${redact(err, 'error')}`);
   }
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 // --- Auth ---
@@ -552,7 +549,7 @@ export default async function handler(
   try {
     result = await processQuoteToCrm(payload);
   } catch (err) {
-    console.error(`${LOG_PREFIX} LEAD SIN CRM ${quoteReference} | Pipedrive FAIL: ${errorMessage(err)}`);
+    console.error(`${LOG_PREFIX} LEAD SIN CRM ${quoteReference} | Pipedrive FAIL: ${redact(err, 'error')}`);
 
     if (email && (await mail)) {
       // El correo salió: el lead no se pierde. Segundo correo para crear el negocio a mano.

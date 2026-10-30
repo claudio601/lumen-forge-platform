@@ -7,6 +7,7 @@
 // falla, se responde igual (texto B) en vez de un 500 sin respuesta. Los mensajes de un mismo
 // numero se atienden de a uno (ver acquirePhoneTurn).
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
@@ -71,7 +72,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
           flowResult = processFlowStep(phone, body, claudeParsed, signals);
     } catch (err) {
           // [CIERRE-HONESTO] Respuesta segura: nada quedo registrado, se ofrece ventas@ (texto B).
-          console.error(LOG_PREFIX + ' Flow error (respuesta segura):', err);
+          console.error(LOG_PREFIX + ' Flow error (respuesta segura):', redact(err, 'error'));
           const stateNow = getFlowState(phone);
           flowResult = {
                   reply: MSG_DEAL_FAILED,
@@ -93,15 +94,15 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
         capture_status: flowResult.captureStatus,
         wants_human: flowResult.wantsHuman,
         slots_after: {
-                producto: flowResult.captured.producto ?? null,
-                tipo_de_luz: flowResult.captured.tipo_de_luz ?? null,
-                cantidad: flowResult.captured.cantidad ?? null,
-                proyecto_o_uso: flowResult.captured.proyecto_o_uso ?? null,
-                comuna_o_ciudad: flowResult.captured.comuna_o_ciudad ?? null,
-                nombre_o_empresa: flowResult.captured.nombre_o_empresa ?? null,
-                correo: flowResult.captured.correo ?? null,
+                producto: Boolean(flowResult.captured.producto),
+                tipo_de_luz: Boolean(flowResult.captured.tipo_de_luz),
+                cantidad: Boolean(flowResult.captured.cantidad),
+                proyecto_o_uso: Boolean(flowResult.captured.proyecto_o_uso),
+                comuna_o_ciudad: Boolean(flowResult.captured.comuna_o_ciudad),
+                nombre_o_empresa: Boolean(flowResult.captured.nombre_o_empresa),
+                correo: Boolean(flowResult.captured.correo),
         },
-        reply_preview: flowResult.reply.substring(0, 60).replace(/\n/g, ' '),
+        reply_caracteres: flowResult.reply.length,
   }));
 
   let dealResult: DealResult = {
@@ -122,7 +123,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                 });
                 if (dealResult.pendingWrite) setPendingWrites(phone, [...getPendingWrites(phone), dealResult.pendingWrite]);
         } catch (err) {
-                console.error(LOG_PREFIX + ' Pipedrive error (non-fatal):', err);
+                console.error(LOG_PREFIX + ' Pipedrive error (non-fatal):', redact(err, 'error'));
         }
   }
 
@@ -235,7 +236,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     if (numMedia > 0 && body.trim().length < 3) {
-          console.log(LOG_PREFIX + ' Media from ' + phone + ' [' + messageSid + ']');
+          console.log(LOG_PREFIX + ' Media from ' + redact(phone, 'phone') + ' [' + messageSid + ']');
           await respond(MSG_MEDIA);
           return;
     }
@@ -247,17 +248,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     // Log de entrada: mensaje recibido + estado previo del flujo
     const stateIn = getFlowState(phone);
-      console.log(LOG_PREFIX + ' msg from ' + phone + ' [' + messageSid + ']: "' + body.substring(0, 80) + '"');
+      console.log(LOG_PREFIX + ' msg from ' + redact(phone, 'phone') + ' [' + messageSid + '] caracteres=' + body.length);
       console.log(LOG_PREFIX + ' [QA:in] ' + JSON.stringify({
             stage: stateIn.stage,
             leadType: stateIn.leadType,
             repreg: { s1: stateIn.repreguntasStage1, s2: stateIn.repreguntasStage2, s3: stateIn.repreguntasStage3 },
             slots_prev: {
-                    producto: stateIn.captured.producto ?? null,
-                    tipo_de_luz: stateIn.captured.tipo_de_luz ?? null,
-                    cantidad: stateIn.captured.cantidad ?? null,
-                    proyecto_o_uso: stateIn.captured.proyecto_o_uso ?? null,
-                    comuna_o_ciudad: stateIn.captured.comuna_o_ciudad ?? null,
+                    producto: Boolean(stateIn.captured.producto),
+                    tipo_de_luz: Boolean(stateIn.captured.tipo_de_luz),
+                    cantidad: Boolean(stateIn.captured.cantidad),
+                    proyecto_o_uso: Boolean(stateIn.captured.proyecto_o_uso),
+                    comuna_o_ciudad: Boolean(stateIn.captured.comuna_o_ciudad),
             },
       }));
 
@@ -286,21 +287,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           claudeSummary = result.summary;
           aiSource = 'claude';
           console.log(LOG_PREFIX + ' Claude ok — wantsHuman: ' + result.parsed.wantsHuman);
-          // Log completo del parsing de Claude para QA
+          // QA: presencia de campos; los valores libres pueden incluir datos personales.
         console.log(LOG_PREFIX + ' [QA:claude] ' + JSON.stringify({
-                producto: result.parsed.producto ?? null,
-                tipo_de_luz: result.parsed.tipo_de_luz ?? null,
-                cantidad: result.parsed.cantidad ?? null,
-                proyecto_o_uso: result.parsed.proyecto_o_uso ?? null,
-                comuna_o_ciudad: result.parsed.comuna_o_ciudad ?? null,
-                nombre: result.parsed.nombre ?? null,
-                empresa: result.parsed.empresa ?? null,
-                correo: result.parsed.correo ?? null,
+                producto: Boolean(result.parsed.producto),
+                tipo_de_luz: Boolean(result.parsed.tipo_de_luz),
+                cantidad: Boolean(result.parsed.cantidad),
+                proyecto_o_uso: Boolean(result.parsed.proyecto_o_uso),
+                comuna_o_ciudad: Boolean(result.parsed.comuna_o_ciudad),
+                nombre: Boolean(result.parsed.nombre),
+                empresa: Boolean(result.parsed.empresa),
+                correo: Boolean(result.parsed.correo),
                 wantsHuman: result.parsed.wantsHuman,
                 qualifiesForDeal: result.parsed.qualifiesForDeal,
         }));
     } catch (err) {
-          console.error(LOG_PREFIX + ' Claude failed (non-fatal — usando heuristica):', err);
+          console.error(LOG_PREFIX + ' Claude failed (non-fatal — usando heuristica):', redact(err, 'error'));
     }
 
     const turn = await runFlowTurn({ phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource });
@@ -323,7 +324,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                             existingDeal: dealResult.action === 'found',
                   });
           } catch (err) {
-                  console.error(LOG_PREFIX + ' Notify error (non-fatal):', err);
+                  console.error(LOG_PREFIX + ' Notify error (non-fatal):', redact(err, 'error'));
           }
     }
 

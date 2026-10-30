@@ -23,6 +23,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { waitUntil } from '@vercel/functions';
+import { redact } from '../logging/redact.js';
 
 // El mismo relay que api/request-orders/create.ts. En las pruebas,
 // vitest.api.config.ts define GAS_RELAY_URL con un puerto muerto.
@@ -167,7 +168,7 @@ export async function sendSalesEmail(
 
 /** Motivo del fallo para el log: nunca el texto del relay ni datos del cliente. */
 export function failureReason(err: unknown): string {
-  if (err instanceof SalesEmailError) return err.message;
+  if (err instanceof SalesEmailError) return redact(err, 'error');
 
   const name = err instanceof Error ? err.name : typeof err;
   if (name === 'TimeoutError' || name === 'AbortError') return 'GAS relay: sin respuesta a tiempo';
@@ -175,7 +176,8 @@ export function failureReason(err: unknown): string {
   // fetch de Node: TypeError('fetch failed') con un código en la causa (ECONNREFUSED…)
   const code = err instanceof Error ? (err.cause as { code?: unknown } | undefined)?.code : undefined;
   const codeLabel = typeof code === 'string' && /^[A-Z_]{2,40}$/.test(code) ? ', ' + code : '';
-  return 'GAS relay: error de red (' + name.slice(0, 40) + codeLabel + ')';
+  const nameLabel = ['Error', 'TypeError', 'SyntaxError'].includes(name) ? name : 'error';
+  return 'GAS relay: error de red (' + nameLabel + codeLabel + ')';
 }
 
 /**

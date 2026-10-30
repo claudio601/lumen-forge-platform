@@ -18,6 +18,7 @@
 //
 // /deals/search items are not full deals and carry no pipeline_id: every lookup checks the
 // pipeline (and status) on the full deal from GET /deals/{id}.
+import { redact } from '../logging/redact.js';
 import { randomUUID } from 'node:crypto';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { getOptionId } from './fieldOptions.js';
@@ -207,7 +208,7 @@ async function searchDeals(
             if (detailFailed) return { status: 'failed', reason: 'detail_request_failed' };
             if (openOnly && matched.length > 0) {
                 console.log(JSON.stringify({
-                    level: 'info', event: 'dedup_quote_reference_not_counted', quoteReference,
+                    level: 'info', event: 'dedup_quote_reference_not_counted', quoteReference: redact(quoteReference),
                     dealIds: matched.map((d) => d.id), openWithinDays: options.openWithinDays,
                 }));
             }
@@ -257,12 +258,12 @@ async function addDealNote(dealId: number, content: string): Promise<void> {
     try {
           const res = await pipedrivePost<{ id: number }>('/notes', { content, deal_id: dealId });
           if (!res.success) {
-                  console.warn(`${LOG_PREFIX} Failed to add note to deal ${dealId}: ${res.error ?? 'unknown'}`);
+                  console.warn(`${LOG_PREFIX} Failed to add note to deal ${dealId}: ${redact(res.error, 'error')}`);
           } else {
                   console.log(`${LOG_PREFIX} Added re-dispatch note to deal ${dealId}`);
           }
     } catch (err) {
-          console.warn(`${LOG_PREFIX} Error adding note to deal ${dealId}:`, err);
+          console.warn(`${LOG_PREFIX} Error adding note to deal ${dealId}:`, redact(err, 'error'));
     }
 }
 
@@ -276,12 +277,12 @@ async function backfillJumpsellerOrderId(dealId: number, rawOrderId: string): Pr
     try {
           const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, { [fieldKey]: rawOrderId });
           if (!res.success) {
-                  console.warn(`${LOG_PREFIX} Failed to backfill jumpseller_order_id on deal ${dealId}: ${res.error ?? 'unknown'}`);
+                  console.warn(`${LOG_PREFIX} Failed to backfill jumpseller_order_id on deal ${dealId}: ${redact(res.error, 'error')}`);
           } else {
                   console.log(JSON.stringify({ level: 'info', event: 'title_fallback_hit_backfill', dealId, rawOrderId, fieldKey }));
           }
     } catch (err) {
-          console.warn(`${LOG_PREFIX} Error backfilling deal ${dealId}:`, err);
+          console.warn(`${LOG_PREFIX} Error backfilling deal ${dealId}:`, redact(err, 'error'));
     }
 }
 
@@ -312,7 +313,7 @@ async function backfillQuoteReference(
     }
     if (existingStr !== '') {
           console.warn(
-                  `${LOG_PREFIX} quote_ref_mismatch dealId=${dealId} existing=${existingStr} new=${quoteReference}`
+                  `${LOG_PREFIX} quote_ref_mismatch dealId=${dealId} existing=${redact(existingStr)} new=${redact(quoteReference)}`
           );
           return;
     }
@@ -322,15 +323,15 @@ async function backfillQuoteReference(
           });
           if (!res.success) {
                   console.warn(
-                          `${LOG_PREFIX} Failed to backfill quote_reference on deal ${dealId}: ${res.error ?? 'unknown'}`
+                          `${LOG_PREFIX} Failed to backfill quote_reference on deal ${dealId}: ${redact(res.error, 'error')}`
                   );
           } else {
                   console.log(
-                          `${LOG_PREFIX} quote_ref_backfill dealId=${dealId} quoteReference=${quoteReference}`
+                          `${LOG_PREFIX} quote_ref_backfill dealId=${dealId} quoteReference=${redact(quoteReference)}`
                   );
           }
     } catch (err) {
-          console.warn(`${LOG_PREFIX} Error backfilling quote_reference on deal ${dealId}:`, err);
+          console.warn(`${LOG_PREFIX} Error backfilling quote_reference on deal ${dealId}:`, redact(err, 'error'));
     }
 }
 
@@ -430,7 +431,7 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                     console.log(JSON.stringify({ level: 'info', event: 'skipped_lock_contention', sourceRef }));
                     return { dealId: null, status: 'skipped_lock_contention' };
           case 'blocked':
-                    console.error(JSON.stringify({ level: 'error', event: 'blocked_idempotency_unavailable', sourceRef, error: idemResult.error }));
+                    console.error(JSON.stringify({ level: 'error', event: 'blocked_idempotency_unavailable', sourceRef, error: redact(idemResult.error, 'error') }));
                     return { dealId: null, status: 'blocked_idempotency_unavailable' };
           case 'proceed':
                     break;
@@ -577,7 +578,7 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
         }));
         await addDealNote(dealId, POSSIBLE_DUPLICATE_NOTE);
   }
-  console.log(`${LOG_PREFIX} Created deal: ${dealId} (${params.quoteReference})`);
+  console.log(`${LOG_PREFIX} Created deal: ${dealId} (${redact(params.quoteReference)})`);
   return { dealId, status: 'created' };
 }
 

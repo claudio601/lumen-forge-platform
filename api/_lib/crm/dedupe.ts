@@ -1,6 +1,7 @@
 // api/_lib/crm/dedupe.ts
 // Centralized deduplication orchestration across person, org, and deal.
 
+import { redact } from '../logging/redact.js';
 import type {
   QuotePayload,
   FindOrCreatePersonResult,
@@ -62,14 +63,14 @@ export async function processQuoteToCrm(
 
   // 2. Find or create person
   const customer = mapPayloadToCustomer(payload);
-  console.log(`${LOG_PREFIX} Processing person: ${customer.name}`);
+  console.log(`${LOG_PREFIX} Processing person: nombre=${customer.name ? 'sí' : 'no'}`);
   const person = await findOrCreatePerson(customer);
 
   // 3. Find or create organization (if present in payload)
   let organization: FindOrCreateOrganizationResult | null = null;
   const orgData = mapPayloadToOrganization(payload);
   if (orgData) {
-    console.log(`${LOG_PREFIX} Processing organization: ${orgData.name}`);
+    console.log(`${LOG_PREFIX} Processing organization: nombre=${orgData.name ? 'sí' : 'no'}`);
     organization = await findOrCreateOrganization(orgData);
   }
 
@@ -83,7 +84,7 @@ export async function processQuoteToCrm(
   // Propagate allowCreate to the deals layer
   dealParams.allowCreate = allowCreate;
 
-  console.log(`${LOG_PREFIX} Processing deal: ${payload.quoteReference} (allowCreate=${allowCreate})`);
+  console.log(`${LOG_PREFIX} Processing deal: ${redact(payload.quoteReference)} (allowCreate=${allowCreate})`);
   const deal = await createDeal(dealParams);
 
   // 5. Compute scoring
