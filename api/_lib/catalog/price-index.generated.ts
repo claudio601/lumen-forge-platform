@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'db58a80c0d83';
+export const SNAPSHOT_HASH = '796d22371aec';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -3774,7 +3774,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "26946977": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W VITO ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS300ALL",
     "price": 238800,
     "variants": {
@@ -3788,10 +3788,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       },
       "110677530": {
         "sku": "APS300ALL7",
-        "price": 238800
-      },
-      "110677531": {
-        "sku": "APS300ALLF",
         "price": 238800
       }
     }

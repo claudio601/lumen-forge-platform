@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'db58a80c0d83';
+export const SNAPSHOT_HASH = '796d22371aec';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -13503,7 +13503,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 26946977,
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W VITO ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "permalink": "alumbrado-publico-led-solar-300w-all-in-one-industrial",
     "sku": "APS300ALL",
     "price": 238800,
@@ -13566,17 +13566,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Neutra - 4000K"
-          }
-        ]
-      },
-      {
-        "id": 110677531,
-        "sku": "APS300ALLF",
-        "price": 238800,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz fría - 5000K"
           }
         ]
       }
