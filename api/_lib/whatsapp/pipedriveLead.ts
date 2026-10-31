@@ -333,6 +333,20 @@ function buildWaCustomFields(
   return waCustomFields;
 }
 
+/**
+ * [REGISTRO] La escritura de una correccion tardia (campos y nota del negocio que ya existe), sin mandarla:
+ * lo mismo que ensureWhatsAppDeal manda con `existingDealId`. webhook.ts la deja en la cola cuando otro
+ * mensaje del numero sigue escribiendo en ese negocio, para que Pipedrive reciba los valores en orden.
+ */
+export function buildWhatsAppUpdate(params: WhatsAppLeadParams & { existingDealId: number }): PendingWhatsAppWrite {
+    const resolvedLeadType = params.leadType ?? detectLeadType(params.body, params.captured);
+    return {
+          dealId: params.existingDealId,
+          fields: buildWaCustomFields(params.captured, params.captureStatus, params.wantsHuman, params.summary, params.body, resolvedLeadType),
+          note: buildNote(params),
+    };
+}
+
 export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<WhatsAppDealResult> {
     const { phone, name, summary, captured, captureStatus, wantsHuman } = params;
 

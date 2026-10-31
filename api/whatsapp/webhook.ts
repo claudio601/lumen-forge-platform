@@ -5,15 +5,17 @@
 // [CIERRE-HONESTO] Los cierres que dicen "quedo registrada" o "ya derive" solo salen si
 // Pipedrive confirma el negocio; si no, el texto B (MSG_DEAL_FAILED). Si el paso del flujo
 // falla, se responde igual (texto B) en vez de un 500 sin respuesta. Los mensajes de un mismo
-// numero se atienden de a uno (ver acquirePhoneTurn).
+// numero se atienden de a uno, con una espera acotada (ver acquirePhoneTurn).
 
+import { waitUntil } from '@vercel/functions';
 import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
-import { ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
+import { buildWhatsAppUpdate, ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
+import type { PendingWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, recordNoQuestion, MSG_MEDIA, MSG_DEAL_FAILED, MSG_DEAL_PENDING } from '../_lib/whatsapp/flowEngine.js';
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
@@ -21,9 +23,11 @@ import { appendPrivacyNotice, privacyNoticeShown, withPrivacyNotice } from '../_
 import type { FlowState } from '../_lib/whatsapp/flowEngine.js';
 import {
   acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, enqueuePendingWrite,
-  loadPendingWrites, settlePendingWrite, beginFlowStep, settleFlowStep, claimRegistration, awaitRegistration,
-  MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN,
+  duePendingWrites, loadPendingWrites, claimPendingWrite, settlePendingWrite, beginFlowStep, settleFlowStep, claimRegistration, awaitRegistration,
+  stampFlow, recordRegistrationOutcome, registrationOutcome, awaitConversationUnlock, confirmDealFields, sendablePendingWrite,
+  pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN,
 } from '../_lib/whatsapp/stateStore.js';
+import type { QueuedWrite, RegistrationClaim } from '../_lib/whatsapp/stateStore.js';
 import { botReplyText, clearTranscriptAfterNote, inboundText, noteEntryIds, recordTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
@@ -47,6 +51,8 @@ const TURN_WAIT_DEADLINE_MS = 10_000;
  * esta registrando otro mensaje del numero: Twilio corta a los 15 s y despues falta guardar y responder.
  */
 const REGISTRATION_WAIT_DEADLINE_MS = 12_500;
+/** [REGISTRO] Margen entre los relojes de dos instancias al comparar la hora de las escrituras de la cola. */
+const CLOCK_SKEW_MS = 1_000;
 const phoneTurns = new Map<string, Promise<void>>();
 /** Mensajes en curso por numero en esta instancia, incluidos los que dejaron de esperar. */
 const liveTurns = new Map<string, number>();
@@ -60,6 +66,126 @@ function othersInFlight(phone: string, mine: number): Set<number> {
   const out = new Set<number>();
   for (const seq of openMessages.get(phone) ?? []) if (seq !== mine) { out.add(seq); out.add(seq + 1); }
   return out;
+}
+
+/**
+ * [CONCURRENCIA] Mensajes de esta instancia que todavia no pasan por el flujo (numero de orden -> aviso de
+ * que ya pasaron). Una correccion tardia espera a los anteriores (R10): si uno de ellos abre un pedido
+ * nuevo, el correo que llego despues es de ese pedido, no del negocio anterior.
+ */
+const pendingSteps = new Map<string, Map<number, { done: Promise<void>; resolve: () => void }>>();
+
+function trackStep(phone: string, seq: number): void {
+  let steps = pendingSteps.get(phone);
+  if (!steps) { steps = new Map(); pendingSteps.set(phone, steps); }
+  let resolve: () => void = () => {};
+  const done = new Promise<void>((r) => { resolve = r; });
+  steps.set(seq, { done, resolve });
+}
+
+function stepDone(phone: string, seq: number): void {
+  const steps = pendingSteps.get(phone);
+  steps?.get(seq)?.resolve();
+  steps?.delete(seq);
+  if (steps && !steps.size) pendingSteps.delete(phone);
+}
+
+/** Espera, hasta `deadline`, a que los mensajes anteriores de esta instancia pasen por el flujo. */
+async function awaitEarlierSteps(phone: string, seq: number, deadline: number): Promise<void> {
+  const earlier = [...(pendingSteps.get(phone) ?? [])].filter(([s]) => s < seq).map(([, v]) => v.done);
+  const remaining = deadline - Date.now();
+  if (!earlier.length || remaining <= 0) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([Promise.all(earlier), new Promise<void>((resolve) => { timer = setTimeout(resolve, remaining); })]);
+  clearTimeout(timer);
+}
+
+/**
+ * [PENDIENTES] Reintenta una escritura de la cola. [REGISTRO] R4: sin los campos que ya supero una escritura
+ * de un mensaje posterior (sale la nota); sin la reserva de los campos (`mayWriteFields`), los campos esperan
+ * en la cola y sale solo la nota. Los campos que Pipedrive confirma quedan anotados con su numero de orden.
+ */
+async function retryQueuedWrite(phone: string, item: QueuedWrite, mayWriteFields: boolean): Promise<boolean> {
+  const write = sendablePendingWrite(phone, item);
+  const heldFields = write?.fields && !mayWriteFields ? write.fields : undefined;
+  const base: PendingWhatsAppWrite | undefined = write && { dealId: write.dealId, ...(write.personId ? { personId: write.personId } : {}) };
+  const toSend: PendingWhatsAppWrite | undefined = write && heldFields ? { ...base!, ...(write.note !== undefined ? { note: write.note } : {}) } : write;
+  const left = toSend && (toSend.fields || toSend.note !== undefined) ? await retryWhatsAppWrite(toSend) : undefined;
+  if (toSend?.fields && !left?.fields) await confirmDealFields(phone, toSend.dealId, pendingVersion(item));
+  // Los campos que esperan la reserva siguen en la cola, con la nota solo si todavia no llego.
+  const remaining = heldFields ? { ...base!, ...(left?.note !== undefined ? { note: left.note } : {}), fields: heldFields } : left;
+  await settlePendingWrite(phone, item.id, remaining);
+  // Pipedrive recibio lo que se le mando (false: algo fallo y sigue en la cola).
+  return !left;
+}
+
+/** [REGISTRO] Vueltas de releaseDealWrite: lo que otro mensaje deja en la cola justo antes de que se suelte la reserva. */
+const MAX_HANDOFF_ROUNDS = 3;
+
+/** [REGISTRO] Lo que otros mensajes dejaron en la cola con campos desde `since`, en el orden de los mensajes. */
+async function handedWrites(phone: string, since: number, skip: (item: QueuedWrite) => boolean): Promise<QueuedWrite[]> {
+  return (await loadPendingWrites(phone))
+    .filter((item) => item.write.fields && !skip(item) && item.at >= since - CLOCK_SKEW_MS)
+    .sort((a, b) => pendingVersion(a) - pendingVersion(b) || a.at - b.at);
+}
+
+/**
+ * [REGISTRO] R4: lo que otros mensajes dejaron en la cola (escrituras con campos) mientras este tenia la
+ * reserva de los campos (desde `since`): quien la tiene lo manda antes de soltarla, en el orden de los
+ * mensajes, sin los campos que ya supero uno posterior. Asi Pipedrive termina con el valor del mensaje mas
+ * nuevo sin esperar otro mensaje del numero (si esta instancia se corta antes, o si Pipedrive le fallo a
+ * este, `flush` false, salen con un mensaje siguiente, como cualquier pendiente). `skip`: las que este
+ * mensaje ya intento o dejo el mismo (no se reintentan en el mismo mensaje). Despues de soltarla revisa la
+ * cola otra vez: quien dejo algo entre la ultima lectura y la liberacion no consiguio la reserva y cuenta con
+ * que este lo mande (si otro la tomo mientras tanto, lo manda ese al soltarla). Hasta MAX_HANDOFF_ROUNDS
+ * vueltas, y cada escritura se intenta una vez por llamada: lo que quede sale con un mensaje siguiente.
+ */
+async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: number, flush = true, skip: (item: QueuedWrite) => boolean = () => false): Promise<void> {
+  let held: RegistrationClaim | undefined = claim;
+  const tried = new Set<string>();
+  const handed = () => handedWrites(phone, since, (item) => skip(item) || tried.has(item.id));
+  try {
+    if (!flush) return;
+    for (let round = 1; ; round++) {
+      for (const item of await handed()) {
+        tried.add(item.id);
+        if (!(await claimPendingWrite(phone, item.id))) continue;
+        await retryQueuedWrite(phone, item, true);
+      }
+      const done: RegistrationClaim = held;
+      held = undefined;
+      await done.release();
+      if (round >= MAX_HANDOFF_ROUNDS || !(await handed()).length) return;
+      const again = await claimDealWrite(phone);
+      if (!again.claimed) return;
+      held = again;
+    }
+  } finally {
+    await held?.release();
+  }
+}
+
+/**
+ * [REGISTRO] Este mensaje dejo su escritura en la cola (desde `since`) porque otro tenia la reserva de los
+ * campos: si ese ya la solto, la manda este. Si todavia la tiene, la manda el al soltarla (releaseDealWrite).
+ */
+async function handOffDealWrite(phone: string, since: number): Promise<void> {
+  const claim = await claimDealWrite(phone);
+  if (claim.claimed) await releaseDealWrite(phone, claim, since);
+}
+
+/**
+ * [REGISTRO] R4: lo que manda la cola por otros mensajes (releaseDealWrite, handOffDealWrite) sigue en segundo
+ * plano, con waitUntil (Vercel mantiene la funcion hasta que termina, dentro de su duracion maxima): la
+ * respuesta de este mensaje no espera las escrituras de otro (antes podia pasar los 15 s de Twilio). Si la
+ * funcion se corta antes, la reserva de los campos vence (REGISTRATION_TTL_MS) y lo que falta sale con un
+ * mensaje siguiente; mientras tanto, las escrituras de campos del numero esperan en la cola. Nunca rechaza.
+ */
+function inBackground(work: () => Promise<void>): void {
+  const done = work().catch((err) => {
+    console.error(LOG_PREFIX + ' Escrituras de la cola en segundo plano (non-fatal):', redact(err, 'error'));
+  });
+  waitUntil(done);
 }
 
 async function acquirePhoneTurn(phone: string, maxWaitMs: number): Promise<{ release: () => void; overlapped: boolean }> {
@@ -107,19 +233,32 @@ interface FlowTurnInput {
     startedAt: number;
     /** [REGISTRO] La reserva del registro, si este mensaje la tomo: se libera despues de guardar su resultado. */
     registration: { release?: () => Promise<void> };
+    /** [CONCURRENCIA] Este mensaje espero el candado sin conseguirlo: otra instancia atiende uno anterior. */
+    contended: boolean;
+    /**
+     * [CONCURRENCIA] Marca el candado de la conversacion (si este mensaje lo tiene): su paso ya quedo guardado y
+     * sigue una llamada lenta a Pipedrive. Una correccion que espera en otra instancia (R10) ya puede seguir.
+     */
+    markStepped: () => Promise<void>;
 }
 
 /**
  * Paso del flujo, negocio en Pipedrive e historial de un mensaje (dentro del turno del numero).
  * [TRANSCRIPCION] noted: la nota del negocio ya trae la transcripcion con esta respuesta.
+ * [REGISTRO] followUp: lo nuevo de este mensaje fue al negocio que registro otro mensaje (P3): ventas ya
+ * recibio el aviso de ese registro.
  */
-async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; dealResult: DealResult; reply: string; noted: boolean }> {
-  const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq, noticeDue, flowBase } = t;
+async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; dealResult: DealResult; reply: string; noted: boolean; followUp: boolean }> {
+  const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq, noticeDue } = t;
+  // Plazo de las esperas de este mensaje (Twilio corta a los 15 s y despues falta guardar y responder).
+  const waitDeadline = t.startedAt + REGISTRATION_WAIT_DEADLINE_MS;
 
-  let flowResult: FlowResult;
+  /** El paso del flujo de este mensaje sobre `base` (lo que leyo), mezclado con lo que ya cambio otro. */
+  function step(base: FlowState): { flowResult: FlowResult; conversationId: number } {
+    let flowResult: FlowResult;
     // [CONCURRENCIA] Si un mensaje posterior ya paso por el flujo, el paso de este corre sobre lo que este
-    // leyo (flowBase) y despues se mezcla con el estado actual (H4). Sin await hasta settleFlowStep.
-    const current = beginFlowStep(phone, transcriptSeq, flowBase);
+    // leyo (base) y despues se mezcla con el estado actual (H4). Sin await hasta settleFlowStep.
+    const current = beginFlowStep(phone, transcriptSeq, base);
     try {
           flowResult = processFlowStep(phone, body, claudeParsed, signals);
     } catch (err) {
@@ -140,11 +279,34 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
     }
     // [CONCURRENCIA] Un mensaje posterior que ya termino no queda pisado por el paso de este (H4): si
     // se conserva un dato suyo, el negocio de este mensaje lleva el estado mezclado.
-    const settledStep = settleFlowStep(phone, transcriptSeq, flowBase, current);
+    const settledStep = settleFlowStep(phone, transcriptSeq, base, current);
     if (settledStep.captured) flowResult = { ...flowResult, captured: settledStep.captured };
     // La conversacion que pidio el negocio (si mientras tanto empieza otra, el resultado no va ahi).
-    const conversationId = settledStep.conversationId;
-    addTurn(phone, { role: 'user', content: body }, transcriptSeq);
+    return { flowResult, conversationId: settledStep.conversationId };
+  }
+
+  let { flowResult, conversationId } = step(t.flowBase);
+  if (flowResult.rutUpdate) {
+        // [CONCURRENCIA] R10: una correccion tardia (RUT o correo) escribe en el negocio anterior. Antes espera a
+        // los mensajes que llegaron antes y siguen sin pasar por el flujo: en esta instancia, su paso; en otra
+        // (este espero el candado sin conseguirlo), que suelte el candado o lo marque (markStepped: su paso ya
+        // quedo guardado y sigue con Pipedrive). Si uno de
+        // ellos abrio un pedido nuevo, este mensaje se aplica a ese pedido (como si hubiera llegado despues),
+        // no al negocio anterior. Si el plazo se acaba antes, sigue como antes (riesgo conocido).
+        await awaitEarlierSteps(phone, transcriptSeq, waitDeadline);
+        if (t.contended && await awaitConversationUnlock(phone, waitDeadline)) await loadConversation(phone);
+        // Solo si el pedido nuevo lo abrio un mensaje que llego antes que este (su marca, flowFieldStamp): si lo
+        // abrio uno que llego despues, este mensaje es de la conversacion anterior y la correccion va a su negocio.
+        if (getFlowState(phone).firstMessageAt !== conversationId && flowFieldStamp(phone, 'firstMessageAt') < transcriptSeq) {
+                console.log(LOG_PREFIX + ' Un mensaje anterior abrio otro pedido: este mensaje se aplica al pedido nuevo');
+                ({ flowResult, conversationId } = step(structuredClone(getFlowState(phone))));
+        }
+  }
+  // [REGISTRO] Lo que dejo el paso de este mensaje, antes de mezclarlo con lo de otro (P3: que trajo de nuevo).
+  const stepCaptured = flowResult.captured;
+  // Los mensajes posteriores que esperaban el paso de este ya pueden seguir.
+  stepDone(phone, transcriptSeq);
+  addTurn(phone, { role: 'user', content: body }, transcriptSeq);
 
   // Log de salida: resultado del flujo para QA
   console.log(LOG_PREFIX + ' [QA:out] ' + JSON.stringify({
@@ -173,40 +335,83 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   // [REGISTRO] Otro mensaje del numero registra (o ya registro) el negocio de esta conversacion: este no lo
   // repite. Su resultado decide la respuesta y este mensaje queda en la transcripcion para la nota siguiente.
   let deferred = false;
-  let register = flowResult.shouldCreateDeal && (!flowResult.rutUpdate || Boolean(getFlowState(phone).dealId));
-  if (register) {
+  // [REGISTRO] La espera de la reserva de otro mensaje termino (no se acabo el plazo).
+  let finished = false;
+  // [REGISTRO] El negocio ya registrado en el que este mensaje escribe sus campos y su nota: el de la correccion
+  // tardia (RUT o correo) o, si otro mensaje registro esta conversacion mientras este traia un dato nuevo
+  // (un correo corregido durante el registro), el que registro ese.
+  let updateDealId: number | undefined;
+  if (flowResult.shouldCreateDeal && flowResult.rutUpdate) {
+        // La correccion va al negocio de su conversacion: el del flujo si sigue activa; si otro mensaje abrio
+        // otra mientras tanto, el que anoto su registro. Sin negocio conocido no crea otro.
+        const now = getFlowState(phone);
+        updateDealId = (now.firstMessageAt === conversationId ? now.dealId : undefined) ?? registrationOutcome(phone, conversationId)?.dealId;
+        if (updateDealId === undefined) console.warn(LOG_PREFIX + ' Dato posterior al cierre sin negocio conocido para su conversacion: no se escribe');
+  } else if (flowResult.shouldCreateDeal) {
         // [REGISTRO] La reserva va antes del guardado: quien lea la conversacion cerrada y sin negocio ya la ve.
-        // La correccion tardia (RUT o correo) escribe en el negocio que ya existe: no la necesita.
-        let claim = flowResult.rutUpdate ? undefined : await claimRegistration(phone);
-        if (claim && !claim.claimed) {
-                const finished = await awaitRegistration(phone, claim.heldBy ?? 'remote', t.startedAt + REGISTRATION_WAIT_DEADLINE_MS);
+        // Solo la toma un registro: una correccion o un reintento de campos usan la de los campos (R4), y un
+        // pedido nuevo no espera por ellos.
+        let claim = await claimRegistration(phone);
+        if (!claim.claimed) {
+                finished = await awaitRegistration(phone, claim.heldBy ?? 'remote', waitDeadline);
                 const now = getFlowState(phone);
                 // La reserva del otro termino sin resultado para esta conversacion (su instancia se corto y la
                 // reserva vencio): este mensaje registra la solicitud, como el reintento de flowEngine.
-                if (finished && now.firstMessageAt === conversationId && !now.deal) claim = await claimRegistration(phone);
+                const unregistered = !registrationOutcome(phone, conversationId) && now.firstMessageAt === conversationId && !now.deal;
+                if (finished && unregistered) claim = await claimRegistration(phone);
         }
-        if (claim?.claimed) t.registration.release = claim.release;
-        if (claim && !claim.claimed) {
-                deferred = true;
-                console.log(LOG_PREFIX + ' Otro mensaje del numero registra el negocio: este no lo repite');
-        } else {
+        if (claim.claimed) {
+                t.registration.release = claim.release;
                 // [CONCURRENCIA] La conversacion queda guardada antes de la llamada lenta a Pipedrive: un mensaje
                 // que entra mientras tanto en otra instancia parte de aqui. Lo que esa instancia cambio y se
                 // mezcla al guardar (una comuna corregida) va tambien en el negocio de este mensaje.
-                await persistConversation(phone);
+                if ((await persistConversation(phone)) !== 'memory') await t.markStepped();
                 const settled = getFlowState(phone);
                 if (settled.firstMessageAt === conversationId) flowResult = { ...flowResult, captured: settled.captured };
                 // [REGISTRO] Otro mensaje que termino justo antes ya dejo el resultado (llego al guardar).
-                deferred = !flowResult.rutUpdate && settled.firstMessageAt === conversationId && Boolean(settled.deal);
+                deferred = Boolean(registrationOutcome(phone, conversationId)) || (settled.firstMessageAt === conversationId && Boolean(settled.deal));
                 if (deferred) console.log(LOG_PREFIX + ' El negocio de esta conversacion ya tiene resultado: este mensaje no lo repite');
+        } else {
+                deferred = true;
+                console.log(LOG_PREFIX + ' Otro mensaje del numero registra el negocio: este no lo repite');
         }
-        register = !deferred;
+        if (deferred) {
+                // [REGISTRO] R4 (P3): este mensaje cambio un dato (un correo corregido) mientras otro registraba la
+                // solicitud con el anterior. Con el negocio ya registrado, lo suyo va a ese negocio como una
+                // correccion: Pipedrive termina con el dato del mensaje que llego despues.
+                const now = getFlowState(phone);
+                const ours = now.firstMessageAt === conversationId;
+                const outcome = registrationOutcome(phone, conversationId);
+                const registeredDeal = outcome
+                        ? (outcome.deal === 'registered' ? outcome.dealId : undefined)
+                        : (ours && now.deal === 'registered' ? now.dealId : undefined);
+                if (registeredDeal !== undefined && !sameData(stepCaptured, t.flowBase.captured)) {
+                        updateDealId = registeredDeal;
+                        if (ours) flowResult = { ...flowResult, captured: now.captured };
+                        console.log(LOG_PREFIX + ' Otro mensaje registro el negocio con datos anteriores: lo nuevo de este va a ese negocio');
+                }
+        }
   }
-  if (register) {
+  // [REGISTRO] R4: la reserva de los campos, sin esperar. Una escritura en un negocio que ya existe sin ella
+  // va a la cola (antes esperaba hasta 12,5 s y la respuesta podia pasar los 15 s de Twilio): quien la tiene
+  // la manda al terminar la suya. Un registro no la espera (un pedido nuevo no queda sin registrar por una
+  // correccion), pero si se junta con un negocio en el que otro esta escribiendo, sus campos vuelven a la
+  // cola para que ese los mande despues de los suyos. Sin Upstash, solo dentro de la instancia.
+  const fieldsClaim = updateDealId !== undefined || (flowResult.shouldCreateDeal && !flowResult.rutUpdate && !deferred)
+        ? await claimDealWrite(phone)
+        : undefined;
+  const claimedAt = Date.now();
+  if (fieldsClaim?.claimed && updateDealId !== undefined) {
+        // [CONCURRENCIA] Como el registro: guardada antes de la llamada lenta a Pipedrive.
+        if ((await persistConversation(phone)) !== 'memory') await t.markStepped();
+        const settled = getFlowState(phone);
+        if (settled.firstMessageAt === conversationId) flowResult = { ...flowResult, captured: settled.captured };
+  }
+  if (fieldsClaim) {
         const noteOpts = { upTo: transcriptSeq, exclude: othersInFlight(phone, transcriptSeq) };
         noteIds = noteEntryIds(phone, noteOpts);
         try {
-                dealResult = await ensureWhatsAppDeal({
+                const lead = {
                           phone,
                           name: profileName || phone,
                           summary: claudeSummary,
@@ -217,17 +422,40 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           // [TRANSCRIPCION] Hasta este mensaje, con la respuesta que lo acompana (y la marca del
                           // aviso de privacidad si la lleva): lo que llegue mientras tanto va a la nota siguiente.
                           transcript: transcriptForNote(phone, { ...noteOpts, reply: botReplyText(flowResult.reply, noticeDue) }),
-                          ...(flowResult.rutUpdate ? { existingDealId: getFlowState(phone).dealId } : {}),
-                });
-                // [PENDIENTES] Si la cola esta llena, la nota no entra: la transcripcion se conserva y la
-                // nota siguiente la incluye (nada se pierde). Los campos entran igual (enqueuePendingWrite);
-                // si ni ellos caben (tope duro), tambien se conserva la transcripcion.
+                };
+                let reassert: PendingWhatsAppWrite | undefined;
+                if (updateDealId !== undefined && !fieldsClaim.claimed) {
+                        console.log(LOG_PREFIX + ' Otro mensaje del numero esta escribiendo en el negocio: esta escritura va a la cola, en orden');
+                        dealResult = { dealId: updateDealId, action: 'found', pendingWrite: buildWhatsAppUpdate({ ...lead, existingDealId: updateDealId }) };
+                } else {
+                        dealResult = await ensureWhatsAppDeal({ ...lead, ...(updateDealId !== undefined ? { existingDealId: updateDealId } : {}) });
+                        const sent = typeof dealResult.dealId === 'number' && !dealResult.pendingWrite?.fields;
+                        if (sent && !fieldsClaim.claimed && dealResult.action === 'found') {
+                                reassert = { dealId: dealResult.dealId!, fields: buildWhatsAppUpdate({ ...lead, existingDealId: dealResult.dealId! }).fields };
+                        } else if (sent) {
+                                // [REGISTRO] R4: los campos que Pipedrive confirmo quedan anotados con el numero de este
+                                // mensaje: la cola no vuelve a mandar los de un mensaje anterior.
+                                await confirmDealFields(phone, dealResult.dealId!, transcriptSeq);
+                        }
+                }
+                // [PENDIENTES] Si la cola esta llena, la nota no entra: la transcripcion se conserva para la nota
+                // siguiente, si la hay (con el tope del estado puede omitir mensajes del medio). Los campos
+                // entran igual (enqueuePendingWrite); si ni ellos caben (tope duro), tambien se conserva.
                 if (dealResult.pendingWrite) {
-                        const queued = await enqueuePendingWrite(phone, dealResult.pendingWrite);
+                        const queued = await enqueuePendingWrite(phone, dealResult.pendingWrite, transcriptSeq);
                         if (!queued) noteKept = false;
                 }
+                if (reassert?.fields && Object.keys(reassert.fields).length) await enqueuePendingWrite(phone, reassert, transcriptSeq);
+                // Lo que este mensaje dejo en la cola a proposito (no lo que fallo en Pipedrive): si quien tenia la
+                // reserva ya la solto, lo manda este, en segundo plano (la respuesta no lo espera).
+                if (!fieldsClaim.claimed && (reassert || updateDealId !== undefined)) inBackground(() => handOffDealWrite(phone, claimedAt));
         } catch (err) {
                 console.error(LOG_PREFIX + ' Pipedrive error (non-fatal):', redact(err, 'error'));
+        } finally {
+                // Lo de otros, solo si a este Pipedrive le respondio (si fallo, queda en la cola para un mensaje
+                // siguiente), en segundo plano: la respuesta de este mensaje no espera las escrituras de otros.
+                const delivered = typeof dealResult.dealId === 'number' && !dealResult.pendingWrite;
+                if (fieldsClaim.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => pendingVersion(item) === transcriptSeq));
         }
   }
 
@@ -236,9 +464,13 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
     if (deferred) {
           // [REGISTRO] El resultado es el del otro mensaje: "quedo registrada" solo si Pipedrive lo confirmo; si
           // fallo, el texto B; si todavia no termina, MSG_DEAL_PENDING (no afirma el registro ni el fallo).
+          // R11: se consulta el resultado de esta conversacion, no el flujo activo del numero (otro mensaje pudo
+          // abrir otra conversacion mientras tanto). Si el otro termino sin registrarla y ya no es la activa,
+          // nadie la registro: el texto B.
           const now = getFlowState(phone);
           const ours = now.firstMessageAt === conversationId;
-          if (!(ours && now.deal === 'registered')) reply = ours && !now.deal ? MSG_DEAL_PENDING : MSG_DEAL_FAILED;
+          const deal = registrationOutcome(phone, conversationId)?.deal ?? (ours ? now.deal : undefined);
+          if (deal !== 'registered') reply = deal === 'failed' || (finished && !ours) ? MSG_DEAL_FAILED : MSG_DEAL_PENDING;
     } else if (flowResult.shouldCreateDeal) {
           const registered = (dealResult.action === 'created' || dealResult.action === 'found') && typeof dealResult.dealId === 'number';
           if (flowResult.rutUpdate && !registered) {
@@ -246,6 +478,10 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                   console.warn(LOG_PREFIX + ' Dato posterior al cierre (RUT o correo) sin confirmar en Pipedrive (' + dealResult.action + ') - el negocio anterior sigue');
           } else {
                   recordDealOutcome(phone, registered, conversationId, dealResult.dealId);
+                  // [REGISTRO] R11: tambien por conversacion, para quien espera este registro aunque el numero ya
+                  // este en otra. [CONCURRENCIA] El resultado lleva la marca de este mensaje.
+                  recordRegistrationOutcome(phone, conversationId, registered, dealResult.dealId);
+                  stampFlow(phone, transcriptSeq);
                   if (!registered) {
                           console.warn(LOG_PREFIX + ' Negocio no confirmado (' + dealResult.action + ') — respondiendo MSG_DEAL_FAILED');
                           reply = MSG_DEAL_FAILED;
@@ -261,7 +497,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
 
   addTurn(phone, { role: 'assistant', content: reply }, transcriptSeq + 1);
 
-  return { flowResult, dealResult, reply, noted };
+  return { flowResult, dealResult, reply, noted, followUp: deferred && updateDealId !== undefined };
 }
 
 export const config = { api: { bodyParser: false } };
@@ -341,12 +577,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // [CONCURRENCIA] Sin el candado este mensaje igual responde: sus guardados mezclan, no pisan.
     if (!phoneTurn.overlapped) {
           await loadConversation(phone, distributed.acquired);
-          // [PENDIENTES] Las mas antiguas primero. No las reintenta quien no tiene el candado porque otro
-          // mensaje lo tiene: las dos instancias las mandarian dos veces.
+          // [PENDIENTES] Unas pocas por mensaje, rotando: primero las que llevan mas sin intentarse, asi las
+          // que siempre fallan no frenan a las demas. Cada una se reserva antes de mandarla
+          // (claimPendingWrite): otra instancia no la manda a la vez, aunque haya vencido el candado. No las
+          // reintenta quien espero el candado sin conseguirlo (otro mensaje lo tiene y ya las reintenta).
           if (!distributed.contended) {
-                const queued = await loadPendingWrites(phone);
-                for (const item of queued.slice(0, MAX_PENDING_RETRIES_PER_TURN)) {
-                      await settlePendingWrite(phone, item.id, await retryWhatsAppWrite(item.write));
+                const due = await duePendingWrites(phone, MAX_PENDING_RETRIES_PER_TURN);
+                // [REGISTRO] R4: los campos del negocio se escriben con la reserva de los campos, de a uno por
+                // numero (como la correccion tardia): sin ella, esperan en la cola y sale solo la nota. Antes de
+                // soltarla se manda lo que otro mensaje dejo en la cola mientras tanto (releaseDealWrite, en
+                // segundo plano: este mensaje sigue con su flujo).
+                const fieldsClaim = due.some((item) => sendablePendingWrite(phone, item)?.fields) ? await claimDealWrite(phone) : undefined;
+                const claimedAt = Date.now();
+                const tried = new Set(due.map((item) => item.id));
+                let delivered = true;
+                try {
+                      for (const item of due) {
+                            if (!(await claimPendingWrite(phone, item.id))) continue;
+                            if (!(await retryQueuedWrite(phone, item, Boolean(fieldsClaim?.claimed)))) delivered = false;
+                      }
+                } finally {
+                      if (fieldsClaim?.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => tried.has(item.id)));
                 }
           }
     }
@@ -364,6 +615,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           inProgress: stateBefore.stage !== 'stage1' || Object.keys(stateBefore.captured).length > 0 || getHistory(phone).length > 0,
     });
     transcriptSeq = seq;
+    trackStep(phone, seq);
     let open = openMessages.get(phone);
     if (!open) { open = new Set(); openMessages.set(phone, open); }
     open.add(seq);
@@ -377,7 +629,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           // a la nota no se repite.
           if (!noted) recordTranscript(phone, 'bot', botReplyText(reply, sent !== reply), { replyTo: seq });
           const xml = buildTwiML(sent);
-          await persistConversation(phone);
+          // [CONCURRENCIA] R2: con Upstash arriba, el mensaje queda en el estado compartido o aparte en Upstash
+          // ('held', lo mezcla la lectura siguiente) antes de dar el MessageSid por respondido. 'memory': Upstash
+          // no respondio; el bot responde igual (decision 9) y lo guarda en el proximo guardado de esta instancia.
+          const persisted = await persistConversation(phone);
+          if (persisted === 'memory') console.warn(LOG_PREFIX + ' Upstash no respondio al guardar: el estado de este mensaje queda en la memoria de esta instancia');
           // [REGISTRO] Con el resultado del negocio ya guardado, otro mensaje del numero puede leerlo.
           await registration.release?.();
           await completeMessage(messageSid, xml);
@@ -388,11 +644,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           console.log(LOG_PREFIX + ' Media from ' + redact(phone, 'phone') + ' [' + messageSid + ']');
           // [CANTIDAD] MSG_MEDIA pregunta producto, proyecto y cantidad: queda anotado para el mensaje siguiente.
           recordMediaReply(phone);
+          stepDone(phone, seq);
+          stampFlow(phone, seq);
           await respond(MSG_MEDIA);
           return;
     }
 
     if (!body.trim()) {
+          stepDone(phone, seq);
           await respond('Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?');
           return;
     }
@@ -457,13 +716,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const turn = await runFlowTurn({
           phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq: seq, noticeDue, flowBase, startedAt, registration,
+          contended: distributed.contended, markStepped: distributed.markStepped,
     });
-    const { flowResult, dealResult, reply, noted } = turn;
+    const { flowResult, dealResult, reply, noted, followUp } = turn;
 
     const wantsHuman = flowResult.wantsHuman || signals.wantsHuman;
       // 'found': el cierre se junto con el negocio abierto del mismo numero (ventana de 7 dias). Avisa
       // igual que un negocio nuevo: ventas recibe una tarea por cierre, como antes de la deduplicacion.
-      const shouldNotify = dealResult.action === 'created' || dealResult.action === 'found' || wantsHuman;
+      // [REGISTRO] Lo nuevo de un mensaje que llego mientras otro registraba (followUp) no avisa otra vez.
+      const shouldNotify = (!followUp && (dealResult.action === 'created' || dealResult.action === 'found')) || wantsHuman;
 
     if (shouldNotify) {
           try {
@@ -492,6 +753,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     await respond(reply, noted);
   } finally {
         if (transcriptSeq !== undefined) {
+              stepDone(phone, transcriptSeq);
               const open = openMessages.get(phone);
               open?.delete(transcriptSeq);
               if (open && !open.size) openMessages.delete(phone);

@@ -9,7 +9,7 @@
 //   Claude repite sin que el cliente lo escriba y "Perdón, me equivoqué: es …".
 // Solo datos inventados: correos @example.com y RUT de prueba.
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as flow from './flowEngine';
 
 const NO_SIGNALS = { wantsHuman: false, qualifiesForDeal: false };
@@ -48,7 +48,10 @@ function expectUntouched(r: ReturnType<typeof step>) {
   expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', deal: 'registered', dealId: DEAL_ID });
 }
 
-afterEach(() => flow.clearFlowState(PHONE));
+afterEach(() => {
+  flow.clearFlowState(PHONE);
+  vi.restoreAllMocks();
+});
 
 describe('H9: corregir el correo después del cierre registrado', () => {
   it.each<[string, Claude]>([
@@ -255,5 +258,116 @@ describe('revisión adversaria de H9 y H10', () => {
   ])('"%s" no es un correo negado', (body) => {
     registered();
     expectCorrection(step(body, {}), 'ana.nueva@example.com');
+  });
+});
+
+describe('ronda 3 de Codex: negación larga (R9) y pedido nuevo sin resultado de Pipedrive (R10)', () => {
+  // La negación se resuelve sobre la cláusula del correo, sin tope de palabras: el negocio anterior no recibe nota.
+  it.each([
+    'No me escriban por ningún motivo a ana.mala@example.com',
+    'No utilizo la dirección de correo ana.mala@example.com',
+  ])('los dos casos de Codex: "%s" conserva ana.prueba y no escribe en el negocio', (body) => {
+    registered();
+    expectUntouched(step(body, { correo: 'ana.mala@example.com' }));
+  });
+
+  it.each([
+    'No utilizo el e-mail ana.mala@example.com',
+    'No usen ana.uno@example.com o ana.dos@example.com',
+    'No me escriban a ana.uno@example.com ni a ana.dos@example.com',
+    // Una negación que no se sabe a qué se refiere: queda el vigente.
+    'No sé si es ana.mala@example.com',
+  ])('"%s" no cambia nada', (body) => {
+    registered();
+    expectUntouched(step(body, {}));
+  });
+
+  it.each([
+    'No se olviden de escribirme a ana.nueva@example.com',
+    'No tengo RUT pero mi correo es ana.nueva@example.com',
+    'Ya no uso ana.prueba@example.com, ahora es ana.nueva@example.com',
+  ])('"%s" sigue corrigiendo el correo', (body) => {
+    registered();
+    expectCorrection(step(body, {}), 'ana.nueva@example.com');
+  });
+
+  it('el caso de Codex: con la conversación cerrada, con correo y sin resultado de Pipedrive, el pedido nuevo abre otra conversación', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    expect(step(FIRST, FIRST_CLAUDE)).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+    // Sin recordDealOutcome: el registro no dejó resultado.
+    expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', firstMessageAt: 1_000 });
+    expect(flow.getFlowState(PHONE).deal).toBeUndefined();
+    now.mockReturnValue(2_000);
+    const r = step('Otro pedido: 30 paneles LED luz fría para una oficina en Lampa.\nMi correo es ana.dos@example.com', {});
+    expect(r.closedFlow).toBe(false);
+    expect(r.shouldCreateDeal).toBe(false);
+    expect(r.rutUpdate).toBeUndefined();
+    // Solo el pedido nuevo: nada de los focos ni de Maipú.
+    expect(r.captured).toEqual({ producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '30', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Lampa', correo: 'ana.dos@example.com' });
+    const state = flow.getFlowState(PHONE);
+    expect(state.stage).not.toBe('closed');
+    expect(state.firstMessageAt).toBe(2_000);
+  });
+
+  it('sin el pedido nuevo explícito, la conversación cerrada sin resultado sigue sumando el correo y reintentando', () => {
+    step(FIRST, FIRST_CLAUDE);
+    const r = step('Mi correo es ana.dos@example.com', { correo: 'ana.dos@example.com' });
+    expect(r).toMatchObject({ shouldCreateDeal: true, closedFlow: true });
+    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '12', comuna_o_ciudad: 'Maipú', correo: 'ana.dos@example.com' });
+  });
+});
+
+describe('revisión adversaria de R9 y R10 (ronda 3)', () => {
+  // El correo solo en su línea, entre paréntesis o tras una coma sigue a la negación de la cláusula anterior; la
+  // negación escrita después del correo también cuenta.
+  it.each([
+    'No me escriban a este correo:\nana.mala@example.com',
+    'Ya no uso este correo:\nana.mala@example.com',
+    'No me escriban, por favor, a ana.mala@example.com',
+    'No usen el correo antiguo (ana.mala@example.com)',
+    'ana.mala@example.com no lo usen',
+    'No es necesario que me escriban a ana.mala@example.com',
+    'Por favor no me vayan a escribir nunca más a la dirección ana.mala@example.com',
+    'No es mi correo personal: ana.mala@example.com',
+  ])('"%s" no cambia nada', (body) => {
+    registered();
+    expectUntouched(step(body, { correo: 'ana.mala@example.com' }));
+  });
+
+  // Un "no" de la misma cláusula que niega otra cosa no tapa el correo que viene después.
+  it.each([
+    'No me llegó nada al correo escríbanme a ana.nueva@example.com',
+    'Sí, no hay problema: ana.nueva@example.com',
+    'No hay drama si me escriben a ana.nueva@example.com',
+    'Gracias no tengo más dudas mi correo nuevo es ana.nueva@example.com',
+    'No tengo RUT mi correo es ana.nueva@example.com',
+    'Escríbanme no más a ana.nueva@example.com',
+  ])('"%s" corrige el correo', (body) => {
+    registered();
+    expectCorrection(step(body, {}), 'ana.nueva@example.com');
+  });
+
+  it('el caso del verificador: sin resultado de Pipedrive, "¿Me pueden enviar otra cotización? La anterior no me llegó" reintenta la solicitud con el correo nuevo', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    step(FIRST, FIRST_CLAUDE);
+    now.mockReturnValue(2_000);
+    const r = step('¿Me pueden enviar otra cotización? La anterior no me llegó. Mi correo es ana.dos@example.com', {});
+    expect(r).toMatchObject({ shouldCreateDeal: true, closedFlow: true });
+    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '12', comuna_o_ciudad: 'Maipú', correo: 'ana.dos@example.com' });
+    expect(flow.getFlowState(PHONE).firstMessageAt).toBe(1_000);
+  });
+
+  it('con el negocio registrado, el mismo mensaje corrige el correo de ese negocio', () => {
+    registered();
+    expectCorrection(step('¿Me pueden enviar otra cotización? La anterior no me llegó. Mi correo es ana.dos@example.com', {}), 'ana.dos@example.com');
+  });
+
+  it('"¿Me pueden enviar otra cotización por 30 paneles LED?" sí es un pedido nuevo', () => {
+    registered();
+    const r = step('¿Me pueden enviar otra cotización por 30 paneles LED? Mi correo es ana.dos@example.com', {});
+    expect(r.closedFlow).toBe(false);
+    expect(r.rutUpdate).toBeUndefined();
+    expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '30', correo: 'ana.dos@example.com' });
+    expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
   });
 });

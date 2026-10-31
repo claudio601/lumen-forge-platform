@@ -101,4 +101,22 @@ describe('askClaude con salidas de otra forma', () => {
     expect((await parse({ summary })).summary).toBe('El cliente pregunta si hay stock y cuándo llegarían.');
     expect((await parse({ summary: 'El cliente pregunta: ¿despachan a Temuco?' })).summary).toBe('El cliente pregunta: ¿despachan a Temuco?');
   });
+
+  it('[RESUMEN] R7 (Codex, ronda 3): el prompt prohíbe los rodeos; el filtro los bota y conserva los descriptores', async () => {
+    await parse({ summary: 'El cliente pide paneles.' });
+    const system = systems.at(-1) ?? '';
+    expect(system).toContain('Tampoco con rodeos ("se efectuo la adquisicion", "logro comprar"');
+    const summary = 'Se efectuó la adquisición de veinte focos. Cliente entrega nombre y correo. '
+      + 'El cliente logró adquirir las luminarias. El cliente tiene dudas sobre el pedido mínimo.';
+    expect((await parse({ summary })).summary).toBe('Cliente entrega nombre y correo. El cliente tiene dudas sobre el pedido mínimo.');
+    expect((await parse({ summary: 'Los focos están a disposición del cliente. Los focos están preparados.' })).summary).toBe('Ver la transcripción.');
+  });
+
+  it('[RESUMEN] R7 (verificador): el filtro bota las variantes y conserva lo que no es comercial', async () => {
+    const summary = 'La adquisición de veinte focos se efectuó. El cliente logró al fin adquirir las luminarias. '
+      + 'La empresa del cliente se encuentra en Maipú. Los focos del cliente quedan a su disposición. '
+      + 'El cliente no pudo enviar el formulario de contacto. Se le envió el número de Starken.';
+    expect((await parse({ summary })).summary)
+      .toBe('La empresa del cliente se encuentra en Maipú. El cliente no pudo enviar el formulario de contacto.');
+  });
 });

@@ -79,11 +79,19 @@ async function snapshot() {
   return JSON.parse(redis.data.get(conversationKey(PHONE))!.value);
 }
 
-/** [PENDIENTES] La cola de escrituras pendientes del número (su propia clave en Upstash), de la más antigua a la más nueva. */
+/**
+ * [PENDIENTES] La cola de escrituras pendientes del número (su propia clave en Upstash), de la más antigua a
+ * la más nueva. Solo las escrituras: la cola guarda también la marca del último intento de cada una (R6).
+ */
 async function pendingQueue(): Promise<Array<{ dealId: number; note?: string; fields?: Record<string, string> }>> {
   const { pendingKey } = await import('../_lib/whatsapp/stateStore.js');
   const raw = redis.data.get(pendingKey(PHONE))?.value;
-  const items = Object.values(raw ? JSON.parse(raw) as Record<string, string> : {}).map((v) => JSON.parse(v));
+  const items = Object.entries(raw ? JSON.parse(raw) as Record<string, string> : {}).flatMap(([field, value]) => {
+    try {
+      const item = JSON.parse(value);
+      return item && typeof item === 'object' && item.id === field ? [item] : [];
+    } catch { return []; }
+  });
   return items.sort((a, b) => a.at - b.at).map((i) => i.write);
 }
 
@@ -479,6 +487,31 @@ describe('segunda tanda: candado entre instancias', () => {
     expect(redis.data.has(conversationLockKey(PHONE))).toBe(false);
   });
 
+  it('[CONCURRENCIA] el candado marcado (su mensaje ya pasó por el flujo) conserva dueño y plazo, deja de hacer esperar y se suelta igual', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const { acquireConversationLock, awaitConversationUnlock, conversationLockKey } = await import('../_lib/whatsapp/stateStore.js');
+    const key = conversationLockKey(PHONE);
+    const first = await acquireConversationLock(PHONE, 1000);
+    const token = redis.data.get(key)!.value;
+    vi.setSystemTime(Date.now() + 5_000);
+    // Sin marca, quien espera agota su plazo.
+    expect(await awaitConversationUnlock(PHONE, Date.now())).toBe(false);
+    await first.markStepped();
+    expect(redis.data.get(key)!.value).toBe(token + ':paso');
+    expect(redis.data.get(key)!.expiresAt! - Date.now()).toBe(20_000);
+    expect(await awaitConversationUnlock(PHONE, Date.now() + 1_000)).toBe(true);
+    // Un candado vencido no marca ni suelta el de su sucesor.
+    vi.setSystemTime(Date.now() + 20_000);
+    const second = await acquireConversationLock(PHONE, 1000);
+    expect(second.acquired).toBe(true);
+    await first.markStepped();
+    await first.release();
+    expect(redis.data.get(key)!.value).not.toContain(':paso');
+    await second.markStepped();
+    await second.release();
+    expect(redis.data.has(key)).toBe(false);
+  });
+
   it('contención respeta maxWaitMs, registra y permite seguir sin candado', async () => {
     vi.useFakeTimers();
     const { acquireConversationLock } = await import('../_lib/whatsapp/stateStore.js');
@@ -612,10 +645,17 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
     }
     sim.noteDown = false;
     sim.parsed = {};
-    // De a MAX_PENDING_RETRIES_PER_TURN por mensaje (Twilio espera 15 s), las más antiguas primero.
+    // De a MAX_PENDING_RETRIES_PER_TURN por mensaje (Twilio espera 15 s).
+    // [PENDIENTES] R6: antes se exigía que salieran las más antiguas primero también entre un mensaje y el
+    // siguiente; eso dejaba sin intentar a una posterior cuando las cinco más antiguas fallan siempre. Ahora
+    // cada mensaje elige las que llevan más tiempo sin intentarse y las manda en orden de llegada: las diez
+    // llegan en los dos mensajes.
     for (let i = 0; i < Math.ceil(MAX_PENDING_WRITES / MAX_PENDING_RETRIES_PER_TURN); i++) await send('gracias ' + i);
     const delivered = sim.notes.map((n) => n.content.match(/Cliente: Necesito (\d+) focos/)![1]);
-    expect(delivered).toEqual(['11', '12', '13', '14', '15', '16', '17', '18', '19', '20']);
+    expect([...delivered].sort()).toEqual(['11', '12', '13', '14', '15', '16', '17', '18', '19', '20']);
+    const perTurn = MAX_PENDING_RETRIES_PER_TURN;
+    expect(delivered.slice(0, perTurn)).toEqual([...delivered.slice(0, perTurn)].sort());
+    expect(delivered.slice(perTurn)).toEqual([...delivered.slice(perTurn)].sort());
     expect(await pendingQueue()).toEqual([]);
     // La nota siguiente del negocio trae el pedido que no entró a la cola.
     sim.parsed = COMPLETE;

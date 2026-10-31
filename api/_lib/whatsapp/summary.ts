@@ -32,6 +32,18 @@
 // historial (frecuente, habitual, antiguo, recurrente, conocido, VIP...), "de la tienda", "de la casa",
 // "de eLIGHTS", "de nosotros" o una expresion de tiempo. "Desde" es historial solo con una expresion de
 // tiempo: "desde elights.cl" es el canal.
+//
+// [RESUMEN] R7 (Codex, ronda 3): tambien se bota la perifrasis. El verbo de apoyo con la nominalizacion
+// del acto, antes o despues ("Se efectuo la adquisicion de veinte focos", "La adquisicion de veinte
+// focos se efectuo"), el infinitivo comercial tras un verbo de logro ("logro adquirir", "logro al fin
+// adquirir", "pudo pagar", "termino por comprar") y el estado de la mercaderia ("Los focos estan a
+// disposicion del cliente", "Los focos estan preparados para el lunes"). Se mira el objeto de la accion
+// y el sujeto: entregar o enviar datos no es entregar mercaderia ("Cliente entrega nombre y correo"),
+// salvo el dato de un envio o de un pago ("Se le envio el numero de Starken"); el cliente a disposicion
+// no es mercaderia; la cuenta de correo no es una cuenta por pagar; el pedido minimo como tema o como
+// condicion ("dudas sobre el pedido minimo") no es un pedido; y "Venta al por menor de iluminacion" es
+// el giro del cliente, no una venta. Sigue siendo un filtro por construcciones conocidas: un rodeo que
+// no esta aqui puede pasar, y la nota igual trae la transcripcion.
 
 export const SUMMARY_EMPTY = 'Ver la transcripci\u00f3n.';
 
@@ -65,6 +77,8 @@ const ATTRIBUTED_RE = words([
   'ayer|anoche|anteayer|antier|(?:la\\s+semana|el\\s+mes|el\\s+a(?:\u00f1|n)o)\\s+pasad[oa]|el\\s+otro\\s+d(?:\u00ed|i)a'
     + '|la\\s+vez\\s+(?:anterior|pasada)|la\\s+(?:\u00fa|u)ltima\\s+vez',
 ]);
+// R7: "a disposicion", "a su entera disposicion", "a plena disposicion" (ver DISPOSAL_RE).
+const DISPOSAL = 'a\\s+(?:(?:la|su|sus|entera|total|plena|libre|completa|inmediata)\\s+){0,2}disposici(?:\u00f3|o)n';
 // [RESUMEN] Estados que tambien cubre una consulta, pero solo como pregunta ("Pregunta si hay stock",
 // "Consulta si es cliente frecuente", "Pregunta si tenemos focos de 200W"): historial, la tienda que
 // habla ("nosotros", "nos"), tener un pedido, "ya" + verbo, stock, existencias y entrega.
@@ -104,7 +118,9 @@ const ASK_RE = words([
   'hay(?!\\s+(?:que|poca|poco|mucha|mucho|problemas?|luz|humedad|riesgo)' + E + ')|hab(?:\u00ed|i)an?|habr(?:\u00e1|a)n?|hubo|tengo',
   'dispon(?:e|en|emos|(?:\u00ed|i)an?|dr(?:\u00e1|a)n?)',
   'sobr(?:a|an|aba|aban|\u00f3|o|aron|ar(?:\u00e1|a)n?|ando)',
-  'qued(?:a|an|aba|aban|\u00f3|o|aron|ar(?:\u00e1|a)n?|ar(?:\u00ed|i)an?)(?!\\s+(?:(?:ya|todav(?:\u00ed|i)a|a(?:\u00fa|u)n)\\s+)?en' + E + ')',
+  // "Queda a disposicion" lo mira DISPOSAL_RE, que conoce el sujeto.
+  'qued(?:a|an|aba|aban|\u00f3|o|aron|ar(?:\u00e1|a)n?|ar(?:\u00ed|i)an?)(?!\\s+(?:(?:ya|todav(?:\u00ed|i)a|a(?:\u00fa|u)n)\\s+)?en' + E
+    + '|\\s+' + DISPOSAL + ')',
   'cuent(?:a|an)\\s+(?:ya\\s+)?con|cont(?:amos|aba|aban|\u00f3|o|aron|ar(?:\u00e1|a)n?)\\s+con',
   // Entrega por venir o en curso, tambien en perifrasis ("van a llegar", "va a recibir").
   'sal(?:e|en|i(?:\u00f3|o)|ieron|dr(?:\u00e1|a)n?)\\s+(?:hoy|ayer|ma(?:\u00f1|n)ana|esta\\s+semana|el\\s+(?:lunes|martes|mi(?:\u00e9|e)rcoles|jueves|viernes|s(?:\u00e1|a)bado)|de\\s+(?:la\\s+)?bodega)',
@@ -114,34 +130,80 @@ const ASK_RE = words([
   'en\\s+(?:camino|tr(?:\u00e1|a)nsito|preparaci(?:\u00f3|o)n|reparto|proceso|ruta)',
   'se\\s+(?:est\\p{L}*\\s+)?prepar\\p{L}*',
   '(?:list|preparad|embalad|empacad|empaquetad)[oa]s?\\s+para\\s+(?:(?:el|su)\\s+)?(?:retir(?:o|ar)|despach(?:o|ar)|entreg(?:a|ar)|env(?:\u00ed|i)o|enviar)',
-  '(?:est|qued)\\p{L}*\\s+(?:ya\\s+)?list[oa]s?',
+  '(?:est|qued|encuentr)\\p{L}*\\s+(?:ya\\s+)?list[oa]s?',
 ]);
-// [RESUMEN] "Esta en", "queda en" o "sigue en" dicen donde estan las cosas ("El pedido esta en
-// Starken", "La plata esta en la cuenta"): solo los cubre una pregunta, salvo que hablen de un lugar
-// ("La obra esta en Lampa").
-const LOCATION_RE = words(['(?:est(?:\u00e1|a|\u00e1n|an|aba|aban|uvo|uvieron|ar(?:\u00e1|a)n?|ar(?:\u00ed|i)an?)|qued(?:a|an|aba|aban|\u00f3|o|aron|ar(?:\u00e1|a)n?)'
-  + '|sigue|siguen|permanec\\p{L}*)\\s+(?:(?:ya|todav(?:\u00ed|i)a|a(?:\u00fa|u)n)\\s+)?en']);
-const PLACE_SUBJECT = /^(?:obras?|proyectos?|empresas?|oficinas?|local(?:es)?|casas?|galpon(?:es)?|bodegas?|instalacion(?:es)?|faenas?|terrenos?|sucursal(?:es)?|plantas?|fabricas?|colegios?|edificios?|departamentos?|condominios?|parcelas?|recintos?|canchas?|estadios?|taller(?:es)?|tiendas?|comunas?|direccion|lugar|sitio|predio|campo|fundo|domicilio|cliente|clienta)$/;
-const SUBJECT_SKIP = new Set(['ya', 'no', 'todavia', 'aun', 'tambien']);
+// [RESUMEN] R7: lo que esta a disposicion de alguien ya existe ("Los focos estan a disposicion del
+// cliente", "a plena disposicion"): solo lo cubre una pregunta, salvo que el sujeto sea el cliente, un
+// contacto o una ficha ("El cliente queda a su entera disposicion para coordinar"; "Los focos del
+// cliente quedan a su disposicion" habla de los focos).
+const DISPOSAL_RE = words([DISPOSAL]);
+const PERSON_SUBJECT = /^(?:client[ea]s?|contactos?|encargad[oa]s?|vendedor(?:a|as|es)?|ejecutiv[oa]s?|asesor(?:a|as|es)?|tecnic[oa]s?|fichas?|catalogos?|informacion|datos|horarios?|persona|personal)$/;
+// [RESUMEN] "Esta en", "queda en", "sigue en" o "se encuentra en" (R7) dicen donde estan las cosas
+// ("El pedido esta en Starken", "La plata esta en la cuenta"): solo los cubre una pregunta, salvo que
+// hablen de un lugar ("La obra esta en Lampa", "La obra se encuentra en Lampa").
+const STAY = '(?:est(?:\u00e1|a|\u00e1n|an|aba|aban|uvo|uvieron|ar(?:\u00e1|a)n?|ar(?:\u00ed|i)an?)|qued(?:a|an|aba|aban|\u00f3|o|aron|ar(?:\u00e1|a)n?)'
+  + '|sigue|siguen|permanec\\p{L}*|encuentr(?:a|an|aba|aban))';
+// "En la web" o "en el catalogo" no es un lugar donde este la mercaderia: "El producto se encuentra en la web".
+const LOCATION_RE = words([STAY + '\\s+(?:(?:ya|todav(?:\u00ed|i)a|a(?:\u00fa|u)n)\\s+)?en'
+  + '(?!\\s+(?:(?:la|el|su|nuestr[oa])\\s+)?(?:web|sitio|p(?:\u00e1|a)gina|cat(?:\u00e1|a)logo|e-?lights(?:\\.cl)?)' + E + ')']);
+// [RESUMEN] R7: la mercaderia ya alistada ("Los focos estan preparados", "se encuentran embalados",
+// "fueron preparados", "estan preparados para el lunes" o "para que el cliente los retire") es un
+// estado que solo cubre una pregunta; el lugar no ("La oficina esta preparada"), ni el uso para el que
+// sirve el producto, que se reconoce por una lista cerrada ("preparados para exterior", "contra la
+// humedad"): otro "para" afirma el estado.
+const PRODUCT_USE = '(?:(?:el|la|los|las|su|uso\\s+en)\\s+)?(?:uso|usar|exterior(?:es)?|interior(?:es)?|intemperie|agua|lluvia|polvo|golpes'
+  + '|impactos?|humedad|temperaturas?|climas?|ambientes?|condiciones|zonas?|alturas?|soportar|resistir|funcionar|operar|trabajar|alumbrado)';
+const GOODS_STATE_RE = words(['(?:' + STAY + '|fue|fueron|sido)\\s+(?:(?:ya|todav(?:\u00ed|i)a|a(?:\u00fa|u)n)\\s+)?'
+  + '(?:preparad|alistad|embalad|empacad|empaquetad)[oa]s?(?!\\s+(?:para|contra)\\s+' + PRODUCT_USE + E + ')']);
+const PLACE_SUBJECT = /^(?:obras?|proyectos?|licitacion(?:es)?|empresas?|oficinas?|local(?:es)?|casas?|galpon(?:es)?|bodegas?|instalacion(?:es)?|faenas?|terrenos?|sucursal(?:es)?|plantas?|fabricas?|colegios?|edificios?|departamentos?|condominios?|parcelas?|recintos?|canchas?|estadios?|taller(?:es)?|tiendas?|comunas?|direccion|lugar|sitio|predio|campo|fundo|domicilio|cliente|clienta)$/;
+const SUBJECT_SKIP = new Set(['ya', 'no', 'todavia', 'aun', 'tambien', 'se']);
 const SUBJECT_DETERMINER = /^(?:el|la|los|las|su|sus|esta|este)$/;
+// El complemento del sujeto: "La empresa del cliente", "El galpon a iluminar", "La cancha de futbol".
+const SUBJECT_COMPLEMENT = /^(?:de|del|a|al|para|con)$/;
 // [RESUMEN] Vocabulario comercial que no es verbo: solo vale dentro de un pedido o una consulta, o en
 // una lista que sigue a uno. "En bodega" tambien, salvo como lugar de uso o de retiro ("para usar en
 // bodega", "retirar en bodega").
+// R7: la cuenta de correo o de usuario no es una cuenta por pagar.
 const DESC_RE = words([
   'pedidos?|(?:\u00f3|o)rden(?:es)?|oc|ventas?|dinero|la\\s+plata|cartolas?|montos?|negocios?|tratos?|transferencias?|comprobantes?'
     + '|boletas?|cr(?:\u00e9|e)ditos?|transacci(?:\u00f3|o)n(?:es)?|mercader(?:\u00ed|i)as?',
-  'cuentas?(?!\\s+(?:que|con)' + E + ')',
+  'cuentas?(?!\\s+(?:que|con)' + E + '|\\s+(?:de\\s+)?(?:correo|e-?mail|mail|gmail|hotmail|outlook|google|usuario|instagram|facebook|linkedin|whatsapp)' + E + ')',
   '(?<!(?:para\\s+\\p{L}+(?:ar|er|ir)|proyect\\p{L}*|retir\\p{L}*|instal\\p{L}*|ilumin\\p{L}*|us\\p{L}*|pon\\p{L}*|trabaj\\p{L}*|coloc\\p{L}*|mont\\p{L}*|ocup\\p{L}*|alumbr\\p{L}*)(?:\\s+[\\p{L}\\p{N}]+){0,3}\\s+)'
     + 'en\\s+(?:(?:la|las|el|los|nuestr[oa]s?)\\s+)?(?:bodegas?|almac(?:\u00e9|e)n(?:es)?|dep(?:\u00f3|o)sitos?)',
 ]);
+// Lo que se vendio tras "venta al por mayor de": un articulo o un determinante, un numeral en palabras
+// ("veinticinco", "setenta", "doscientos") o un lote.
+const NUMBER_WORD = '(?:un[oa]?s?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieci\\p{L}+|veint\\p{L}*'
+  + '|treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa|cien(?:tos?)?|\\p{L}+cient[oa]s|mil(?:es)?|mill(?:\u00f3|o)n(?:es)?)';
+const SOLD_LOT = '(?:el|la|los|las|lo|sus?|est[eoa]s?|es[eoa]s?|aquel(?:l[oa]s?|la)?|dich[oa]s?|ambos|ambas|ciert[oa]s|algun[oa]?s?'
+  + '|vari[oa]s|much[oa]s|poc[oa]s|tod[oa]s?|lotes?|partidas?|stock|mercader(?:\u00ed|i)as?|' + NUMBER_WORD + ')';
+// Una palabra del rubro: sin cifra, sin lo que se vendio y sin participio ("de focos concretada" cuenta
+// una venta). Las palabras en "-ado" o "-ido" se botan aunque sean adjetivos ("importados").
+const TRADE_WORD = '(?!' + SOLD_LOT + E + ')\\p{L}+(?<!(?:ad|id)[oa]s?)';
+// El pedido minimo como cifra o como condicion de otra cosa: "de 10 unidades", "es de $50.000", "para
+// despacho sin costo".
+const MIN_AMOUNT = '(?:(?:(?:es|son|ser(?:\u00e1|a))\\s+)?(?:de\\s+)?(?:\\$\\s*)?\\d[\\d.,]*(?:\\s+(?:mil|millones?))?(?:\\s+\\p{L}+)?'
+  + '|para\\s+(?:(?:el|la)\\s+)?(?:despacho|env(?:\u00ed|i)o|retiro|factura|compra)(?:\\s+sin\\s+costo|\\s+a\\s+regiones)?)[^\\p{L}\\p{N}]*$';
 // "Pedido de 20 paneles" o "Compra de 30 paneles" (sin articulo definido: no es un pedido que ya
 // existe) describe lo que se pide, "factura empresa" o "boleta electronica", el documento, y "venta
 // al por menor", el giro del cliente.
 const TEMPLATE_RE = words(['(?<!(?:el|la|los|las|su|sus|este|esta|ese|esa|del|al)\\s+)(?:(?:pedidos?|compras?)\\s+de'
   + '(?=\\s+(?!(?:hace|siempre|larga|toda|antes|nosotros)' + E + ')[\\p{L}\\p{N}$])|facturas?\\s+a\\s+nombre\\s+de'
   + '|(?:facturas?|boletas?)(?=\\s+(?:(?:de|para|a)\\s+(?:(?:la|una|su)\\s+)?)?(?:empresas?|electr(?:\u00f3|o)nicas?|exentas?|afectas?)' + E + '))',
-  // El giro va tras otra palabra y termina la clausula o sigue con su lugar: "Venta al por menor cerrada" no.
-  '(?<=[\\p{L}\\p{N}]\\s+)ventas?(?=\\s+al\\s+por\\s+(?:menor|mayor)(?:\\s+(?:en|de|del|para|con)' + E + '|[^\\p{L}\\p{N}]*$))']);
+  // El giro termina la clausula o sigue con su lugar o su rubro: "Venta al por menor cerrada" no. R7:
+  // tambien al empezar la clausula ("Venta al por menor de iluminacion"), pero no con lo que se vendio
+  // ("Venta al por mayor de 500 focos", "de veinticinco focos", "de aquellos paneles") ni con un
+  // participio despues del rubro ("Venta al por mayor de focos concretada").
+  'ventas?(?=\\s+al\\s+por\\s+(?:menor|mayor)(?:\\s+(?:en|para|con)' + E + '|\\s+del?\\s+' + TRADE_WORD + '(?:\\s+' + TRADE_WORD + '){0,4}'
+    + '(?:\\s+(?:en|para|con)' + E + '|[^\\p{L}\\p{N}]*$)|[^\\p{L}\\p{N}]*$))',
+  // R7: el pedido, la compra o el monto minimo es una condicion de la tienda cuando es el tema ("dudas
+  // sobre el pedido minimo", "sobre el monto minimo de compra") o cuando se enuncia con su cifra
+  // ("Pedido minimo de 10 unidades"). Con otra cosa vuelve a ser un pedido: "El pedido minimo sigue
+  // pendiente", "tiene un pedido minimo pendiente", "cumplio el pedido minimo".
+  '(?<=(?:sobre|acerca\\s+de|respecto\\s+(?:a|al|de|del)|en\\s+cuanto\\s+al?|cu(?:\u00e1|a)l\\s+(?:es|son|ser(?:\u00ed|i)a))\\s+(?:(?:el|la|los|las)\\s+)?)'
+    + '(?:pedidos?|montos?|compras?)'
+    + '(?=\\s+m(?:\u00ed|i)nim[oa]s?(?:\\s+(?:de|para)' + E + '|[^\\p{L}\\p{N}]*$))',
+  '(?<=^(?:(?:el|la|los|las)\\s+)?)(?:pedidos?|montos?|compras?)(?=\\s+m(?:\u00ed|i)nim[oa]s?\\s+' + MIN_AMOUNT + ')']);
 // [RESUMEN] El sustantivo comercial que complementa a otro sustantivo, sin articulo ("detalles de
 // compra", "opcion de pago", "sala de ventas", "para despacho en Calama"), no afirma nada. Salvo tras
 // lo que senala un hecho puntual ("fecha de pago", "estado de despacho", "historial de compras") o
@@ -270,6 +332,8 @@ const STEMS: Stem[] = [
   { s: 'tramit', light: true }, { s: 'prepar', light: true }, { s: 'program', light: true }, { s: 'agend', light: true },
   // "Proceso de compra terminado": el complemento no afirma nada, el participio si.
   { s: 'termin', light: true }, { s: 'finaliz', light: true }, { s: 'finalic', light: true },
+  // R7: "Se materializo la compra", "Se llevo a cabo el pago", "Se procedio con el despacho".
+  { s: 'materializ', light: true }, { s: 'materialic', light: true }, { s: 'llev', light: true }, { s: 'proced', ir: true, light: true },
 ];
 // Tiempos: "none" no afirma (infinitivo, subjuntivo), "now" afirma algo que una pregunta puede cubrir
 // (presente, futuro, condicional, gerundio), "past" y "part" solo los cubre la atribucion. "o", "os" y
@@ -295,12 +359,13 @@ const IR_ENDINGS: [RegExp, Tense][] = [
 ];
 // "Hacer" y "pedir" son irregulares: se listan sus formas (sin "hacia" sin tilde, que es la
 // preposicion). "Pide" y "piden" son pedidos del cliente, no hechos; "pidio" cuenta lo que ya paso.
+// El infinitivo no afirma nada, salvo tras un verbo de logro ("logro hacer el pago").
 const HACER_STEM: Stem = { s: 'hac', light: true };
 const PEDIR_STEM: Stem = { s: 'ped' };
 const IRREGULAR: Record<string, [Tense, Stem]> = Object.fromEntries([
   ...Object.entries({
     hice: 'past', hiciste: 'past', hizo: 'past', hicimos: 'past', hicieron: 'past', 'hac\u00eda': 'past', 'hac\u00edan': 'past', hacian: 'past',
-    hecho: 'part', hecha: 'part', hechos: 'part', hechas: 'part',
+    hecho: 'part', hecha: 'part', hechos: 'part', hechas: 'part', hacer: 'none',
     hace: 'now', hacen: 'now', hago: 'now', 'har\u00e1': 'now', hara: 'now', 'har\u00e1n': 'now', haran: 'now', 'har\u00eda': 'now', haria: 'now',
     'har\u00edan': 'now', harian: 'now', haciendo: 'now',
   } as Record<string, Tense>).map(([form, tense]) => [form, [tense, HACER_STEM]]),
@@ -322,9 +387,60 @@ const NOUN_BEFORE = new Set([...ARTICLES, 'unos', 'unas', 'de', 'con', 'sin', 'p
 const FUTURE_SER = new Set(['sera', 'seran', 'seria', 'serian']);
 // "Recibido" tras lo que recibe el bot o ventas no es un pago ni una entrega: "Cotizacion recibida".
 const RECEIVED_OK = /^(?:cotizacion(?:es)?|solicitud(?:es)?|consultas?|mensajes?|correos?|informacion|fotos?|fotografias?|imagen(?:es)?|archivos?|planos?|documentos?|requerimientos?)$/;
-// Ni recibir un contacto o una respuesta: "No ha recibido contacto previo".
-const RECEIVED_OBJ = /^(?:contactos?|respuestas?|llamadas?|mensajes?|correos?|informacion|noticias?|atencion|asesorias?|visitas?|ayuda|orientacion|indicaciones?)$/;
+// [RESUMEN] Ni recibir un contacto o una respuesta ("No ha recibido contacto previo"), ni entregar,
+// enviar o mandar datos (R7: "Cliente entrega nombre y correo", "Envio de fotos del tablero"): el objeto
+// se mira tras los articulos y "de". Recibir, entregar o enviar otra cosa sigue siendo un hecho.
+const INFO_OBJ = /^(?:contactos?|respuestas?|llamadas?|mensajes?|correos?|e?mails?|informacion|noticias?|atencion|asesorias?|visitas?|ayuda|orientacion|indicaciones?|nombres?|apellidos?|datos|rut|telefonos?|celular(?:es)?|numeros?|direccion(?:es)?|ubicacion(?:es)?|fotos?|fotografias?|imagen(?:es)?|videos?|planos?|archivos?|detalles?|especificaciones?|medidas?|antecedentes?|referencias?|consultas?|preguntas?|solicitud(?:es)?|requerimientos?|cuentas?|formularios?|codigos?)$/;
+const INFO_STEMS = new Set(['recib', 'entreg', 'entregu', 'envi', 'mand']);
+// Salvo el dato de un envio o de un pago, en cualquier parte de la clausula: "Se le envio el numero de
+// seguimiento", "el numero de Starken", "un mensaje con el numero de guia", "los datos del
+// transportista", "los datos bancarios" (los transportistas de REGION_CARRIERS; "cruz" por Cruz del Sur
+// y "transportes" por Transportes Mena). Lo que ventas le manda al cliente o lo que el cliente recibe
+// tampoco vale con un sustantivo comercial ("Cliente recibio los datos de pago").
+const SHIPPED_REF = /^(?:seguimientos?|guias?|tracking|rastreos?|encomiendas?|transportistas?|transportes?|courier|starken|chilexpress|varmontt|samex|pdq|ecoex|pullman|bluexpress|cruz|bancari[oa]s?|bancos?)$/;
+const TO_CLIENT = /^(?:le|les)$/;
+const OBJECT_SKIP = /^(?:el|la|los|las|un|una|unos|unas|su|sus|ningun|ninguna|algun|alguna|otro|otra|nuevo|nueva|de|del|tod[oa]s|mas|tambien)$/;
 const COMMERCIAL_TOKEN = /^(?:compras?|pagos?|pedidos?|orden(?:es)?|transferencias?|depositos?|abonos?|reservas?|facturas?|boletas?|ventas?|despachos?|envios?|entregas?|negocios?|tratos?|retiros?|oc|mercaderias?)$/;
+// [RESUMEN] R7: la nominalizacion de un acto comercial tambien es el objeto de un verbo de apoyo ("Se
+// efectuo la adquisicion de veinte focos"). Solo vale junto a ese verbo: no es un estado por si sola.
+const LIGHT_OBJECT = /^(?:adquisicion(?:es)?|compraventas?|cobros?|devolucion(?:es)?|reembolsos?|acreditacion(?:es)?|cancelacion(?:es)?|contratacion(?:es)?|desembolsos?)$/;
+// Despues del verbo de apoyo, lo que se pide o los datos tapan esa nominalizacion: "Cliente realizo una
+// consulta sobre la adquisicion" o "Cliente completo los datos para la adquisicion" no cuentan una
+// compra. El sustantivo comercial, en cambio, cuenta igual ("Se concreto la solicitud de compra").
+const LIGHT_GUARD = /^(?:consultas?|preguntas?|solicitud(?:es)?|cotizacion(?:es)?|requerimientos?|averiguacion(?:es)?|peticion(?:es)?|datos|informacion|detalles?)$/;
+// Como se hizo, entre el verbo de apoyo y su objeto, aunque un "y" parta la clausula: "Se efectuo sin
+// inconvenientes y con exito la adquisicion".
+const MANNER = /^(?:sin|con|de|manera|forma|modo|exito|problemas?|inconvenientes?|normalidad|hoy|ya|tambien|recien|\p{L}{3,}mente)$/u;
+// El participio que concuerda con el sustantivo del sujeto: "Adquisicion de veinte focos efectuada".
+const PARTICIPLE_RE = /(?:ad|id|ech)([oa])(s?)$/;
+const FEMININE_RE = /(?:as?|ion(?:es)?)$|^(?:orden(?:es)?|oc)$/;
+// [RESUMEN] R7: el infinitivo comercial tras un verbo de logro cuenta lo que ya paso: "El cliente logro
+// adquirir las luminarias", "consiguio comprar", "alcanzo a pagar", "termino de pagar", "termino por
+// comprar", "procedio a despachar", "fue a retirar". El tiempo lo pone el verbo de logro; su infinitivo
+// o su subjuntivo no afirman nada.
+const ACHIEVE: [Stem, string][] = [
+  [{ s: 'logr' }, ''], [{ s: 'consegu', ir: true }, ''], [{ s: 'consigu', ir: true }, ''],
+  [{ s: 'alcanz' }, 'a'], [{ s: 'alcanc' }, 'a'], [{ s: 'proced', ir: true }, 'a'],
+  [{ s: 'termin' }, 'de'], [{ s: 'finaliz' }, 'de'], [{ s: 'finalic' }, 'de'], [{ s: 'termin' }, 'por'], [{ s: 'acab' }, 'por'],
+];
+// "Poder" solo en pasado: "pudo pagar" es un hecho; "puede pagar con transferencia" es una condicion.
+const COULD = new Set(['pude', 'pudiste', 'pudo', 'pudimos', 'pudieron', 'podido']);
+// "Fue a retirar", "vino a retirar": ir o venir en pasado, seguidos de "a".
+const WENT = new Set(['fue', 'fueron', 'vino', 'vinieron']);
+// Lo que puede ir entre el verbo de logro y el infinitivo: "logro al fin adquirir", "logro por fin
+// pagar", "pudo hoy pagar", "logro exitosamente adquirir", "logro sin problemas adquirir".
+const ACHIEVE_FILLER = /^(?:ya|no|tambien|aun|nunca|siempre|recien|todavia|solo|hoy|al|por|fin|sin|con|problemas?|inconvenientes?|exito|\p{L}{3,}mente)$/u;
+// Solo los infinitivos que cuentan una compra, un pago, una venta o una entrega de mercaderia (y los
+// verbos de apoyo, que miran su objeto): "no pudo enviar el formulario", "logro confirmar su correo" o
+// "termino de reservar la sala" no.
+const ACHIEVED_STEMS = new Set(['compr', 'recompr', 'pag', 'pagu', 'abon', 'deposit', 'adquier', 'adquir', 'transfier', 'transfir', 'transfer',
+  'cobr', 'reembols', 'acredit', 'liquid', 'factur', 'vend', 'despach', 'entreg', 'entregu', 'envi', 'mand', 'recib', 'retir', 'devolv',
+  'devuelv']);
+const INFINITIVE_RE = new RegExp('(?:ar|er|ir|\u00e1r|\u00e9r|\u00edr)' + CLITIC + '$');
+// "El cliente logro, finalmente, adquirir las luminarias": el inciso entre el verbo de logro y el
+// infinitivo no corta la clausula.
+const INCISE_RE = new RegExp(',\\s*((?:\\p{L}{3,}mente|al\\s+fin|por\\s+fin|sin\\s+(?:problemas?|inconvenientes?)|con\\s+(?:\u00e9|e)xito|hoy)),\\s*'
+  + '(?=\\p{L}+(?:ar|er|ir|\u00e1r|\u00e9r|\u00edr)' + CLITIC + E + ')', 'giu');
 // "Listo", "OK" o "conforme" junto a un sustantivo comercial: "Pedido de 20 focos listo", "OC lista".
 const STATE_ADJ = /^(?:list[oa]s?|ok|okey|conforme)$/;
 // La primera persona plural es la tienda que habla ("tenemos", "despachamos"): cuenta como un estado.
@@ -367,8 +483,62 @@ function endingTense(stem: Stem, ending: string): Tense {
   return undefined;
 }
 
-/** [RESUMEN] Los verbos comerciales de la clausula, por raiz y terminacion, y sus sustantivos. */
-function verbFacts(tokens: Token[]): Fact[] {
+/** [RESUMEN] R7: el tiempo del verbo de logro antes del infinitivo ("logro adquirir", "alcanzo a pagar",
+ * "pudo hoy pagar", "termino por comprar"): "past" o "now". Sin uno, "none": el infinitivo solo no
+ * afirma nada. */
+function achievedTense(tokens: Token[], i: number): Tense {
+  const between = (from: number) => tokens.slice(from, i).every((t) => ACHIEVE_FILLER.test(t.f));
+  for (let j = i - 1; j >= Math.max(0, i - 6); j--) {
+    const verb = tokens[j];
+    if (COULD.has(verb.f) && between(j + 1)) return 'past';
+    if (WENT.has(verb.f) && tokens[j + 1]?.f === 'a' && between(j + 2)) return 'past';
+    for (const [stem, link] of ACHIEVE) {
+      if (!verb.f.startsWith(stem.s) || (link && tokens[j + 1]?.f !== link) || !between(j + (link ? 2 : 1))) continue;
+      const t = endingTense(stem, verb.raw.slice(stem.s.length));
+      if (t === 'past' || t === 'part' || (t === 'o' && !stem.ir)) return 'past';
+      if (t === 'now' || t === 'a' || t === 'o') return 'now';
+    }
+    if (!ACHIEVE_FILLER.test(verb.f) && !/^(?:a|de|por)$/.test(verb.f)) return 'none';
+  }
+  return 'none';
+}
+
+/** [RESUMEN] R7: el sustantivo comercial es el sujeto del verbo de apoyo ("La adquisicion de veinte
+ * focos se efectuo", "Compra de 20 focos concretada"): el primero de la clausula, sin un "que" entre
+ * medio. Un participio debe concordar con el: "Pedido de 20 focos para instalacion programada" habla de
+ * la instalacion. */
+function headObject(tokens: Token[], i: number, isObject: (t: Token) => boolean): boolean {
+  const h = SUBJECT_DETERMINER.test(tokens[0]?.f ?? '') || ARTICLES.has(tokens[0]?.f ?? '') ? 1 : 0;
+  const head = tokens[h];
+  if (h >= i || !isObject(head) || tokens.slice(h + 1, i).some((t) => t.f === 'que')) return false;
+  const part = PARTICIPLE_RE.exec(tokens[i].f);
+  return !part || ((part[1] === 'a') === FEMININE_RE.test(head.f) && (part[2] === 's') === /s$/.test(head.f));
+}
+
+/** [RESUMEN] El sustantivo comercial del verbo de apoyo: hasta tres palabras antes ("Pago realizado",
+ * "La compra quedo cerrada"), el sujeto de la clausula (R7) o hasta cuatro palabras despues. Si tras el
+ * verbo solo se dice como se hizo, se mira el comienzo de la clausula que sigue ("Se efectuo sin
+ * inconvenientes y con exito la adquisicion"). */
+function lightObject(tokens: Token[], i: number, next: Token[]): boolean {
+  const isObject = (t: Token) => COMMERCIAL_TOKEN.test(t.f) || LIGHT_OBJECT.test(t.f);
+  if (tokens.slice(Math.max(0, i - 3), i).some(isObject) || headObject(tokens, i, isObject)) return true;
+  let after = tokens.slice(i + 1);
+  if (after.every((t) => MANNER.test(t.f))) {
+    const rest = next.slice(Math.max(0, next.findIndex((t) => !MANNER.test(t.f))));
+    if (rest[0] && (ARTICLES.has(rest[0].f) || isObject(rest[0]))) after = rest;
+  }
+  let guarded = false;
+  for (const t of after.slice(0, 4)) {
+    if (COMMERCIAL_TOKEN.test(t.f)) return true;
+    if (LIGHT_GUARD.test(t.f)) guarded = true;
+    else if (!guarded && LIGHT_OBJECT.test(t.f)) return true;
+  }
+  return false;
+}
+
+/** [RESUMEN] Los verbos comerciales de la clausula, por raiz y terminacion, y sus sustantivos. La clausula
+ * que sigue tras una lista solo la mira el verbo de apoyo sin objeto. */
+function verbFacts(tokens: Token[], nextClause: Token[]): Fact[] {
   const facts: Fact[] = [];
   tokens.forEach((tok, i) => {
     let j = i - 1;
@@ -389,6 +559,9 @@ function verbFacts(tokens: Token[]): Fact[] {
     // La primera persona plural es la tienda que habla ("tenemos", "despachamos"), salvo el subjuntivo
     // de un verbo comercial ("pide que le enviemos la cotizacion").
     if (WE_RE.test(tok.f) && !NOT_WE_RE.test(tok.f) && tense !== 'none') facts.push({ at: tok.at, need: 'ask' });
+    // R7: el infinitivo comercial tras un verbo de logro toma su tiempo ("El cliente logro adquirir las
+    // luminarias").
+    if (stem && tense === 'none' && (stem.light || ACHIEVED_STEMS.has(stem.s)) && INFINITIVE_RE.test(tok.raw)) tense = achievedTense(tokens, i);
     if (!stem || !tense || tense === 'none') return;
     // Tambien es verbo si sigue un articulo plural o indefinido o una cifra: "Retiro los focos", "Pago 50%".
     const next = tokens[i + 1]?.f ?? '';
@@ -408,12 +581,14 @@ function verbFacts(tokens: Token[]): Fact[] {
       else if (FUTURE_SER.has(prev)) tense = 'now';
     }
     if (!tense || (stem.pastOnly && tense === 'now')) return;
-    if (stem.s === 'recib' && tense !== 'desc') {
+    if (INFO_STEMS.has(stem.s)) {
       let o = i + 1;
-      while (o < tokens.length && /^(?:el|la|los|las|un|una|unos|unas|su|sus|ningun|ninguna|algun|alguna|otro|otra|nuevo|nueva)$/.test(tokens[o].f)) o++;
-      if (RECEIVED_OBJ.test(tokens[o]?.f ?? '')) return;
+      while (o < tokens.length && OBJECT_SKIP.test(tokens[o].f)) o++;
+      const toClient = stem.s === 'recib' || TO_CLIENT.test(prev);
+      const ref = (t: Token) => SHIPPED_REF.test(t.f) || (toClient && COMMERCIAL_TOKEN.test(t.f));
+      if (INFO_OBJ.test(tokens[o]?.f ?? '') && !tokens.slice(o + 1).some(ref)) return;
     }
-    if (stem.light &&!tokens.slice(Math.max(0, i - 3), i + 5).some((t) => COMMERCIAL_TOKEN.test(t.f))) return;
+    if (stem.light && !lightObject(tokens, i, nextClause)) return;
     facts.push({ at: tok.at, need: tense === 'now' ? 'ask' : tense === 'desc' ? 'desc' : 'said' });
   });
   return facts;
@@ -487,22 +662,43 @@ function destinations(tokens: Token[], clause: string): number[] {
   return at;
 }
 
-/** El sujeto del verbo, al empezar la clausula, es un lugar ("La obra esta en Lampa"). */
-function placeSubject(tokens: Token[], at: number): boolean {
+/** [RESUMEN] El nucleo del sujeto antes de la posicion "at", al empezar la clausula: "obra" en "La obra
+ * esta en Lampa", tambien con su complemento ("La empresa del cliente", "El galpon a iluminar", "Las
+ * fichas tecnicas"), el antecedente de un "que" ("Cliente con obra que se encuentra en Lampa") o, sin
+ * sujeto, el de la clausula anterior de la lista si concuerda en numero con el verbo ("El cliente pide
+ * 20 focos y se encuentra en Lampa"; en "El cliente pide 20 focos, estan en Starken" son los focos). */
+function subjectHead(tokens: Token[], at: number, inherited: Token | undefined): Token | undefined {
   const before = tokens.filter((t) => t.at < at && !SUBJECT_SKIP.has(t.f));
-  const head = before.length === 2 && SUBJECT_DETERMINER.test(before[0].f) ? before[1] : before.length === 1 ? before[0] : undefined;
-  return head !== undefined && PLACE_SUBJECT.test(head.f);
+  if (before.length === 0) {
+    const verb = tokens.find((t) => t.at >= at);
+    return inherited && verb && /n$/.test(verb.f) === /s$/.test(inherited.f) ? inherited : undefined;
+  }
+  const que = before.map((t) => t.f).lastIndexOf('que');
+  if (que >= 0) return before[que - 1];
+  const h = before.length > 1 && SUBJECT_DETERMINER.test(before[0].f) ? 1 : 0;
+  const rest = before.slice(h + 1);
+  if (rest.length === 0 || (rest.length <= 6 && SUBJECT_COMPLEMENT.test(rest[0].f))
+    || (rest.length <= 2 && !rest.some((t) => COMMERCIAL_TOKEN.test(t.f)))) return before[h];
+  return undefined;
+}
+
+/** La primera palabra de la clausula tras su articulo, que la clausula siguiente hereda como sujeto. */
+function clauseHead(tokens: Token[]): Token | undefined {
+  const list = tokens.filter((t) => !SUBJECT_SKIP.has(t.f));
+  return list[list.length > 1 && SUBJECT_DETERMINER.test(list[0].f) ? 1 : 0];
 }
 
 const matches = (re: RegExp, text: string, need: Fact['need']): Fact[] => [...text.matchAll(re)].map((m) => ({ at: m.index ?? 0, need }));
 
 // Niveles de cobertura: 0 nada, 1 pedido o consulta (stock, entrega por venir, historial), 2 atribuido.
 function keepSentence(sentence: string): boolean {
-  const parts = sentence.split(CLAUSE_SPLIT);
+  const parts = sentence.replace(INCISE_RE, ' $1 ').split(CLAUSE_SPLIT);
+  const clauseAt = (n: number) => parts[n].replace(/^[^\p{L}\p{N}]+/u, '').replace(NOT_STOCK_RE, blank).replace(NOT_PAID_RE, blank);
   let prev = 0;
   let carry = 0;
+  let prevHead: Token | undefined;
   for (let i = 0; i < parts.length; i += 2) {
-    const clause = parts[i].replace(/^[^\p{L}\p{N}]+/u, '').replace(NOT_STOCK_RE, blank).replace(NOT_PAID_RE, blank);
+    const clause = clauseAt(i);
     const chain = i > 0 && LIST_SEPARATOR.test(parts[i - 1]) ? Math.min(prev, 1) : 0;
     const listed = chain > 0 && !(parts[i + 1] ?? '').includes(':') && BARE_STOCK_RE.test(clause.replace(/[^\p{L}\p{N}]+$/u, '').trim());
     const continues = CONTINUES_RE.exec(clause);
@@ -524,6 +720,10 @@ function keepSentence(sentence: string): boolean {
       && !QUE_RE.test(clause.slice(at, p)) && !COPULA_RE.test(clause.slice(at, p)));
     const isQuestion = (between: string) => QUESTION_RE.test(between);
     const tokens = tokenize(clause);
+    const listNext = i + 2 < parts.length && LIST_SEPARATOR.test(parts[i + 1]);
+    const inheritedHead = i > 0 && LIST_SEPARATOR.test(parts[i - 1]) ? prevHead : undefined;
+    const subject = (at: number) => subjectHead(tokens, at, inheritedHead);
+    const placeHead = (at: number) => PLACE_SUBJECT.test(subject(at)?.f ?? '');
     const alone: Fact[] = HISTORY_ALONE_RE.test(clause.replace(/[^\p{L}\p{N}]+$/u, '').trim()) ? [{ at: 0, need: 'ask' }] : [];
     const templates = new Set(matches(TEMPLATE_RE, clause, 'desc').map((f) => f.at));
     for (const at of [...modeLabel(tokens), ...destinations(tokens, clause)]) templates.add(at);
@@ -532,12 +732,14 @@ function keepSentence(sentence: string): boolean {
     const complement = (at: number) => !colon && !ARTICLE_START_RE.test(clause.slice(at))
       && NOUN_OF_RE.test(clause.slice(Math.max(0, at - 40), at)) && !COMPLEMENT_WHEN_RE.test(clause.slice(at));
     const facts = [
-      ...verbFacts(tokens),
+      ...verbFacts(tokens, listNext ? tokenize(clauseAt(i + 2)) : []),
       ...clientFacts(tokens),
       ...alone,
       ...matches(ATTRIBUTED_RE, clause, 'said'),
       ...matches(ASK_RE, clause, 'ask'),
-      ...matches(LOCATION_RE, clause, 'ask').filter((f) => !placeSubject(tokens, f.at)),
+      ...matches(LOCATION_RE, clause, 'ask').filter((f) => !placeHead(f.at)),
+      ...matches(GOODS_STATE_RE, clause, 'ask').filter((f) => !placeHead(f.at)),
+      ...matches(DISPOSAL_RE, clause, 'ask').filter((f) => !PERSON_SUBJECT.test(subject(f.at)?.f ?? '')),
       ...matches(DESC_RE, clause, 'desc'),
       ...matches(ORDER_RE, clause, 'order'),
       ...(listed ? [] : matches(STOCK_WORD_RE, clause, 'noun')),
@@ -553,6 +755,7 @@ function keepSentence(sentence: string): boolean {
       || ((f.need === 'order' || f.need === 'desc') && askedFor(f.at, () => true, true))
       || (f.need === 'desc' && (bareListItem || requestedAfter(f.at)));
     if (!facts.every(covered)) return false;
+    prevHead = clauseHead(tokens) ?? inheritedHead;
     prev = Math.max(said >= 0 ? 2 : asks.length ? 1 : 0, inherited, chain);
     carry = ATTRIBUTION_END_RE.test(clause.trim()) ? 2
       : colon && REQUEST_END_RE.test(clause.replace(/[^\p{L}\p{N}]+$/u, '').trim()) ? 1 : 0;

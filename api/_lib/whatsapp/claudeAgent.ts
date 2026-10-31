@@ -44,6 +44,8 @@ const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl
   '"El cliente pregunta por" o "El cliente dice que", y cuenta solo lo que el cliente pide, pregunta o dice. ' +
   'Nunca afirmes un hecho ni un estado comercial: compra, pago, acreditacion, stock, existencias, ' +
   'un pedido existente, entrega, despacho, llegada ni historial del cliente, en ningun tiempo verbal. ' +
+  // [RESUMEN] R7 (Codex, ronda 3): summary.ts tambien bota esos hechos dichos con un rodeo.
+  'Tampoco con rodeos ("se efectuo la adquisicion", "logro comprar", "estan a su disposicion", "estan preparados"). ' +
   'Si el cliente pregunta por eso, escribe "El cliente pregunta si hay stock" o "El cliente pregunta si es ' +
   'cliente frecuente"; si lo cuenta, "El cliente dice que ya pago". Nunca hables por la tienda ' +
   '("tenemos", "nosotros", "le enviamos") ni escribas "su pedido" o "su compra": nombra el producto ' +

@@ -586,6 +586,137 @@ describe('"Soy de Maipú" como respuesta a la pregunta por la comuna (H8 de la r
   });
 });
 
+describe('obra, empresa y factura (R8 de la ronda 3 de Codex)', () => {
+  // Solo las etiquetas y el texto suelto cortan el bloque de la factura: el valor de un dato no.
+  it.each([
+    'Facturación:\nGiro: Despacho de encomiendas\nDirección: Prueba 123\nComuna: Viña del Mar',
+    'Facturación:\nObservaciones: requiere factura electrónica\nDirección: Prueba 123\nComuna: Viña del Mar',
+    'Facturación:\nGiro: Comercio.\nComuna: Viña del Mar',
+  ])('el valor de un dato no corta el bloque, con y sin la pregunta abierta: %j', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Viña del Mar', billing: true }]);
+    expect(findComunaMentions(text, { answering: true })).toEqual([{ name: 'Viña del Mar', billing: true }]);
+  });
+
+  it.each([
+    // Lo que sigue al fin de la oración dentro del valor ya es texto suelto.
+    'Facturación:\nGiro: Comercio. Necesito 20 paneles\nComuna: Lampa',
+    // Una etiqueta del despacho o de la obra sigue cortando el bloque.
+    'Facturación:\nGiro: Comercio\nDespacho:\nComuna: Lampa',
+    'Facturación:\nGiro: Comercio\nNecesito lo siguiente: 20 paneles\nComuna: Lampa',
+  ])('el texto suelto o una etiqueta de la obra siguen cortándolo: %j', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Lampa', billing: false }]);
+  });
+
+  it('la empresa del cliente cuenta como de dónde es; la obra gana', () => {
+    expect(findComunaMentions('Nuestra empresa está en Colina. La obra está en Lampa.'))
+      .toEqual([{ name: 'Colina', billing: false, origin: true }, { name: 'Lampa', billing: false }]);
+    expect(findComunaMentions('La empresa queda en Colina')).toEqual([{ name: 'Colina', billing: false, origin: true }]);
+    expect(findComunaMentions('Les cuento que mi empresa se encuentra en Colina')).toEqual([{ name: 'Colina', billing: false, origin: true }]);
+  });
+
+  it.each([
+    'La bodega de la empresa está en Lampa',
+    'Necesito focos para una empresa en Lampa',
+  ])('un lugar de la empresa, o una empresa sin el verbo, sigue siendo el lugar: "%s"', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Lampa', billing: false }]);
+  });
+
+  it.each([
+    'La obra se encuentra en Colina con retiro en su local.',
+    'La bodega se ubica en Colina',
+    'La obra estará en Colina',
+  ])('"%s" presenta la obra', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Colina', billing: false }]);
+  });
+
+  it('un bloque de factura con valores largos en 100.000 letras, en menos de 1 s', () => {
+    const unit = 'Facturación:\nGiro: Despacho de encomiendas y requiere factura electrónica\nComuna: Lampa\n';
+    const text = unit.repeat(Math.ceil(100_000 / unit.length));
+    const t0 = performance.now();
+    findComunas(text, { answering: true });
+    expect(performance.now() - t0).toBeLessThan(1000);
+  });
+});
+
+describe('revisión adversaria de R8 (ronda 3): una línea, viñetas, obra explícita y corrección', () => {
+  // El encabezado y el pedido en una sola línea, tras una coma: el pedido en primera persona corta el bloque.
+  it.each([
+    'Facturación: Prueba SpA, necesito 20 paneles LED luz fría para Lampa',
+    'Datos de facturación: Prueba SpA, RUT 11.111.111-1, necesito 20 paneles para Lampa',
+    'Casa matriz: Providencia, necesito los focos para Lampa',
+    'Facturación: Prueba SpA, ahora necesito los paneles para Lampa',
+    'Facturación:\nGiro: Comercio, necesito 20 paneles\nComuna: Lampa',
+  ])('el pedido dentro del valor corta el bloque: %j', (text) => {
+    expect(findComunaMentions(text).filter((m) => !m.billing)).toEqual([{ name: 'Lampa', billing: false }]);
+  });
+
+  it('"necesito factura" dentro del valor no corta el bloque (es el documento)', () => {
+    expect(findComunaMentions('Facturación:\nObservaciones: necesito factura electrónica\nComuna: Viña del Mar'))
+      .toEqual([{ name: 'Viña del Mar', billing: true }]);
+  });
+
+  // Viñetas, números y emojis de lista de WhatsApp, y el guion en vez de los dos puntos.
+  it.each([
+    'Facturación:\n- Giro: Despacho de encomiendas\n- Dirección: Prueba 123\n- Comuna: Viña del Mar',
+    'Facturación:\n• Giro: Despacho de encomiendas\n• Dirección: Prueba 123\n• Comuna: Viña del Mar',
+    'Facturación:\n1. Giro: Despacho de encomiendas\n2. Dirección: Prueba 123\n3. Comuna: Viña del Mar',
+    'Facturación:\n1) Giro: Despacho de encomiendas\n2) Comuna: Viña del Mar',
+    'Facturación:\n-Giro: Despacho de encomiendas\n-Comuna: Viña del Mar',
+    'Facturación:\n> Giro: Despacho de encomiendas\n> Comuna: Viña del Mar',
+    'Facturación:\n📌 Giro: Despacho de encomiendas\n📌 Comuna: Viña del Mar',
+    'Facturación:\nGiro - Despacho de encomiendas\nComuna: Viña del Mar',
+    'Facturación:\n- Observaciones: requiere factura electrónica\n- Comuna: Viña del Mar',
+    'Factura a nombre de:\nGiro: Despacho de encomiendas\nComuna: Viña del Mar',
+  ])('la lista de la factura sigue en el bloque: %j', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Viña del Mar', billing: true }]);
+  });
+
+  it.each([
+    // Con viñeta, una etiqueta de pedido o una repetida siguen cortando el bloque.
+    'Facturación:\n- Necesito: 20 paneles\n- Comuna: Lampa',
+    'Facturación:\n- Comuna: Viña del Mar\n- Comuna: Lampa',
+  ])('con viñetas, el pedido o la etiqueta repetida cortan el bloque: %j', (text) => {
+    expect(findComunaMentions(text).filter((m) => !m.billing)).toEqual([{ name: 'Lampa', billing: false }]);
+  });
+
+  // Una comuna con solo un "en" antes cuenta como de dónde es la persona si el mensaje trae la obra explícita.
+  it.each([
+    'Somos una empresa ubicada en Colina. La obra está en Lampa.',
+    'Estamos ubicados en Colina. La obra está en Lampa.',
+    'Estamos en Colina. La obra está en Lampa.',
+    'Nuestra constructora está en Colina. La obra está en Lampa.',
+    'Trabajamos en Colina. La obra está en Lampa.',
+  ])('la obra explícita gana a la mención débil: %j', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Colina', billing: false, origin: true }, { name: 'Lampa', billing: false }]);
+  });
+
+  it('sin la obra explícita, la mención débil sigue siendo el lugar', () => {
+    expect(findComunaMentions('Estamos en Colina')).toEqual([{ name: 'Colina', billing: false }]);
+  });
+
+  it.each([
+    'Necesito focos para una bodega en Lampa y otra en Colina',
+    'La obra es en Lampa y en Colina',
+  ])('la comuna unida a la de la obra con "y otra en" o "y en" sigue siendo la obra: %j', (text) => {
+    expect(findComunaMentions(text)).toEqual([{ name: 'Lampa', billing: false }, { name: 'Colina', billing: false }]);
+  });
+
+  it('"Perdón, la empresa está en Colina" es una corrección: cuenta como lugar', () => {
+    expect(findComunaMentions('Perdón, la empresa está en Colina')).toEqual([{ name: 'Colina', billing: false }]);
+    expect(findComunaMentions('Nuestra empresa está en Colina')).toEqual([{ name: 'Colina', billing: false, origin: true }]);
+  });
+
+  it.each([
+    'Facturación:\n' + '-'.repeat(50_000) + '\nComuna: Lampa',
+    ('Facturación:\n- Giro: Despacho\n' + '1) Comuna: Lampa\n').repeat(3_000),
+    'Estamos en Colina y en Lampa, '.repeat(3_000) + 'la obra está en Maipú',
+  ])('viñetas, guiones y menciones coordinadas en textos largos, en menos de 1 s (%#)', (text) => {
+    const t0 = performance.now();
+    findComunas(text, { answering: true });
+    expect(performance.now() - t0).toBeLessThan(1000);
+  });
+});
+
 describe('rendimiento', () => {
   it('un texto de 50.000 letras se revisa en menos de 500 ms', () => {
     const text = 'en '.repeat(10000) + 'Lampa '.repeat(2000) + 'Av. '.repeat(2000);

@@ -731,6 +731,273 @@ describe('ronda 5: afirmaciones que se siguen botando', () => {
   });
 });
 
+// Informe de Codex, ronda 3 (R7): todavía pasaban hechos comerciales dichos con un rodeo (el verbo de
+// apoyo con la nominalización, el infinitivo tras un verbo de logro, la mercadería "a disposición" o
+// "preparada"), y se botaban descriptores inocuos que en 57c5db5 se conservaban. Se mira el objeto de
+// la acción: entregar datos no es entregar mercadería y el giro del cliente no es una venta.
+describe('R7 (Codex, ronda 3): rodeos que afirman un hecho comercial y se botan', () => {
+  it.each(withAndWithoutTildes([
+    // Los cuatro casos del informe y la fuga conocida de la ronda 2.
+    'Se efectuó la adquisición de veinte focos.',
+    'Se concretó la adquisición de 20 paneles.',
+    'El cliente logró adquirir las luminarias.',
+    'Los focos están a disposición del cliente.',
+    'Los focos están preparados.',
+    // El verbo de apoyo con la nominalización, antes o después.
+    'Se realizó la adquisición de los paneles.',
+    'Se materializó la compra de 15 reflectores.',
+    'Se materializó la entrega de los focos.',
+    'Se llevó a cabo la compra de 20 focos.',
+    'Se procedió con el despacho a Lampa.',
+    'Se concretó el despacho a Lampa.',
+    'Se efectuó el pago de la factura.',
+    'Se hizo efectiva la adquisición.',
+    'Se efectuaron las adquisiciones.',
+    'La adquisición fue concretada.',
+    'Adquisición concretada.',
+    // El infinitivo comercial tras un verbo de logro, en cualquier tiempo y también negado.
+    'El cliente consiguió comprar los focos.',
+    'El cliente alcanzó a pagar la cotización.',
+    'Cliente pudo pagar con transferencia.',
+    'Cliente logró concretar la compra.',
+    'Cliente logró hacer el pago.',
+    'El cliente logró retirar los focos.',
+    'El cliente terminó de pagar.',
+    'Se logró despachar los paneles.',
+    'Logra comprar los paneles.',
+    'El cliente ha logrado pagar.',
+    'Procedió a pagar.',
+    'Cliente no logró pagar con tarjeta.',
+    // Decisión 2 del dueño: la pregunta sobre algo ya ocurrido también se bota.
+    'El cliente pregunta si logró pagar.',
+    // La mercadería a disposición, alistada o en un lugar, con otros verbos.
+    'Los paneles quedan a su disposición.',
+    'Los focos se encuentran a disposición del cliente.',
+    'Focos a disposición del cliente.',
+    'Los paneles quedaron embalados.',
+    'Los focos fueron preparados.',
+    'Los focos ya están preparados.',
+    'Los focos se encuentran preparados.',
+    'Los focos se encuentran en Quilicura.',
+    // El objeto decide: entregar mercadería o un comprobante, o vender un lote, sigue siendo un hecho.
+    'Cliente entrega los focos.',
+    'Cliente envió el comprobante.',
+    'Se le envió el número de seguimiento.',
+    'Cliente recibió el número de guía.',
+    'Venta al por mayor de 500 focos.',
+    'Venta al por mayor de los paneles.',
+  ]))('"%s"', (summary) => {
+    expect(safeSummary(summary)).toBe(SUMMARY_EMPTY);
+  });
+});
+
+describe('R7 (Codex, ronda 3): descriptores inocuos que se conservan', () => {
+  it.each(withAndWithoutTildes([
+    // Las cuatro regresiones del informe frente a 57c5db5.
+    'Cliente entrega nombre y correo.',
+    'Cliente proporciona cuenta de correo.',
+    'El cliente tiene dudas sobre el pedido mínimo.',
+    'Venta al por menor de iluminación.',
+    // Entregar, enviar o mandar datos no es entregar mercadería.
+    'Cliente envía sus datos de contacto.',
+    'Cliente entregó su RUT y dirección.',
+    'Cliente envía fotos del lugar.',
+    'Cliente manda su correo.',
+    'Cliente entrega cuenta de correo para la cotización.',
+    'Cliente entrega su número de teléfono.',
+    'Cliente entrega especificaciones técnicas.',
+    'Cliente envía la solicitud de cotización.',
+    'Cliente con cuenta de Instagram.',
+    'Envío de fotos del tablero.',
+    // El mínimo es una condición de la tienda y el giro describe al cliente.
+    'El cliente tiene dudas sobre la compra mínima.',
+    'El cliente consulta el monto mínimo de compra.',
+    'Pedido mínimo de 10 unidades.',
+    'Venta al por mayor de artículos eléctricos.',
+    'Venta al por menor en Lampa.',
+    // Las reglas nuevas no alcanzan al cliente, al lugar, al uso del producto ni a lo atribuido.
+    'El cliente queda a disposición para coordinar.',
+    'Cliente a disposición para coordinar visita.',
+    'La oficina está preparada para la instalación.',
+    'Los focos están preparados para exterior.',
+    'La obra se encuentra en Lampa.',
+    'El cliente busca conseguir mejor precio.',
+    'El cliente intenta pagar en la web.',
+    'Cliente realizó una consulta sobre la adquisición de focos.',
+    'El cliente dice que logró pagar.',
+    'Según el cliente, los focos están a su disposición.',
+    'El cliente pregunta si los focos están preparados.',
+  ]))('"%s"', (summary) => {
+    expect(safeSummary(summary)).toBe(summary);
+  });
+
+  it('en un resumen con los casos del informe quedan solo los descriptores', () => {
+    const summary = 'Cliente entrega nombre y correo. Se efectuó la adquisición de veinte focos. '
+      + 'El cliente tiene dudas sobre el pedido mínimo. Los focos están a disposición del cliente. '
+      + 'Venta al por menor de iluminación. El cliente logró adquirir las luminarias.';
+    expect(safeSummary(summary))
+      .toBe('Cliente entrega nombre y correo. El cliente tiene dudas sobre el pedido mínimo. Venta al por menor de iluminación.');
+  });
+
+  it('un texto largo con las reglas nuevas se resuelve en menos de 200 ms', () => {
+    const inputs = [
+      'se efectuó la adquisición logró adquirir alcanzó a pagar pudo pagar '.repeat(3000),
+      'los focos se encuentran a disposición del cliente preparados para '.repeat(3000),
+      'venta al por mayor de venta al por menor de la venta al por '.repeat(3000),
+      'cliente entrega de los de del sus datos nombre correo cuenta de correo '.repeat(3000),
+      'logró logró a de de a pagar pagar terminó de de '.repeat(3000),
+    ];
+    const start = performance.now();
+    for (const input of inputs) safeSummary(input);
+    expect(performance.now() - start).toBeLessThan(200);
+  });
+});
+
+// Verificador de R7: variantes cercanas a los casos de Codex que todavía pasaban (el sustantivo antes del
+// verbo de apoyo, una palabra entre el verbo de logro y el infinitivo, la mercadería del cliente "a
+// disposición", "preparados para el lunes", el dato de un envío, el pedido mínimo pendiente, la venta de
+// un lote, la solicitud de compra concretada) y descriptores que el arreglo de R7 empezó a botar ("se
+// encuentra en" con un sujeto largo, el verbo de logro con un infinitivo que no es comercial).
+describe('R7 (verificador): variantes que se botan', () => {
+  it.each(withAndWithoutTildes([
+    // El sustantivo comercial como sujeto del verbo de apoyo, antes de él.
+    'La adquisición de veinte focos se efectuó.',
+    'Adquisición de veinte focos efectuada.',
+    'La adquisición de 20 paneles se concretó.',
+    'Adquisición de 20 paneles concretada.',
+    'Compra de 20 focos concretada.',
+    'La venta al por mayor de focos se concretó.',
+    // Tras el verbo de apoyo solo va cómo se hizo; el objeto, después del "y".
+    'Se efectuó sin inconvenientes y con éxito la adquisición de veinte focos.',
+    'Se efectuó el desembolso.',
+    // Una palabra o un inciso entre el verbo de logro y el infinitivo, y "terminar/acabar por", "fue a".
+    'El cliente logró al fin adquirir las luminarias.',
+    'El cliente logró exitosamente adquirir las luminarias.',
+    'El cliente logró, finalmente, adquirir las luminarias.',
+    'El cliente logró sin problemas adquirir las luminarias.',
+    'El cliente pudo hoy pagar los focos.',
+    'El cliente logró por fin pagar.',
+    'El cliente terminó por comprar los focos.',
+    'El cliente acabó por comprar los focos.',
+    'El cliente fue a retirar los focos.',
+    'El cliente vino a retirar los focos.',
+    // La mercadería a disposición, aunque el cliente vaya en su complemento.
+    'Los focos del cliente quedan a su disposición.',
+    'Los focos del cliente están a disposición.',
+    'Los paneles para el cliente están a su disposición.',
+    'Los focos están a plena disposición del cliente.',
+    'Los focos están a libre disposición del cliente.',
+    // Guarda: ya se botaba; cuida que la regla del sujeto no la deje pasar.
+    'Los focos quedan a la disposición del cliente.',
+    // Preparados para una fecha o para que la retiren, o "se encuentran listos".
+    'Los focos están preparados para el lunes.',
+    'Los focos están preparados para mañana.',
+    'Los focos están preparados para que el cliente los retire.',
+    'Los focos se encuentran listos.',
+    // Guarda: el sujeto heredado del "y" o de la coma debe concordar con el verbo (aquí son los focos).
+    'El cliente pide 20 focos, están en Starken.',
+    'El cliente pide 20 focos y están en Starken.',
+    // El dato de un envío o de un pago, en cualquier parte de la cláusula.
+    'Se le envió el número de Starken.',
+    'Cliente recibió el número de la encomienda.',
+    'Se le mandó el correo con el seguimiento.',
+    'Se le envió un mensaje con el número de seguimiento.',
+    'Cliente recibió los datos del transportista.',
+    'Se le mandaron los datos bancarios.',
+    'Cliente recibió el número de Chilexpress.',
+    'Se le envió el número de Cruz del Sur.',
+    'Se le envió el número de Transportes Mena.',
+    'Cliente recibió los datos de pago.',
+    // El pedido mínimo que existe, está pendiente o se cumplió.
+    'El pedido mínimo sigue pendiente.',
+    'Pedido mínimo pendiente de pago.',
+    'Pedido mínimo atrasado.',
+    'El cliente tiene un pedido mínimo pendiente.',
+    'Pedido mínimo en Starken.',
+    'El cliente cumplió el pedido mínimo.',
+    'Pedido mínimo cumplido.',
+    'El cliente alcanzó el monto mínimo.',
+    // La venta de un lote o con un participio de cierre no es el giro.
+    'Venta al por mayor de veinticinco focos.',
+    'Venta al por mayor de setenta paneles.',
+    'Venta al por mayor de aquellos paneles.',
+    'Venta al por mayor de dicho lote.',
+    'Venta al por mayor de ambos modelos.',
+    'Venta al por mayor de focos concretada.',
+    'Venta al por menor de focos cerrada.',
+    'Ventas al por mayor de luminarias realizadas.',
+    // La solicitud o la cotización de compra que se concretó o se cerró.
+    'Se concretó la solicitud de compra.',
+    'Se cerró la cotización de compra.',
+    'Se concretó la solicitud de pago.',
+    'Se realizó el requerimiento de compra.',
+  ]))('"%s"', (summary) => {
+    expect(safeSummary(summary)).toBe(SUMMARY_EMPTY);
+  });
+});
+
+describe('R7 (verificador): descriptores que se conservan', () => {
+  it.each(withAndWithoutTildes([
+    // El cliente, un contacto o una ficha a disposición (la ficha es una guarda: ya se conservaba).
+    'Cliente queda a su entera disposición para la visita.',
+    'El contacto de la obra queda a disposición.',
+    'Las fichas técnicas están a disposición del cliente.',
+    // Guardas: el uso para el que sirve el producto ya se conservaba; ahora "para" se mira con una lista.
+    'Los focos están preparados contra la humedad.',
+    'Los paneles están preparados para uso en exterior.',
+    // "Se encuentra en" con un lugar como sujeto, con su complemento, tras "que" o heredado del "y".
+    'La empresa del cliente se encuentra en Maipú.',
+    'El proyecto de iluminación se encuentra en etapa de diseño.',
+    'La cancha de fútbol se encuentra en Rancagua.',
+    'El galpón a iluminar se encuentra en Quilicura.',
+    'La obra del cliente se encuentra en Colina.',
+    'Cliente con obra que se encuentra en Lampa.',
+    'La licitación se encuentra en evaluación.',
+    'El terreno del cliente se encuentra en Colina.',
+    'El cliente pide 20 focos y se encuentra en Lampa.',
+    'El producto se encuentra en la web.',
+    // Guardas: el pedido mínimo como tema o con su cifra ya se conservaba; ahora se exige uno de los dos.
+    'El monto mínimo es de $50.000.',
+    'Monto mínimo para despacho sin costo.',
+    '¿Cuál es el pedido mínimo?',
+    // El verbo de logro con un infinitivo que no cuenta una compra, un pago ni una entrega.
+    'El cliente no pudo enviar el formulario de contacto.',
+    'El cliente no logró enviar el formulario.',
+    'El cliente no logró confirmar su correo.',
+    'El cliente pudo cancelar la reunión.',
+    'El cliente no pudo confirmar la visita técnica.',
+    'El cliente logró guardar el archivo.',
+    'El cliente consiguió aprobar el proyecto con la municipalidad.',
+    'El cliente logró ordenar los planos.',
+    'El cliente terminó de reservar la sala para la reunión.',
+    'El cliente no pudo recibir el código de verificación.',
+  ]))('"%s"', (summary) => {
+    expect(safeSummary(summary)).toBe(summary);
+  });
+
+  it('en un resumen con las variantes quedan solo los descriptores', () => {
+    const summary = 'La empresa del cliente se encuentra en Maipú. La adquisición de veinte focos se efectuó. '
+      + 'El cliente no pudo enviar el formulario de contacto. Los focos del cliente quedan a su disposición. '
+      + 'Cliente queda a su entera disposición para la visita. Se le envió el número de Starken.';
+    expect(safeSummary(summary)).toBe('La empresa del cliente se encuentra en Maipú. El cliente no pudo enviar el formulario de contacto. '
+      + 'Cliente queda a su entera disposición para la visita.');
+  });
+
+  it('un texto largo con el inciso, el sujeto y el giro se resuelve en menos de 200 ms', () => {
+    const inputs = [
+      'el cliente logró, finalmente, adquirir, finalmente, '.repeat(2000),
+      'la empresa del cliente de la obra que se encuentra en la obra que '.repeat(2000),
+      'venta al por mayor de focos focos focos focos focos concretada '.repeat(2000),
+      'el pedido mínimo es de 10 unidades sobre el monto mínimo de '.repeat(2000),
+      'se efectuó sin inconvenientes y con éxito y sin y con '.repeat(2000),
+      'los focos del cliente quedan a su entera disposición a la '.repeat(2000),
+    ];
+    const start = performance.now();
+    for (const input of inputs) safeSummary(input);
+    expect(performance.now() - start).toBeLessThan(200);
+  });
+});
+
 describe('resúmenes mixtos', () => {
   afterEach(() => vi.restoreAllMocks());
 

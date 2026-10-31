@@ -567,3 +567,146 @@ describe('revisión adversaria de la ronda 2: origen, razón social, calificador
     expect(r.reply).not.toMatch(/comuna o ciudad/i);
   });
 });
+
+describe('ronda 3 de Codex: obra, empresa y factura (R8)', () => {
+  const MAIPU = 'Necesito 20 paneles LED luz fría para una oficina en Maipú';
+
+  it.each([
+    'Facturación:\nGiro: Despacho de encomiendas\nDirección: Prueba 123\nComuna: Viña del Mar',
+    'Facturación:\nObservaciones: requiere factura electrónica\nDirección: Prueba 123\nComuna: Viña del Mar',
+  ])('con Maipú capturada, el bloque de factura no la cambia aunque un valor diga "despacho" o "requiere": %j', (text) => {
+    expect(step(MAIPU, {}).captured.comuna_o_ciudad).toBe('Maipú');
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBe('Maipú');
+    expect(r.captured.comunas_otras).toEqual(['Viña del Mar']);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('con la comuna vacía, el mismo bloque tampoco la llena', () => {
+    const r = step('Necesito 20 paneles LED para una oficina.\nFacturación:\nGiro: Despacho de encomiendas\nDirección: Prueba 123\nComuna: Viña del Mar', {});
+    expect(r.captured.comuna_o_ciudad).toBeUndefined();
+    expect(r.captured.comunas_otras).toEqual(['Viña del Mar']);
+  });
+
+  it.each<[string, Claude]>([
+    ['vacío', {}],
+    ['elige la empresa', { comuna_o_ciudad: 'Colina' }],
+  ])('"Nuestra empresa está en Colina. La obra está en Lampa." con la comuna vacía da Lampa (Claude %s)', (_label, claude) => {
+    const r = step('Nuestra empresa está en Colina. La obra está en Lampa.', claude);
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toEqual(['Colina']);
+  });
+
+  it('con Lampa capturada, "Nuestra empresa está en Colina" no la cambia', () => {
+    step('Necesito 20 paneles LED luz fría para una oficina en Lampa', {});
+    const r = step('Nuestra empresa está en Colina', {});
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toEqual(['Colina']);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it.each<[string, Claude]>([
+    ['vacío', {}],
+    ['toma el local', { proyecto_o_uso: 'local' }],
+  ])('"La obra se encuentra en Colina con retiro en su local." da Colina y no deja "local" como proyecto (Claude %s)', (_label, claude) => {
+    const r = step('La obra se encuentra en Colina con retiro en su local.', claude);
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.proyecto_o_uso).toBeUndefined();
+  });
+
+  it.each<[string, Claude]>([
+    ['vacío', {}],
+    ['toma el local', { proyecto_o_uso: 'local' }],
+  ])('"Comuna: Colina con retiro en su local" no deja "local" como proyecto (Claude %s)', (_label, claude) => {
+    const r = step('Necesito 20 paneles LED. Comuna: Colina con retiro en su local', claude);
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.proyecto_o_uso).toBeUndefined();
+  });
+
+  it('con la oficina capturada, "Comuna: Colina con retiro en su local" cambia la comuna y no el proyecto', () => {
+    step(MAIPU, {});
+    const r = step('Comuna: Colina con retiro en su local', {});
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.proyecto_o_uso).toBe('oficina');
+    expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Colina']);
+  });
+
+  it.each([
+    ['Necesito 20 focos para su local en Colina', 'local'],
+    ['Necesito retirar los tubos de la bodega en Colina', 'bodega'],
+  ])('el local o la bodega del cliente siguen siendo el proyecto: "%s"', (text, proyecto) => {
+    expect(step(text, {}).captured.proyecto_o_uso).toBe(proyecto);
+  });
+});
+
+describe('revisión adversaria de R8 (ronda 3) en el flujo', () => {
+  const MAIPU = 'Necesito 20 paneles LED luz fría para una oficina en Maipú';
+  const ONE_LINE = 'Facturación: Prueba SpA, necesito 20 paneles LED luz fría para Lampa';
+
+  it.each<[string, Claude]>([
+    ['vacío', {}],
+    ['elige Lampa', { comuna_o_ciudad: 'Lampa', producto: 'paneles LED', cantidad: '20', tipo_de_luz: 'fria' }],
+  ])('el encabezado y el pedido en una línea: con la comuna vacía da Lampa (Claude %s)', (_label, claude) => {
+    const r = step(ONE_LINE, claude);
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toBeUndefined();
+  });
+
+  it('con Maipú capturada, "Facturación: Prueba SpA, ahora necesito los paneles para Lampa" cambia a Lampa', () => {
+    step(MAIPU, {});
+    const r = step('Facturación: Prueba SpA, ahora necesito los paneles para Lampa', { comuna_o_ciudad: 'Lampa' });
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Lampa']);
+  });
+
+  it.each([
+    'Facturación:\n- Giro: Despacho de encomiendas\n- Dirección: Prueba 123\n- Comuna: Viña del Mar',
+    'Facturación:\n1. Giro: Despacho de encomiendas\n2. Dirección: Prueba 123\n3. Comuna: Viña del Mar',
+    'Facturación:\n📌 Giro: Despacho de encomiendas\n📌 Comuna: Viña del Mar',
+    'Facturación:\nGiro - Despacho de encomiendas\nComuna: Viña del Mar',
+    'Facturación:\n- Observaciones: requiere factura electrónica\n- Comuna: Viña del Mar',
+  ])('con Maipú capturada, la factura en lista no la cambia: %j', (text) => {
+    step(MAIPU, {});
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBe('Maipú');
+    expect(r.captured.comunas_otras).toEqual(['Viña del Mar']);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it.each<[string, Claude]>([
+    ['vacío', {}],
+    ['elige la empresa', { comuna_o_ciudad: 'Colina' }],
+  ])('con la comuna vacía, la obra explícita gana a "Somos una empresa ubicada en Colina" y sus variantes (Claude %s)', (_label, claude) => {
+    for (const text of [
+      'Somos una empresa ubicada en Colina. La obra está en Lampa.',
+      'Estamos ubicados en Colina. La obra está en Lampa.',
+      'Estamos en Colina. La obra está en Lampa.',
+      'Nuestra constructora está en Colina. La obra está en Lampa.',
+      'Trabajamos en Colina. La obra está en Lampa.',
+    ]) {
+      flow.clearFlowState(PHONE);
+      const r = step(text, claude);
+      expect(r.captured.comuna_o_ciudad, text).toBe('Lampa');
+      expect(r.captured.comunas_otras, text).toEqual(['Colina']);
+    }
+  });
+
+  it('con Maipú capturada, "Perdón, la empresa está en Colina" corrige la comuna', () => {
+    step(MAIPU, {});
+    const r = step('Perdón, la empresa está en Colina', {});
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Colina']);
+  });
+
+  it.each([
+    'Necesito 20 paneles LED, pasaré por su tienda',
+    'Necesito 20 paneles LED, iré a su local',
+    'Necesito 20 paneles LED, paso a buscarlos a su tienda',
+  ])('la tienda de eLIGHTS no queda como proyecto: "%s"', (text) => {
+    expect(step(text, {}).captured.proyecto_o_uso).toBeUndefined();
+  });
+
+  it('"los vamos a pasar a la oficina" es la oficina del cliente: sigue siendo el proyecto', () => {
+    expect(step('Necesito 20 paneles, los vamos a pasar a la oficina', {}).captured.proyecto_o_uso).toBe('oficina');
+  });
+});
