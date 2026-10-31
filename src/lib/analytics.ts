@@ -321,15 +321,27 @@ function setGaDisabled(disabled: boolean): void {
   if (id) (window as unknown as Record<string, unknown>)[disableKey(id)] = disabled;
 }
 
-/** Ruta (con su consulta) sin gclid, gbraid, wbraid ni fbclid. Sin ids, la deja igual. */
-function stripClickIds(path: string): string {
+/**
+ * Parámetros de la URL que nunca salen hacia Google: `q` es el texto que la persona escribió en
+ * el buscador (/buscar?q=…) y puede traer cualquier cosa (sección 3.5: el evento search no lleva
+ * search_term).
+ */
+const PRIVATE_PARAMS = ['q'] as const;
+
+/** Ruta (con su consulta) sin `drop`. Si no trae ninguno, la deja igual. */
+function stripParams(path: string, drop: readonly string[]): string {
   const q = path.indexOf('?');
   if (q < 0) return path;
   const params = new URLSearchParams(path.slice(q + 1));
-  if (!CLICK_IDS.some(k => params.has(k))) return path;
-  for (const k of CLICK_IDS) params.delete(k);
+  if (!drop.some(k => params.has(k))) return path;
+  for (const k of drop) params.delete(k);
   const rest = params.toString();
   return path.slice(0, q) + (rest ? '?' + rest : '');
+}
+
+/** Ruta para page_path y page_location: sin el texto buscado y, sin la medición de anuncios, sin ids de clic. */
+function cleanPath(path: string, c: CookieChoice): string {
+  return stripParams(path, c.ads ? PRIVATE_PARAMS : [...PRIVATE_PARAMS, ...CLICK_IDS]);
 }
 
 const herePath = () => window.location.pathname + window.location.search;
@@ -357,10 +369,9 @@ function stripUnconsentedClickIds(c: CookieChoice): void {
   }
 }
 
-/** origin + ruta + consulta, sin # y, sin la medición de anuncios, sin ids de clic. */
+/** origin + ruta + consulta, sin #, sin el texto buscado y, sin la medición de anuncios, sin ids de clic. */
 function cleanLocation(c: CookieChoice): string {
-  const path = herePath();
-  return window.location.origin + (c.ads ? path : stripClickIds(path));
+  return window.location.origin + cleanPath(herePath(), c);
 }
 
 /**
@@ -394,8 +405,8 @@ function push(entry: Record<string, unknown>): void {
 
 /**
  * Un evento con todos los parámetros de EVENT_PARAMS (undefined los que no aplican) y
- * page_location limpia. Solo copia claves de EVENT_PARAMS: nunca una clave de estado. Sin la
- * medición de anuncios, page_path va sin ids de clic.
+ * page_location limpia. Solo copia claves de EVENT_PARAMS: nunca una clave de estado. page_path
+ * va sin el texto buscado y, sin la medición de anuncios, sin ids de clic.
  */
 function eventEntry(name: string, params: EventParams, c: CookieChoice): Record<string, unknown> {
   const entry: Record<string, unknown> = { event: name };
@@ -403,7 +414,7 @@ function eventEntry(name: string, params: EventParams, c: CookieChoice): Record<
   for (const key of EVENT_PARAMS) {
     if (key !== 'page_location' && key in params) entry[key] = params[key as keyof EventParams];
   }
-  if (typeof entry.page_path === 'string' && !c.ads) entry.page_path = stripClickIds(entry.page_path);
+  if (typeof entry.page_path === 'string') entry.page_path = cleanPath(entry.page_path, c);
   entry.page_location = cleanLocation(c);
   return entry;
 }
