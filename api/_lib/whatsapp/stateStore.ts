@@ -7,6 +7,8 @@ import { getHistory, restoreHistory, clearHistory } from './conversation.js';
 import type { ConversationTurn } from './conversation.js';
 import { privacyNoticeShown, restorePrivacyNotice } from './privacyNotice.js';
 import type { PendingWhatsAppWrite } from './pipedriveLead.js';
+import { getTranscript, restoreTranscript, clearTranscript } from './transcript.js';
+import type { Transcript } from './transcript.js';
 
 export const CONVERSATION_TTL_S = 604800;
 export const MESSAGE_TTL_S = 86400;
@@ -22,6 +24,8 @@ interface Snapshot {
   history: ConversationTurn[];
   privacyShown: boolean;
   pending: PendingWhatsAppWrite[];
+  // [TRANSCRIPCION] Los estados anteriores a la PR 3 no la traen: la nota avisa que puede faltar el inicio.
+  transcript?: Transcript;
 }
 
 const pendingWrites = new Map<string, PendingWhatsAppWrite[]>();
@@ -85,6 +89,7 @@ function clearLocal(phone: string): void {
   clearHistory(phone);
   restorePrivacyNotice(phone, false);
   pendingWrites.delete(phone);
+  clearTranscript(phone);
   local.delete(phone);
 }
 
@@ -113,6 +118,7 @@ export async function loadConversation(phone: string, sharedAuthoritative = fals
     restoreHistory(phone, state.history);
     restorePrivacyNotice(phone, state.privacyShown);
     setPendingWrites(phone, state.pending);
+    restoreTranscript(phone, state.transcript);
     local.set(phone, { updatedAt: updatedAt || Date.now(), dirty: false });
   } catch {
     unavailable('estado ilegible');
@@ -129,6 +135,7 @@ async function writeConversation(phone: string, updatedAt: number): Promise<void
     updatedAt,
     flow: getFlowState(phone), history: getHistory(phone),
     privacyShown: privacyNoticeShown(phone), pending: getPendingWrites(phone),
+    ...(getTranscript(phone) ? { transcript: getTranscript(phone) } : {}),
   };
   const meta = { updatedAt, dirty: true };
   local.set(phone, meta);

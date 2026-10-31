@@ -3,6 +3,7 @@
 // El control del flujo queda en flowEngine.ts (determinístico).
 import Anthropic from '@anthropic-ai/sdk';
 import type { ConversationTurn } from './conversation.js';
+import { safeSummary } from './summary.js';
 const LOG_PREFIX = '[claudeAgent]';
 export const FALLBACK_REPLY = 'Hola! Gracias por escribirnos. Cu\u00e9ntanos qu\u00e9 necesitas y tu correo de contacto: la respuesta te llega por correo.';
 export interface ClaudeParsed {
@@ -33,7 +34,13 @@ const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl
   // [CANTIDAD] [NO-PISAR] PR 2 del plan del bot; el codigo igual valida los dos campos.
   'cantidad: numero entero de unidades que el cliente pidio, o null (nunca una potencia, medida, ' +
   'RUT, telefono ni los numeros de un correo). proyecto_o_uso: el espacio o uso (oficina, bodega), ' +
-  'nunca la razon social ni su tipo (SpA, Ltda.).';
+  'nunca la razon social ni su tipo (SpA, Ltda.). ' +
+  // [COMUNA] [RESUMEN] PR 3 del plan del bot; el codigo igual valida la comuna y filtra el resumen.
+  'comuna_o_ciudad: la comuna de Chile donde se instala o se despacha, solo si el cliente la dice como ' +
+  'lugar (nunca la de un correo, una calle, la razon social ni la sucursal que pregunta). ' +
+  'summary: lo que el cliente dice, pide o pregunta, empezando con "El cliente pide", "El cliente pregunta" ' +
+  'o "El cliente dice que". Nunca afirmes como hecho una compra, un pago, el stock, un pedido confirmado, ' +
+  'un despacho ni el historial del cliente: si el cliente lo menciona, escribe "El cliente dice que...".';
 /**
  * [CIERRE-HONESTO] Cada campo de Claude se usa solo si es texto (un numero se pasa a texto).
  * Un objeto o una lista (dos correos, un pedido con varios items) queda vacio: antes viajaba
@@ -90,7 +97,8 @@ export async function askClaude(
       correo: textField(raw.correo),
       wantsHuman: Boolean(raw.wantsHuman),
       qualifiesForDeal: Boolean(raw.qualifiesForDeal),
-      summary: textField(raw.summary) ?? 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
+      // [RESUMEN] Sin las frases que afirman hechos sin atribuirlos al cliente (summary.ts).
+      summary: textField(raw.summary) !== undefined ? safeSummary(raw.summary) : 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
     };
   } catch {
     console.warn(LOG_PREFIX + ' Response not valid JSON — usando defaults');

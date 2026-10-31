@@ -64,4 +64,10 @@ describe('askClaude con salidas de otra forma', () => {
     expect(parsed.correo).toBe('ana.prueba@example.com');
     expect(parsed.summary).toBe('Pide paneles LED.');
   });
+
+  it('[RESUMEN] PR 3: el resumen no afirma una compra que el cliente no atribuye', async () => {
+    expect((await parse({ summary: 'Cliente ya compró. Pregunta por la dirección de retiro.' })).summary).toBe('Pregunta por la dirección de retiro.');
+    expect((await parse({ summary: 'Cliente pagó.' })).summary).toBe('Ver la transcripción.');
+    expect((await parse({ summary: 'El cliente dice que ya compró.' })).summary).toBe('El cliente dice que ya compró.');
+  });
 });

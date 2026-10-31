@@ -110,7 +110,7 @@ describe('datos con otra forma', () => {
     expect(note).not.toContain('[object Object]');
     expect(note).toContain('Cantidad: -');
     expect(note).toContain('Proyecto/uso: -');
-    expect(note).toContain('Resumen bot: -');
+    expect(note).toContain('-- RESUMEN DEL BOT (interpretación, no dato) --\n-\n');
   });
 
   it('los campos del negocio solo llevan texto', async () => {

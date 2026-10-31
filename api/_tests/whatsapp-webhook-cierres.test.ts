@@ -422,7 +422,8 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     expect(sim.deals).toHaveLength(1);
     const note = sim.notes[0].content;
     expect(note).not.toContain('[object Object]');
-    expect(note).toMatch(/^Resumen bot: .+/m);
+    // [RESUMEN] PR 3: el resumen va en su sección.
+    expect(note).toMatch(/^-- RESUMEN DEL BOT \(interpretación, no dato\) --\n.+/m);
     for (const value of Object.values(sim.updates[0].fields)) expect(typeof value).toBe('string');
   });
 

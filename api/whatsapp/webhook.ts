@@ -19,6 +19,7 @@ import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, rec
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
 import { withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
 import { acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, getPendingWrites, setPendingWrites, MESSAGE_RETRY_WAIT_MS } from '../_lib/whatsapp/stateStore.js';
+import { clearTranscriptAfterNote, inboundText, recordTranscript, restartTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
 
@@ -63,9 +64,13 @@ interface FlowTurnInput {
     aiSource: 'claude' | 'heuristic';
 }
 
-/** Paso del flujo, negocio en Pipedrive e historial de un mensaje (dentro del turno del numero). */
-async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; dealResult: DealResult; reply: string }> {
+/**
+ * Paso del flujo, negocio en Pipedrive e historial de un mensaje (dentro del turno del numero).
+ * [TRANSCRIPCION] noted: la nota del negocio ya trae la transcripcion con esta respuesta.
+ */
+async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; dealResult: DealResult; reply: string; noted: boolean }> {
   const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource } = t;
+  const conversationBefore = getFlowState(phone).firstMessageAt;
 
   let flowResult: FlowResult;
     try {
@@ -88,6 +93,8 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
     }
     // La conversacion que pidio el negocio (si mientras tanto empieza otra, el resultado no va ahi).
     const conversationId = getFlowState(phone).firstMessageAt;
+    // [TRANSCRIPCION] Otro pedido: la transcripcion vuelve a empezar con este mensaje.
+    if (conversationId !== conversationBefore) restartTranscript(phone);
 
   // Log de salida: resultado del flujo para QA
   console.log(LOG_PREFIX + ' [QA:out] ' + JSON.stringify({
@@ -121,6 +128,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           captured: flowResult.captured,
                           captureStatus: flowResult.captureStatus,
                           wantsHuman: flowResult.wantsHuman,
+                          transcript: transcriptForNote(phone, flowResult.reply),
                           ...(flowResult.rutUpdate ? { existingDealId: getFlowState(phone).dealId } : {}),
                 });
                 if (dealResult.pendingWrite) setPendingWrites(phone, [...getPendingWrites(phone), dealResult.pendingWrite]);
@@ -145,10 +153,14 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
           }
     }
 
+  // [TRANSCRIPCION] La nota (o su reintento pendiente) ya lleva la conversacion hasta esta respuesta.
+  const noted = typeof dealResult.dealId === 'number' && reply === flowResult.reply;
+  if (noted) clearTranscriptAfterNote(phone);
+
   addTurn(phone, { role: 'user', content: body });
     addTurn(phone, { role: 'assistant', content: reply });
 
-  return { flowResult, dealResult, reply };
+  return { flowResult, dealResult, reply, noted };
 }
 
 export const config = { api: { bodyParser: false } };
@@ -229,7 +241,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
     setPendingWrites(phone, pending);
 
-    async function respond(reply: string): Promise<void> {
+    // [TRANSCRIPCION] El mensaje del cliente, con sus adjuntos, antes de cualquier respuesta. Sin
+    // transcripcion y con la conversacion avanzada (un estado anterior a la PR 3), la nota avisa que
+    // puede faltar el inicio.
+    const stateBefore = getFlowState(phone);
+    const mediaTypes = Array.from({ length: Math.max(0, Math.min(numMedia || 0, 10)) }, (_, i) => params['MediaContentType' + i] ?? '');
+    recordTranscript(phone, 'cliente', inboundText(body, mediaTypes), {
+          inProgress: stateBefore.stage !== 'stage1' || Object.keys(stateBefore.captured).length > 0 || getHistory(phone).length > 0,
+    });
+
+    async function respond(reply: string, noted = false): Promise<void> {
+          // [TRANSCRIPCION] La respuesta del bot, sin el aviso de privacidad (salvo la que ya fue a la nota).
+          if (!noted) recordTranscript(phone, 'bot', reply);
           res.setHeader('Content-Type', 'text/xml');
           const xml = buildTwiML(withPrivacyNotice(phone, reply, startedAt));
           await persistConversation(phone);
@@ -309,7 +332,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     const turn = await runFlowTurn({ phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource });
-    const { flowResult, dealResult, reply } = turn;
+    const { flowResult, dealResult, reply, noted } = turn;
 
     const wantsHuman = flowResult.wantsHuman || signals.wantsHuman;
       // 'found': el cierre se junto con el negocio abierto del mismo numero (ventana de 7 dias). Avisa
@@ -340,7 +363,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             ' notify=' + shouldNotify,
         );
 
-    await respond(reply);
+    await respond(reply, noted);
   } finally {
         try { await distributed?.release(); }
         finally { releaseTurn(); }

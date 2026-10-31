@@ -4,6 +4,8 @@ import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
+import { findComunaMentions, officialComuna } from './comunas.js';
+import type { ComunaMention } from './comunas.js';
 
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
 export type CaptureStatus = 'complete' | 'partial' | 'incomplete';
@@ -18,6 +20,9 @@ export interface CapturedFields {
   cantidad_varios?: string;
   proyecto_o_uso?: string;
   comuna_o_ciudad?: string;
+  // [COMUNA] Otras comunas que el cliente dio como lugar ("la obra en Lampa y la factura en Vina del
+  // Mar"), para la nota: la comuna es una sola.
+  comunas_otras?: string[];
   nombre_o_empresa?: string;
   correo?: string;
   // [RUT-VALIDO] RUT con formato NN.NNN.NNN-D (rutCapture.ts). rut_valido: calza el digito
@@ -207,7 +212,6 @@ const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|p
 const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
 // [CANTIDAD] Empieza donde empieza la palabra: sin eso, un texto largo sin "@" se recorria una vez por letra.
 const EMAIL_RE = /(?<![a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
-const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
 const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 
 // NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE — no es señal B2B por si sola
@@ -262,14 +266,7 @@ export function looksLikePersonName(value: unknown): value is string {
   const last = words[words.length - 1];
   if (!NAME_WORD_RE.test(first) || !NAME_WORD_RE.test(last)) return false;
   if (!words.slice(1, -1).every((w) => NAME_WORD_RE.test(w) || NAME_PARTICLE_RE.test(w))) return false;
-  const plain = value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return !new RegExp('^(?:' + CIUDAD_RE.source + ')$', 'i').test(plain);
-}
-// [NO-PISAR] La comuna sin importar tildes ni enies (Maipu, Nunoa o Concepcion escritas con ellas), devuelta como
-// la escribio el cliente: CIUDAD_RE las tiene sin tildes y antes solo las encontraba asi.
-function extractCiudad(text: string): string | undefined {
-  const m = bareText(text).match(CIUDAD_RE);
-  return m ? text.slice(m.index, m.index + m[0].length) : undefined;
+  return officialComuna(value) === undefined;
 }
 /** [NO-PISAR] El texto sin tildes ni enies y del mismo largo, para buscar en el y volver al original. */
 function bareText(text: string): string {
@@ -404,10 +401,12 @@ function buildInstallCaptureMsg(captured: CapturedFields): string {
 }
 
 // [INSTALL-FLOW] Registra campos de instalacion desde el mensaje del usuario
+// [COMUNA] answering: la ultima pregunta del bot pedia la comuna (la lista de instalacion o MSG2).
 function mergeInstallFields(
   captured: CapturedFields,
   body: string,
-  claudeParsed: { nombre?: string; empresa?: string; correo?: string; comuna_o_ciudad?: string; proyecto_o_uso?: string; },
+  claudeParsed: ClaudeFields,
+  answering = false,
 ): CapturedFields {
   const updated = { ...captured };
   // [CIERRE-HONESTO] El nombre y el correo que ya dio en el flujo de productos sirven para la
@@ -421,8 +420,10 @@ function mergeInstallFields(
     if (email) updated.install_correo = email;
   }
   if (!updated.install_comuna) {
-    const ciudad = claudeParsed.comuna_o_ciudad ?? extractCiudad(body);
+    const comunas = findComunaMentions(maskNegated(factsText(body, claudeParsed)), { answering });
+    const ciudad = pickComuna(comunas, claudeParsed.comuna_o_ciudad);
     if (ciudad) updated.install_comuna = ciudad;
+    noteOtherComunas(updated, comunas, ciudad);
   }
   if (!updated.install_tipo_proyecto) {
     const tipo = claudeParsed.proyecto_o_uso ?? extractInstallTipoProyecto(body);
@@ -839,6 +840,54 @@ function factsText(body: string, claudeParsed: ClaudeFields): string {
   return text.replace(EMAIL_RE_ALL, ' ').replace(RAZON_SOCIAL_RE, ' ');
 }
 
+// [COMUNA] La comuna de la instalacion: con varias en el mensaje, la que eligio Claude (si es una de ellas)
+// o la primera. La de la factura no cuenta.
+function pickComuna(mentions: ComunaMention[], claudeValue: unknown): string | undefined {
+  const places = mentions.filter((m) => !m.billing).map((m) => m.name);
+  const claudePick = officialComuna(claudeText(claudeValue));
+  return claudePick && places.includes(claudePick) ? claudePick : places[0];
+}
+const MAX_COMUNAS_OTRAS = 5;
+/** [COMUNA] Las comunas del mensaje que no quedaron como la comuna van a "Otras comunas mencionadas". */
+function noteOtherComunas(merged: CapturedFields, mentions: ComunaMention[], kept: string | undefined): void {
+  const current = [kept, merged.comuna_o_ciudad, merged.install_comuna].filter(Boolean).map((c) => comparable(c as string));
+  const others = [...(merged.comunas_otras ?? [])];
+  for (const { name: comuna } of mentions) {
+    if (!current.includes(comparable(comuna)) && !others.some((o) => comparable(o) === comparable(comuna))) others.push(comuna);
+  }
+  if (others.length) merged.comunas_otras = others.slice(0, MAX_COMUNAS_OTRAS);
+}
+/**
+ * [COMUNA] La comuna sale solo de la lista oficial y cuando el texto la presenta como lugar o contesta
+ * la pregunta por ella (findComunaMentions): lo que devuelve Claude solo elige entre esas. Una vacia se
+ * llena con lo que el cliente afirma (o, si no, pregunta: "despachan a Temuco?"); una capturada cambia
+ * solo si lo que afirma trae una comuna (o varias, y Claude eligio una), y el cambio queda anotado. La
+ * comuna de la factura ("la facturacion en Vina del Mar") y las demas van a "Otras comunas mencionadas".
+ */
+function mergeComuna(
+  merged: CapturedFields,
+  claudeValue: unknown,
+  texts: { answering: boolean; assertive: string; affirmed: string; base: string },
+): void {
+  const opts = { answering: texts.answering };
+  const stated = findComunaMentions(texts.assertive, opts);
+  if (!merged.comuna_o_ciudad) {
+    const comunas = stated.length ? stated : findComunaMentions(texts.affirmed, opts);
+    const pick = pickComuna(comunas, claudeValue);
+    if (pick) merged.comuna_o_ciudad = pick;
+    noteOtherComunas(merged, comunas, pick);
+    return;
+  }
+  const current = officialComuna(merged.comuna_o_ciudad) ?? merged.comuna_o_ciudad;
+  const inBase = findComunaMentions(texts.base, opts).filter((m) => !m.billing).map((m) => m.name);
+  if (inBase.length && !inBase.includes(current)) {
+    const claudePick = officialComuna(claudeText(claudeValue));
+    const change = inBase.length === 1 ? inBase[0] : claudePick && inBase.includes(claudePick) ? claudePick : undefined;
+    keepOrChange(merged, 'comuna_o_ciudad', undefined, change);
+  }
+  noteOtherComunas(merged, stated, undefined);
+}
+
 // PASO 1: MERGE de los campos del flujo de productos.
 // [NO-PISAR] Producto, color, cantidad, proyecto y comuna: un dato vacio se llena (con lo de
 // Claude o, si no, con las reglas); uno ya capturado solo cambia si este mensaje lo trae explicito
@@ -901,8 +950,9 @@ function mergeProductFields(
   mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding);
   const claudeProy = claudeProject(claudeParsed, body);
   keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, extractProyecto(assertive) ?? extractProyecto(affirmed)), backed(claudeProy, rule(PROYECTO_RE), base));
-  const claudeCiudad = claudeText(claudeParsed.comuna_o_ciudad);
-  keepOrChange(merged, 'comuna_o_ciudad', fillWith(claudeCiudad, extractCiudad(assertive) ?? extractCiudad(affirmed)), backed(claudeCiudad, rule(CIUDAD_RE), base));
+  mergeComuna(merged, claudeParsed.comuna_o_ciudad, {
+    answering: Boolean(question?.asks.includes('comuna_o_ciudad')), assertive, affirmed, base,
+  });
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
   // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
@@ -941,7 +991,7 @@ function mergeProductFields(
 function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): FlowResult {
   const hadEmail = Boolean(flowEmail(state));
   const late = state.isInstallFlow
-    ? { merged: mergeInstallFields(state.captured, body, claudeParsed), leadType: state.leadType }
+    ? { merged: mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)), leadType: state.leadType }
     : mergeProductFields(state, body, claudeParsed);
   const captureStatus = state.isInstallFlow ? computeInstallCaptureStatus(late.merged) : computeCaptureStatus(late.merged, late.leadType);
   const next: FlowState = { ...state, captured: late.merged, captureStatus, leadType: late.leadType };
@@ -1010,6 +1060,11 @@ export function recordMediaReply(phone: string): void {
 export function recordNoQuestion(phone: string): void {
   const state = flowStates.get(phone);
   if (state) saveFlowState(phone, { ...state, rutAskedLast: false, lastQuestion: null });
+}
+
+/** [COMUNA] La ultima pregunta del bot pedia la comuna: la lista de instalacion o MSG2. */
+function answersComuna(state: FlowState): boolean {
+  return state.stage === 'install_capture' || Boolean(lastQuestionOf(state)?.asks.includes('comuna_o_ciudad'));
 }
 
 /**
@@ -1087,7 +1142,7 @@ function flowStep(
   const isAlreadyInstallFlow = state.isInstallFlow || state.stage === 'install_capture';
 
   if (isInstallIntent && !isAlreadyInstallFlow) {
-    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed);
+    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
@@ -1102,7 +1157,7 @@ function flowStep(
   }
 
   if (state.stage === 'install_capture') {
-    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed);
+    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);

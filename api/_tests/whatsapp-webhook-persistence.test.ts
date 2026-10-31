@@ -46,7 +46,8 @@ const COMPLETE = {
   comuna_o_ciudad: 'Maipu', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com',
 };
 // [CANTIDAD] PR 2: la cantidad de Claude vale solo si el texto del cliente la dice.
-const WRONG_RUT_ORDER = 'Necesito 10 focos LED, RUT 77.123.456-8';
+// [COMUNA] PR 3: la comuna tambien (de la lista oficial y con su frase de ubicacion).
+const WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 77.123.456-8';
 let redis: ReturnType<typeof createFakeRedis>;
 let seq: number;
 let webhook: typeof import('../whatsapp/webhook.js')['default'];
@@ -224,7 +225,7 @@ describe('R121-04: estado compartido y respaldo', () => {
     const { conversationKey, conversationLockKey } = await import('../_lib/whatsapp/stateStore.js');
     const { askClaude } = await import('../_lib/whatsapp/claudeAgent.js');
     sim.parsed = COMPLETE;
-    await send('RUT 77.123.456-8');
+    await send('Es en Maipu, RUT 77.123.456-8');
     const before = await snapshot();
     vi.setSystemTime(Date.now() + 1_000);
     redis.down = true;
@@ -260,7 +261,7 @@ describe('R121-04: estado compartido y respaldo', () => {
     const { conversationKey } = await import('../_lib/whatsapp/stateStore.js');
     const localInstance = webhook;
     sim.parsed = COMPLETE;
-    await send('RUT 77.123.456-8');
+    await send('Es en Maipu, RUT 77.123.456-8');
     vi.setSystemTime(Date.now() + 1_000);
     redis.down = true;
     sim.parsed = {};
@@ -348,7 +349,7 @@ describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', (
 
   it('la ambiguedad que llega despues del cierre tambien queda anotada en ese negocio', async () => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED');
+    await send('Necesito 10 focos LED para una casa en Maipu');
     sim.parsed = {};
     await send('11.111.111-1; 77.123.456-9');
     expect(sim.created).toBe(1);
@@ -358,9 +359,9 @@ describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', (
 
   it('un cierre nuevo que reutiliza un negocio tambien conserva y reintenta su nota rechazada', async () => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED');
+    await send('Necesito 10 focos LED para una casa en Maipu');
     sim.noteDown = true;
-    await send('Necesito 20 focos LED');
+    await send('Necesito 20 focos LED para una casa en Maipu');
     expect((await snapshot()).pending).toHaveLength(1);
     expect(sim.notes).toHaveLength(1);
     sim.parsed = {};
@@ -375,7 +376,7 @@ describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', (
   it('si solo fallan los campos, reintenta los campos sin repetir la nota confirmada', async () => {
     sim.parsed = COMPLETE;
     sim.fieldsDown = true;
-    await send('Necesito 10 focos LED');
+    await send('Necesito 10 focos LED para una casa en Maipu');
     expect((await snapshot()).pending[0].note).toBeUndefined();
     sim.fieldsDown = false;
     sim.parsed = {};
@@ -388,7 +389,7 @@ describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', (
 describe('R121-02: ambiguedad registrada sin asignar un RUT al cliente', () => {
   it('lista ambos en la nota y no clasifica por el RUT del proveedor', async () => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED, RUT 11.111.111-1; RUT 77.123.456-9');
+    await send('Necesito 10 focos LED para una casa en Maipu, RUT 11.111.111-1; RUT 77.123.456-9');
     const { createDeal } = await import('../_lib/pipedrive/deals.js');
     expect(vi.mocked(createDeal).mock.calls[0][0]).toMatchObject({ leadType: 'B2C' });
     expect(sim.notes[0].content).toContain('RUT: -');
@@ -506,7 +507,7 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
 
   it.each(['cambiar', 'cambio', 'modificar'])('«%s el RUT» conserva el negocio y todos los datos', async verb => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED');
+    await send('Necesito 10 focos LED para una casa en Maipu');
     sim.parsed = {};
     const before = await snapshot();
     await send('necesito ' + verb + ' el RUT de la factura: 77.123.456-9');
@@ -520,7 +521,7 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
 
   it('una solicitud nueva sin «rut» sigue empezando desde cero', async () => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED');
+    await send('Necesito 10 focos LED para una casa en Maipu');
     sim.parsed = { producto: 'paneles LED' };
     await send('Necesito cambiar a paneles LED');
     const state = (await snapshot()).flow;

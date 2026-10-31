@@ -12,6 +12,7 @@ import { TIPO_SERVICIO } from '../crm/tipo-servicio.js';
 import { looksLikePersonName } from './flowEngine.js';
 import type { CapturedFields, CaptureStatus } from './flowEngine.js';
 import { isBusinessRut } from './rutCapture.js';
+import { chileTime } from './transcript.js';
 
 const LOG_PREFIX = '[pipedriveLead]';
 
@@ -33,6 +34,8 @@ export interface WhatsAppLeadParams {
     leadType?: 'B2B' | 'B2C' | 'Unknown';
     priorityTier?: 'Alta' | 'Normal';
     existingDealId?: number;
+    /** [TRANSCRIPCION] La conversacion en texto plano (transcript.ts); sin ella, la nota trae este mensaje. */
+    transcript?: string;
 }
 
 export interface WhatsAppDealResult {
@@ -125,7 +128,19 @@ function rutLine(c: CapturedFields): string {
     return c.rut_tipo ? rut + ' (' + RUT_TIPO_LABEL[c.rut_tipo] + ')' : rut;
 }
 
-function buildNote(p: WhatsAppLeadParams): string {
+/**
+ * [NOTA] La nota de Pipedrive es HTML: todo el texto del cliente y del perfil (un "<b>" o un "&") se
+ * escapa para que se vea tal cual y no cambie el formato.
+ */
+export function escapeNoteHtml(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+/** [NOTA] El titulo del negocio es texto plano: sin "<" ni ">" (el nombre del perfil lo escribe el cliente). */
+function plainTitle(text: string): string {
+    return text.replace(/[<>]/g, '').trim();
+}
+const SUMMARY_MAX = 600;
+export function buildNote(p: WhatsAppLeadParams): string {
     const c = p.captured ?? {};
     const lead = resolveLead(c);
     const lines = [
@@ -142,17 +157,25 @@ function buildNote(p: WhatsAppLeadParams): string {
           'Cantidad: ' + (fmt(c.cantidad) ?? (fmt(c.cantidad_varios) ? 'varios items, revisar: ' + fmt(c.cantidad_varios) : '-')),
           'Proyecto/uso: ' + (lead.proyecto ?? '-'),
           'Comuna/ciudad: ' + (lead.comuna ?? '-'),
+          // [COMUNA] Otras comunas que el cliente dio como lugar (la de la factura, una segunda obra).
+          ...(Array.isArray(c.comunas_otras) && c.comunas_otras.length ? ['Otras comunas mencionadas: ' + c.comunas_otras.join(', ')] : []),
           // [NO-PISAR] Un dato ya capturado que el cliente cambio en un mensaje posterior.
           ...(Array.isArray(c.cambios) && c.cambios.length ? ['Cambios: ' + c.cambios.join('; ')] : []),
           '---',
-          'Mensaje original: ' + (fmt(p.body) ?? '').substring(0, 300),
-          'Resumen bot: ' + (fmt(p.summary) ?? '-').substring(0, 200),
           'Estado captura: ' + (p.captureStatus ?? 'incomplete'),
           'Pidio ejecutivo: ' + (p.wantsHuman ? 'Si' : 'No'),
           ...(lead.instalacion ? ['Solicitud de instalacion: Si'] : []),
           'Canal: WhatsApp',
+          '',
+          // [RESUMEN] Lo que redacto Claude, ya filtrado (summary.ts): no es un dato.
+          '-- RESUMEN DEL BOT (interpretaci\u00f3n, no dato) --',
+          (fmt(p.summary) ?? '-').substring(0, SUMMARY_MAX),
+          '',
+          // [TRANSCRIPCION] Reemplaza la linea "Mensaje original": la conversacion completa, en hora de Chile.
+          '-- TRANSCRIPCI\u00d3N --',
+          fmt(p.transcript) ?? '[' + chileTime(Date.now()) + '] Cliente: ' + (fmt(p.body) ?? ''),
         ];
-    return lines.join('\n');
+    return escapeNoteHtml(lines.join('\n'));
 }
 
 function buildWaCustomFields(
@@ -234,7 +257,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         personId,
         pipelineId,
         stageId,
-        title: 'WhatsApp Lead — ' + (name || phone),
+        title: 'WhatsApp Lead \u2014 ' + (plainTitle(name) || phone),
         quoteAmountClp: 0,
         sourceSystem: 'whatsapp',
         leadType: resolvedLeadType === 'Unknown' ? 'B2C' : resolvedLeadType,
