@@ -15,7 +15,7 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
 import { ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
-import { processFlowStep, getFlowState, recordDealOutcome, MSG_MEDIA, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
+import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, MSG_MEDIA, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
 import { withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
 import { acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, getPendingWrites, setPendingWrites, MESSAGE_RETRY_WAIT_MS } from '../_lib/whatsapp/stateStore.js';
@@ -237,6 +237,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (numMedia > 0 && body.trim().length < 3) {
           console.log(LOG_PREFIX + ' Media from ' + redact(phone, 'phone') + ' [' + messageSid + ']');
+          // [CANTIDAD] MSG_MEDIA pregunta producto, proyecto y cantidad: queda anotado para el mensaje siguiente.
+          recordMediaReply(phone);
           await respond(MSG_MEDIA);
           return;
     }

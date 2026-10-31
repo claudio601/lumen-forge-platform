@@ -1,26 +1,29 @@
 // api/_lib/whatsapp/quantity.ts
 // [CANTIDAD] PR 2 del plan del bot (B2, B3 y CASO-1): la cantidad es un entero o nada.
-// - Antes de buscarla se sacan del texto los correos, enlaces, RUT, telefonos, medidas (120x60),
-//   numeros con unidad (15W, 4000K, IP65, 3 m), codigos de modelo, montos, fechas y numeros de
-//   pedido.
-// - Cuenta si es explicita ("necesito 30", "son 7", "30 paneles", "10 unidades") o si el mensaje
-//   contesta una pregunta del bot que la pedia ("20, luz fria").
-// - Dos cantidades distintas (varios items, hasta la PR 9) o un numero de algo que no es una
-//   unidad ("2 cotizaciones", "2 tipos") la dejan vacia: el bot la pregunta (el "null honesto").
+// - Antes de buscarla se sacan del texto los correos, enlaces, RUT, telefonos, direcciones,
+//   medidas (120x60), numeros con unidad (15W, 4000K, 3000-4000K, IP65, 3 m, 40 cms), codigos de
+//   modelo, montos, fechas y numeros de pedido.
+// - Tampoco cuentan un numero que el texto presenta como otro dato ("modelo 50", "presupuesto
+//   50000", "piso 3"), uno negado ("no 10") ni uno de algo que no es una unidad ("2 cotizaciones").
+// - Cuenta si es explicita ("necesito 30", "son 7", "30 paneles", "10 unidades", "x20") o si el
+//   mensaje contesta una pregunta del bot que la pedia ("20, luz fria"). Un mensaje con datos de
+//   contacto (RUT o correo) solo trae la explicita: sus otros numeros suelen ser de la direccion.
+// - Varias cantidades de items distintos (varios items, hasta la PR 9) la dejan vacia y marcada.
 // - El numero de Claude solo vale si el texto lo respalda.
 import { removeRuts } from './rutCapture.js';
 
 const MAX_TEXT = 1000;
-const MAX_QUANTITY = 100000;
+// 6 digitos o mas nunca son cantidad (RUT sin guion, telefonos): el maximo es coherente con eso.
+const MAX_QUANTITY = 99999;
 
 export interface QuantityRead {
-  /** Entero entre 1 y 100.000, o nada. */
+  /** Entero entre 1 y 99.999, o nada. */
   value?: number;
   /** La dijo el cliente (o contesta la pregunta por ella): puede reemplazar la ya capturada. */
   explicit: boolean;
   /** [CASO-1] Numero suelto entre 1 y el largo de la lista numerada que el bot acaba de mostrar. */
   menuPick?: number;
-  /** Varias cantidades distintas pedidas (varios items): ninguna es "la" cantidad. */
+  /** Varias cantidades de items distintos (varios items): ninguna es "la" cantidad. */
   several?: boolean;
 }
 
@@ -31,6 +34,8 @@ export interface QuantityOptions {
   asked?: boolean;
   /** Items de la lista numerada de esa pregunta (0 si no tenia). */
   menuLength?: number;
+  /** El mensaje trae un correo (ya sacado del texto): solo vale una cantidad explicita. */
+  contact?: boolean;
   /** Lo que devolvio Claude en "cantidad". */
   claude?: unknown;
 }
@@ -40,16 +45,38 @@ function plain(text: string): string {
   return text.slice(0, MAX_TEXT).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// Lo que se pide: unidades y productos ("30 paneles", "10 unidades", "20 BESTLED", "4 postes").
+const UNIT_NOUNS = '(?:unidades|unidad|panel(?:es)?|focos?|reflector(?:es)?|proyector(?:es)?|luminarias?|lamparas?|ampolletas?|tubos?|tiras?|cintas?|downlights?|plafon(?:es)?|campanas?|dicroicos?|apliques?|embutidos?|farol(?:es|as?)?|spots?|riel(?:es)?|modulos?|modulares|equipos?|kits?|bestled|high\\s*bay|ufo|lineal(?:es)?|regletas?|tortugas?|luces|leds?|solares|postes?|rollos?|protector(?:es)?|senaleticas?|drivers?|letreros?|mangueras?|enchufes?|pantallas?|aros?|marcos?|soportes?|brazos?|sensor(?:es)?|baterias?|huinchas?|transformador(?:es)?|balastos?)';
+
+// "15und", "10 uds", "3 pzas" y los multiplicadores "10x panel" o "panel 18W x 20" pasan a
+// "N unidades" (nunca "60x60" ni "120 x 30": son medidas).
 const UNIT_WORDS_RE = /\b(\d+)\s*(?:unidades|unidad|unids?|unds?|uds?|u|pcs|pzas?)\b\.?/g;
+const TIMES_BEFORE_RE = /\b(\d{1,5})\s*x(?=\s+[a-z])/g;
+const TIMES_AFTER_RE = /(^|[\s(])x\s*(\d{1,5})\b/g;
+
+// Direccion: la calle o avenida con su numero ("Av. Prueba 123"), salvo que el numero sea de un
+// producto ("calle con 30 focos"), y el numero de un kilometro, una oficina, un piso o un local.
+const STREET_RE = new RegExp('\\b(?:calle|avenida|avda|av|pasaje|psje|pje|camino|ruta|autopista|costanera|alameda)\\.?\\s+(?:(?!(?:con|para|necesito|necesitamos|son|unos|unas|y)\\b)[a-z\'.]+\\s+){0,5}?(?:n[\\u00b0\\u00ba]?\\.?\\s*|#\\s*|numero\\s+)?\\d+\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
+const PLACE_NUMBER_RE = new RegExp('\\b(?:(?:km|kilometro|parcela|lote|sitio|manzana|mz|block|blk|torre|depto|dpto|of|piso)\\.?\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*|numero\\s*)?|(?:oficina|local|bodega|casa|galpon|nave|departamento)\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*|numero\\s*))\\d+[a-z]?\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
+
+const URL_RE = /(?:https?:\/\/|www\.)\S*/g;
+const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g;
+const RUT_DASH_RE = /\b\d{1,2}(?:[.\s]?\d{3}){2}\s*[-\u2010-\u2015\u2212]\s*[\dk]\b/g;
 
 // Lo que nunca es cantidad, en este orden (cada uno se cambia por un espacio).
 const NOT_QUANTITY: readonly RegExp[] = [
-  /(?:https?:\/\/|www\.)\S*/g,
-  /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g,
-  // RUT con guion y telefonos (+56 9 1234 5678, 912345678, 9 1234 5678)
-  /\b\d{1,2}(?:[.\s]?\d{3}){2}\s*[-\u2010-\u2015\u2212]\s*[\dk]\b/g,
-  /\+?56[\s.-]*\d(?:[\s.-]*\d){7,8}/g,
-  /\b9[\s.-]?\d{4}[\s.-]?\d{4}\b/g,
+  // RUT con guion y telefonos (+56 9 1234 5678, +56 32 212 3456, 912345678, (9) 0000 1234)
+  RUT_DASH_RE,
+  /\+?56(?:[\s.()-]*\d){8,9}/g,
+  /\(\s*\d{1,2}\s*\)\s*\d{3,4}[\s.-]?\d{4}/g,
+  /\b[29][\s.-]?\d{4}[\s.-]?\d{4}\b/g,
+  /\b\d{4}[\s.-]\d{4}\b/g,
+  // direcciones: el bloque "Direccion: ..." hasta el dato siguiente, la calle y el numero de un
+  // lugar ("of. 12", "km 5", "local n 3"), y numeros con letra ("45-b")
+  /\bdireccion[^:\n]{0,30}:[^\n]*?(?=\b(?:correo|e-?mail|mail|contacto|fono|telefono|tel|celular|giro|rut|razon social|nombre|comuna|ciudad|region)\b|\n|$)/g,
+  STREET_RE,
+  PLACE_NUMBER_RE,
+  /\b\d+-[a-z]\b/g,
   // numeros de pedido, montos, fechas y horas
   /(?:\bn[\u00b0\u00ba]|\bnro\b\.?|\bnumero\b|#)\s*[:.]?\s*\d+/g,
   /\b(?:pedido|orden|factura|boleta|folio|oc|licitacion|id)\s*[:.#]?\s*\d+/g,
@@ -65,8 +92,8 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\b\d{6,}\b/g,
   /\b\d+,\d+\b/g,
   /\b\d+\.(?!\d{3}\b)\d+\b/g,
-  // numeros con unidad (15W, 4000 K, 3 m, 200 m2, 220V, 1.000 lm, 30%, 90°)
-  /\b\d+(?:[.,]\d+)?\s*(?:w|watts?|wats?|kw|k|kelvin|cm|mm|m2|mts?2|m\u00b2|mts?|m|metros?|v|volts?|vac|vdc|lm|lumen(?:es)?|lux|hz|mah|ah|kg|grados?|pulgadas?)(?![a-z])/g,
+  // numeros con unidad, tambien en rango (15W, 4000 K, 3000-4000K, 3 m, 40 cms, 200 m2, 220V, 30%)
+  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|m|metros?|v|volts?|vac|vdc|lm|lumen(?:es)?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg)(?![a-z])/g,
   /\b\d+(?:[.,]\d+)?\s*(?:\u00b0|%|")/g,
   // grados IP/IK y codigos de modelo (VENUSII08017, BL-200, E27, GU10, T8, 2do)
   /\b(?:ip|ik)\s*\d+/g,
@@ -77,20 +104,35 @@ const NOT_QUANTITY: readonly RegExp[] = [
 // Despues del numero: algo que no son unidades del pedido ("2 cotizaciones", "3 bodegas", "2 dias").
 const NOT_UNIT_AFTER_RE = /^\s*(?:cotizacion(?:es)?|tipos?|modelos?|opcion(?:es)?|colou?r(?:es)?|medidas?|potencias?|alternativas?|presupuestos?|consultas?|preguntas?|sucursal(?:es)?|dias?|semanas?|mes(?:es)?|anos?|horas?|hrs?|minutos?|veces|vez|pisos?|salas?|oficinas?|bodegas?|local(?:es)?|casas?|departamentos?|deptos?|ambientes?|habitacion(?:es)?|piezas?|dormitorios?|banos?|canchas?|sector(?:es)?|zonas?|areas?|pasillos?|lineas?|cosas?|productos?|items?|articulos?|personas?|trabajador(?:es)?|proyectos?|obras?|etapas?|fases?|nivel(?:es)?|calles?|mil|millon(?:es)?|pesos|lucas|clp|usd|dolares|uf|cuotas?|puntos?|lugar(?:es)?|espacios?|partes?|version(?:es)?|marcas?|fichas?|catalogos?|ofertas?)\b/;
 // Despues del numero: unidades o productos ("30 paneles", "10 unidades", "20 BESTLED").
-const UNIT_AFTER_RE = /^\s*(?:unidades|unidad|panel(?:es)?|focos?|reflector(?:es)?|proyector(?:es)?|luminarias?|lamparas?|ampolletas?|tubos?|tiras?|cintas?|downlights?|plafon(?:es)?|campanas?|dicroicos?|apliques?|embutidos?|farol(?:es|as?)?|spots?|riel(?:es)?|modulos?|modulares|equipos?|kits?|bestled|high\s*bay|ufo|lineal(?:es)?|regletas?|tortugas?|luces|leds?|solares)\b/;
-// Antes del numero: un pedido ("necesito 30", "son 7", "cotizar unos 20", "cantidad: 12").
-const VERB_BEFORE_RE = /\b(?:necesito|necesitamos|necesitaria|necesitariamos|requiero|requerimos|quiero|queremos|quisiera|quisieramos|busco|buscamos|ocupo|ocupamos|cotizar|cotizo|cotizame|cotizarme|comprar|compro|compraria|pedir|llevar|llevo|son|serian|seria|seran|sera|sean|total|cantidad|cant\.?)[\s:=,]*(?:de\s+)?(?:unos|unas|un total de|aprox(?:imadamente)?\.?|alrededor de|como|cerca de|al menos|minimo|maximo|mas o menos)?\s*$/;
+const UNIT_AFTER_RE = new RegExp('^\\s*(' + UNIT_NOUNS + ')\\b');
+// "20 piezas de panel", "5 articulos de tubos": la pieza o el articulo es del producto.
+const GENERIC_OF_UNIT_RE = new RegExp('^\\s*(?:piezas?|articulos?|productos?|items?)\\s+(?:de\\s+)?(?:(?:el|la|los|las|este|estos|ese|esos)\\s+)?' + UNIT_NOUNS + '\\b');
+// Antes del numero: un pedido ("necesito 30", "son 7", "cotizar unos 20", "cantidad: 12", "sino 10").
+const VERB_BEFORE_RE = /(?:\b(?:necesito|necesitamos|necesitaria|necesitariamos|requiero|requerimos|quiero|queremos|quisiera|quisieramos|busco|buscamos|ocupo|ocupamos|cotizar|cotizo|cotizame|cotizarme|comprar|compro|compraria|pedir|llevar|llevo|son|serian|seria|seran|sera|sean|total|cantidad|cant\.?|sino|mejor|corrijo|corrigo|correccion|ahora|perdon|(?:cambio|cambiar|cambia|cambiamos)\s+a)[\s:=,]*(?:de\s+)?(?:unos|unas|un total de|aprox(?:imadamente)?\.?|alrededor de|como|cerca de|al menos|minimo|maximo|mas o menos)?|(?:^|[\s,.;:])(?:unos|unas|aprox(?:imadamente)?\.?|alrededor de|cerca de|mas o menos))\s*$/;
+// Antes del numero: otro dato ("modelo 50", "presupuesto clp 50000", "potencia de 24", "fono 1234").
+const OTHER_DATUM_BEFORE_RE = /\b(?:modelo|mod|codigo|cod|ref|referencia|sku|serie|potencia|vatios|watts|presupuesto|precio|valor|monto|costo|clp|usd|uf|fono|telefono|tel|cel|celular|movil|whatsapp|wsp|rut|altura|largo|ancho|alto|diametro|distancia|superficie|temperatura|voltaje|tension)\.?\s*(?:de\s+|es\s+|:\s*|n[\u00b0\u00ba]\.?\s*|#\s*|nro\.?\s*|aprox(?:imado|imadamente)?\.?\s*|maximo\s+|minimo\s+|total\s+)*$/;
+// Antes del numero: una negacion ("son 7, no 10", "ni 20").
+const NEGATED_BEFORE_RE = /\b(?:no|ni|tampoco)\s+(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?$/;
+// Junto a otra cantidad: "30 paneles y 20 de 24W", "entre 20 y 30", "20 o 30 focos".
+const CHAIN_BEFORE_RE = /(?:\by|,|;|\+|\bmas|\bademas|\btambien|\bentre|\botr[oa]s?)\s*$/;
+const CHAIN_AFTER_RE = /^\s*(?:y|o|a|al|hasta|\+|,)\s*\d/;
+// Una cantidad por item ("10 de cada modelo", "5 c/u"): varios items.
+const PER_ITEM_RE = /\b(?:de\s+cada\s+(?:un[oa]|modelo|tipo|color|producto|medida|potencia|item)|cada\s+un[oa]|c\/u|por\s+(?:cada\s+)?(?:modelo|tipo|color))\b/;
 // [CASO-1] El mensaje es solo un numero corto ("1", "1.", "la 2", "opcion 3").
 const MENU_PICK_RE = /^\s*(?:(?:la|el|opcion|numero)\s+)?(\d{1,2})\s*[).:-]?\s*[.!]?\s*$/;
 
 /** El texto sin lo que nunca es cantidad. */
 export function withoutNonQuantities(text: string, ruts: readonly string[] = []): string {
-  let out = removeRuts(plain(text), ruts).replace(UNIT_WORDS_RE, '$1 unidades ');
+  let out = removeRuts(plain(text), ruts).replace(URL_RE, ' ').replace(EMAIL_RE, ' ')
+    .replace(UNIT_WORDS_RE, '$1 unidades ')
+    .replace(TIMES_BEFORE_RE, '$1 unidades ')
+    .replace(TIMES_AFTER_RE, (all: string, lead: string, n: string, offset: number, s: string) =>
+      /\d/.test(s.slice(0, offset).trimEnd().slice(-1)) ? all : lead + n + ' unidades ');
   for (const re of NOT_QUANTITY) out = out.replace(re, ' ');
   return out;
 }
 
-/** [B2] Lo que devolvio Claude, solo si es un entero entre 1 y 100.000 ("30", 30, "30 paneles"). */
+/** [B2] Lo que devolvio Claude, solo si es un entero entre 1 y 99.999 ("30", 30, "30 paneles"). */
 export function claudeQuantity(value: unknown): number | undefined {
   let n: number | undefined;
   if (typeof value === 'number') n = value;
@@ -101,7 +143,15 @@ export function claudeQuantity(value: unknown): number | undefined {
   return n !== undefined && Number.isInteger(n) && n >= 1 && n <= MAX_QUANTITY ? n : undefined;
 }
 
-interface Candidate { value: number; explicit: boolean; }
+interface Candidate {
+  value: number;
+  /** Dicha como pedido: con su unidad o producto despues, o un verbo de pedido antes. */
+  explicit: boolean;
+  /** El producto que la sigue, para distinguir items ("2 postes + 2 focos"). */
+  item?: string;
+  /** Pegada a otra cantidad ("y 20", "20 o 30"). */
+  chained: boolean;
+}
 
 /** Los numeros que pueden ser la cantidad, con si estan dichos como pedido. */
 function candidates(clean: string): Candidate[] {
@@ -109,27 +159,39 @@ function candidates(clean: string): Candidate[] {
   for (const m of clean.matchAll(/\b(\d{1,3}\.\d{3}|\d+)\b/g)) {
     const end = m.index + m[0].length;
     const after = clean.slice(end, end + 40);
-    if (NOT_UNIT_AFTER_RE.test(after)) continue;
+    const before = clean.slice(Math.max(0, m.index - 40), m.index);
+    const unit = after.match(UNIT_AFTER_RE);
+    const ofUnit = unit !== null || GENERIC_OF_UNIT_RE.test(after);
+    if (!ofUnit && (NOT_UNIT_AFTER_RE.test(after) || OTHER_DATUM_BEFORE_RE.test(before))) continue;
+    if (NEGATED_BEFORE_RE.test(before)) continue;
     const value = Number(m[1].replace('.', ''));
     if (value < 1 || value > MAX_QUANTITY) continue;
-    const before = clean.slice(Math.max(0, m.index - 40), m.index);
-    out.push({ value, explicit: UNIT_AFTER_RE.test(after) || VERB_BEFORE_RE.test(before) });
+    const item = unit && !unit[1].startsWith('unidad') ? unit[1].replace(/\s+/g, '').slice(0, 4) : undefined;
+    out.push({ value, explicit: ofUnit || VERB_BEFORE_RE.test(before), item, chained: CHAIN_BEFORE_RE.test(before) || CHAIN_AFTER_RE.test(after) });
   }
   return out;
 }
 
 /** La cantidad que trae el mensaje, segun las reglas de arriba. */
 export function readQuantity(body: string, options: QuantityOptions = {}): QuantityRead {
-  const menu = plain(body).match(MENU_PICK_RE);
-  if (menu && options.asked && options.menuLength) {
+  const text = plain(body);
+  const menu = text.match(MENU_PICK_RE);
+  if (menu && options.menuLength) {
     const pick = Number(menu[1]);
     if (pick >= 1 && pick <= options.menuLength) return { explicit: false, menuPick: pick };
   }
-  const found = candidates(withoutNonQuantities(body, options.ruts));
-  const values = [...new Set(found.map((c) => c.value))];
-  if (values.length > 1 && (found.some((c) => c.explicit) || options.asked)) return { explicit: false, several: true };
-  if (values.length !== 1) return { explicit: false };
-  const [value] = values;
-  if (found.some((c) => c.explicit) || options.asked) return { value, explicit: true };
-  return claudeQuantity(options.claude) === value ? { value, explicit: false } : { explicit: false };
+  const contact = Boolean(options.contact || options.ruts?.length || new RegExp(RUT_DASH_RE.source).test(text));
+  const asked = Boolean(options.asked) && !contact;
+  const clean = withoutNonQuantities(body, options.ruts);
+  const found = candidates(clean);
+  const explicit = found.filter((c) => c.explicit);
+  const values = new Set(explicit.map((c) => c.value));
+  const items = new Set(explicit.flatMap((c) => (c.item ? [c.item] : [])));
+  const chainedLoose = found.some((c) => !c.explicit && c.chained);
+  if (values.size > 1 || items.size > 1 || (values.size === 1 && (chainedLoose || PER_ITEM_RE.test(clean)))) return { explicit: false, several: true };
+  if (values.size === 1) return { value: [...values][0], explicit: true };
+  const loose = [...new Set(found.map((c) => c.value))];
+  if (asked && loose.length === 1) return { value: loose[0], explicit: true };
+  if (asked && loose.length > 1 && chainedLoose) return { explicit: false, several: true };
+  return loose.length === 1 && claudeQuantity(options.claude) === loose[0] ? { value: loose[0], explicit: false } : { explicit: false };
 }

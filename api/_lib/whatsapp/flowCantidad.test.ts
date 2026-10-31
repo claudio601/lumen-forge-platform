@@ -244,3 +244,114 @@ describe('instalación', () => {
     expect(flow.getFlowState(PHONE).captured.install_telefono).toBe('+56912345678');
   });
 });
+
+describe('ronda 2 (Codex y leads reales)', () => {
+  it('varios ítems explícitos reemplazan una cantidad ya capturada, y queda anotado', () => {
+    step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' });
+    const r = step('Cambio a 20 paneles y 30 focos', { cantidad: '10' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBe('Cambio a 20 paneles y 30 focos');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora varios items']);
+  });
+
+  it('una cantidad explícita después de varios ítems los reemplaza, y queda anotado', () => {
+    step('Necesito 30 paneles de 18W y 20 de 24W', { producto: 'paneles' });
+    const r = step('al final son 40 paneles de 18W', {});
+    expect(r.captured.cantidad).toBe('40');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.captured.cambios).toEqual(['Cantidad: antes varios items (Necesito 30 paneles de 18W y 20 de 24W), ahora 40']);
+  });
+
+  it('el cambio usa el dato que respalda el texto, no el que Claude repite de antes', () => {
+    step('Necesito 10 paneles LED luz fría para una oficina', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10', proyecto_o_uso: 'oficina' });
+    const r = step('Para patio', { proyecto_o_uso: 'bodega' });
+    expect(r.captured.proyecto_o_uso).toBe('patio');
+    expect(r.captured.cambios).toEqual(['Proyecto/uso: antes oficina, ahora patio']);
+  });
+
+  it('Claude corrige con un dato que está en el mensaje, aunque las reglas no lo conozcan', () => {
+    step('Necesito 10 paneles LED luz fría para una oficina en Providencia', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia' });
+    const r = step('Perdón, son tubos T8 y es en Ñuñoa', { producto: 'tubos T8', comuna_o_ciudad: 'Ñuñoa' });
+    expect(r.captured.producto).toBe('tubos T8');
+    expect(r.captured.comuna_o_ciudad).toBe('Ñuñoa');
+  });
+
+  it('la comuna con tilde o ñ se reconoce sin Claude', () => {
+    expect(step('Necesito 10 paneles LED luz fría para una bodega en Maipú', {}).captured.comuna_o_ciudad).toBe('Maipú');
+  });
+
+  it('"No fría, la quiero cálida" deja cálida, aunque Claude diga fría', () => {
+    step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' });
+    expect(step('No fría, la quiero cálida', { tipo_de_luz: 'fria' }).captured.tipo_de_luz).toBe('calida');
+    flow.clearFlowState(PHONE);
+    expect(step('Necesito 10 paneles LED, no fría sino cálida', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' }).captured.tipo_de_luz).toBe('calida');
+  });
+
+  it('un estado guardado antes de este cambio (sin la última pregunta) la deduce de la etapa', () => {
+    step('Necesito paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria' });
+    const old = { ...flow.getFlowState(PHONE) };
+    delete old.lastQuestion;
+    flow.saveFlowState(PHONE, old);
+    expect(step('20', {}).captured.cantidad).toBe('20');
+    flow.clearFlowState(PHONE);
+    step('Hola', {});
+    const greeted = { ...flow.getFlowState(PHONE) };
+    delete greeted.lastQuestion;
+    flow.saveFlowState(PHONE, greeted);
+    expect(step('20, luz fría', {}).captured).toMatchObject({ cantidad: '20', tipo_de_luz: 'fria' });
+  });
+
+  it('"1" después de la lista de la etapa 2 repite la pregunta una vez y no avanza', () => {
+    expect(step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' }).reply).toBe(flow.MSG2);
+    expect(step('1', {}).reply).toBe(flow.MSG2);
+    expect(flow.getFlowState(PHONE).stage).toBe('stage2');
+    expect(step('para una oficina en Providencia', { proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia' }).captured).toMatchObject({ proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia', cantidad: '10' });
+  });
+
+  it('después de MSG_MEDIA (pregunta la cantidad, sin lista), "20" es la cantidad', () => {
+    flow.recordMediaReply(PHONE);
+    expect(step('20', {}).captured.cantidad).toBe('20');
+  });
+
+  it('los datos de facturación con dirección no dejan su número como cantidad', () => {
+    step('Necesito paneles LED luz neutra para una oficina en Providencia', { producto: 'paneles LED', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia' });
+    expect(step('después te confirmo', {}).reply).toMatch(/cantidad de unidades/);
+    const r = step('Comercial Prueba SpA, RUT 77.123.456-9, Calle Prueba 456, bodega 12, compras@example.com', { empresa: 'Comercial Prueba SpA' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.captured.correo).toBe('compras@example.com');
+  });
+
+  it('la razón social sin coma no se lleva el resto del mensaje', () => {
+    const r = step('Razón social Comercial Prueba SpA necesito 30 paneles LED luz neutra para una oficina', { producto: 'paneles LED', tipo_de_luz: 'neutra' });
+    expect(r.captured).toMatchObject({ cantidad: '30', proyecto_o_uso: 'oficina' });
+    flow.clearFlowState(PHONE);
+    expect(step('Razón social Ana Prueba necesito 30 paneles LED', { producto: 'paneles LED' }).captured.cantidad).toBe('30');
+  });
+
+  it('"soy instalador" con productos y una instalación como contexto va a productos; "que me instalen", a instalación', () => {
+    const r = step('Soy instalador eléctrico, necesito 50 paneles LED para una instalación en una oficina', { producto: 'paneles LED', cantidad: '50', proyecto_o_uso: 'oficina' });
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(false);
+    expect(r.captured.cantidad).toBe('50');
+    flow.clearFlowState(PHONE);
+    step('Soy instalador, pero busco que me instalen 20 focos en una bodega', {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
+  });
+
+  it.each([
+    ['Mi correo es ana912345678@example.com, cel 9 8765 4321', '987654321'],
+    ['Fono +56 32 212 3456', '+56322123456'],
+    ['Código PRUEBA1 912345678', '912345678'],
+    ['mi correo es ana912345678@example.com', undefined],
+  ])('teléfono de la instalación: "%s" → %s', (text, expected) => {
+    step('Busco un instalador para mi casa en Maipú. ' + text, {});
+    expect(flow.getFlowState(PHONE).captured.install_telefono).toBe(expected);
+  });
+
+  it('un objeto de Claude nunca queda como dato', () => {
+    const odd = { producto: { nombre: 'panel' }, comuna_o_ciudad: ['Maipú'], proyecto_o_uso: { tipo: 'bodega' } } as unknown as Claude;
+    const r = step('Necesito 10 paneles LED luz fría', odd);
+    expect(JSON.stringify(r.captured)).not.toContain('[object Object]');
+    expect(r.captured.producto).toBe('paneles LED');
+  });
+});

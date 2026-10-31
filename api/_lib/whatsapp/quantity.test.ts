@@ -99,10 +99,73 @@ describe('B2: lo que devuelve Claude', () => {
     ['N/A', undefined],
     ['20-30', undefined],
     [0, undefined],
+    [99999, 99999],
+    [100000, undefined],
     [{ paneles: 20, focos: 10 }, undefined],
     [[20, 10], undefined],
     [null, undefined],
   ])('%j → %s', (value, expected) => {
     expect(claudeQuantity(value)).toBe(expected);
+  });
+});
+
+describe('ronda 2 (Codex y leads reales): un número que el texto da como otro dato', () => {
+  it.each([
+    'modelo 50',
+    'presupuesto CLP 50000',
+    'potencia 24 vatios',
+    '(9) 0000 1234',
+    'Dirección: Calle Prueba 456, of. 12, Providencia',
+    'Pasaje Ficticio 78, bodega n° 3',
+    'camino a Prueba km 14',
+    'Av. Inventada 1234-B',
+    'son de 40 cms de largo',
+    'una tira de 3 mtrs',
+    'luz entre 3000-4000k',
+    'para el piso 3',
+    'para 3 piezas',
+  ])('%s → vacía, aunque la pregunta pidiera la cantidad', (text) => {
+    expect(readQuantity(text, { asked: true, claude: '3' }).value).toBeUndefined();
+  });
+
+  it('sin la pregunta, Claude no respalda un número que el texto da como otro dato', () => {
+    expect(readQuantity('Necesito focos LED, modelo 50', { claude: '50' }).value).toBeUndefined();
+  });
+
+  it.each([
+    ['Necesito 30 paneles, Avenida Ficticia 123', 30],
+    ['Son 7, no 10', 7],
+    ['no son 10, son 7', 7],
+    ['Necesito 30 paneles, modelo 50', 30],
+    ['necesito 4 postes solares', 4],
+    ['3 rollos de cinta led', 3],
+    ['son 20 piezas de panel', 20],
+    ['panel 18W x 20', 20],
+    ['2x panel 60x60', 2],
+    ['unos 20, luz fría', 20],
+    ['necesito iluminar la calle con 30 focos', 30],
+  ])('%s → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+
+  it.each([
+    'necesito 10x PRUEBA-1, 5x PRUEBA-2',
+    'necesito 2 postes + 2 focos',
+    '10 unidades de cada modelo',
+    'necesito 5 c/u',
+    'Cambio a 20 paneles y 30 focos',
+  ])('%s → varios ítems', (text) => {
+    expect(readQuantity(text)).toEqual({ explicit: false, several: true });
+  });
+
+  it('con un correo o un RUT, un número suelto no contesta la pregunta (suele ser de la dirección)', () => {
+    expect(readQuantity('Pasaje Prueba 45, 20', { asked: true, contact: true }).value).toBeUndefined();
+    expect(readQuantity('RUT 77.123.456-9, local 20', { asked: true }).value).toBeUndefined();
+    expect(readQuantity('20, el correo ya te lo mandé', { asked: true, contact: true, claude: '20' })).toEqual({ value: 20, explicit: false });
+    expect(readQuantity('Necesito 30 paneles, RUT 77.123.456-9', { asked: true })).toEqual({ value: 30, explicit: true });
+  });
+
+  it('CASO-1: el número de una lista se aclara aunque la lista no pidiera la cantidad', () => {
+    expect(readQuantity('1', { menuLength: 2 })).toEqual({ explicit: false, menuPick: 1 });
   });
 });
