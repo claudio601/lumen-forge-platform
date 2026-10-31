@@ -31,6 +31,16 @@ afterEach(() => {
 });
 
 describe('attributionFromUrl', () => {
+  it.each(['elights.cl', 'www.elights.cl', 'nuevo.elights.cl'])(
+    'captura campañas en %s y considera internos los tres hosts de la transición', async (host) => {
+      const { attributionFromUrl } = await load();
+      for (const from of ['elights.cl', 'www.elights.cl', 'nuevo.elights.cl']) {
+        expect(attributionFromUrl(`https://${host}/catalogo?gclid=${GCLID}`, `https://${from}/`))
+          .toEqual({ landing: '/catalogo', gclid: GCLID });
+      }
+    },
+  );
+
   it('solo los parámetros de la lista: un correo o una búsqueda en la URL nunca se guardan', async () => {
     const { attributionFromUrl } = await load();
     const a = attributionFromUrl(`${SITE}/catalogo?email=a@b.cl&q=x&nombre=PRUEBA&gclid=${GCLID}&utm_source=google`, '');

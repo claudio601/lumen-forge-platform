@@ -59,17 +59,16 @@ afterEach(() => {
 });
 
 describe('texto del aviso', () => {
-  it('cabe en 300 caracteres, hoy y con el dominio de la Etapa 3', async () => {
+  it('cabe en 300 caracteres y sigue SITE_URL cuando cambia el dominio', async () => {
     expect(PRIVACY_NOTICE.length).toBeLessThanOrEqual(300);
-    expect(PRIVACY_NOTICE.length).toBe(296);
 
+    const alternateSite = 'https://sitio.example';
     vi.resetModules();
-    vi.doMock('../site.js', () => ({ SITE_URL: 'https://elights.cl' }));
-    const etapa3 = await import('./privacyNotice');
-    expect(etapa3.PRIVACY_POLICY_URL).toBe('https://elights.cl/politica-de-privacidad');
-    expect(etapa3.PRIVACY_NOTICE).toContain('\nPolítica: https://elights.cl/politica-de-privacidad\n');
-    expect(etapa3.PRIVACY_NOTICE.length).toBeLessThanOrEqual(300);
-    expect(etapa3.PRIVACY_NOTICE.length).toBe(290);
+    vi.doMock('../site.js', () => ({ SITE_URL: alternateSite }));
+    const alternate = await import('./privacyNotice');
+    expect(alternate.PRIVACY_POLICY_URL).toBe(`${alternateSite}/politica-de-privacidad`);
+    expect(alternate.PRIVACY_NOTICE).toContain(`\nPolítica: ${alternateSite}/politica-de-privacidad\n`);
+    expect(alternate.PRIVACY_NOTICE.length).toBeLessThanOrEqual(300);
   });
 
   it('con cada respuesta fija del flujo, el mensaje queda muy bajo el límite de Twilio', () => {

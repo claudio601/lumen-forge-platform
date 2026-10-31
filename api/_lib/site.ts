@@ -5,11 +5,12 @@
 // (api/_lib/whatsapp/privacyNotice.ts). Mismo patrón que LEGAL_VERSION en
 // api/_lib/forms/consent.ts: el código de api/ no importa nada desde src/.
 //
-// Hasta el cambio de dominio es nuevo.elights.cl, que está fuera de Google por la cabecera
-// X-Robots-Tag (vercel.json). La PR del cambio de dominio (Etapa 3) la cambia aquí a
-// https://elights.cl, solo cuando elights.cl ya se sirva desde Vercel (comprobarlo con
-// `npm run smoke -- https://elights.cl`). Es una constante a propósito, para no depender de
-// variables de entorno de Vercel. Sin imports; la carpeta _lib hace que Vercel no la
-// despliegue como función.
+// Dominio público desde el cambio de dominio (Etapa 3). Esta PR se fusiona y despliega
+// solo el día en que elights.cl y www pasen a Vercel, nunca antes: hasta entonces el
+// dominio público sigue sirviendo la tienda anterior. nuevo.elights.cl conserva noindex
+// por host (vercel.json) y sigue atendiendo formularios y webhooks. APP_BASE_URL sigue
+// siendo la base de la firma de Twilio y no depende de esta constante.
+// Es una constante a propósito, para no depender de variables de entorno de Vercel.
+// Sin imports; la carpeta _lib hace que Vercel no la despliegue como función.
 
-export const SITE_URL: string = 'https://nuevo.elights.cl';
+export const SITE_URL: string = 'https://elights.cl';

@@ -242,6 +242,10 @@ usa 5 subagentes para explorar la base de código:
 
 Plan completo: `~/proyectos/elights-auditoria-2026-09-28/plan-etapa2.md`.
 
+- **Dominio público (Etapa 3):** `SITE_URL = https://elights.cl` en `api/_lib/site.ts`; `src/config/site.ts` lo reexporta. Canonical, Open Graph, JSON-LD, sitemap, robots, enlaces del cotizador y política del asistente cambian juntos. **Fusionar y desplegar esta PR solo el día en que elights.cl y www pasen de Jumpseller a Vercel, nunca antes.** Reconstruir y verificar `dist/` y el sitio servido.
+- **Transición:** formularios y lista predeterminada de analítica aceptan `elights.cl`, `www.elights.cl` y `nuevo.elights.cl`. La medición requiere consentimiento e ID de GTM válido; revisar overrides `VITE_ANALYTICS_HOSTS` y filtros del contenedor publicado. El consentimiento usa `localStorage`, sin cookie ni dominio fijo: cada origen guarda su propia decisión y debe solicitarla de nuevo al cambiar de host. La atribución ya considera internos los tres hosts; tampoco se traslada su `sessionStorage` entre orígenes.
+- **Integraciones:** `nuevo.elights.cl` sigue operativo con `X-Robots-Tag: noindex` solo por host; mantener `vercel.json`. Los callbacks de Twilio, Jumpseller y Pipedrive siguen en `nuevo`; `APP_BASE_URL` conserva la URL exacta usada en la firma de Twilio, independiente de `SITE_URL`. Las fichas del overlay editorial se corrigen por separado en la PR #125.
+
 - **vercel.json gobierna también producción.** En el mismo proyecto viven el webhook de Jumpseller, el bot de WhatsApp, el webhook de Pipedrive y los formularios. Reglas (las vigila `scripts/vercel-config.test.ts`):
   - `/api/(.*)` sigue siendo la primera reescritura, sin cambios, y la región sigue en `iad1`.
   - Ninguna redirección ni cabecera alcanza `/api`, y no hay redirecciones por dominio.
