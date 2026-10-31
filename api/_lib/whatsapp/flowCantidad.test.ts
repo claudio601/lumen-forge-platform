@@ -578,7 +578,7 @@ describe('ronda 5 (Codex, ronda 2)', () => {
     expect(flow.processFlowStep(PHONE, '20', {}, { wantsHuman: true, qualifiesForDeal: false }).captured.cantidad).toBeUndefined();
   });
 
-  it('H11: si el paso falla, la respuesta segura no deja anotada la lista anterior', () => {
+  it('H11: recordNoQuestion borra la lista anotada (el webhook lo llama si el paso falla)', () => {
     step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' });
     flow.recordNoQuestion(PHONE);
     expect(flow.getFlowState(PHONE).lastQuestion).toBeNull();
@@ -597,7 +597,7 @@ describe('ronda 5 (Codex, ronda 2)', () => {
     expect(flow.getFlowState(PHONE).captured.install_telefono).toBe(expected);
   });
 
-  it('H16: un mensaje muy largo sin "@" se procesa en tiempo lineal', () => {
+  it('H16: un mensaje de 50.000 letras sin "@" se procesa en menos de 500 ms', () => {
     step('Busco un instalador para mi casa', {});
     const start = performance.now();
     step('a'.repeat(50000), {});
@@ -847,5 +847,196 @@ describe('ronda 6 (revisión adversaria de la ronda 5)', () => {
     step('Necesito 30 paneles LED 60x60 luz neutra para mi empresa', { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '30' });
     step('También necesito que me los instalen en la bodega', {});
     expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
+  });
+});
+
+describe('ronda 7 (Codex, ronda 3)', () => {
+  const FIRST = 'Necesito 10 paneles LED luz neutra para una oficina en Santiago';
+  const RIGHT: Claude = { producto: 'paneles LED', tipo_de_luz: 'neutra', cantidad: '10', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Santiago' };
+  const KEPT = { producto: 'paneles LED', tipo_de_luz: 'neutra', cantidad: '10', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Santiago' };
+
+  it.each([
+    ['No necesito 20 focos', {}, 'producto'],
+    ['No necesito focos', { producto: 'focos' }, 'producto'],
+    ['No es para bodega', {}, 'proyecto_o_uso'],
+    ['No es para bodega', { proyecto_o_uso: 'bodega' }, 'proyecto_o_uso'],
+    ['No estoy en Maipú', {}, 'comuna_o_ciudad'],
+    ['No estoy en Maipú', { comuna_o_ciudad: 'Maipú' }, 'comuna_o_ciudad'],
+  ] as const)('R3-1: con el dato vacío, "%s" (Claude %j) no llena %s', (text, claude, field) => {
+    const r = step(text, claude);
+    expect(r.captured[field]).toBeUndefined();
+    expect(r.captured.cantidad).toBeUndefined();
+  });
+
+  it.each([
+    ['No necesito veinte focos', {}],
+    ['No quiero comprar 20 focos', {}],
+    ['No quiero comprar 20 focos', { producto: 'focos', cantidad: '20' }],
+    ['No vamos a pedir 20 focos', {}],
+    ['No quiero que sean fríos', {}],
+    ['No necesito focos LED para la bodega en Maipú', {}],
+    ['No necesito focos LED para la bodega en Maipú', { proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Maipú' }],
+    ['Sin focos, por favor', {}],
+  ])('R3-2: la negación "%s" (Claude %j) no cambia nada', (text, claude) => {
+    step(FIRST, RIGHT);
+    const r = step(text, claude);
+    expect(r.captured).toMatchObject(KEPT);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it.each([
+    ['No quiero los paneles neutros, mejor cálidos', { tipo_de_luz: 'calida' }, 'tipo_de_luz', 'calida'],
+    ['no necesito luz neutra sino cálida', { tipo_de_luz: 'calida' }, 'tipo_de_luz', 'calida'],
+    ['No es para oficina, es para una bodega', { proyecto_o_uso: 'bodega' }, 'proyecto_o_uso', 'bodega'],
+    ['No tengo el RUT a mano, son 20 paneles', { cantidad: '20' }, 'cantidad', '20'],
+    ['No necesito que sean regulables, son 20', { cantidad: '20' }, 'cantidad', '20'],
+  ] as const)('R3-2: lo que se afirma después de la negación ("%s") sí cambia el dato', (text, claude, field, expected) => {
+    step(FIRST, RIGHT);
+    const r = step(text, claude);
+    expect(r.captured[field]).toBe(expected);
+    expect(r.captured.cambios).toHaveLength(1);
+  });
+
+  it('R3-3: "Necesito 20 paneles, ¿tienen 30 focos?" cambia la cantidad a 20', () => {
+    step(FIRST, RIGHT);
+    const r = step('Necesito 20 paneles, ¿tienen 30 focos?', { cantidad: '20' });
+    expect(r.captured.cantidad).toBe('20');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora 20']);
+  });
+
+  it('R3-3: con los datos vacíos, "Necesito 20 paneles, ¿tienen 30 focos?" deja 20 y no toma los focos de la pregunta', () => {
+    const r = step('Necesito 20 paneles, ¿tienen 30 focos?', { cantidad: '20' });
+    expect(r.captured.cantidad).toBe('20');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.captured.producto).not.toBe('focos');
+  });
+
+  it.each([
+    ['Si necesito 50, cuánto sale', {}],
+    ['En caso de necesitar 50 paneles, cuánto sale?', {}],
+    ['en caso que necesite 50, hay descuento', { cantidad: '50' }],
+    ['Quiero saber si tienen focos, cálidos', {}],
+  ])('R3-4: la condición o la pregunta "%s" no cambia nada', (text, claude) => {
+    step(FIRST, RIGHT);
+    const r = step(text, claude);
+    expect(r.captured).toMatchObject(KEPT);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it.each(['Si, necesito 20', 'si necesito 20 paneles'])('R3-4: "%s" (un sí sin tilde) cambia la cantidad a 20', (text) => {
+    step(FIRST, RIGHT);
+    expect(step(text, { cantidad: '20' }).captured.cantidad).toBe('20');
+  });
+
+  it('R3-5: "Necesito 20 paneles, además que los paneles sean cálidos." es una corrección, no otro ítem', () => {
+    step(FIRST, RIGHT);
+    const r = step('Necesito 20 paneles, además que los paneles sean cálidos.', { cantidad: '20', tipo_de_luz: 'calida' });
+    expect(r.captured).toMatchObject({ cantidad: '20', tipo_de_luz: 'calida' });
+    expect(r.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it('R3-5: "Además que los paneles sean cálidos" cambia solo el color', () => {
+    step(FIRST, RIGHT);
+    const r = step('Además que los paneles sean cálidos', {});
+    expect(r.captured).toMatchObject({ ...KEPT, tipo_de_luz: 'calida' });
+    expect(r.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it.each([
+    'Corrijo la comuna a Temuco, también necesito 20 focos.',
+    'También necesito 20 focos, corrijo la comuna a Temuco.',
+  ])('R3-6: "%s" corrige la comuna y suma el ítem', (text) => {
+    step(FIRST, RIGHT);
+    const r = step(text, { comuna_o_ciudad: 'Temuco', producto: 'focos', cantidad: '20' });
+    expect(r.captured).toMatchObject({ producto: 'paneles LED', comuna_o_ciudad: 'Temuco' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBe('paneles LED: 10 / ' + text);
+  });
+
+  it.each([{}, { cantidad: '2' }])('R3-7: al preguntar la cantidad, "2 de 60x60 y tres de 120x60" son varios ítems (Claude %j)', (claude) => {
+    step('Necesito paneles LED luz neutra', { producto: 'paneles LED', tipo_de_luz: 'neutra' });
+    const r = step('2 de 60x60 y tres de 120x60', claude);
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBe('2 de 60x60 y tres de 120x60');
+  });
+
+  it.each([
+    ['Corrijo: tubos T8', { producto: 'tubos T8A' }],
+    ['Corrijo: BL200', { producto: 'BL200A' }],
+  ])('R3-8: "%s" no respalda el modelo inventado de Claude (%j)', (text, claude) => {
+    step(FIRST, RIGHT);
+    const r = step(text, claude);
+    expect(r.captured.producto).not.toBe(claude.producto);
+  });
+
+  it('R3-8: el número con su unidad sí es el mismo ("paneles de 18" respalda "paneles 18W")', () => {
+    step(FIRST, RIGHT);
+    expect(step('Corrijo: paneles de 18', { producto: 'paneles 18W' }).captured.producto).toBe('paneles 18W');
+  });
+
+  it('R3-9: "Corrijo: paneles LED, no regulables" quita el atributo negado', () => {
+    step('Necesito 10 paneles LED regulables luz neutra', { producto: 'paneles LED regulables', tipo_de_luz: 'neutra', cantidad: '10' });
+    const r = step('Corrijo: paneles LED, no regulables', { producto: 'paneles LED' });
+    expect(r.captured.producto).toBe('paneles LED');
+    expect(r.captured.cambios).toEqual(['Producto: antes paneles LED regulables, ahora paneles LED']);
+  });
+
+  it.each([
+    'No quiero instalación, solo los productos',
+    'Sin servicio de instalación',
+    'No necesito que me los instalen',
+  ])('R3-10: a mitad del flujo de productos, "%s" no abre el de instalación', (text) => {
+    step('Necesito 30 paneles LED 60x60 luz neutra para mi empresa', { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '30' });
+    step(text, {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(false);
+  });
+
+  it('R3-10: "No quiero instalación, necesito 20 paneles LED" como primer mensaje va al flujo de productos', () => {
+    step('No quiero instalación, necesito 20 paneles LED', {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(false);
+  });
+
+  it.each([
+    'quiero un presupuesto para la instalación',
+    'cotizar instalación para mi casa',
+    'precio de instalación',
+  ])('R3-11: a mitad del flujo de productos, "%s" abre el de instalación', (text) => {
+    step('Necesito 30 paneles LED 60x60 luz neutra para mi empresa', { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '30' });
+    step(text, {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
+  });
+
+  it('R3-11: "Soy instalador, necesito un presupuesto de instalación" abre el de instalación', () => {
+    step('Soy instalador, necesito un presupuesto de instalación', {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
+  });
+
+  it.each([
+    'Soy instalador, tengo que cotizar la instalación de un galpón, qué paneles tienen?',
+    'Soy electricista y necesito precios de focos LED para armar el presupuesto de la instalación de una casa',
+    'Soy instalador, me pidieron cotizar la instalación de una oficina',
+  ])('R3-11: el instalador que cotiza su obra sin decir cantidad ("%s") va al flujo de productos', (text) => {
+    step(text, {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(false);
+  });
+
+  it('R3-12: "Razón social: Comercial 25" no es la cantidad', () => {
+    step('Necesito paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria' });
+    expect(step('Razón social: Comercial 25', {}).captured.cantidad).toBeUndefined();
+  });
+
+  it('R3-12: "Razón social: Comercial, 25 paneles" sí trae la cantidad', () => {
+    step('Necesito paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria' });
+    expect(step('Razón social: Comercial, 25 paneles', {}).captured.cantidad).toBe('25');
+  });
+
+  it.each([
+    ['el modelo es el 900001234.', undefined],
+    ['la serie del 900001234', undefined],
+    ['mi fono es el 900001234.', '900001234'],
+  ])('R3-13: teléfono de la instalación en "%s" → %s', (text, expected) => {
+    step('Busco un instalador para mi casa, ' + text, {});
+    expect(flow.getFlowState(PHONE).captured.install_telefono).toBe(expected);
   });
 });

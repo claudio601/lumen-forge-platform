@@ -341,3 +341,33 @@ describe('ronda 6 (revisión adversaria de la ronda 5)', () => {
     expect(readQuantity('necesito 30 tubos LED de 120 y 60')).toEqual({ value: 30, explicit: true });
   });
 });
+
+describe('ronda 7 (Codex, ronda 3)', () => {
+  it.each([
+    '2 de 60x60 y tres de 120x60',
+    'dos de 60x60 y tres de 120x60',
+    'dos o tres focos',
+    'cincuenta o sesenta paneles',
+    'dos o tres',
+  ])('R3-7: con la pregunta hecha, "%s" → varios ítems, nunca uno de sus números', (text) => {
+    expect(readQuantity(text, { asked: true })).toEqual({ explicit: false, several: true });
+  });
+
+  it.each([
+    ['20 paneles, dos de ellos regulables', 20],
+    ['tengo dos bodegas y necesito 20 focos', 20],
+    ['necesito 2 de 60x60', 2],
+    ['dos focos', 2],
+  ])('R3-7: "%s" → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+
+  it.each([
+    'No necesito veinte focos',
+    'no quiero comprar 20 focos',
+    'No los necesito 20',
+    'no vamos a pedir 20 focos',
+  ])('R3-2: la cantidad negada "%s" → vacía', (text) => {
+    expect(readQuantity(text).value).toBeUndefined();
+  });
+});

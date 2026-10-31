@@ -77,6 +77,10 @@ const SPLIT_HUNDREDS: Record<string, string> = { dos: 'doscient', tres: 'trescie
 const SPLIT_HUNDREDS_RE = /\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\s+cient(os|as)\b/g;
 // Pegada a otra expresion que cuenta: "dos de 60x60 y tres de 120x60", "cinco de luz fria y cinco de calida".
 const WORD_CHAIN_BEFORE_RE = /(?:\by|\bo|,|;|\bmas|\bademas|\btambien)\s*$/;
+// "dos o tres focos", "cincuenta o sesenta paneles": la alternativa tambien se lee (y queda como varios).
+const WORD_CHAIN_AFTER_RE = new RegExp('^\\s+(?:o|y|a|al|hasta)\\s+(?:\\d|(?:' + byLength(Object.keys(NUMBER_WORDS)) + ')\\b)');
+// "2 de 60x60 y tres de 120x60": una cantidad en cifras tambien activa las palabras pegadas a ella.
+const DIGIT_ITEM_RE = new RegExp('\\b\\d+\\s+(?:de\\b|' + UNIT_NOUNS + '\\b)');
 
 /** El valor de una expresion en palabras ("ciento treinta y dos" = 132), o nada si no es un numero bien dicho. */
 function wordsValue(span: string): number | undefined {
@@ -113,20 +117,24 @@ function wordsValue(span: string): number | undefined {
 
 /**
  * Los numeros en palabras que cuentan, como digitos ("necesito veinte focos" = "necesito 20 focos"): seguidos
- * de la unidad o el producto, despues de un verbo de pedido o solos; con uno que cuenta, tambien los pegados
- * a el ("y tres de 120x60"). Una expresion mal dicha se descarta entera.
+ * de la unidad o el producto, despues de un verbo de pedido o solos; con uno que cuenta (o una cantidad en
+ * cifras, o dos expresiones unidas por "y", "o" o una coma), tambien los pegados a el ("y tres de 120x60").
+ * Una expresion mal dicha se descarta entera.
  */
 function numberWords(text: string): string {
   const source = text.replace(SPLIT_HUNDREDS_RE, (all: string, unit: string, ending: string) => SPLIT_HUNDREDS[unit] + ending);
   const spans = [...source.matchAll(WORD_SPAN_RE)].map((m) => {
     const before = source.slice(Math.max(0, m.index - 40), m.index);
     const after = source.slice(m.index + m[0].length);
+    // "dos de 120x60" es un item; "dos de ellos" no (es parte de los anteriores).
+    if (/^\s+de\s+(?:ellos|ellas|esos|esas|estos|estas)\b/.test(after)) return { m, counts: false, chained: false, linked: false };
     const ofItem = /^\s+de\b/.test(after);
-    if (/^un[oa]$/.test(m[0])) return { m, counts: false, chained: ofItem && WORD_CHAIN_BEFORE_RE.test(before) };
+    const linked = WORD_CHAIN_BEFORE_RE.test(before) || WORD_CHAIN_AFTER_RE.test(after);
+    if (/^un[oa]$/.test(m[0])) return { m, counts: false, chained: ofItem && WORD_CHAIN_BEFORE_RE.test(before), linked: false };
     const counts = UNIT_NEXT_RE.test(after) || VERB_BEFORE_RE.test(before) || (!source.slice(0, m.index).trim() && /^[\s.!,]*$/.test(after));
-    return { m, counts, chained: ofItem || WORD_CHAIN_BEFORE_RE.test(before) };
+    return { m, counts, chained: ofItem || linked, linked };
   });
-  const any = spans.some((s) => s.counts);
+  const any = spans.some((s) => s.counts) || DIGIT_ITEM_RE.test(source) || (spans.length >= 2 && spans.some((s) => s.linked));
   let out = '';
   let last = 0;
   for (const { m, counts, chained } of spans) {
@@ -226,7 +234,8 @@ const VERB_BEFORE_RE = /(?:\b(?:necesito|necesitamos|necesitaria|necesitariamos|
 // Antes del numero: otro dato ("modelo 50", "presupuesto clp 50000", "potencia de 24", "fono 1234").
 const OTHER_DATUM_BEFORE_RE = /\b(?:modelo|mod|codigo|cod|ref|referencia|sku|serie|potencia|vatios|watts|presupuesto|precio|valor|monto|costo|clp|usd|uf|fono|telefono|tel|cel|celular|movil|whatsapp|wsp|rut|altura|largo|ancho|alto|diametro|distancia|superficie|temperatura|voltaje|tension|cri|irc|ra|lumenes|flujo|chip|smd|ano)\.?\s*(?:(?:de|del|es|era|seria|sera|son|el|la|los|las|un|una|unos|unas|como|hasta|sobre|cerca\s+de|alrededor\s+de|mas\s+o\s+menos|maximo|minimo|total)\s+|>\s*|=\s*|:\s*|n[\u00b0\u00ba]\.?\s*|#\s*|nro\.?\s*|aprox(?:imado|imadamente)?\.?\s*)*(?:\d+\s*(?:y|o|,|\/)\s*)*$/;
 // Antes del numero: una negacion ("son 7, no 10", "ni 20").
-const NEGATED_BEFORE_RE = /(?:\b(?:no|ni|tampoco)\s+(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?|\ben\s+(?:vez|lugar)\s+de\s+)$/;
+// Tambien con el pronombre o el verbo que siguen ("no los necesito 20", "no quiero comprar 20 focos", "no vamos a pedir 20").
+const NEGATED_BEFORE_RE = /(?:\b(?:no|ni|tampoco)\s+(?:(?:lo|la|los|las|me|nos)\s+)?(?:(?:vamos|voy)\s+a\s+)?(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?(?:(?:comprar|cotizar|pedir|llevar|ocupar|usar|necesitar)\s+)?(?:(?:unos|unas|los|las)\s+)?|\ben\s+(?:vez|lugar)\s+de\s+)$/;
 // Despues del numero: la cantidad que corrige ("eran 25, no 20", "25 en vez de 20").
 const CORRECTION_AFTER_RE = /^\s*,?\s*(?:y\s+)?(?:no\s+\d|en\s+(?:vez|lugar)\s+de\b)/;
 // Junto a otra cantidad: "30 paneles y 20 de 24W", "entre 20 y 30", "20 o 30 focos".
@@ -241,9 +250,10 @@ const MENU_PICK_RE = /^\s*(?:(?:la|el|opcion|numero)\s+)?(\d{1,2})\s*[).:-]?\s*[
 // [CASO-1] Una eleccion de la lista ("la opcion 2", "me referia a la 1", "el 3"): nunca es la cantidad.
 const SELECTION_RE = new RegExp('^\\s*(?:me\\s+referia\\s+a\\s+(?:la\\s+|el\\s+)?(?:opcion\\s+|numero\\s+)?|(?:la|el)\\s+(?:opcion\\s+|numero\\s+)?|(?:opcion|numero|alternativa)\\s+)(\\d{1,2})\\b(?!\\s*' + UNIT_NOUNS + ')');
 
-/** [NO-PISAR] El texto nombra una unidad o un producto ("tambien necesito 10 focos"). */
-export function mentionsItem(text: string): boolean {
-  return new RegExp('\\b' + UNIT_NOUNS + '\\b').test(plain(text));
+const ITEM_RE = new RegExp('\\b' + UNIT_NOUNS + '\\b', 'g');
+/** [NO-PISAR] Las unidades o productos que nombra el texto ("tambien necesito focos" -> ["focos"]), sin "unidades" ni "led". */
+export function itemsIn(text: string): string[] {
+  return [...plain(text).matchAll(ITEM_RE)].map((m) => m[0]).filter((item) => !/^(?:unidad|leds?$)/.test(item));
 }
 
 /** [NO-PISAR] El texto trae un numero que puede ser una cantidad ("ademas 20 perfiles de aluminio"). */
