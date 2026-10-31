@@ -4,7 +4,7 @@ import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
-import { findComunaMentions, officialComuna } from './comunas.js';
+import { findComunaMentions, findComunas, mentionsCompany, officialComuna } from './comunas.js';
 import type { ComunaMention } from './comunas.js';
 
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
@@ -89,8 +89,9 @@ export interface FlowResult {
   captured: CapturedFields;
   wantsHuman: boolean;
   closedFlow: boolean;
-  // [RUT-VALIDO] Un RUT que llega despues del cierre se suma a un negocio ya registrado: si
-  // Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no lo marca como fallido).
+  // [RUT-VALIDO] Un RUT (o, [TRANSCRIPCION], un correo) que llega despues del cierre se suma a un
+  // negocio ya registrado: si Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no
+  // lo marca como fallido).
   rutUpdate?: boolean;
 }
 
@@ -345,7 +346,41 @@ export function getFlowState(phone: string): FlowState {
 }
 
 export function saveFlowState(phone: string, state: FlowState): void {
-  flowStates.set(phone, state);
+  flowStates.set(phone, withOfficialComunas(state));
+}
+
+/**
+ * [COMUNA] Un estado guardado por una version anterior (lo que restaura stateStore.ts) puede traer una
+ * comuna que no es de la lista oficial ("Moragas", de un correo) o escrita de otra forma ("nunoa",
+ * "Maipu, Region Metropolitana"): queda con su nombre oficial o, si no hay ninguna, se borra y el bot
+ * la vuelve a preguntar (la etapa 3 vuelve a la 2). Lo que guarda el flujo ya viene oficial: no cambia.
+ */
+function withOfficialComunas(state: FlowState): FlowState {
+  const captured: CapturedFields = { ...state.captured };
+  let changed = false;
+  for (const field of ['comuna_o_ciudad', 'install_comuna'] as const) {
+    const value: unknown = captured[field];
+    if (value === undefined) continue;
+    const name = officialComuna(value) ?? (typeof value === 'string' ? findComunas(value.slice(0, 200), { answering: true })[0] : undefined);
+    if (name === value) continue;
+    changed = true;
+    if (name) captured[field] = name;
+    else delete captured[field];
+  }
+  const otras: unknown = captured.comunas_otras;
+  if (otras !== undefined) {
+    const list = Array.isArray(otras) ? otras : [];
+    const valid = [...new Set(list.map((o) => officialComuna(o)).filter((o): o is string => Boolean(o)))].slice(0, MAX_COMUNAS_OTRAS);
+    if (valid.length !== list.length || valid.some((o, i) => o !== list[i]) || !Array.isArray(otras)) {
+      changed = true;
+      if (valid.length) captured.comunas_otras = valid;
+      else delete captured.comunas_otras;
+    }
+  }
+  if (!changed) return state;
+  console.log('[flowEngine] comuna guardada fuera de la lista oficial \u2014 se normaliza o se vuelve a preguntar');
+  const askAgain = state.stage === 'stage3' && !state.isInstallFlow && state.captured.comuna_o_ciudad !== undefined && !captured.comuna_o_ciudad;
+  return { ...state, captured, ...(askAgain ? { stage: 'stage2' as const, repreguntasStage2: 0 } : {}) };
 }
 
 /**
@@ -419,12 +454,13 @@ function mergeInstallFields(
     const email = emailFrom(claudeParsed.correo) ?? extractEmail(body) ?? updated.correo;
     if (email) updated.install_correo = email;
   }
-  if (!updated.install_comuna) {
-    const comunas = findComunaMentions(maskNegated(factsText(body, claudeParsed)), { answering });
-    const ciudad = pickComuna(comunas, claudeParsed.comuna_o_ciudad);
-    if (ciudad) updated.install_comuna = ciudad;
-    noteOtherComunas(updated, comunas, ciudad);
-  }
+  // [COMUNA] La misma regla que la comuna de productos: se corrige ("Perdon, es en Colina") y las demas
+  // van a "Otras comunas mencionadas" (antes solo se llenaba una vez).
+  const facts = factsText(body, claudeParsed);
+  const assertive = maskNegated(withoutQuestions(facts));
+  mergeComuna(updated, 'install_comuna', claudeParsed.comuna_o_ciudad, {
+    answering, company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed: maskNegated(facts), base: assertive,
+  });
   if (!updated.install_tipo_proyecto) {
     const tipo = claudeParsed.proyecto_o_uso ?? extractInstallTipoProyecto(body);
     if (tipo) updated.install_tipo_proyecto = tipo;
@@ -862,28 +898,36 @@ function noteOtherComunas(merged: CapturedFields, mentions: ComunaMention[], kep
  * la pregunta por ella (findComunaMentions): lo que devuelve Claude solo elige entre esas. Una vacia se
  * llena con lo que el cliente afirma (o, si no, pregunta: "despachan a Temuco?"); una capturada cambia
  * solo si lo que afirma trae una comuna (o varias, y Claude eligio una), y el cambio queda anotado. La
- * comuna de la factura ("la facturacion en Vina del Mar") y las demas van a "Otras comunas mencionadas".
+ * comuna de la factura ("la facturacion en Vina del Mar"), la de donde es la persona ("soy de Maipu") y las
+ * demas van a "Otras comunas mencionadas". Lo que ya no vale ("antes era en Lampa") no es una mencion: "Corrijo: ahora es en Colina, antes era en
+ * Lampa" cambia a Colina. Vale igual para la comuna de la instalacion (`field`).
  */
 function mergeComuna(
   merged: CapturedFields,
+  field: 'comuna_o_ciudad' | 'install_comuna',
   claudeValue: unknown,
-  texts: { answering: boolean; assertive: string; affirmed: string; base: string },
+  texts: { answering: boolean; company: boolean; assertive: string; affirmed: string; base: string },
 ): void {
-  const opts = { answering: texts.answering };
+  const opts = { answering: texts.answering, company: texts.company };
   const stated = findComunaMentions(texts.assertive, opts);
-  if (!merged.comuna_o_ciudad) {
+  const current = merged[field];
+  if (!current) {
     const comunas = stated.length ? stated : findComunaMentions(texts.affirmed, opts);
     const pick = pickComuna(comunas, claudeValue);
-    if (pick) merged.comuna_o_ciudad = pick;
+    if (pick) merged[field] = pick;
     noteOtherComunas(merged, comunas, pick);
     return;
   }
-  const current = officialComuna(merged.comuna_o_ciudad) ?? merged.comuna_o_ciudad;
-  const inBase = findComunaMentions(texts.base, opts).filter((m) => !m.billing).map((m) => m.name);
+  // withOfficialComunas deja la capturada con su nombre oficial. De donde es la persona ("Soy Ana Prueba de
+  // Maipu", "desde Maipu") no cambia la obra: va a "Otras comunas mencionadas".
+  const inBase = findComunaMentions(texts.base, opts).filter((m) => !m.billing && !m.origin).map((m) => m.name);
   if (inBase.length && !inBase.includes(current)) {
     const claudePick = officialComuna(claudeText(claudeValue));
     const change = inBase.length === 1 ? inBase[0] : claudePick && inBase.includes(claudePick) ? claudePick : undefined;
-    keepOrChange(merged, 'comuna_o_ciudad', undefined, change);
+    if (change) {
+      merged[field] = change;
+      noteChange(merged, 'comuna_o_ciudad', current, change);
+    }
   }
   noteOtherComunas(merged, stated, undefined);
 }
@@ -950,8 +994,8 @@ function mergeProductFields(
   mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding);
   const claudeProy = claudeProject(claudeParsed, body);
   keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, extractProyecto(assertive) ?? extractProyecto(affirmed)), backed(claudeProy, rule(PROYECTO_RE), base));
-  mergeComuna(merged, claudeParsed.comuna_o_ciudad, {
-    answering: Boolean(question?.asks.includes('comuna_o_ciudad')), assertive, affirmed, base,
+  mergeComuna(merged, 'comuna_o_ciudad', claudeParsed.comuna_o_ciudad, {
+    answering: Boolean(question?.asks.includes('comuna_o_ciudad')), company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
   });
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
@@ -1032,6 +1076,26 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
   return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
+/**
+ * [TRANSCRIPCION] Conversacion cerrada con el negocio registrado: un correo distinto del capturado
+ * (el corregido despues del cierre) se suma al mismo negocio, como el RUT tardio: nota con el correo
+ * nuevo, la linea de cambios y la conversacion hasta este mensaje. Antes quedaba solo en la
+ * transcripcion, a la espera de un pedido nuevo. La persona de Pipedrive conserva el correo anterior.
+ * Solo vale el correo escrito en este mensaje: Claude ve el historial y puede repetir uno anterior.
+ */
+function lateEmail(phone: string, state: FlowState, body: string): FlowResult | undefined {
+  const email = extractEmail(body);
+  const field = state.isInstallFlow ? 'install_correo' : 'correo';
+  const before = state.captured[field];
+  if (!email || email.toLowerCase() === before?.toLowerCase()) return undefined;
+  const captured: CapturedFields = { ...state.captured, [field]: email };
+  if (before) captured.cambios = [...(captured.cambios ?? []), 'Correo: antes ' + before + ', ahora ' + email].slice(-MAX_CAMBIOS);
+  const next: FlowState = { ...state, captured };
+  saveFlowState(phone, next);
+  console.log('[flowEngine] correo nuevo despues del cierre - se suma al negocio registrado');
+  return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus: next.captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+}
+
 export function processFlowStep(
   phone: string,
   body: string,
@@ -1062,9 +1126,14 @@ export function recordNoQuestion(phone: string): void {
   if (state) saveFlowState(phone, { ...state, rutAskedLast: false, lastQuestion: null });
 }
 
-/** [COMUNA] La ultima pregunta del bot pedia la comuna: la lista de instalacion o MSG2. */
+/**
+ * [COMUNA] La ultima pregunta del bot pedia la comuna: la lista de instalacion, si todavia le faltaba
+ * (con "una casa en Lampa" pide solo el nombre y el correo: "Soy Ana Prueba de Maipu" no contesta la
+ * comuna), o MSG2.
+ */
 function answersComuna(state: FlowState): boolean {
-  return state.stage === 'install_capture' || Boolean(lastQuestionOf(state)?.asks.includes('comuna_o_ciudad'));
+  if (state.stage === 'install_capture') return !state.captured.install_comuna;
+  return Boolean(lastQuestionOf(state)?.asks.includes('comuna_o_ciudad'));
 }
 
 /**
@@ -1101,7 +1170,12 @@ function flowStep(
       return continueClosedWithoutDeal(phone, state, body, claudeParsed);
     }
     if (!newRequest) {
-      const late = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
+      // [TRANSCRIPCION] El RUT y el correo tardios van al mismo negocio; si llegan juntos, el correo
+      // parte del estado que ya trae el RUT.
+      const lateRutResult = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
+      const late = state.deal === 'registered'
+        ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body) ?? lateRutResult
+        : undefined;
       if (late) return late;
       return {
         reply: closedReply(state),

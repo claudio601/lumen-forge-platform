@@ -12,7 +12,7 @@ import { TIPO_SERVICIO } from '../crm/tipo-servicio.js';
 import { looksLikePersonName } from './flowEngine.js';
 import type { CapturedFields, CaptureStatus } from './flowEngine.js';
 import { isBusinessRut } from './rutCapture.js';
-import { chileTime } from './transcript.js';
+import { chileTime, TRANSCRIPT_MAX_TEXT } from './transcript.js';
 
 const LOG_PREFIX = '[pipedriveLead]';
 
@@ -122,7 +122,7 @@ const RUT_TIPO_LABEL: Record<NonNullable<CapturedFields['rut_tipo']>, string> = 
 
 /** [RUT-VALIDO] El RUT con su tipo, o marcado si el digito verificador no calza. */
 function rutLine(c: CapturedFields): string {
-    const rut = fmt(c.rut);
+    const rut = oneLine(c.rut);
     if (!rut) return '-';
     if (c.rut_valido === false) return rut + ' (INVALIDO: no calza el digito verificador)';
     return c.rut_tipo ? rut + ' (' + RUT_TIPO_LABEL[c.rut_tipo] + ')' : rut;
@@ -135,32 +135,151 @@ function rutLine(c: CapturedFields): string {
 export function escapeNoteHtml(text: string): string {
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-/** [NOTA] El titulo del negocio es texto plano: sin "<" ni ">" (el nombre del perfil lo escribe el cliente). */
-function plainTitle(text: string): string {
-    return text.replace(/[<>]/g, '').trim();
+
+// [NOTA] Cada dato de la ficha hasta 300 letras y cada lista hasta 10 valores (los cambios ya se
+// guardan hasta 10): un texto largo no llena la nota. El nombre del titulo, mas corto.
+const FIELD_MAX = 300;
+const LIST_MAX = 10;
+const TITLE_NAME_MAX = 100;
+
+// [NOTA] Se corta entre grafemas (una bandera o un emoji con ZWJ quedan enteros o no quedan) y sin
+// pasar de `max` puntos de codigo: una letra con miles de tildes tampoco agranda la nota.
+const GRAPHEMES = new Intl.Segmenter('es', { granularity: 'grapheme' });
+
+function clipChars(text: string, max: number): string {
+    if (text.length <= max) return text;
+    let size = 0;
+    for (const { segment, index } of GRAPHEMES.segment(text)) {
+          size += Array.from(segment).length;
+          if (size > max) return text.slice(0, index) + ' [...cortado]';
+    }
+    return text;
 }
+
+/** [NOTA] Un dato de la ficha (texto o numero) en una sola linea, sin acotar. */
+function flatText(value: unknown): string | undefined {
+    return fmt(value)?.replace(/[\s\u0085]+/g, ' ').trim() || undefined;
+}
+
+/**
+ * [NOTA] Un dato de la ficha en una sola linea y acotado: un salto en el nombre
+ * ("Empresa Prueba\nComuna/ciudad: Colina") ya no imita otra linea de la ficha.
+ */
+function oneLine(value: unknown, max = FIELD_MAX): string | undefined {
+    const text = flatText(value);
+    return text ? clipChars(text, max) : undefined;
+}
+
+// [NO-PISAR] Un cambio ("Cantidad: antes 2, ahora 3", flowEngine.ts) se acota por partes: un valor
+// anterior largo ya no tapa el nuevo, que es lo que pidio cambiar el cliente.
+const CHANGE_RE = /^([^:]{1,40}): antes (.*), ahora (.*)$/;
+const CHANGE_BEFORE_MAX = 150;
+
+function changeLine(value: unknown): string | undefined {
+    const text = flatText(value);
+    const parts = text?.match(CHANGE_RE);
+    if (!parts) return text && clipChars(text, FIELD_MAX);
+    return parts[1] + ': antes ' + clipChars(parts[2], CHANGE_BEFORE_MAX) + ', ahora ' + clipChars(parts[3], FIELD_MAX);
+}
+
+/** [NOTA] Una lista de la ficha: cada valor en una linea y acotado, los ultimos LIST_MAX. */
+function listLines(value: unknown, line: (v: unknown) => string | undefined = (v) => oneLine(v)): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.map(line).filter((v): v is string => Boolean(v)).slice(-LIST_MAX);
+}
+
+/** [NOTA] El titulo del negocio es texto plano, en una linea: sin "<" ni ">" (el nombre del perfil lo escribe el cliente). */
+function plainTitle(text: string): string {
+    return oneLine(text.replace(/[<>]/g, ''), TITLE_NAME_MAX) ?? '';
+}
+
+/**
+ * [NOTA] Tope de la nota ya escapada, en bytes: Pipedrive admite unos 100 KB por nota. Un "&" del
+ * cliente ocupa 5 al escaparse, asi que el tope de la transcripcion (transcript.ts) no alcanza.
+ */
+export const NOTE_MAX_BYTES = 90_000;
+
+function noteBytes(text: string): number {
+    return Buffer.byteLength(escapeNoteHtml(text), 'utf8');
+}
+
+function cutLine(omitted: number): string {
+    return '[... transcripci\u00f3n recortada por tama\u00f1o: ' + omitted + (omitted === 1 ? ' l\u00ednea omitida' : ' l\u00edneas omitidas') + ' ...]';
+}
+
+/**
+ * [NOTA] Los mensajes de la transcripcion: cada linea que empieza uno ("[hora] Cliente: ...", un aviso)
+ * con las siguientes, que van sangradas o vacias (transcript.ts).
+ */
+function transcriptMessages(lines: string[]): string[][] {
+    const messages: string[][] = [];
+    for (const line of lines) {
+          if (messages.length && /^(?:\s|$)/.test(line)) messages[messages.length - 1].push(line);
+          else messages.push([line]);
+    }
+    return messages;
+}
+
+/**
+ * [NOTA] La transcripcion en `room` bytes, ya escapada. Si no cabe, se recorta por el medio, por
+ * mensajes enteros: el inicio usa hasta la mitad y el final lo que queda, y una linea avisa cuantas
+ * lineas faltan. Asi el aviso nunca deja lineas sueltas, sin la hora ni quien las escribio.
+ */
+function fitTranscript(text: string, room: number): string {
+    if (noteBytes(text) <= room) return text;
+    const lines = text.split('\n');
+    const messages = transcriptMessages(lines);
+    // Cada mensaje cuenta con su salto final; el aviso, con el numero mas largo posible.
+    const sizes = messages.map((message) => noteBytes(message.join('\n')) + 1);
+    let free = room - noteBytes(cutLine(lines.length));
+    let half = free / 2;
+    const head: string[][] = [];
+    for (let i = 0; i < messages.length && sizes[i] <= half; i++) {
+          head.push(messages[i]);
+          half -= sizes[i];
+          free -= sizes[i];
+    }
+    const tail: string[][] = [];
+    for (let i = messages.length - 1; i >= head.length && sizes[i] <= free; i--) {
+          tail.unshift(messages[i]);
+          free -= sizes[i];
+    }
+    const keptLines = [...head, ...tail].reduce((n, message) => n + message.length, 0);
+    return [...head.flat(), cutLine(lines.length - keptLines), ...tail.flat()].join('\n');
+}
+
+/** [TRANSCRIPCION] Sin transcripcion, el mensaje del cliente como uno de ella: acotado y con las lineas siguientes sangradas. */
+function bodyLine(body: unknown): string {
+    const text = clipChars((fmt(body) ?? '').replace(/\r\n?/g, '\n').trim(), TRANSCRIPT_MAX_TEXT);
+    return '[' + chileTime(Date.now()) + '] Cliente: ' + text.split('\n').map((line, j) => (j && line ? '    ' + line : line)).join('\n');
+}
+
 const SUMMARY_MAX = 600;
 export function buildNote(p: WhatsAppLeadParams): string {
     const c = p.captured ?? {};
     const lead = resolveLead(c);
-    const lines = [
+    const ambiguos = listLines(c.rut_ambiguos);
+    const otras = listLines(c.comunas_otras);
+    const cambios = listLines(c.cambios, changeLine);
+    const varios = oneLine(c.cantidad_varios);
+    const head = [
           '== Lead WhatsApp eLIGHTS ==',
-          'Telefono: ' + p.phone,
-          'Nombre/empresa: ' + (lead.nombre ?? fmt(p.name) ?? '-'),
+          'Telefono: ' + (oneLine(p.phone) ?? '-'),
+          'Nombre/empresa: ' + (oneLine(lead.nombre) ?? oneLine(p.name) ?? '-'),
           'RUT: ' + rutLine(c),
-          ...(c.rut_ambiguos?.length ? ['varios RUT en el mensaje: revisar', ...c.rut_ambiguos] : []),
-          'Correo: ' + (lead.correo ?? '-'),
+          ...(ambiguos.length ? ['varios RUT en el mensaje: revisar', ...ambiguos] : []),
+          'Correo: ' + (oneLine(lead.correo) ?? '-'),
           '---',
-          'Producto: ' + (fmt(c.producto) ?? '-'),
-          'Tipo de luz: ' + (fmt(c.tipo_de_luz) ?? '-'),
+          'Producto: ' + (oneLine(c.producto) ?? '-'),
+          'Tipo de luz: ' + (oneLine(c.tipo_de_luz) ?? '-'),
           // [CANTIDAD] Con varias cantidades en un mensaje, el texto del cliente para revisar.
-          'Cantidad: ' + (fmt(c.cantidad) ?? (fmt(c.cantidad_varios) ? 'varios items, revisar: ' + fmt(c.cantidad_varios) : '-')),
-          'Proyecto/uso: ' + (lead.proyecto ?? '-'),
-          'Comuna/ciudad: ' + (lead.comuna ?? '-'),
+          'Cantidad: ' + (oneLine(c.cantidad) ?? (varios ? 'varios items, revisar: ' + varios : '-')),
+          'Proyecto/uso: ' + (oneLine(lead.proyecto) ?? '-'),
+          'Comuna/ciudad: ' + (oneLine(lead.comuna) ?? '-'),
           // [COMUNA] Otras comunas que el cliente dio como lugar (la de la factura, una segunda obra).
-          ...(Array.isArray(c.comunas_otras) && c.comunas_otras.length ? ['Otras comunas mencionadas: ' + c.comunas_otras.join(', ')] : []),
+          ...(otras.length ? ['Otras comunas mencionadas: ' + otras.join(', ')] : []),
           // [NO-PISAR] Un dato ya capturado que el cliente cambio en un mensaje posterior.
-          ...(Array.isArray(c.cambios) && c.cambios.length ? ['Cambios: ' + c.cambios.join('; ')] : []),
+          ...(cambios.length ? ['Cambios: ' + cambios.join('; ')] : []),
           '---',
           'Estado captura: ' + (p.captureStatus ?? 'incomplete'),
           'Pidio ejecutivo: ' + (p.wantsHuman ? 'Si' : 'No'),
@@ -169,13 +288,13 @@ export function buildNote(p: WhatsAppLeadParams): string {
           '',
           // [RESUMEN] Lo que redacto Claude, ya filtrado (summary.ts): no es un dato.
           '-- RESUMEN DEL BOT (interpretaci\u00f3n, no dato) --',
-          (fmt(p.summary) ?? '-').substring(0, SUMMARY_MAX),
+          oneLine(p.summary, SUMMARY_MAX) ?? '-',
           '',
           // [TRANSCRIPCION] Reemplaza la linea "Mensaje original": la conversacion completa, en hora de Chile.
           '-- TRANSCRIPCI\u00d3N --',
-          fmt(p.transcript) ?? '[' + chileTime(Date.now()) + '] Cliente: ' + (fmt(p.body) ?? ''),
-        ];
-    return escapeNoteHtml(lines.join('\n'));
+        ].join('\n') + '\n';
+    // [NOTA] La transcripcion usa lo que la ficha deja libre bajo el tope.
+    return escapeNoteHtml(head + fitTranscript(fmt(p.transcript) ?? bodyLine(p.body), NOTE_MAX_BYTES - noteBytes(head)));
 }
 
 function buildWaCustomFields(
@@ -221,7 +340,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
     const stageId = parseInt(process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID ?? '0', 10);
 
   if (!params.existingDealId && (!pipelineId || !stageId)) {
-        console.warn(LOG_PREFIX + ' PIPEDRIVE_PIPELINE_ID or PIPEDRIVE_STAGE_NEW_LEAD_ID not set — skipping');
+        console.warn(LOG_PREFIX + ' PIPEDRIVE_PIPELINE_ID or PIPEDRIVE_STAGE_NEW_LEAD_ID not set \u2014 skipping');
         return { action: 'skipped' };
   }
 
@@ -286,7 +405,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
 }
 
 function detectLeadType(body: string, captured?: CapturedFields): 'B2B' | 'B2C' | 'Unknown' {
-    const B2B_RE = /empresa|constructora|obra|factura|licitaci[oó]n|proveedor|s\.a\.|spa|ltda|ingeniería|arquitectura|instalador/i;
+    const B2B_RE = /empresa|constructora|obra|factura|licitaci[o\u00f3]n|proveedor|s\.a\.|spa|ltda|ingenier\u00eda|arquitectura|instalador/i;
     const text = body + ' ' + (fmt(captured?.nombre_o_empresa) ?? '');
     if (B2B_RE.test(text)) return 'B2B';
     // [RUT-VALIDO] Un RUT valido de empresa, organismo o comunidad (no de persona) es B2B.

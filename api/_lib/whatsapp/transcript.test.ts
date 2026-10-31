@@ -3,8 +3,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  TRANSCRIPT_HEAD, TRANSCRIPT_TAIL, chileTime, clearTranscript, clearTranscriptAfterNote, getTranscript,
-  inboundText, recordTranscript, restartTranscript, restoreTranscript, transcriptForNote,
+  PRIVACY_MARK, TRANSCRIPT_HEAD, TRANSCRIPT_TAIL, botReplyText, chileTime, clearTranscript, clearTranscriptAfterNote,
+  getTranscript, inboundText, recordTranscript, restoreTranscript, transcriptForNote,
 } from './transcript';
 
 const PHONE = '+56900000901';
@@ -43,21 +43,41 @@ describe('tope', () => {
 });
 
 describe('ciclo de la nota', () => {
-  it('después de una nota empieza "Desde la nota anterior"; un pedido nuevo la reinicia', () => {
-    recordTranscript(PHONE, 'cliente', 'primer pedido');
-    clearTranscriptAfterNote(PHONE);
-    recordTranscript(PHONE, 'cliente', 'gracias');
-    expect(transcriptForNote(PHONE).split('\n')[0]).toBe('(Desde la nota anterior.)');
-    recordTranscript(PHONE, 'cliente', 'segundo pedido');
-    restartTranscript(PHONE);
-    expect(getTranscript(PHONE)!.entries.map((e) => e.text)).toEqual(['segundo pedido']);
+  it('cada mensaje lleva un número de orden creciente', () => {
+    const a = recordTranscript(PHONE, 'cliente', 'hola');
+    const b = recordTranscript(PHONE, 'bot', 'respuesta');
+    expect(b).toBeGreaterThan(a);
+    expect(getTranscript(PHONE)!.entries.map((e) => e.seq)).toEqual([a, b]);
   });
 
-  it('sin nota anterior, un pedido nuevo no borra nada', () => {
-    recordTranscript(PHONE, 'cliente', 'pedido sin correo');
-    recordTranscript(PHONE, 'cliente', 'otro pedido');
-    restartTranscript(PHONE);
-    expect(getTranscript(PHONE)!.entries).toHaveLength(2);
+  it('después de una nota empieza "Desde la nota anterior" y un pedido nuevo no borra lo que no se anotó', () => {
+    const noted = recordTranscript(PHONE, 'cliente', 'primer pedido');
+    clearTranscriptAfterNote(PHONE, noted);
+    recordTranscript(PHONE, 'cliente', 'gracias');
+    recordTranscript(PHONE, 'cliente', '[El cliente envió 1 imagen]');
+    recordTranscript(PHONE, 'cliente', 'segundo pedido');
+    expect(transcriptForNote(PHONE).split('\n')[0]).toBe('(Desde la nota anterior.)');
+    expect(getTranscript(PHONE)!.entries.map((e) => e.text)).toEqual(['gracias', '[El cliente envió 1 imagen]', 'segundo pedido']);
+  });
+
+  it('la nota borra solo lo que incluyó: lo que llegó mientras se escribía queda para la siguiente', () => {
+    recordTranscript(PHONE, 'cliente', 'pedido A');
+    const upTo = recordTranscript(PHONE, 'cliente', 'correo de A');
+    const note = transcriptForNote(PHONE, { upTo, reply: 'cierre de A' });
+    recordTranscript(PHONE, 'cliente', 'pedido B'); // llega mientras Pipedrive guarda la nota de A
+    recordTranscript(PHONE, 'bot', 'respuesta a B');
+    clearTranscriptAfterNote(PHONE, upTo);
+    expect(note).toContain('Cliente: correo de A');
+    expect(note).not.toContain('pedido B');
+    const t = getTranscript(PHONE)!;
+    expect(t.entries.map((e) => e.text)).toEqual(['pedido B', 'respuesta a B']);
+    expect(t.sinceNote).toBe(true);
+  });
+
+  it('la respuesta que acompaña la nota va rotulada como tal', () => {
+    const upTo = recordTranscript(PHONE, 'cliente', 'mi correo');
+    const lines = transcriptForNote(PHONE, { upTo, reply: 'ya quedó registrada' }).split('\n');
+    expect(lines.at(-1)).toMatch(/^\[\d{2}-\d{2}-\d{4} \d{2}:\d{2}\] Bot \(respuesta al crear la nota\): ya quedó registrada$/);
   });
 
   it('la conversación ya avanzada sin transcripción avisa que puede faltar el inicio', () => {
@@ -66,7 +86,28 @@ describe('ciclo de la nota', () => {
   });
 });
 
+describe('aviso de privacidad', () => {
+  it('la respuesta que lo llevó queda con una marca corta, no con el texto del aviso', () => {
+    expect(PRIVACY_MARK).toBe('[+ aviso de privacidad]');
+    expect(botReplyText('Hola', true)).toBe('Hola\n[+ aviso de privacidad]');
+    expect(botReplyText('Hola', false)).toBe('Hola');
+  });
+});
+
 describe('estado guardado', () => {
+  it('a las entradas guardadas sin número de orden se les asigna uno, y las nuevas van después', () => {
+    restoreTranscript(PHONE, { entries: [{ at: 1, role: 'cliente', text: 'hola' }, { at: 2, role: 'bot', text: 'respuesta' }], omitted: 0, partialStart: false, sinceNote: false });
+    const restored = getTranscript(PHONE)!.entries.map((e) => e.seq);
+    expect(restored.every((n) => Number.isSafeInteger(n) && n > 0)).toBe(true);
+    expect(restored[1]).toBeGreaterThan(restored[0]);
+    expect(recordTranscript(PHONE, 'cliente', 'otro')).toBeGreaterThan(restored[1]);
+  });
+
+  it('un número guardado mayor que el de esta instancia no se repite en los mensajes nuevos', () => {
+    restoreTranscript(PHONE, { entries: [{ seq: 900_000, at: 1, role: 'cliente', text: 'de otra instancia' }], omitted: 0, partialStart: false, sinceNote: false });
+    expect(recordTranscript(PHONE, 'bot', 'respuesta')).toBeGreaterThan(900_000);
+  });
+
   it('se recupera solo con la forma esperada', () => {
     restoreTranscript(PHONE, { entries: [{ at: 1, role: 'cliente', text: 'hola' }], omitted: 0, partialStart: false, sinceNote: false });
     expect(getTranscript(PHONE)!.entries).toHaveLength(1);

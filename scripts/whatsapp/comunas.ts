@@ -5,9 +5,9 @@
 //   npx tsx scripts/whatsapp/comunas.ts
 //
 // La fuente trae algunos nombres con errores de tipeo o sin tildes: FIXES los corrige con el nombre
-// oficial (INE/SUBDERE). Los nombres alternativos ("Coihaique", "Calera", "Vina") van a mano en
-// ALIASES de api/_lib/whatsapp/comunas.ts, no aqui. El archivo generado queda en ASCII (las tildes
-// van como \u), para que ningun editor las corrompa.
+// oficial (INE/SUBDERE). Los nombres de uso ("Coihaique", "La Calera", "Trehuaco", "Vina") van a mano
+// en ALIASES de api/_lib/whatsapp/comunas.ts, no aqui: "Calera" y "Treguaco" son los oficiales. El
+// archivo generado queda en ASCII (las tildes van como \u), para que ningun editor las corrompa.
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -18,7 +18,6 @@ const EXPECTED = 346;
 /** Codigo CUT -> nombre oficial, cuando la fuente lo escribe distinto. */
 export const FIXES: Record<string, string> = {
   '04105': 'Paihuano',
-  '05502': 'La Calera',
   '07309': 'Vichuqu\u00e9n',
   '09112': 'Padre Las Casas',
   '11101': 'Coyhaique',
@@ -26,7 +25,6 @@ export const FIXES: Record<string, string> = {
   '13101': 'Santiago',
   '13106': 'Estaci\u00f3n Central',
   '13120': '\u00d1u\u00f1oa',
-  '16207': 'Trehuaco',
 };
 
 interface Concept { code: string; display: string }

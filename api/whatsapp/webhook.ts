@@ -17,9 +17,9 @@ import { ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedri
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, recordNoQuestion, MSG_MEDIA, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
-import { withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
+import { appendPrivacyNotice, privacyNoticeShown, withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
 import { acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, getPendingWrites, setPendingWrites, MESSAGE_RETRY_WAIT_MS } from '../_lib/whatsapp/stateStore.js';
-import { clearTranscriptAfterNote, inboundText, recordTranscript, restartTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
+import { botReplyText, clearTranscriptAfterNote, inboundText, recordTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
 
@@ -31,11 +31,17 @@ const LOG_PREFIX = '[whatsapp/webhook]';
  * quedar anotado en un pedido nuevo. El historial se recupera y Claude corre dentro de la fila. La espera termina,
  * a mas tardar, TURN_WAIT_DEADLINE_MS despues de que empezo este webhook (Twilio espera 15 s):
  * si el mensaje anterior todavia no termina, este sigue igual (flowEngine reintenta el registro).
+ * [TRANSCRIPCION] En ese caso (overlapped) la memoria de la instancia es mas nueva que Upstash: el
+ * mensaje anterior ya leyo el estado y lo guarda al terminar. Este no lo vuelve a leer ni reintenta
+ * las escrituras pendientes: restaurar el estado guardado borraria lo que el anterior ya hizo
+ * (flujo, historial y transcripcion), y reintentarlas a la vez las duplicaria.
  */
 const TURN_WAIT_DEADLINE_MS = 10_000;
 const phoneTurns = new Map<string, Promise<void>>();
+/** Mensajes en curso por numero en esta instancia, incluidos los que dejaron de esperar. */
+const liveTurns = new Map<string, number>();
 
-async function acquirePhoneTurn(phone: string, maxWaitMs: number): Promise<() => void> {
+async function acquirePhoneTurn(phone: string, maxWaitMs: number): Promise<{ release: () => void; overlapped: boolean }> {
     const previous = phoneTurns.get(phone);
     let release: () => void = () => {};
     const mine = new Promise<void>((resolve) => { release = resolve; });
@@ -46,9 +52,17 @@ async function acquirePhoneTurn(phone: string, maxWaitMs: number): Promise<() =>
                   void previous.then(() => { clearTimeout(timer); resolve(); });
           });
     }
-    return () => {
-          release();
-          if (phoneTurns.get(phone) === mine) phoneTurns.delete(phone);
+    const live = liveTurns.get(phone) ?? 0;
+    liveTurns.set(phone, live + 1);
+    return {
+          overlapped: live > 0,
+          release: () => {
+                  release();
+                  if (phoneTurns.get(phone) === mine) phoneTurns.delete(phone);
+                  const left = (liveTurns.get(phone) ?? 1) - 1;
+                  if (left > 0) liveTurns.set(phone, left);
+                  else liveTurns.delete(phone);
+          },
     };
 }
 
@@ -62,6 +76,10 @@ interface FlowTurnInput {
     claudeSummary: string;
     signals: Parameters<typeof processFlowStep>[3];
     aiSource: 'claude' | 'heuristic';
+    /** [TRANSCRIPCION] Numero de orden del mensaje del cliente: la nota llega hasta ahi. */
+    transcriptSeq: number;
+    /** [TRANSCRIPCION] La respuesta de este mensaje lleva el aviso de privacidad (se decide una vez). */
+    noticeDue: boolean;
 }
 
 /**
@@ -69,8 +87,7 @@ interface FlowTurnInput {
  * [TRANSCRIPCION] noted: la nota del negocio ya trae la transcripcion con esta respuesta.
  */
 async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; dealResult: DealResult; reply: string; noted: boolean }> {
-  const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource } = t;
-  const conversationBefore = getFlowState(phone).firstMessageAt;
+  const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq, noticeDue } = t;
 
   let flowResult: FlowResult;
     try {
@@ -93,8 +110,6 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
     }
     // La conversacion que pidio el negocio (si mientras tanto empieza otra, el resultado no va ahi).
     const conversationId = getFlowState(phone).firstMessageAt;
-    // [TRANSCRIPCION] Otro pedido: la transcripcion vuelve a empezar con este mensaje.
-    if (conversationId !== conversationBefore) restartTranscript(phone);
 
   // Log de salida: resultado del flujo para QA
   console.log(LOG_PREFIX + ' [QA:out] ' + JSON.stringify({
@@ -128,7 +143,9 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           captured: flowResult.captured,
                           captureStatus: flowResult.captureStatus,
                           wantsHuman: flowResult.wantsHuman,
-                          transcript: transcriptForNote(phone, flowResult.reply),
+                          // [TRANSCRIPCION] Hasta este mensaje, con la respuesta que lo acompana (y la marca del
+                          // aviso de privacidad si la lleva): lo que llegue mientras tanto va a la nota siguiente.
+                          transcript: transcriptForNote(phone, { upTo: transcriptSeq, reply: botReplyText(flowResult.reply, noticeDue) }),
                           ...(flowResult.rutUpdate ? { existingDealId: getFlowState(phone).dealId } : {}),
                 });
                 if (dealResult.pendingWrite) setPendingWrites(phone, [...getPendingWrites(phone), dealResult.pendingWrite]);
@@ -143,7 +160,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
           const registered = (dealResult.action === 'created' || dealResult.action === 'found') && typeof dealResult.dealId === 'number';
           if (flowResult.rutUpdate && !registered) {
                   // [RUT-VALIDO] El RUT llego despues del cierre: el negocio ya estaba registrado y sigue.
-                  console.warn(LOG_PREFIX + ' RUT posterior al cierre sin confirmar en Pipedrive (' + dealResult.action + ') — el negocio anterior sigue');
+                  console.warn(LOG_PREFIX + ' Dato posterior al cierre (RUT o correo) sin confirmar en Pipedrive (' + dealResult.action + ') - el negocio anterior sigue');
           } else {
                   recordDealOutcome(phone, registered, conversationId, dealResult.dealId);
                   if (!registered) {
@@ -153,9 +170,10 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
           }
     }
 
-  // [TRANSCRIPCION] La nota (o su reintento pendiente) ya lleva la conversacion hasta esta respuesta.
+  // [TRANSCRIPCION] La nota (o su reintento pendiente) ya lleva la conversacion hasta esta respuesta:
+  // se borra solo eso, no lo que otro pedido del mismo numero registro mientras Pipedrive respondia.
   const noted = typeof dealResult.dealId === 'number' && reply === flowResult.reply;
-  if (noted) clearTranscriptAfterNote(phone);
+  if (noted) clearTranscriptAfterNote(phone, transcriptSeq);
 
   addTurn(phone, { role: 'user', content: body });
     addTurn(phone, { role: 'assistant', content: reply });
@@ -229,32 +247,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return;
   }
 
-  const releaseTurn = await acquirePhoneTurn(phone, TURN_WAIT_DEADLINE_MS - (Date.now() - startedAt));
+  const phoneTurn = await acquirePhoneTurn(phone, TURN_WAIT_DEADLINE_MS - (Date.now() - startedAt));
   let distributed: Awaited<ReturnType<typeof acquireConversationLock>> | undefined;
   try {
     distributed = await acquireConversationLock(phone, TURN_WAIT_DEADLINE_MS - (Date.now() - startedAt));
-    await loadConversation(phone, distributed.acquired);
-    const pending = [];
-    for (const write of getPendingWrites(phone)) {
-          const remaining = await retryWhatsAppWrite(write);
-          if (remaining) pending.push(remaining);
+    // [TRANSCRIPCION] Con otro mensaje del numero en curso aqui, la memoria manda (ver acquirePhoneTurn).
+    if (!phoneTurn.overlapped) {
+          await loadConversation(phone, distributed.acquired);
+          const queued = getPendingWrites(phone);
+          const pending = [];
+          for (const write of queued) {
+                const remaining = await retryWhatsAppWrite(write);
+                if (remaining) pending.push(remaining);
+          }
+          // Lo que otro mensaje del numero dejo pendiente mientras tanto se conserva.
+          setPendingWrites(phone, [...pending, ...getPendingWrites(phone).filter((w) => !queued.includes(w))]);
     }
-    setPendingWrites(phone, pending);
+    // [TRANSCRIPCION] El aviso de privacidad se decide una vez, con el estado ya leido: la nota y el
+    // mensaje que sale dicen lo mismo aunque otro mensaje del numero lo muestre mientras tanto.
+    const noticeDue = !privacyNoticeShown(phone);
 
     // [TRANSCRIPCION] El mensaje del cliente, con sus adjuntos, antes de cualquier respuesta. Sin
     // transcripcion y con la conversacion avanzada (un estado anterior a la PR 3), la nota avisa que
     // puede faltar el inicio.
     const stateBefore = getFlowState(phone);
     const mediaTypes = Array.from({ length: Math.max(0, Math.min(numMedia || 0, 10)) }, (_, i) => params['MediaContentType' + i] ?? '');
-    recordTranscript(phone, 'cliente', inboundText(body, mediaTypes), {
+    const transcriptSeq = recordTranscript(phone, 'cliente', inboundText(body, mediaTypes), {
           inProgress: stateBefore.stage !== 'stage1' || Object.keys(stateBefore.captured).length > 0 || getHistory(phone).length > 0,
     });
 
     async function respond(reply: string, noted = false): Promise<void> {
-          // [TRANSCRIPCION] La respuesta del bot, sin el aviso de privacidad (salvo la que ya fue a la nota).
-          if (!noted) recordTranscript(phone, 'bot', reply);
           res.setHeader('Content-Type', 'text/xml');
-          const xml = buildTwiML(withPrivacyNotice(phone, reply, startedAt));
+          // Si otro mensaje del numero lo mostro mientras tanto, este lo lleva igual (lado seguro).
+          let sent = withPrivacyNotice(phone, reply, startedAt);
+          if (noticeDue && sent === reply) sent = appendPrivacyNotice(reply);
+          // [TRANSCRIPCION] La respuesta del bot; el aviso de privacidad, solo como marca. La que ya fue
+          // a la nota no se repite.
+          if (!noted) recordTranscript(phone, 'bot', botReplyText(reply, sent !== reply));
+          const xml = buildTwiML(sent);
           await persistConversation(phone);
           await completeMessage(messageSid, xml);
           res.status(200).send(xml);
@@ -331,7 +361,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           console.error(LOG_PREFIX + ' Claude failed (non-fatal — usando heuristica):', redact(err, 'error'));
     }
 
-    const turn = await runFlowTurn({ phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource });
+    const turn = await runFlowTurn({ phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq, noticeDue });
     const { flowResult, dealResult, reply, noted } = turn;
 
     const wantsHuman = flowResult.wantsHuman || signals.wantsHuman;
@@ -366,6 +396,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     await respond(reply, noted);
   } finally {
         try { await distributed?.release(); }
-        finally { releaseTurn(); }
+        finally { phoneTurn.release(); }
   }
 }

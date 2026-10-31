@@ -17,6 +17,12 @@ export const MESSAGE_TTL_S = 86400;
 export const MESSAGE_IN_PROGRESS_TTL_S = 60 + 15;
 export const CONVERSATION_LOCK_TTL_MS = 25_000;
 export const MESSAGE_RETRY_WAIT_MS = 3_000;
+// Tope de escrituras pendientes por numero: cada una puede llevar una nota con toda la transcripcion,
+// y el estado guardado tiene que quedar acotado. Sobre el tope se descartan las mas antiguas, con aviso.
+export const MAX_PENDING_WRITES = 3;
+// Respaldo en memoria de los MessageSid para cuando Upstash no responde (solo en esta instancia).
+const LOCAL_MESSAGES_MAX = 500;
+const LOCAL_MESSAGE_DONE_MS = 10 * 60_000;
 
 interface Snapshot {
   updatedAt?: number; // Los estados anteriores a esta versión no tienen la marca.
@@ -30,6 +36,8 @@ interface Snapshot {
 
 const pendingWrites = new Map<string, PendingWhatsAppWrite[]>();
 const local = new Map<string, { updatedAt: number; dirty: boolean }>();
+// saved: Upstash ya tiene la respuesta (si no, se reintenta guardarla en la entrega repetida).
+const recentMessages = new Map<string, { at: number; response?: string; saved?: boolean }>();
 
 export function conversationKey(phone: string): string {
   return 'whatsapp:conversation:' + createHash('sha256').update(phone).digest('hex');
@@ -81,7 +89,13 @@ export function getPendingWrites(phone: string): PendingWhatsAppWrite[] {
 }
 
 export function setPendingWrites(phone: string, pending: PendingWhatsAppWrite[]): void {
-  pendingWrites.set(phone, pending);
+  const dropped = pending.slice(0, Math.max(0, pending.length - MAX_PENDING_WRITES));
+  if (dropped.length) {
+    // Sin el telefono ni el contenido: solo cuantas y en que negocios (para revisarlos a mano).
+    console.error('[whatsapp/stateStore] Escrituras pendientes sobre el tope (' + MAX_PENDING_WRITES + '); se descartan '
+      + dropped.length + ' (negocios ' + dropped.map((w) => w.dealId).join(', ') + ')');
+  }
+  pendingWrites.set(phone, dropped.length ? pending.slice(dropped.length) : pending);
 }
 
 function clearLocal(phone: string): void {
@@ -146,13 +160,56 @@ async function writeConversation(phone: string, updatedAt: number): Promise<void
 
 type MessageState = { status: 'in_progress' } | { status: 'done'; response: string };
 
+/** Los ultimos MessageSid de esta instancia (los 500 mas recientes). */
+function rememberMessage(sid: string, response?: string): void {
+  recentMessages.delete(sid);
+  recentMessages.set(sid, { at: Date.now(), ...(response !== undefined ? { response } : {}) });
+  for (const old of recentMessages.keys()) {
+    if (recentMessages.size <= LOCAL_MESSAGES_MAX) break;
+    recentMessages.delete(old);
+  }
+}
+
+/** Respondido hace menos de 10 minutos, o en curso hace menos que la reserva de Upstash. */
+function recentMessage(sid: string): { at: number; response?: string; saved?: boolean } | undefined {
+  const seen = recentMessages.get(sid);
+  if (!seen) return undefined;
+  const ttlMs = seen.response === undefined ? MESSAGE_IN_PROGRESS_TTL_S * 1000 : LOCAL_MESSAGE_DONE_MS;
+  if (Date.now() - seen.at < ttlMs) return seen;
+  recentMessages.delete(sid);
+  return undefined;
+}
+
+/**
+ * La memoria de esta instancia evita procesar dos veces una entrega repetida cuando Upstash no
+ * responde, o cuando esta instancia ya atiende o ya respondio el mensaje (Upstash pudo caerse al
+ * guardar la respuesta: su reserva queda "en curso" y, al vencer, dejaria reprocesarlo). Con
+ * `upstashUp`, la respuesta que Upstash no guardo se vuelve a guardar, para las otras instancias.
+ * Sin Upstash configurado (desarrollo y pruebas) no hay deduplicacion, como antes.
+ */
+async function claimLocally(sid: string, deadline: number, upstashUp = false): Promise<{ proceed: boolean; response?: string }> {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return { proceed: true };
+  for (;;) {
+    const seen = recentMessage(sid);
+    if (!seen) { rememberMessage(sid); return { proceed: true }; }
+    if (seen.response !== undefined) {
+      if (upstashUp && !seen.saved) await saveResponse(sid, seen.response, Math.max(1, Math.min(800, deadline - Date.now())));
+      return { proceed: false, response: seen.response };
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return { proceed: false };
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(100, remaining)));
+  }
+}
+
 export async function claimMessage(sid: string, maxWaitMs = MESSAGE_RETRY_WAIT_MS): Promise<{ proceed: boolean; response?: string }> {
   if (!sid) return { proceed: true };
   const deadline = Date.now() + Math.max(0, maxWaitMs);
   const timeout = () => Math.max(1, Math.min(800, deadline - Date.now()));
+  if (recentMessage(sid)) return claimLocally(sid, deadline, true);
   const result = await redisJsonCommandWithTimeout<string | null>(timeout(), 'SET', messageKey(sid), JSON.stringify({ status: 'in_progress' }), 'NX', 'EX', MESSAGE_IN_PROGRESS_TTL_S);
-  if (!result.ok) { unavailable('reservar MessageSid'); return { proceed: true }; }
-  if (result.result === 'OK') return { proceed: true };
+  if (!result.ok) { unavailable('reservar MessageSid'); return claimLocally(sid, deadline); }
+  if (result.result === 'OK') { rememberMessage(sid); return { proceed: true }; }
   for (;;) {
     const saved = await redisJsonCommandWithTimeout<string | null>(timeout(), 'GET', messageKey(sid));
     // Ya existe una reserva: una caída durante la espera no autoriza a duplicarla.
@@ -169,8 +226,16 @@ export async function claimMessage(sid: string, maxWaitMs = MESSAGE_RETRY_WAIT_M
   }
 }
 
+async function saveResponse(sid: string, response: string, timeoutMs?: number): Promise<void> {
+  const args = ['SET', messageKey(sid), JSON.stringify({ status: 'done', response }), 'EX', MESSAGE_TTL_S];
+  const result = timeoutMs === undefined ? await redisJsonCommand(...args) : await redisJsonCommandWithTimeout(timeoutMs, ...args);
+  if (!result.ok) { unavailable('guardar respuesta'); return; }
+  const seen = recentMessages.get(sid);
+  if (seen) seen.saved = true;
+}
+
 export async function completeMessage(sid: string, response: string): Promise<void> {
   if (!sid) return;
-  const result = await redisJsonCommand('SET', messageKey(sid), JSON.stringify({ status: 'done', response }), 'EX', MESSAGE_TTL_S);
-  if (!result.ok) unavailable('guardar respuesta');
+  rememberMessage(sid, response);
+  await saveResponse(sid, response);
 }

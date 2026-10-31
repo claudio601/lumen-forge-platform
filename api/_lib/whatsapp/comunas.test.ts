@@ -4,8 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { COMUNAS } from './comunas.generated';
-import { findComunas, officialComuna } from './comunas';
-import { FIXES } from '../../../scripts/whatsapp/comunas';
+import { findComunaMentions, findComunas, officialComuna } from './comunas';
 
 describe('lista oficial', () => {
   it('trae las 346 comunas, sin repetir código ni nombre', () => {
@@ -20,12 +19,20 @@ describe('lista oficial', () => {
     expect(COMUNAS.filter(([code]) => code.startsWith('13'))).toHaveLength(52);
   });
 
-  it('los nombres corregidos de la fuente quedan con su nombre oficial', () => {
-    const byCode = new Map(COMUNAS);
-    for (const [code, name] of Object.entries(FIXES)) expect(byCode.get(code)).toBe(name);
-    expect(byCode.get('13101')).toBe('Santiago');
-    expect(byCode.get('13120')).toBe('Ñuñoa');
-    expect(byCode.get('13106')).toBe('Estación Central');
+  // Referencia escrita a mano (INE/SUBDERE), no la tabla del script que escribe el archivo.
+  it.each([
+    ['04105', 'Paihuano'],
+    ['05502', 'Calera'],
+    ['07309', 'Vichuquén'],
+    ['09112', 'Padre Las Casas'],
+    ['11101', 'Coyhaique'],
+    ['12202', 'Antártica'],
+    ['13101', 'Santiago'],
+    ['13106', 'Estación Central'],
+    ['13120', 'Ñuñoa'],
+    ['16207', 'Treguaco'],
+  ])('el código %s es %s, su nombre oficial', (code, name) => {
+    expect(new Map(COMUNAS).get(code)).toBe(name);
   });
 
   it('el archivo generado está en ASCII', async () => {
@@ -46,6 +53,10 @@ describe('officialComuna', () => {
     ['OHiggins', "O'Higgins"],
     ['Viña', 'Viña del Mar'],
     ['  la serena ', 'La Serena'],
+    ['La Calera', 'Calera'],
+    ['calera', 'Calera'],
+    ['Trehuaco', 'Treguaco'],
+    ['Treguaco', 'Treguaco'],
   ])('"%s" es %s', (text, name) => {
     expect(officialComuna(text)).toBe(name);
   });
@@ -147,11 +158,268 @@ describe('respuesta a la pregunta por la comuna', () => {
   });
 });
 
+describe('el propósito del lugar (hallazgo 2 de Codex)', () => {
+  it('la comuna de la facturación es otra comuna mencionada, no la de la obra', () => {
+    expect(findComunaMentions('Los datos de facturación son de Viña del Mar')).toEqual([{ name: 'Viña del Mar', billing: true }]);
+    expect(findComunaMentions('Facturación en Providencia con despacho a Lampa')).toEqual([
+      { name: 'Providencia', billing: true }, { name: 'Lampa', billing: false },
+    ]);
+  });
+
+  it.each([
+    'Quiero retirar el pedido en Quinta Normal',
+    '¿Puedo ir a su local en Maipú?',
+    'En Concepción tienen sucursal?',
+    'Tienen showroom en Las Condes',
+    'me queda cerca ir a su tienda en Ñuñoa',
+  ])('"%s" no da ninguna comuna, tampoco como respuesta', (text) => {
+    expect(findComunas(text)).toEqual([]);
+    expect(findComunas(text, { answering: true })).toEqual([]);
+  });
+
+  it('"retiro en Quinta Normal" como respuesta no da Retiro', () => {
+    expect(findComunas('retiro en Quinta Normal', { answering: true })).toEqual([]);
+  });
+
+  it('un ancla de obra justo antes gana a las palabras de retiro o sucursal', () => {
+    expect(findComunas('En vez de retirar prefiero que lo despachen a Lampa')).toEqual(['Lampa']);
+    expect(findComunas('Necesito 20 focos para nuestra sucursal en Temuco')).toEqual(['Temuco']);
+  });
+});
+
+describe('razón social (hallazgo 3 de Codex)', () => {
+  it.each([
+    'Somos Iluminación de Los Andes SpA',
+    'Trabajo en Constructora Los Andes Ltda.',
+    'CONSTRUCTORA LOS ANDES LTDA',
+    'Comercial Los Andes S.A.',
+    'Servicios Lampa EIRL',
+    'Proyectos Colina E.I.R.L.',
+  ])('"%s" no da la comuna de su nombre', (text) => {
+    expect(findComunas(text)).toEqual([]);
+    expect(findComunas(text, { answering: true })).toEqual([]);
+  });
+
+  it('el nombre de la empresa no tapa la comuna de la obra', () => {
+    expect(findComunas('Somos Iluminación de Los Andes SpA y necesitamos focos para una bodega en Lampa')).toEqual(['Lampa']);
+  });
+
+  it('"un spa" en minúscula no es una razón social', () => {
+    expect(findComunas('Necesito focos para un spa en Los Andes')).toEqual(['Los Andes']);
+  });
+});
+
+describe('correcciones (hallazgo 4 de Codex)', () => {
+  it.each([
+    'Corrijo: ahora es en Colina, antes era en Lampa',
+    'Corrijo: Colina',
+    'Corrección: Colina',
+    'Perdón, es Colina',
+    'en realidad es Colina',
+    'mejor dicho Colina',
+    'Es en Colina, no en Lampa',
+    'Es en Colina en vez de Lampa',
+  ])('"%s" da Colina', (text) => {
+    expect(findComunas(text)).toEqual(['Colina']);
+  });
+
+  it.each(['antes dije Lampa', 'antes era en Lampa', 'no es en Lampa'])('"%s" no da ninguna comuna', (text) => {
+    expect(findComunas(text)).toEqual([]);
+  });
+});
+
+describe('formas comunes de dar la comuna (hallazgo 6 de Codex)', () => {
+  it.each([
+    ['La comuna es: Lampa', ['Lampa']],
+    ['la comuna es Lampa', ['Lampa']],
+    ['Necesito focos para una bodega en victoria', ['Victoria']],
+    ['Necesito focos para una bodega en la granja', ['La Granja']],
+    ['Necesito focos para una bodega en Retiro', ['Retiro']],
+    ['Necesito paneles para una oficina en Lampa y son 20', ['Lampa']],
+    ['es para un galpón en Lampa y serían 20', ['Lampa']],
+  ])('"%s" da %j', (text, expected) => {
+    expect(findComunas(text)).toEqual(expected);
+  });
+
+  it.each([
+    'luces para la casa en Navidad',
+    'Necesito luces para la casa en navidad',
+    'la instalación sería en primavera',
+  ])('"%s" sigue sin dar Navidad ni Primavera', (text) => {
+    expect(findComunas(text)).toEqual([]);
+  });
+});
+
+describe('cada aparición se clasifica (hallazgo 7 de Codex)', () => {
+  it('una comuna que también es de la obra queda como la de la obra', () => {
+    expect(findComunaMentions('La facturación es en Lampa, la obra también es en Lampa')).toEqual([{ name: 'Lampa', billing: false }]);
+    expect(findComunaMentions('La obra es en Lampa y la facturación también en Lampa')).toEqual([{ name: 'Lampa', billing: false }]);
+  });
+});
+
+describe('direcciones de leads (casos inventados)', () => {
+  it('"km 8" después de la comuna es una dirección, no la comuna', () => {
+    expect(findComunas('Direccion: Camino de Lampa Km 8 s/n, Colina', { answering: true })).toEqual(['Colina']);
+    expect(findComunas('Dirección: Fundo El Prueba de Lampa Km 8 s/n, Colina', { answering: true })).toEqual(['Colina']);
+    expect(findComunas('Dirección: Fundo El Prueba de Lampa kilómetro 8, Colina', { answering: true })).toEqual(['Colina']);
+    expect(findComunas('es en el fundo de Lampa km 8')).toEqual([]);
+  });
+
+  it('la dirección de un bloque de datos de la empresa es la de la factura', () => {
+    expect(findComunaMentions('RUT 11.111.111-1, Direccion: Av. Prueba 123, oficina 5, Providencia', { answering: true }))
+      .toEqual([{ name: 'Providencia', billing: true }]);
+    expect(findComunaMentions('Dirección: Av. Prueba 123, oficina 5, Providencia', { answering: true, company: true }))
+      .toEqual([{ name: 'Providencia', billing: true }]);
+    expect(findComunaMentions('Facturación: Av. Prueba 123, comuna de Providencia'))
+      .toEqual([{ name: 'Providencia', billing: true }]);
+  });
+
+  it('sin RUT ni razón social, la dirección que contesta la pregunta es la de la obra', () => {
+    expect(findComunaMentions('Dirección: Av. Prueba 123, oficina 5, Providencia', { answering: true }))
+      .toEqual([{ name: 'Providencia', billing: false }]);
+    expect(findComunaMentions('RUT 11.111.111-1. Dirección de despacho: Av. Prueba 123, Providencia', { answering: true }))
+      .toEqual([{ name: 'Providencia', billing: false }]);
+  });
+
+  it('un pedido después de la dirección de la empresa no queda como factura', () => {
+    expect(findComunaMentions('RUT 11.111.111-1, Dirección: Av. Prueba 123, Providencia. Necesito 20 focos para una bodega en Lampa'))
+      .toEqual([{ name: 'Lampa', billing: false }]);
+  });
+});
+
+describe('revisión de los arreglos (casos inventados)', () => {
+  it.each([
+    ['Necesito 20 focos para la obra en Lampa de Constructora Prueba SpA', ['Lampa']],
+    ['Necesito 20 focos para la bodega en Quilicura de Comercial Prueba Ltda', ['Quilicura']],
+    ['NECESITO 20 FOCOS PARA BODEGA EN LAMPA EMPRESA PRUEBA SPA', ['Lampa']],
+  ])('la razón social después de la comuna no la tapa: "%s" da %j', (text, expected) => {
+    expect(findComunas(text)).toEqual(expected);
+  });
+
+  it('como respuesta, la comuna antes de la razón social cuenta', () => {
+    expect(findComunas('Puente Alto Constructora Prueba SpA', { answering: true })).toEqual(['Puente Alto']);
+  });
+
+  it('la razón social en mayúsculas sigue sin dar la comuna de su nombre', () => {
+    expect(findComunas('SOMOS ILUMINACION DE LOS ANDES SPA')).toEqual([]);
+    expect(findComunas('TRABAJO EN CONSTRUCTORA LOS ANDES LTDA')).toEqual([]);
+  });
+
+  it('una calle en minúscula que empieza con una comuna es una dirección', () => {
+    expect(findComunas('Necesito despacho a vicuña mackenna 1234, la florida')).not.toContain('Vicuña');
+    expect(findComunas('vicuña mackenna 1234, la florida', { answering: true })).toEqual(['La Florida']);
+    expect(findComunas('Necesito paneles para una bodega en Lampa son 20')).toEqual(['Lampa']);
+    expect(findComunas('Necesito paneles para una bodega en Lampa unos 20')).toEqual(['Lampa']);
+  });
+
+  it.each([
+    ['Soy instalador, mi cliente necesita 30 paneles para su oficina en Las Condes', ['Las Condes']],
+    ['Mi cliente necesita 40 focos para su bodega en Lampa', ['Lampa']],
+  ])('"para su oficina/bodega en X" es el lugar del cliente: "%s" da %j', (text, expected) => {
+    expect(findComunas(text)).toEqual(expected);
+  });
+
+  it.each([
+    ['Hola, necesito factura por 20 paneles para Maipú', 'Maipú'],
+    ['Necesito 30 paneles para Puente Alto con factura', 'Puente Alto'],
+    ['Necesito 20 focos para Lampa con boleta', 'Lampa'],
+  ])('"%s": la factura o la boleta es el documento, %s es la comuna', (text, name) => {
+    expect(findComunaMentions(text)).toEqual([{ name, billing: false }]);
+  });
+
+  it('la factura a nombre de una empresa de otra comuna sigue siendo la de la factura', () => {
+    expect(findComunaMentions('Necesito factura a nombre de la empresa de Las Condes')).toEqual([{ name: 'Las Condes', billing: true }]);
+    expect(findComunaMentions('Domicilio comercial: Av. Prueba 123, Providencia', { answering: true })).toEqual([{ name: 'Providencia', billing: true }]);
+  });
+
+  it.each([
+    'Necesito cambiar y retirar los tubos de una bodega en Lampa',
+    'Necesito retirar 20 equipos fluorescentes de una bodega en Lampa',
+  ])('retirar los equipos viejos no es retirar el pedido: "%s" da Lampa', (text) => {
+    expect(findComunas(text)).toEqual(['Lampa']);
+  });
+
+  it('"soy de" o "desde" es de donde es la persona: cuenta, pero queda marcada', () => {
+    expect(findComunaMentions('Soy de Maipú')).toEqual([{ name: 'Maipú', billing: false, origin: true }]);
+    expect(findComunaMentions('Ana Prueba, desde Maipú')).toEqual([{ name: 'Maipú', billing: false, origin: true }]);
+    expect(findComunaMentions('Soy de Maipú, la obra es en Maipú')).toEqual([{ name: 'Maipú', billing: false }]);
+    expect(findComunaMentions('Necesitamos paneles para la sucursal de Temuco')).toEqual([{ name: 'Temuco', billing: false }]);
+    expect(findComunaMentions('Soy de Maipú', { answering: true })).toEqual([{ name: 'Maipú', billing: false }]);
+  });
+
+  it.each([
+    ['Necesito 20 focos con despacho a domicilio en Maipú', 'Maipú', false],
+    ['Necesito 20 focos para mi casa, mi domicilio es en La Florida', 'La Florida', false],
+    ['Mi domicilio es en La Florida', 'La Florida', true],
+  ])('"%s": el domicilio solo no es la factura (%s)', (text, name, answering) => {
+    expect(findComunaMentions(text, { answering })).toEqual([{ name, billing: false }]);
+  });
+
+  it.each(['Antes dije Lampa pero es Colina', 'No es Lampa, es Colina', 'Es Colina, no Lampa', 'No es Lampa sino Colina', 'No, es Colina'])(
+    'la corrección "%s" da Colina',
+    (text) => {
+      expect(findComunas(text)).toEqual(['Colina']);
+    },
+  );
+
+  it('"para la sucursal de X" es la del cliente; en una pregunta, no', () => {
+    expect(findComunas('Necesitamos paneles para la sucursal de Temuco')).toEqual(['Temuco']);
+    expect(findComunas('¿Dónde queda la sucursal de Concepción?')).toEqual([]);
+  });
+
+  it('"despachar 20 focos a X" es el despacho', () => {
+    expect(findComunaMentions('Necesito despachar 20 focos a Lampa. RUT 76.111.111-1, Dirección: Av. Prueba 123, Colina')).toEqual([{ name: 'Lampa', billing: false }]);
+    expect(findComunaMentions('Necesito despachar 20 focos a Lampa. RUT 76.111.111-1, Dirección: Av. Prueba 123, Colina', { answering: true }))
+      .toEqual([{ name: 'Lampa', billing: false }, { name: 'Colina', billing: true }]);
+    expect(findComunas('Hay que enviar los 30 paneles a Lampa')).toEqual(['Lampa']);
+  });
+});
+
+describe('bloques de datos de empresa (revisión con notas reales, casos inventados)', () => {
+  it('la negrita de WhatsApp no tapa la etiqueta de la dirección de la empresa', () => {
+    const text = '*COTIZACION A NOMBRE DE:*\n\n*RAZON SOCIAL:* Servicios Prueba SpA\n\n*RUT:* 77.123.456-9\n\n*DIRECCION*: Calle Prueba 252, oficina 205, PROVIDENCIA.\n\n*CONTACTO*: Ana';
+    expect(findComunaMentions(text, { answering: true })).toEqual([{ name: 'Providencia', billing: true }]);
+  });
+
+  it('bajo «Facturación:» la dirección puede ir en varias líneas', () => {
+    const text = 'Datos de facturación:\n\nComercial Prueba SpA\n\n77.123.456-9\n\nCalle Prueba #63\n\nciudad Los Lagos\n\nRegión de Los Ríos';
+    expect(findComunaMentions(text)).toEqual([{ name: 'Los Lagos', billing: true }]);
+    expect(findComunaMentions(text, { answering: true })).toEqual([{ name: 'Los Lagos', billing: true }]);
+  });
+
+  it('la obra en otra línea después de la factura sigue siendo la obra', () => {
+    expect(findComunaMentions('Facturación: Comercial Prueba SpA\n\nLa obra es en Lampa'))
+      .toEqual([{ name: 'Lampa', billing: false }]);
+    expect(findComunaMentions('Facturación a nombre de Comercial Prueba SpA\nDespacho a Colina'))
+      .toEqual([{ name: 'Colina', billing: false }]);
+  });
+
+  it('la negrita en la etiqueta de la comuna también vale', () => {
+    expect(findComunas('*Comuna*: Lampa')).toEqual(['Lampa']);
+    expect(findComunas('_comuna de la obra:_ Lampa')).toEqual(['Lampa']);
+    expect(findComunas('Ciudad del despacho: Temuco')).toEqual(['Temuco']);
+  });
+});
+
 describe('rendimiento', () => {
   it('un texto de 50.000 letras se revisa en menos de 500 ms', () => {
     const text = 'en '.repeat(10000) + 'Lampa '.repeat(2000) + 'Av. '.repeat(2000);
     const t0 = performance.now();
     findComunas(text, { answering: true });
+    expect(performance.now() - t0).toBeLessThan(500);
+  });
+
+  it('un texto largo con nombres de empresa, direcciones y correcciones también', () => {
+    const text = ('Corrijo: antes era en Lampa, Dirección: Av. Prueba 123, Constructora Los Andes SpA factura retiro ').repeat(500);
+    const t0 = performance.now();
+    findComunas(text, { answering: true, company: true });
+    expect(performance.now() - t0).toBeLessThan(500);
+  });
+
+  it('razones sociales en mayúsculas, despachos y calles en minúscula también', () => {
+    const text = 'PARA BODEGA EN LAMPA EMPRESA PRUEBA SPA '.repeat(600) + 'despachar 20 focos a Lampa '.repeat(400) + 'en Lampa calle norte 12 '.repeat(400);
+    const t0 = performance.now();
+    findComunas(text, { answering: true, company: true });
     expect(performance.now() - t0).toBeLessThan(500);
   });
 });

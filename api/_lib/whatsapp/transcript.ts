@@ -1,13 +1,16 @@
 // api/_lib/whatsapp/transcript.ts
 // [TRANSCRIPCION] La conversacion completa para la nota de Pipedrive (B1): cada mensaje del cliente y
 // cada respuesta del bot, con la hora de Chile, incluidas las fotos y los mensajes vacios. Antes la
-// nota guardaba solo el ultimo mensaje (casi siempre el del correo). Se vacia cada vez que se escribe
-// una nota, asi que un segundo pedido no arrastra la conversacion anterior. Vive con el estado del
-// bot en Upstash (stateStore.ts), con el mismo plazo de 7 dias.
+// nota guardaba solo el ultimo mensaje (casi siempre el del correo). Cada nota borra solo lo que
+// incluyo (hasta su numero de orden), asi que un segundo pedido no arrastra la conversacion anterior y
+// lo que llego mientras Pipedrive guardaba la nota (una foto, otro pedido) queda para la siguiente.
+// Vive con el estado del bot en Upstash (stateStore.ts), con el mismo plazo de 7 dias.
 
 export type TranscriptRole = 'cliente' | 'bot';
 
 export interface TranscriptEntry {
+  /** Numero de orden: crece con cada mensaje y nunca se repite en la instancia. */
+  seq: number;
   at: number;
   role: TranscriptRole;
   text: string;
@@ -29,7 +32,15 @@ export const TRANSCRIPT_HEAD = 20;
 export const TRANSCRIPT_TAIL = 40;
 export const TRANSCRIPT_MAX_TEXT = 1000;
 
+/** La respuesta llevo el aviso de privacidad: la nota lo marca, sin copiar su texto. */
+export const PRIVACY_MARK = '[+ aviso de privacidad]';
+/** La respuesta que se agrega al armar la nota: se prepara antes de enviarla. */
+const NOTE_REPLY_LABEL = 'Bot (respuesta al crear la nota)';
+
 const transcripts = new Map<string, Transcript>();
+// Un solo contador para la instancia: sube tambien con lo restaurado, asi que un mensaje nuevo
+// nunca repite el numero de uno que una nota en curso vaya a borrar.
+let lastSeq = 0;
 
 function emptyTranscript(partialStart = false, sinceNote = false): Transcript {
   return { entries: [], omitted: 0, partialStart, sinceNote };
@@ -64,50 +75,58 @@ export function inboundText(body: string, mediaTypes: string[] = []): string {
   return parts.length ? parts.join(' ') : '[Mensaje vac\u00edo]';
 }
 
+/** La respuesta del bot como salio: si llevo el aviso de privacidad, con la marca al final. */
+export function botReplyText(reply: string, withNotice: boolean): string {
+  return withNotice ? reply + '\n' + PRIVACY_MARK : reply;
+}
+
 /**
- * Registra un mensaje. Si el numero no tenia transcripcion y la conversacion ya iba avanzada
- * (`inProgress`: un estado guardado antes de este cambio), la nota avisara que puede faltar el inicio.
+ * Registra un mensaje y devuelve su numero de orden. Si el numero no tenia transcripcion y la
+ * conversacion ya iba avanzada (`inProgress`: un estado guardado antes de este cambio), la nota
+ * avisara que puede faltar el inicio.
  */
-export function recordTranscript(phone: string, role: TranscriptRole, text: string, opts: { at?: number; inProgress?: boolean } = {}): void {
+export function recordTranscript(phone: string, role: TranscriptRole, text: string, opts: { at?: number; inProgress?: boolean } = {}): number {
   let t = transcripts.get(phone);
   if (!t) {
     t = emptyTranscript(Boolean(opts.inProgress));
     transcripts.set(phone, t);
   }
-  push(t, { at: opts.at ?? Date.now(), role, text: clip(text) });
+  const seq = ++lastSeq;
+  push(t, { seq, at: opts.at ?? Date.now(), role, text: clip(text) });
+  return seq;
 }
 
 /**
- * Una conversacion nueva (otro pedido) despues de una nota: la transcripcion vuelve a empezar con el
- * ultimo mensaje del cliente. Si la conversacion anterior cerro sin nota (sin correo), nada se borra:
- * esos mensajes todavia no llegaron a Pipedrive.
+ * Ya se escribio (o quedo pendiente) una nota con la transcripcion hasta `upTo`: se borra solo eso.
+ * Lo que llego despues (otro pedido mientras Pipedrive respondia) sigue para la nota siguiente.
  */
-export function restartTranscript(phone: string): void {
-  const t = transcripts.get(phone);
-  if (!t?.sinceNote) return;
-  const last = t.entries.at(-1);
-  const fresh = emptyTranscript();
-  if (last?.role === 'cliente') fresh.entries.push(last);
-  transcripts.set(phone, fresh);
-}
-
-/** Ya se escribio una nota con la transcripcion: lo que siga va a la nota siguiente. */
-export function clearTranscriptAfterNote(phone: string): void {
-  transcripts.set(phone, emptyTranscript(false, true));
+export function clearTranscriptAfterNote(phone: string, upTo: number): void {
+  const rest = transcripts.get(phone)?.entries.filter((e) => e.seq > upTo) ?? [];
+  transcripts.set(phone, { ...emptyTranscript(false, true), entries: rest });
 }
 
 export function getTranscript(phone: string): Transcript | undefined {
   return transcripts.get(phone);
 }
 
-/** Lo guardado en Upstash, si tiene la forma esperada; si no, nada (la nota avisara que puede faltar el inicio). */
+/**
+ * Lo guardado en Upstash, si tiene la forma esperada; si no, nada (la nota avisara que puede faltar
+ * el inicio). Una entrada sin numero de orden (o fuera de orden) recibe uno nuevo.
+ */
 export function restoreTranscript(phone: string, saved: unknown): void {
   const t = saved as Partial<Transcript> | undefined;
   const valid = Boolean(t && Array.isArray(t.entries) && t.entries.every((e) => e && typeof e.at === 'number'
     && (e.role === 'cliente' || e.role === 'bot') && typeof e.text === 'string'));
   if (!valid) { transcripts.delete(phone); return; }
+  let prev = 0;
+  const entries = t!.entries!.slice(-(TRANSCRIPT_HEAD + TRANSCRIPT_TAIL)).map((e) => {
+    const seq = Number.isSafeInteger(e.seq) && e.seq > prev ? e.seq : Math.max(prev, lastSeq) + 1;
+    prev = seq;
+    lastSeq = Math.max(lastSeq, seq);
+    return { seq, at: e.at, role: e.role, text: clip(e.text) };
+  });
   transcripts.set(phone, {
-    entries: t!.entries!.slice(-(TRANSCRIPT_HEAD + TRANSCRIPT_TAIL)).map((e) => ({ at: e.at, role: e.role, text: clip(e.text) })),
+    entries,
     omitted: typeof t!.omitted === 'number' && t!.omitted > 0 ? t!.omitted : 0,
     partialStart: t!.partialStart === true,
     sinceNote: t!.sinceNote === true,
@@ -127,21 +146,28 @@ export function chileTime(at: number): string {
   return parts.day + '-' + parts.month + '-' + parts.year + ' ' + parts.hour + ':' + parts.minute;
 }
 
+// Las lineas siguientes de un mensaje van sangradas: nunca parecen otro mensaje.
+function noteLine(at: number, who: string, text: string): string {
+  return '[' + chileTime(at) + '] ' + who + ': ' + text.split('\n').map((line, j) => (j && line ? '    ' + line : line)).join('\n');
+}
+
 /**
- * La transcripcion en texto plano para la nota (pipedriveLead.ts la escapa), con la respuesta que el
- * bot esta por mandar (`reply`), que todavia no esta registrada.
+ * La transcripcion en texto plano para la nota (pipedriveLead.ts la escapa): los mensajes hasta
+ * `upTo` (el del cliente que pidio la nota) y la respuesta que el bot esta por mandar (`reply`),
+ * rotulada aparte porque todavia no salio.
  */
-export function transcriptForNote(phone: string, reply?: string, at = Date.now()): string {
+export function transcriptForNote(phone: string, opts: { upTo?: number; reply?: string; at?: number } = {}): string {
   const t = transcripts.get(phone) ?? emptyTranscript(true);
-  const entries = reply ? [...t.entries, { at, role: 'bot' as const, text: clip(reply) }] : t.entries;
+  const { upTo, reply } = opts;
+  const entries = upTo === undefined ? t.entries : t.entries.filter((e) => e.seq <= upTo);
   const lines: string[] = [];
   if (t.partialStart) lines.push('(Puede faltar el inicio de la conversaci\u00f3n: el asistente se reinici\u00f3 o la conversaci\u00f3n empez\u00f3 antes de este registro.)');
   else if (t.sinceNote) lines.push('(Desde la nota anterior.)');
   entries.forEach((e, i) => {
     if (i === TRANSCRIPT_HEAD && t.omitted > 0) lines.push('[... se omitieron ' + t.omitted + ' mensajes por el tope de la nota ...]');
-    // Las lineas siguientes de un mensaje van sangradas: nunca parecen otro mensaje.
-    lines.push('[' + chileTime(e.at) + '] ' + (e.role === 'cliente' ? 'Cliente' : 'Bot') + ': ' + e.text.split('\n').map((line, j) => (j && line ? '    ' + line : line)).join('\n'));
+    lines.push(noteLine(e.at, e.role === 'cliente' ? 'Cliente' : 'Bot', e.text));
   });
-  if (!entries.length) lines.push('(Sin mensajes registrados.)');
+  if (reply) lines.push(noteLine(opts.at ?? Date.now(), NOTE_REPLY_LABEL, clip(reply)));
+  if (!entries.length && !reply) lines.push('(Sin mensajes registrados.)');
   return lines.join('\n');
 }

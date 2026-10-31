@@ -531,3 +531,82 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
     expect(state.stage).not.toBe('closed');
   });
 });
+
+describe('PR 3 (B1): la transcripción en el estado compartido', () => {
+  it('sobrevive a un reinicio: se restaura del estado guardado y la nota trae los mensajes anteriores', async () => {
+    sim.parsed = { producto: 'focos LED', tipo_de_luz: 'calida', cantidad: '10', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipu' };
+    await send('Necesito 10 focos LED luz calida para una casa en Maipu');
+    const saved = (await snapshot()).transcript;
+    expect(saved.entries.map((e: { role: string }) => e.role)).toEqual(['cliente', 'bot']);
+    expect(saved.entries.every((e: { seq: unknown }) => Number.isSafeInteger(e.seq))).toBe(true);
+    await coldStart();
+    sim.parsed = { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' };
+    await send('Soy Ana Prueba, ana.prueba@example.com');
+    expect(sim.notes).toHaveLength(1);
+    const transcript = sim.notes[0].content.slice(sim.notes[0].content.indexOf('-- TRANSCRIPCI'));
+    expect(transcript).not.toContain('Puede faltar el inicio');
+    expect(transcript).toMatch(/\] Cliente: Necesito 10 focos LED luz calida para una casa en Maipu\n\[[^\]]+\] Bot: /);
+    expect(transcript).toContain('] Cliente: Soy Ana Prueba, ana.prueba@example.com');
+    // Lo anotado se borra del estado guardado: el pedido siguiente no lo arrastra.
+    expect((await snapshot()).transcript.entries).toEqual([]);
+  });
+
+  it('las escrituras pendientes tienen tope: se descarta la más antigua y se avisa sin datos del cliente', async () => {
+    const { MAX_PENDING_WRITES } = await import('../_lib/whatsapp/stateStore.js');
+    expect(MAX_PENDING_WRITES).toBe(3);
+    sim.parsed = COMPLETE;
+    sim.noteDown = true;
+    for (let i = 1; i <= 5; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    const pending = (await snapshot()).pending;
+    expect(pending).toHaveLength(3);
+    expect(pending.map((w: { note: string }) => w.note.match(/Cliente: Necesito (\d+) focos/)![1])).toEqual(['13', '14', '15']);
+    const logs = vi.mocked(console.error).mock.calls.map((c) => c.map(String).join(' ')).filter((l) => /pendientes sobre el tope/.test(l));
+    expect(logs.length).toBeGreaterThan(0);
+    for (const line of logs) {
+      expect(line).not.toContain(PHONE.slice(1));
+      expect(line).not.toContain('ana.prueba');
+      expect(line).not.toContain('Necesito');
+    }
+    sim.noteDown = false;
+    sim.parsed = {};
+    await send('gracias');
+    // Las tres que quedaron, en orden; las dos descartadas no se reintentan.
+    expect(sim.notes.map((n) => n.content.match(/Cliente: Necesito (\d+) focos/)![1])).toEqual(['13', '14', '15']);
+    expect((await snapshot()).pending).toEqual([]);
+  });
+});
+
+describe('R14: MessageSid repetido con Upstash caído', () => {
+  it('la segunda entrega responde lo mismo y no vuelve a registrar el mensaje', async () => {
+    redis.down = true;
+    const first = await send('Hola', 'SMlocalDup');
+    expect(await send('Hola', 'SMlocalDup')).toBe(first);
+    const { askClaude } = await import('../_lib/whatsapp/claudeAgent.js');
+    expect(askClaude).toHaveBeenCalledTimes(1);
+    const { getTranscript } = await import('../_lib/whatsapp/transcript.js');
+    expect(getTranscript(PHONE)!.entries.map((e) => e.role)).toEqual(['cliente', 'bot']);
+    const { getHistory } = await import('../_lib/whatsapp/conversation.js');
+    expect(getHistory(PHONE).filter((t) => t.role === 'user')).toHaveLength(1);
+    // Otro MessageSid se atiende normal.
+    await send('Hola de nuevo', 'SMlocalOther');
+    expect(askClaude).toHaveBeenCalledTimes(2);
+  });
+
+  it('el registro local es acotado: 500 mensajes, 10 minutos los respondidos y 75 s los que siguen en curso', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    redis.down = true;
+    const { claimMessage, completeMessage, MESSAGE_IN_PROGRESS_TTL_S } = await import('../_lib/whatsapp/stateStore.js');
+    expect(await claimMessage('SMold', 0)).toEqual({ proceed: true });
+    for (let i = 0; i < 500; i++) await claimMessage('SMfill' + i, 0);
+    expect(await claimMessage('SMfill499', 0)).toEqual({ proceed: false });
+    expect(await claimMessage('SMold', 0)).toEqual({ proceed: true }); // el más antiguo salió del registro
+    await completeMessage('SMdone', '<Response/>');
+    vi.setSystemTime(Date.now() + 10 * 60_000 - 1);
+    expect(await claimMessage('SMdone', 0)).toEqual({ proceed: false, response: '<Response/>' });
+    vi.setSystemTime(Date.now() + 1);
+    expect(await claimMessage('SMdone', 0)).toEqual({ proceed: true });
+    expect(await claimMessage('SMstuck', 0)).toEqual({ proceed: true });
+    vi.setSystemTime(Date.now() + MESSAGE_IN_PROGRESS_TTL_S * 1000);
+    expect(await claimMessage('SMstuck', 0)).toEqual({ proceed: true });
+  });
+});
