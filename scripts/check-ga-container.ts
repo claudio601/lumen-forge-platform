@@ -21,7 +21,9 @@
 //   1. Detección automática de datos de usuario: la misma regla que en GA4 (apagada, o con los
 //      formularios excluidos).
 //   2. Detección automática de eventos apagada: ninguna bandera vtp_enable… activa en
-//      __ogt_auto_events y ninguna etiqueta __ccd_em_* (formularios, page_view por historial…).
+//      __ogt_auto_events (salvo vtp_enablePageView, fija en Ads) y ninguna etiqueta __ccd_em_*
+//      sin bloquear (formularios, page_view por historial…). Al apagar un evento, Google deja
+//      su etiqueta __ccd_em_* en el contenedor, pero bloqueada (EM_TAG_BLOCK_FLAG).
 //      Si no, Google Ads recibiría un page_view por cada cambio de ruta del sitio.
 // Lo que no se ve en el contenedor (Términos de tratamiento de datos, uso compartido
 // «Productos y servicios de Google», retención de 14 meses, eventos que importa Google Ads,
@@ -216,8 +218,8 @@ export interface ContainerFlags {
   keyEvents: string[];
   /**
    * Detección automática de eventos (Google Ads): las banderas vtp_enable… activas de
-   * __ogt_auto_events y las etiquetas __ccd_em_*. Vacía si está apagada. null si hay una bandera
-   * que no se puede leer.
+   * __ogt_auto_events y las etiquetas __ccd_em_* que no están bloqueadas. Vacía si está apagada.
+   * null si hay una bandera que no se puede leer.
    */
   autoEvents: string[] | null;
 }
@@ -297,6 +299,27 @@ export function ruleEventNames(rule: unknown): string[] {
   return names.length ? names : all;
 }
 
+/**
+ * Banderas de __ogt_auto_events que no cuentan como detección automática de eventos:
+ * - vtp_enableInPageEventsHidden: no es un evento;
+ * - vtp_enablePageView: «Vistas de página» viene fija en la etiqueta de Google de Ads (el
+ *   interruptor está deshabilitado) y es la vista de página al cargar, no la de cada cambio de
+ *   ruta (esa es vtp_enableHistoryEvents).
+ */
+const AUTO_EVENT_FLAGS_IGNORED: readonly string[] = ['vtp_enableInPageEventsHidden', 'vtp_enablePageView'];
+
+/**
+ * Bandera de __ogt_auto_events que bloquea cada etiqueta __ccd_em_*. Con la bandera en false,
+ * __ogt_auto_events marca el evento como bloqueado para el destino
+ * (internal.setProductSettingsParameter) y la etiqueta __ccd_em_* lo lee antes de actuar: si está
+ * bloqueado, termina sin hacer nada. Visto en la etiqueta AW-774649578 el 2026-10-31; solo están
+ * las dos que se revisaron (las demás cuentan como activas).
+ */
+const EM_TAG_BLOCK_FLAG: Readonly<Record<string, string>> = {
+  __ccd_em_form: 'vtp_enableForm',
+  __ccd_em_page_view: 'vtp_enableHistoryEvents',
+};
+
 export function readContainerFlags(tags: readonly ContainerTag[]): ContainerFlags {
   const byFn = (name: string) => tags.filter(t => t.function === name);
 
@@ -352,15 +375,23 @@ export function readContainerFlags(tags: readonly ContainerTag[]): ContainerFlag
     ),
   ].sort();
 
+  const autoEventTags = byFn('__ogt_auto_events');
   let autoEvents: string[] | null = [];
-  for (const t of byFn('__ogt_auto_events')) {
+  for (const t of autoEventTags) {
     for (const [k, v] of Object.entries(t)) {
-      if (!/^vtp_enable/.test(k) || k === 'vtp_enableInPageEventsHidden') continue;
+      if (!/^vtp_enable/.test(k) || AUTO_EVENT_FLAGS_IGNORED.includes(k)) continue;
       if (v === true) autoEvents?.push(k.replace(/^vtp_enable/, ''));
       else if (v !== false) autoEvents = null;
     }
   }
-  if (autoEvents) autoEvents.push(...tags.map(t => t.function).filter(f => f.startsWith('__ccd_em_')));
+  // Una etiqueta __ccd_em_* cuyo evento __ogt_auto_events bloquea (bandera en false en todas)
+  // queda en el contenedor pero no manda nada. Sin __ogt_auto_events, o con una etiqueta sin
+  // bloqueo conocido, cuenta como activa.
+  const blocked = (fn: string) => {
+    const flag = EM_TAG_BLOCK_FLAG[fn];
+    return Boolean(flag) && autoEventTags.length > 0 && autoEventTags.every(t => t[flag] === false);
+  };
+  if (autoEvents) autoEvents.push(...tags.map(t => t.function).filter(f => f.startsWith('__ccd_em_') && !blocked(f)));
 
   return {
     tagFunctions: tags.map(t => t.function),

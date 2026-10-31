@@ -285,9 +285,18 @@ describe('check-ga-container: etiqueta de Google Ads (AW-…)', () => {
     (t: string) => swap(t, '  ,{"function":"__ccd_em_page_view","priority":4,"vtp_historyEvents":true,"vtp_deferPageView":true,"vtp_includeParams":true,"tag_id":7}\n', ''),
   ].reduce((t, f) => f(t), ADS_TODAY);
 
+  /**
+   * La etiqueta de Ads como quedó el 2026-10-31 al apagar los eventos en la interfaz: banderas en
+   * false salvo «Vistas de página» (fija), y las __ccd_em_* siguen en el contenedor, bloqueadas.
+   */
+  const ADS_2026_10_31 = [
+    (t: string) => swap(t, '["map","exclusionSelector",""]', `["map","exclusionSelector","${EXCLUSION}"]`),
+    (t: string) => t.replace(/"vtp_enable(OutboundClick|Scroll|Download|HistoryEvents|Form|Video)":true/g, '"vtp_enable$1":false'),
+  ].reduce((t, f) => f(t), ADS_TODAY);
+
   it('lee la detección automática de eventos: banderas de __ogt_auto_events y etiquetas __ccd_em_*', () => {
     const f = flagsOf(ADS_TODAY);
-    expect(f.autoEvents).toEqual(['OutboundClick', 'Scroll', 'Download', 'HistoryEvents', 'Form', 'Video', 'PageView', '__ccd_em_form', '__ccd_em_page_view']);
+    expect(f.autoEvents).toEqual(['OutboundClick', 'Scroll', 'Download', 'HistoryEvents', 'Form', 'Video', '__ccd_em_form', '__ccd_em_page_view']);
     expect(f.userData).toMatchObject({ present: true, auto: true, email: true, phone: false, address: false, exclusions: [] });
     expect(flagsOf(ADS_APPROVED).autoEvents).toEqual([]);
   });
@@ -307,9 +316,21 @@ describe('check-ga-container: etiqueta de Google Ads (AW-…)', () => {
     expect(adsGateVerdict(flagsOf(ADS_APPROVED))).toEqual({ approved: true, failures: [], notes: [] });
     const userDataOff = swap(ADS_APPROVED, `"${EXCLUSION}"`, '""').replace('"vtp_isAutoEnabled":true', '"vtp_isAutoEnabled":false');
     expect(adsGateVerdict(flagsOf(userDataOff)).approved).toBe(true);
-    // Solo una etiqueta __ccd_em_* que quede ya cierra la puerta
-    const withForm = swap(ADS_APPROVED, '  ,{"function":"__ccd_ads_last"', '  ,{"function":"__ccd_em_form","tag_id":6}\n  ,{"function":"__ccd_ads_last"');
-    expect(adsGateVerdict(flagsOf(withForm)).failures).toEqual([expect.stringContaining('(__ccd_em_form)')]);
+    // Solo una etiqueta __ccd_em_* sin bloquear que quede ya cierra la puerta
+    const withVideo = swap(ADS_APPROVED, '  ,{"function":"__ccd_ads_last"', '  ,{"function":"__ccd_em_video","tag_id":12}\n  ,{"function":"__ccd_ads_last"');
+    expect(adsGateVerdict(flagsOf(withVideo)).failures).toEqual([expect.stringContaining('(__ccd_em_video)')]);
+  });
+
+  it('las __ccd_em_* bloqueadas por su bandera en false no cuentan; «Vistas de página» (fija en Ads) tampoco', () => {
+    expect(flagsOf(ADS_2026_10_31).tagFunctions).toEqual(expect.arrayContaining(['__ccd_em_form', '__ccd_em_page_view']));
+    expect(flagsOf(ADS_2026_10_31).autoEvents).toEqual([]);
+    expect(adsGateVerdict(flagsOf(ADS_2026_10_31))).toEqual({ approved: true, failures: [], notes: [] });
+    // Con la bandera encendida, su etiqueta vuelve a contar
+    const formOn = swap(ADS_2026_10_31, '"vtp_enableForm":false', '"vtp_enableForm":true');
+    expect(flagsOf(formOn).autoEvents).toEqual(['Form', '__ccd_em_form']);
+    // Sin __ogt_auto_events no hay bloqueo: las __ccd_em_* cuentan como activas
+    const noAutoEvents = ADS_2026_10_31.replace(/\{"function":"__ogt_auto_events"[^}]*\}/, '{"function":"__e"}');
+    expect(flagsOf(noAutoEvents).autoEvents).toEqual(['__ccd_em_form', '__ccd_em_page_view']);
   });
 
   it('una bandera de eventos que no se puede leer cierra la puerta', () => {
