@@ -4,6 +4,7 @@
 // - La nota y los campos nunca escriben un objeto, aunque llegue uno.
 // - Un dato raro no deja una persona sin negocio: la nota y los campos se arman antes.
 // - Si Pipedrive rechaza los campos del negocio, la nota se escribe igual.
+// - PR 2: los cambios de un dato ya capturado y las varias cantidades de un mensaje van a la nota.
 // Pipedrive está simulado (sin red); solo datos inventados.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -116,6 +117,24 @@ describe('datos con otra forma', () => {
     await ensureWhatsAppDeal(odd);
     for (const value of Object.values(vi.mocked(updateDeal).mock.calls[0][1])) expect(typeof value).toBe('string');
     expect(vi.mocked(createDeal).mock.calls[0][0].notes).toBeUndefined();
+  });
+});
+
+describe('PR 2: cambios y varias cantidades en la nota', () => {
+  const base = { phone: PHONE, name: 'Perfil Prueba', summary: 'Pide paneles.', body: 'gracias', captureStatus: 'partial' } as const;
+
+  it('un dato que el cliente cambió queda anotado, con el valor anterior', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { producto: 'paneles LED', cantidad: '3', cambios: ['Cantidad: antes 2, ahora 3'], correo: 'pedro.prueba@example.com' } });
+    const note = noteContent();
+    expect(note).toContain('Cantidad: 3');
+    expect(note).toContain('Cambios: Cantidad: antes 2, ahora 3');
+  });
+
+  it('con varias cantidades, la nota lleva el texto del cliente y el campo Cantidad queda vacío', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { producto: 'paneles', cantidad_varios: 'Necesito 30 paneles de 18W y 20 de 24W', correo: 'pedro.prueba@example.com' } });
+    expect(noteContent()).toContain('Cantidad: varios items, revisar: Necesito 30 paneles de 18W y 20 de 24W');
+    expect(noteContent()).not.toContain('Cambios:');
+    expect(vi.mocked(updateDeal).mock.calls[0][1]).not.toHaveProperty('cf_wa_cantidad');
   });
 });
 

@@ -20,7 +20,7 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { getHistory } from '../_lib/whatsapp/conversation.js';
-import { MSG1, MSG4, MSG_DEAL_FAILED, MSG_MEDIA } from '../_lib/whatsapp/flowEngine.js';
+import { MSG1, MSG2, MSG4, MSG_DEAL_FAILED, MSG_MEDIA, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 import { buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { PRIVACY_NOTICE, PRIVACY_POLICY_URL } from '../_lib/whatsapp/privacyNotice.js';
 
@@ -259,6 +259,24 @@ describe('fallas: el bot responde igual y un error no marca el número', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe(withNotice(MSG_DEAL_FAILED));
     expect(ensureWhatsAppDeal).not.toHaveBeenCalled();
+  });
+
+  it('si falla el paso del flujo, la lista de MSG2 deja de estar anotada: un "1" siguiente no la contesta', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' }));
+    expect((await sendMessage(phone, 'Necesito 10 paneles LED luz fría', { MessageSid: 'SMPASO1' })).body).toBe(withNotice(MSG2));
+    expect(getFlowState(phone).lastQuestion?.listLength).toBe(2);
+    const parsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'x' };
+    Object.defineProperty(parsed, 'producto', {
+      enumerable: true,
+      get() {
+        throw new Error('falla simulada');
+      },
+    });
+    vi.mocked(askClaude).mockResolvedValueOnce({ ...claudeOk(), parsed } as Awaited<ReturnType<typeof askClaude>>);
+    const res = await sendMessage(phone, 'oficina en Santiago', { MessageSid: 'SMPASO2' });
+    expect(res.body).toBe(buildTwiML(MSG_DEAL_FAILED));
+    expect(getFlowState(phone).lastQuestion).toBeNull();
   });
 
   it('si el envío falla antes de armar la respuesta, el número no queda marcado: el siguiente mensaje lleva el aviso', async () => {

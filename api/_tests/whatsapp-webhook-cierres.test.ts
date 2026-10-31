@@ -547,13 +547,19 @@ describe('nombre de instalación que no es un nombre', () => {
   });
 
   it('"soy instalador electrico" (Claude sin nombre): la persona conserva el nombre del perfil', async () => {
+    // PR 2 (T-INST-3): un instalador que pide productos sigue el flujo de productos.
     const phone = nextPhone();
-    await send(phone, 'Hola, soy instalador electrico y necesito 50 paneles LED 60x60 para una casa en Maipu, pedro.prueba@example.com', {
-      producto: 'paneles LED 60x60', cantidad: '50', correo: 'pedro.prueba@example.com', comuna_o_ciudad: 'Maipu', proyecto_o_uso: 'casa',
-    });
+    await chat(phone, [
+      ['Hola, soy instalador electrico y necesito 50 paneles LED 60x60 luz neutra para una casa en Maipu, pedro.prueba@example.com', {
+        producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '50', correo: 'pedro.prueba@example.com', comuna_o_ciudad: 'Maipu', proyecto_o_uso: 'casa',
+      }],
+      ['gracias', {}],
+    ]);
     expect(sim.deals).toHaveLength(1);
     expect(sim.persons[0].name).toBe('Perfil Prueba');
     expect(sim.notes[0].content).not.toContain('Nombre/empresa: instalador');
+    expect(sim.notes[0].content).toContain('Cantidad: 50');
+    expect(sim.notes[0].content).not.toContain('Solicitud de instalacion');
   });
 });
 

@@ -45,6 +45,8 @@ const COMPLETE = {
   producto: 'focos LED', tipo_de_luz: 'calida', cantidad: '10', proyecto_o_uso: 'casa',
   comuna_o_ciudad: 'Maipu', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com',
 };
+// [CANTIDAD] PR 2: la cantidad de Claude vale solo si el texto del cliente la dice.
+const WRONG_RUT_ORDER = 'Necesito 10 focos LED, RUT 77.123.456-8';
 let redis: ReturnType<typeof createFakeRedis>;
 let seq: number;
 let webhook: typeof import('../whatsapp/webhook.js')['default'];
@@ -186,7 +188,7 @@ describe('R121-03: reintentos de Twilio', () => {
 describe('R121-04: estado compartido y respaldo', () => {
   it('recupera historial, campos, repregunta y privacidad despues de perder toda la memoria', async () => {
     sim.parsed = COMPLETE;
-    await send('RUT 77.123.456-8');
+    await send(WRONG_RUT_ORDER);
     const { conversationKey } = await import('../_lib/whatsapp/stateStore.js');
     const key = conversationKey(PHONE);
     expect(key).not.toContain(PHONE);
@@ -194,7 +196,7 @@ describe('R121-04: estado compartido y respaldo', () => {
     expect(redis.data.get(key)!.ttl).toBe(604800);
     const before = await snapshot();
     expect(before.privacyShown).toBe(true);
-    expect(before.history[0].content).toBe('RUT 77.123.456-8');
+    expect(before.history[0].content).toBe(WRONG_RUT_ORDER);
     await coldStart();
     sim.parsed = {};
     const reply = await send('771234569');
@@ -210,7 +212,7 @@ describe('R121-04: estado compartido y respaldo', () => {
   it('Upstash caido: responde, conserva memoria y registra el respaldo', async () => {
     redis.down = true;
     sim.parsed = COMPLETE;
-    expect(await send('RUT 77.123.456-8')).toContain('no calza');
+    expect(await send(WRONG_RUT_ORDER)).toContain('no calza');
     sim.parsed = {};
     expect(await send('771234569')).toContain('registrad');
     expect(sim.created).toBe(1);
@@ -283,7 +285,7 @@ describe('R121-04: estado compartido y respaldo', () => {
 
   it('aunque Claude lo devuelva como cantidad, la respuesta de RUT no pisa las unidades', async () => {
     sim.parsed = COMPLETE;
-    await send('RUT 77.123.456-8');
+    await send(WRONG_RUT_ORDER);
     sim.parsed = { cantidad: '771234569' };
     await send('771234569');
     expect((await snapshot()).flow.captured.cantidad).toBe('10');
@@ -313,7 +315,7 @@ describe('R121-04: estado compartido y respaldo', () => {
 describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', () => {
   it.each(['won', 'lost'])('la correccion tardia sobre un negocio %s no crea otro, incluso tras reinicio', async (status) => {
     sim.parsed = COMPLETE;
-    await send('RUT 77.123.456-8');
+    await send(WRONG_RUT_ORDER);
     sim.parsed = {};
     await send('lo reviso despues');
     sim.dealStatus = status;
@@ -328,7 +330,7 @@ describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', (
 
   it('success:false deja la correccion pendiente; tras reinicio reintenta una sola nota', async () => {
     sim.parsed = COMPLETE;
-    await send('RUT 77.123.456-8');
+    await send(WRONG_RUT_ORDER);
     sim.parsed = {};
     await send('lo reviso despues');
     sim.noteDown = true;
@@ -386,7 +388,7 @@ describe('R121-05/06 y R120-04: escrituras pendientes en el negocio guardado', (
 describe('R121-02: ambiguedad registrada sin asignar un RUT al cliente', () => {
   it('lista ambos en la nota y no clasifica por el RUT del proveedor', async () => {
     sim.parsed = COMPLETE;
-    await send('RUT 11.111.111-1; RUT 77.123.456-9');
+    await send('Necesito 10 focos LED, RUT 11.111.111-1; RUT 77.123.456-9');
     const { createDeal } = await import('../_lib/pipedrive/deals.js');
     expect(vi.mocked(createDeal).mock.calls[0][0]).toMatchObject({ leadType: 'B2C' });
     expect(sim.notes[0].content).toContain('RUT: -');
