@@ -249,12 +249,50 @@ describe('ronda 4 (revisión adversaria): medidas después del producto, correcc
     expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
   });
 
-  it('"ciento veinte focos" queda vacía (no 20)', () => {
-    expect(readQuantity('necesito ciento veinte focos').value).toBeUndefined();
+  it('"ciento veinte focos" es 120, nunca 20', () => {
+    expect(readQuantity('necesito ciento veinte focos')).toEqual({ value: 120, explicit: true });
   });
 
   it.each(['uno', 'solo una', 'uno nomás', 'necesito solo uno'])('"%s" contesta la pregunta por la cantidad con 1', (text) => {
     expect(readQuantity(text, { asked: true })).toEqual({ value: 1, explicit: true });
     expect(readQuantity(text).value).toBeUndefined();
+  });
+});
+
+describe('ronda 5 (Codex, ronda 2)', () => {
+  it.each([
+    'El modelo es el 50',
+    'Presupuesto de unos 50000',
+    'tubos LED de 120 y 60',
+    'paneles de 60 y 120',
+    'Razón social: Comercial 25 SpA',
+    'a las dos',
+    'los dos modelos',
+    'dos tres focos',
+  ])('"%s" → vacía, aunque la pregunta pidiera la cantidad', (text) => {
+    expect(readQuantity(text, { asked: true }).value).toBeUndefined();
+  });
+
+  it.each([
+    ['Necesito ciento treinta y dos paneles', 132],
+    ['Necesito ciento veinticinco focos', 125],
+    ['Necesito doscientos veinte focos', 220],
+    ['mil treinta y dos paneles', 1032],
+    ['necesito dos mil quinientos paneles', 2500],
+    ['trece focos', 13],
+    ['catorce paneles', 14],
+    ['dieciséis focos', 16],
+    ['necesito treinta', 30],
+    ['también necesito cambiar la cantidad a 20', 20],
+  ])('el número entero en palabras o el cambio dicho: %s → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+
+  it('"treinta y dos" contesta la pregunta por la cantidad', () => {
+    expect(readQuantity('treinta y dos', { asked: true, claude: 32 })).toEqual({ value: 32, explicit: true });
+  });
+
+  it('una respuesta parcial a la lista ("2: fría; 3: 20 unidades") no es varios ítems', () => {
+    expect(readQuantity('2: fría; 3: 20 unidades', { asked: true, menuLength: 3 })).toEqual({ value: 20, explicit: true });
   });
 });

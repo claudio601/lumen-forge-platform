@@ -15,7 +15,7 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
 import { ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
-import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, MSG_MEDIA, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
+import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, recordNoQuestion, MSG_MEDIA, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
 import { withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
 import { acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, getPendingWrites, setPendingWrites, MESSAGE_RETRY_WAIT_MS } from '../_lib/whatsapp/stateStore.js';
@@ -73,6 +73,8 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
     } catch (err) {
           // [CIERRE-HONESTO] Respuesta segura: nada quedo registrado, se ofrece ventas@ (texto B).
           console.error(LOG_PREFIX + ' Flow error (respuesta segura):', redact(err, 'error'));
+          // [CANTIDAD] El texto B no pregunta nada: un numero siguiente no contesta la lista anterior.
+          recordNoQuestion(phone);
           const stateNow = getFlowState(phone);
           flowResult = {
                   reply: MSG_DEAL_FAILED,

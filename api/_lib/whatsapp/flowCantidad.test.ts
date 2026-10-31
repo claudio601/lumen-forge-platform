@@ -484,3 +484,123 @@ describe('ronda 4 (revisión adversaria)', () => {
     expect(step('uno', { cantidad: '1' }).captured.cantidad).toBe('1');
   });
 });
+
+describe('ronda 5 (Codex, ronda 2)', () => {
+  const FIRST = 'Necesito 10 paneles LED luz neutra para una oficina en Santiago';
+  const RIGHT: Claude = { producto: 'paneles LED', tipo_de_luz: 'neutra', cantidad: '10', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Santiago' };
+
+  it('H3: un modelo distinto del que dice el mensaje (T5 por T8) no reemplaza el producto', () => {
+    step('Necesito 10 paneles LED luz neutra', { producto: 'paneles LED', tipo_de_luz: 'neutra', cantidad: '10' });
+    expect(step('Corrijo: tubos T8', { producto: 'tubos T5' }).captured.producto).not.toBe('tubos T5');
+  });
+
+  it.each([
+    ['No necesito 20 focos', { producto: 'paneles LED', cantidad: '10' }],
+    ['No es para bodega', { proyecto_o_uso: 'oficina' }],
+    ['No estoy en Maipú', { comuna_o_ciudad: 'Santiago' }],
+  ])('H4: lo que el cliente niega ("%s") no cambia el dato', (text, kept) => {
+    step(FIRST, RIGHT);
+    const r = step(text, {});
+    expect(r.captured).toMatchObject(kept);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('H4: "no es para bodega, es para una casa" cambia a casa', () => {
+    step(FIRST, RIGHT);
+    const r = step('No es para bodega, es para una casa', { proyecto_o_uso: 'casa' });
+    expect(r.captured.proyecto_o_uso).toBe('casa');
+    expect(r.captured.cambios).toEqual(['Proyecto/uso: antes oficina, ahora casa']);
+  });
+
+  it('H4: un color negado no llena el color vacío, aunque Claude lo devuelva', () => {
+    step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+    expect(step('No fría', { tipo_de_luz: 'fria' }).captured.tipo_de_luz).toBeUndefined();
+  });
+
+  it('H5: "también" en una corrección no suma un ítem: cambia la cantidad', () => {
+    step(FIRST, RIGHT);
+    const r = step('También necesito cambiar la cantidad a 20', { cantidad: '20' });
+    expect(r.captured.cantidad).toBe('20');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora 20']);
+  });
+
+  it('H5: "además que sean cálidos" es una característica, no otro ítem', () => {
+    step(FIRST, RIGHT);
+    const r = step('Necesito 20 paneles, además que sean cálidos', { cantidad: '20', tipo_de_luz: 'calida' });
+    expect(r.captured).toMatchObject({ cantidad: '20', tipo_de_luz: 'calida' });
+    expect(r.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it.each([{ empresa: 'Comercial 25 SpA' }, {}])('H6: el número de la razón social no es la cantidad (Claude %j)', (claude) => {
+    step('Necesito paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria' });
+    expect(step('Razón social: Comercial 25 SpA', claude).captured.cantidad).toBeUndefined();
+  });
+
+  it('H7: "también, ¿tienen 20 focos?" es una pregunta: no suma ni cambia', () => {
+    step(FIRST, RIGHT);
+    const r = step('También, ¿tienen 20 focos?', {});
+    expect(r.captured.cantidad).toBe('10');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it('H7: lo afirmado antes de una pregunta sin "¿" cuenta', () => {
+    step(FIRST, RIGHT);
+    const r = step('Ahora necesito 20 paneles, hacen despacho?', { cantidad: '20' });
+    expect(r.captured.cantidad).toBe('20');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora 20']);
+  });
+
+  it('H7: una pregunta sin "¿" ni pedido no cambia la comuna', () => {
+    step(FIRST, RIGHT);
+    expect(step('tienen tienda en Maipú, para retirar?', {}).captured.comuna_o_ciudad).toBe('Santiago');
+  });
+
+  it('H8: un producto más preciso, dicho en el mensaje, reemplaza al anterior y queda anotado', () => {
+    step('Necesito 10 paneles LED 60x60 luz neutra', { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '10' });
+    const r = step('Corrijo: paneles LED 60x60 regulables', { producto: 'paneles LED 60x60 regulables' });
+    expect(r.captured.producto).toBe('paneles LED 60x60 regulables');
+    expect(r.captured.cambios).toEqual(['Producto: antes paneles LED 60x60, ahora paneles LED 60x60 regulables']);
+  });
+
+  it('H9: al repetir MSG2, la lista de dos sigue anotada; el segundo número sigue el flujo', () => {
+    step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' });
+    expect(step('1', {}).reply).toBe(flow.MSG2);
+    expect(flow.getFlowState(PHONE).lastQuestion?.listLength).toBe(2);
+    step('1', {});
+    expect(flow.getFlowState(PHONE).stage).toBe('stage3');
+  });
+
+  it('H10: un estado anterior, después de pedir el correo para el ejecutivo, no da por pedida la cantidad', () => {
+    flow.processFlowStep(PHONE, 'Quiero hablar con un vendedor', {}, { wantsHuman: true, qualifiesForDeal: false });
+    const { lastQuestion: _dropped, ...old } = flow.getFlowState(PHONE);
+    flow.saveFlowState(PHONE, old as ReturnType<typeof flow.getFlowState>);
+    expect(flow.processFlowStep(PHONE, '20', {}, { wantsHuman: true, qualifiesForDeal: false }).captured.cantidad).toBeUndefined();
+  });
+
+  it('H11: si el paso falla, la respuesta segura no deja anotada la lista anterior', () => {
+    step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' });
+    flow.recordNoQuestion(PHONE);
+    expect(flow.getFlowState(PHONE).lastQuestion).toBeNull();
+  });
+
+  it('H12: un instalador que pide cotizar la instalación va al flujo de instalación', () => {
+    step('Soy instalador y quiero cotizar instalación para mi casa', {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
+  });
+
+  it.each([
+    ['fono 900001234. 20 focos', '900001234'],
+    ['modelo 900001234', undefined],
+  ])('H13: teléfono de la instalación en "%s" → %s', (text, expected) => {
+    step('Busco un instalador para mi casa, ' + text, {});
+    expect(flow.getFlowState(PHONE).captured.install_telefono).toBe(expected);
+  });
+
+  it('H16: un mensaje muy largo sin "@" se procesa en tiempo lineal', () => {
+    step('Busco un instalador para mi casa', {});
+    const start = performance.now();
+    step('a'.repeat(50000), {});
+    expect(performance.now() - start).toBeLessThan(500);
+  });
+});
