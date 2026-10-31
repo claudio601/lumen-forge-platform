@@ -142,7 +142,7 @@ export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu
 const INSTALL_INTENT_RE = /\b(instalaci[o\u00f3]n|instalar|servicio\s+de\s+instal|quiero\s+instalar|necesito\s+instalar|cotizar\s+instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n|instalador|instaladores)\b/i;
 // [INSTALL-FLOW] "Soy instalador" describe a quien escribe (compra para instalar), no pide una
 // instalacion: va al flujo de productos. "Busco un instalador" si la pide.
-const INSTALLER_SELF_RE = /\b(?:soy|somos|trabajo\s+como|como)\s+(?:un\s+|una\s+)?instalador(?:a|es|as)?(?:\s+el[e\u00e9]ctric[oa]s?)?\b/gi;
+const INSTALLER_SELF_RE = /\b(?:(?:soy|somos)\s+(?:(?!(?:busco|buscamos|necesito|necesitamos|quiero|queremos|requiero|que|para)\b)[a-z\u00e0-\u00fc]+\s+){0,3}?instalador(?:a|es|as)?(?:\s+el[e\u00e9]ctric[oa]s?)?|(?:trabajo|me\s+desempe[n\u00f1]o)\s+(?:como|de)\s+instalador(?:a|es|as)?|me\s+dedico\s+a\s+(?:la\s+|las\s+)?instal\w*|soy\s+(?:un\s+|una\s+)?(?:electricista|contratista|t[e\u00e9]cnico\s+el[e\u00e9]ctrico))\b/gi;
 // Quien se presenta como instalador solo pide una instalacion con un pedido de servicio ("que me
 // instalen", "servicio de instalacion", "mano de obra", "busco otro instalador"): "necesito 50
 // paneles para una instalacion" es una compra para su trabajo.
@@ -243,12 +243,23 @@ export function looksLikePersonName(value: unknown): value is string {
 // [NO-PISAR] La comuna sin importar tildes ni enies (Maipu, Nunoa o Concepcion escritas con ellas), devuelta como
 // la escribio el cliente: CIUDAD_RE las tiene sin tildes y antes solo las encontraba asi.
 function extractCiudad(text: string): string | undefined {
-  const bare = [...text].map((c) => {
+  const m = bareText(text).match(CIUDAD_RE);
+  return m ? text.slice(m.index, m.index + m[0].length) : undefined;
+}
+/** [NO-PISAR] El texto sin tildes ni enies y del mismo largo, para buscar en el y volver al original. */
+function bareText(text: string): string {
+  return [...text].map((c) => {
     const b = c.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return b.length === c.length ? b : c;
   }).join('');
-  const m = bare.match(CIUDAD_RE);
-  return m ? text.slice(m.index, m.index + m[0].length) : undefined;
+}
+/** [NO-PISAR] El unico valor que la regla encuentra en el texto; con dos distintos ("Maipu ... Providencia"), ninguno. */
+function soleMatch(text: string, re: RegExp): string | undefined {
+  const found = new Map<string, string>();
+  for (const m of bareText(text).matchAll(new RegExp(re.source, 'gi'))) {
+    found.set(comparable(m[0]).replace(/(?:es|s)$/, ''), text.slice(m.index, m.index + m[0].length).trim());
+  }
+  return found.size === 1 ? [...found.values()][0] : undefined;
 }
 
 function extractProyecto(text: string): string | undefined {
@@ -399,12 +410,12 @@ function mergeInstallFields(
   return updated;
 }
 
-// [INSTALL-FLOW] Celular o fijo (+56 9 1234 5678, +56 32 212 3456, 912345678, 22 123 4567), sin los
+// [INSTALL-FLOW] Celular o fijo (+56 9 1234 5678, +56 32 212 3456, 912345678, 22 123 4567, 32 212 3456), sin los
 // RUT, correos, enlaces ni codigos de modelo del mensaje: antes cualquier numero de 8 o 9 digitos,
 // como el de un RUT o el de un correo, pasaba por telefono. Primero el que trae su etiqueta
 // ("fono", "cel", "whatsapp"); un numero pegado a una letra o a otro digito no es telefono.
 const PHONE_LABEL_RE = /\b(?:fono|tel[e\u00e9]fono|tel|cel(?:ular)?|m[o\u00f3]vil|whats?app|wsp)\s*(?:de\s+contacto\s*)?[:.]?\s*(\+?\d[\d\s.()-]{6,16}\d)(?![\w])/i;
-const PHONE_RE = /(?<![\w+])(?:\+?56(?:[\s.()-]*\d){9}|\(?[29]\)?(?:[\s.-]*\d){8})(?![\w])/;
+const PHONE_RE = /(?<![\w+])(?:\+?56(?:[\s.()-]*\d){9}|\(?[29]\)?(?:[\s.-]*\d){8}|\(?[3-7]\d\)?(?:[\s.-]*\d){7})(?![\w])/;
 const RUT_WITH_DASH_RE = /\d{1,2}(?:[.\s]?\d{3}){2}\s*[-\u2010-\u2015\u2212]\s*[\dkK]/g;
 const PHONE_NOISE_RE = /(?:https?:\/\/|www\.)\S*|\b[a-z]+[-_]?\d[\w-]*/gi;
 function extractPhone(body: string): string | undefined {
@@ -497,7 +508,11 @@ function comparable(text: string): string {
 const SAME_VALUE: Partial<Record<KeptField, (a: string, b: string) => boolean>> = {
   tipo_de_luz: (a, b) => normalizeLuz(comparable(a)) === normalizeLuz(comparable(b)),
   cantidad: (a, b) => parseInt(a, 10) === parseInt(b, 10),
+  // "paneles led" no cambia "paneles LED 60x60": es el mismo, menos preciso.
+  producto: (a, b) => comparable(a).includes(comparable(b)) || comparable(b).includes(comparable(a)),
+  proyecto_o_uso: (a, b) => comparable(a).includes(comparable(b)) || comparable(b).includes(comparable(a)),
 };
+const KEPT_FIELDS = Object.keys(KEPT_LABEL) as KeptField[];
 
 function noteChange(merged: CapturedFields, field: KeptField, before: string, after: string): void {
   merged.cambios = [...(merged.cambios ?? []), KEPT_LABEL[field] + ': antes ' + before + ', ahora ' + after].slice(-MAX_CAMBIOS);
@@ -541,7 +556,8 @@ function backed(claudeValue: string | undefined, ruleValue: string | undefined, 
   return claudeValue && inMessage(claudeValue, facts) ? claudeValue : ruleValue;
 }
 
-const LUZ_RE_ALL = new RegExp(LUZ_RE.source, 'gi');
+// "calidad" no es luz calida: el color va como palabra completa.
+const LUZ_RE_ALL = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:' + LUZ_RE.source + ')(?![a-z\\u00e0-\\u00fc])', 'gi');
 // [NO-PISAR] "no fria", "nada de calida", "sin luz fria": ese color no es el que pide.
 const LUZ_NEGATED_RE = /\b(?:no|ni|sin|nada\s+de|tampoco|menos)\s+(?:(?:la|el|una|un|en|de|luz|color|tono|blanca|blanco|tan|muy)\s+){0,3}$/i;
 /** [NO-PISAR] El color que pide el mensaje: uno solo, sin los negados ("no fria, calida"); con dos distintos, ninguno. */
@@ -553,33 +569,55 @@ function textLuz(facts: string): string | undefined {
   return found.size === 1 ? [...found][0] : undefined;
 }
 
+// [NO-PISAR] Solo lo que el cliente afirma cambia un dato: sus preguntas ("tienen tienda en Santiago?") no.
+function withoutQuestions(text: string): string {
+  if (!/[?\u00bf]/.test(text)) return text;
+  return text.split(/(?<=[.!?\n])|(?=\u00bf)/).filter((part) => !/[?\u00bf]/.test(part)).join(' ');
+}
+// [NO-PISAR] "tambien necesito 10 focos", "ademas", "agrega", "otros 5": suma un item, no cambia lo capturado.
+const ADDITION_RE = /\b(?:tambi[e\u00e9]n|adem[a\u00e1]s|aparte|agreg(?:a|ar|ame|ale|uen)|sum(?:a|ar|ame|ale))\b|\botr[oa]s?\s+\d/i;
+
 const MAX_VARIOS = 160;
+function appendVarios(merged: CapturedFields, text: string): void {
+  if (comparable(merged.cantidad_varios ?? '').includes(comparable(text))) return;
+  merged.cantidad_varios = ((merged.cantidad_varios ? merged.cantidad_varios + ' / ' : '') + text).slice(0, 2 * MAX_VARIOS);
+}
 /**
- * [CANTIDAD] La cantidad del mensaje. Un entero sigue la regla de no pisar (keepOrChange). Varios
- * items explicitos reemplazan a la cantidad capturada (el cambio queda anotado) o se suman al texto
- * de varios items; una cantidad explicita despues de varios items los reemplaza.
+ * [CANTIDAD] La cantidad del mensaje (`quantity`) y la que afirma, sin sus preguntas (`stated`).
+ * - Un entero sigue la regla de no pisar (keepOrChange).
+ * - Varios items afirmados reemplazan a la cantidad capturada (el cambio queda anotado) o se suman
+ *   al texto de varios items; una cantidad afirmada despues de varios items los reemplaza.
+ * - Si el mensaje suma un item ("tambien necesito 10 focos"), lo capturado pasa a varios items.
  */
-function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, facts: string): void {
+function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: QuantityRead, facts: string, adding: boolean): void {
   const text = facts.trim().replace(/\s+/g, ' ').slice(0, MAX_VARIOS);
-  if (quantity.several) {
+  if (adding && (quantity.value !== undefined || quantity.several) && (merged.cantidad || merged.cantidad_varios)) {
     if (merged.cantidad) {
       noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
+      merged.cantidad_varios = ((merged.producto ? merged.producto + ': ' : '') + merged.cantidad + ' / ' + text).slice(0, 2 * MAX_VARIOS);
       delete merged.cantidad;
-      merged.cantidad_varios = text;
-    } else if (!merged.cantidad_varios) merged.cantidad_varios = text;
-    else if (!comparable(merged.cantidad_varios).includes(comparable(text))) merged.cantidad_varios = (merged.cantidad_varios + ' / ' + text).slice(0, 2 * MAX_VARIOS);
+    } else appendVarios(merged, text);
+    return;
+  }
+  if (quantity.several) {
+    if (!merged.cantidad) { appendVarios(merged, text); return; }
+    if (!stated.several) return;
+    noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
+    delete merged.cantidad;
+    merged.cantidad_varios = text;
     return;
   }
   if (quantity.value === undefined) return;
   const value = String(quantity.value);
+  const change = quantity.explicit && stated.value === quantity.value ? value : undefined;
   if (merged.cantidad_varios && !merged.cantidad) {
-    if (!quantity.explicit) return;
+    if (!change) return;
     noteChange(merged, 'cantidad', 'varios items (' + merged.cantidad_varios.slice(0, 80) + ')', value);
     delete merged.cantidad_varios;
     merged.cantidad = value;
     return;
   }
-  keepOrChange(merged, 'cantidad', value, quantity.explicit ? value : undefined);
+  keepOrChange(merged, 'cantidad', value, change);
 }
 
 // [NO-PISAR] "SpA", "Ltda." o "S.A." son el tipo de una razon social, nunca el proyecto (prueba
@@ -601,12 +639,21 @@ const RAZON_WORD = '(?!(?:necesito|necesitamos|quiero|queremos|busco|requiero|ru
 const RAZON_SOCIAL_RE = new RegExp('raz[o\\u00f3]n\\s+social\\s*:?\\s*(?:(?:' + RAZON_WORD + '\\s+){0,6}?(?:s\\.?\\s?p\\.?\\s?a\\.?|ltda\\.?|limitada|s\\.?\\s?a\\.?|e\\.?\\s?i\\.?\\s?r\\.?\\s?l\\.?)(?![a-z])|(?:' + RAZON_WORD + '[^\\S\\n]*){1,6})', 'gi');
 // Un mensaje de WhatsApp trae hasta 1.600 caracteres: el tope evita trabajo de mas con uno mas largo.
 const MAX_FACTS = 2000;
+/** [NO-PISAR] El texto sin `needle`, sin importar mayusculas ni tildes ("COMERCIAL PRUEBA SPA"). */
+function removeLoose(text: string, needle: string): string {
+  const hay = bareText(text).toLowerCase();
+  const key = bareText(needle).toLowerCase();
+  if (hay.length !== text.length) return text.split(needle).join(' ');
+  let out = text;
+  for (let i = hay.indexOf(key); i >= 0; i = hay.indexOf(key, i + key.length)) out = out.slice(0, i) + ' '.repeat(key.length) + out.slice(i + key.length);
+  return out;
+}
 /** [NO-PISAR] El mensaje sin correos ni razon social: esas palabras no son producto, proyecto, comuna ni cantidad. */
 function factsText(body: string, claudeParsed: ClaudeFields): string {
   let text = body.slice(0, MAX_FACTS).replace(EMAIL_RE_ALL, ' ').replace(RAZON_SOCIAL_RE, ' ');
   for (const name of [claudeParsed.empresa, claudeParsed.nombre]) {
     const trimmed = typeof name === 'string' ? name.trim() : '';
-    if (trimmed.length > 2) text = text.split(trimmed).join(' ');
+    if (trimmed.length > 2) text = removeLoose(text, trimmed);
   }
   return text;
 }
@@ -624,33 +671,43 @@ function mergeProductFields(
   claudeParsed: ClaudeFields,
 ): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number } {
   const merged: CapturedFields = { ...state.captured };
+  // [CANTIDAD] Un estado guardado antes de este cambio puede traer un dato que no es texto (un
+  // objeto de Claude) o una cantidad que no es un entero ("No especificada"): se descarta y se pregunta.
+  for (const field of KEPT_FIELDS) if (merged[field] !== undefined && typeof merged[field] !== 'string') delete merged[field];
+  if (merged.cantidad && !/^\d{1,5}$/.test(merged.cantidad)) delete merged.cantidad;
   const inspected = inspectRut(body, { asked: rutAsked(state) });
   const ruts = inspected.found ? [inspected.found.rut] : inspected.ambiguous ?? [];
   const facts = factsText(body, claudeParsed);
+  // [NO-PISAR] Un dato capturado cambia solo con lo que el cliente afirma (sin sus preguntas) y nunca
+  // si el mensaje suma otro item. La regla cambia un dato solo si encuentra un valor (soleMatch).
+  const assertive = withoutQuestions(facts);
+  const adding = ADDITION_RE.test(assertive);
+  const rule = (re: RegExp) => (adding ? undefined : soleMatch(assertive, re));
+  const said = (value: string | undefined) => (adding ? undefined : value);
+  // [CANTIDAD] Un numero suelto contesta la pregunta solo si la cantidad todavia falta.
   const question = lastQuestionOf(state);
-  const quantity = readQuantity(facts, {
+  const options = {
     ruts,
-    asked: Boolean(question?.asks.includes('cantidad')),
+    asked: Boolean(question?.asks.includes('cantidad')) && !merged.cantidad && !merged.cantidad_varios,
     menuLength: question?.listLength ?? 0,
     contact: EMAIL_RE.test(body),
     claude: claudeParsed.cantidad,
-  });
+  };
+  const quantity = readQuantity(facts, options);
+  const stated = assertive === facts ? quantity : readQuantity(assertive, { ...options, menuLength: 0 });
   // Con varios items ("20 paneles y 30 focos") la regla ve uno solo: no cambia el producto.
-  const prodText = extractProducto(facts);
   const claudeProd = claudeText(claudeParsed.producto);
-  keepOrChange(merged, 'producto', claudeProd ?? prodText, backed(claudeProd, quantity.several ? undefined : prodText, facts));
+  keepOrChange(merged, 'producto', claudeProd ?? extractProducto(facts), backed(said(claudeProd), quantity.several ? undefined : rule(PRODUCTO_RE), assertive));
   // El color del texto gana al de Claude cuando no calzan (Claude puede repetir uno negado o viejo).
   const luzText = textLuz(facts);
   const claudeLuz = claudeText(claudeParsed.tipo_de_luz);
   const luzConflict = Boolean(luzText && claudeLuz && normalizeLuz(comparable(claudeLuz)) !== luzText);
-  keepOrChange(merged, 'tipo_de_luz', luzConflict ? luzText : claudeLuz ?? luzText, luzText);
-  mergeQuantity(merged, quantity, facts);
-  const proyText = extractProyecto(facts);
+  keepOrChange(merged, 'tipo_de_luz', luzConflict ? luzText : claudeLuz ?? luzText, adding ? undefined : textLuz(assertive));
+  mergeQuantity(merged, quantity, stated, facts, adding);
   const claudeProy = claudeProject(claudeParsed, body);
-  keepOrChange(merged, 'proyecto_o_uso', claudeProy ?? proyText, backed(claudeProy, proyText, facts));
-  const ciudadText = extractCiudad(facts);
+  keepOrChange(merged, 'proyecto_o_uso', claudeProy ?? extractProyecto(facts), backed(said(claudeProy), rule(PROYECTO_RE), assertive));
   const claudeCiudad = claudeText(claudeParsed.comuna_o_ciudad);
-  keepOrChange(merged, 'comuna_o_ciudad', claudeCiudad ?? ciudadText, backed(claudeCiudad, ciudadText, facts));
+  keepOrChange(merged, 'comuna_o_ciudad', claudeCiudad ?? extractCiudad(facts), backed(said(claudeCiudad), rule(CIUDAD_RE), assertive));
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
   // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
@@ -749,7 +806,9 @@ export function processFlowStep(
  * y cantidad aproximada, sin lista) queda anotada igual, para el mensaje siguiente.
  */
 export function recordMediaReply(phone: string): void {
-  saveFlowState(phone, { ...getFlowState(phone), rutAskedLast: false, lastQuestion: askedIn(['producto', 'espacio o proyecto de uso', 'cantidad de unidades'], 0) });
+  const state = getFlowState(phone);
+  const asks = [...missingStage1(state.captured).filter((m) => m !== 'tipo de luz preferida'), ...(state.captured.proyecto_o_uso ? [] : ['espacio o proyecto de uso'])];
+  saveFlowState(phone, { ...state, rutAskedLast: false, lastQuestion: askedIn(asks, 0) });
 }
 
 /**
@@ -759,7 +818,7 @@ export function recordMediaReply(phone: string): void {
 function lastQuestionOf(state: FlowState): LastQuestion | null {
   if (state.lastQuestion !== undefined) return state.lastQuestion;
   if (state.stage === 'stage1') {
-    if (state.repreguntasStage1 === 0) return askedIn(STAGE1_FIELDS, STAGE1_FIELDS.length);
+    if (state.repreguntasStage1 === 0) return greetQuestion(state.captured);
     const missing = missingStage1(state.captured);
     return askedIn(missing, missing.length > 1 ? missing.length : 0);
   }
@@ -868,7 +927,7 @@ function flowStep(
 
   if (state.stage === 'stage1' && GREET_ONLY.test(body.trim())) {
     saveFlowState(phone, { ...state, wantsHuman });
-    return { reply: MSG1, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: state.captured, wantsHuman, closedFlow: false, question: askedIn(STAGE1_FIELDS, STAGE1_FIELDS.length) };
+    return { reply: MSG1, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: state.captured, wantsHuman, closedFlow: false, question: greetQuestion(state.captured) };
   }
 
   // [FIX-2] Intencion de precio sin producto
@@ -927,7 +986,7 @@ function flowStep(
   if (menuPick !== undefined && state.stage === 'stage1') {
     saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType });
     console.log('[flowEngine] numero suelto despues de una lista — se pide aclarar');
-    return { reply: menuClarifyMsg(menuPick), shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: askedIn(STAGE1_FIELDS, 0) };
+    return { reply: menuClarifyMsg(menuPick), shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: askedIn(missingStage1(merged), 0) };
   }
   // [CASO-1] En las etapas 2 y 3, un numero suelto despues de su lista (MSG2, MSG3) repite la misma
   // pregunta, ya aprobada, una vez y sin avanzar (sin lista: un numero siguiente sigue el flujo).
@@ -1032,6 +1091,10 @@ const ASKED_FIELD: Record<string, AskedField> = {
 const STAGE1_FIELDS = ['producto', 'tipo de luz preferida', 'cantidad de unidades'];
 function askedIn(items: string[], listLength: number): LastQuestion {
   return { asks: items.map((item) => ASKED_FIELD[item]).filter(Boolean), listLength };
+}
+/** [CANTIDAD] MSG1 muestra la lista de 3, pero solo pide lo que falta (un "20" no pisa la cantidad ya dada). */
+function greetQuestion(captured: CapturedFields): LastQuestion {
+  return { asks: askedIn(missingStage1(captured), 0).asks, listLength: STAGE1_FIELDS.length };
 }
 
 function missingStage1(f: CapturedFields): string[] {

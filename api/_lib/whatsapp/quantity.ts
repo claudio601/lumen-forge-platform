@@ -50,18 +50,35 @@ const UNIT_NOUNS = '(?:unidades|unidad|panel(?:es)?|focos?|reflector(?:es)?|proy
 
 // "15und", "10 uds", "3 pzas" y los multiplicadores "10x panel" o "panel 18W x 20" pasan a
 // "N unidades" (nunca "60x60" ni "120 x 30": son medidas).
-const UNIT_WORDS_RE = /\b(\d+)\s*(?:unidades|unidad|unids?|unds?|uds?|u|pcs|pzas?)\b\.?/g;
+const UNIT_WORDS_RE = /\b(\d+)\s*(?:unidades|unidad|unids?|unis?|unds?|uds?|pzas?|pzs|pcs|un(?=\.)|u)\b\.?/g;
 const TIMES_BEFORE_RE = /\b(\d{1,5})\s*x(?=\s+[a-z])/g;
 const TIMES_AFTER_RE = /(^|[\s(])x\s*(\d{1,5})\b/g;
+// Numeros en palabras seguidos de la unidad o el producto ("dos paneles", "una docena de focos").
+// "un panel" no: suele nombrar el producto, y vale solo si Claude tambien dice 1 (ONE_UNIT_RE).
+const WORD_NUMBERS: Record<string, number> = {
+  'un par de': 2, 'media docena de': 6, 'una docena de': 12, 'docena de': 12, dos: 2, tres: 3, cuatro: 4, cinco: 5,
+  seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, quince: 15, veinte: 20, treinta: 30,
+  cuarenta: 40, cincuenta: 50, cien: 100,
+};
 
 // Direccion: la calle o avenida con su numero ("Av. Prueba 123"), salvo que el numero sea de un
 // producto ("calle con 30 focos"), y el numero de un kilometro, una oficina, un piso o un local.
-const STREET_RE = new RegExp('\\b(?:calle|avenida|avda|av|pasaje|psje|pje|camino|ruta|autopista|costanera|alameda)\\.?\\s+(?:(?!(?:con|para|necesito|necesitamos|son|unos|unas|y)\\b)[a-z\'.]+\\s+){0,5}?(?:n[\\u00b0\\u00ba]?\\.?\\s*|#\\s*|numero\\s+)?\\d+\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
+const STREET_RE = new RegExp('\\b(?:calle|avenida|avda|av|pasaje|psje|pje|camino|ruta|autopista|costanera|alameda)\\.?\\s+(?:(?!(?:con|para|necesito|necesitamos|son|unos|unas|y)\\b)[a-z\'.]+\\s+){0,5}?(?:n[\\u00b0\\u00ba]?\\.?\\s*|#\\s*|numero\\s+)?\\d+\\b(?!\\s*' + UNIT_NOUNS + ')(?:\\s*,?\\s*(?:of|oficina|local|bodega|depto|dpto|departamento|casa|piso|block|torre|lote|parcela|sitio)\\.?\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*)?\\d+[a-z]?\\b)*', 'g');
+const WORD_NUMBER_RE = new RegExp('\\b(' + Object.keys(WORD_NUMBERS).join('|') + ')\\s+(?=' + UNIT_NOUNS + '\\b)', 'g');
+const ONE_UNIT_RE = new RegExp('\\b(?:un|una)\\s+' + UNIT_NOUNS + '\\b');
 const PLACE_NUMBER_RE = new RegExp('\\b(?:(?:km|kilometro|parcela|lote|sitio|manzana|mz|block|blk|torre|depto|dpto|of|piso)\\.?\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*|numero\\s*)?|(?:oficina|local|bodega|casa|galpon|nave|departamento)\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*|numero\\s*))\\d+[a-z]?\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
 
 const URL_RE = /(?:https?:\/\/|www\.)\S*/g;
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g;
 const RUT_DASH_RE = /\b\d{1,2}(?:[.\s]?\d{3}){2}\s*[-\u2010-\u2015\u2212]\s*[\dk]\b/g;
+const MONTHS = '(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)';
+// Numeros de documentos ("pedido 4521", "cotizacion n 88", "licitacion 1234"), salvo "cotizacion 30 focos".
+const DOCUMENT_NUMBER_RE = new RegExp('\\b(?:pedido|orden|factura|boleta|folio|oc|licitacion|cotizacion|ticket|caso|solicitud|reclamo|id)\\s*[:.#]?\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*)?\\d+\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
+// Chips LED (tira 5050, SMD 2835).
+const LED_CHIP_RE = new RegExp('\\b(?:smd\\s*)?(?:5050|2835|3528|5630|5730|2216|3014|4014)\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
+// [CASO-1] Marcas de una lista contestada en una linea ("1: paneles 2: fria 3: 20", "1. paneles, 2. fria"):
+// se quitan solo si estan la 1 y la 2.
+const INLINE_MARK_RE = /(^|[\s,;])([1-9])\s*(?:[.):]\s*-?|-)\s+/g;
 
 // Lo que nunca es cantidad, en este orden (cada uno se cambia por un espacio).
 const NOT_QUANTITY: readonly RegExp[] = [
@@ -70,7 +87,11 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\+?56(?:[\s.()-]*\d){8,9}/g,
   /\(\s*\d{1,2}\s*\)\s*\d{3,4}[\s.-]?\d{4}/g,
   /\b[29][\s.-]?\d{4}[\s.-]?\d{4}\b/g,
+  /\b\d{2}[\s.-]\d{3}[\s.-]\d{4}\b/g,
+  /\b\d{3}[\s.-]\d{3}[\s.-]\d{3}\b/g,
   /\b\d{4}[\s.-]\d{4}\b/g,
+  // IDs de licitacion de Mercado Publico (1234-56-LE26)
+  /\b\d{3,5}-\d{1,4}-[a-z]{1,3}\d{1,3}\b/g,
   // direcciones: el bloque "Direccion: ..." hasta el dato siguiente, la calle y el numero de un
   // lugar ("of. 12", "km 5", "local n 3"), y numeros con letra ("45-b")
   /\bdireccion[^:\n]{0,30}:[^\n]*?(?=\b(?:correo|e-?mail|mail|contacto|fono|telefono|tel|celular|giro|rut|razon social|nombre|comuna|ciudad|region)\b|\n|$)/g,
@@ -79,13 +100,21 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\b\d+-[a-z]\b/g,
   // numeros de pedido, montos, fechas y horas
   /(?:\bn[\u00b0\u00ba]|\bnro\b\.?|\bnumero\b|#)\s*[:.]?\s*\d+/g,
-  /\b(?:pedido|orden|factura|boleta|folio|oc|licitacion|id)\s*[:.#]?\s*\d+/g,
+  DOCUMENT_NUMBER_RE,
   /\$\s*\d[\d.,]*/g,
   /\b\d{1,2}[:/-]\d{1,2}(?:[:/-]\d{2,4})?\b/g,
-  // medidas (60x60, 120 x 30 x 8)
+  new RegExp('\\b\\d{1,2}\\s+de\\s+' + MONTHS + '\\b', 'g'),
+  new RegExp('\\b' + MONTHS + '\\s+(?:de\\s+|del\\s+)?\\d{2,4}\\b', 'g'),
+  /\b(?:lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+\d{1,2}\b/g,
+  /\b(?:de|del|en|el|ano|hasta|desde|antes\s+de|fines\s+de)\s+(?:19|20)\d{2}\b/g,
+  // medidas (60x60, 120 x 30 x 8, 60 por 60), casquillos con espacio (E 27, GU 10) y chips LED
   /\b\d+(?:[.,]\d+)?\s*[x\u00d7*]\s*\d+(?:[.,]\d+)?(?:\s*[x\u00d7*]\s*\d+(?:[.,]\d+)?)?/g,
+  /\b\d+(?:[.,]\d+)?\s+por\s+\d+(?:[.,]\d+)?\b/g,
+  /\b(?:e\s(?:27|14|40|12)|gu\s(?:10|5\.3)|mr\s(?:16|11)|ar\s111|t\s(?:5|8|12)|g\s(?:13|9|4|24))\b/g,
+  LED_CHIP_RE,
+  /\b\d+\s*leds?\s*(?:\/|x|por)\s*(?:m|mts?|mtrs?|metros?)\b/g,
   // marcas de una lista copiada ("1) paneles", "2. fria")
-  /(?:^|\n)\s*\d\s*[.)-]\s/g,
+  /(?:^|\n)\s*\d\s*(?:[.)]\s*-?|-)\s/g,
   /\b\d\)/g,
   // numeros largos o con dos puntos (RUT sin guion, celulares), decimales
   /\b\d{1,3}(?:\.\d{3}){2,}\b/g,
@@ -93,8 +122,8 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\b\d+,\d+\b/g,
   /\b\d+\.(?!\d{3}\b)\d+\b/g,
   // numeros con unidad, tambien en rango (15W, 4000 K, 3000-4000K, 3 m, 40 cms, 200 m2, 220V, 30%)
-  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|m|metros?|v|volts?|vac|vdc|lm|lumen(?:es)?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg)(?![a-z])/g,
-  /\b\d+(?:[.,]\d+)?\s*(?:\u00b0|%|")/g,
+  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|m|metros?|v|volts?|vac|vdc|lm|lms|lumen(?:es|s)?|kelvins?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg)(?![a-z])/g,
+  /\b\d+(?:[.,]\d+)?\s*(?:\u00b0|\u00ba|%|")/g,
   // grados IP/IK y codigos de modelo (VENUSII08017, BL-200, E27, GU10, T8, 2do)
   /\b(?:ip|ik)\s*\d+/g,
   /\b[a-z]+[-_]?\d[a-z0-9]*(?:[-_/][a-z0-9]+)*/g,
@@ -102,32 +131,43 @@ const NOT_QUANTITY: readonly RegExp[] = [
 ];
 
 // Despues del numero: algo que no son unidades del pedido ("2 cotizaciones", "3 bodegas", "2 dias").
-const NOT_UNIT_AFTER_RE = /^\s*(?:cotizacion(?:es)?|tipos?|modelos?|opcion(?:es)?|colou?r(?:es)?|medidas?|potencias?|alternativas?|presupuestos?|consultas?|preguntas?|sucursal(?:es)?|dias?|semanas?|mes(?:es)?|anos?|horas?|hrs?|minutos?|veces|vez|pisos?|salas?|oficinas?|bodegas?|local(?:es)?|casas?|departamentos?|deptos?|ambientes?|habitacion(?:es)?|piezas?|dormitorios?|banos?|canchas?|sector(?:es)?|zonas?|areas?|pasillos?|lineas?|cosas?|productos?|items?|articulos?|personas?|trabajador(?:es)?|proyectos?|obras?|etapas?|fases?|nivel(?:es)?|calles?|mil|millon(?:es)?|pesos|lucas|clp|usd|dolares|uf|cuotas?|puntos?|lugar(?:es)?|espacios?|partes?|version(?:es)?|marcas?|fichas?|catalogos?|ofertas?)\b/;
+const NOT_UNIT_AFTER_RE = /^\s*(?:cotizacion(?:es)?|tipos?|modelos?|opcion(?:es)?|colou?r(?:es)?|medidas?|potencias?|alternativas?|presupuestos?|consultas?|preguntas?|sucursal(?:es)?|dias?|semanas?|mes(?:es)?|anos?|horas?|hrs?|minutos?|veces|vez|pisos?|salas?|oficinas?|bodegas?|local(?:es)?|casas?|departamentos?|deptos?|ambientes?|habitacion(?:es)?|piezas?|dormitorios?|banos?|canchas?|sector(?:es)?|zonas?|areas?|pasillos?|lineas?|cosas?|productos?|items?|articulos?|personas?|trabajador(?:es)?|proyectos?|obras?|etapas?|fases?|nivel(?:es)?|calles?|galpon(?:es)?|naves?|edificios?|tiendas?|terrazas?|patios?|jardin(?:es)?|estacionamientos?|colegios?|recintos?|sedes?|faenas?|torres?|blocks?|bloques?|plantas?|comunas?|ciudades|regiones|mil|millon(?:es)?|pesos|lucas|clp|usd|dolares|uf|cuotas?|puntos?|lugar(?:es)?|espacios?|partes?|version(?:es)?|marcas?|fichas?|catalogos?|ofertas?)\b/;
 // Despues del numero: unidades o productos ("30 paneles", "10 unidades", "20 BESTLED").
 const UNIT_AFTER_RE = new RegExp('^\\s*(' + UNIT_NOUNS + ')\\b');
 // "20 piezas de panel", "5 articulos de tubos": la pieza o el articulo es del producto.
 const GENERIC_OF_UNIT_RE = new RegExp('^\\s*(?:piezas?|articulos?|productos?|items?)\\s+(?:de\\s+)?(?:(?:el|la|los|las|este|estos|ese|esos)\\s+)?' + UNIT_NOUNS + '\\b');
+// "tubos de 120", "plafones led de 18": el numero despues del producto y "de" es su medida o potencia.
+const SPEC_OF_BEFORE_RE = new RegExp('\\b' + UNIT_NOUNS + '(?:\\s+[a-z]+){0,2}\\s+de\\s*$');
 // Antes del numero: un pedido ("necesito 30", "son 7", "cotizar unos 20", "cantidad: 12", "sino 10").
-const VERB_BEFORE_RE = /(?:\b(?:necesito|necesitamos|necesitaria|necesitariamos|requiero|requerimos|quiero|queremos|quisiera|quisieramos|busco|buscamos|ocupo|ocupamos|cotizar|cotizo|cotizame|cotizarme|comprar|compro|compraria|pedir|llevar|llevo|son|serian|seria|seran|sera|sean|total|cantidad|cant\.?|sino|mejor|corrijo|corrigo|correccion|ahora|perdon|(?:cambio|cambiar|cambia|cambiamos)\s+a)[\s:=,]*(?:de\s+)?(?:unos|unas|un total de|aprox(?:imadamente)?\.?|alrededor de|como|cerca de|al menos|minimo|maximo|mas o menos)?|(?:^|[\s,.;:])(?:unos|unas|aprox(?:imadamente)?\.?|alrededor de|cerca de|mas o menos))\s*$/;
+const VERB_BEFORE_RE = /(?:\b(?:necesito|necesitamos|necesitaria|necesitariamos|requiero|requerimos|quiero|queremos|quisiera|quisieramos|busco|buscamos|ocupo|ocupamos|cotizar|cotizo|cotizame|cotizarme|comprar|compro|compraria|pedir|llevar|llevo|son|eran|serian|seria|seran|sera|sean|total|cantidad|cant\.?|sino|mejor|corrijo|corrigo|correccion|ahora|perdon|(?:cambio|cambiar|cambia|cambiamos)\s+a)[\s:=,]*(?:de\s+)?(?:unos|unas|un total de|aprox(?:imadamente)?\.?|alrededor de|como|cerca de|al menos|minimo|maximo|mas o menos)?|(?:^|[\s,.;:])(?:unos|unas|aprox(?:imadamente)?\.?|alrededor de|cerca de|mas o menos))\s*$/;
 // Antes del numero: otro dato ("modelo 50", "presupuesto clp 50000", "potencia de 24", "fono 1234").
-const OTHER_DATUM_BEFORE_RE = /\b(?:modelo|mod|codigo|cod|ref|referencia|sku|serie|potencia|vatios|watts|presupuesto|precio|valor|monto|costo|clp|usd|uf|fono|telefono|tel|cel|celular|movil|whatsapp|wsp|rut|altura|largo|ancho|alto|diametro|distancia|superficie|temperatura|voltaje|tension)\.?\s*(?:de\s+|es\s+|:\s*|n[\u00b0\u00ba]\.?\s*|#\s*|nro\.?\s*|aprox(?:imado|imadamente)?\.?\s*|maximo\s+|minimo\s+|total\s+)*$/;
+const OTHER_DATUM_BEFORE_RE = /\b(?:modelo|mod|codigo|cod|ref|referencia|sku|serie|potencia|vatios|watts|presupuesto|precio|valor|monto|costo|clp|usd|uf|fono|telefono|tel|cel|celular|movil|whatsapp|wsp|rut|altura|largo|ancho|alto|diametro|distancia|superficie|temperatura|voltaje|tension|cri|irc|ra|lumenes|flujo|chip|smd|ano)\.?\s*(?:de\s+|>\s*|=\s*|es\s+|:\s*|n[\u00b0\u00ba]\.?\s*|#\s*|nro\.?\s*|aprox(?:imado|imadamente)?\.?\s*|maximo\s+|minimo\s+|total\s+)*$/;
 // Antes del numero: una negacion ("son 7, no 10", "ni 20").
-const NEGATED_BEFORE_RE = /\b(?:no|ni|tampoco)\s+(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?$/;
+const NEGATED_BEFORE_RE = /(?:\b(?:no|ni|tampoco)\s+(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?|\ben\s+(?:vez|lugar)\s+de\s+)$/;
+// Despues del numero: la cantidad que corrige ("eran 25, no 20", "25 en vez de 20").
+const CORRECTION_AFTER_RE = /^\s*,?\s*(?:y\s+)?(?:no\s+\d|en\s+(?:vez|lugar)\s+de\b)/;
 // Junto a otra cantidad: "30 paneles y 20 de 24W", "entre 20 y 30", "20 o 30 focos".
 const CHAIN_BEFORE_RE = /(?:\by|,|;|\+|\bmas|\bademas|\btambien|\bentre|\botr[oa]s?)\s*$/;
 const CHAIN_AFTER_RE = /^\s*(?:y|o|a|al|hasta|\+|,)\s*\d/;
 // Una cantidad por item ("10 de cada modelo", "5 c/u"): varios items.
 const PER_ITEM_RE = /\b(?:de\s+cada\s+(?:un[oa]|modelo|tipo|color|producto|medida|potencia|item)|cada\s+un[oa]|c\/u|por\s+(?:cada\s+)?(?:modelo|tipo|color))\b/;
+// La respuesta a la pregunta por la cantidad es "uno" ("solo una", "uno nomas").
+const ONE_ANSWER_RE = /^\s*(?:(?:necesito|quiero|solo|solamente|nada\s+mas|es|seria|sera)\s+)*un[oa](?:\s+(?:solo|sola|nomas|nada\s+mas|no\s+mas))?\s*[.!]*\s*$/;
 // [CASO-1] El mensaje es solo un numero corto ("1", "1.", "la 2", "opcion 3").
 const MENU_PICK_RE = /^\s*(?:(?:la|el|opcion|numero)\s+)?(\d{1,2})\s*[).:-]?\s*[.!]?\s*$/;
+// [CASO-1] Una eleccion de la lista ("la opcion 2", "me referia a la 1", "el 3"): nunca es la cantidad.
+const SELECTION_RE = new RegExp('^\\s*(?:me\\s+referia\\s+a\\s+(?:la\\s+|el\\s+)?(?:opcion\\s+|numero\\s+)?|(?:la|el)\\s+(?:opcion\\s+|numero\\s+)?|(?:opcion|numero|alternativa)\\s+)(\\d{1,2})\\b(?!\\s*' + UNIT_NOUNS + ')');
 
 /** El texto sin lo que nunca es cantidad. */
 export function withoutNonQuantities(text: string, ruts: readonly string[] = []): string {
   let out = removeRuts(plain(text), ruts).replace(URL_RE, ' ').replace(EMAIL_RE, ' ')
+    .replace(WORD_NUMBER_RE, (all: string, words: string) => WORD_NUMBERS[words] + ' ')
     .replace(UNIT_WORDS_RE, '$1 unidades ')
     .replace(TIMES_BEFORE_RE, '$1 unidades ')
     .replace(TIMES_AFTER_RE, (all: string, lead: string, n: string, offset: number, s: string) =>
       /\d/.test(s.slice(0, offset).trimEnd().slice(-1)) ? all : lead + n + ' unidades ');
+  const marks = new Set([...out.matchAll(INLINE_MARK_RE)].map((m) => m[2]));
+  if (marks.has('1') && marks.has('2')) out = out.replace(INLINE_MARK_RE, '$1 ');
   for (const re of NOT_QUANTITY) out = out.replace(re, ' ');
   return out;
 }
@@ -162,12 +202,14 @@ function candidates(clean: string): Candidate[] {
     const before = clean.slice(Math.max(0, m.index - 40), m.index);
     const unit = after.match(UNIT_AFTER_RE);
     const ofUnit = unit !== null || GENERIC_OF_UNIT_RE.test(after);
+    const verb = VERB_BEFORE_RE.test(before);
     if (!ofUnit && (NOT_UNIT_AFTER_RE.test(after) || OTHER_DATUM_BEFORE_RE.test(before))) continue;
+    if (!ofUnit && !verb && SPEC_OF_BEFORE_RE.test(before)) continue;
     if (NEGATED_BEFORE_RE.test(before)) continue;
     const value = Number(m[1].replace('.', ''));
     if (value < 1 || value > MAX_QUANTITY) continue;
     const item = unit && !unit[1].startsWith('unidad') ? unit[1].replace(/\s+/g, '').slice(0, 4) : undefined;
-    out.push({ value, explicit: ofUnit || VERB_BEFORE_RE.test(before), item, chained: CHAIN_BEFORE_RE.test(before) || CHAIN_AFTER_RE.test(after) });
+    out.push({ value, explicit: ofUnit || verb || CORRECTION_AFTER_RE.test(after), item, chained: CHAIN_BEFORE_RE.test(before) || CHAIN_AFTER_RE.test(after) });
   }
   return out;
 }
@@ -175,13 +217,16 @@ function candidates(clean: string): Candidate[] {
 /** La cantidad que trae el mensaje, segun las reglas de arriba. */
 export function readQuantity(body: string, options: QuantityOptions = {}): QuantityRead {
   const text = plain(body);
-  const menu = text.match(MENU_PICK_RE);
+  const selection = text.match(SELECTION_RE);
+  const menu = text.match(MENU_PICK_RE) ?? selection;
   if (menu && options.menuLength) {
     const pick = Number(menu[1]);
     if (pick >= 1 && pick <= options.menuLength) return { explicit: false, menuPick: pick };
   }
+  if (selection) return { explicit: false };
   const contact = Boolean(options.contact || options.ruts?.length || new RegExp(RUT_DASH_RE.source).test(text));
   const asked = Boolean(options.asked) && !contact;
+  if (asked && ONE_ANSWER_RE.test(text)) return { value: 1, explicit: true };
   const clean = withoutNonQuantities(body, options.ruts);
   const found = candidates(clean);
   const explicit = found.filter((c) => c.explicit);
@@ -193,5 +238,6 @@ export function readQuantity(body: string, options: QuantityOptions = {}): Quant
   const loose = [...new Set(found.map((c) => c.value))];
   if (asked && loose.length === 1) return { value: loose[0], explicit: true };
   if (asked && loose.length > 1 && chainedLoose) return { explicit: false, several: true };
+  if (!found.length && claudeQuantity(options.claude) === 1 && ONE_UNIT_RE.test(clean)) return { value: 1, explicit: false };
   return loose.length === 1 && claudeQuantity(options.claude) === loose[0] ? { value: loose[0], explicit: false } : { explicit: false };
 }

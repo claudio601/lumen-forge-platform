@@ -181,7 +181,7 @@ describe('B2: la cantidad es un entero o nada', () => {
     it(`Claude devuelve ${JSON.stringify(value)}`, () => {
       const r = step('para la bodega, 30', { producto: 'focos LED', cantidad: value as string });
       expect(r.captured.cantidad === undefined || /^\d+$/.test(r.captured.cantidad)).toBe(true);
-      expect(JSON.stringify(r.captured)).not.toContain('[object Object]');
+      expect(typeof r.captured.cantidad === 'string' || r.captured.cantidad === undefined).toBe(true);
       expect(r.captured.cantidad).toBe(value === '30' || value === 30 ? '30' : undefined);
     });
   }
@@ -351,7 +351,136 @@ describe('ronda 2 (Codex y leads reales)', () => {
   it('un objeto de Claude nunca queda como dato', () => {
     const odd = { producto: { nombre: 'panel' }, comuna_o_ciudad: ['Maipú'], proyecto_o_uso: { tipo: 'bodega' } } as unknown as Claude;
     const r = step('Necesito 10 paneles LED luz fría', odd);
-    expect(JSON.stringify(r.captured)).not.toContain('[object Object]');
     expect(r.captured.producto).toBe('paneles LED');
+    expect(r.captured.comuna_o_ciudad).toBeUndefined();
+    expect(r.captured.proyecto_o_uso).toBeUndefined();
+  });
+});
+
+describe('ronda 3 (revisión adversaria)', () => {
+  const FIRST = 'Necesito 30 paneles LED 60x60 luz neutra para una oficina en Providencia';
+  const RIGHT: Claude = { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '30', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia' };
+
+  it('una pregunta del cliente no cambia lo capturado', () => {
+    step(FIRST, RIGHT);
+    const r = step('¿tienen tienda en Santiago para retirar? mi correo es ana@example.com', { correo: 'ana@example.com' });
+    expect(r.captured).toMatchObject({ proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia', correo: 'ana@example.com' });
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('un producto menos preciso, dentro de una pregunta, no reemplaza al capturado', () => {
+    step(FIRST, RIGHT);
+    const r = step('es para una oficina en Providencia, ¿los paneles led traen driver?', {});
+    expect(r.captured.producto).toBe('paneles LED 60x60');
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('un segundo producto ("también necesito…") se suma como varios ítems, sin pisar el primero', () => {
+    step(FIRST, RIGHT);
+    const r = step('y también necesito 10 focos LED para el pasillo', { producto: 'focos LED' });
+    expect(r.captured).toMatchObject({ producto: 'paneles LED 60x60', proyecto_o_uso: 'oficina' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBe('paneles LED 60x60: 30 / y también necesito 10 focos LED para el pasillo');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 30, ahora varios items']);
+  });
+
+  it('"calidad" no es luz cálida', () => {
+    step('Necesito 10 paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' });
+    expect(step('busco buena calidad', { tipo_de_luz: 'fria' }).captured.tipo_de_luz).toBe('fria');
+  });
+
+  it('la razón social en mayúsculas no cambia el proyecto ni la comuna', () => {
+    step(FIRST, RIGHT);
+    const r = step('COMERCIAL BODEGA MAIPU SPA, RUT 77.123.456-9, compras@example.com', { empresa: 'Comercial Bodega Maipu SpA', correo: 'compras@example.com' });
+    expect(r.captured).toMatchObject({ proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia', cantidad: '30' });
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('la lista de MSG1 contestada en una línea deja la cantidad', () => {
+    step('Hola', {});
+    const r = step('1. paneles LED, 2. fría, 3. 20', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '20' });
+    expect(r.captured.cantidad).toBe('20');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it('después de la aclaración, "me refería a la opción 2" no es la cantidad, y la aclaración no pide el producto ya dado', () => {
+    step('busco paneles LED para una bodega', { producto: 'paneles LED' });
+    expect(step('2', {}).reply).toBe(flow.menuClarifyMsg(2));
+    expect(flow.getFlowState(PHONE).lastQuestion?.asks).toEqual(['tipo_de_luz', 'cantidad']);
+    expect(step('me refería a la opción 2, el tipo de luz', {}).captured.cantidad).toBeUndefined();
+  });
+
+  it('un saludo a mitad de la etapa 1 no deja que un número suelto pise la cantidad', () => {
+    step('Necesito 30 paneles LED', { producto: 'paneles LED', cantidad: '30' });
+    step('Hola', {});
+    const r = step('luz fría, es para el piso 2', { tipo_de_luz: 'fria' });
+    expect(r.captured.cantidad).toBe('30');
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('una cantidad que no es un entero, guardada por la versión anterior, se descarta y se pregunta', () => {
+    step('Necesito paneles LED luz fría para una oficina', { producto: 'paneles LED', tipo_de_luz: 'fria', proyecto_o_uso: 'oficina' });
+    const saved = flow.getFlowState(PHONE);
+    flow.saveFlowState(PHONE, { ...saved, captured: { ...saved.captured, cantidad: 'No especificada' } });
+    const r = step('en Providencia', { comuna_o_ciudad: 'Providencia' });
+    expect(r.captured.cantidad).toBeUndefined();
+  });
+
+  it('"dos paneles" es la cantidad 2', () => {
+    expect(step('Necesito dos paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria' }).captured.cantidad).toBe('2');
+  });
+
+  it.each([
+    ['Me pueden recomendar a alguien como instalador para mi casa?', true],
+    ['Soy técnico instalador, necesito 50 paneles 60x60 luz neutra', false],
+    ['Somos una empresa de instaladores, necesitamos 50 paneles 60x60 luz neutra', false],
+    ['Soy instalador, necesito 50 paneles 60x60 luz neutra para instalar en una oficina', false],
+    ['Me dedico a instalar luminarias, necesito 50 paneles 60x60 luz neutra', false],
+  ])('instalación: "%s" → flujo de instalación %s', (text, install) => {
+    step(text, {});
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(install);
+    if (!install) expect(flow.getFlowState(PHONE).captured.cantidad).toBe('50');
+  });
+
+  it.each([
+    ['fono (32) 212 3456', '322123456'],
+    ['mi teléfono es 32 212 3456', '322123456'],
+    ['RUT 21.234.567-9', undefined],
+  ])('teléfono de la instalación: "%s" → %s', (text, expected) => {
+    step('Busco un instalador para mi casa en Maipú, ' + text, {});
+    expect(flow.getFlowState(PHONE).captured.install_telefono).toBe(expected);
+  });
+});
+
+describe('ronda 4 (revisión adversaria)', () => {
+  it('"tubos led de 120" contestando MSG1: 120 es el largo, no la cantidad, y el bot la pregunta', () => {
+    step('Hola', {});
+    const r = step('tubos led de 120 luz fría', { producto: 'tubos led', tipo_de_luz: 'fria', cantidad: '120' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.reply).toMatch(/cantidad de unidades/i);
+  });
+
+  it('"tubos de 120, fría, 30" contestando MSG1 deja 30', () => {
+    step('Hola', {});
+    const r = step('tubos de 120, fría, 30', { producto: 'tubos', tipo_de_luz: 'fria', cantidad: '30' });
+    expect(r.captured.cantidad).toBe('30');
+    expect(r.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it('la lista de MSG1 contestada con "1.-" en varias líneas deja la cantidad', () => {
+    step('Hola', {});
+    expect(step('1.- paneles LED\n2.- fría\n3.- 20', { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '20' }).captured.cantidad).toBe('20');
+  });
+
+  it.each(['eran 25, no 20', 'cambio: 25 en vez de 20'])('la corrección "%s" cambia la cantidad y queda anotada', (text) => {
+    step('Necesito 20 paneles 60x60 luz fría', { producto: 'paneles 60x60', tipo_de_luz: 'fria', cantidad: '20' });
+    const r = step(text, { cantidad: '25' });
+    expect(r.captured.cantidad).toBe('25');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 25']);
+  });
+
+  it('"uno" contesta la pregunta por la cantidad', () => {
+    step('Necesito reflector solar de 200W luz fría', { producto: 'reflector solar', tipo_de_luz: 'fria' });
+    expect(step('uno', { cantidad: '1' }).captured.cantidad).toBe('1');
   });
 });

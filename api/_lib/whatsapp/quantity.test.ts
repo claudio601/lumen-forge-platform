@@ -37,7 +37,8 @@ describe('lo que nunca es cantidad', () => {
     'te escribo el 16-10 a las 15:30',
     'busco modelos E27 o GU10',
   ])('%s', (text) => {
-    expect(readQuantity(text, { claude: '15' }).value).toBeUndefined();
+    // Con la pregunta por la cantidad y Claude de acuerdo: solo el filtro evita tomar el número.
+    expect(readQuantity(text, { asked: true, claude: text.match(/\d+/)?.[0] }).value).toBeUndefined();
   });
 });
 
@@ -167,5 +168,79 @@ describe('ronda 2 (Codex y leads reales): un número que el texto da como otro d
 
   it('CASO-1: el número de una lista se aclara aunque la lista no pidiera la cantidad', () => {
     expect(readQuantity('1', { menuLength: 2 })).toEqual({ explicit: false, menuPick: 1 });
+  });
+});
+
+describe('ronda 3 (revisión adversaria): más datos que no son cantidad', () => {
+  it.each([
+    'te escribo el 15 de noviembre',
+    'lo necesito para el 2026',
+    'licitación 1234-56-LE26',
+    'es por la cotización 4521',
+    'fono 22 123 4567',
+    'tira led 5050',
+    'casquillo E 27',
+    'panel de 60 por 60',
+    'CRI 80',
+    'Ra>80',
+    '2000 lumens',
+    'Calle Prueba 45, local 20',
+    'me refería a la opción 2, el tipo de luz',
+    'la 1',
+  ])('%s → vacía, aunque la pregunta pidiera la cantidad', (text) => {
+    expect(readQuantity(text, { asked: true, claude: text.match(/\d+/)?.[0] }).value).toBeUndefined();
+  });
+
+  it.each([
+    ['1: paneles LED 2: luz fría 3: 20 unidades', 20],
+    ['1. paneles LED, 2. fría, 3. 20', 20],
+  ])('la lista de MSG1 contestada en una línea: %s → %i', (text, expected) => {
+    expect(readQuantity(text, { asked: true, menuLength: 3 })).toEqual({ value: expected, explicit: true });
+  });
+
+  it.each([
+    ['necesito dos paneles', 2],
+    ['una docena de focos', 12],
+    ['quiero cotizar una cotización de 30 focos', 30],
+    ['necesito 30 focos y 2 galpones', 30],
+    ['20 un. de panel', 20],
+    ['necesito 15 pzs', 15],
+  ])('%s → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+
+  it('"un reflector" vale 1 solo si Claude también dice 1', () => {
+    expect(readQuantity('busco un reflector', { claude: 1 })).toEqual({ value: 1, explicit: false });
+    expect(readQuantity('busco un reflector').value).toBeUndefined();
+  });
+
+  it('"la opción 2" con la lista a la vista es la elección del ítem', () => {
+    expect(readQuantity('la opción 2', { asked: true, menuLength: 2 })).toEqual({ explicit: false, menuPick: 2 });
+  });
+});
+
+describe('ronda 4 (revisión adversaria): medidas después del producto, correcciones y "uno"', () => {
+  it.each([
+    'tubos led de 120 luz fría',
+    'plafones de 18',
+    'reflectores solares de 100',
+  ])('"%s": el número después del producto y "de" es su medida o potencia', (text) => {
+    expect(readQuantity(text, { asked: true, claude: text.match(/\d+/)?.[0] }).value).toBeUndefined();
+  });
+
+  it.each([
+    ['tubos de 120, fría, 30', { asked: true }, 30],
+    ['necesito 30 cintas 2835 de 60 leds/m', {}, 30],
+    ['1.- paneles LED\n2.- fría\n3.- 20', { asked: true, menuLength: 3 }, 20],
+    ['eran 25, no 20', {}, 25],
+    ['cambio: 25 en vez de 20', {}, 25],
+    ['necesito de 30 tubos', {}, 30],
+  ])('%s %j → %i', (text, options, expected) => {
+    expect(readQuantity(text, options)).toEqual({ value: expected, explicit: true });
+  });
+
+  it.each(['uno', 'solo una', 'uno nomás', 'necesito solo uno'])('"%s" contesta la pregunta por la cantidad con 1', (text) => {
+    expect(readQuantity(text, { asked: true })).toEqual({ value: 1, explicit: true });
+    expect(readQuantity(text).value).toBeUndefined();
   });
 });
