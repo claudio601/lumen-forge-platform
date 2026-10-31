@@ -296,3 +296,48 @@ describe('ronda 5 (Codex, ronda 2)', () => {
     expect(readQuantity('2: fría; 3: 20 unidades', { asked: true, menuLength: 3 })).toEqual({ value: 20, explicit: true });
   });
 });
+
+describe('ronda 6 (revisión adversaria de la ronda 5)', () => {
+  it.each([
+    'necesito 50 tubos LED de 120 y 30 de 60',
+    'necesito 20 reflectores de 100 y 10 de 200',
+    'necesito 4 focos de 10 y 2 de 20',
+    'necesito 10 focos de 50 y 10 de 100',
+    'mejor dos de 60x60 y tres de 120x60',
+    'quiero cinco de luz fría y cinco de luz cálida',
+    'necesito diez de 18W y cinco de 24W',
+    'son dos de 60x60 y uno de 120',
+  ])('H7 y H8: "%s" → varios ítems', (text) => {
+    expect(readQuantity(text)).toEqual({ explicit: false, several: true });
+  });
+
+  it('H8: con la pregunta hecha, "necesitamos cuatro de 18w y dos de 36w" → varios ítems', () => {
+    expect(readQuantity('necesitamos cuatro de 18w y dos de 36w', { asked: true })).toEqual({ explicit: false, several: true });
+  });
+
+  it.each([
+    ['necesito dos cientos focos LED', 200],
+    ['son seis cientas luminarias', 600],
+    ['necesito tres cientos cincuenta paneles', 350],
+  ])('H9: la centena en dos palabras: "%s" → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+
+  it('H9: "necesito unos dos cientos" contesta la pregunta con 200', () => {
+    expect(readQuantity('necesito unos dos cientos', { asked: true })).toEqual({ value: 200, explicit: true });
+  });
+
+  it.each([
+    'necesito luminarias solares para un camino de unos dos kilómetros',
+    'es un terreno de unas dos hectáreas',
+    'necesito iluminar un camino rural de unos tres kilometros',
+    'para un camino de unos 2 km',
+    'son unas tres cuadras',
+  ])('H10: "%s" → vacía, aunque la pregunta pidiera la cantidad', (text) => {
+    expect(readQuantity(text, { asked: true }).value).toBeUndefined();
+  });
+
+  it('la medida encadenada sin otro ítem sigue siendo la medida', () => {
+    expect(readQuantity('necesito 30 tubos LED de 120 y 60')).toEqual({ value: 30, explicit: true });
+  });
+});

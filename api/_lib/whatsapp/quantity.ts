@@ -69,8 +69,14 @@ const NUMBER_WORDS: Record<string, number> = {
   setecientas: 700, ochocientos: 800, ochocientas: 800, novecientos: 900, novecientas: 900, mil: 1000,
 };
 const byLength = (words: string[]) => [...words].sort((a, b) => b.length - a.length).join('|');
-// "un", "una" y "uno" solo dentro de la expresion ("treinta y un focos"); solos, son el articulo.
-const WORD_SPAN_RE = new RegExp('\\b(?:' + byLength(Object.keys(NUMBER_WORDS).filter((w) => !/^un[oa]?$/.test(w))) + ')\\b(?:\\s+(?:y\\s+)?(?:' + byLength(Object.keys(NUMBER_WORDS)) + ')\\b)*', 'g');
+// "un", "una" y "uno" solos son el articulo: cuentan dentro de la expresion ("treinta y un focos") o
+// encadenados a otra cantidad ("dos de 60x60 y una de 120").
+const WORD_SPAN_RE = new RegExp('\\b(?:' + byLength(Object.keys(NUMBER_WORDS).filter((w) => !/^un[oa]?$/.test(w))) + ')\\b(?:\\s+(?:y\\s+)?(?:' + byLength(Object.keys(NUMBER_WORDS)) + ')\\b)*|\\bun[oa]\\b', 'g');
+// "dos cientos focos": la centena escrita en dos palabras.
+const SPLIT_HUNDREDS: Record<string, string> = { dos: 'doscient', tres: 'trescient', cuatro: 'cuatrocient', cinco: 'quinient', seis: 'seiscient', siete: 'setecient', ocho: 'ochocient', nueve: 'novecient' };
+const SPLIT_HUNDREDS_RE = /\b(dos|tres|cuatro|cinco|seis|siete|ocho|nueve)\s+cient(os|as)\b/g;
+// Pegada a otra expresion que cuenta: "dos de 60x60 y tres de 120x60", "cinco de luz fria y cinco de calida".
+const WORD_CHAIN_BEFORE_RE = /(?:\by|\bo|,|;|\bmas|\bademas|\btambien)\s*$/;
 
 /** El valor de una expresion en palabras ("ciento treinta y dos" = 132), o nada si no es un numero bien dicho. */
 function wordsValue(span: string): number | undefined {
@@ -103,6 +109,33 @@ function wordsValue(span: string): number | undefined {
   }
   const total = thousands + group;
   return total >= 1 ? total : undefined;
+}
+
+/**
+ * Los numeros en palabras que cuentan, como digitos ("necesito veinte focos" = "necesito 20 focos"): seguidos
+ * de la unidad o el producto, despues de un verbo de pedido o solos; con uno que cuenta, tambien los pegados
+ * a el ("y tres de 120x60"). Una expresion mal dicha se descarta entera.
+ */
+function numberWords(text: string): string {
+  const source = text.replace(SPLIT_HUNDREDS_RE, (all: string, unit: string, ending: string) => SPLIT_HUNDREDS[unit] + ending);
+  const spans = [...source.matchAll(WORD_SPAN_RE)].map((m) => {
+    const before = source.slice(Math.max(0, m.index - 40), m.index);
+    const after = source.slice(m.index + m[0].length);
+    const ofItem = /^\s+de\b/.test(after);
+    if (/^un[oa]$/.test(m[0])) return { m, counts: false, chained: ofItem && WORD_CHAIN_BEFORE_RE.test(before) };
+    const counts = UNIT_NEXT_RE.test(after) || VERB_BEFORE_RE.test(before) || (!source.slice(0, m.index).trim() && /^[\s.!,]*$/.test(after));
+    return { m, counts, chained: ofItem || WORD_CHAIN_BEFORE_RE.test(before) };
+  });
+  const any = spans.some((s) => s.counts);
+  let out = '';
+  let last = 0;
+  for (const { m, counts, chained } of spans) {
+    if (!counts && !(any && chained)) continue;
+    const value = wordsValue(m[0]);
+    out += source.slice(last, m.index) + (value === undefined ? ' ' : ' ' + value + ' ');
+    last = m.index + m[0].length;
+  }
+  return out + source.slice(last);
 }
 
 // Direccion: la calle o avenida con su numero ("Av. Prueba 123"), salvo que el numero sea de un
@@ -169,8 +202,8 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\b\d{6,}\b/g,
   /\b\d+,\d+\b/g,
   /\b\d+\.(?!\d{3}\b)\d+\b/g,
-  // numeros con unidad, tambien en rango (15W, 4000 K, 3000-4000K, 3 m, 40 cms, 200 m2, 220V, 30%)
-  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|m|metros?|v|volts?|vac|vdc|lm|lms|lumen(?:es|s)?|kelvins?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg)(?![a-z])/g,
+  // numeros con unidad, tambien en rango (15W, 4000 K, 3000-4000K, 3 m, 40 cms, 200 m2, 220V, 30%, 2 km)
+  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|m|metros?|v|volts?|vac|vdc|lm|lms|lumen(?:es|s)?|kelvins?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg|km|kms|kilometros?|hectareas?|cuadras?)(?![a-z])/g,
   /\b\d+(?:[.,]\d+)?\s*(?:\u00b0|\u00ba|%|")/g,
   // grados IP/IK y codigos de modelo (VENUSII08017, BL-200, E27, GU10, T8, 2do)
   /\b(?:ip|ik)\s*\d+/g,
@@ -185,8 +218,9 @@ const UNIT_AFTER_RE = new RegExp('^\\s*(' + UNIT_NOUNS + ')\\b');
 // "20 piezas de panel", "5 articulos de tubos": la pieza o el articulo es del producto.
 const GENERIC_OF_UNIT_RE = new RegExp('^\\s*(?:piezas?|articulos?|productos?|items?)\\s+(?:de\\s+)?(?:(?:el|la|los|las|este|estos|ese|esos)\\s+)?' + UNIT_NOUNS + '\\b');
 // "tubos de 120", "plafones led de 18": el numero despues del producto y "de" es su medida o potencia.
-// Tambien los numeros que la siguen ("tubos de 120 y 60").
-const SPEC_OF_BEFORE_RE = new RegExp('\\b' + UNIT_NOUNS + '(?:\\s+[a-z]+){0,2}\\s+de\\s*(?:\\d+\\s*(?:y|o|,|\\/)\\s*)*$');
+// Tambien los numeros que la siguen ("tubos de 120 y 60"), salvo la cantidad de otro item ("y 30 de 60").
+const SPEC_OF_BEFORE_RE = new RegExp('\\b' + UNIT_NOUNS + '(?:\\s+[a-z]+){0,2}\\s+de\\s*$');
+const SPEC_CHAIN_BEFORE_RE = new RegExp('\\b' + UNIT_NOUNS + '(?:\\s+[a-z]+){0,2}\\s+de\\s*(?:\\d+\\s*(?:y|o|,|\\/)\\s*)+$');
 // Antes del numero: un pedido ("necesito 30", "son 7", "cotizar unos 20", "cantidad: 12", "sino 10").
 const VERB_BEFORE_RE = /(?:\b(?:necesito|necesitamos|necesitaria|necesitariamos|requiero|requerimos|quiero|queremos|quisiera|quisieramos|busco|buscamos|ocupo|ocupamos|cotizar|cotizo|cotizame|cotizarme|comprar|compro|compraria|pedir|llevar|llevo|son|eran|serian|seria|seran|sera|sean|total|cantidad|cant\.?|sino|mejor|corrijo|corrigo|correccion|ahora|perdon|(?:cambio|cambiar|cambia|cambiamos|subir|sube|subo|bajar|baja|bajo|aumentar|aumenta|reducir|reduce)\s+(?:(?:la|el)\s+(?:cantidad|total|pedido)\s+)?a|cantidad\s+(?:a|en))[\s:=,]*(?:de\s+)?(?:unos|unas|un total de|aprox(?:imadamente)?\.?|alrededor de|como|cerca de|al menos|minimo|maximo|mas o menos)?|(?:^|[\s,.;:])(?:unos|unas|aprox(?:imadamente)?\.?|alrededor de|cerca de|mas o menos))\s*$/;
 // Antes del numero: otro dato ("modelo 50", "presupuesto clp 50000", "potencia de 24", "fono 1234").
@@ -212,17 +246,15 @@ export function mentionsItem(text: string): boolean {
   return new RegExp('\\b' + UNIT_NOUNS + '\\b').test(plain(text));
 }
 
+/** [NO-PISAR] El texto trae un numero que puede ser una cantidad ("ademas 20 perfiles de aluminio"). */
+export function mentionsQuantity(text: string): boolean {
+  return candidates(withoutNonQuantities(text)).length > 0;
+}
+
 /** El texto sin lo que nunca es cantidad. */
 export function withoutNonQuantities(text: string, ruts: readonly string[] = []): string {
-  let out = removeRuts(plain(text), ruts).replace(URL_RE, ' ').replace(EMAIL_RE, ' ')
-    .replace(WORD_PHRASE_RE, (all: string, words: string) => WORD_PHRASES[words] + ' ')
-    .replace(WORD_SPAN_RE, (span: string, offset: number, s: string) => {
-      const counts = UNIT_NEXT_RE.test(s.slice(offset + span.length)) || VERB_BEFORE_RE.test(s.slice(Math.max(0, offset - 40), offset))
-        || (!s.slice(0, offset).trim() && /^[\s.!,]*$/.test(s.slice(offset + span.length)));
-      if (!counts) return span;
-      const value = wordsValue(span);
-      return value === undefined ? ' ' : ' ' + value + ' ';
-    })
+  let out = numberWords(removeRuts(plain(text), ruts).replace(URL_RE, ' ').replace(EMAIL_RE, ' ')
+    .replace(WORD_PHRASE_RE, (all: string, words: string) => WORD_PHRASES[words] + ' '))
     .replace(UNIT_WORDS_RE, '$1 unidades ')
     .replace(TIMES_BEFORE_RE, '$1 unidades ')
     .replace(TIMES_AFTER_RE, (all: string, lead: string, n: string, offset: number, s: string) =>
@@ -265,7 +297,7 @@ function candidates(clean: string): Candidate[] {
     const ofUnit = unit !== null || GENERIC_OF_UNIT_RE.test(after);
     const verb = VERB_BEFORE_RE.test(before);
     if (!ofUnit && (NOT_UNIT_AFTER_RE.test(after) || OTHER_DATUM_BEFORE_RE.test(before))) continue;
-    if (!ofUnit && !verb && SPEC_OF_BEFORE_RE.test(before)) continue;
+    if (!ofUnit && !verb && (SPEC_OF_BEFORE_RE.test(before) || (SPEC_CHAIN_BEFORE_RE.test(before) && !/^\s*de\b/.test(after)))) continue;
     if (NEGATED_BEFORE_RE.test(before)) continue;
     const value = Number(m[1].replace('.', ''));
     if (value < 1 || value > MAX_QUANTITY) continue;

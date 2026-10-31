@@ -2,7 +2,7 @@
 // shouldNotify es siempre false aqui — la regla real vive en webhook.ts.
 import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
-import { mentionsItem, readQuantity } from './quantity.js';
+import { mentionsItem, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
 
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
@@ -145,13 +145,22 @@ const INSTALL_INTENT_RE = /\b(instalaci[o\u00f3]n|instalar|servicio\s+de\s+insta
 // [INSTALL-FLOW] "Soy instalador" describe a quien escribe (compra para instalar), no pide una
 // instalacion: va al flujo de productos. "Busco un instalador" si la pide.
 const INSTALLER_SELF_RE = /\b(?:(?:soy|somos)\s+(?:(?!(?:busco|buscamos|necesito|necesitamos|quiero|queremos|requiero|que|para)\b)[a-z\u00e0-\u00fc]+\s+){0,3}?instalador(?:a|es|as)?(?:\s+el[e\u00e9]ctric[oa]s?)?|(?:trabajo|me\s+desempe[n\u00f1]o)\s+(?:como|de)\s+instalador(?:a|es|as)?|me\s+dedico\s+a\s+(?:la\s+|las\s+)?instal\w*|soy\s+(?:un\s+|una\s+)?(?:electricista|contratista|t[e\u00e9]cnico\s+el[e\u00e9]ctrico))\b/gi;
-// Quien se presenta como instalador solo pide una instalacion con un pedido de servicio ("que me
-// instalen", "servicio de instalacion", "mano de obra", "busco otro instalador"): "necesito 50
-// paneles para una instalacion" es una compra para su trabajo.
-const INSTALL_SERVICE_RE = /\b(?:servicio\s+de\s+instal|que\s+(?:me\s+|nos\s+|lo\s+|los\s+|la\s+|las\s+)?instalen|mano\s+de\s+obra|busco\s+(?:un\s+|una\s+|otro\s+|otra\s+)?instalador|cotiz\w*\s+(?:la\s+|una\s+|el\s+|tu\s+|su\s+)?(?:instalaci[o\u00f3]n|montaje)|presupuesto\s+(?:de|para)\s+(?:la\s+|una\s+)?instalaci[o\u00f3]n|(?:precio|valor|costo)\s+de\s+(?:la\s+)?instalaci[o\u00f3]n|cu[a\u00e1]nto\s+(?:sale|cuesta|cobran|vale)\s+(?:la\s+)?instalaci[o\u00f3]n)/i;
+// Quien se presenta como instalador solo pide una instalacion con un pedido de servicio a eLIGHTS ("que me
+// instalen", "servicio de instalacion", "mano de obra", "quiero cotizar la instalacion", "cuanto cobran la
+// instalacion"): "necesito 50 paneles para una instalacion" o "estoy cotizando una instalacion para un
+// cliente" es una compra para su trabajo.
+const INSTALL_SERVICE_RE = /\b(?:servicio\s+de\s+instal|que\s+(?:(?:me|nos|se)\s+)?(?:(?:lo|los|la|las)\s+)?instal(?:en|e)\b|mano\s+de\s+obra|busco\s+(?:un\s+|una\s+|otro\s+|otra\s+)?instalador|(?:necesito|necesitamos|quiero|queremos|requiero|requerimos)\s+(?:tambi[e\u00e9]n\s+)?(?:la\s+|una\s+|el\s+|un\s+)?(?:instalaci[o\u00f3]n|instalador)|(?:quiero|queremos|quisiera|quisi[e\u00e9]ramos|necesito|necesitamos|pueden|puede|podr[i\u00ed]an?)\s+cotizar(?:me|nos)?\s+(?:la\s+|una\s+|el\s+)?(?:instalaci[o\u00f3]n|montaje)|(?:me|nos)\s+(?:cotizan|cotiza|cotizas|pueden\s+cotizar|podr[i\u00ed]an\s+cotizar)\s+(?:la\s+|una\s+|el\s+)?(?:instalaci[o\u00f3]n|montaje)|ustedes\s+(?:tambi[e\u00e9]n\s+)?instalan|(?:hacen|realizan|ofrecen)\s+(?:la\s+|el\s+servicio\s+de\s+)?instalaci[o\u00f3]n|cu[a\u00e1]nto\s+(?:sale|cuesta|cobran|vale|costar[i\u00ed]a|saldr[i\u00ed]a)\s+(?:por\s+)?(?:la\s+)?instalaci[o\u00f3]n|cu[a\u00e1]nto\s+cobran\s+por\s+instalar)/i;
 function installRequested(body: string): boolean {
   const rest = body.replace(INSTALLER_SELF_RE, ' ');
   return rest === body ? INSTALL_INTENT_RE.test(body) : INSTALL_SERVICE_RE.test(rest);
+}
+// A mitad del flujo de productos, "la instalacion es en una bodega" o "los voy a instalar en mi casa" contestan
+// la pregunta del bot (MSG2): solo un pedido de instalacion ("que me los instalen", "quiero instalar focos en
+// mi casa", "cuanto cobran la instalacion") cambia de flujo.
+const WANT_INSTALL_RE = /\b(?:quiero|queremos|necesito|necesitamos)\s+instalar\b/i;
+function installRequestedMidProducts(body: string): boolean {
+  const rest = body.replace(INSTALLER_SELF_RE, ' ');
+  return INSTALL_SERVICE_RE.test(rest) || (rest === body && WANT_INSTALL_RE.test(body));
 }
 const GREET_ONLY = /^(hola|buenas|buenos dias|buenas tardes|buenas noches|saludos|hi|hey|buen dia)[.!?\s]*$/i;
 const NEW_REQ_INTENT_RE = /\b(necesito|busco|quiero|requiero|cotizar|cotizaci[o\u00f3]n|comprar|conseguir|tengo un proyecto)\b/i;
@@ -513,13 +522,23 @@ const MAX_CAMBIOS = 10;
 function comparable(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
+// [NO-PISAR] Las palabras que identifican un producto: sin "LED", el color, los articulos, el plural ni el uso
+// o el lugar ("para oficina"). "focos LED" es "focos" y "reflectores" es "reflector"; "paneles LED 60x60
+// regulables" es mas preciso que "paneles LED 60x60".
+const PRODUCT_NOISE_RE = /^(?:led|leds|de|del|con|la|el|los|las|un|una|unos|unas|y|luz|tipo|color|fri[ao]s?|calid[ao]s?|neutr[ao]s?|blanc[ao]s?|amarill[ao]s?)$/;
+function productWords(text: string): string[] {
+  return comparable(text).replace(/\b(?:para|en)\b.*$/, '').split(/[^a-z0-9]+/)
+    .filter((w) => w && !PRODUCT_NOISE_RE.test(w))
+    .map((w) => (/\d/.test(w) ? w : w.replace(/ces$/, 'z').replace(/s$/, '').replace(/e$/, '')));
+}
 const SAME_VALUE: Partial<Record<KeptField, (a: string, b: string) => boolean>> = {
   tipo_de_luz: (a, b) => normalizeLuz(comparable(a)) === normalizeLuz(comparable(b)),
   cantidad: (a, b) => parseInt(a, 10) === parseInt(b, 10),
-  // "paneles led" no cambia "paneles LED 60x60": es el mismo, menos preciso. Uno mas preciso
-  // ("paneles LED 60x60 regulables") si, salvo que lo agregado sea el uso o el lugar ("para oficina").
-  producto: (a, b) => comparable(a).includes(comparable(b))
-    || (comparable(b).includes(comparable(a)) && /\b(?:para|en|del?|con|la|el)\b/.test(comparable(b).replace(comparable(a), ' '))),
+  // "paneles led" no cambia "paneles LED 60x60": es el mismo, menos preciso (productWords).
+  producto: (a, b) => {
+    const before = productWords(a);
+    return productWords(b).every((w) => before.includes(w));
+  },
   proyecto_o_uso: (a, b) => comparable(a).includes(comparable(b)) || comparable(b).includes(comparable(a)),
 };
 const KEPT_FIELDS = Object.keys(KEPT_LABEL) as KeptField[];
@@ -575,13 +594,14 @@ function backed(claudeValue: string | undefined, ruleValue: string | undefined, 
 
 // "calidad" no es luz calida: el color va como palabra completa.
 const LUZ_RE_ALL = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:' + LUZ_RE.source + ')(?![a-z\\u00e0-\\u00fc])', 'gi');
-// [NO-PISAR] "no fria", "nada de calida", "sin luz fria": ese color no es el que pide.
-const LUZ_NEGATED_RE = /\b(?:no|ni|sin|nada\s+de|tampoco|menos)\s+(?:(?:la|el|una|un|en|de|luz|color|tono|blanca|blanco|tan|muy)\s+){0,3}$/i;
+// [NO-PISAR] "no fria", "nada de calida", "sin luz fria", "que no sea fria", "no los quiero frios", "no me
+// gusta la luz fria": ese color no es el que pide.
+const LUZ_NEGATED_RE = /\b(?:no|ni|sin|nada\s+de|tampoco|menos)\s+(?:(?:lo|la|los|las|le|les|me|nos|se)\s+)?(?:(?:sea|sean|es|son|quiero|queremos|necesito|necesitamos|busco|buscamos|gusta|gustan)\s+)?(?:(?:la|el|una|un|en|de|luz|color|tono|blanca|blanco|tan|muy|tipo)\s+){0,3}$/i;
 /** [NO-PISAR] El color que pide el mensaje: uno solo, sin los negados ("no fria, calida"); con dos distintos, ninguno. */
 function textLuz(facts: string): string | undefined {
   const found = new Set<string>();
   for (const m of facts.matchAll(LUZ_RE_ALL)) {
-    if (!LUZ_NEGATED_RE.test(facts.slice(Math.max(0, m.index - 30), m.index))) found.add(normalizeLuz(m[0]));
+    if (!LUZ_NEGATED_RE.test(facts.slice(Math.max(0, m.index - 40), m.index))) found.add(normalizeLuz(m[0]));
   }
   return found.size === 1 ? [...found][0] : undefined;
 }
@@ -589,42 +609,68 @@ function textLuz(facts: string): string | undefined {
 function negatedLuz(facts: string): Set<string> {
   const found = new Set<string>();
   for (const m of facts.matchAll(LUZ_RE_ALL)) {
-    if (LUZ_NEGATED_RE.test(facts.slice(Math.max(0, m.index - 30), m.index))) found.add(normalizeLuz(m[0]));
+    if (LUZ_NEGATED_RE.test(facts.slice(Math.max(0, m.index - 40), m.index))) found.add(normalizeLuz(m[0]));
   }
   return found;
 }
 
 // [NO-PISAR] Solo lo que el cliente afirma cambia un dato: sus preguntas ("tienen tienda en Santiago?") no.
 // Sin "\u00bf", la pregunta es la ultima clausula ("Ahora necesito 20 paneles, hacen despacho?"): lo que
-// afirma antes se conserva.
+// afirma antes se conserva, salvo una condicion ("y si necesito 50, cuanto sale?"). Una pregunta indirecta
+// ("quiero saber si tienen reflectores") tampoco es un dato.
 const ASSERTION_RE = /\b(?:necesit|quier|quis|requier|requer|busc|ocup|son\b|ser[i\u00ed]an?\b|ahora\b|cambi|corrij|perd[o\u00f3]n|es\s+para|soy\b|somos\b|estoy\b|estamos\b)/i;
+const CONDITIONAL_RE = /^\s*(?:y\s+|pero\s+)?(?:si|en\s+caso\s+(?:de\s+)?(?:que\s+)?|por\s+si)\s+[^\s,;]/i;
+const INDIRECT_QUESTION_RE = /\b(?:saber|consultar|preguntar(?:le|les|te)?)\s+(?:si|por|cu[a\u00e1]nt\w*|qu[e\u00e9]|c[o\u00f3]mo|d[o\u00f3]nde|cu[a\u00e1]l\w*)(?![a-z\u00e0-\u00fc])[^,;.!?\n]*/gi;
 function withoutQuestions(text: string): string {
-  if (!/[?\u00bf]/.test(text)) return text;
-  return text.split(/(?<=[.!?\n])|(?=\u00bf)/).map((part) => {
+  const direct = text.replace(INDIRECT_QUESTION_RE, ' ');
+  if (!/[?\u00bf]/.test(direct)) return direct;
+  return direct.split(/(?<=[.!?\n])|(?=\u00bf)/).map((part) => {
     if (!/[?\u00bf]/.test(part)) return part;
     if (part.includes('\u00bf')) return '';
     const cut = Math.max(part.lastIndexOf(','), part.lastIndexOf(';'));
-    const head = cut >= 0 ? part.slice(0, cut + 1) : '';
+    const clauses = cut >= 0 ? part.slice(0, cut + 1).split(/(?<=[,;])/) : [];
+    const conditional = clauses.findIndex((clause) => CONDITIONAL_RE.test(clause));
+    const head = (conditional >= 0 ? clauses.slice(0, conditional) : clauses).join('');
     return ASSERTION_RE.test(head) ? head : '';
   }).join(' ');
 }
-// [NO-PISAR] Lo que el cliente niega no es un dato: "no es para bodega", "no necesito 20 focos", "no estoy
-// en Maipu". La negacion llega hasta la coma, "pero", "sino" o un pedido nuevo ("no se, necesito 30").
-const NEGATED_CLAUSE_RE = /\b(?:no|ni|tampoco|nada\s+de)\s+[^\s,;.!?\n]+(?:\s+(?!(?:pero|sino|aunque|m[a\u00e1]s\s+bien|necesit|quier|quis|requier|requer|busc|ocup|son\b|ser[i\u00ed]a))[^\s,;.!?\n]+)*/gi;
-function withoutNegated(text: string): string {
-  return text.replace(NEGATED_CLAUSE_RE, ' ');
+// [NO-PISAR] Lo que el cliente niega no es un dato: "no es para bodega", "no necesito 20 focos", "no los
+// quiero frios". Se tapa solo el dato negado, con su verbo y sus articulos: lo que sigue si cuenta ("no eran
+// 10 eran 20", "no es en Santiago es en Temuco", "no me acorde, tambien necesito 6 focos").
+const NEGATED_CUT = '(?!(?:pero|sino|aunque|mejor|perd[o\\u00f3]n|tambi[e\\u00e9]n|adem[a\\u00e1]s|aparte|ahora|c[a\\u00e1]mbi[a-z]*|corrij[a-z]*|equivoqu[a-z\\u00e0-\\u00fc]*|es|era|eran|son|sea|sean|ser[i\\u00ed]an?|que|necesit[a-z]*|quier[a-z]*|quis[a-z]*|busc[a-z]*|requier[a-z]*|ocup[a-z]*|estoy|estamos|soy|somos)(?![a-z\\u00e0-\\u00fc]))';
+const NEGATED_WORD = NEGATED_CUT + '[^\\s,;.!?\\n]+';
+const NEGATED_DATUM_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:no|ni|tampoco|nada\\s+de)\\s+'
+  + '(?:(?:lo|la|los|las|le|les|me|nos|se|te)\\s+)?'
+  + '(?:(?:es|era|eran|son|sea|sean|fue|fueron|ser[a\\u00e1]n?|ser[i\\u00ed]an?|estoy|estamos|est[a\\u00e1]n?|soy|somos|necesito|necesitamos|quiero|queremos|busco|buscamos|ocupo|ocupamos|requiero|tengo|tenemos|gusta|gustan)\\s+)?'
+  + '(?:(?:para|en|de|del|un|una|unos|unas|el|la|los|las|mi|mis|su|sus|nuestr[oa]s?|luz|color|tono|tan|muy|tipo)\\s+){0,3}'
+  + NEGATED_WORD + '(?:(?<=\\d)\\s+' + NEGATED_WORD + ')?(?:\\s+(?:led|leds|solar|solares))?', 'gi');
+function maskNegated(text: string): string {
+  return text.replace(NEGATED_DATUM_RE, ' ');
 }
-// [NO-PISAR] "tambien necesito 10 focos", "agrega", "otros 5": suma un item, no cambia lo capturado. "Tambien"
-// o "ademas" suman solo si nombran un producto, y nunca en una correccion ("tambien quiero cambiar la
-// cantidad a 20") ni en una caracteristica ("ademas que sean calidos").
-const ADDITION_WORD_RE = /\b(?:tambi[e\u00e9]n|adem[a\u00e1]s|aparte)\b([^.;!?\n]*)/i;
+// [NO-PISAR] "tambien necesito 10 focos", "20 focos ademas", "agrega", "otros 5", "5 paneles mas": suma un
+// item, no cambia lo capturado. "Tambien" o "ademas" suman solo si nombran un producto o una cantidad, y
+// nunca en una correccion ("tambien quiero cambiar la cantidad a 20") ni en una caracteristica ("ademas que
+// sean calidos").
+const ADDITION_WORD_RE = /(?<![a-z\u00e0-\u00fc])(?:tambi[e\u00e9]n|adem[a\u00e1]s|aparte)(?![a-z\u00e0-\u00fc])/gi;
 const ADD_VERB_RE = /\b(?:agreg(?:a|ar|ame|ale|uen)|sum(?:a|ar|ame|ale))\b|\botr[oa]s?\s+\d/i;
-const CORRECTION_RE = /\b(?:cambi|corrij|corrig|correcci|en\s+vez\b|en\s+lugar\b|mejor\b|perd[o\u00f3]n|me\s+equivoqu)/i;
+// "5 paneles mas", "y 20 focos mas", "mas 20 focos"; nunca "20 o mas", "mas o menos", "mas de 20" ni "mas potentes".
+const MORE_RE = /\b\d+\s+(?:[a-z\u00e0-\u00fc]+\s+){0,3}?(?<!\bo\s)m[a\u00e1]s(?=\s*(?:[,.;!?\n]|$)|\s+(?:y|para|por\s+favor|porfa)\b)|(?:^|[,.;!?\n]|\by)\s*m[a\u00e1]s\s+\d/i;
+// Una correccion de un dato ("corrijo", "me equivoque", "cambia la cantidad a 20", "en vez de 10", "mejor 20"),
+// no las mismas palabras en un pedido ("para cambiar los fluorescentes", "focos con cambio de color", "la mejor calidad").
+const CORRECTION_RE = /(?:corrij|corrig|correcci[o\u00f3]n|me\s+equivoqu|perd[o\u00f3]n\s*,?\s*(?:son|eran|era|es|ser[i\u00ed]an)\b|c[a\u00e1]mbi[a-z]*\s+(?:la\s+cantidad|el\s+producto|el\s+color|la\s+luz|el\s+tipo|a\s+\d)|en\s+(?:vez|lugar)\s+de\s+\d|(?:^|[,.;!?\n]\s*)(?:no\s*,?\s*)?mejor\s+(?:\d|son\b|que\s+sean|ser[i\u00ed]an))/i;
+const addsItem = (text: string) => mentionsItem(text) || mentionsQuantity(text);
 function isAddition(text: string): boolean {
   if (CORRECTION_RE.test(text)) return false;
-  if (ADD_VERB_RE.test(text)) return true;
-  const clause = text.match(ADDITION_WORD_RE)?.[1];
-  return clause !== undefined && mentionsItem(clause);
+  if (ADD_VERB_RE.test(text) || MORE_RE.test(text)) return true;
+  for (const m of text.matchAll(ADDITION_WORD_RE)) {
+    const after = text.slice(m.index + m[0].length);
+    if (addsItem(after.split(/[.;!?\n]/)[0])) return true;
+    // Al final de su clausula ("necesito 20 focos tambien"), suma lo que va antes; "aparte" no ("que no
+    // tengan panel aparte" es "por separado").
+    const rest = after.split(/[,.;!?\n]/)[0].replace(/\b(?:porfa|por\s+favor|y)\b/gi, '');
+    if (!rest.trim() && !/^apart/i.test(m[0]) && addsItem(text.slice(0, m.index).split(/[,.;!?\n]/).pop() ?? '')) return true;
+  }
+  return false;
 }
 
 const MAX_VARIOS = 160;
@@ -641,7 +687,7 @@ function appendVarios(merged: CapturedFields, text: string): void {
  */
 function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: QuantityRead, facts: string, adding: boolean): void {
   const text = facts.trim().replace(/\s+/g, ' ').slice(0, MAX_VARIOS);
-  if (adding && (stated.value !== undefined || stated.several) && (merged.cantidad || merged.cantidad_varios)) {
+  if (adding && (merged.cantidad || merged.cantidad_varios)) {
     if (merged.cantidad) {
       noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
       merged.cantidad_varios = ((merged.producto ? merged.producto + ': ' : '') + merged.cantidad + ' / ' + text).slice(0, 2 * MAX_VARIOS);
@@ -734,7 +780,7 @@ function mergeProductFields(
   const facts = factsText(body, claudeParsed);
   // [NO-PISAR] Un dato capturado cambia solo con lo que el cliente afirma (sin sus preguntas ni lo que
   // niega) y nunca si el mensaje suma otro item. La regla cambia un dato solo si encuentra un valor (soleMatch).
-  const assertive = withoutNegated(withoutQuestions(facts));
+  const assertive = maskNegated(withoutQuestions(facts));
   const adding = isAddition(assertive);
   const rule = (re: RegExp) => (adding ? undefined : soleMatch(assertive, re));
   const said = (value: string | undefined) => (adding ? undefined : value);
@@ -942,7 +988,8 @@ function flowStep(
   // Regla de negocio: sin correo no podemos cotizar.
   // No derivar hasta tener nombre + correo + comuna + tipoProyecto.
   // ───────────────────────────────────────────────────────────────────────────
-  const isInstallIntent = installRequested(body);
+  const midProducts = state.stage === 'stage2' || state.stage === 'stage3' || Boolean(state.captured.producto);
+  const isInstallIntent = midProducts ? installRequestedMidProducts(body) : installRequested(body);
   const isAlreadyInstallFlow = state.isInstallFlow || state.stage === 'install_capture';
 
   if (isInstallIntent && !isAlreadyInstallFlow) {
