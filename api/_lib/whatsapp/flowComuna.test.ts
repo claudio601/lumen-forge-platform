@@ -404,3 +404,166 @@ describe('revisión de los arreglos (casos inventados)', () => {
     expect(r.captured.cambios).toBeUndefined();
   });
 });
+
+describe('ronda 2 de Codex: etiquetas de obra, factura, razón social y origen (H5 a H8)', () => {
+  const FIRST = 'Necesito 20 paneles LED luz fría para una oficina en Lampa';
+  const FIRST_CLAUDE: Claude = { producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '20', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Lampa' };
+
+  // Las dos regresiones de la tabla: con 4b5d1fc cambiaban a Colina.
+  it.each(['Comuna: Colina con retiro en su local', 'La obra está dentro de Colina.'])('H5: con Lampa capturada, "%s" cambia a Colina', (text) => {
+    step(FIRST, FIRST_CLAUDE);
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.cambios).toContain('Comuna/ciudad: antes Lampa, ahora Colina');
+  });
+
+  it.each([
+    'Necesito 20 paneles LED. Comuna de la obra: Colina con datos de facturación',
+    'Necesito 20 paneles LED. *Comuna de la obra:* Colina con retiro en su local',
+  ])('H5: "%s" da Colina en un mensaje nuevo (Claude vacío)', (text) => {
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.comunas_otras).toBeUndefined();
+  });
+
+  it.each([
+    'Facturación:\nDirección: Prueba 123\nComuna: Viña del Mar',
+    'Facturación:\n*Dirección*: Prueba 123\n*Comuna*: Viña del Mar',
+  ])('H6: el bloque de factura no cambia la comuna de la obra: %j', (text) => {
+    step(FIRST, FIRST_CLAUDE);
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toEqual(['Viña del Mar']);
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('H6: el bloque de factura tampoco llena una comuna vacía', () => {
+    const r = step('Necesito 20 paneles LED para una oficina.\nFacturación:\nDirección: Prueba 123\nComuna: Viña del Mar', {});
+    expect(r.captured.comuna_o_ciudad).toBeUndefined();
+    expect(r.captured.comunas_otras).toEqual(['Viña del Mar']);
+  });
+
+  it('H7: "Somos iluminación de los andes spa" con Claude vacío no da Los Andes', () => {
+    const r = step('Somos iluminación de los andes spa, necesitamos 20 paneles LED', {});
+    expect(r.captured.comuna_o_ciudad).toBeUndefined();
+    expect(r.captured.comunas_otras).toBeUndefined();
+  });
+
+  it('H7: "Necesito focos para un spa en Pucón" sigue dando Pucón', () => {
+    expect(step('Necesito 20 focos para un spa en Pucón', {}).captured.comuna_o_ciudad).toBe('Pucón');
+  });
+
+  it.each<[string, Claude]>([
+    ['vacío', {}],
+    ['elige el origen', { comuna_o_ciudad: 'Maipú' }],
+    ['elige la obra', { comuna_o_ciudad: 'Lampa' }],
+  ])('H8: "Soy de Maipú. La obra es en Lampa." da Lampa (Claude %s)', (_label, claude) => {
+    const r = step('Necesito 20 paneles LED. Soy de Maipú. La obra es en Lampa.', claude);
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toEqual(['Maipú']);
+  });
+
+  it('H8: sin una comuna de obra, el origen sigue llenando la vacía', () => {
+    const r = step('Necesito 20 paneles LED. Soy de Maipú', {});
+    expect(r.captured.comuna_o_ciudad).toBe('Maipú');
+  });
+
+  it('H8: con dos comunas de obra, Claude elige entre ellas', () => {
+    const r = step('Soy de Maipú. Necesito focos para una bodega en Lampa y otra en Colina', { comuna_o_ciudad: 'Colina' });
+    expect(r.captured.comuna_o_ciudad).toBe('Colina');
+    expect(r.captured.comunas_otras).toEqual(['Maipú', 'Lampa']);
+  });
+});
+
+describe('revisión adversaria de la ronda 2: origen, razón social, calificador, H8 con la pregunta abierta y fin del bloque de factura', () => {
+  const FIRST = 'Necesito 20 focos LED luz cálida para una bodega en Lampa';
+
+  /** Lampa capturada con Claude vacío; el segundo mensaje no cambia la comuna. */
+  function keepsLampa(text: string) {
+    expect(step(FIRST, {}).captured.comuna_o_ciudad).toBe('Lampa');
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect((r.captured.cambios ?? []).filter((c) => c.startsWith('Comuna/ciudad'))).toEqual([]);
+    return r;
+  }
+
+  // Regresión del arreglo de H5: un "de" sin "soy", "somos" o "vengo" pasaba a ser la obra.
+  it.each([
+    'Mi señora es de Colina',
+    'La empresa es de Colina',
+    'El dueño es de Colina',
+    'Ana Prueba, de Colina',
+    'ana prueba de colina',
+    'Les escribe ana prueba de Colina',
+    'Me recomendó un amigo de Colina',
+    'Trabajo en una empresa de Colina',
+  ])('con Lampa capturada, "%s" deja Colina en otras comunas', (text) => {
+    expect(keepsLampa(text).captured.comunas_otras).toEqual(['Colina']);
+  });
+
+  // Regresión del arreglo de H7: la razón social en minúsculas presentada de otra forma.
+  it.each([
+    'Les escribo de iluminacion de los andes spa',
+    'Empresa: iluminacion de los andes spa',
+    'Mi empresa: iluminacion de los andes spa',
+    'Ana Prueba, iluminacion de los andes spa',
+    'Ana Prueba\niluminacion de los andes spa',
+    'Cotización a nombre de iluminacion de los andes spa',
+    'Pertenezco a iluminacion de los andes spa',
+  ])('con Lampa capturada, "%s" no da Los Andes', (text) => {
+    expect(keepsLampa(text).captured.comunas_otras).toBeUndefined();
+  });
+
+  it.each([
+    'Les escribo de iluminacion de los andes spa, necesito 20 paneles LED',
+    'Ana Prueba, iluminacion de los andes spa. Necesito 20 paneles LED',
+  ])('con la comuna vacía, "%s" tampoco la llena con Los Andes', (text) => {
+    const r = step(text, {});
+    expect(r.captured.comuna_o_ciudad).toBeUndefined();
+    expect(r.captured.comunas_otras).toBeUndefined();
+  });
+
+  // Regresión: el calificador con guion ya no excluía la comuna de la etiqueta.
+  it.each([
+    ['Comuna: Providencia - facturación', ['Providencia']],
+    ['Comuna: Providencia – facturación', ['Providencia']],
+    ['Comuna: Quinta Normal - retiro', undefined],
+  ])('con Lampa capturada, "%s" no cambia la obra', (text, otras) => {
+    expect(keepsLampa(text).captured.comunas_otras).toEqual(otras);
+  });
+
+  // H8 con la pregunta por la comuna abierta: "soy" y "desde" contestaban, pero son de donde es la persona.
+  it.each<[string, Claude]>([
+    ['Soy de Maipú. La obra es en Lampa.', {}],
+    ['Soy de Maipú, la casa queda en Lampa', {}],
+    ['Ana Prueba, soy de Maipú. La bodega está en Lampa', {}],
+    ['Soy de Maipú. La obra es en Lampa.', { comuna_o_ciudad: 'Maipú' }],
+    ['Desde Maipú. La obra es en Lampa.', { comuna_o_ciudad: 'Maipú' }],
+  ])('H8: el bot pregunta la comuna y "%s" da Lampa (Claude %j)', (text, claude) => {
+    expect(step('Necesito 20 focos LED luz cálida para una casa', {}).reply).toMatch(/comuna/i);
+    const r = step(text, claude);
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toEqual(['Maipú']);
+  });
+
+  it('H8: con la pregunta abierta, "Soy de Maipú" solo sigue llenando la comuna', () => {
+    expect(step('Necesito 20 focos LED luz cálida para una casa', {}).reply).toMatch(/comuna/i);
+    expect(step('Soy de Maipú', {}).captured.comuna_o_ciudad).toBe('Maipú');
+  });
+
+  // H6: la etiqueta del lugar que sigue al bloque de factura lo corta.
+  it.each([
+    'Dirección de la bodega: Otra 456',
+    'Destino: Otra 456',
+    'Lugar de trabajo: Otra 456',
+    'Dónde se instalan: Otra 456',
+    'Se instalan en: Otra 456',
+    'Bodega:\nDirección: Otra 456',
+    '',
+  ])('H6: en un solo mensaje, después de la factura, %j da Lampa', (middle) => {
+    const r = step('Necesito 20 focos LED luz cálida para una bodega.\nFacturación:\nDirección: Prueba 123\nComuna: Viña del Mar\n' + middle + '\nComuna: Lampa', {});
+    expect(r.captured.comuna_o_ciudad).toBe('Lampa');
+    expect(r.captured.comunas_otras).toEqual(['Viña del Mar']);
+    expect(r.reply).not.toMatch(/comuna o ciudad/i);
+  });
+});

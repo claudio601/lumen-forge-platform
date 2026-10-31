@@ -134,6 +134,9 @@ export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, nec
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
 // (o el paso del flujo fallo): nunca se dice "quedo registrada".
 export const MSG_DEAL_FAILED = 'No pude registrar tu solicitud por un problema t\u00e9cnico. Por favor, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
+// [REGISTRO] Otro mensaje del numero sigue registrando la solicitud y no termino a tiempo: no se afirma el
+// registro ni se da por fallido. Texto aprobado por el dueno (2026-10-31).
+export const MSG_DEAL_PENDING = 'Estoy terminando de registrar tu solicitud; te confirmo por este chat en un momento. Si no te llega la confirmaci\u00f3n, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
 // [RUT-VALIDO] El RUT no calza con su digito verificador: se pide de nuevo, una sola vez.
 // Texto aprobado por el dueno (2026-10-26).
 export const MSG_RUT_INVALID = 'El RUT que me enviaste no calza con su d\u00edgito verificador. \u00bfMe lo escribes de nuevo, con guion y d\u00edgito verificador? Por ejemplo: 12.345.678-5.';
@@ -194,6 +197,41 @@ const PRICE_INTENT_RE = /\b(precio|precios|cu[a\u00e1]nto (cuesta|vale|sale|cues
 const COMMERCIAL_INTENT_RE = /\b(cotizar|cotizaci[o\u00f3]n|comprar|necesito|busco)\b/i;
 const EXECUTIVE_RE = /\b(claudio|constanza)\b/i;
 
+// [TRANSCRIPCION] Un pedido nuevo explicito despues del cierre: "otro pedido", "otra solicitud", "otra
+// cotizacion", "otro proyecto", "tengo otra obra", "un nuevo pedido", "Nuevo pedido:", "Nueva solicitud:", "ademas
+// necesito cotizar" y "Otra cosa:" con un producto. Va antes que el correo tardio (lateEmail) y que las
+// correcciones: el negocio anterior no se toca y el flujo nuevo captura el pedido y el correo de ese mensaje.
+// Antes "Otro pedido: paneles LED ... Mi correo es X" cambiaba el correo del anterior.
+// No cuentan el que ya existe ("mi otro pedido", "la otra cotizacion"), el negado ("no es otro pedido", "es el
+// mismo, no otro proyecto", "para no hacer otro pedido") ni una pregunta ("Llego mi otro pedido?"), salvo la que
+// lo pide ("Puedo hacer otro pedido?").
+const NEW_THING = '(?:pedidos?|solicitud(?:es)?|cotizaci[o\\u00f3]n(?:es)?|proyectos?|compras?|requerimientos?|obras?)';
+const EXPLICIT_NEW_REQUEST_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:otr[oa]s?\\s+' + NEW_THING
+  + '|(?:(?:un|una|unos|unas)\\s+)?nuev[oa]s?\\s+' + NEW_THING
+  + '|adem[a\\u00e1]s\\s+(?:necesit|quier|requier)[a-z]*\\s+(?:cotizar|comprar|pedir)'
+  + '|(otra\\s+cosa))(?![a-z\\u00e0-\\u00fc])', 'gi');
+const EXISTING_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:el|la|los|las|lo|al|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?|aquel(?:la)?s?)\s+$/i;
+const NEGATION_RE = /(?<![a-z\u00e0-\u00fc])(?:no|ni|sin|nunca|jam[a\u00e1]s|tampoco)(?![a-z\u00e0-\u00fc])/i;
+const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
+const CLAUSE_MARKS = [',', ';', '.', ':', '!', '?', '\n', '\u00bf', '\u00a1'];
+const SENTENCE_END_RE = /[.!?\n]/;
+function explicitNewRequest(body: string): boolean {
+  const text = body.slice(0, MAX_FACTS);
+  for (const m of text.matchAll(EXPLICIT_NEW_REQUEST_RE)) {
+    const head = text.slice(Math.max(0, m.index - 60), m.index);
+    const clause = head.slice(Math.max(...CLAUSE_MARKS.map((c) => head.lastIndexOf(c))) + 1);
+    if (EXISTING_BEFORE_RE.test(head) || NEGATION_RE.test(clause)) continue;
+    const tail = text.slice(m.index);
+    const end = tail.search(SENTENCE_END_RE);
+    const sentence = head.slice(Math.max(...['.', '!', '?', '\n'].map((c) => head.lastIndexOf(c))) + 1) + (end < 0 ? tail : tail.slice(0, end + 1));
+    if ((sentence.includes('?') || sentence.includes('\u00bf')) && !ASKS_TO_ORDER_RE.test(clause)) continue;
+    // "Otra cosa:" pide algo nuevo solo con un producto en la misma oracion ("Otra cosa: mi correo es X" no).
+    if (m[1] && !PRODUCTO_RE.test(end < 0 ? tail : tail.slice(0, end))) continue;
+    return true;
+  }
+  return false;
+}
+
 function looksLikeNewRequest(body: string): boolean {
   const b = body.trim();
   if (NEW_REQ_SOLO_LUZ_RE.test(b)) return false;
@@ -235,6 +273,53 @@ function extractEmail(text: string): string | undefined {
     if (!OWN_EMAIL_RE.test(email)) return email;
   }
   return undefined;
+}
+// [TRANSCRIPCION] La intencion de corregir el correo despues del cierre: "corregir/cambiar/actualizar mi correo",
+// "cambiar la direccion de correo", "mi correo no es X, es Y", "me equivoque de correo", "el correo esta mal", "el
+// correo que les di esta malo", "escribanme a otro correo". Como la del RUT (correctingRut), se detecta antes que
+// un pedido nuevo: "Necesito corregir mi correo: X" ya no empieza otro flujo. La negrita o la cursiva de WhatsApp
+// ("mi *correo*") no la tapan (correctsEmail).
+const EMAIL_NOUN = '(?:correo|mail|e-?mail|email)';
+const EMAIL_WORD = '(?:(?:la\\s+)?direcci[o\\u00f3]n\\s+de\\s+)?' + EMAIL_NOUN + '(?:\\s+electr[o\\u00f3]nico)?';
+const EMAIL_WRONG = '(?:mal[oa]?|incorrect[oa]|equivocad[oa]|err[o\\u00f3]ne[oa])';
+const EMAIL_CORRECTION_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:'
+  + '(?:corregir|corrijo|corrijan|corrige|correcci[o\\u00f3]n\\s+(?:de|del)|cambiar|cambio|cambien|cambia|actualizar|actualizo|actualicen|actualiza|modificar|modifiquen)\\s+(?:(?:el|la|mi|su|tu|de|del)\\s+)*' + EMAIL_WORD
+  + '|' + EMAIL_WORD + '\\s+(?:no\\s+es|correct[oa]|nuev[oa]|buen[oa]|' + EMAIL_WRONG + '|(?:est[a\\u00e1]|qued[o\\u00f3])\\s+' + EMAIL_WRONG + ')'
+  + '|' + EMAIL_WORD + '\\s+(?:[a-z\\u00e0-\\u00fc]+\\s+){1,5}?(?:est[a\\u00e1]|qued[o\\u00f3]|es|era|fue|sali[o\\u00f3])\\s+' + EMAIL_WRONG
+  + '|me\\s+equivoqu[e\\u00e9]\\s+(?:de|en\\s+el|con\\s+el)\\s+' + EMAIL_WORD
+  + '|(?:otr[oa]|nuev[oa]|distint[oa]|diferente)\\s+(?:direcci[o\\u00f3]n\\s+de\\s+)?' + EMAIL_NOUN
+  + ')(?![a-z\\u00e0-\\u00fc])', 'i');
+/** [TRANSCRIPCION] El mensaje pide corregir el correo (EMAIL_CORRECTION_RE), sin la negrita ni la cursiva de WhatsApp. */
+function correctsEmail(body: string): boolean {
+  return EMAIL_CORRECTION_RE.test(body.slice(0, MAX_FACTS).replace(/[*_~]/g, ' '));
+}
+// Un correo negado o que el cliente descarta: "no es X", "ni X", "en vez de X", "antes era X", "X esta mal", "X no".
+const EMAIL_NEGATED_BEFORE_RE = /(?:(?<![a-z\u00e0-\u00fc])(?:no|ni)(?:\s+(?:es|era|ser[a\u00e1]|va|fue|uses?|usen|usar))?|(?<![a-z\u00e0-\u00fc])en\s+(?:vez|lugar)\s+de(?:l)?|(?<![a-z\u00e0-\u00fc])antes(?:\s+(?:era|fue|dije|puse|di|escrib[i\u00ed]|ten[i\u00ed]a))?|(?<![a-z\u00e0-\u00fc])(?:anterior|viejo|equivocado|incorrecto|malo)(?:\s+(?:era|es|fue))?)\s*:?\s*(?:(?:el|mi|ese|este)\s+)?(?:(?:correo|mail|e-?mail|email)\s*:?\s*)?$/i;
+// Tambien con unas palabras entre la negacion y el correo, en la misma clausula: "No me escriban a X", "No envien
+// nada a X", "Mi correo nunca fue X", "Nunca use X", "Jamas use X". No cruza un "sino", un "pero" ni otro correo
+// ("no es X sino Y" es Y), ni cuenta "si no" ni "no olviden / no duden / no dejen de escribirme a X".
+const EMAIL_NEGATOR_CHAIN_RE = /(?<![a-z\u00e0-\u00fc])(?<!(?<![a-z\u00e0-\u00fc])si\s)(?:no|nunca|jam[a\u00e1]s|tampoco)(?:[^\S\n]+(?!(?:sino|pero|y|e|o|u|ahora|s[i\u00ed]|olvid[a-z\u00e0-\u00fc]*|dud[a-z\u00e0-\u00fc]*|dej[a-z\u00e0-\u00fc]*|import[a-z\u00e0-\u00fc]*)(?![a-z\u00e0-\u00fc]))[a-z\u00e0-\u00fc]+){1,4}[^\S\n]*$/i;
+const EMAIL_NEGATED_AFTER_RE = /^\s*(?:est[a\u00e1]\s+mal|qued[o\u00f3]\s+mal|es\s+(?:incorrecto|el\s+(?:anterior|viejo|malo|equivocado))|era\s+el\s+anterior|no\s+(?:es|va|sirve|existe|funciona|me\s+llega)|no\s*[,.;!]|ya\s+no|equivocado|incorrecto|mal\s+escrito)/i;
+// El que la correccion marca como el bueno: "el correcto es Y", "el nuevo es Y", "ahora es Y".
+const EMAIL_MARKED_RE = /(?:correct[oa]|buen[oa]|nuev[oa]|actualizad[oa]|ahora)(?:\s+(?:es|ser[i\u00ed]a))?\s*:?\s*$/i;
+interface EmailCandidate { email: string; marked: boolean }
+/** [TRANSCRIPCION] Los correos del cliente en el mensaje (sin los de eLIGHTS), sin los que niega ni repetidos. */
+function affirmedEmails(text: string): EmailCandidate[] {
+  const normalized = text.slice(0, MAX_FACTS);
+  const out: EmailCandidate[] = [];
+  for (const m of normalized.matchAll(EMAIL_RE_ALL)) {
+    const email = m[0].replace(/[.,;:!]+$/, '').toLowerCase();
+    if (OWN_EMAIL_RE.test(email)) continue;
+    // La negrita o la cursiva de WhatsApp ("*no* es X") no tapan la negacion.
+    const before = normalized.slice(Math.max(0, m.index - 60), m.index).replace(/[*_~]/g, ' ');
+    const after = normalized.slice(m.index + m[0].length, m.index + m[0].length + 40).replace(/[*_~]/g, ' ');
+    if (EMAIL_NEGATED_BEFORE_RE.test(before) || EMAIL_NEGATOR_CHAIN_RE.test(before) || EMAIL_NEGATED_AFTER_RE.test(after)) continue;
+    const marked = EMAIL_MARKED_RE.test(before);
+    const seen = out.find((c) => c.email === email);
+    if (seen) seen.marked ||= marked;
+    else out.push({ email, marked });
+  }
+  return out;
 }
 /** [CIERRE-HONESTO] El correo que trae Claude, solo si es texto y tiene forma de correo. */
 function emailFrom(value: unknown): string | undefined {
@@ -877,9 +962,11 @@ function factsText(body: string, claudeParsed: ClaudeFields): string {
 }
 
 // [COMUNA] La comuna de la instalacion: con varias en el mensaje, la que eligio Claude (si es una de ellas)
-// o la primera. La de la factura no cuenta.
+// o la primera. La de la factura no cuenta, y la de donde es la persona ("Soy de Maipu. La obra es en Lampa.")
+// solo si no hay ninguna de la obra: Claude elige dentro de ese mismo grupo.
 function pickComuna(mentions: ComunaMention[], claudeValue: unknown): string | undefined {
-  const places = mentions.filter((m) => !m.billing).map((m) => m.name);
+  const obra = mentions.filter((m) => !m.billing && !m.origin).map((m) => m.name);
+  const places = obra.length ? obra : mentions.filter((m) => !m.billing).map((m) => m.name);
   const claudePick = officialComuna(claudeText(claudeValue));
   return claudePick && places.includes(claudePick) ? claudePick : places[0];
 }
@@ -1083,11 +1170,16 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
  * transcripcion, a la espera de un pedido nuevo. La persona de Pipedrive conserva el correo anterior.
  * Solo vale el correo escrito en este mensaje: Claude ve el historial y puede repetir uno anterior.
  */
-function lateEmail(phone: string, state: FlowState, body: string): FlowResult | undefined {
-  const email = extractEmail(body);
+function lateEmail(phone: string, state: FlowState, body: string, correcting: boolean): FlowResult | undefined {
   const field = state.isInstallFlow ? 'install_correo' : 'correo';
   const before = state.captured[field];
-  if (!email || email.toLowerCase() === before?.toLowerCase()) return undefined;
+  // [TRANSCRIPCION] Un correo negado nunca se toma ("Mi correo no es X, es Y" es Y). Al corregir, el capturado es
+  // el que se corrige ("cambiar X por Y"). Con varios correos y ninguno marcado ("el correcto es Y"), no cambia nada.
+  let candidates = affirmedEmails(body);
+  if (correcting && before) candidates = candidates.filter((c) => c.email !== before.toLowerCase());
+  if (candidates.length > 1) candidates = candidates.filter((c) => c.marked);
+  const email = candidates.length === 1 ? candidates[0].email : undefined;
+  if (!email || email === before?.toLowerCase()) return undefined;
   const captured: CapturedFields = { ...state.captured, [field]: email };
   if (before) captured.cambios = [...(captured.cambios ?? []), 'Correo: antes ' + before + ', ahora ' + email].slice(-MAX_CAMBIOS);
   const next: FlowState = { ...state, captured };
@@ -1163,7 +1255,11 @@ function flowStep(
 
   if (state.stage === 'closed') {
     const correctingRut = state.deal === 'registered' && /\brut\b/i.test(body) && /\b(?:corregir|corrijo|correcci[oó]n|correcto|actualizar|cambiar|cambio|modificar)\b/i.test(body);
-    const newRequest = !correctingRut && (looksLikeNewRequest(body) || installRequested(maskNegated(body)));
+    const correctingEmail = state.deal === 'registered' && correctsEmail(body);
+    // [TRANSCRIPCION] Un pedido nuevo explicito gana a las correcciones; las correcciones, a un pedido nuevo que
+    // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
+    const newRequest = explicitNewRequest(body)
+      || (!correctingRut && !correctingEmail && (looksLikeNewRequest(body) || installRequested(maskNegated(body))));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
     if (!state.deal && (!newRequest || messageEmail(body, claudeParsed))) {
@@ -1174,7 +1270,7 @@ function flowStep(
       // parte del estado que ya trae el RUT.
       const lateRutResult = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
       const late = state.deal === 'registered'
-        ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body) ?? lateRutResult
+        ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
         : undefined;
       if (late) return late;
       return {

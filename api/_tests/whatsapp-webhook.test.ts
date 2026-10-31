@@ -78,6 +78,9 @@ function fakeReq(params: Record<string, string>, init: { method?: string; header
   });
 }
 
+// Un MessageSid por mensaje, como Twilio: el registro local deduplica tambien sin Upstash (H11).
+let sidSeq = 0;
+
 /** Un mensaje de WhatsApp tal como lo manda Twilio. */
 async function sendMessage(phone: string, body: string, extra: Record<string, string> = {}): Promise<FakeRes> {
   const res = fakeRes();
@@ -86,7 +89,7 @@ async function sendMessage(phone: string, body: string, extra: Record<string, st
       From: 'whatsapp:' + phone,
       Body: body,
       ProfileName: 'PRUEBA 13w',
-      MessageSid: 'SM' + phone.replace(/\D/g, ''),
+      MessageSid: 'SM' + phone.replace(/\D/g, '') + '-' + ++sidSeq,
       NumMedia: '0',
       ...extra,
     }),

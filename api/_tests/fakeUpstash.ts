@@ -1,6 +1,7 @@
 // api/_tests/fakeUpstash.ts
 // Upstash Redis falso, en memoria, para las pruebas de los adjuntos: responde GET, MGET,
 // SET … [NX] EX/PX, EVAL compare-and-delete y el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts.
+// Para el bot de WhatsApp, también HSET/HDEL/HGETALL/HLEN/EXPIRE y el EVAL que guarda con revisión.
 // Se instala como fetch; las llamadas al relay de correo (GAS_RELAY_URL) responden
 // {"status":"ok"}. No es una prueba ni una función: vive en api/_tests/ para que Vercel no
 // lo despliegue.
@@ -55,6 +56,35 @@ export function fakeFetch(redis: FakeRedis) {
         redis.data.set(args[0], { value: args[1], ttl, expiresAt: Date.now() + ttl * (px ? 1 : 1000) });
         result = 'OK';
       }
+    } else if (cmd === 'EVAL' && args[0].includes('^{"rev":')) {
+      // Bot de WhatsApp (stateStore.ts): SET ... EX solo si la revisión guardada es la esperada.
+      const [, , key, expected, value, ttl] = args;
+      const current = redis.data.get(key)?.value;
+      const rev = current ? Number(/^\{"rev":(\d+),/.exec(current)?.[1] ?? 0) : 0;
+      if (rev !== Number(expected)) {
+        result = 0;
+      } else {
+        redis.data.set(key, { value, ttl: Number(ttl), expiresAt: Date.now() + Number(ttl) * 1000 });
+        result = 1;
+      }
+    } else if (cmd === 'HSET' || cmd === 'HDEL' || cmd === 'HGETALL' || cmd === 'HLEN') {
+      // Hash guardado como JSON en `value` (la cola de escrituras pendientes del bot de WhatsApp).
+      const entry = redis.data.get(args[0]);
+      const hash: Record<string, string> = entry ? JSON.parse(entry.value) : {};
+      if (cmd === 'HGETALL') result = Object.entries(hash).flat();
+      else if (cmd === 'HLEN') result = Object.keys(hash).length;
+      else {
+        let changed = 0;
+        if (cmd === 'HSET') for (let i = 1; i + 1 < args.length; i += 2) { changed += hash[args[i]] === undefined ? 1 : 0; hash[args[i]] = args[i + 1]; }
+        else for (const field of args.slice(1)) { changed += hash[field] === undefined ? 0 : 1; delete hash[field]; }
+        if (Object.keys(hash).length) redis.data.set(args[0], { ...(entry ?? {}), value: JSON.stringify(hash) });
+        else redis.data.delete(args[0]);
+        result = changed;
+      }
+    } else if (cmd === 'EXPIRE') {
+      const entry = redis.data.get(args[0]);
+      if (entry) { entry.ttl = Number(args[1]); entry.expiresAt = Date.now() + Number(args[1]) * 1000; }
+      result = entry ? 1 : 0;
     } else if (cmd === 'EVAL' && args[0].includes("redis.call('del'")) {
       const [, , key, token] = args;
       result = redis.data.get(key)?.value === token ? Number(redis.data.delete(key)) : 0;

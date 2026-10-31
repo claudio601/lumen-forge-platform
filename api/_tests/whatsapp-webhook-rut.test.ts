@@ -71,6 +71,8 @@ const b2b = (rut: string) =>
   `Necesito 30 paneles LED 60x60 luz fría para una oficina en Providencia. Comercial Prueba SpA, RUT ${rut}, ${CORREO}`;
 
 let seq = 0;
+// Un MessageSid por mensaje, como Twilio: el registro local deduplica tambien sin Upstash (H11).
+let sidSeq = 0;
 const nextPhone = () => '+56900000' + String(700 + ++seq);
 
 function fakeReq(params: Record<string, string>) {
@@ -99,7 +101,7 @@ function replyText(xml: string | undefined): string {
 async function send(phone: string, body: string, claude: Record<string, unknown> = {}): Promise<string> {
   sim.claude.push(JSON.stringify({ wantsHuman: false, qualifiesForDeal: false, summary: 'Resumen de prueba.', ...claude }));
   const res = fakeRes();
-  await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMrut' + seq, NumMedia: '0' }), res);
+  await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMrut' + seq + '-' + ++sidSeq, NumMedia: '0' }), res);
   expect(res.statusCode).toBe(200);
   return replyText(res.body);
 }

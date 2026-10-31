@@ -38,9 +38,19 @@ const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl
   // [COMUNA] [RESUMEN] PR 3 del plan del bot; el codigo igual valida la comuna y filtra el resumen.
   'comuna_o_ciudad: la comuna de Chile donde se instala o se despacha, solo si el cliente la dice como ' +
   'lugar (nunca la de un correo, una calle, la razon social ni la sucursal que pregunta). ' +
-  'summary: lo que el cliente dice, pide o pregunta, empezando con "El cliente pide", "El cliente pregunta" ' +
-  'o "El cliente dice que". Nunca afirmes como hecho una compra, un pago, el stock, un pedido confirmado, ' +
-  'un despacho ni el historial del cliente: si el cliente lo menciona, escribe "El cliente dice que...".';
+  // [RESUMEN] Ronda 2 (H1): cada frase dice lo que el cliente pide, pregunta o dice; summary.ts bota
+  // las que afirman un hecho, asi que el resumen bien escrito pasa entero.
+  'summary: una o dos frases. Cada frase empieza con "El cliente pide", "El cliente pregunta si", ' +
+  '"El cliente pregunta por" o "El cliente dice que", y cuenta solo lo que el cliente pide, pregunta o dice. ' +
+  'Nunca afirmes un hecho ni un estado comercial: compra, pago, acreditacion, stock, existencias, ' +
+  'un pedido existente, entrega, despacho, llegada ni historial del cliente, en ningun tiempo verbal. ' +
+  'Si el cliente pregunta por eso, escribe "El cliente pregunta si hay stock" o "El cliente pregunta si es ' +
+  'cliente frecuente"; si lo cuenta, "El cliente dice que ya pago". Nunca hables por la tienda ' +
+  '("tenemos", "nosotros", "le enviamos") ni escribas "su pedido" o "su compra": nombra el producto ' +
+  '("El cliente pregunta cuando llegan los 20 focos"). ' +
+  // [RESUMEN] Ronda 3: summary.ts tambien bota los rotulos sueltos y lo que paso antes.
+  'No escribas rotulos ni frases sueltas ("Pago OK", "Cliente conocido", "Despacho manana a Lampa") ' +
+  'ni lo que paso antes ("ayer", "la vez anterior") salvo con "El cliente dice que".';
 /**
  * [CIERRE-HONESTO] Cada campo de Claude se usa solo si es texto (un numero se pasa a texto).
  * Un objeto o una lista (dos correos, un pedido con varios items) queda vacio: antes viajaba

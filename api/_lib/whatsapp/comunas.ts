@@ -88,12 +88,30 @@ const COMUNA_RE = new RegExp('(?<![\\p{L}\\p{N}@._/])(?:' + PATTERN + ')(?![\\p{
 // La palabra que presenta un lugar justo antes de la comuna ("en", "de", "para", "desde"). "Despacho a" y
 // "enviar a" son anclas de obra (OBRA_ANCHOR_RE).
 const LOCATION_BEFORE_RE = /(?<![\p{L}])(?:en|de|del|para|desde|hacia|sector)\s+$/iu;
-// "Soy de Maipu", "desde Maipu": de donde es la persona. Llena la comuna vacia, pero no cambia una capturada
-// ("una casa en Lampa" sigue siendo la obra). "La sucursal de Temuco" si es un lugar (PLACE_OF_RE).
-const ORIGIN_BEFORE_RE = /(?<![\p{L}])(?:de|del|desde)\s+$/iu;
+// "Soy de Maipu", "Soy Ana Prueba de Maipu", "somos una constructora de Colina", "vengo de Maipu", "desde Maipu":
+// de donde es la persona. Llena la comuna vacia si el mensaje no trae la de la obra, pero no cambia una
+// capturada ("una casa en Lampa" sigue siendo la obra). Vale tambien cuando contesta la pregunta por la comuna
+// ("Soy de Maipu. La obra es en Lampa." es Lampa).
+const ORIGIN_BEFORE_RE = /(?:(?<![\p{L}])(?:soy|somos|vengo|venimos)(?:\s+(?!(?:y|e|o|pero|para|en|que|necesit[\p{L}]*|quier[\p{L}]*|busc[\p{L}]*|requier[\p{L}]*|cotiz[\p{L}]*)(?![\p{L}]))[\p{L}'-]+){0,4}\s+(?:de|del)|(?<![\p{L}])desde)\s+$/iu;
+// Un "de" suelto tampoco presenta la obra: casi siempre dice de donde es alguien ("Ana Prueba, de Colina", "mi
+// senora es de Colina", "la empresa es de Colina", "un amigo de Colina", "ana prueba de colina"). Cuenta igual que
+// el origen: llena la vacia, no cambia la capturada. Si ubican la obra "dentro de Colina" y "la bodega de Lampa"
+// (PLACE_OF_RE).
+const OF_BEFORE_RE = /(?<![\p{L}])(?:de|del)\s+$/iu;
+const INSIDE_OF_RE = /(?<![\p{L}])dentro\s+(?:de|del)\s+$/iu;
 // "comuna de", "comuna:", "la comuna es: Lampa", "corrijo la comuna a Temuco", "ciudad: Temuco".
-// Tambien con lo que ubica: "Comuna de la obra: Lampa", "ciudad del despacho: Temuco".
-const COMUNA_ANCHOR_RE = /(?<![\p{L}])(?:comuna|ciudad|localidad)(?:\s+(?:de|del)\s+(?:(?:la|el)\s+)?(?:obra|instalaci[o\u00f3]n|proyecto|despacho|entrega|faena))?(?:\s+(?:es|ser[i\u00ed]a|queda|a|de|del|en))*(?:\s*:\s*|\s+)$/iu;
+// Tambien con lo que ubica: "Comuna de la obra: Lampa", "Comuna obra: Lampa", "ciudad del despacho: Temuco".
+const COMUNA_ANCHOR_RE = /(?<![\p{L}])(?:comuna|ciudad|localidad)(?:\s+(?:(?:de|del)\s+)?(?:(?:la|el)\s+)?(?:obra|instalaci[o\u00f3]n|proyecto|despacho|entrega|faena))?(?:\s+(?:es|ser[i\u00ed]a|queda|a|de|del|en))*(?:\s*:\s*|\s+)$/iu;
+// La etiqueta explicita de la obra: "Comuna de la obra:", "Comuna obra:", "ciudad del despacho: Temuco" y, fuera de
+// un bloque de la factura (labeledBilling), "Comuna:" o "Ciudad:". Gana a las palabras de factura, retiro o sucursal
+// del resto de la clausula ("Comuna: Colina con retiro en su local": el retiro es del local).
+const OBRA_LABEL_RE = /(?<![\p{L}])(?:comuna|ciudad|localidad)\s+(?:(?:de|del)\s+)?(?:(?:la|el)\s+)?(?:obra|instalaci[o\u00f3]n|proyecto|despacho|entrega|faena)(?:\s+(?:es|ser[i\u00ed]a|queda|a|de|del|en))*(?:\s*:\s*|\s+)$/iu;
+const COMUNA_LABEL_RE = /(?<![\p{L}])(?:comuna|ciudad|localidad)\s*:\s*$/iu;
+// Lo que califica a la misma comuna de una etiqueta explicita: "Comuna: Providencia para facturacion", "Comuna:
+// Providencia - facturacion", "Comuna: Colina, para facturacion" o "(facturacion)" (la factura); "Comuna: Quinta
+// Normal para retiro" o "- retiro" (no cuenta). Tras una coma, solo con la preposicion: "Comuna: Colina, retiro en
+// su local" puede ser el retiro en el local.
+const LABEL_QUALIFIER_RE = /^\s*(?:[(\-\u2013\u2014/]\s*(?:(?:para|de|del|por|en)\s+)?|,?\s*(?:para|de|del|por)\s+)(?:(?:la|el|su)\s+)?(?:(factur[\p{L}]*|boletas?|casa\s+matriz)|retir[\p{L}]*|sucursal(?:es)?)(?![\p{L}])/iu;
 // Una correccion: "Corrijo: Colina", "Correccion: Colina", "Perdon, es Colina", "en realidad es Colina", "mejor
 // dicho Colina", "antes dije Lampa pero es Colina", "no es Lampa sino Colina" y, al inicio de la clausula, "No es
 // Lampa, es Colina" o "Es Colina, no Lampa" ("era" ahi no: "Era Lampa, ahora es Colina").
@@ -105,12 +123,12 @@ const PLACE_ANCHOR_RE = new RegExp('(?<![\\p{L}])' + OBRA_NOUN + '(?:\\s+[\\p{L}
 // "la sucursal de Temuco", "la obra de Lampa": el lugar, no de donde es la persona.
 const PLACE_OF_RE = new RegExp('(?<![\\p{L}])' + OBRA_NOUN + '(?:\\s+[\\p{L}]+)?\\s+(?:de|del)\\s+$', 'iu');
 // La obra justo antes de la comuna gana a las palabras de factura, retiro o sucursal de su clausula: "la
-// obra es en", "instalacion en", "despacho a", "despachar 20 focos a", "enviar los 30 paneles a", "despacho a
+// obra es en", "la obra esta dentro de", "instalacion en", "despacho a", "despachar 20 focos a", "enviar los 30 paneles a", "despacho a
 // domicilio en", "entregar en", "llevar a", "para una bodega en", "para su oficina en" (la del cliente de un
 // instalador). Entre el verbo y "a" van hasta 4 palabras, sin las de tiempo ("llevo 20 anos en") ni las de
 // la tienda ("entrega en su tienda en").
 const OBRA_ANCHOR_RE = new RegExp('(?:'
-  + '(?<![\\p{L}])(?:obra|proyecto|instalaci[o\\u00f3]n|faena)s?' + OBRA_QUALIFIER + '\\s+en'
+  + '(?<![\\p{L}])(?:obra|proyecto|instalaci[o\\u00f3]n|faena)s?' + OBRA_QUALIFIER + '\\s+(?:en|dentro\\s+de)'
   + '|(?<![\\p{L}])instal[\\p{L}]*\\s+(?:(?:el|los|las|la|lo|todo|todos)\\s+)?en'
   + '|(?<![\\p{L}])(?:despach|envi|env\\u00ed|mand|llev|entreg)[\\p{L}]*\\s+(?:(?!(?:a\\u00f1os?|anos?|mes(?:es)?|d[i\\u00ed]as?|semanas?|horas?|tiempo|sus?|tiendas?|locale?s?|sucursal(?:es)?|showroom|retiro)(?![\\p{L}]))[\\p{L}\\p{N}]+\\s+){0,4}(?:a|en|hasta)'
   + '|(?<![\\p{L}])para\\s+(?:(?:un|una|unos|unas|el|la|los|las|mi|mis|su|sus|nuestr[oa]s?)\\s+)?' + OBRA_NOUN + '(?:\\s+[\\p{L}]+)?\\s+en'
@@ -151,16 +169,44 @@ const BRANCH_QUESTION_RE = /(?<![\p{L}])(?:hay\s+(?:una?\s+|alg[u\u00fa]n[ao]?\s
 const CLAUSE_CUT_RE = /[,;.!?\n\u00bf\u00a1()]|(?<![\p{L}])(?:y|e|pero)(?![\p{L}])/giu;
 const MAX_CLAUSE = 120;
 
-// Una etiqueta de la factura o la empresa ("Facturacion:", "Domicilio comercial:", "Casa matriz:") y, con
-// RUT o razon social en el mensaje, "Direccion:" o "Domicilio:": la direccion que la sigue en la oracion es la
-// de la factura ("RUT 11.111.111-1, Direccion: Av. Prueba 123, oficina 5, Providencia").
-const LABEL_RE = /(?<![\p{L}])(?:((?:datos\s+de\s+)?factur[\p{L}]*|domicilio\s+(?:comercial|legal|tributario)|casa\s+matriz|oficina\s+central|direcci[o\u00f3]n\s+(?:comercial|tributaria|legal|fiscal|de\s+(?:la\s+)?(?:empresa|facturaci[o\u00f3]n)))|direcci[o\u00f3]n|domicilio)\s*:/giu;
+// Una etiqueta de la factura o la empresa ("Facturacion:", "Datos de facturacion:", "Cotizacion a nombre de:",
+// "Domicilio comercial:", "Casa matriz:") y, con RUT o razon social en el mensaje, "Direccion:" o "Domicilio:": la
+// direccion que la sigue en la oracion es la de la factura ("RUT 11.111.111-1, Direccion: Av. Prueba 123, oficina
+// 5, Providencia").
+const LABEL_RE = /(?<![\p{L}])(?:((?:datos\s+de\s+)?factur[\p{L}]*|cotizaci[o\u00f3]n\s+a\s+nombre\s+de|datos\s+de\s+(?:la\s+)?empresa|domicilio\s+(?:comercial|legal|tributario)|casa\s+matriz|oficina\s+central|direcci[o\u00f3]n\s+(?:comercial|tributaria|legal|fiscal|de\s+(?:la\s+)?(?:empresa|facturaci[o\u00f3]n)))|direcci[o\u00f3]n|domicilio)\s*:/giu;
 // Lo que corta esa direccion: el fin de la oracion (no el punto de "Av." u "of."), un pedido o una obra.
 const ADDRESS_END_RE = /[;!?\n\u00bf\u00a1]|(?<!(?<![\p{L}])(?:av|avda|pje|psje|of|depto|dpto|dto|n|nro|km|pobl?|sta|sto|pto|gral|pdte|dr|esq|int|loc|lt|mz|cond|parc))\.(?=\s|$)|(?<![\p{L}])(?:necesit|quier|busc|requier|ocup|cotiz|obra|proyecto|instal|despach|env[i\u00ed]|entreg|llev|mand)/iu;
-// Tras una etiqueta propia de la factura ("Facturacion:", "Casa matriz:") la direccion puede ir en varias
-// lineas, un dato por linea: el salto de linea no la corta.
-const BLOCK_END_RE = new RegExp(ADDRESS_END_RE.source.replace('[;!?\\n', '[;!?'), 'iu');
+// Tras un encabezado de la factura ("Facturacion:", "Casa matriz:") el bloque sigue en varias lineas, un dato por
+// linea ("Direccion:", "Comuna:", "Ciudad:", "RUT:", "Giro:", "Correo:"): el salto de linea no lo corta. Lo cortan el
+// fin de la oracion, un pedido o una etiqueta que pasa a la obra, el despacho, la instalacion o la entrega
+// ("Direccion de despacho:", "Comuna de la obra:"); no "Giro: Instalaciones electricas".
+const BLOCK_END_RE = /[;!?\u00bf\u00a1]|(?<!(?<![\p{L}])(?:av|avda|pje|psje|of|depto|dpto|dto|n|nro|km|pobl?|sta|sto|pto|gral|pdte|dr|esq|int|loc|lt|mz|cond|parc))\.(?=\s|$)|(?<![\p{L}])(?:necesit|quier|busc|requier|ocup|cotiz(?![\p{L}]*\s+a\s+nombre))|(?<![\p{L}])(?:llev|mand)(?:ar|o|a|an|en|amos)(?![\p{L}])|(?<![\p{L}])(?:obra|proyecto|instalaci[o\u00f3]n|despachos?|despachar|entregas?|entregar|faena|env[i\u00ed]os?|enviar)(?![\p{L}])/iu;
+// Tambien lo corta una linea con una etiqueta del lugar ("Direccion de la bodega:", "Bodega:", "Destino:", "Lugar
+// de trabajo:", "Donde se instalan:", "Se instalan en:") o con una etiqueta que ya salio en el bloque: un segundo
+// "Comuna:" o "Direccion:" es de otra seccion, tambien despues de una linea en blanco. Una linea en blanco sola no:
+// hay bloques de factura con una linea en blanco entre cada dato. Los datos de la factura que nombran un lugar
+// ("Oficina: 501", "Local: 3") tampoco.
+const LINE_LABEL_RE = /\n[^\S\n]*([\p{L}][\p{L}\p{N}.'\u00b0\u00ba \t-]{0,40}?)[^\S\n]*:/gu;
+const PLACE_LABEL_RE = new RegExp('(?<![\\p{L}])(?:' + OBRA_NOUN + '|instal[\\p{L}]*|despach[\\p{L}]*|entreg[\\p{L}]*|env[i\\u00ed][\\p{L}]*|destinos?|lugar(?:es)?|ubicaci[o\\u00f3]n|d[o\\u00f3]nde|sitio)(?![\\p{L}])', 'iu');
+const BILLING_FIELD_RE = /^(?:oficina|of|local|depto|dpto|departamento|casa|calle|pasaje|n[u\u00fa]mero\s+de\s+(?:oficina|local|depto|departamento|casa))\.?$/iu;
+/** La etiqueta sin tildes ni mayusculas, con "Ciudad" igual a "Comuna" y "Domicilio" igual a "Direccion". */
+function labelKey(label: string): string {
+  return comunaKey(label).replace(/^(?:ciudad|localidad)$/, 'comuna').replace(/^domicilio$/, 'direccion');
+}
+/** El bloque de la factura que empieza en `rest` ya termino. */
+function blockEnds(rest: string): boolean {
+  if (BLOCK_END_RE.test(rest)) return true;
+  const seen = new Set<string>();
+  for (const m of rest.matchAll(LINE_LABEL_RE)) {
+    const label = m[1].trim();
+    const key = labelKey(label);
+    if ((PLACE_LABEL_RE.test(label) && !BILLING_FIELD_RE.test(label)) || seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
 const MAX_LABEL_REACH = 150;
+const MAX_BLOCK_REACH = 400;
 // Datos de la empresa en el texto: el RUT o la razon social.
 const COMPANY_RE = /(?<![\p{L}])(?:rut|raz[o\u00f3]n\s+social)(?![\p{L}])|\d{1,2}\.?\d{3}\.?\d{3}\s*-\s*[\dkK](?![\p{L}\p{N}])/iu;
 // Una razon social con su forma juridica ("Iluminacion de Los Andes SpA", "CONSTRUCTORA PRUEBA LTDA."): sus
@@ -169,6 +215,19 @@ const COMPANY_RE = /(?<![\p{L}])(?:rut|raz[o\u00f3]n\s+social)(?![\p{L}])|\d{1,2
 const LEGAL_NAME = '(?<![\\p{L}\\p{N}])(?:[\\p{Lu}\\p{N}][\\p{L}\\p{N}&\'-]*\\s+(?:(?:de|del|la|las|los|el|y|e)\\s+)?){1,8}(?:SpA|SPA|S\\.\\s?A\\.?|Ltda\\.?|LTDA\\.?|Limitada|LIMITADA|EIRL|E\\.\\s?I\\.\\s?R\\.\\s?L\\.?)(?![\\p{L}\\p{N}])';
 const LEGAL_NAME_RE = new RegExp(LEGAL_NAME, 'gu');
 const HAS_LEGAL_NAME_RE = new RegExp(LEGAL_NAME, 'u');
+// En minusculas, la forma juridica cuenta solo cuando el texto presenta una empresa: "somos iluminacion de los
+// andes spa", "trabajo en constructora de los andes limitada", "represento a ...", "de la empresa ...", "les
+// escribo de ...", "a nombre de ...", "pertenezco a ...", "Empresa: ...", o con el nombre al inicio de la clausula
+// ("Ana Prueba, iluminacion de los andes spa"; ahi con dos palabras o mas, sin articulo y sin "limitada", que
+// tambien es un adjetivo). "Necesito focos para un spa en Pucon" sigue siendo un spa.
+const LOWER_NAME_WORD = '(?!(?:para|en|un|una|unos|unas|y|e|necesit[\\p{L}]*|quier[\\p{L}]*|busc[\\p{L}]*|requier[\\p{L}]*|cotiz[\\p{L}]*)(?![\\p{L}]))[\\p{L}\\p{N}&\'-]+\\s+';
+const LOWER_FORM = '(?:spa|s\\.\\s?p\\.\\s?a\\.?|ltda\\.?|eirl|e\\.\\s?i\\.\\s?r\\.\\s?l\\.?|s\\.\\s?a\\.?';
+const LOWER_LEGAL_NAME = '(?:(?<![\\p{L}])(?:somos|empresa|represento\\s+a|representamos\\s+a|trabajo\\s+en|trabajamos\\s+en|pertenezco\\s+a|pertenecemos\\s+a|escrib[\\p{L}]*\\s+de|a\\s+nombre\\s+de)\\s*:?\\s+('
+  + '(?:' + LOWER_NAME_WORD + '){1,8}' + LOWER_FORM + '|limitada))'
+  + '|(?<=(?:^|[,;:.!?\\n\\u00bf\\u00a1(])[^\\S\\n]{0,3})('
+  + '(?!(?:el|la|los|las|lo|al|del|de|mi|mis|su|sus|tu|tus|nuestr[oa]s?|est[ea]s?|es[ea]s?)(?![\\p{L}]))(?:' + LOWER_NAME_WORD + '){2,8}' + LOWER_FORM + ')))(?![\\p{L}\\p{N}])';
+const LOWER_LEGAL_NAME_RE = new RegExp(LOWER_LEGAL_NAME, 'giu');
+const HAS_LOWER_LEGAL_NAME_RE = new RegExp(LOWER_LEGAL_NAME, 'iu');
 // La comuna que el texto presenta como lugar justo antes de la razon social no es parte de ella: "la obra en
 // Lampa de Constructora Prueba SpA", "BODEGA EN LAMPA EMPRESA PRUEBA SPA" o, como respuesta, "Puente Alto
 // Constructora Prueba SpA". En "Iluminacion de Los Andes SpA" si: "de" es parte del nombre.
@@ -177,7 +236,7 @@ const NAME_COMUNA_RE = new RegExp(COMUNA_RE.source, 'giu');
 
 /** [COMUNA] El texto trae datos de una empresa: RUT, razon social o un nombre con su forma juridica. */
 export function mentionsCompany(text: string): boolean {
-  return COMPANY_RE.test(text) || HAS_LEGAL_NAME_RE.test(text);
+  return COMPANY_RE.test(text) || HAS_LEGAL_NAME_RE.test(text) || HAS_LOWER_LEGAL_NAME_RE.test(text);
 }
 
 /** El tramo de `text` desde el ultimo corte de clausula antes de `index`. */
@@ -211,12 +270,21 @@ function streetAfter(after: string): boolean {
 }
 /** La comuna cierra la direccion de una etiqueta de la factura o de la empresa. */
 function labeledBilling(text: string, start: number, company: boolean): boolean {
-  const head = text.slice(Math.max(0, start - MAX_LABEL_REACH), start);
-  let billing = false;
+  const from = Math.max(0, start - MAX_BLOCK_REACH);
+  const head = text.slice(from, start);
+  // Cuenta la ultima etiqueta antes de la comuna. Un encabezado abre el bloque de la factura; "Direccion:" dentro del
+  // bloque lo hereda (antes lo borraba). Solo se revisa el bloque del ultimo encabezado: revisar el de cada uno
+  // tardaba mas de un segundo en un texto largo lleno de encabezados.
+  let last: RegExpExecArray | undefined;
+  let header: RegExpExecArray | undefined;
   for (const m of head.matchAll(LABEL_RE)) {
-    billing = (Boolean(m[1]) || company) && !(m[1] ? BLOCK_END_RE : ADDRESS_END_RE).test(head.slice(m.index + m[0].length));
+    last = m;
+    if (m[1]) header = m;
   }
-  return billing;
+  if (!last) return false;
+  const block = header !== undefined && !blockEnds(head.slice(header.index + header[0].length));
+  if (last === header) return block;
+  return block || (company && start - from - last.index <= MAX_LABEL_REACH && !ADDRESS_END_RE.test(head.slice(last.index + last[0].length)));
 }
 
 /** Un retiro en la bodega o la tienda (PICKUP_RE): no el de los equipos viejos ni el de un lugar del cliente. */
@@ -234,11 +302,15 @@ function withoutMarks(text: string): string {
 /** Desde donde se tapa la razon social `name` (en `at`): despues de la ultima comuna que el texto presenta como lugar. */
 function legalNameStart(text: string, bare: string, at: number, name: string, answering: boolean): number {
   let from = 0;
-  NAME_COMUNA_RE.lastIndex = at;
-  for (let m = NAME_COMUNA_RE.exec(bare); m && m.index + m[0].length <= at + name.length; m = NAME_COMUNA_RE.exec(bare)) {
-    const before = text.slice(Math.max(0, m.index - 80), m.index);
-    const answer = answering && ANSWER_LEAD_RE.test(clauseBefore(text, m.index).trimStart());
-    if (answer || NAME_CUT_BEFORE_RE.test(before) || COMUNA_ANCHOR_RE.test(before)) from = m.index + m[0].length - at;
+  // Solo el tramo del nombre (y la letra anterior, por el lookbehind): antes se buscaba hasta el final del texto
+  // por cada nombre, y un texto con muchas razones sociales tardaba segundos.
+  const offset = Math.max(0, at - 1);
+  for (const m of bare.slice(offset, at + name.length).matchAll(NAME_COMUNA_RE)) {
+    const index = offset + m.index;
+    if (index < at) continue;
+    const before = text.slice(Math.max(0, index - 80), index);
+    const answer = answering && ANSWER_LEAD_RE.test(clauseBefore(text, index).trimStart());
+    if (answer || NAME_CUT_BEFORE_RE.test(before) || COMUNA_ANCHOR_RE.test(before)) from = index + m[0].length - at;
   }
   return from;
 }
@@ -247,7 +319,10 @@ export interface ComunaMention {
   name: string;
   /** La comuna de la factura o la casa matriz, no la de la instalacion. */
   billing: boolean;
-  /** Solo de donde es la persona ("soy de Maipu", "desde Maipu"): llena la comuna vacia, no cambia una capturada. */
+  /**
+   * No presenta la comuna como la obra: de donde es la persona ("soy de Maipu", "desde Maipu") o un "de" suelto
+   * ("Ana Prueba, de Colina"). Llena la comuna vacia solo si no hay una de la obra; no cambia una capturada.
+   */
   origin?: boolean;
 }
 
@@ -263,8 +338,10 @@ export function findComunas(text: string, opts: ComunaOptions = {}): string[] {
   return findComunaMentions(text, opts).map((m) => m.name);
 }
 
-type Purpose = 'billing' | 'origin' | 'place';
-const RANK: Record<Purpose, number> = { billing: 0, origin: 1, place: 2 };
+// lead: "Soy de Maipu" como respuesta a la pregunta por la comuna. Es la comuna si el mensaje no trae la de la obra;
+// si la trae ("Soy de Maipu. La obra es en Lampa."), es de donde es la persona.
+type Purpose = 'billing' | 'origin' | 'lead' | 'place';
+const RANK: Record<Purpose, number> = { billing: 0, origin: 1, lead: 2, place: 3 };
 
 /**
  * [COMUNA] Para que sirve esta aparicion de la comuna: el lugar del cliente, solo de donde es la persona
@@ -287,11 +364,22 @@ function purposeOf(text: string, start: number, end: number, name: string, key: 
     if (!answer && !comunaAnchor && (SEASON.has(name) || !strong)) return undefined;
   } else if (!firm && !LOCATION_BEFORE_RE.test(before)) return undefined;
   if (!answer && !strong && (COMMON_WORD.has(name) || COMMON_ALIAS.has(key)) && !/\p{Lu}/u.test(written)) return undefined;
+  // Tras un ancla de obra la comuna es la de la obra ("despacho a Lampa para facturar a nombre de ..."). Tras una
+  // etiqueta explicita ("Comuna de la obra:", "Comuna:" fuera de la factura) solo cuenta lo que califica a esta
+  // misma comuna ("Comuna: Providencia para facturacion"), no otro complemento ("Colina con retiro en su local").
   if (obra) return 'place';
+  if (OBRA_LABEL_RE.test(before) || (COMUNA_LABEL_RE.test(before) && !labeledBilling(text, start, company))) {
+    const qualifier = LABEL_QUALIFIER_RE.exec(after);
+    return qualifier ? (qualifier[1] ? 'billing' : undefined) : 'place';
+  }
   const clause = clauseAround(text, start, end);
   if (pickup(clause, before) || BRANCH_RE.test(clause) || (BRANCH_QUESTION_RE.test(clause) && inQuestion(text, start))) return undefined;
   if (BILLING_RE.test(clause.replace(DOCUMENT_RE, ' ')) || labeledBilling(text, start, company)) return 'billing';
-  return !firm && ORIGIN_BEFORE_RE.test(before) && !PLACE_OF_RE.test(before) ? 'origin' : 'place';
+  if (strong || CORRECTION_BEFORE_RE.test(before) || INSIDE_OF_RE.test(before) || PLACE_OF_RE.test(before)) return 'place';
+  // "Soy de Maipu" contesta la pregunta por la comuna, pero es de donde es la persona: con la obra en el mismo
+  // mensaje gana la obra (lead). "De Maipu", como respuesta, es la comuna.
+  if (ORIGIN_BEFORE_RE.test(before)) return answer ? 'lead' : 'origin';
+  return !answer && OF_BEFORE_RE.test(before) ? 'origin' : 'place';
 }
 
 /**
@@ -305,10 +393,16 @@ export function findComunaMentions(source: string, opts: ComunaOptions = {}): Co
   // La negrita, la cursiva y el tachado de WhatsApp ("*DIRECCION*:") no tapan las etiquetas (mismo largo).
   const text = source.replace(/[*_~]/g, ' ');
   let bareText: string | undefined;
-  const masked = text.replace(LEGAL_NAME_RE, (name: string, at: number) => {
+  const maskName = (name: string, at: number) => {
     bareText ??= withoutMarks(text);
     const from = legalNameStart(text, bareText, at, name, Boolean(opts.answering));
     return name.slice(0, from) + ' '.repeat(name.length - from);
+  };
+  // La que va en minusculas tapa solo el nombre, no la frase que presenta la empresa ("somos").
+  const masked = text.replace(LEGAL_NAME_RE, maskName).replace(LOWER_LEGAL_NAME_RE, (whole: string, presented: string | undefined, leading: string | undefined, at: number) => {
+    const name = presented ?? leading ?? whole;
+    const lead = whole.length - name.length;
+    return whole.slice(0, lead) + maskName(name, at + lead);
   });
   const company = Boolean(opts.company) || masked !== text || COMPANY_RE.test(text);
   const found = new Map<string, number>();
@@ -320,5 +414,9 @@ export function findComunaMentions(source: string, opts: ComunaOptions = {}): Co
     const purpose = purposeOf(masked, m.index, m.index + m[0].length, name, key, opts, company);
     if (purpose) found.set(name, Math.max(found.get(name) ?? RANK.billing, RANK[purpose]));
   }
-  return [...found].map(([name, rank]) => (rank === RANK.origin ? { name, billing: false, origin: true } : { name, billing: rank === RANK.billing }));
+  const hasPlace = [...found.values()].includes(RANK.place);
+  return [...found].map(([name, stored]) => {
+    const rank = stored === RANK.lead ? (hasPlace ? RANK.origin : RANK.place) : stored;
+    return rank === RANK.origin ? { name, billing: false, origin: true } : { name, billing: rank === RANK.billing };
+  });
 }

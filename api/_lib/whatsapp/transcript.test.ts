@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   PRIVACY_MARK, TRANSCRIPT_HEAD, TRANSCRIPT_TAIL, botReplyText, chileTime, clearTranscript, clearTranscriptAfterNote,
-  getTranscript, inboundText, recordTranscript, restoreTranscript, transcriptForNote,
+  getTranscript, inboundText, noteEntryIds, recordTranscript, restoreTranscript, transcriptForNote,
 } from './transcript';
 
 const PHONE = '+56900000901';
@@ -115,5 +115,45 @@ describe('estado guardado', () => {
     expect(getTranscript(PHONE)).toBeUndefined();
     restoreTranscript(PHONE, undefined);
     expect(getTranscript(PHONE)).toBeUndefined();
+  });
+});
+
+describe('dos mensajes a la vez (H3 y H4)', () => {
+  it('la respuesta a un mensaje anterior va justo después de él, aunque se registre al final', () => {
+    const a = recordTranscript(PHONE, 'cliente', 'mensaje A');
+    const b = recordTranscript(PHONE, 'cliente', 'mensaje B');
+    recordTranscript(PHONE, 'bot', 'respuesta a B', { replyTo: b });
+    recordTranscript(PHONE, 'bot', 'respuesta a A', { replyTo: a });
+    expect(getTranscript(PHONE)!.entries.map((e) => e.text)).toEqual(['mensaje A', 'respuesta a A', 'mensaje B', 'respuesta a B']);
+    expect(new Set(getTranscript(PHONE)!.entries.map((e) => e.id)).size).toBe(4);
+  });
+
+  it('la nota de B no lleva ni borra el mensaje de A, que sigue en curso', () => {
+    const a = recordTranscript(PHONE, 'cliente', 'mensaje A');
+    const b = recordTranscript(PHONE, 'cliente', 'mensaje B');
+    const opts = { upTo: b, exclude: new Set([a, a + 1]) };
+    const note = transcriptForNote(PHONE, { ...opts, reply: 'cierre de B' });
+    expect(note).toContain('Cliente: mensaje B');
+    expect(note).not.toContain('mensaje A');
+    clearTranscriptAfterNote(PHONE, noteEntryIds(PHONE, opts));
+    expect(getTranscript(PHONE)!.entries.map((e) => e.text)).toEqual(['mensaje A']);
+  });
+
+  it('se borra por id lo que fue en la nota: una entrada mezclada mientras tanto, aunque tenga un número menor, queda', () => {
+    const upTo = recordTranscript(PHONE, 'cliente', 'pedido A');
+    const ids = noteEntryIds(PHONE, { upTo });
+    // Otra instancia guardó un mensaje con un número menor (su reloj iba atrás) y se mezcló aquí.
+    const t = getTranscript(PHONE)!;
+    restoreTranscript(PHONE, { ...t, entries: [{ seq: upTo - 1, id: 'otra-instancia', at: 1, role: 'cliente', text: 'mensaje de B' }, ...t.entries] });
+    clearTranscriptAfterNote(PHONE, ids);
+    expect(getTranscript(PHONE)!.entries.map((e) => e.text)).toEqual(['mensaje de B']);
+  });
+
+  it('un estado guardado sin ids recibe siempre los mismos (dos instancias no duplican la entrada)', () => {
+    const saved = { entries: [{ seq: 5, at: 1, role: 'cliente', text: 'hola' }], omitted: 0, partialStart: false, sinceNote: false };
+    restoreTranscript(PHONE, saved);
+    const first = getTranscript(PHONE)!.entries[0].id;
+    restoreTranscript(PHONE, structuredClone(saved));
+    expect(getTranscript(PHONE)!.entries[0].id).toBe(first);
   });
 });
