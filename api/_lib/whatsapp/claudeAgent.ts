@@ -29,7 +29,11 @@ const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl
   'Analiza el mensaje y extrae campos en JSON. NO redactes respuestas para el cliente. ' +
   'Devuelve UNICAMENTE JSON con: producto, tipo_de_luz, cantidad, proyecto_o_uso, ' +
   'comuna_o_ciudad, nombre, empresa, correo (null si no aplica), ' +
-  'wantsHuman (boolean), qualifiesForDeal (boolean), summary (string 1-2 lineas).';
+  'wantsHuman (boolean), qualifiesForDeal (boolean), summary (string 1-2 lineas). ' +
+  // [CANTIDAD] [NO-PISAR] PR 2 del plan del bot; el codigo igual valida los dos campos.
+  'cantidad: numero entero de unidades que el cliente pidio, o null (nunca una potencia, medida, ' +
+  'RUT, telefono ni los numeros de un correo). proyecto_o_uso: el espacio o uso (oficina, bodega), ' +
+  'nunca la razon social ni su tipo (SpA, Ltda.).';
 /**
  * [CIERRE-HONESTO] Cada campo de Claude se usa solo si es texto (un numero se pasa a texto).
  * Un objeto o una lista (dos correos, un pedido con varios items) queda vacio: antes viajaba

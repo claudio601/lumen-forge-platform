@@ -138,9 +138,12 @@ function buildNote(p: WhatsAppLeadParams): string {
           '---',
           'Producto: ' + (fmt(c.producto) ?? '-'),
           'Tipo de luz: ' + (fmt(c.tipo_de_luz) ?? '-'),
-          'Cantidad: ' + (fmt(c.cantidad) ?? '-'),
+          // [CANTIDAD] Con varias cantidades en un mensaje, el texto del cliente para revisar.
+          'Cantidad: ' + (fmt(c.cantidad) ?? (fmt(c.cantidad_varios) ? 'varios items, revisar: ' + fmt(c.cantidad_varios) : '-')),
           'Proyecto/uso: ' + (lead.proyecto ?? '-'),
           'Comuna/ciudad: ' + (lead.comuna ?? '-'),
+          // [NO-PISAR] Un dato ya capturado que el cliente cambio en un mensaje posterior.
+          ...(Array.isArray(c.cambios) && c.cambios.length ? ['Cambios: ' + c.cambios.join('; ')] : []),
           '---',
           'Mensaje original: ' + (fmt(p.body) ?? '').substring(0, 300),
           'Resumen bot: ' + (fmt(p.summary) ?? '-').substring(0, 200),

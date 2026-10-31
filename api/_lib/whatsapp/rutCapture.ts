@@ -190,6 +190,16 @@ export function findRut(text: string, options: { asked?: boolean } = {}): RutFou
   return inspectRut(text, options).found;
 }
 
+/**
+ * [CANTIDAD] El texto sin estos RUT, escritos con o sin puntos, espacios o guion: sus digitos no
+ * son cantidad ni telefono.
+ */
+export function removeRuts(text: string, ruts: readonly string[]): string {
+  return ruts.reduce((out, rut) => out.replace(
+    new RegExp(rut.replace(/[.-]/g, '').split('').join('[., \u00a0‐‑‒–—−-]*'), 'gi'), ' ',
+  ), text);
+}
+
 /** Solo un RUT valido de empresa (no de persona) convierte el lead en B2B. */
 export function isBusinessRut(found: Pick<RutFound, 'valido' | 'tipo'> | undefined): boolean {
   return Boolean(found?.valido && found.tipo && found.tipo !== 'persona');
