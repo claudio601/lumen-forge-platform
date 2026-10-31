@@ -239,6 +239,20 @@ describe('ronda 4 (revisión adversaria): medidas después del producto, correcc
     expect(readQuantity(text, options)).toEqual({ value: expected, explicit: true });
   });
 
+  it.each([
+    ['necesito veinte y cinco focos', 25],
+    ['necesito treinta y dos paneles', 32],
+    ['necesito veinticinco focos', 25],
+    ['necesito veintiún focos', 21],
+    ['necesito sesenta paneles', 60],
+  ])('número compuesto en palabras: %s → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+
+  it('"ciento veinte focos" queda vacía (no 20)', () => {
+    expect(readQuantity('necesito ciento veinte focos').value).toBeUndefined();
+  });
+
   it.each(['uno', 'solo una', 'uno nomás', 'necesito solo uno'])('"%s" contesta la pregunta por la cantidad con 1', (text) => {
     expect(readQuantity(text, { asked: true })).toEqual({ value: 1, explicit: true });
     expect(readQuantity(text).value).toBeUndefined();

@@ -58,13 +58,18 @@ const TIMES_AFTER_RE = /(^|[\s(])x\s*(\d{1,5})\b/g;
 const WORD_NUMBERS: Record<string, number> = {
   'un par de': 2, 'media docena de': 6, 'una docena de': 12, 'docena de': 12, dos: 2, tres: 3, cuatro: 4, cinco: 5,
   seis: 6, siete: 7, ocho: 8, nueve: 9, diez: 10, once: 11, doce: 12, quince: 15, veinte: 20, treinta: 30,
-  cuarenta: 40, cincuenta: 50, cien: 100,
+  cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90, cien: 100,
 };
+// Compuestos ("treinta y dos paneles", "veinticinco focos"): se leen antes, para no quedarse con "dos".
+const UNIT_WORD_VALUES: Record<string, number> = { un: 1, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8, nueve: 9 };
+const TENS: Record<string, number> = { veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, sesenta: 60, setenta: 70, ochenta: 80, noventa: 90 };
 
 // Direccion: la calle o avenida con su numero ("Av. Prueba 123"), salvo que el numero sea de un
 // producto ("calle con 30 focos"), y el numero de un kilometro, una oficina, un piso o un local.
 const STREET_RE = new RegExp('\\b(?:calle|avenida|avda|av|pasaje|psje|pje|camino|ruta|autopista|costanera|alameda)\\.?\\s+(?:(?!(?:con|para|necesito|necesitamos|son|unos|unas|y)\\b)[a-z\'.]+\\s+){0,5}?(?:n[\\u00b0\\u00ba]?\\.?\\s*|#\\s*|numero\\s+)?\\d+\\b(?!\\s*' + UNIT_NOUNS + ')(?:\\s*,?\\s*(?:of|oficina|local|bodega|depto|dpto|departamento|casa|piso|block|torre|lote|parcela|sitio)\\.?\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*)?\\d+[a-z]?\\b)*', 'g');
-const WORD_NUMBER_RE = new RegExp('\\b(' + Object.keys(WORD_NUMBERS).join('|') + ')\\s+(?=' + UNIT_NOUNS + '\\b)', 'g');
+const COMPOUND_NUMBER_RE = new RegExp('\\b(?:(' + Object.keys(TENS).join('|') + ')\\s+y\\s+|veinti)(' + Object.keys(UNIT_WORD_VALUES).join('|') + ')\\s+(?=' + UNIT_NOUNS + '\\b)', 'g');
+// "ciento veinte focos" no: el numero queda a medias, y el bot la pregunta.
+const WORD_NUMBER_RE = new RegExp('(?<!\\b(?:ciento|cientos|cientas|mil)\\s+)\\b(' + Object.keys(WORD_NUMBERS).join('|') + ')\\s+(?=' + UNIT_NOUNS + '\\b)', 'g');
 const ONE_UNIT_RE = new RegExp('\\b(?:un|una)\\s+' + UNIT_NOUNS + '\\b');
 const PLACE_NUMBER_RE = new RegExp('\\b(?:(?:km|kilometro|parcela|lote|sitio|manzana|mz|block|blk|torre|depto|dpto|of|piso)\\.?\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*|numero\\s*)?|(?:oficina|local|bodega|casa|galpon|nave|departamento)\\s*(?:n[\\u00b0\\u00ba]\\.?\\s*|#\\s*|nro\\.?\\s*|numero\\s*))\\d+[a-z]?\\b(?!\\s*' + UNIT_NOUNS + ')', 'g');
 
@@ -161,6 +166,7 @@ const SELECTION_RE = new RegExp('^\\s*(?:me\\s+referia\\s+a\\s+(?:la\\s+|el\\s+)
 /** El texto sin lo que nunca es cantidad. */
 export function withoutNonQuantities(text: string, ruts: readonly string[] = []): string {
   let out = removeRuts(plain(text), ruts).replace(URL_RE, ' ').replace(EMAIL_RE, ' ')
+    .replace(COMPOUND_NUMBER_RE, (all: string, tens: string | undefined, units: string) => (tens ? TENS[tens] : 20) + UNIT_WORD_VALUES[units] + ' ')
     .replace(WORD_NUMBER_RE, (all: string, words: string) => WORD_NUMBERS[words] + ' ')
     .replace(UNIT_WORDS_RE, '$1 unidades ')
     .replace(TIMES_BEFORE_RE, '$1 unidades ')
