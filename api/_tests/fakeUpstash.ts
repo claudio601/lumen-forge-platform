@@ -78,16 +78,20 @@ export function fakeFetch(redis: FakeRedis) {
       }
       result = ok ? 1 : 0;
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar')) {
-      const [, , key, id, value, maxNotes, maxTotal, ttl, marker, lease, overwrite] = args;
+      const [, , key, id, value, maxNotes, maxTotal, ttl, marker, lease, overwrite, alias] = args;
       const hash = hashOf(key);
-      const previous = hash[id];
-      if (hash[marker] !== undefined) result = [2, hash[marker]];
-      else if (previous !== undefined && overwrite !== '1') result = [3, hash['t:' + id] ?? '', previous];
+      const target = alias && hash[alias];
+      const resolved = target && (hash[target] !== undefined || hash['d:' + target.slice(2)] !== undefined) ? target : id;
+      const previous = hash[resolved];
+      const delivery = resolved === id ? marker : 'd:' + resolved.slice(2);
+      if (hash[delivery] !== undefined) result = [2, hash[delivery]];
+      else if (previous !== undefined && (overwrite !== '1' || resolved !== id)) result = [3, hash['t:' + resolved] ?? '', previous, resolved];
       else {
         const entries = Object.keys(hash).filter((f) => f.startsWith('n:') || f.startsWith('f:'));
         if (previous === undefined && ((id.startsWith('n:') && entries.filter((f) => f.startsWith('n:')).length >= Number(maxNotes)) || entries.length >= Number(maxTotal))) result = 0;
         else {
           hash[id] = value;
+          if (alias) hash[alias] = id;
           if (lease !== '') hash['t:' + id] = lease;
           else if (previous === undefined) delete hash['t:' + id];
           saveHash(key, hash, Number(ttl));
@@ -103,6 +107,9 @@ export function fakeFetch(redis: FakeRedis) {
         if (!f.startsWith('d:')) continue;
         const at = /^\{"at":(\d+)/.exec(hash[f])?.[1];
         if (at !== undefined && Number(at) < Number(now) - Number(maxAge)) delete hash[f];
+      }
+      for (const f of Object.keys(hash)) {
+        if (f.startsWith('s:') && hash[hash[f]] === undefined && hash['d:' + hash[f].slice(2)] === undefined) delete hash[f];
       }
       saveHash(key, hash, Number(ttl));
       result = 1;

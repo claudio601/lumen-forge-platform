@@ -81,10 +81,10 @@ function send(handler: Handler, body: string, sid: string) {
   const params = { From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: sid, NumMedia: '0' };
   const req = Object.assign(Readable.from([Buffer.from(new URLSearchParams(params).toString())]), { method: 'POST', headers: {} });
   const res = {
-    statusCode: 0, body: '',
+    statusCode: 0, body: '', sentAt: 0,
     setHeader() { return res; },
     status(code: number) { res.statusCode = code; return res; },
-    send(xml: string) { res.body = xml; return res; },
+    send(xml: string) { res.body = xml; res.sentAt = Date.now(); return res; },
     end() { return res; },
   };
   return { done: handler(req as never, res as never), res };
@@ -246,7 +246,7 @@ describe('A: ventanas del primer envio', () => {
     expect(sim.notes).toHaveLength(1);
     expect(sim.searches).toBe(1);
   });
-  it('A5 R6: reentrega con reserva viva, despues gracias', async () => {
+  it('A5 R6: reentrega tras vencer la funcion, despues gracias', async () => {
     sim.claudeDelay = 13_000; sim.outcomes = ['colgada'];
     await crash(await instance(), FULL, 'SMa5');
     sim.claudeDelay = 0;
@@ -254,7 +254,7 @@ describe('A: ventanas del primer envio', () => {
     const first = send(await instance(), FULL, 'SMa5');
     await vi.advanceTimersByTimeAsync(12_600);
     await first.done;
-    expect(first.res.body).toContain('terminando de registrar');
+    expect(first.res.body).toContain('quedo registrada');
     await drain();
     await vi.advanceTimersByTimeAsync(10_000);
     const next = send(await instance(), 'gracias', 'SMa5b');
@@ -262,19 +262,17 @@ describe('A: ventanas del primer envio', () => {
     await next.done; await drain();
     expect(sim.notes).toHaveLength(1);
   });
-  it('A6: la respuesta no espera la reserva anticipada viva; busqueda al vencer', async () => {
+  it('A6: la reserva anticipada vence antes del sid incluso con createDeal lento', async () => {
     sim.dealDelay = 5_000; sim.outcomes = ['colgada'];
     await crash(await instance(), FULL, 'SMa6');
     sim.dealDelay = 0;
-    // El MessageSid vence antes que la reserva de la nota, tomada despues de createDeal.
+    // La reserva de la nota ya vencio con la funcion anterior, antes del MessageSid.
     later(70_001); fakeTimers();
     const hook = await instance();
     const request = send(hook, FULL, 'SMa6');
     await vi.advanceTimersByTimeAsync(0);
     await request.done;
     expect(request.res.statusCode).toBe(200);
-    expect(sim.searches).toBe(0);
-    await vi.advanceTimersByTimeAsync(4_999);
     await drain();
     expect(sim.notes).toHaveLength(1);
     expect(sim.searches).toBe(1);
@@ -321,6 +319,103 @@ describe('A: ventanas del primer envio', () => {
     await post(await instance(), 'ok', 'SMa10d');
     expect(sim.notes.filter((x) => x.content.includes('ana.nueva@example.com'))).toHaveLength(1);
     expect(sim.searches).toBe(1);
+  });
+  it('A12 Z1: createDeal tarda 31 s, corte sin guardar, reentrega recupera sin otro mensaje', async () => {
+    sim.dealDelay = 31_000; sim.outcomes = ['colgada-sin-guardar'];
+    await crash(await instance(), FULL, 'SMz1');
+    sim.dealDelay = 0; later(44_001);
+    const res = await post(await instance(), FULL, 'SMz1');
+    expect(res.body).toContain('quedo registrada');
+    expect(sim.notes).toHaveLength(1);
+    expect(sim.posts).toBe(2); expect(sim.searches).toBe(1);
+    expect(await queued()).toEqual([]);
+    later(10 * 60_000);
+    await post(await instance(), 'gracias', 'SMz1b');
+    expect(sim.notes).toHaveLength(1); expect(sim.posts).toBe(2);
+  });
+  it('A13 Z2: pedido nuevo completo reentregado conserva una sola nota', async () => {
+    const body = 'Otro pedido: necesito 20 paneles LED luz fria para mi casa en Maipu. Soy Ana Prueba, ana.prueba@example.com';
+    sim.claude.set(body, { ...FULL_CLAUDE, producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '20' });
+    const hook = await instance();
+    await post(hook, FULL, 'SMz2'); later(60_000);
+    sim.outcomes = ['colgada'];
+    await crash(hook, body, 'SMz2b'); later(75_001);
+    await post(await instance(), body, 'SMz2b'); later(10 * 60_000);
+    await post(await instance(), 'gracias', 'SMz2c');
+    expect(sim.notes).toHaveLength(2);
+    expect(sim.notes.filter((note) => note.content.includes('paneles'))).toHaveLength(1);
+    expect(await queued()).toEqual([]);
+  });
+  it('A14 Z3: guardado previo fallido no cambia la nota logica del sid', async () => {
+    redis.intercept = (cmd, args) => cmd === 'EVAL' && (args[0].includes('^{"rev":') || args[0].startsWith('-- whatsapp:estado:aparte')) ? 'fail' : undefined;
+    sim.outcomes = ['colgada'];
+    await crash(await instance(), FULL, 'SMz3');
+    redis.intercept = undefined; later(75_001);
+    await post(await instance(), FULL, 'SMz3');
+    expect(sim.notes).toHaveLength(1); expect(sim.searches).toBe(1);
+    expect(await queued()).toEqual([]);
+  });
+  it('A15 Z4: corte en PUT de cambiar X por Y libera campos antes de la reentrega', async () => {
+    const hook = await instance();
+    await post(hook, FULL, 'SMz4'); later(60_000);
+    sim.claudeDelay = 5_000;
+    sim.onPut = async () => { sim.reached?.(); await new Promise(() => {}); };
+    await crash(hook, SWAP, 'SMz4b');
+    sim.onPut = undefined; sim.claudeDelay = 0; later(70_001); fakeTimers();
+    const request = send(await instance(), SWAP, 'SMz4b');
+    await vi.advanceTimersByTimeAsync(20_000); await request.done; await drain();
+    expect(sim.updates.at(-1)).toMatchObject({ cf_email: 'ana.nueva@example.com' });
+    expect(sim.notes).toHaveLength(2); expect(await queued()).toEqual([]);
+  });
+  it.each(['registro', 'campos', 'correccion'])('A16 X1-X3: anticipar falla sin aplicarse, recupera %s en otra instancia', async (kind) => {
+    const hook = await instance();
+    if (kind === 'correccion') { await post(hook, FULL, 'SMx3'); later(60_000); }
+    let failed = false;
+    redis.intercept = (cmd, args) => {
+      if (!failed && cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar')) { failed = true; return 'fail'; }
+    };
+    if (kind === 'campos') sim.onPut = async () => { throw new Error('PUT fallido de prueba'); };
+    else sim.outcomes = ['timeout'];
+    await post(hook, kind === 'correccion' ? FIX : FULL, 'SMx123');
+    redis.intercept = undefined; sim.onPut = undefined; later(31_000);
+    await post(await instance(), 'gracias', 'SMx123b'); later(31_000);
+    await post(await instance(), 'ok', 'SMx123c');
+    expect(sim.notes).toHaveLength(kind === 'correccion' ? 2 : 1);
+    expect(sim.updates.at(-1)).toMatchObject({ cf_email: kind === 'correccion' ? 'ana.nueva@example.com' : 'ana.prueba@example.com' });
+    expect(await queued()).toEqual([]);
+  });
+  it('A17 G4 reforzado: la correccion con otro sid no repite la transcripcion del registro', async () => {
+    sim.outcomes = ['colgada'];
+    await crash(await instance(), FULL, 'SMz6'); later(75_001);
+    await post(await instance(), 'Mi RUT es 11.111.111-1', 'SMz6b');
+    expect(sim.notes).toHaveLength(2); expect(sim.notes[1].content).toContain('11.111.111-1');
+    expect(sim.notes.map((note) => note.content).join('\n').match(/Cliente: Necesito 12 focos/g)).toHaveLength(1);
+    expect((await savedTranscript()).entries).toEqual([]);
+  });
+  it('A18 X4: Upstash colgado no agrega latencia por cada lapida acumulada', async () => {
+    fakeTimers();
+    // Los plazos reales de produccion se simulan con los mismos temporizadores que el webhook.
+    vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms) => {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(new Error('Request timeout')), ms);
+      return controller.signal;
+    });
+    vi.stubGlobal('fetch', vi.fn(async (_url: unknown, init?: RequestInit) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(new Error('Request timeout')), { once: true });
+    })));
+    const hook = await instance();
+    const times: number[] = [];
+    for (const [i, body] of [FULL, FIX, 'Mi correo correcto es ana.otra@example.com', 'Mi RUT es 22.222.222-2', 'gracias', 'ok'].entries()) {
+      const start = Date.now();
+      const request = send(hook, body, 'SMhang' + i);
+      await vi.advanceTimersByTimeAsync(60_000); await request.done; await drain();
+      times.push(request.res.sentAt - start);
+      expect(request.res.statusCode).toBe(200);
+      later(60_000);
+    }
+    expect(sim.notes).toHaveLength(4);
+    expect(Math.max(...times.slice(0, 4)) - Math.min(...times.slice(0, 4)), 'latencias en ms: ' + times.join(', ')).toBeLessThanOrEqual(300);
+    expect(times[4]).toBeLessThanOrEqual(6_000); expect(times[5]).toBeLessThanOrEqual(6_000);
   });
   it('A11: anticipar se aplica sin respuesta y la instancia muere en POST', async () => {
     let lost = false;
@@ -458,6 +553,80 @@ describe('solo rama: marcas y unidad de stateStore', () => {
     expect(await queued()).toEqual([{ dealId: 9001, fields: write().fields }]);
     expect(await anticipateWrite(phone, write(), { ...opts(), key: 'mSMnext.9001' })).toMatchObject({ status: 'delivered' });
   });
+  it('U7: registro normal ejecuta entregada una vez aunque la liberacion cargue la cola', async () => {
+    let done = 0;
+    redis.intercept = (cmd, args) => { if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:entregada')) done++; return undefined; };
+    await post(await instance(), FULL, 'SMdone');
+    expect(done).toBe(1);
+  });
+  it('U8: alias de registro devuelve la entrada original y se poda con su marca', async () => {
+    const { anticipateWrite, settlePendingWrite, pendingKey } = await import('../_lib/whatsapp/stateStore.js');
+    const first = await anticipateWrite(phone, write(), { ...opts(), key: 'r123.9001' });
+    const original = await hash();
+    expect(await anticipateWrite(phone, { ...write(), note: 'No debe salir' }, { ...opts(), key: 'r456.9001' })).toMatchObject({ status: 'queued', item: { id: 'n:r123.9001', write: write() } });
+    expect(await hash()).toEqual(original);
+    if (!('item' in first)) throw new Error('sin item');
+    await settlePendingWrite(phone, first.item.id, undefined);
+    expect(await anticipateWrite(phone, write(), { ...opts(), key: 'r456.9001' })).toMatchObject({ status: 'delivered' });
+    expect(await hash()).toHaveProperty('s:SMunit.9001', 'n:r123.9001');
+    later(7 * 86400_000 + 1);
+    const next = await anticipateWrite(phone, write(), { ...opts(), key: 'r789.9001', sid: 'SMnext' });
+    if (!('item' in next)) throw new Error('sin item');
+    await settlePendingWrite(phone, next.item.id, undefined);
+    expect(await hash()).not.toHaveProperty('s:SMunit.9001');
+    expect(await hash()).not.toHaveProperty('d:r123.9001');
+    expect(redis.data.get(pendingKey(phone))!.expiresAt).toBe(Date.now() + 30 * 86400_000);
+  });
+  it.each(['queued', 'delivered'])('U9: respaldo tras SETTLE 0 respeta el rastro remoto %s', async (status) => {
+    const a = await import('../_lib/whatsapp/stateStore.js');
+    redis.intercept = (cmd, args) => cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar') ? 'fail' : undefined;
+    const first = await a.anticipateWrite(phone, write(), opts());
+    if (!('item' in first)) throw new Error('sin item');
+    redis.intercept = undefined; vi.resetModules();
+    const b = await import('../_lib/whatsapp/stateStore.js');
+    const remote = await b.anticipateWrite(phone, { ...write(), note: 'Nota de otra reserva' }, opts());
+    if (!('item' in remote)) throw new Error('sin item');
+    if (status === 'delivered') await b.settlePendingWrite(phone, remote.item.id, undefined);
+    const before = await hash();
+    await a.settlePendingWrite(phone, first.item.id, write());
+    if (status === 'queued') {
+      expect(await hash()).toEqual(before);
+      const [item] = await a.loadPendingWrites(phone);
+      expect(item.write.note).toBe('Nota de otra reserva');
+    } else {
+      const [item] = await a.loadPendingWrites(phone);
+      expect(item.id).toMatch(/^f:/);
+      expect(item.write).toEqual({ dealId: 9001, fields: write().fields });
+      expect(await markers()).toHaveProperty('d:mSMunit.9001');
+    }
+  });
+  it('U9b: el respaldo aplicado sin respuesta deja la copia local incierta', async () => {
+    const { anticipateWrite, settlePendingWrite, getPendingWrites } = await import('../_lib/whatsapp/stateStore.js');
+    let attempts = 0;
+    redis.intercept = (cmd, args) => {
+      if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar')) return ++attempts === 1 ? 'fail' : 'lose';
+    };
+    const first = await anticipateWrite(phone, write(), opts());
+    if (!('item' in first)) throw new Error('sin item');
+    await settlePendingWrite(phone, first.item.id, write());
+    expect(attempts).toBe(2);
+    expect(getPendingWrites(phone)[0].noteUnsure).toBe(Date.now());
+    expect((await hash())[first.item.id]).toBeDefined();
+  });
+  it.each(['registro', 'campos'])('U10: la reserva de %s respeta el limite absoluto y conserva el tope anterior', async (kind) => {
+    const { claimRegistration, claimDealWrite, registrationKey, dealWriteKey, REGISTRATION_TTL_MS } = await import('../_lib/whatsapp/stateStore.js');
+    const take = kind === 'registro' ? claimRegistration : claimDealWrite;
+    const key = (kind === 'registro' ? registrationKey : dealWriteKey)(phone);
+    const deadline = Date.now() + 65_000;
+    later(5_000);
+    const claim = await take(phone, deadline);
+    expect(claim.claimed).toBe(true);
+    expect(redis.data.get(key)!.expiresAt).toBe(deadline);
+    expect((await take(phone, deadline)).claimed).toBe(false);
+    await claim.release();
+    await take(phone, Date.now() + 100_000);
+    expect(redis.data.get(key)!.expiresAt).toBe(Date.now() + REGISTRATION_TTL_MS);
+  });
   it('U3: cola llena no agrega ni reserva', async () => {
     const { anticipateWrite, enqueuePendingWrite } = await import('../_lib/whatsapp/stateStore.js');
     for (let i = 0; i < 10; i++) await enqueuePendingWrite(phone, { dealId: 9001, note: 'Nota ' + i });
@@ -539,7 +708,7 @@ describe('solo rama: marcas y unidad de stateStore', () => {
     expect(await queued()).toEqual([{ dealId: 9001, fields: write().fields }]);
   });
   it('U2c: entregada fallida queda en lapida local y se reintenta con su marca', async () => {
-    const { anticipateWrite, settlePendingWrite, loadPendingWrites } = await import('../_lib/whatsapp/stateStore.js');
+    const { anticipateWrite, settlePendingWrite, loadPendingWrites, retryDeliveredWrite } = await import('../_lib/whatsapp/stateStore.js');
     const result = await anticipateWrite(phone, write(), opts());
     if (!('item' in result)) throw new Error('sin item');
     redis.intercept = (cmd, args) => cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:entregada') ? 'fail' : undefined;
@@ -547,6 +716,7 @@ describe('solo rama: marcas y unidad de stateStore', () => {
     expect(await markers()).toEqual({});
     redis.intercept = undefined;
     expect(await loadPendingWrites(phone)).toEqual([]);
+    await retryDeliveredWrite(phone);
     expect(await markers()).toHaveProperty('d:mSMunit.9001');
   });
   it('U2e: si soltar fallo sin aplicarse, la entrega posterior de campos tambien deja marca', async () => {

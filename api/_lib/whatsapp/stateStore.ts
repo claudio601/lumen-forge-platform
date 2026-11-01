@@ -254,7 +254,7 @@ export interface RegistrationClaim {
   release: () => Promise<void>;
 }
 
-async function claimReservation(kind: ReservationKind, phone: string): Promise<RegistrationClaim> {
+async function claimReservation(kind: ReservationKind, phone: string, leaseUntil = Infinity): Promise<RegistrationClaim> {
   const none = async () => {};
   const inMemory = reservations[kind];
   const label = kind === 'registro' ? 'registro del negocio' : 'campos del negocio';
@@ -264,8 +264,10 @@ async function claimReservation(kind: ReservationKind, phone: string): Promise<R
   const token = randomUUID();
   // La memoria se reserva antes de ir a Upstash: otro mensaje de esta instancia que pide la reserva a la
   // vez ya la ve tomada (sin Upstash, los dos la tomaban).
-  inMemory.set(phone, { token, until: Date.now() + REGISTRATION_TTL_MS });
-  const set = await redisJsonCommandWithTimeout<string | null>(800, 'SET', key, token, 'NX', 'PX', REGISTRATION_TTL_MS);
+  // [NOTA-REF] Ninguna reserva del turno sobrevive a la funcion que la tomo.
+  const ttl = Math.max(1, Math.min(REGISTRATION_TTL_MS, leaseUntil - Date.now()));
+  inMemory.set(phone, { token, until: Date.now() + ttl });
+  const set = await redisJsonCommandWithTimeout<string | null>(800, 'SET', key, token, 'NX', 'PX', ttl);
   if (set.ok && set.result !== 'OK') {
     if (inMemory.get(phone)?.token === token) inMemory.delete(phone);
     return { claimed: false, heldBy: 'remote', release: none };
@@ -287,16 +289,16 @@ async function claimReservation(kind: ReservationKind, phone: string): Promise<R
   };
 }
 
-export function claimRegistration(phone: string): Promise<RegistrationClaim> {
-  return claimReservation('registro', phone);
+export function claimRegistration(phone: string, leaseUntil?: number): Promise<RegistrationClaim> {
+  return claimReservation('registro', phone, leaseUntil);
 }
 
 /**
  * [REGISTRO] La reserva de los campos del negocio: no se espera. Quien no la consigue deja su escritura en
  * la cola, y quien la tiene la manda antes de soltarla (webhook.ts).
  */
-export function claimDealWrite(phone: string): Promise<RegistrationClaim> {
-  return claimReservation('campos', phone);
+export function claimDealWrite(phone: string, leaseUntil?: number): Promise<RegistrationClaim> {
+  return claimReservation('campos', phone, leaseUntil);
 }
 
 /**
@@ -428,6 +430,8 @@ interface QueueEntry {
 const queues = new Map<string, Map<string, QueueEntry>>();
 // Entregadas cuyo borrado en Upstash fallo: se reintenta borrarlas y no se vuelven a enviar.
 const delivered = new Map<string, Map<string, string | undefined>>();
+// [NOTA-REF] Una sola entrega en vuelo por entrada, tambien durante su primer borrado.
+const deliveryInFlight = new Set<string>();
 // [REGISTRO] Por numero y negocio, el numero de orden de los ultimos campos confirmados (lo de Upstash, lo
 // del estado guardado y lo de esta instancia), y los que esta instancia no pudo anotar en la cola (se
 // reintenta en la lectura siguiente de la cola).
@@ -459,10 +463,14 @@ return 1`;
 // [NOTA-REF] Entrada y reserva antes del primer envio; la marca gana incluso al sobrescribir.
 const ANTICIPATE_SCRIPT = `-- whatsapp:cola:anticipar
 local k = KEYS[1]
-local d = redis.call('hget', k, ARGV[6])
+local id = ARGV[1]
+local alias = ARGV[9] ~= '' and redis.call('hget', k, ARGV[9])
+if alias and (redis.call('hexists', k, alias) == 1 or redis.call('hexists', k, 'd:' .. string.sub(alias, 3)) == 1) then id = alias end
+local marker = id == ARGV[1] and ARGV[6] or 'd:' .. string.sub(id, 3)
+local d = redis.call('hget', k, marker)
 if d then return {2, d} end
-local w = redis.call('hget', k, ARGV[1])
-if w and ARGV[8] ~= '1' then return {3, redis.call('hget', k, 't:' .. ARGV[1]) or '', w} end
+local w = redis.call('hget', k, id)
+if w and (ARGV[8] ~= '1' or id ~= ARGV[1]) then return {3, redis.call('hget', k, 't:' .. id) or '', w, id} end
 if not w then
   local notes, total = 0, 0
   for _, f in ipairs(redis.call('hkeys', k)) do
@@ -474,6 +482,7 @@ if not w then
   if total >= tonumber(ARGV[4]) then return 0 end
 end
 redis.call('hset', k, ARGV[1], ARGV[2])
+if ARGV[9] ~= '' then redis.call('hset', k, ARGV[9], ARGV[1]) end
 if ARGV[7] ~= '' then redis.call('hset', k, 't:' .. ARGV[1], ARGV[7])
 elseif not w then redis.call('hdel', k, 't:' .. ARGV[1]) end
 redis.call('expire', k, tonumber(ARGV[5]))
@@ -488,6 +497,12 @@ for _, f in ipairs(redis.call('hkeys', k)) do
   if string.sub(f, 1, 2) == 'd:' then
     local at = string.match(redis.call('hget', k, f), '^{"at":(%d+)')
     if at and tonumber(at) < tonumber(ARGV[4]) - tonumber(ARGV[5]) then redis.call('hdel', k, f) end
+  end
+end
+for _, f in ipairs(redis.call('hkeys', k)) do
+  if string.sub(f, 1, 2) == 's:' then
+    local id = redis.call('hget', k, f)
+    if redis.call('hexists', k, id) == 0 and redis.call('hexists', k, 'd:' .. string.sub(id, 3)) == 0 then redis.call('hdel', k, f) end
   end
 end
 redis.call('expire', k, tonumber(ARGV[6]))
@@ -744,19 +759,22 @@ function deliveryMark(item: QueuedWrite): string {
 }
 
 async function storeAnticipated(phone: string, item: QueuedWrite, lease = '', overwrite = false) {
-  return redisJsonCommand<unknown>(
+  // [NOTA-REF] El alias protege registros cuyo primer mensaje cambio al reentregarse.
+  const alias = item.id.startsWith('n:r') && item.sid && /^[A-Za-z0-9]{1,64}$/.test(item.sid)
+    ? 's:' + item.sid + '.' + item.write.dealId : '';
+  return redisJsonCommandWithTimeout<unknown>(300,
     'EVAL', ANTICIPATE_SCRIPT, '1', pendingKey(phone), item.id, JSON.stringify(item),
-    MAX_PENDING_WRITES, MAX_PENDING_TOTAL, PENDING_WRITE_TTL_S, deliveryKey(item.id), lease, overwrite ? '1' : '0',
+    MAX_PENDING_WRITES, MAX_PENDING_TOTAL, PENDING_WRITE_TTL_S, deliveryKey(item.id), lease, overwrite ? '1' : '0', alias,
   );
 }
 
 /** [NOTA-REF] Guarda la nota y su primer intento juntos; sin Upstash sigue en esta instancia. */
 export async function anticipateWrite(phone: string, write: PendingWhatsAppWrite, {
-  key, ver, sid, noteIds, reserve = true,
-}: { key: string; ver: number; sid?: string; noteIds?: string[]; reserve?: boolean }): Promise<Anticipated> {
+  key, ver, sid, noteIds, reserve = true, leaseUntil = Infinity,
+}: { key: string; ver: number; sid?: string; noteIds?: string[]; reserve?: boolean; leaseUntil?: number }): Promise<Anticipated> {
   const now = Date.now();
   const item: QueuedWrite = { id: 'n:' + key, at: now, ver, write, sid, noteIds: noteIds?.slice(0, 60) };
-  const lease = reserve ? String(now + PENDING_CLAIM_TTL_MS) + ':' + String(now) + ':' + randomUUID() : '';
+  const lease = reserve ? String(Math.min(now + PENDING_CLAIM_TTL_MS, leaseUntil)) + ':' + String(now) + ':' + randomUUID() : '';
   const result = await storeAnticipated(phone, item, lease).catch(() => ({ ok: false as const }));
   if (result.ok) {
     const reply = Array.isArray(result.result) ? result.result : [result.result];
@@ -766,9 +784,9 @@ export async function anticipateWrite(phone: string, write: PendingWhatsAppWrite
       if (mark) return { status: 'delivered', mark };
     }
     if (Number(reply[0]) === 3) {
-      const previous = claimedItem(reply[2], item.id);
+      const previous = claimedItem(reply[2], String(reply[3] ?? item.id));
       if (previous) {
-        queueOf(phone).set(item.id, { ...entryOf(previous, true), ...parseTry(String(reply[1])) });
+        queueOf(phone).set(previous.id, { ...entryOf(previous, true), ...parseTry(String(reply[1])) });
         return { status: 'queued', item: previous };
       }
     }
@@ -799,6 +817,29 @@ async function removeDelivered(phone: string, id: string, mark: string | undefin
     ? redisJsonCommand('HDEL', pendingKey(phone), id, 't:' + id)
     : redisJsonCommand('EVAL', DONE_SCRIPT, '1', pendingKey(phone), id, deliveryKey(id), mark,
       Date.now(), CONVERSATION_TTL_S * 1000, PENDING_WRITE_TTL_S);
+}
+
+// [NOTA-REF] La lapida tapa la entrada remota durante el borrado, sin repetir el EVAL en vuelo.
+async function finishDelivered(phone: string, id: string, mark: string | undefined): Promise<void> {
+  const key = phone + ':' + id;
+  if (deliveryInFlight.has(key)) return;
+  deliveryInFlight.add(key);
+  try {
+    const del = await removeDelivered(phone, id, mark);
+    const tomb = delivered.get(phone);
+    if (del.ok) tomb?.delete(id);
+    else unavailable('borrar escritura entregada');
+    if (tomb && !tomb.size) delivered.delete(phone);
+  } finally { deliveryInFlight.delete(key); }
+}
+
+/** [NOTA-REF] A lo mas una lapida por turno; el webhook lo llama en segundo plano. */
+export async function retryDeliveredWrite(phone: string): Promise<void> {
+  for (const [id, mark] of delivered.get(phone) ?? []) {
+    if (deliveryInFlight.has(phone + ':' + id)) continue;
+    await finishDelivered(phone, id, mark);
+    return;
+  }
 }
 
 /** Las escrituras pendientes que conoce esta instancia, de la mas antigua a la mas nueva. */
@@ -894,11 +935,6 @@ function parseTry(value: string | undefined): { until: number; last: number } {
 export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
   const key = pendingKey(phone);
   const tomb = delivered.get(phone);
-  for (const [id, mark] of [...(tomb ?? [])]) {
-    const del = await removeDelivered(phone, id, mark);
-    if (del.ok) tomb!.delete(id);
-  }
-  if (tomb && !tomb.size) delivered.delete(phone);
   // [REGISTRO] Los campos confirmados que no se pudo anotar en la cola.
   const toConfirm = unconfirmed.get(phone);
   for (const [dealId, ver] of [...(toConfirm ?? [])]) if (await storeConfirmed(phone, dealId, ver)) toConfirm!.delete(dealId);
@@ -913,6 +949,14 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
         queueOf(phone).delete(entry.item.id);
         if (entry.item.write.fields) await enqueueFields(phone, { dealId: entry.item.write.dealId, fields: entry.item.write.fields }, pendingVersion(entry.item));
       } else if (Number(reply[0]) === 1) entry.stored = true;
+      else if (Number(reply[0]) === 3) {
+        // [NOTA-REF] El alias encontro otro intento: su entrada reemplaza la copia local sin pisarlo.
+        const previous = claimedItem(reply[2], String(reply[3] ?? entry.item.id));
+        if (previous) {
+          queueOf(phone).delete(entry.item.id);
+          queueOf(phone).set(previous.id, { ...entryOf(previous, true), ...parseTry(String(reply[1])) });
+        }
+      }
       continue;
     }
     const replace = replacedBy(phone, entry.item);
@@ -931,7 +975,7 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
       const field = String(flat[i]);
       if (field.startsWith('t:')) { tries.set(field.slice(2), String(flat[i + 1])); continue; }
       if (field.startsWith('v:')) { noteConfirmed(phone, Number(field.slice(2)), Number(flat[i + 1])); continue; }
-      if (field.startsWith('m:') || field.startsWith('d:')) continue;
+      if (field.startsWith('m:') || field.startsWith('d:') || field.startsWith('s:')) continue;
       try {
         const item = JSON.parse(String(flat[i + 1])) as QueuedWrite;
         if (item && item.id === field && typeof item.at === 'number' && validWrite(item.write)) remote.set(item.id, item);
@@ -1041,10 +1085,7 @@ export async function settlePendingWrite(phone: string, id: string, remaining: P
     let tomb = delivered.get(phone);
     if (!tomb) { tomb = new Map(); delivered.set(phone, tomb); }
     tomb.set(id, mark);
-    const del = await removeDelivered(phone, id, mark);
-    if (del.ok) tomb.delete(id);
-    else unavailable('borrar escritura entregada');
-    if (!tomb.size) delivered.delete(phone);
+    await finishDelivered(phone, id, mark);
     if (!queueOf(phone).size) queues.delete(phone);
     return;
   }
@@ -1069,6 +1110,20 @@ export async function settlePendingWrite(phone: string, id: string, remaining: P
     entry.stored = true;
     // [NOTA-REF] La marca ya esta a salvo: los campos solos vuelven a juntarse por negocio como antes.
     if (mark && remaining.fields) await enqueueFields(phone, remaining, pendingVersion(entry.item));
+  }
+  // [NOTA-REF] Si anticipar nunca llego, SETTLE no tiene token remoto: respalda sin pisar otro intento.
+  if (result.ok && Number(result.result) === 0 && !entry.stored && keyedNote(id)) {
+    const saved = await storeAnticipated(phone, entry.item);
+    if (saved.ok) {
+      const reply = Array.isArray(saved.result) ? saved.result : [saved.result];
+      if (Number(reply[0]) === 1) entry.stored = true;
+      if (Number(reply[0]) === 2 || Number(reply[0]) === 3) {
+        queueOf(phone).delete(id);
+        if (Number(reply[0]) === 2 && remaining.fields && !fieldsSuperseded(phone, entry.item)) {
+          await enqueueFields(phone, { dealId: remaining.dealId, fields: remaining.fields }, pendingVersion(entry.item));
+        }
+      }
+    } else markUnconfirmed(entry, at);
   }
   if (!result.ok) {
     unavailable('liberar escritura pendiente');

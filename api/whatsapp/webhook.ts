@@ -25,7 +25,7 @@ import {
   acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, enqueuePendingWrite,
   duePendingWrites, loadPendingWrites, claimPendingWrite, settlePendingWrite, beginFlowStep, settleFlowStep, claimRegistration, awaitRegistration,
   stampFlow, recordRegistrationOutcome, registrationOutcome, awaitConversationUnlock, confirmDealFields, sendablePendingWrite,
-  anticipateWrite, noteWriteKey, pendingLeaseUntil, pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN, MESSAGE_IN_PROGRESS_TTL_S,
+  anticipateWrite, retryDeliveredWrite, noteWriteKey, pendingLeaseUntil, pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN, MESSAGE_IN_PROGRESS_TTL_S,
 } from '../_lib/whatsapp/stateStore.js';
 import type { Anticipated, NoteDeliveryMark, QueuedWrite, RegistrationClaim } from '../_lib/whatsapp/stateStore.js';
 import { botReplyText, clearTranscriptAfterNote, getTranscript, inboundText, noteEntryIds, recordTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
@@ -174,7 +174,7 @@ async function handedWrites(phone: string, since: number, skip: (item: QueuedWri
  * que este lo mande (si otro la tomo mientras tanto, lo manda ese al soltarla). Hasta MAX_HANDOFF_ROUNDS
  * vueltas, y cada escritura se intenta una vez por llamada: lo que quede sale con un mensaje siguiente.
  */
-async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: number, flush = true, skip: (item: QueuedWrite) => boolean = () => false): Promise<void> {
+async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: number, flush = true, skip: (item: QueuedWrite) => boolean = () => false, leaseUntil = Infinity): Promise<void> {
   let held: RegistrationClaim | undefined = claim;
   const tried = new Set<string>();
   const handed = () => handedWrites(phone, since, (item) => skip(item) || tried.has(item.id));
@@ -190,7 +190,7 @@ async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: 
       held = undefined;
       await done.release();
       if (round >= MAX_HANDOFF_ROUNDS || !(await handed()).length) return;
-      const again = await claimDealWrite(phone);
+      const again = await claimDealWrite(phone, leaseUntil);
       if (!again.claimed) return;
       held = again;
     }
@@ -203,9 +203,9 @@ async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: 
  * [REGISTRO] Este mensaje dejo su escritura en la cola (desde `since`) porque otro tenia la reserva de los
  * campos: si ese ya la solto, la manda este. Si todavia la tiene, la manda el al soltarla (releaseDealWrite).
  */
-async function handOffDealWrite(phone: string, since: number): Promise<void> {
-  const claim = await claimDealWrite(phone);
-  if (claim.claimed) await releaseDealWrite(phone, claim, since);
+async function handOffDealWrite(phone: string, since: number, leaseUntil: number): Promise<void> {
+  const claim = await claimDealWrite(phone, leaseUntil);
+  if (claim.claimed) await releaseDealWrite(phone, claim, since, true, undefined, leaseUntil);
 }
 
 /**
@@ -366,6 +366,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   };
 
   let noteIds: string[] = [];
+  let previousNoteIds: string[] = [];
   let noteKept = true;
   // [NOTA-REF] El rastro previo decide tambien que lineas ya quedaron en una nota.
   let trace: NoteDeliveryMark | QueuedWrite | undefined;
@@ -391,14 +392,14 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
         // [REGISTRO] La reserva va antes del guardado: quien lea la conversacion cerrada y sin negocio ya la ve.
         // Solo la toma un registro: una correccion o un reintento de campos usan la de los campos (R4), y un
         // pedido nuevo no espera por ellos.
-        let claim = await claimRegistration(phone);
+        let claim = await claimRegistration(phone, t.startedAt + FUNCTION_BUDGET_MS + 5_000);
         if (!claim.claimed) {
                 finished = await awaitRegistration(phone, claim.heldBy ?? 'remote', waitDeadline);
                 const now = getFlowState(phone);
                 // La reserva del otro termino sin resultado para esta conversacion (su instancia se corto y la
                 // reserva vencio): este mensaje registra la solicitud, como el reintento de flowEngine.
                 const unregistered = !registrationOutcome(phone, conversationId) && now.firstMessageAt === conversationId && !now.deal;
-                if (finished && unregistered) claim = await claimRegistration(phone);
+                if (finished && unregistered) claim = await claimRegistration(phone, t.startedAt + FUNCTION_BUDGET_MS + 5_000);
         }
         if (claim.claimed) {
                 t.registration.release = claim.release;
@@ -438,7 +439,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   // correccion), pero si se junta con un negocio en el que otro esta escribiendo, sus campos vuelven a la
   // cola para que ese los mande despues de los suyos. Sin Upstash, solo dentro de la instancia.
   const fieldsClaim = updateDealId !== undefined || (flowResult.shouldCreateDeal && !flowResult.rutUpdate && !deferred)
-        ? await claimDealWrite(phone)
+        ? await claimDealWrite(phone, t.startedAt + FUNCTION_BUDGET_MS + 5_000)
         : undefined;
   const claimedAt = Date.now();
   if (fieldsClaim?.claimed && updateDealId !== undefined) {
@@ -474,7 +475,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                 const anticipate = async (write: PendingWhatsAppWrite, kind: 'r' | 'm', reserve = true): Promise<Anticipated | undefined> => {
                         const key = noteWriteKey(kind, kind === 'r' ? String(conversationId) : messageSid, write.dealId);
                         if (!key) return undefined;
-                        const result = await anticipateWrite(phone, write, { key, ver: transcriptSeq, sid: messageSid, noteIds, reserve });
+                        const result = await anticipateWrite(phone, write, { key, ver: transcriptSeq, sid: messageSid, noteIds, reserve, leaseUntil: t.startedAt + FUNCTION_BUDGET_MS + 5_000 });
                         remember(result);
                         return result;
                 };
@@ -486,6 +487,15 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                         const sameSid = Boolean(messageSid && previous.sid && messageSid === previous.sid);
                         if (kind === 'r' && !sameSid && changed) {
                                 trace = undefined;
+                                // [NOTA-REF] La correccion no repite las lineas que ya lleva el registro.
+                                previousNoteIds = previous.noteIds ?? [];
+                                const previousIds = new Set(previousNoteIds);
+                                const exclude = new Set(noteOpts.exclude);
+                                for (const e of getTranscript(phone)?.entries ?? []) if (previousIds.has(e.id)) exclude.add(e.seq);
+                                noteIds = noteEntryIds(phone, { ...noteOpts, exclude });
+                                const correction = buildWhatsAppUpdate({ ...lead, existingDealId: write.dealId,
+                                        transcript: transcriptForNote(phone, { ...noteOpts, exclude, reply: botReplyText(flowResult.reply, noticeDue) }) });
+                                write = { ...write, note: correction.note, noteRef: correction.noteRef };
                                 result = await anticipate(write, 'm');
                                 if (!result || result.status === 'new' || result.status === 'memory' || result.status === 'full') return write;
                         } else if (kind === 'r') {
@@ -527,14 +537,14 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                 if (reassert?.fields && Object.keys(reassert.fields).length) await enqueuePendingWrite(phone, reassert, transcriptSeq);
                 // Lo que este mensaje dejo en la cola a proposito (no lo que fallo en Pipedrive): si quien tenia la
                 // reserva ya la solto, lo manda este, en segundo plano (la respuesta no lo espera).
-                if (!fieldsClaim.claimed && (reassert || updateDealId !== undefined)) inBackground(() => handOffDealWrite(phone, claimedAt));
+                if (!fieldsClaim.claimed && (reassert || updateDealId !== undefined)) inBackground(() => handOffDealWrite(phone, claimedAt, t.startedAt + FUNCTION_BUDGET_MS + 5_000));
         } catch (err) {
                 console.error(LOG_PREFIX + ' Pipedrive error (non-fatal):', redact(err, 'error'));
         } finally {
                 // Lo de otros, solo si a este Pipedrive le respondio (si fallo, queda en la cola para un mensaje
                 // siguiente), en segundo plano: la respuesta de este mensaje no espera las escrituras de otros.
                 const delivered = typeof dealResult.dealId === 'number' && !dealResult.pendingWrite;
-                if (fieldsClaim.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => pendingVersion(item) === transcriptSeq));
+                if (fieldsClaim.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => pendingVersion(item) === transcriptSeq, t.startedAt + FUNCTION_BUDGET_MS + 5_000));
         }
   }
 
@@ -575,9 +585,9 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   if (trace) {
         const sameSid = Boolean(messageSid && trace.sid && messageSid === trace.sid);
         const repeated = sameSid ? (getTranscript(phone)?.entries ?? []).filter((e) => e.seq === transcriptSeq).map((e) => e.id) : [];
-        clearTranscriptAfterNote(phone, [...(trace.noteIds ?? []), ...repeated]);
+        clearTranscriptAfterNote(phone, [...(trace.noteIds ?? []), ...previousNoteIds, ...repeated]);
         noted = sameSid;
-  } else if (noted) clearTranscriptAfterNote(phone, noteIds);
+  } else if (noted) clearTranscriptAfterNote(phone, [...previousNoteIds, ...noteIds]);
 
   addTurn(phone, { role: 'assistant', content: reply }, transcriptSeq + 1);
 
@@ -661,6 +671,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // [CONCURRENCIA] Sin el candado este mensaje igual responde: sus guardados mezclan, no pisan.
     if (!phoneTurn.overlapped) {
           await loadConversation(phone, distributed.acquired);
+          // [NOTA-REF] Nunca esperar las lapidas al responder a Twilio.
+          inBackground(() => retryDeliveredWrite(phone));
           // [PENDIENTES] Unas pocas por mensaje, rotando: primero las que llevan mas sin intentarse, asi las
           // que siempre fallan no frenan a las demas. Cada una se reserva antes de mandarla
           // (claimPendingWrite): otra instancia no la manda a la vez, aunque haya vencido el candado. No las
@@ -671,7 +683,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                 // numero (como la correccion tardia): sin ella, esperan en la cola y sale solo la nota. Antes de
                 // soltarla se manda lo que otro mensaje dejo en la cola mientras tanto (releaseDealWrite, en
                 // segundo plano: este mensaje sigue con su flujo).
-                const fieldsClaim = due.some((item) => sendablePendingWrite(phone, item)?.fields) ? await claimDealWrite(phone) : undefined;
+                const fieldsClaim = due.some((item) => sendablePendingWrite(phone, item)?.fields) ? await claimDealWrite(phone, startedAt + FUNCTION_BUDGET_MS + 5_000) : undefined;
                 const claimedAt = Date.now();
                 const tried = new Set(due.map((item) => item.id));
                 let delivered = true;
@@ -686,7 +698,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                             if (!(await retryQueuedWrite(phone, item, Boolean(fieldsClaim?.claimed), noteLater))) delivered = false;
                       }
                 } finally {
-                      if (fieldsClaim?.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => tried.has(item.id)));
+                      if (fieldsClaim?.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => tried.has(item.id), startedAt + FUNCTION_BUDGET_MS + 5_000));
                       if (unsure.length) inBackground(() => retryUnsureNotes(phone, unsure, startedAt + FUNCTION_BUDGET_MS));
                 }
           }
