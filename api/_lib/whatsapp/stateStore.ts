@@ -397,6 +397,9 @@ export interface QueuedWrite {
   write: PendingWhatsAppWrite;
   /** [REGISTRO] Numero de orden del mensaje que armo sus campos: decide cuales son los mas nuevos. */
   ver?: number;
+  /** [NOTA-REF] Mensaje y lineas que armaron esta nota logica (hasta 60 ids). */
+  sid?: string;
+  noteIds?: string[];
 }
 
 /**
@@ -424,7 +427,7 @@ interface QueueEntry {
 // En memoria: lo de Upstash mas lo que todavia no se pudo guardar alla (stored: false).
 const queues = new Map<string, Map<string, QueueEntry>>();
 // Entregadas cuyo borrado en Upstash fallo: se reintenta borrarlas y no se vuelven a enviar.
-const delivered = new Map<string, Set<string>>();
+const delivered = new Map<string, Map<string, string | undefined>>();
 // [REGISTRO] Por numero y negocio, el numero de orden de los ultimos campos confirmados (lo de Upstash, lo
 // del estado guardado y lo de esta instancia), y los que esta instancia no pudo anotar en la cola (se
 // reintenta en la lectura siguiente de la cola).
@@ -451,6 +454,43 @@ end
 redis.call('hset', k, ARGV[1], ARGV[2])
 for i = 6, #ARGV do redis.call('hdel', k, ARGV[i], 't:' .. ARGV[i]) end
 redis.call('expire', k, tonumber(ARGV[5]))
+return 1`;
+
+// [NOTA-REF] Entrada y reserva antes del primer envio; la marca gana incluso al sobrescribir.
+const ANTICIPATE_SCRIPT = `-- whatsapp:cola:anticipar
+local k = KEYS[1]
+local d = redis.call('hget', k, ARGV[6])
+if d then return {2, d} end
+local w = redis.call('hget', k, ARGV[1])
+if w and ARGV[8] ~= '1' then return {3, redis.call('hget', k, 't:' .. ARGV[1]) or '', w} end
+if not w then
+  local notes, total = 0, 0
+  for _, f in ipairs(redis.call('hkeys', k)) do
+    local p = string.sub(f, 1, 2)
+    if p == 'n:' then notes = notes + 1 end
+    if p == 'n:' or p == 'f:' then total = total + 1 end
+  end
+  if string.sub(ARGV[1], 1, 2) == 'n:' and notes >= tonumber(ARGV[3]) then return 0 end
+  if total >= tonumber(ARGV[4]) then return 0 end
+end
+redis.call('hset', k, ARGV[1], ARGV[2])
+if ARGV[7] ~= '' then redis.call('hset', k, 't:' .. ARGV[1], ARGV[7])
+elseif not w then redis.call('hdel', k, 't:' .. ARGV[1]) end
+redis.call('expire', k, tonumber(ARGV[5]))
+return {1}`;
+
+// [NOTA-REF] Nunca queda un intervalo sin rastro: sale la entrada y queda su marca en el mismo EVAL.
+const DONE_SCRIPT = `-- whatsapp:cola:entregada
+local k = KEYS[1]
+redis.call('hdel', k, ARGV[1], 't:' .. ARGV[1])
+redis.call('hset', k, ARGV[2], ARGV[3])
+for _, f in ipairs(redis.call('hkeys', k)) do
+  if string.sub(f, 1, 2) == 'd:' then
+    local at = string.match(redis.call('hget', k, f), '^{"at":(%d+)')
+    if at and tonumber(at) < tonumber(ARGV[4]) - tonumber(ARGV[5]) then redis.call('hdel', k, f) end
+  end
+end
+redis.call('expire', k, tonumber(ARGV[6]))
 return 1`;
 
 // Pasa a la cola una escritura del estado anterior: la escritura, su marca (ARGV[3]) y el plazo (ARGV[4])
@@ -484,6 +524,7 @@ local k = KEYS[1]
 if redis.call('hget', k, 't:' .. ARGV[1]) ~= ARGV[2] then return 0 end
 if ARGV[4] ~= '' then redis.call('hset', k, ARGV[1], ARGV[4]) end
 redis.call('hset', k, 't:' .. ARGV[1], ARGV[3])
+if ARGV[5] and ARGV[5] ~= '' then redis.call('hset', k, ARGV[5], ARGV[6]) end
 return 1`;
 
 // [REGISTRO] Anota que Pipedrive confirmo los campos del negocio ARGV[1] ('v:<negocio>') armados por el
@@ -668,6 +709,98 @@ async function addEntry(phone: string, item: QueuedWrite): Promise<boolean> {
   return true;
 }
 
+/** [NOTA-REF] Clave estable, distinta de los UUID y de las entradas legacy-. */
+export function noteWriteKey(kind: 'r' | 'm', id: string, dealId: number): string | undefined {
+  return /^[A-Za-z0-9]{1,64}$/.test(id) && Number.isSafeInteger(dealId) && dealId > 0
+    ? kind + id + '.' + String(dealId) : undefined;
+}
+
+const keyedNote = (id: string): boolean => /^n:[rm][A-Za-z0-9]{1,64}\.[1-9][0-9]*$/.test(id);
+const deliveryKey = (id: string): string => 'd:' + id.slice(2);
+
+export interface NoteDeliveryMark {
+  at: number;
+  dealId: number;
+  sid?: string;
+  noteIds?: string[];
+}
+
+export type Anticipated = { status: 'new'; item: QueuedWrite }
+  | { status: 'queued'; item: QueuedWrite }
+  | { status: 'memory'; item: QueuedWrite }
+  | { status: 'delivered'; mark: NoteDeliveryMark }
+  | { status: 'full' };
+
+// [NOTA-REF] Una respuesta ilegible de Upstash no hace fallar el registro.
+function parseDeliveryMark(value: unknown): NoteDeliveryMark | undefined {
+  try {
+    const mark = JSON.parse(String(value)) as NoteDeliveryMark;
+    return mark && typeof mark.at === 'number' && typeof mark.dealId === 'number' ? mark : undefined;
+  } catch { return undefined; }
+}
+
+function deliveryMark(item: QueuedWrite): string {
+  return JSON.stringify({ at: Date.now(), dealId: item.write.dealId, sid: item.sid, noteIds: item.noteIds });
+}
+
+async function storeAnticipated(phone: string, item: QueuedWrite, lease = '', overwrite = false) {
+  return redisJsonCommand<unknown>(
+    'EVAL', ANTICIPATE_SCRIPT, '1', pendingKey(phone), item.id, JSON.stringify(item),
+    MAX_PENDING_WRITES, MAX_PENDING_TOTAL, PENDING_WRITE_TTL_S, deliveryKey(item.id), lease, overwrite ? '1' : '0',
+  );
+}
+
+/** [NOTA-REF] Guarda la nota y su primer intento juntos; sin Upstash sigue en esta instancia. */
+export async function anticipateWrite(phone: string, write: PendingWhatsAppWrite, {
+  key, ver, sid, noteIds, reserve = true,
+}: { key: string; ver: number; sid?: string; noteIds?: string[]; reserve?: boolean }): Promise<Anticipated> {
+  const now = Date.now();
+  const item: QueuedWrite = { id: 'n:' + key, at: now, ver, write, sid, noteIds: noteIds?.slice(0, 60) };
+  const lease = reserve ? String(now + PENDING_CLAIM_TTL_MS) + ':' + String(now) + ':' + randomUUID() : '';
+  const result = await storeAnticipated(phone, item, lease).catch(() => ({ ok: false as const }));
+  if (result.ok) {
+    const reply = Array.isArray(result.result) ? result.result : [result.result];
+    if (Number(reply[0]) === 0) return { status: 'full' };
+    if (Number(reply[0]) === 2) {
+      const mark = parseDeliveryMark(reply[1]);
+      if (mark) return { status: 'delivered', mark };
+    }
+    if (Number(reply[0]) === 3) {
+      const previous = claimedItem(reply[2], item.id);
+      if (previous) {
+        queueOf(phone).set(item.id, { ...entryOf(previous, true), ...parseTry(String(reply[1])) });
+        return { status: 'queued', item: previous };
+      }
+    }
+    if (Number(reply[0]) === 1) {
+      queueOf(phone).set(item.id, { ...entryOf(item, true), ...parseTry(lease), ...(lease ? { lease } : {}) });
+      return { status: 'new', item };
+    }
+  }
+  unavailable('anticipar nota');
+  const previous = queueOf(phone).get(item.id);
+  if (previous) return { status: 'queued', item: previous.item };
+  const mark = delivered.get(phone)?.get(item.id);
+  if (mark) return { status: 'delivered', mark: JSON.parse(mark) as NoteDeliveryMark };
+  if (fullLocally(phone, item, [])) return { status: 'full' };
+  const entry = { ...entryOf(item, false), ...parseTry(lease), ...(lease ? { lease } : {}) };
+  if (!reserve) markUnconfirmed(entry, now);
+  queueOf(phone).set(item.id, entry);
+  return { status: 'memory', item: entry.item };
+}
+
+/** [NOTA-REF] Plazo local del intento, tambien el que quedo abierto en otra instancia. */
+export function pendingLeaseUntil(phone: string, id: string): number {
+  return queues.get(phone)?.get(id)?.until ?? 0;
+}
+
+async function removeDelivered(phone: string, id: string, mark: string | undefined) {
+  return mark === undefined
+    ? redisJsonCommand('HDEL', pendingKey(phone), id, 't:' + id)
+    : redisJsonCommand('EVAL', DONE_SCRIPT, '1', pendingKey(phone), id, deliveryKey(id), mark,
+      Date.now(), CONVERSATION_TTL_S * 1000, PENDING_WRITE_TTL_S);
+}
+
 /** Las escrituras pendientes que conoce esta instancia, de la mas antigua a la mas nueva. */
 export function getPendingWrites(phone: string): PendingWhatsAppWrite[] {
   return sortedQueue(phone).map((q) => q.write);
@@ -761,8 +894,8 @@ function parseTry(value: string | undefined): { until: number; last: number } {
 export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
   const key = pendingKey(phone);
   const tomb = delivered.get(phone);
-  for (const id of [...(tomb ?? [])]) {
-    const del = await redisJsonCommand('HDEL', key, id, 't:' + id);
+  for (const [id, mark] of [...(tomb ?? [])]) {
+    const del = await removeDelivered(phone, id, mark);
     if (del.ok) tomb!.delete(id);
   }
   if (tomb && !tomb.size) delivered.delete(phone);
@@ -772,9 +905,18 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
   if (toConfirm && !toConfirm.size) unconfirmed.delete(phone);
   for (const entry of [...queueOf(phone).values()].sort(byAt)) {
     if (entry.stored || queueOf(phone).get(entry.item.id) !== entry) continue;
+    if (keyedNote(entry.item.id)) {
+      const result = await storeAnticipated(phone, entry.item, '', true);
+      if (!result.ok) continue;
+      const reply = Array.isArray(result.result) ? result.result : [result.result];
+      if (Number(reply[0]) === 2) {
+        queueOf(phone).delete(entry.item.id);
+        if (entry.item.write.fields) await enqueueFields(phone, { dealId: entry.item.write.dealId, fields: entry.item.write.fields }, pendingVersion(entry.item));
+      } else if (Number(reply[0]) === 1) entry.stored = true;
+      continue;
+    }
     const replace = replacedBy(phone, entry.item);
-    // [NOTA-REF] Si este guardado tampoco responde, la nota ya va marcada desde el primero (addEntry o
-    // settlePendingWrite): una entrega de otra instancia sigue siendo posterior a esa hora.
+    // [NOTA-REF] Las entradas al azar conservan la busqueda si el guardado quedo sin respuesta.
     if ((await storeEntry(phone, entry.item, replace)) !== 'stored') continue;
     entry.stored = true;
     for (const id of replace) queueOf(phone).delete(id);
@@ -789,7 +931,7 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
       const field = String(flat[i]);
       if (field.startsWith('t:')) { tries.set(field.slice(2), String(flat[i + 1])); continue; }
       if (field.startsWith('v:')) { noteConfirmed(phone, Number(field.slice(2)), Number(flat[i + 1])); continue; }
-      if (field.startsWith('m:')) continue;
+      if (field.startsWith('m:') || field.startsWith('d:')) continue;
       try {
         const item = JSON.parse(String(flat[i + 1])) as QueuedWrite;
         if (item && item.id === field && typeof item.at === 'number' && validWrite(item.write)) remote.set(item.id, item);
@@ -891,12 +1033,15 @@ export async function claimPendingWrite(phone: string, id: string): Promise<bool
  */
 export async function settlePendingWrite(phone: string, id: string, remaining: PendingWhatsAppWrite | undefined): Promise<void> {
   const entry = queueOf(phone).get(id);
+  // [NOTA-REF] Tambien al terminar solo campos: la nota pudo salir en un intento anterior.
+  const mark = entry && keyedNote(id) && remaining?.note === undefined
+    ? deliveryMark(entry.item) : undefined;
   if (!remaining) {
     queueOf(phone).delete(id);
     let tomb = delivered.get(phone);
-    if (!tomb) { tomb = new Set(); delivered.set(phone, tomb); }
-    tomb.add(id);
-    const del = await redisJsonCommand('HDEL', pendingKey(phone), id, 't:' + id);
+    if (!tomb) { tomb = new Map(); delivered.set(phone, tomb); }
+    tomb.set(id, mark);
+    const del = await removeDelivered(phone, id, mark);
     if (del.ok) tomb.delete(id);
     else unavailable('borrar escritura entregada');
     if (!tomb.size) delivered.delete(phone);
@@ -914,11 +1059,17 @@ export async function settlePendingWrite(phone: string, id: string, remaining: P
   delete entry.lease;
   // [NOTA-REF] Lo incierto ya va en `remaining` (noteUnsure), que se guarda si cambio.
   delete entry.unsureSince;
-  if (!entry.stored || lease === undefined) return;
+  if (lease === undefined) return;
   const at = Date.now();
   const result = await redisJsonCommand<number>(
     'EVAL', SETTLE_SCRIPT, '1', pendingKey(phone), id, lease, '0:' + String(entry.last) + ':', changed ? JSON.stringify(entry.item) : '',
+    mark ? deliveryKey(id) : '', mark ?? '',
   );
+  if (result.ok && Number(result.result) === 1) {
+    entry.stored = true;
+    // [NOTA-REF] La marca ya esta a salvo: los campos solos vuelven a juntarse por negocio como antes.
+    if (mark && remaining.fields) await enqueueFields(phone, remaining, pendingVersion(entry.item));
+  }
   if (!result.ok) {
     unavailable('liberar escritura pendiente');
     // Lo que falta (una parte ya llego a ventas) se guarda en la proxima lectura de la cola. [NOTA-REF] Otra

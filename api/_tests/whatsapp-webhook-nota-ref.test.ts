@@ -574,9 +574,9 @@ function notePartOf(write: Awaited<ReturnType<typeof queued>>[number]) {
 }
 
 describe('segunda revisión: una escritura que revive en la cola', () => {
-  it('Upstash guardó la nota sin responder y otra instancia la entregó: esta la vuelve a guardar, la busca y no la repite', async () => {
+  it('Upstash guardó la nota sin responder y otra instancia la entregó: la marca impide que esta la vuelva a guardar', async () => {
     const a = await instance();
-    sim.loseReply = ['whatsapp:cola:agregar'];
+    sim.loseReply = ['whatsapp:cola:anticipar'];
     const pending = await registered(a, 'rechazo');
     expect(pending.noteUnsure).toBeUndefined();
     // B, otra instancia: la entrega (sin envío incierto, sin búsqueda) y la borra de la cola.
@@ -586,10 +586,10 @@ describe('segunda revisión: una escritura que revive en la cola', () => {
     expect(sim.searches).toBe(0);
     expect(sim.notes.map((n) => n.content)).toEqual([pending.note]);
     expect(await queued()).toEqual([]);
-    // A no supo que quedó guardada: la vuelve a guardar, como incierta, y la busca antes de repetirla.
+    // A no supo que quedó guardada; la marca remota impide revivirla.
     later(SETTLE_MS);
     await post(a, 'otra pregunta');
-    expect(sim.searches).toBe(1);
+    expect(sim.searches).toBe(0);
     expect(sim.notes).toHaveLength(1);
     expect(await queued()).toEqual([]);
   });
@@ -611,10 +611,10 @@ describe('segunda revisión: una escritura que revive en la cola', () => {
     await post(await instance(), 'gracias de nuevo');
     expect(sim.notes.map((n) => n.content)).toEqual([pending.note]);
     expect(await queued()).toEqual([]);
-    // A la vuelve a guardar, como incierta, y la busca antes de repetirla.
+    // A intenta guardarla de nuevo; la marca remota impide revivirla.
     later(SETTLE_MS);
     await post(a, 'otra pregunta');
-    expect(sim.searches).toBe(1);
+    expect(sim.searches).toBe(0);
     expect(sim.notes).toHaveLength(1);
     expect(await queued()).toEqual([]);
   });

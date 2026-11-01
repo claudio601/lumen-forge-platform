@@ -77,6 +77,35 @@ export function fakeFetch(redis: FakeRedis) {
         saveHash(key, hash, Number(ttl));
       }
       result = ok ? 1 : 0;
+    } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar')) {
+      const [, , key, id, value, maxNotes, maxTotal, ttl, marker, lease, overwrite] = args;
+      const hash = hashOf(key);
+      const previous = hash[id];
+      if (hash[marker] !== undefined) result = [2, hash[marker]];
+      else if (previous !== undefined && overwrite !== '1') result = [3, hash['t:' + id] ?? '', previous];
+      else {
+        const entries = Object.keys(hash).filter((f) => f.startsWith('n:') || f.startsWith('f:'));
+        if (previous === undefined && ((id.startsWith('n:') && entries.filter((f) => f.startsWith('n:')).length >= Number(maxNotes)) || entries.length >= Number(maxTotal))) result = 0;
+        else {
+          hash[id] = value;
+          if (lease !== '') hash['t:' + id] = lease;
+          else if (previous === undefined) delete hash['t:' + id];
+          saveHash(key, hash, Number(ttl));
+          result = [1];
+        }
+      }
+    } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:entregada')) {
+      const [, , key, id, marker, value, now, maxAge, ttl] = args;
+      const hash = hashOf(key);
+      delete hash[id]; delete hash['t:' + id];
+      hash[marker] = value;
+      for (const f of Object.keys(hash)) {
+        if (!f.startsWith('d:')) continue;
+        const at = /^\{"at":(\d+)/.exec(hash[f])?.[1];
+        if (at !== undefined && Number(at) < Number(now) - Number(maxAge)) delete hash[f];
+      }
+      saveHash(key, hash, Number(ttl));
+      result = 1;
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:migrar')) {
       const [, , key, id, value, marker, ttl] = args;
       const hash = hashOf(key);
@@ -101,13 +130,14 @@ export function fakeFetch(redis: FakeRedis) {
         result = [1, previous, hash[id]];
       }
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:soltar')) {
-      const [, , key, id, expected, meta, value] = args;
+      const [, , key, id, expected, meta, value, marker, markValue] = args;
       const hash = hashOf(key);
       if (hash['t:' + id] !== expected) {
         result = 0;
       } else {
         if (value !== '') hash[id] = value;
         hash['t:' + id] = meta;
+        if (marker !== undefined && marker !== '') hash[marker] = markValue;
         saveHash(key, hash);
         result = 1;
       }
