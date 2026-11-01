@@ -54,7 +54,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG_RUT_INVALID } from '../_lib/whatsapp/flowEngine.js';
+import { MSG_RUT_INVALID, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
@@ -176,7 +176,6 @@ describe('el RUT corregido llega después del cierre', () => {
 
   it.each([
     'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
-    'NECESITO CORREGIR EL *RUT* DE LA *OTRA COTIZACIÓN*: *761234560*',
   ])('la corrección "%s" escribe una nota en el mismo negocio', async (body) => {
     const phone = nextPhone();
     await closeWithInvalidRut(phone);
@@ -192,6 +191,19 @@ describe('el RUT corregido llega después del cierre', () => {
 
     expect(await send(phone, 'gracias')).toMatch(REGISTRADA);
     expect(sim.notes).toHaveLength(2);
+  });
+
+  it('la corrección con marcas internas conserva el reinicio de main', async () => {
+    const phone = nextPhone();
+    await closeWithInvalidRut(phone);
+    vi.mocked(notifyTeam).mockClear();
+    expect(await send(phone, 'NECESITO CORREGIR EL *RUT* DE LA *OTRA COTIZACIÓN*: *761234560*')).toMatch(/producto/i);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(1);
+    expect(vi.mocked(notifyTeam)).not.toHaveBeenCalled();
+    expect(getFlowState(phone)).toMatchObject({ stage: 'stage1' });
+    expect(getFlowState(phone).captured.rut).toBeUndefined();
+    expect(getFlowState(phone).dealId).toBeUndefined();
   });
 
   it('consultar la nueva cotización conserva el cierre sin otro negocio, nota ni aviso', async () => {

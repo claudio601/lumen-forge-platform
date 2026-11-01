@@ -416,7 +416,6 @@ describe('errores heredados: consultas y correcciones de la cotización registra
   it.each([
     'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
     'NECESITO CORREGIR EL RUT DE LA OTRA COTIZACIÓN: 76123456-0',
-    'Necesito corregir el *RUT* de la *otra cotización*: *76.123.456-0*',
     'Necesito corregir el RUT de la otra cotización: 761234560',
   ])('"%s" agrega el RUT al mismo negocio', (body) => {
     registered();

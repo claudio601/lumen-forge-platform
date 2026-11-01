@@ -178,14 +178,7 @@ describe('consulta estrecha, normalización y datos de Claude', () => {
     '¿Me confirman *la nueva cotización*?',
     '¿ME CONFIRMAN LA NUEVA COTIZACIÓN?',
     '¿Me confirman esa nueva cotización?',
-    '¿Me confirman esta nueva cotización?',
-    '¿Me envían esa otra cotización?',
     '¿Me confirman la _nueva_ cotización?',
-    'La otra cotización estaba bien',
-    '¿Me confirman la nueva cotización? ~otro pedido~',
-    '¿Me confirman la nueva cotización? ~Quiero comprar 40 postes solares~',
-    '¿Me confirman la nueva cotización? https://example.com/otro_pedido',
-    '¿Me confirman la nueva cotización? www.example.com/necesito_focos',
   ])('%s conserva el cierre con extracción vacía o repetida', (body) => {
     for (const parsed of [{}, { producto: '', cantidad: '' }, { producto: 'focos LED', cantidad: '12' }]) {
       flow.clearFlowState(PHONE);
@@ -199,12 +192,11 @@ describe('consulta estrecha, normalización y datos de Claude', () => {
     close();
     expectNew('¿Me confirman la nueva cotización?', parsed);
   });
-  it('una URL con un correo dentro no se parte en palabras de pedido', () => {
+  it('una consulta con URL conserva el reinicio de main', () => {
     close();
     const r = step('¿Me confirman la nueva cotización? https://example.com/ana@example.com/otro_pedido');
-    expect(r.closedFlow).toBe(true);
-    expect(flow.getFlowState(PHONE)).toMatchObject({ deal: 'registered', dealId: 4242 });
-    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '12' });
+    expect(r.closedFlow).toBe(false);
+    expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
   });
   it.each(['Necesitamos', 'Quisiéramos', 'Buscamos', 'Requerimos', 'Cotizar', 'Pedimos', 'Pidan', 'Agreguen', 'Sumen', 'Compramos', 'Instalen', 'Otro producto:'])('cualquier forma de pedido impide la guarda: %s', (verb) => {
     close();
@@ -219,12 +211,12 @@ describe('consulta estrecha, normalización y datos de Claude', () => {
   });
 });
 
-it('un pedido tachado no gana sobre la corrección de correo', () => {
+it('un pedido tachado conserva la prioridad explícita de main', () => {
   close();
   const r = step('Mi correo correcto es ana.nueva@example.com ~otro pedido~');
-  expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
+  expect(r).toMatchObject({ closedFlow: false, shouldCreateDeal: false });
   expect(r.captured.correo).toBe('ana.nueva@example.com');
-  expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+  expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
 });
 
 // V2.1: ni folios ni un celular del nombre Rut son correcciones del RUT.
@@ -294,13 +286,18 @@ const STRUCK = [
   'Necesito corregir mi RUT: ~76.123.456-0~ 77.345.678-K',
   'Necesito corregir el RUT de la otra cotización: ~76.123.456-0~ 77.345.678-K',
 ];
-describe('RUT tachado: se elige el no tachado inequívoco', () => {
+describe('RUT tachado: se conserva la ambigüedad de main', () => {
   it.each(STRUCK)('%s', (body) => {
-    expect(inspectRut(body).found).toMatchObject({ rut: '77.345.678-K', valido: true });
+    // Main descarta el primero tras "cotizacion: ~"; sin esa referencia conserva ambos.
+    const quote = body.includes('cotización');
+    expect(inspectRut(body)).toEqual(quote
+      ? { found: { rut: '77.345.678-K', valido: true, tipo: 'empresa' } }
+      : { ambiguous: ['76.123.456-0', '77.345.678-K'] });
     close();
     const r = step(body);
     expect(r).toMatchObject({ shouldCreateDeal: true, rutUpdate: true, closedFlow: true });
-    expect(r.captured.rut).toBe('77.345.678-K');
+    expect(r.captured.rut).toBe(quote ? '77.345.678-K' : undefined);
+    expect(r.captured.rut_ambiguos).toEqual(quote ? undefined : ['76.123.456-0', '77.345.678-K']);
     expect(flow.getFlowState(PHONE).dealId).toBe(4242);
   });
   it('la respuesta B2B en etapa 3 tampoco captura el tachado', () => {
@@ -308,16 +305,16 @@ describe('RUT tachado: se elige el no tachado inequívoco', () => {
     expect(flow.getFlowState(PHONE).stage).toBe('stage3');
     const r = step(STRUCK[3]);
     expect(r.closedFlow).toBe(true);
-    expect(r.captured.rut).toBe('77.345.678-K');
+    expect(r.captured.rut).toBeUndefined();
+    expect(r.captured.rut_ambiguos).toEqual(['76.123.456-0', '77.345.678-K']);
   });
 });
 
-describe('puente cerrado con es/era/sería', () => {
+describe('puente cerrado con es', () => {
   it.each([
-    'El RUT de mi nueva cotización es 76.123.456-0',
-    'El RUT de la otra cotización es 76.123.456-0',
-    'El RUT de mi nueva cotización sería 76.123.456-0',
-    'El RUT de nuestra nueva cotización era el 76.123.456-0',
+    'Necesito corregir el RUT de mi nueva cotización es 76.123.456-0',
+    'Necesito corregir el RUT de la otra cotización es 76.123.456-0',
+    'Necesito corregir el RUT de nuestra nueva cotización es el 76.123.456-0',
   ])('%s actualiza el mismo negocio', (body) => {
     close();
     const r = step(body);

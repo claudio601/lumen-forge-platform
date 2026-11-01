@@ -304,7 +304,6 @@ describe('RUT dentro de una corrección de cotización', () => {
   it.each([
     'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
     'NECESITO CORREGIR EL RUT DE LA OTRA COTIZACIÓN: 76123456-0',
-    'Necesito corregir el *RUT* de la *otra cotización*: *76.123.456-0*',
     'Necesito corregir el RUT de la otra cotización: 761234560',
     'RUT de la cotización anterior: 76.123.456-0',
   ])('"%s" identifica el RUT, también sin una pregunta anterior', (text) => {
@@ -329,18 +328,21 @@ describe('RUT dentro de una corrección de cotización', () => {
 
 describe('ronda 2: puente cerrado y texto tachado', () => {
   it.each([
-    'RUT de la cotización: 76.123.456-0',
     'El RUT de mi nueva cotización es 76.123.456-0',
     'El RUT de mi nueva cotización es el 761234560',
-    'RUT de nuestra otra cotización era el 76.123.456-0',
-    'RUT de la misma cotización sería 76.123.456-0',
     'RUT de la anterior cotización anterior: 76.123.456-0',
-    '*RUT* de mi *nueva cotización* es *761234560*',
   ])('acepta solo un puente inequívoco: %s', (text) => {
     expect(findRut(text)).toEqual({ rut: '76.123.456-0', valido: true, tipo: 'empresa' });
   });
 
-  it.each(['#', '# ', ' ', '\n', ' nro. ', ' n° ', '; ', ', ', ' por ', ' a ', ', es el '])(
+  it.each([
+    'RUT de la cotización: 76.123.456-0',
+    'RUT de mi cotización es 76.123.456-0',
+  ])('sin referencia calificada conserva la exclusión de main: %s', (text) => {
+    expect(inspectRut(text)).toEqual({});
+  });
+
+  it.each(['#', '# ', ' ', '\n', ' nro. ', ' n° ', '; ', ', ', ' por ', ' a ', ', es el ', ' era el ', ' sería '])(
     'no abre el puente con %j', (separator) => {
       const text = 'RUT de la otra cotización' + separator + '761234560';
       expect(inspectRut(text)).toEqual({});
@@ -352,9 +354,10 @@ describe('ronda 2: puente cerrado y texto tachado', () => {
   it.each([
     '~76.123.456-0~',
     'Mi RUT es ~76.123.456-0~',
-  ])('no captura ningún RUT tachado: %s', (text) => {
-    expect(inspectRut(text)).toEqual({});
-    expect(inspectRut(text, { asked: true })).toEqual({});
+  ])('mantiene la captura de main sin interpretar el tachado: %s', (text) => {
+    const found = { rut: '76.123.456-0', valido: true, tipo: 'empresa' };
+    expect(inspectRut(text)).toEqual({ found });
+    expect(inspectRut(text, { asked: true })).toEqual({ found });
   });
 
   // WhatsApp no tacha a través de un salto de línea: sin tachado, dos RUT sin dueño quedan ambiguos
@@ -371,9 +374,9 @@ describe('ronda 2: puente cerrado y texto tachado', () => {
     expect(inspectRut(text)).toEqual({ found: { rut: '76.123.456-0', valido: true, tipo: 'empresa' } });
   });
 
-  it('saca los contactos antes de separar sus guiones bajos', () => {
+  it('saca los contactos sin interpretar el tachado ni los guiones bajos', () => {
     expect(inspectRut('Mi RUT es ~76.123.456-0~ 77.345.678-K, 76123456-0_ventas@example.com')).toEqual({
-      found: { rut: '77.345.678-K', valido: true, tipo: 'empresa' },
+      ambiguous: ['76.123.456-0', '77.345.678-K'],
     });
   });
 });

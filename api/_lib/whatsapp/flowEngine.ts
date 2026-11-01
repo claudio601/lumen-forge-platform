@@ -1,6 +1,6 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
-import { STRUCK_RE, inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
+import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
@@ -212,8 +212,6 @@ const EXPLICIT_NEW_REQUEST_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:otr[oa]s
   + '|adem[a\\u00e1]s\\s+(?:necesit|quier|requier)[a-z]*\\s+(?:cotizar|comprar|pedir)'
   + '|(otra\\s+cosa))(?![a-z\\u00e0-\\u00fc])', 'gi');
 const EXISTING_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:el|la|los|las|lo|al|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?|aquel(?:la)?s?)\s+$/i;
-// [CIERRE] Una referencia a lo ya pedido no reinicia por decir "nueva cotizacion".
-const EXISTING_QUOTE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:el|la|los|las|mi|mis|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?)\\s+(?:nuev[oa]s?|otr[oa]s?)\\s+' + 'cotizaci[o\\u00f3]n(?:es)?(?![a-z\\u00e0-\\u00fc])', 'i');
 const NEGATION_RE = /(?<![a-z\u00e0-\u00fc])(?:no|ni|sin|nunca|jam[a\u00e1]s|tampoco)(?![a-z\u00e0-\u00fc])/i;
 const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
 const CLAUSE_MARKS = [',', ';', '.', ':', '!', '?', '\n', '\u00bf', '\u00a1'];
@@ -224,7 +222,7 @@ const SENTENCE_END_RE = /[.!?\n]/;
 // por 30 paneles LED?").
 const SEND_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:re)?(?:envi|env\u00ed|m[a\u00e1]nd)[a-z\u00e0-\u00fc]*\s+(?:(?:me|nos|le|les)\s+)?$/i;
 function explicitNewRequest(body: string): boolean {
-  const text = normalizeRequestText(body).slice(0, MAX_FACTS);
+  const text = body.slice(0, MAX_FACTS);
   for (const m of text.matchAll(EXPLICIT_NEW_REQUEST_RE)) {
     const head = text.slice(Math.max(0, m.index - 60), m.index);
     const clause = head.slice(Math.max(...CLAUSE_MARKS.map((c) => head.lastIndexOf(c))) + 1);
@@ -242,24 +240,25 @@ function explicitNewRequest(body: string): boolean {
   return false;
 }
 
-// [CIERRE] Sacar contactos y lo tachado antes de separar las marcas de WhatsApp.
-function normalizeRequestText(body: string): string {
-  return body.replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ')
-    .replace(STRUCK_RE, ' ').replace(/[*_]/g, ' ');
-}
-
-// [CIERRE] Solo frena una referencia sin datos ni verbos de pedido. Ante la duda,
-// looksLikeNewRequest conserva el comportamiento anterior, incluso sin producto conocido.
-const ORDER_VERB_RE = /(?<![a-z\u00e0-\u00fc])(?:(?:necesit|quier|quer|quisi|busc|busqu|requier|requer|requir|cotiz(?!aci[o\u00f3]n)|cotic|pid|ped|agreg|sum|compr|instal)[a-z\u00e0-\u00fc]*|otr[oa]s?\s+productos?)(?![a-z\u00e0-\u00fc])/i;
+// [CIERRE] Lista cerrada: toda palabra adicional conserva la decision de main.
+const QUOTE_STATUS_RE = /^(?:(?:hola|buenas|gracias|por favor) )*(?:(?:me|nos) (?:pueden )?confirma(?:n|r)|(?:llego|ya llego|enviaron|mandaron|recibieron)|cuando (?:me|nos) (?:llega|mandan|envian)|(?:como va|en que va|estado de)) (?:la|mi|esa) (?:nueva|otra) cotizacion(?: (?:hola|buenas|gracias|por favor))*$/;
 function asksAboutExistingQuote(body: string, captured: CapturedFields, claudeParsed: ClaudeFields): boolean {
-  const text = normalizeRequestText(body);
-  if (!EXISTING_QUOTE_RE.test(text) || PRODUCTO_RE.test(text) || mentionsQuantity(text) || ORDER_VERB_RE.test(text)) return false;
-  // Presentarse ("Soy Rut, de la otra cotizacion") no es una consulta de estado.
-  if (/\b(?:soy|somos|me\s+llamo)\b/i.test(text)) return false;
-  return (['producto', 'cantidad'] as const).every((key) => {
-    const value = claudeParsed[key];
-    return value == null || value === '' || (typeof value === 'string'
-      && (!value.trim() || value.trim().toLowerCase() === captured[key]?.trim().toLowerCase()));
+  // Solo marcas que envuelven palabras completas; un correo o archivo conserva sus signos internos.
+  const text = body.replace(/(?<![\p{L}\p{N}._@/])([*_])(\p{L}(?:[^*_\n]*\p{L})?)\1(?![\p{L}\p{N}._@/])/gu, '$2')
+    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    // Los emojis solo se admiten al final; los internos no se borran.
+    .replace(/(?:(?![*_])(?:[\s\p{P}\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}]|\uFE0F|\u200D))+$/gu, '')
+    .replace(/\p{P}/gu, (mark) => mark === '*' || mark === '_' ? mark : '')
+    .replace(/\s+/g, ' ').trim();
+  if (!QUOTE_STATUS_RE.test(text)) return false;
+  const aliases: Record<string, keyof CapturedFields> = { nombre: 'nombre_o_empresa', empresa: 'nombre_o_empresa' };
+  return Object.entries(claudeParsed).every(([key, value]) => {
+    // askClaude agrega siempre summary: es un resumen para la nota, no un campo del pedido.
+    if (key === 'summary') return true;
+    if (value == null || value === '') return true;
+    if (value === false && (key === 'wantsHuman' || key === 'qualifiesForDeal')) return true;
+    const previous = captured[aliases[key] ?? (key as keyof CapturedFields)];
+    return typeof value === 'string' && (!value.trim() || value.trim() === previous);
   });
 }
 
