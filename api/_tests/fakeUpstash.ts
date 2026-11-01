@@ -2,8 +2,9 @@
 // Upstash Redis falso, en memoria, para las pruebas de los adjuntos: responde GET, MGET,
 // SET … [NX] EX/PX, EVAL compare-and-delete y el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts.
 // Para el bot de WhatsApp, también HSET/HDEL/HGETALL/HLEN/EXPIRE, el EVAL que guarda con revisión, los
-// EVAL de la cola de pendientes (stateStore.ts: agregar, migrar, reservar, soltar y anotar campos
-// confirmados), el del estado guardado aparte y los del candado de la conversación (marcar y soltar).
+// EVAL de la cola de pendientes (stateStore.ts: agregar, migrar, reservar (con la escritura guardada y el
+// intento anterior), soltar y anotar campos confirmados), el del estado guardado aparte y los del candado
+// de la conversación (marcar y soltar).
 // Los EVAL se imitan en TypeScript, reconocidos por su primera línea: no se ejecuta el Lua.
 // Se instala como fetch; las llamadas al relay de correo (GAS_RELAY_URL) responden
 // {"status":"ok"}. No es una prueba ni una función: vive en api/_tests/ para que Vercel no
@@ -88,14 +89,16 @@ export function fakeFetch(redis: FakeRedis) {
         result = 1;
       }
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:reservar')) {
+      // Reservada: {1, la marca del intento anterior ('' si no hubo), la escritura guardada}.
       const [, , key, now, lease, id] = args;
       const hash = hashOf(key);
       if (hash[id] === undefined || Number(/^(\d+)/.exec(hash['t:' + id] ?? '')?.[1] ?? 0) > Number(now)) {
         result = 0;
       } else {
+        const previous = hash['t:' + id] ?? '';
         hash['t:' + id] = lease;
         saveHash(key, hash);
-        result = 1;
+        result = [1, previous, hash[id]];
       }
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:soltar')) {
       const [, , key, id, expected, meta, value] = args;

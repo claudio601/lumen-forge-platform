@@ -30,6 +30,11 @@
 // el tope del estado puede omitir mensajes del medio); los campos del negocio (una foto completa) se
 // juntan en una sola escritura por negocio. Sin Upstash, lo nuevo queda solo en la memoria de la instancia.
 // Cada mensaje reintenta unas pocas, rotando, y cada una reservada (no la manda otra instancia a la vez).
+// [NOTA-REF] La reserva trae la escritura tal como esta en Upstash (otra instancia pudo cambiarla despues
+// de la lectura) y dice si el intento anterior quedo sin cerrar (la instancia se corto): su nota cuenta como
+// enviada con resultado incierto y se busca por su referencia antes de repetirla (pipedriveLead.ts). Lo mismo
+// si un guardado en la cola quedo sin respuesta (markUnconfirmed): pudo aplicarse y otra instancia pudo
+// entregarla y borrarla antes de que esta la vuelva a guardar.
 // [TOPE] El estado guardado tiene un tope de bytes (MAX_STATE_BYTES): los datos capturados tienen su
 // propio presupuesto (MAX_CAPTURED_BYTES); sobre el tope, salen los turnos mas antiguos del historial y
 // luego mensajes del medio de la transcripcion (la nota avisa la omision).
@@ -46,8 +51,8 @@ import type { Transcript } from './transcript.js';
 
 export const CONVERSATION_TTL_S = 604800;
 export const MESSAGE_TTL_S = 86400;
-// Presupuesto solicitado: 60 s de función + 15 s de margen. vercel.json aún no declara
-// maxDuration para este webhook; mantener alineado al configurar el despliegue.
+// Presupuesto: 60 s de funcion + 15 s de margen. [NOTA-REF] vercel.json declara maxDuration 60 para
+// el webhook (lo vigila scripts/vercel-config.test.ts): mantenerlos alineados.
 export const MESSAGE_IN_PROGRESS_TTL_S = 60 + 15;
 export const CONVERSATION_LOCK_TTL_MS = 25_000;
 export const MESSAGE_RETRY_WAIT_MS = 3_000;
@@ -60,7 +65,8 @@ export const PENDING_WRITE_TTL_S = 30 * 86400;
 // [PENDIENTES] Tope duro de la cola (notas y campos): sobre el, ni los campos entran (se avisa).
 export const MAX_PENDING_TOTAL = 2 * MAX_PENDING_WRITES;
 // [PENDIENTES] Reserva de una escritura mientras se reintenta: el plazo de la funcion mas su margen (si la
-// instancia se corta, la escritura vuelve a quedar libre a lo mas en ese plazo).
+// instancia se corta, la escritura vuelve a quedar libre a lo mas en ese plazo). [NOTA-REF] Un intento son a
+// lo mas tres llamadas a Pipedrive: los campos y la nota (15 s cada una) y la busqueda de la nota (10 s).
 export const PENDING_CLAIM_TTL_MS = MESSAGE_IN_PROGRESS_TTL_S * 1000;
 // [TOPE] Bytes del estado guardado (flujo, historial y transcripcion), de los datos capturados y largo
 // de cada dato capturado.
@@ -378,7 +384,8 @@ function unavailable(op: string): void {
 // [PENDIENTES] Cola de escrituras a Pipedrive sin confirmar
 // Un hash de Upstash por numero (pendingKey), con estos campos:
 // - 'n:<id>' (lleva nota) y 'f:<id>' (solo campos del negocio): la escritura, un QueuedWrite en JSON;
-// - 't:<id>': el ultimo intento de esa escritura, '<reservada hasta>:<inicio>:<token>' (ms);
+// - 't:<id>': el ultimo intento de esa escritura, '<reservada hasta>:<inicio>:<token>' (ms); al cerrarse
+//   queda '0:<inicio>:' (un intento que sigue con su token y ya vencio no se cerro: [NOTA-REF]);
 // - 'm:legacy-<hash>': una escritura del estado anterior ya pasada a la cola (no se vuelve a pasar);
 // - 'v:<negocio>': [REGISTRO] el numero de orden de los ultimos campos que Pipedrive confirmo en ese negocio.
 // Cada cambio es un EVAL de esa sola clave: el tope, la escritura y el plazo de 30 dias van juntos (otra
@@ -401,6 +408,11 @@ export function pendingVersion(item: QueuedWrite): number {
 }
 interface QueueEntry {
   item: QueuedWrite;
+  /**
+   * [NOTA-REF] Inicio del intento anterior, si quedo sin cerrar (la instancia se corto antes de soltarla):
+   * lo anota la reserva y su nota se manda como incierta (sendablePendingWrite).
+   */
+  unsureSince?: number;
   /** Ya esta en la cola de Upstash, con su plazo (si no, solo en la memoria de esta instancia). */
   stored: boolean;
   /** Inicio del ultimo intento (0: nunca): se reintenta primero la que lleva mas tiempo sin intentarse. */
@@ -452,15 +464,17 @@ redis.call('expire', k, tonumber(ARGV[4]))
 return 1`;
 
 // Reserva la escritura ARGV[3] si sigue en la cola y nadie la tiene reservada a esta hora (ARGV[1]); la
-// reserva es ARGV[2]. 1: reservada; 0: ya no esta o la tiene otro intento.
+// reserva es ARGV[2]. {1, intento anterior, escritura}: reservada, con la marca del intento anterior ('' si
+// no hubo) y la escritura como esta guardada ([NOTA-REF]); 0: ya no esta o la tiene otro intento.
 const CLAIM_SCRIPT = `-- whatsapp:cola:reservar
 local k = KEYS[1]
-if redis.call('hexists', k, ARGV[3]) == 0 then return 0 end
+local w = redis.call('hget', k, ARGV[3])
+if not w then return 0 end
 local t = redis.call('hget', k, 't:' .. ARGV[3])
 local u = t and string.match(t, '^(%d+)') or '0'
 if tonumber(u) > tonumber(ARGV[1]) then return 0 end
 redis.call('hset', k, 't:' .. ARGV[3], ARGV[2])
-return 1`;
+return {1, t or '', w}`;
 
 // Cierra un intento que no se entrego, solo si la reserva sigue siendo la suya (ARGV[2]): deja la marca
 // del intento, ya libre (ARGV[3]), y lo que falta, si cambio (ARGV[4]). 0: ya no era suya (vencio y la
@@ -578,13 +592,43 @@ const withoutFields = (write: PendingWhatsAppWrite): PendingWhatsAppWrite => {
 };
 
 /**
+ * [NOTA-REF] El intento anterior de la nota quedo sin cerrar: pudo llegar a Pipedrive. Solo las notas con
+ * referencia (las de antes de este cambio se mandan como antes). No se conoce el fin del intento: se usa
+ * su inicio para noteUnsureLast; la reserva vence a los 75 s, pasados los 30 s de espera desde ese inicio.
+ */
+function withUnsure(write: PendingWhatsAppWrite, since: number | undefined): PendingWhatsAppWrite {
+  if (since === undefined || write.note === undefined || typeof write.noteRef !== 'string') return write;
+  const prev = finiteOr(write.noteUnsure, since);
+  return { ...write, noteUnsure: Math.min(prev, since), noteUnsureLast: Math.max(finiteOr(write.noteUnsureLast, since), since) };
+}
+
+const finiteOr = (value: unknown, fallback: number): number => (typeof value === 'number' && Number.isFinite(value) ? value : fallback);
+
+/**
+ * [NOTA-REF] Un guardado en la cola (agregar o soltar) quedo sin respuesta: pudo aplicarse en Upstash, otra
+ * instancia pudo entregar la nota desde alla y borrarla, y esta la volveria a guardar (la cola no sabe que
+ * se borro). La nota queda como incierta desde `at`: antes de repetirla se busca (solo si lleva referencia;
+ * no cambia el ultimo envio incierto, porque esta instancia no la mando).
+ */
+function markUnconfirmed(entry: QueueEntry, at: number): void {
+  const write = entry.item.write;
+  if (write.note === undefined || typeof write.noteRef !== 'string') return;
+  entry.item = { ...entry.item, write: { ...write, noteUnsure: Math.min(finiteOr(write.noteUnsure, at), at) } };
+}
+
+/**
  * [REGISTRO] Lo que se manda de una escritura de la cola: sin los campos que ya supero una escritura de un
  * mensaje posterior (R4: un correo viejo no vuelve a quedar en el negocio), con la nota. undefined: no
  * queda nada que mandar (solo eran campos superados).
+ * [NOTA-REF] Despues de la reserva, la escritura que ella leyo de Upstash y, si el intento anterior quedo
+ * sin cerrar, su nota marcada como incierta.
  */
 export function sendablePendingWrite(phone: string, item: QueuedWrite): PendingWhatsAppWrite | undefined {
-  if (!fieldsSuperseded(phone, item)) return item.write;
-  return item.write.note !== undefined ? withoutFields(item.write) : undefined;
+  const entry = queues.get(phone)?.get(item.id);
+  const current = entry?.item ?? item;
+  const write = withUnsure(current.write, entry?.unsureSince);
+  if (!fieldsSuperseded(phone, current)) return write;
+  return write.note !== undefined ? withoutFields(write) : undefined;
 }
 
 /** [TOPE] Sin Upstash: el mismo tope del EVAL, sobre lo que hay en la memoria. */
@@ -612,11 +656,15 @@ async function storeEntry(phone: string, item: QueuedWrite, replace: string[]): 
  */
 async function addEntry(phone: string, item: QueuedWrite): Promise<boolean> {
   const replace = replacedBy(phone, item);
+  const at = Date.now();
   const stored = await storeEntry(phone, item, replace);
   if (stored === 'full' || (stored === 'unavailable' && fullLocally(phone, item, replace))) return false;
   const q = queueOf(phone);
   for (const id of replace) if (stored === 'stored' || !q.get(id)?.stored) q.delete(id);
-  q.set(item.id, entryOf(item, stored === 'stored'));
+  const entry = entryOf(item, stored === 'stored');
+  // [NOTA-REF] Sin respuesta pudo quedar guardada alla igual.
+  if (stored === 'unavailable') markUnconfirmed(entry, at);
+  q.set(item.id, entry);
   return true;
 }
 
@@ -725,6 +773,8 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
   for (const entry of [...queueOf(phone).values()].sort(byAt)) {
     if (entry.stored || queueOf(phone).get(entry.item.id) !== entry) continue;
     const replace = replacedBy(phone, entry.item);
+    // [NOTA-REF] Si este guardado tampoco responde, la nota ya va marcada desde el primero (addEntry o
+    // settlePendingWrite): una entrega de otra instancia sigue siendo posterior a esa hora.
     if ((await storeEntry(phone, entry.item, replace)) !== 'stored') continue;
     entry.stored = true;
     for (const id of replace) queueOf(phone).delete(id);
@@ -751,7 +801,12 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
       // Lo que esta instancia no pudo guardar (lo que falta de un intento) manda sobre lo de alla.
       if (tomb?.has(id) || (mine && !mine.stored)) continue;
       const t = tries.get(id);
-      q.set(id, { item, stored: true, ...parseTry(t), ...(mine?.lease !== undefined && mine.lease === t ? { lease: mine.lease } : {}) });
+      // La reserva de esta instancia sigue: conserva su marca y [NOTA-REF] lo que ella anoto.
+      const held = mine?.lease !== undefined && mine.lease === t;
+      q.set(id, {
+        item, stored: true, ...parseTry(t),
+        ...(held ? { lease: mine.lease, ...(mine.unsureSince !== undefined ? { unsureSince: mine.unsureSince } : {}) } : {}),
+      });
     }
   } else {
     unavailable('leer escrituras pendientes');
@@ -782,12 +837,24 @@ export async function duePendingWrites(phone: string, max: number): Promise<Queu
   return due.map((v) => v.item);
 }
 
+/** [NOTA-REF] La escritura que devolvio la reserva, si se lee y es la misma (si no, queda la de la memoria). */
+function claimedItem(value: unknown, id: string): QueuedWrite | undefined {
+  try {
+    const item = JSON.parse(String(value)) as QueuedWrite;
+    return item && item.id === id && typeof item.at === 'number' && validWrite(item.write) ? item : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * [PENDIENTES] Reserva una escritura justo antes de mandarla, por PENDING_CLAIM_TTL_MS (un intento dura a lo
- * mas dos llamadas de 15 s a Pipedrive). La reserva vive en Upstash: otra instancia no manda la misma
- * escritura a la vez, aunque haya vencido el candado de la conversacion. false: ya no esta, la tiene otro
- * intento o no se pudo reservar (alla queda a salvo, para otro mensaje). La que solo esta en esta memoria
- * se reserva aqui.
+ * mas tres llamadas a Pipedrive). La reserva vive en Upstash: otra instancia no manda la misma escritura a
+ * la vez, aunque haya vencido el candado de la conversacion. false: ya no esta, la tiene otro intento o no
+ * se pudo reservar (alla queda a salvo, para otro mensaje). La que solo esta en esta memoria se reserva aqui.
+ * [NOTA-REF] La escritura queda como esta en Upstash: otra instancia pudo mandarla y soltarla (con su nota
+ * marcada como incierta) despues de la lectura de esta. Si el intento anterior no se cerro (su reserva
+ * vencio sin soltarse: la instancia se corto, quizas despues de mandar la nota), se anota su inicio.
  */
 export async function claimPendingWrite(phone: string, id: string): Promise<boolean> {
   const entry = queueOf(phone).get(id);
@@ -797,14 +864,23 @@ export async function claimPendingWrite(phone: string, id: string): Promise<bool
     return false;
   }
   const lease = String(now + PENDING_CLAIM_TTL_MS) + ':' + String(now) + ':' + randomUUID();
+  // Sin Upstash, el intento anterior de esta instancia (until vuelve a 0 al soltarla).
+  let previous = { until: entry.until, last: entry.last };
+  let fresh: QueuedWrite | undefined;
   if (entry.stored) {
-    const result = await redisJsonCommand<number>('EVAL', CLAIM_SCRIPT, '1', pendingKey(phone), now, lease, id);
+    const result = await redisJsonCommand<unknown>('EVAL', CLAIM_SCRIPT, '1', pendingKey(phone), now, lease, id);
     if (!result.ok) { unavailable('reservar escritura pendiente'); return false; }
-    if (Number(result.result) !== 1) return false;
+    const reply = Array.isArray(result.result) ? result.result : [result.result];
+    if (Number(reply[0]) !== 1) return false;
+    previous = parseTry(typeof reply[1] === 'string' ? reply[1] : undefined);
+    fresh = claimedItem(reply[2], id);
   }
   const current = queueOf(phone).get(id) ?? entry;
+  if (fresh) current.item = fresh;
   current.last = now;
   current.until = now + PENDING_CLAIM_TTL_MS;
+  if (previous.until > 0) current.unsureSince = previous.last;
+  else delete current.unsureSince;
   if (current.stored) current.lease = lease;
   return true;
 }
@@ -836,14 +912,21 @@ export async function settlePendingWrite(phone: string, id: string, remaining: P
   const lease = entry.lease;
   entry.until = 0;
   delete entry.lease;
+  // [NOTA-REF] Lo incierto ya va en `remaining` (noteUnsure), que se guarda si cambio.
+  delete entry.unsureSince;
   if (!entry.stored || lease === undefined) return;
+  const at = Date.now();
   const result = await redisJsonCommand<number>(
     'EVAL', SETTLE_SCRIPT, '1', pendingKey(phone), id, lease, '0:' + String(entry.last) + ':', changed ? JSON.stringify(entry.item) : '',
   );
   if (!result.ok) {
     unavailable('liberar escritura pendiente');
-    // Lo que falta (una parte ya llego a ventas) se guarda en la proxima lectura de la cola.
-    if (changed) entry.stored = false;
+    // Lo que falta (una parte ya llego a ventas) se guarda en la proxima lectura de la cola. [NOTA-REF] Otra
+    // instancia pudo entregarla mientras tanto (al vencer esta reserva): se busca antes de repetirla.
+    if (changed) {
+      entry.stored = false;
+      markUnconfirmed(entry, at);
+    }
   }
 }
 

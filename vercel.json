@@ -7222,6 +7222,9 @@
     },
     "api/cron/blob-sweep.ts": {
       "maxDuration": 60
+    },
+    "api/whatsapp/webhook.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [

@@ -131,11 +131,16 @@ function withUpstash() {
   return redis;
 }
 
-/** Las líneas de la transcripción de una nota (después del encabezado de la sección). */
+/**
+ * Las líneas de la transcripción de una nota (después del encabezado de la sección). La nota termina con su
+ * referencia (decisión 10 del dueño), después de una línea vacía: no es parte de la transcripción.
+ */
 function transcriptOf(note: string): string[] {
   const at = note.indexOf('-- TRANSCRIPCIÓN --');
   expect(at).toBeGreaterThan(-1);
-  return note.slice(at).split('\n').slice(1);
+  const ref = note.search(/\n\nRef\. WhatsApp: wa-[0-9a-f]{12}$/);
+  expect(ref).toBeGreaterThan(at);
+  return note.slice(at, ref).split('\n').slice(1);
 }
 const unescape = (text: string) => text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 const TIME = '\\[\\d{2}-\\d{2}-\\d{4} \\d{2}:\\d{2}\\]';
