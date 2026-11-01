@@ -75,8 +75,10 @@ export interface PendingWhatsAppWrite {
 // cliente, que tampoco conoce la referencia.
 export const NOTE_REF_LABEL = 'Ref. WhatsApp: ';
 const NOTE_REF_RE = /^wa-[0-9a-f]{12}$/;
-// [NOTA-REF] La busqueda: las NOTE_SEARCH_LIMIT notas mas recientes del negocio, con su propio tiempo limite.
+// [NOTA-REF] La busqueda: paginas de NOTE_SEARCH_LIMIT notas, de la mas nueva a la mas antigua, hasta
+// NOTE_SEARCH_MAX_PAGES paginas y NOTE_SEARCH_TIMEOUT_MS en total (todas las paginas juntas).
 export const NOTE_SEARCH_LIMIT = 50;
+export const NOTE_SEARCH_MAX_PAGES = 4;
 export const NOTE_SEARCH_TIMEOUT_MS = 10_000;
 // [NOTA-REF] Pipedrive puede terminar de guardar una nota despues de que se corto la espera: la busqueda no
 // corre antes de este plazo desde el ultimo envio incierto (webhook.ts la reintenta en segundo plano cuando
@@ -162,31 +164,42 @@ function searchRejected(error: unknown): boolean {
 }
 
 /**
- * [NOTA-REF] Busca la nota con la referencia `ref` en las notas mas recientes del negocio (GET /notes por
- * add_time descendente). 'absent' solo si la pagina trae todas las notas desde el primer envio incierto
- * (`since`): si se lleno con notas posteriores, la nota podria estar mas atras y la busqueda cuenta como
- * fallida. Una pagina llena tambien debe venir de la mas nueva a la mas antigua (si Pipedrive no respetara
- * el orden, la mas antigua de la pagina no diria hasta donde llega). 'failed' (sin respuesta, una respuesta
- * rara, esa pagina llena o en otro orden): no se repite el envio en este turno, para no duplicarla; queda
- * pendiente. 'rejected': un rechazo definitivo de la busqueda (searchRejected).
+ * [NOTA-REF] Busca la nota con la referencia `ref` en las notas del negocio, de la mas nueva a la mas antigua
+ * (GET /notes por add_time descendente), pagina por pagina. Solo cuenta la linea completa de la referencia
+ * ("Ref. WhatsApp: wa-..."): una nota de ventas que cita solo el codigo no da la nota por entregada. 'absent'
+ * cuando se revisaron todas las notas desde el primer envio incierto (`since`): la ultima pagina, o una que
+ * ya llega a notas anteriores. Las paginas deben venir de la mas nueva a la mas antigua (si Pipedrive no
+ * respetara el orden, la mas antigua no diria hasta donde llega). 'failed' (sin respuesta, una respuesta
+ * rara, otro orden, o NOTE_SEARCH_MAX_PAGES paginas o NOTE_SEARCH_TIMEOUT_MS sin llegar a `since`): no se
+ * repite el envio en este turno, para no duplicarla; queda pendiente. 'rejected': un rechazo definitivo de
+ * la busqueda (searchRejected).
  */
 async function findNoteByRef(dealId: number, ref: string, since: number): Promise<'found' | 'absent' | 'failed' | 'rejected'> {
+    // Los espacios de la linea pueden volver como espacios o como &nbsp; en el HTML de Pipedrive.
+    const mark = new RegExp('(?:^|[\\s>])Ref\\.(?:\\s|&nbsp;)+WhatsApp:(?:\\s|&nbsp;)*' + ref + '(?![0-9a-z])');
+    const deadline = Date.now() + NOTE_SEARCH_TIMEOUT_MS;
+    let newer = Infinity;
     try {
-          const res = await pipedriveGet<PipedriveNote[]>('/notes', {
-                  deal_id: String(dealId), sort: 'add_time DESC', start: '0', limit: String(NOTE_SEARCH_LIMIT),
-          }, NOTE_SEARCH_TIMEOUT_MS);
-          if (!res.success) return searchRejected(res.error) ? 'rejected' : 'failed';
-          // Pipedrive responde data: null cuando el negocio no tiene notas.
-          if (res.data === null || res.data === undefined) return 'absent';
-          if (!Array.isArray(res.data)) return 'failed';
-          const mark = new RegExp(ref + '(?![0-9a-f])');
-          if (res.data.some((n) => typeof n?.content === 'string' && mark.test(n.content))) return 'found';
-          const full = res.data.length >= NOTE_SEARCH_LIMIT || res.additional_data?.pagination?.more_items_in_collection === true;
-          if (!full) return 'absent';
-          const times = res.data.map((n) => pipedriveTime(n?.add_time));
-          // Una hora ilegible (NaN) tampoco pasa: toda comparacion con NaN es falsa.
-          if (!times.every((t, i) => i === 0 || t <= times[i - 1])) return 'failed';
-          return times[times.length - 1] < since - NOTE_CLOCK_MARGIN_MS ? 'absent' : 'failed';
+          for (let page = 0; page < NOTE_SEARCH_MAX_PAGES; page++) {
+                  const left = deadline - Date.now();
+                  if (left <= 0) return 'failed';
+                  const res = await pipedriveGet<PipedriveNote[]>('/notes', {
+                            deal_id: String(dealId), sort: 'add_time DESC', start: String(page * NOTE_SEARCH_LIMIT), limit: String(NOTE_SEARCH_LIMIT),
+                  }, left);
+                  if (!res.success) return searchRejected(res.error) ? 'rejected' : 'failed';
+                  // Pipedrive responde data: null cuando el negocio no tiene notas (o no hay mas).
+                  if (res.data === null || res.data === undefined) return 'absent';
+                  if (!Array.isArray(res.data)) return 'failed';
+                  if (res.data.some((n) => typeof n?.content === 'string' && mark.test(n.content))) return 'found';
+                  const full = res.data.length >= NOTE_SEARCH_LIMIT || res.additional_data?.pagination?.more_items_in_collection === true;
+                  if (!full) return 'absent';
+                  const times = res.data.map((n) => pipedriveTime(n?.add_time));
+                  // Una hora ilegible (NaN) tampoco pasa: toda comparacion con NaN es falsa.
+                  if (!times.every((t, i) => t <= (i === 0 ? newer : times[i - 1]))) return 'failed';
+                  newer = times[times.length - 1];
+                  if (newer < since - NOTE_CLOCK_MARGIN_MS) return 'absent';
+          }
+          return 'failed';
     } catch {
           return 'failed';
     }

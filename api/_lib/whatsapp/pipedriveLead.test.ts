@@ -21,7 +21,7 @@ vi.mock('../pipedrive/client.js', () => ({ pipedrivePost: vi.fn(), pipedriveGet:
 
 import {
   buildNote, buildWhatsAppUpdate, ensureWhatsAppDeal, escapeNoteHtml, notePart, noteSearchAt, retryWhatsAppWrite, NOTE_MAX_BYTES,
-  NOTE_REF_LABEL, NOTE_SEARCH_LIMIT, NOTE_SEARCH_TIMEOUT_MS, NOTE_SETTLE_MS, WA_DEDUP_WINDOW_DAYS,
+  NOTE_REF_LABEL, NOTE_SEARCH_LIMIT, NOTE_SEARCH_MAX_PAGES, NOTE_SEARCH_TIMEOUT_MS, NOTE_SETTLE_MS, WA_DEDUP_WINDOW_DAYS,
 } from './pipedriveLead';
 import type { PendingWhatsAppWrite, WhatsAppLeadParams } from './pipedriveLead';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
@@ -477,10 +477,11 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
     vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => {
       if (path !== '/notes' || searchDown) return { success: false, data: null, error: 'Request timeout' };
       const all = stored.filter((n) => n.deal_id === Number(query.deal_id)).sort((a, b) => b.add_time.localeCompare(a.add_time) || b.id - a.id);
-      const page = all.slice(0, Number(query.limit));
+      const start = Number(query.start);
+      const page = all.slice(start, start + Number(query.limit));
       return {
         success: true, data: page.length ? page : null,
-        additional_data: { pagination: { start: 0, limit: Number(query.limit), more_items_in_collection: all.length > page.length } },
+        additional_data: { pagination: { start, limit: Number(query.limit), more_items_in_collection: all.length > start + page.length } },
       };
     }) as never);
   });
@@ -611,21 +612,71 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
     expect(posts()).toHaveLength(1);
   });
 
-  it('una página llena de notas posteriores al envío incierto no basta para decir que no está', async () => {
+  it('más notas posteriores al envío incierto de las que caben en las páginas revisadas: no basta para decir que no está', async () => {
     outcomes = ['timeout'];
     const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
-    // Ventas agrega más notas de las que trae una página, todas después del envío incierto.
-    for (let i = 0; i < NOTE_SEARCH_LIMIT + 1; i++) save(9001, 'Nota de ventas ' + i);
+    // Ventas agrega más notas de las que traen todas las páginas, todas después del envío incierto.
+    for (let i = 0; i < NOTE_SEARCH_LIMIT * NOTE_SEARCH_MAX_PAGES + 1; i++) save(9001, 'Nota de ventas ' + i);
     later(NOTE_SETTLE_MS);
     expect(await retryWhatsAppWrite(pending)).toEqual(pending);
     expect(posts()).toHaveLength(1);
-    // Si la página llega hasta antes del envío incierto, la nota no está: se manda.
+    expect(searches().map(([, query]) => (query as { start: string }).start)).toEqual(['0', '50', '100', '150']);
+    // Si las páginas llegan hasta antes del envío incierto, la nota no está: se manda.
     stored.splice(0, stored.length, ...stored.slice(-(NOTE_SEARCH_LIMIT - 1)));
     save(9001, 'Nota de ventas antigua', Date.now() - 3 * 3_600_000);
     save(9001, 'Otra nota de ventas antigua', Date.now() - 4 * 3_600_000);
     expect(await retryWhatsAppWrite(pending)).toBeUndefined();
     expect(posts()).toHaveLength(2);
     expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+  });
+
+  // Auditoría de Codex (PR 143): una sola página siempre igual dejaba la nota pendiente para siempre.
+  it('la búsqueda sigue a la página siguiente: la encuentra en la segunda y no la repite', async () => {
+    outcomes = ['perdida'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    // Después de la nota del bot, ventas agrega una página completa de notas.
+    later(1_000);
+    for (let i = 0; i < NOTE_SEARCH_LIMIT; i++) save(9001, 'Nota de ventas ' + i);
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(posts()).toHaveLength(1);
+    expect(searches().map(([, query]) => (query as { start: string }).start)).toEqual(['0', '50']);
+    expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+  });
+
+  it('dos páginas de notas posteriores y la nota no está (no se guardó): se manda una vez', async () => {
+    outcomes = ['timeout'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    for (let i = 0; i < NOTE_SEARCH_LIMIT + 1; i++) save(9001, 'Nota de ventas ' + i);
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(posts()).toHaveLength(2);
+    expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+  });
+
+  // Auditoría de Codex (PR 143): solo la línea completa de la referencia acredita la entrega.
+  it('una nota de ventas que cita solo el código no da la nota por entregada', async () => {
+    outcomes = ['timeout'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    const ref = pending.noteRef!;
+    save(9001, 'Ventas: revisar enlace /x' + ref + 'z, aún falta la ficha.');
+    save(9001, 'Ventas: el bot dejó ' + ref + ' pendiente');
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(posts()).toHaveLength(2);
+    expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+  });
+
+  it.each([
+    ['con <br /> de Pipedrive', (ref: string) => 'Ficha<br />\n<br />\nRef. WhatsApp: ' + ref],
+    ['con &nbsp;', (ref: string) => 'Ficha<br>Ref.&nbsp;WhatsApp:&nbsp;' + ref],
+  ])('la línea de la referencia se reconoce en el HTML que devuelve Pipedrive (%s)', async (_label, html) => {
+    outcomes = ['timeout'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    save(9001, html(pending.noteRef!));
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(posts()).toHaveLength(1);
   });
 
   it('las pendientes de antes de este cambio (sin referencia) se reintentan como antes: sin búsqueda y sin tocar su texto', async () => {
