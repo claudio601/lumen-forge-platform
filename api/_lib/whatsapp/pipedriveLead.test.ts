@@ -6,20 +6,27 @@
 // - Si Pipedrive rechaza los campos del negocio, la nota se escribe igual.
 // - PR 2: los cambios de un dato ya capturado y las varias cantidades de un mensaje van a la nota.
 // - PR 3 (revisión de Codex, hallazgos 12 y 18): la nota cabe en Pipedrive y ningún dato imita otra línea.
+// - Decisión 10 del dueño: cada nota lleva una referencia fija en su última línea; si Pipedrive la guardó y
+//   se perdió la respuesta, el reintento la encuentra por esa referencia y no la repite. Segunda revisión: el
+//   plazo de 30 s se cuenta desde el último envío incierto; una página llena en otro orden no basta para decir
+//   que no está; un rechazo definitivo de la búsqueda (4xx) manda la nota como antes, en vez de perderla.
 // Pipedrive está simulado (sin red); solo datos inventados.
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../pipedrive/persons.js', () => ({ findOrCreatePerson: vi.fn() }));
 vi.mock('../pipedrive/deals.js', () => ({ createDeal: vi.fn(), updateDeal: vi.fn() }));
 vi.mock('../pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}) }));
-vi.mock('../pipedrive/client.js', () => ({ pipedrivePost: vi.fn() }));
+vi.mock('../pipedrive/client.js', () => ({ pipedrivePost: vi.fn(), pipedriveGet: vi.fn() }));
 
-import { buildNote, ensureWhatsAppDeal, escapeNoteHtml, WA_DEDUP_WINDOW_DAYS } from './pipedriveLead';
-import type { WhatsAppLeadParams } from './pipedriveLead';
+import {
+  buildNote, buildWhatsAppUpdate, ensureWhatsAppDeal, escapeNoteHtml, notePart, noteSearchAt, retryWhatsAppWrite, NOTE_MAX_BYTES,
+  NOTE_REF_LABEL, NOTE_SEARCH_LIMIT, NOTE_SEARCH_TIMEOUT_MS, NOTE_SETTLE_MS, WA_DEDUP_WINDOW_DAYS,
+} from './pipedriveLead';
+import type { PendingWhatsAppWrite, WhatsAppLeadParams } from './pipedriveLead';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
 import { createDeal, updateDeal } from '../pipedrive/deals.js';
-import { pipedrivePost } from '../pipedrive/client.js';
+import { pipedriveGet, pipedrivePost } from '../pipedrive/client.js';
 import { clearTranscript, recordTranscript, transcriptForNote } from './transcript';
 
 const PHONE = '+56900000201';
@@ -226,15 +233,19 @@ describe('PR 3, revisión de Codex: la nota cabe en Pipedrive (hallazgo 12)', ()
   const base: WhatsAppLeadParams = { phone: PHONE, name: 'Perfil Prueba', summary: 'Pide paneles.', body: 'gracias', captureStatus: 'partial' };
 
   // Sigue siendo una nota válida: cada & abre una entidad entera, no queda < ni > sin escapar,
-  // no hay letras partidas y la ficha y la transcripción están en su lugar.
+  // no hay letras partidas y la ficha, la transcripción y la referencia (al final) están en su lugar.
   function expectValidNote(note: string) {
     expect(note).not.toMatch(/&(?!amp;|lt;|gt;)/);
     expect(note).not.toMatch(/[<>]/);
     expect(note).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
     expect(note.startsWith('== Lead WhatsApp eLIGHTS ==\nTelefono: ' + PHONE + '\n')).toBe(true);
     expect(note.split('\n').filter((l) => l === TRANSCRIPT_HEADER)).toHaveLength(1);
+    expect(note).toMatch(REF_END);
   }
-  const section = (note: string) => note.split('\n').slice(note.split('\n').indexOf(TRANSCRIPT_HEADER) + 1);
+  // [NOTA-REF] La nota termina con una línea vacía y su referencia: la transcripción va antes.
+  const REF_END = /\n\nRef\. WhatsApp: wa-[0-9a-f]{12}$/;
+  const withoutRef = (note: string) => note.replace(REF_END, '');
+  const section = (note: string) => withoutRef(note).split('\n').slice(note.split('\n').indexOf(TRANSCRIPT_HEADER) + 1);
 
   // El caso de Codex: cumple los dos topes de la transcripción (60 mensajes de hasta 1.000 letras).
   function codexTranscript(phone: string): string {
@@ -269,10 +280,11 @@ describe('PR 3, revisión de Codex: la nota cabe en Pipedrive (hallazgo 12)', ()
     expect(note).toContain('] Cliente: M01 &amp;');
     expect(note).toContain('] Bot: Respuesta 1\n');
     expect(note).toContain('] Cliente: M30 &amp;');
-    expect(note.endsWith('] Bot (respuesta al crear la nota): Cierre de prueba')).toBe(true);
-    // Lo mismo llega a Pipedrive.
+    expect(withoutRef(note).endsWith('] Bot (respuesta al crear la nota): Cierre de prueba')).toBe(true);
+    // Lo mismo llega a Pipedrive (con su propia referencia).
     await ensureWhatsAppDeal({ ...base, transcript });
-    expect(noteContent()).toBe(note);
+    expect(withoutRef(noteContent())).toBe(withoutRef(note));
+    expect(noteContent()).toMatch(REF_END);
     expect(bytes(noteContent())).toBeLessThanOrEqual(MAX_BYTES);
   });
 
@@ -304,7 +316,7 @@ describe('PR 3, revisión de Codex: la nota cabe en Pipedrive (hallazgo 12)', ()
     const header = /^\[\d{2}-\d{2}-\d{4} \d{2}:\d{2}\] (?:Cliente|Bot)/;
     expect(original[cut]).toMatch(header);
     expect(kept[cut + 1]).toMatch(header);
-    expect(note.endsWith('] Bot (respuesta al crear la nota): Gracias, te contactamos')).toBe(true);
+    expect(withoutRef(note).endsWith('] Bot (respuesta al crear la nota): Gracias, te contactamos')).toBe(true);
   });
 
   it('una transcripción que cabe llega entera, sin aviso', () => {
@@ -327,7 +339,7 @@ describe('PR 3, revisión de Codex: la nota cabe en Pipedrive (hallazgo 12)', ()
     expect(bytes(note)).toBeLessThanOrEqual(MAX_BYTES);
     expectValidNote(note);
     expect(note).toContain('] Cliente: M01 &amp;');
-    expect(note.endsWith('] Bot (respuesta al crear la nota): Cierre de prueba')).toBe(true);
+    expect(withoutRef(note).endsWith('] Bot (respuesta al crear la nota): Cierre de prueba')).toBe(true);
     expect(section(note).filter((l) => CUT_RE.test(l))).toHaveLength(1);
   });
 
@@ -423,5 +435,341 @@ describe('PR 3, revisión de Codex: cada dato de la ficha en una línea (hallazg
     expect(titles[0]).toBe('WhatsApp Lead — Perfil Prueba Dos');
     expect(titles[1]).not.toMatch(/\s{2}|\n/);
     expect(titles[1].length).toBeLessThan(150);
+  });
+});
+
+describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdió la respuesta', () => {
+  // Pipedrive simulado: las notas guardadas (con su hora, add_time en UTC) y qué pasa con cada envío.
+  type Outcome = 'ok' | 'perdida' | 'perdida-5xx' | 'perdida-red' | 'timeout' | 'rechazo';
+  let stored: Array<{ id: number; deal_id: number; content: string; add_time: string }>;
+  let outcomes: Outcome[];
+  let searchDown: boolean;
+  const REF_LINE = /\n\nRef\. WhatsApp: (wa-[0-9a-f]{12})$/;
+  const pdTime = (ms: number) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+  const params: WhatsAppLeadParams = {
+    phone: PHONE, name: 'Perfil Prueba', summary: 'Pide focos LED.', body: 'Necesito 10 focos LED',
+    captured: { producto: 'focos LED', cantidad: '10', correo: 'pedro.prueba@example.com' }, captureStatus: 'complete',
+    transcript: '[01-11-2026 10:00] Cliente: Necesito 10 focos LED',
+  };
+  const posts = () => vi.mocked(pipedrivePost).mock.calls.filter(([path]) => path === '/notes');
+  const searches = () => vi.mocked(pipedriveGet).mock.calls.filter(([path]) => path === '/notes');
+  const later = (ms: number) => vi.setSystemTime(Date.now() + ms);
+  const save = (deal: number, content: string, at = Date.now()) => stored.push({ id: stored.length + 1, deal_id: deal, content, add_time: pdTime(at) });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-01T13:00:00Z'));
+    stored = [];
+    outcomes = [];
+    searchDown = false;
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(pipedrivePost).mockImplementation((async (path: string, body: Record<string, unknown>) => {
+      if (path !== '/notes') return { success: true, data: { id: 1 } };
+      const outcome = outcomes.shift() ?? 'ok';
+      // 'perdida…': Pipedrive la guarda y la respuesta no llega (tiempo límite, 5xx o red).
+      if (outcome === 'ok' || outcome.startsWith('perdida')) save(Number(body.deal_id), String(body.content));
+      if (outcome === 'ok') return { success: true, data: { id: stored.length } };
+      if (outcome === 'perdida-5xx') return { success: false, data: null, error: 'HTTP 502: Bad Gateway' };
+      if (outcome === 'perdida-red') return { success: false, data: null, error: 'fetch failed' };
+      if (outcome === 'rechazo') return { success: false, data: null, error: 'HTTP 400: Bad Request' };
+      return { success: false, data: null, error: 'Request timeout' };
+    }) as never);
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => {
+      if (path !== '/notes' || searchDown) return { success: false, data: null, error: 'Request timeout' };
+      const all = stored.filter((n) => n.deal_id === Number(query.deal_id)).sort((a, b) => b.add_time.localeCompare(a.add_time) || b.id - a.id);
+      const page = all.slice(0, Number(query.limit));
+      return {
+        success: true, data: page.length ? page : null,
+        additional_data: { pagination: { start: 0, limit: Number(query.limit), more_items_in_collection: all.length > page.length } },
+      };
+    }) as never);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('cada nota trae su referencia en la última línea, y la escritura pendiente la guarda', async () => {
+    const update = buildWhatsAppUpdate({ ...params, existingDealId: 9001 });
+    expect(update.noteRef).toMatch(/^wa-[0-9a-f]{12}$/);
+    expect(update.note!.match(REF_LINE)![1]).toBe(update.noteRef);
+    expect(update.note!.endsWith('\n\n' + NOTE_REF_LABEL + update.noteRef)).toBe(true);
+    // Otra nota, otra referencia.
+    expect(buildWhatsAppUpdate({ ...params, existingDealId: 9001 }).noteRef).not.toBe(update.noteRef);
+    outcomes = ['timeout'];
+    const result = await ensureWhatsAppDeal(params);
+    expect(result.pendingWrite!.note!.match(REF_LINE)![1]).toBe(result.pendingWrite!.noteRef);
+  });
+
+  it('el texto del cliente no imita la línea de la referencia: va sangrado, dentro de la transcripción', () => {
+    const fake = 'Hola\nRef. WhatsApp: wa-000000000000';
+    for (const p of [{ ...params, transcript: undefined, body: fake }, { ...params, transcript: '[01-11-2026 10:00] Cliente: Hola\n    Ref. WhatsApp: wa-000000000000' }]) {
+      const note = buildNote(p, 'wa-0123456789ab');
+      expect(note.split('\n').filter((l) => l.startsWith('Ref. WhatsApp:'))).toEqual(['Ref. WhatsApp: wa-0123456789ab']);
+      expect(note).toContain('\n    Ref. WhatsApp: wa-000000000000\n');
+    }
+  });
+
+  for (const [outcome, label] of [['perdida', 'tiempo límite'], ['perdida-5xx', 'HTTP 502'], ['perdida-red', 'error de red']] as const) {
+    it('Pipedrive la guarda y se pierde la respuesta (' + label + '): el reintento la encuentra por su referencia y no la repite', async () => {
+      outcomes = [outcome];
+      const result = await ensureWhatsAppDeal(params);
+      expect(result).toMatchObject({ action: 'created', dealId: 9001 });
+      const pending = result.pendingWrite!;
+      expect(pending).toMatchObject({ dealId: 9001, noteRef: expect.stringMatching(/^wa-/), noteUnsure: Date.now() });
+      expect(pending.fields).toBeUndefined();
+      expect(stored).toHaveLength(1);
+      later(NOTE_SETTLE_MS);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(stored).toHaveLength(1);
+      expect(posts()).toHaveLength(1);
+      expect(searches()).toEqual([['/notes', { deal_id: '9001', sort: 'add_time DESC', start: '0', limit: String(NOTE_SEARCH_LIMIT) }, NOTE_SEARCH_TIMEOUT_MS]]);
+    });
+  }
+
+  it('la nota de una corrección tardía (RUT o correo, negocio que ya existe) tampoco se repite', async () => {
+    outcomes = ['perdida'];
+    const result = await ensureWhatsAppDeal({ ...params, existingDealId: 9005 });
+    expect(result).toMatchObject({ action: 'found', dealId: 9005 });
+    const pending = result.pendingWrite!;
+    expect(pending).toMatchObject({ dealId: 9005, noteRef: expect.stringMatching(/^wa-/), noteUnsure: Date.now() });
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(stored.map((n) => n.deal_id)).toEqual([9005]);
+    expect(posts()).toHaveLength(1);
+  });
+
+  it('tiempo límite sin que Pipedrive la haya guardado: el reintento la busca, no está y la crea una vez', async () => {
+    outcomes = ['timeout'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    expect(stored).toHaveLength(0);
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(searches()).toHaveLength(1);
+    expect(posts()).toHaveLength(2);
+    expect(stored.map((n) => n.content)).toEqual([pending.note]);
+    expect(stored[0].content.endsWith(NOTE_REF_LABEL + pending.noteRef)).toBe(true);
+  });
+
+  it('si la búsqueda falla, no se repite el envío en ese turno; el turno siguiente la busca de nuevo', async () => {
+    outcomes = ['perdida'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    later(NOTE_SETTLE_MS);
+    searchDown = true;
+    const left = await retryWhatsAppWrite(pending);
+    // Queda pendiente tal cual: la misma nota, su referencia y la hora del primer envío incierto.
+    expect(left).toEqual(pending);
+    expect(posts()).toHaveLength(1);
+    searchDown = false;
+    later(60_000);
+    expect(await retryWhatsAppWrite(left!)).toBeUndefined();
+    expect(posts()).toHaveLength(1);
+    expect(stored).toHaveLength(1);
+  });
+
+  it('una respuesta rara de la búsqueda tampoco deja repetirla', async () => {
+    outcomes = ['perdida'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    later(NOTE_SETTLE_MS);
+    vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: true, data: { id: 1 } } as never);
+    expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+    vi.mocked(pipedriveGet).mockRejectedValueOnce(new Error('falla simulada'));
+    expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+    expect(posts()).toHaveLength(1);
+  });
+
+  it('un rechazo 4xx no necesita búsqueda: el reintento la manda directo', async () => {
+    outcomes = ['rechazo'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    expect(pending.noteRef).toMatch(/^wa-/);
+    expect(pending.noteUnsure).toBeUndefined();
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(searches()).toHaveLength(0);
+    expect(posts()).toHaveLength(2);
+    expect(stored).toHaveLength(1);
+  });
+
+  it('un rechazo después de un envío incierto conserva la marca: el siguiente busca otra vez', async () => {
+    outcomes = ['timeout', 'rechazo'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    const first = pending.noteUnsure!;
+    later(NOTE_SETTLE_MS);
+    const left = await retryWhatsAppWrite(pending);
+    expect(left).toMatchObject({ noteRef: pending.noteRef, noteUnsure: first });
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(left!)).toBeUndefined();
+    expect(searches()).toHaveLength(2);
+    expect(stored).toHaveLength(1);
+  });
+
+  it('un envío incierto de hace menos de 30 s no se busca ni se repite todavía (Pipedrive puede estar guardándolo)', async () => {
+    outcomes = ['timeout'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    later(NOTE_SETTLE_MS - 1);
+    expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+    expect(searches()).toHaveLength(0);
+    expect(posts()).toHaveLength(1);
+  });
+
+  it('una página llena de notas posteriores al envío incierto no basta para decir que no está', async () => {
+    outcomes = ['timeout'];
+    const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+    // Ventas agrega más notas de las que trae una página, todas después del envío incierto.
+    for (let i = 0; i < NOTE_SEARCH_LIMIT + 1; i++) save(9001, 'Nota de ventas ' + i);
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+    expect(posts()).toHaveLength(1);
+    // Si la página llega hasta antes del envío incierto, la nota no está: se manda.
+    stored.splice(0, stored.length, ...stored.slice(-(NOTE_SEARCH_LIMIT - 1)));
+    save(9001, 'Nota de ventas antigua', Date.now() - 3 * 3_600_000);
+    save(9001, 'Otra nota de ventas antigua', Date.now() - 4 * 3_600_000);
+    expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+    expect(posts()).toHaveLength(2);
+    expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+  });
+
+  it('las pendientes de antes de este cambio (sin referencia) se reintentan como antes: sin búsqueda y sin tocar su texto', async () => {
+    outcomes = ['perdida', 'ok'];
+    const legacy: PendingWhatsAppWrite = { dealId: 9001, note: 'Nota pendiente ficticia' };
+    const left = await retryWhatsAppWrite(legacy);
+    expect(left).toEqual(legacy);
+    later(NOTE_SETTLE_MS);
+    expect(await retryWhatsAppWrite(left!)).toBeUndefined();
+    expect(searches()).toHaveLength(0);
+    expect(posts().map(([, body]) => (body as { content: string }).content)).toEqual(['Nota pendiente ficticia', 'Nota pendiente ficticia']);
+  });
+
+  it('notePart separa la nota con su referencia y sus marcas, sin los campos', () => {
+    const write: PendingWhatsAppWrite = {
+      dealId: 9001, personId: 7001, fields: { cf_wa_correo: 'pedro.prueba@example.com' }, note: 'Nota', noteRef: 'wa-0123456789ab', noteUnsure: 5, noteUnsureLast: 9,
+    };
+    expect(notePart(write)).toEqual({ note: 'Nota', noteRef: 'wa-0123456789ab', noteUnsure: 5, noteUnsureLast: 9 });
+    expect(notePart({ dealId: 9001, note: 'Nota' })).toEqual({ note: 'Nota' });
+    expect(notePart({ dealId: 9001, fields: {} })).toEqual({});
+    expect(notePart(undefined)).toEqual({});
+  });
+
+  describe('segunda revisión (verificador)', () => {
+    it('dos envíos inciertos seguidos: el plazo de 30 s se cuenta desde el último, no desde el primero', async () => {
+      outcomes = ['timeout'];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      const first = pending.noteUnsure!;
+      expect(pending.noteUnsureLast).toBe(first);
+      // El segundo envío tampoco responde (Pipedrive la guarda más tarde).
+      later(NOTE_SETTLE_MS);
+      outcomes = ['timeout'];
+      const left = (await retryWhatsAppWrite(pending))!;
+      expect(left).toMatchObject({ noteRef: pending.noteRef, noteUnsure: first, noteUnsureLast: Date.now() });
+      expect(noteSearchAt(left)).toBe(Date.now() + NOTE_SETTLE_MS);
+      // 16 s después del segundo envío (1 s después de su corte): todavía no se busca ni se repite.
+      later(16_000);
+      expect(await retryWhatsAppWrite(left)).toEqual(left);
+      expect(searches()).toHaveLength(1);
+      expect(posts()).toHaveLength(2);
+      // Pipedrive termina de guardar el segundo envío; cumplido el plazo desde él, la busca y la encuentra.
+      save(9001, left.note!);
+      later(NOTE_SETTLE_MS - 16_000);
+      expect(await retryWhatsAppWrite(left)).toBeUndefined();
+      expect(searches()).toHaveLength(2);
+      expect(posts()).toHaveLength(2);
+      expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+    });
+
+    it('noteSearchAt: 30 s desde el último envío incierto (sin él, desde el primero); sin referencia, nota o envío incierto, no hay búsqueda', () => {
+      const write: PendingWhatsAppWrite = { dealId: 9001, note: 'Nota', noteRef: 'wa-0123456789ab' };
+      expect(noteSearchAt({ ...write, noteUnsure: 1_000, noteUnsureLast: 5_000 })).toBe(5_000 + NOTE_SETTLE_MS);
+      expect(noteSearchAt({ ...write, noteUnsure: 1_000 })).toBe(1_000 + NOTE_SETTLE_MS);
+      expect(noteSearchAt(write)).toBeUndefined();
+      expect(noteSearchAt({ dealId: 9001, note: 'Nota', noteUnsure: 1_000 })).toBeUndefined();
+      expect(noteSearchAt({ dealId: 9001, noteRef: 'wa-0123456789ab', noteUnsure: 1_000 })).toBeUndefined();
+      expect(noteSearchAt(undefined)).toBeUndefined();
+    });
+
+    it('una página llena que no viene de la más nueva a la más antigua no basta para decir que no está', async () => {
+      // 60 notas de ventas de hace días; la del bot se guarda y se pierde la respuesta.
+      for (let i = 0; i < NOTE_SEARCH_LIMIT + 10; i++) save(9001, 'Nota de ventas ' + i, Date.now() - 5 * 86_400_000 + i * 1_000);
+      outcomes = ['perdida'];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      later(NOTE_SETTLE_MS);
+      // Pipedrive no respeta el orden pedido: la página trae las más antiguas primero (sin la del bot).
+      vi.mocked(pipedriveGet).mockImplementationOnce((async (_path: string, query: Record<string, string>) => ({
+        success: true, data: [...stored].sort((a, b) => a.id - b.id).slice(0, Number(query.limit)),
+        additional_data: { pagination: { start: 0, limit: Number(query.limit), more_items_in_collection: true } },
+      })) as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+      // En el orden pedido la encuentra.
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(1);
+      expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+    });
+
+    it('si Pipedrive rechaza la búsqueda (HTTP 4xx), esperar no sirve: la nota se manda como antes, sin perderla, y queda el error', async () => {
+      outcomes = ['timeout'];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      later(NOTE_SETTLE_MS);
+      vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: false, data: null, error: 'HTTP 400: Bad Request' } as never);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(searches()).toHaveLength(1);
+      expect(posts()).toHaveLength(2);
+      expect(stored.map((n) => n.content)).toEqual([pending.note]);
+      expect(vi.mocked(console.error).mock.calls.some(([line]) => String(line).includes('rechazo la busqueda de notas'))).toBe(true);
+    });
+
+    it('un 408, un 429 o un 5xx de la búsqueda son pasajeros: no se repite en ese turno', async () => {
+      outcomes = ['perdida'];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      later(NOTE_SETTLE_MS);
+      for (const error of ['HTTP 408: Request Timeout', 'HTTP 429: Too Many Requests', 'HTTP 503: Service Unavailable']) {
+        vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: false, data: null, error } as never);
+        expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      }
+      expect(posts()).toHaveLength(1);
+      expect(stored).toHaveLength(1);
+    });
+  });
+
+  describe('nota grande cerca del tope de bytes, con la línea de la referencia', () => {
+    const bytes = (text: string) => Buffer.byteLength(text, 'utf8');
+    const ref = 'wa-0123456789ab';
+    const refLine = '\n\n' + NOTE_REF_LABEL + ref;
+    const base: WhatsAppLeadParams = { phone: PHONE, name: 'Perfil Prueba', summary: 'Pide paneles.', body: 'gracias', captureStatus: 'partial' };
+    // Dos mensajes cuya transcripción ocupa exactamente `size` bytes ya escapada ('&' ocupa 5).
+    const transcriptOf = (size: number) => {
+      const first = '[01-11-2026 10:00] Cliente: Pedido & ' + 'x'.repeat(100);
+      const prefix = '[01-11-2026 10:01] Cliente: ';
+      return first + '\n' + prefix + 'y'.repeat(size - bytes(escapeNoteHtml(first)) - 1 - prefix.length);
+    };
+    // Lo que ocupa la ficha (todo menos la transcripción y la referencia).
+    const short = '[01-11-2026 10:00] Cliente: hola';
+    const head = bytes(buildNote({ ...base, transcript: short }, ref)) - bytes(short) - bytes(refLine);
+
+    it('una transcripción que cabe solo sin la referencia se recorta: la nota queda bajo el tope y termina en la referencia', () => {
+      const transcript = transcriptOf(NOTE_MAX_BYTES - head - 10);
+      expect(head + bytes(escapeNoteHtml(transcript))).toBeLessThanOrEqual(NOTE_MAX_BYTES);
+      const note = buildNote({ ...base, transcript }, ref);
+      expect(bytes(note)).toBeLessThanOrEqual(NOTE_MAX_BYTES);
+      expect(note.endsWith(refLine)).toBe(true);
+      expect(note).toMatch(/\[\.\.\. transcripción recortada por tamaño: \d+ líneas? omitidas? \.\.\.\]/);
+      expect(note).toContain('] Cliente: Pedido &amp; x');
+    });
+
+    it('una que cabe con la referencia llega entera, justo en el tope', () => {
+      const transcript = transcriptOf(NOTE_MAX_BYTES - head - bytes(refLine));
+      const note = buildNote({ ...base, transcript }, ref);
+      expect(bytes(note)).toBe(NOTE_MAX_BYTES);
+      expect(note).not.toContain('recortada');
+      expect(note.endsWith('y' + refLine)).toBe(true);
+    });
+
+    it('la que llega a Pipedrive es la misma, bajo el tope, y la búsqueda la encuentra por su referencia', async () => {
+      outcomes = ['perdida'];
+      const pending = (await ensureWhatsAppDeal({ ...base, transcript: transcriptOf(NOTE_MAX_BYTES - head - 10) })).pendingWrite!;
+      expect(bytes(pending.note!)).toBeLessThanOrEqual(NOTE_MAX_BYTES);
+      expect(pending.note!.endsWith('\n\n' + NOTE_REF_LABEL + pending.noteRef)).toBe(true);
+      later(NOTE_SETTLE_MS);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(stored).toHaveLength(1);
+    });
   });
 });

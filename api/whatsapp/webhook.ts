@@ -14,7 +14,7 @@ import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/wh
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
-import { buildWhatsAppUpdate, ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
+import { buildWhatsAppUpdate, ensureWhatsAppDeal, notePart, noteSearchAt, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import type { PendingWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, recordNoQuestion, MSG_MEDIA, MSG_DEAL_FAILED, MSG_DEAL_PENDING } from '../_lib/whatsapp/flowEngine.js';
@@ -25,7 +25,7 @@ import {
   acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, enqueuePendingWrite,
   duePendingWrites, loadPendingWrites, claimPendingWrite, settlePendingWrite, beginFlowStep, settleFlowStep, claimRegistration, awaitRegistration,
   stampFlow, recordRegistrationOutcome, registrationOutcome, awaitConversationUnlock, confirmDealFields, sendablePendingWrite,
-  pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN,
+  pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN, MESSAGE_IN_PROGRESS_TTL_S,
 } from '../_lib/whatsapp/stateStore.js';
 import type { QueuedWrite, RegistrationClaim } from '../_lib/whatsapp/stateStore.js';
 import { botReplyText, clearTranscriptAfterNote, inboundText, noteEntryIds, recordTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
@@ -53,6 +53,13 @@ const TURN_WAIT_DEADLINE_MS = 10_000;
 const REGISTRATION_WAIT_DEADLINE_MS = 12_500;
 /** [REGISTRO] Margen entre los relojes de dos instancias al comparar la hora de las escrituras de la cola. */
 const CLOCK_SKEW_MS = 1_000;
+/**
+ * [NOTA-REF] Presupuesto de la funcion desde que empezo el webhook (MESSAGE_IN_PROGRESS_TTL_S son 60 s de
+ * funcion mas 15 de margen) y lo que tarda a lo mas el reintento de una nota incierta en segundo plano: la
+ * busqueda (10 s, NOTE_SEARCH_TIMEOUT_MS en pipedriveLead.ts), la nota (15 s, client.ts) y Upstash.
+ */
+const FUNCTION_BUDGET_MS = (MESSAGE_IN_PROGRESS_TTL_S - 15) * 1000;
+const UNSURE_NOTE_RETRY_MS = 30_000;
 const phoneTurns = new Map<string, Promise<void>>();
 /** Mensajes en curso por numero en esta instancia, incluidos los que dejaron de esperar. */
 const liveTurns = new Map<string, number>();
@@ -104,19 +111,46 @@ async function awaitEarlierSteps(phone: string, seq: number, deadline: number): 
  * [PENDIENTES] Reintenta una escritura de la cola. [REGISTRO] R4: sin los campos que ya supero una escritura
  * de un mensaje posterior (sale la nota); sin la reserva de los campos (`mayWriteFields`), los campos esperan
  * en la cola y sale solo la nota. Los campos que Pipedrive confirma quedan anotados con su numero de orden.
+ * [NOTA-REF] La nota va con su referencia y sus marcas de envio incierto (notePart): sin ellas, el reintento
+ * siguiente la repetiria sin buscarla. Con `noteLater`, la nota espera en la cola (sale en segundo plano,
+ * retryUnsureNotes) y se mandan solo los campos.
  */
-async function retryQueuedWrite(phone: string, item: QueuedWrite, mayWriteFields: boolean): Promise<boolean> {
+async function retryQueuedWrite(phone: string, item: QueuedWrite, mayWriteFields: boolean, noteLater = false): Promise<boolean> {
   const write = sendablePendingWrite(phone, item);
   const heldFields = write?.fields && !mayWriteFields ? write.fields : undefined;
+  const heldNote = noteLater && write?.note !== undefined ? notePart(write) : undefined;
   const base: PendingWhatsAppWrite | undefined = write && { dealId: write.dealId, ...(write.personId ? { personId: write.personId } : {}) };
-  const toSend: PendingWhatsAppWrite | undefined = write && heldFields ? { ...base!, ...(write.note !== undefined ? { note: write.note } : {}) } : write;
+  const toSend: PendingWhatsAppWrite | undefined = write && (heldFields || heldNote)
+    ? { ...base!, ...(heldFields || !write.fields ? {} : { fields: write.fields }), ...(heldNote ? {} : notePart(write)) }
+    : write;
   const left = toSend && (toSend.fields || toSend.note !== undefined) ? await retryWhatsAppWrite(toSend) : undefined;
   if (toSend?.fields && !left?.fields) await confirmDealFields(phone, toSend.dealId, pendingVersion(item));
-  // Los campos que esperan la reserva siguen en la cola, con la nota solo si todavia no llego.
-  const remaining = heldFields ? { ...base!, ...(left?.note !== undefined ? { note: left.note } : {}), fields: heldFields } : left;
+  // Lo que espera (los campos sin su reserva, la nota para despues) sigue en la cola, con lo que no llego.
+  const fields = heldFields ?? left?.fields;
+  const remaining = heldFields || heldNote ? { ...base!, ...(heldNote ?? notePart(left)), ...(fields ? { fields } : {}) } : left;
   await settlePendingWrite(phone, item.id, remaining);
   // Pipedrive recibio lo que se le mando (false: algo fallo y sigue en la cola).
   return !left;
+}
+
+/**
+ * [NOTA-REF] Las notas con un envio incierto se buscan antes de repetirlas (pipedriveLead.ts). Esa busqueda
+ * (hasta 10 s) y el envio salen en segundo plano, con waitUntil: la respuesta no los espera (Twilio corta a
+ * los 15 s). Si el ultimo envio incierto es de hace menos de NOTE_SETTLE_MS, se espera a que se cumpla el
+ * plazo, solo si el reintento todavia cabe en la funcion (hasta `deadline`): asi un mensaje que llega dentro
+ * del plazo no la deja esperando a otro mensaje que quizas no llega. Lo que no cabe sigue en la cola para un
+ * mensaje siguiente; si la funcion se corta a mitad, la reserva queda sin cerrar y quien la tome despues la
+ * busca antes de repetirla. Sale solo la nota: los campos esperan su reserva en la cola. Nunca rechaza
+ * (inBackground).
+ */
+async function retryUnsureNotes(phone: string, items: QueuedWrite[], deadline: number): Promise<void> {
+  for (const item of items) {
+    const at = Math.max(Date.now(), noteSearchAt(sendablePendingWrite(phone, item)) ?? 0);
+    if (at + UNSURE_NOTE_RETRY_MS > deadline) continue;
+    if (at > Date.now()) await new Promise<void>((resolve) => setTimeout(resolve, at - Date.now()));
+    if (!(await claimPendingWrite(phone, item.id))) continue;
+    await retryQueuedWrite(phone, item, false);
+  }
 }
 
 /** [REGISTRO] Vueltas de releaseDealWrite: lo que otro mensaje deja en la cola justo antes de que se suelte la reserva. */
@@ -591,13 +625,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                 const claimedAt = Date.now();
                 const tried = new Set(due.map((item) => item.id));
                 let delivered = true;
+                // [NOTA-REF] Las de nota con envio incierto: aqui solo sus campos; la nota sale en segundo plano,
+                // despues de buscarla (retryUnsureNotes). Se decide con la escritura que trae la reserva.
+                const unsure: QueuedWrite[] = [];
                 try {
                       for (const item of due) {
                             if (!(await claimPendingWrite(phone, item.id))) continue;
-                            if (!(await retryQueuedWrite(phone, item, Boolean(fieldsClaim?.claimed)))) delivered = false;
+                            const noteLater = noteSearchAt(sendablePendingWrite(phone, item)) !== undefined;
+                            if (noteLater) unsure.push(item);
+                            if (!(await retryQueuedWrite(phone, item, Boolean(fieldsClaim?.claimed), noteLater))) delivered = false;
                       }
                 } finally {
                       if (fieldsClaim?.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => tried.has(item.id)));
+                      if (unsure.length) inBackground(() => retryUnsureNotes(phone, unsure, startedAt + FUNCTION_BUDGET_MS));
                 }
           }
     }
