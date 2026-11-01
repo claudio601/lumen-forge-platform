@@ -7,7 +7,7 @@
 // verificador y el nombre «Rut».
 
 import { describe, expect, it } from 'vitest';
-import { RUT_EXAMPLE, findRut, isBusinessRut, rutTipo } from './rutCapture';
+import { RUT_EXAMPLE, findRut, inspectRut, isBusinessRut, rutTipo } from './rutCapture';
 
 const EMPRESA = { rut: '77.123.456-9', valido: true, tipo: 'empresa' };
 
@@ -293,5 +293,90 @@ describe('segunda tanda: pertenencia después del número', () => {
     '77.123.456-9 es del proveedor y 11.111.111-1. Por favor, guarden este dato: es mi RUT',
   ])('sin pertenencia única cercana sigue ambiguo: %s', text => {
     expect(findRut(text)).toBeUndefined();
+  });
+});
+
+
+describe('RUT dentro de una corrección de cotización', () => {
+  // DV inventado: suma ponderada 110; resto 0; módulo 11 da dígito 0.
+  const corrected = { rut: '76.123.456-0', valido: true, tipo: 'empresa' };
+
+  it.each([
+    'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
+    'NECESITO CORREGIR EL RUT DE LA OTRA COTIZACIÓN: 76123456-0',
+    'Necesito corregir el RUT de la otra cotización: 761234560',
+    'RUT de la cotización anterior: 76.123.456-0',
+  ])('"%s" identifica el RUT, también sin una pregunta anterior', (text) => {
+    expect(inspectRut(text)).toEqual({ found: corrected });
+    expect(findRut(text, { asked: true })).toEqual(corrected);
+  });
+
+  it.each([
+    'Necesito corregir el número de la otra cotización: 76.123.456-0',
+    'Necesito corregir el teléfono de la otra cotización: 90001777-4',
+    'Necesito corregir el RUT; cotización: 76.123.456-0',
+    'Necesito corregir el RUT, mi celular es 900017774',
+    'Necesito corregir el RUT de la otra cotización n° 76.123.456-0',
+    'Necesito corregir el RUT de la otra cotización, 76.123.456-0.',
+    'Necesito corregir el RUT; cantidad: 30 paneles',
+    'Necesito corregir el RUT de la otra cotización: 30 paneles',
+  ])('"%s" no confunde otros números con un RUT', (text) => {
+    expect(findRut(text)).toBeUndefined();
+    expect(findRut(text, { asked: true })).toBeUndefined();
+  });
+});
+
+describe('ronda 2: puente cerrado y texto tachado', () => {
+  it.each([
+    'El RUT de mi nueva cotización es 76.123.456-0',
+    'El RUT de mi nueva cotización es el 761234560',
+    'RUT de la anterior cotización anterior: 76.123.456-0',
+  ])('acepta solo un puente inequívoco: %s', (text) => {
+    expect(findRut(text)).toEqual({ rut: '76.123.456-0', valido: true, tipo: 'empresa' });
+  });
+
+  it.each([
+    'RUT de la cotización: 76.123.456-0',
+    'RUT de mi cotización es 76.123.456-0',
+  ])('sin referencia calificada conserva la exclusión de main: %s', (text) => {
+    expect(inspectRut(text)).toEqual({});
+  });
+
+  it.each(['#', '# ', ' ', '\n', ' nro. ', ' n° ', '; ', ', ', ' por ', ' a ', ', es el ', ' era el ', ' sería '])(
+    'no abre el puente con %j', (separator) => {
+      const text = 'RUT de la otra cotización' + separator + '761234560';
+      expect(inspectRut(text)).toEqual({});
+      // Con asked, una línea nueva o un punto y coma ya permitían el número solo en main.
+      if (!['\n', '; '].includes(separator)) expect(inspectRut(text, { asked: true })).toEqual({});
+    },
+  );
+
+  it.each([
+    '~76.123.456-0~',
+    'Mi RUT es ~76.123.456-0~',
+  ])('mantiene la captura de main sin interpretar el tachado: %s', (text) => {
+    const found = { rut: '76.123.456-0', valido: true, tipo: 'empresa' };
+    expect(inspectRut(text)).toEqual({ found });
+    expect(inspectRut(text, { asked: true })).toEqual({ found });
+  });
+
+  // WhatsApp no tacha a través de un salto de línea: sin tachado, dos RUT sin dueño quedan ambiguos
+  // (el bot pregunta) y nunca se toma uno solo.
+  it('un "~" que cruza un salto de línea no es tachado: queda ambiguo', () => {
+    expect(inspectRut('Mi RUT es ~76.123.456-0\n77.123.456-9~')).toEqual({ ambiguous: ['76.123.456-0', '77.123.456-9'] });
+  });
+
+  // "~20" es "aproximadamente": sin letra pegada a las dos virgulillas no hay tachado y el RUT sigue.
+  it.each([
+    'Son ~20 focos, RUT 76.123.456-0 ~ok',
+    'Unos ~20 focos y ~10 paneles, RUT 76.123.456-0',
+  ])('el "~" de aproximado no borra el RUT: %s', (text) => {
+    expect(inspectRut(text)).toEqual({ found: { rut: '76.123.456-0', valido: true, tipo: 'empresa' } });
+  });
+
+  it('saca los contactos sin interpretar el tachado ni los guiones bajos', () => {
+    expect(inspectRut('Mi RUT es ~76.123.456-0~ 77.345.678-K, 76123456-0_ventas@example.com')).toEqual({
+      ambiguous: ['76.123.456-0', '77.345.678-K'],
+    });
   });
 });

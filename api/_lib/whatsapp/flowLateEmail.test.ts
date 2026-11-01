@@ -199,7 +199,8 @@ describe('revisión adversaria de H9 y H10', () => {
   it('"corregir el RUT de la otra cotización" no empieza otro flujo', () => {
     registered();
     const r = step('Necesito corregir el RUT de la otra cotización: 11.111.111-1', {});
-    expect(r.closedFlow).toBe(true);
+    expect(r).toMatchObject({ reply: flow.MSG4, closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured).toMatchObject({ rut: '11.111.111-1', rut_valido: true, rut_tipo: 'persona' });
     expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', deal: 'registered', dealId: DEAL_ID });
   });
 
@@ -368,6 +369,68 @@ describe('revisión adversaria de R9 y R10 (ronda 3)', () => {
     expect(r.closedFlow).toBe(false);
     expect(r.rutUpdate).toBeUndefined();
     expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '30', correo: 'ana.dos@example.com' });
+    expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
+  });
+});
+
+
+describe('errores heredados: consultas y correcciones de la cotización registrada', () => {
+  it.each([
+    '¿Me confirman la nueva cotización?',
+    'Me confirman la nueva cotización, por favor.',
+    '¿ME CONFIRMAN LA NUEVA COTIZACIÓN?',
+    '¿Me confirman la *nueva cotización*?',
+    '¿Me confirman *la nueva cotización*?',
+    '¿Me pueden confirmar la otra cotización?',
+  ])('"%s" conserva el cierre y el negocio, incluso si Claude repite datos', (body) => {
+    registered();
+    const before = flow.getFlowState(PHONE);
+    expectUntouched(step(body, FIRST_CLAUDE));
+    expect(flow.getFlowState(PHONE)).toEqual(before);
+  });
+
+  it.each([
+    'Necesito otra cotización de 20 paneles',
+    'Otro pedido: 20 paneles LED',
+    '¿Me pueden cotizar 30 focos más?',
+    'NECESITO OTRA COTIZACIÓN DE 20 PANELES',
+    'Necesito *otra cotización* de 20 paneles',
+    '*Otro pedido*: 20 paneles LED',
+    '¿Me pueden *cotizar* 30 focos más?',
+    '¿Me pueden hacer otra cotización de 20 paneles?',
+    'Necesito 30 focos para mi nuevo proyecto',
+    '¿Me pueden cotizar 30 focos para mi nuevo proyecto?',
+    'Busco 30 focos para mi nuevo proyecto',
+    'Necesito 30 focos para mi nueva cotización',
+    'Busco 30 focos para mi nueva cotización',
+  ])('"%s" sigue abriendo otro pedido sin corregir el anterior', (body) => {
+    registered();
+    const r = step(body);
+    expect(r.closedFlow).toBe(false);
+    expect(r.shouldCreateDeal).toBe(false);
+    expect(r.rutUpdate).toBeUndefined();
+    expect(r.captured.cantidad).toBe(body.toLowerCase().includes('30 focos') ? '30' : '20');
+    expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
+  });
+
+  it.each([
+    'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
+    'NECESITO CORREGIR EL RUT DE LA OTRA COTIZACIÓN: 76123456-0',
+    'Necesito corregir el RUT de la otra cotización: 761234560',
+  ])('"%s" agrega el RUT al mismo negocio', (body) => {
+    registered();
+    const r = step(body);
+    expect(r).toMatchObject({ reply: flow.MSG4_B2B, closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured).toMatchObject({ rut: '76.123.456-0', rut_valido: true, rut_tipo: 'empresa', producto: 'focos LED', cantidad: '12' });
+    expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', deal: 'registered', dealId: DEAL_ID });
+  });
+
+  it('un pedido explícito con RUT sigue ganando sobre la corrección tardía', () => {
+    registered();
+    const r = step('Otro pedido: 20 paneles LED. Necesito corregir el RUT de la otra cotización: 76.123.456-0');
+    expect(r.rutUpdate).toBeUndefined();
+    expect(r.closedFlow).toBe(false);
+    expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '20', rut: '76.123.456-0' });
     expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
   });
 });
