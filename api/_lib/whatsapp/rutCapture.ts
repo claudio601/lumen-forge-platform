@@ -66,10 +66,11 @@ const FILLER =
   'facturaci[o\u00f3]n|factura|n[\u00b0\u00ba.]|nro\\.?';
 const SEP = '[\\s:#,]*';
 // [RUT-VALIDO] "RUT de la otra cotizacion: X" presenta un RUT, no un folio. El puente
-// es cerrado: no cruza un punto y coma ni "nro." o "telefono" antes del numero.
+// es cerrado: exige dos puntos o "es/era/seria", nunca un folio o telefono.
 const QUOTE_REFERENCE = 'de\\s+(?:la|mi|nuestra)\\s+(?:(?:otra|nueva|misma|anterior)\\s+)?cotizaci[o\\u00f3]n(?:\\s+anterior)?';
+const QUOTE_BRIDGE = `${QUOTE_REFERENCE}(?:\\s*:\\s*|\\s+(?:es|era|ser[i\\u00ed]a)\\s+(?:el\\s+)?)`;
 const KEYWORD_RE = new RegExp(
-  `\\b(R\\.?U\\.?T)\\b(\\.?(?:${SEP}(?:${FILLER})(?![a-z\u00e0-\u00ff]))*${SEP}(?:${QUOTE_REFERENCE}${SEP})?)` +
+  `\\b(R\\.?U\\.?T)\\b(\\.?(?:${SEP}(?:${FILLER})(?![a-z\u00e0-\u00ff]))*${SEP})(${QUOTE_BRIDGE})?` +
     `(${BODY})(${SPACE}{0,2}${DASH}?${SPACE}{0,2})([0-9k])${END}`,
   'giu',
 );
@@ -104,6 +105,10 @@ function toFound(rawBody: string, rawDv: string): RutFound | undefined {
   const rut = body.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
   return { rut, valido, ...(valido ? { tipo: rutTipo(Number(body)) } : {}) };
 }
+
+// Tachado de WhatsApp ("~X~": esto no), como lo dibuja la app: en una linea y sin espacio junto
+// a las virgulillas. "~20 focos y ~10 paneles" (aproximados) no es un tachado.
+export const STRUCK_RE = /~(?=[^\s~])[^~\n]*?[^\s~]~/g;
 
 /**
  * Sin correos ni enlaces, por palabra (sin expresiones que retrocedan: un mensaje largo sin
@@ -148,9 +153,11 @@ function candidates(clean: string, asked: boolean): Candidate[] {
   for (const m of clean.matchAll(KEYWORD_RE)) {
     // "Rut 987654321": el nombre Rut y un celular. Un RUT que empieza con 9 y va seguido se
     // acepta con "RUT" en mayusculas o con algo entre medio ("Rut: 965432107", "rut es ...").
-    const explicit = m[1] === 'RUT' || m[1].includes('.') || m[2].trim() !== '';
-    if (!explicit && mobileShaped(m[3], m[4])) continue;
-    add('keyword', m.index, m.index + m[0].length, toFound(m[3], m[5]));
+    // El puente no convierte el nombre "Rut, de la otra cotizacion" en una etiqueta.
+    const filler = m[3] ? m[2].replace(/[\s:#,]/g, '') : m[2].trim();
+    const explicit = m[1] === 'RUT' || m[1].includes('.') || filler !== '';
+    if (!explicit && mobileShaped(m[4], m[5])) continue;
+    add('keyword', m.index, m.index + m[0].length, toFound(m[4], m[6]));
   }
   if (asked) {
     for (const m of clean.matchAll(BARE_RE)) {
@@ -170,7 +177,7 @@ const SOURCE_ORDER: Record<Source, number> = { keyword: 0, dash: 1, bare: 2 };
 
 /** Con varios RUT validos distintos, solo "mi" o "nuestro" resuelven la pertenencia. */
 export function inspectRut(text: string, options: { asked?: boolean } = {}): { found?: RutFound; ambiguous?: string[] } {
-  const clean = withoutContacts(text).replace(/[*_~]/g, ' ');
+  const clean = withoutContacts(text).replace(STRUCK_RE, ' ').replace(/[*_]/g, ' ');
   const all = candidates(clean, Boolean(options.asked));
   const valid = [...new Set(all.filter((c) => c.valido).map((c) => c.rut))];
   let best: Candidate | undefined;

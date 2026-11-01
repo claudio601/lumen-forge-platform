@@ -1,6 +1,6 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
-import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
+import { STRUCK_RE, inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
@@ -213,9 +213,9 @@ const EXPLICIT_NEW_REQUEST_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:otr[oa]s
   + '|(otra\\s+cosa))(?![a-z\\u00e0-\\u00fc])', 'gi');
 const EXISTING_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:el|la|los|las|lo|al|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?|aquel(?:la)?s?)\s+$/i;
 // [CIERRE] Una referencia a lo ya pedido no reinicia por decir "nueva cotizacion".
-const EXISTING_QUOTE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:el|la|los|las|mi|mis|su|sus|nuestr[oa]s?)\\s+(?:nuev[oa]s?|otr[oa]s?)\\s+' + 'cotizaci[o\\u00f3]n(?:es)?(?![a-z\\u00e0-\\u00fc])', 'i');
+const EXISTING_QUOTE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:el|la|los|las|mi|mis|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?)\\s+(?:nuev[oa]s?|otr[oa]s?)\\s+' + 'cotizaci[o\\u00f3]n(?:es)?(?![a-z\\u00e0-\\u00fc])', 'i');
 const NEGATION_RE = /(?<![a-z\u00e0-\u00fc])(?:no|ni|sin|nunca|jam[a\u00e1]s|tampoco)(?![a-z\u00e0-\u00fc])/i;
-const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|busco|requiero|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
+const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
 const CLAUSE_MARKS = [',', ';', '.', ':', '!', '?', '\n', '\u00bf', '\u00a1'];
 const SENTENCE_END_RE = /[.!?\n]/;
 // "Me pueden enviar otra cotizacion? La anterior no me llego": enviar o mandar otra, sin un producto en el mensaje,
@@ -224,7 +224,7 @@ const SENTENCE_END_RE = /[.!?\n]/;
 // por 30 paneles LED?").
 const SEND_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:re)?(?:envi|env\u00ed|m[a\u00e1]nd)[a-z\u00e0-\u00fc]*\s+(?:(?:me|nos|le|les)\s+)?$/i;
 function explicitNewRequest(body: string): boolean {
-  const text = body.slice(0, MAX_FACTS).replace(/[*_~]/g, ' ');
+  const text = normalizeRequestText(body).slice(0, MAX_FACTS);
   for (const m of text.matchAll(EXPLICIT_NEW_REQUEST_RE)) {
     const head = text.slice(Math.max(0, m.index - 60), m.index);
     const clause = head.slice(Math.max(...CLAUSE_MARKS.map((c) => head.lastIndexOf(c))) + 1);
@@ -242,25 +242,35 @@ function explicitNewRequest(body: string): boolean {
   return false;
 }
 
-// [CIERRE] "Necesito 30 focos para mi nueva cotizacion" sigue pidiendo productos;
-// "Me confirman la nueva cotizacion de 30 focos?" solo consulta lo ya pedido.
-function asksForProducts(text: string): boolean {
-  for (const m of text.matchAll(new RegExp(PRODUCTO_RE.source, 'gi'))) {
-    const head = text.slice(Math.max(0, m.index - 60), m.index).replace(/\b\d{1,5}\s*$/, '');
-    if (ASKS_TO_ORDER_RE.test(head)) return true;
-  }
-  return false;
+// [CIERRE] Sacar contactos y lo tachado antes de separar las marcas de WhatsApp.
+function normalizeRequestText(body: string): string {
+  return body.replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ')
+    .replace(STRUCK_RE, ' ').replace(/[*_]/g, ' ');
+}
+
+// [CIERRE] Solo frena una referencia sin datos ni verbos de pedido. Ante la duda,
+// looksLikeNewRequest conserva el comportamiento anterior, incluso sin producto conocido.
+const ORDER_VERB_RE = /(?<![a-z\u00e0-\u00fc])(?:(?:necesit|quier|quer|quisi|busc|busqu|requier|requer|requir|cotiz(?!aci[o\u00f3]n)|cotic|pid|ped|agreg|sum|compr|instal)[a-z\u00e0-\u00fc]*|otr[oa]s?\s+productos?)(?![a-z\u00e0-\u00fc])/i;
+function asksAboutExistingQuote(body: string, captured: CapturedFields, claudeParsed: ClaudeFields): boolean {
+  const text = normalizeRequestText(body);
+  if (!EXISTING_QUOTE_RE.test(text) || PRODUCTO_RE.test(text) || mentionsQuantity(text) || ORDER_VERB_RE.test(text)) return false;
+  // Presentarse ("Soy Rut, de la otra cotizacion") no es una consulta de estado.
+  if (/\b(?:soy|somos|me\s+llamo)\b/i.test(text)) return false;
+  return (['producto', 'cantidad'] as const).every((key) => {
+    const value = claudeParsed[key];
+    return value == null || value === '' || (typeof value === 'string'
+      && (!value.trim() || value.trim().toLowerCase() === captured[key]?.trim().toLowerCase()));
+  });
 }
 
 function looksLikeNewRequest(body: string): boolean {
-  const b = body.slice(0, MAX_FACTS).replace(/[*_~]/g, ' ').trim();
+  const b = body.trim();
   if (NEW_REQ_SOLO_LUZ_RE.test(b)) return false;
   if (NEW_REQ_SOLO_PROYECTO_RE.test(b)) return false;
   if (NEW_REQ_SOLO_RUT_RE.test(b)) return false;
   if (NEW_REQ_SOLO_EMAIL_RE.test(b)) return false;
   if (/^[A-Z\u00c0-\u00dc][a-z\u00e0-\u00fc]+ [A-Z\u00c0-\u00dc][a-z\u00e0-\u00fc]+[.!?\s]*$/.test(b)) return false;
   if (CONTINUATION_RE.test(b)) return false;
-  if (EXISTING_QUOTE_RE.test(b) && !asksForProducts(b)) return false;
   if (NEW_REQ_INTENT_RE.test(b)) return true;
   if (/cotizar|cotizaci[o\u00f3]n|presupuesto/i.test(b) && b.length > 15) return true;
   if (PRODUCTO_RE.test(b) && /\b\d{1,4}\b/.test(b)) return true;
@@ -1373,7 +1383,7 @@ function flowStep(
     // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
     const explicit = explicitNewRequest(body);
     const newRequest = explicit
-      || (!correctingRut && !correctingEmail && (looksLikeNewRequest(body) || installRequested(maskNegated(body))));
+      || (!correctingRut && !correctingEmail && ((looksLikeNewRequest(body) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
     // [TRANSCRIPCION] Salvo un pedido nuevo explicito ("Otro pedido: ... Mi correo es X"): empieza otra conversacion

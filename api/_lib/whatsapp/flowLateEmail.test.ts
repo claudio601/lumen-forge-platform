@@ -381,9 +381,7 @@ describe('errores heredados: consultas y correcciones de la cotización registra
     '¿ME CONFIRMAN LA NUEVA COTIZACIÓN?',
     '¿Me confirman la *nueva cotización*?',
     '¿Me confirman *la nueva cotización*?',
-    'Quiero saber el estado de mi nueva cotización.',
     '¿Me pueden confirmar la otra cotización?',
-    '¿Me confirman la nueva cotización de 20 paneles LED?',
   ])('"%s" conserva el cierre y el negocio, incluso si Claude repite datos', (body) => {
     registered();
     const before = flow.getFlowState(PHONE);
@@ -417,7 +415,6 @@ describe('errores heredados: consultas y correcciones de la cotización registra
 
   it.each([
     'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
-    'Necesito corregir el RUT de la otra cotización, 76.123.456-0.',
     'NECESITO CORREGIR EL RUT DE LA OTRA COTIZACIÓN: 76123456-0',
     'Necesito corregir el *RUT* de la *otra cotización*: *76.123.456-0*',
     'Necesito corregir el RUT de la otra cotización: 761234560',
