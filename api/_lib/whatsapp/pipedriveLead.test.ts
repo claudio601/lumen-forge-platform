@@ -532,7 +532,7 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
       expect(await retryWhatsAppWrite(pending)).toBeUndefined();
       expect(stored).toHaveLength(1);
       expect(posts()).toHaveLength(1);
-      expect(searches()).toEqual([['/notes', { deal_id: '9001', sort: 'add_time DESC', start: '0', limit: String(NOTE_SEARCH_LIMIT) }, NOTE_SEARCH_TIMEOUT_MS]]);
+      expect(searches()).toEqual([['/notes', { deal_id: '9001', sort: 'add_time DESC, id DESC', start: '0', limit: String(NOTE_SEARCH_LIMIT) }, NOTE_SEARCH_TIMEOUT_MS]]);
     });
   }
 
@@ -1039,6 +1039,60 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
       expect(searches().map(([, , timeout]) => timeout)).toEqual(exhaust ? [10_000, 7_000, 3_000] : [10_000, 7_000, 3_000, 1_000]);
       expect(left).toEqual(exhaust ? pending : undefined);
       expect(posts()).toHaveLength(exhaust ? 1 : 2);
+    });
+  });
+
+  describe('verificación final: HTML de la nota y empates de hora', () => {
+    async function uncertain(outcome: Outcome = 'timeout') {
+      outcomes = [outcome];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      later(NOTE_SETTLE_MS);
+      return pending;
+    }
+
+    it.each([
+      ['&#160; decimal', (ref: string) => 'Ficha<br>Ref.&#160;WhatsApp:&#160;' + ref],
+      ['&#xa0; hexadecimal', (ref: string) => 'Ficha<br>Ref.&#xa0;WhatsApp:&#xA0;' + ref],
+      ['ancho cero al final', (ref: string) => 'Ficha<br>Ref. WhatsApp: ' + ref + '\u200b\ufeff'],
+      ['lista', (ref: string) => '<ul><li>Ficha</li><li>Ref. WhatsApp: ' + ref + '</li></ul>'],
+      ['título', (ref: string) => 'Ficha<h3>Ref. WhatsApp: ' + ref + '</h3>'],
+      ['comentario con >', (ref: string) => 'Ficha<br>Ref. WhatsApp: ' + ref + '<!-- a > b -->'],
+      ['atributo con >', (ref: string) => 'Ficha<br><span title=">">Ref. WhatsApp: ' + ref + '</span>'],
+      ['muchos < sueltos antes', (ref: string) => ' <'.repeat(100_000) + '<br>Ref. WhatsApp: ' + ref],
+    ])('reconoce la marca: %s', async (_label, content) => {
+      const pending = await uncertain();
+      save(9001, content(pending.noteRef!));
+      const t0 = performance.now();
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(performance.now() - t0).toBeLessThan(2_000);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it.each([
+      ['texto con < suelto después', (ref: string) => 'Ficha<br>Ref. WhatsApp: ' + ref + '<br>< revisar >'],
+      ['marca dentro de un comentario', (ref: string) => 'Ficha<!--<br>Ref. WhatsApp: ' + ref + '-->'],
+      ['entidad numérica inválida', (ref: string) => 'Ficha<br>Ref.&#0;WhatsApp: ' + ref],
+    ])('no acredita la entrega: %s', async (_label, content) => {
+      const pending = await uncertain();
+      save(9001, content(pending.noteRef!));
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(2);
+    });
+
+    it('pide un orden total y rechaza una página con empates fuera de orden', async () => {
+      // 60 notas en el mismo segundo; la del bot se guarda y se pierde la respuesta.
+      for (let i = 0; i < NOTE_SEARCH_LIMIT + 10; i++) save(9001, 'Nota de ventas ' + i);
+      const pending = await uncertain('perdida');
+      vi.mocked(pipedriveGet).mockImplementationOnce((async (_path: string, query: Record<string, string>) => ({
+        success: true, data: [...stored].sort((a, b) => b.add_time.localeCompare(a.add_time) || a.id - b.id).slice(0, Number(query.limit)),
+        additional_data: { pagination: { start: 0, limit: Number(query.limit), more_items_in_collection: true } },
+      })) as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(searches()[0]![1]).toMatchObject({ sort: 'add_time DESC, id DESC' });
+      expect(posts()).toHaveLength(1);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(1);
+      expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
     });
   });
 

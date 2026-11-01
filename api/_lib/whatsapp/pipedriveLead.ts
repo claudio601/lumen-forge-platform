@@ -80,6 +80,8 @@ const NOTE_REF_RE = /^wa-[0-9a-f]{12}$/;
 export const NOTE_SEARCH_LIMIT = 50;
 // [NOTA-REF] Cinco notas compartidas permiten comprobar que no se salto la ultima de la pagina anterior.
 export const NOTE_SEARCH_OVERLAP = 5;
+/** [NOTA-REF] Orden total (Pipedrive v1 acepta varios campos): a igual add_time, el id desempata. */
+export const NOTE_SEARCH_SORT = 'add_time DESC, id DESC';
 // [NOTA-REF] Cinco paginas cubren hasta 230 notas distintas con el solapamiento (antes, 200 sin el).
 export const NOTE_SEARCH_MAX_PAGES = 5;
 export const NOTE_SEARCH_TIMEOUT_MS = 10_000;
@@ -158,12 +160,52 @@ interface PipedriveNote {
     add_time?: unknown;
 }
 
-/** [NOTA-REF] Texto visible del HTML: primero los saltos y etiquetas, despues las entidades (una vez). */
+// [NOTA-REF] Etiquetas de bloque: el texto que sigue empieza otra linea visible.
+const NOTE_BLOCK_TAG_RE = /^\/?(?:br|p|div|li|ul|ol|h[1-6]|tr|table|blockquote|pre|hr)$/i;
+const NOTE_ENTITIES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+
+/**
+ * [NOTA-REF] Texto visible del HTML en una sola pasada (sin expresiones que retrocedan: muchos '<' sueltos no
+ * la demoran). Como el tokenizador HTML, solo '<' seguido de letra, '/', '!' o '?' abre una etiqueta, que
+ * termina en el primer '>' fuera de comillas; un comentario termina en '-->'. Despues, las entidades (una
+ * vez, tambien las numericas) y sin los caracteres de ancho cero.
+ */
+function noteVisibleText(content: string): string {
+    let out = '';
+    let i = 0;
+    while (i < content.length) {
+          const lt = content.indexOf('<', i);
+          if (lt < 0) { out += content.slice(i); break; }
+          out += content.slice(i, lt);
+          if (content.startsWith('<!--', lt)) {
+                  const close = content.indexOf('-->', lt + 4);
+                  i = close < 0 ? content.length : close + 3;
+                  continue;
+          }
+          if (!/[a-zA-Z/!?]/.test(content.charAt(lt + 1))) { out += '<'; i = lt + 1; continue; }
+          let end = lt + 1;
+          let quote = '';
+          for (; end < content.length; end++) {
+                  const c = content[end];
+                  if (quote) { if (c === quote) quote = ''; }
+                  else if (c === '"' || c === "'") quote = c;
+                  else if (c === '>') break;
+          }
+          if (NOTE_BLOCK_TAG_RE.test(/^\/?[a-zA-Z0-9]*/.exec(content.slice(lt + 1, end))![0])) out += '\n';
+          i = end + 1;
+    }
+    return out
+          .replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|(nbsp|amp|lt|gt|quot|apos));/g, (match, dec?: string, hex?: string, name?: string) => {
+                  if (name) return NOTE_ENTITIES[name];
+                  const code = dec ? Number(dec) : parseInt(hex!, 16);
+                  return code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff) ? String.fromCodePoint(code) : match;
+          })
+          .replace(/[\u200b-\u200d\u2060\ufeff]/g, '');
+}
+
+/** [NOTA-REF] Ultima linea visible de la nota, con los espacios normalizados. */
 function lastNoteLine(content: string): string | undefined {
-    const entities: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"' };
-    const text = content.replace(/<\/?(?:br|p|div)\b[^>]*>/gi, '\n').replace(/<[^>]*>/g, '')
-          .replace(/&(nbsp|amp|lt|gt|quot);/g, (_match, name: string) => entities[name]);
-    const lines = text.split(/\r\n?|\n|\u2028|\u2029/).map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const lines = noteVisibleText(content).split(/\r\n?|\n|\u2028|\u2029/).map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
     return lines[lines.length - 1];
 }
 
@@ -205,7 +247,7 @@ async function findNoteByRef(dealId: number, ref: string, since: number): Promis
                   const left = deadline - Date.now();
                   if (left <= 0) return 'failed';
                   const res = await pipedriveGet<PipedriveNote[]>('/notes', {
-                            deal_id: String(dealId), sort: 'add_time DESC', start: String(start), limit: String(NOTE_SEARCH_LIMIT),
+                            deal_id: String(dealId), sort: NOTE_SEARCH_SORT, start: String(start), limit: String(NOTE_SEARCH_LIMIT),
                   }, left);
                   if (!res.success) return searchRejected(res.error) ? 'rejected' : 'failed';
                   const more = res.additional_data?.pagination?.more_items_in_collection;
@@ -219,7 +261,10 @@ async function findNoteByRef(dealId: number, ref: string, since: number): Promis
                   const times = res.data.map((n) => pipedriveTime(n?.add_time));
                   // [NOTA-REF] Toda pagina con notas, incluso incompleta: orden interno y entre paginas.
                   // newer es la hora justo antes del solapamiento; el ancla debe conservar su hora.
-                  if (!times.every((t, i) => Number.isFinite(t) && t <= (i === 0 ? newer : times[i - 1]))) return 'failed';
+                  // [NOTA-REF] Dentro de la pagina, el orden es total: a igual hora, el id baja. Sin desempate, las notas
+                  // del mismo segundo podian cambiar de lugar entre lecturas y una quedar sin leer.
+                  if (!times.every((t, i) => Number.isFinite(t) && (i === 0 ? t <= newer
+                            : t < times[i - 1] || (t === times[i - 1] && Number(ids[i]) < Number(ids[i - 1]))))) return 'failed';
                   if (anchor && times[ids.indexOf(anchor.id)] !== anchor.time) return 'failed';
                   if (res.data.some((n) => typeof n?.content === 'string' && lastNoteLine(n.content) === NOTE_REF_LABEL + ref)) return 'found';
                   // [NOTA-REF] El agotamiento explicito manda, incluso si la pagina tiene 50 notas.
