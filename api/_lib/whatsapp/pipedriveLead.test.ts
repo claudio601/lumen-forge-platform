@@ -8,7 +8,7 @@
 // - PR 3 (revisión de Codex, hallazgos 12 y 18): la nota cabe en Pipedrive y ningún dato imita otra línea.
 // - Decisión 10 del dueño: cada nota lleva una referencia fija en su última línea; si Pipedrive la guardó y
 //   se perdió la respuesta, el reintento la encuentra por esa referencia y no la repite. Segunda revisión: el
-//   plazo de 30 s se cuenta desde el último envío incierto; una página llena en otro orden no basta para decir
+//   plazo de 30 s se cuenta desde el corte del último envío incierto; una página llena en otro orden no basta para decir
 //   que no está; un rechazo definitivo de la búsqueda (4xx) manda la nota como antes, en vez de perderla.
 // Pipedrive está simulado (sin red); solo datos inventados.
 
@@ -21,7 +21,7 @@ vi.mock('../pipedrive/client.js', () => ({ pipedrivePost: vi.fn(), pipedriveGet:
 
 import {
   buildNote, buildWhatsAppUpdate, ensureWhatsAppDeal, escapeNoteHtml, notePart, noteSearchAt, retryWhatsAppWrite, NOTE_MAX_BYTES,
-  NOTE_REF_LABEL, NOTE_SEARCH_LIMIT, NOTE_SEARCH_MAX_PAGES, NOTE_SEARCH_TIMEOUT_MS, NOTE_SETTLE_MS, WA_DEDUP_WINDOW_DAYS,
+  NOTE_REF_LABEL, NOTE_SEARCH_LIMIT, NOTE_SEARCH_MAX_PAGES, NOTE_SEARCH_OVERLAP, NOTE_SEARCH_TIMEOUT_MS, NOTE_SETTLE_MS, WA_DEDUP_WINDOW_DAYS,
 } from './pipedriveLead';
 import type { PendingWhatsAppWrite, WhatsAppLeadParams } from './pipedriveLead';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
@@ -444,6 +444,9 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
   let stored: Array<{ id: number; deal_id: number; content: string; add_time: string }>;
   let outcomes: Outcome[];
   let searchDown: boolean;
+  let afterPageRead: ((start: number) => void) | undefined;
+  let postDelayMs: number;
+  let nextId: number;
   const REF_LINE = /\n\nRef\. WhatsApp: (wa-[0-9a-f]{12})$/;
   const pdTime = (ms: number) => new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
   const params: WhatsAppLeadParams = {
@@ -454,7 +457,7 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
   const posts = () => vi.mocked(pipedrivePost).mock.calls.filter(([path]) => path === '/notes');
   const searches = () => vi.mocked(pipedriveGet).mock.calls.filter(([path]) => path === '/notes');
   const later = (ms: number) => vi.setSystemTime(Date.now() + ms);
-  const save = (deal: number, content: string, at = Date.now()) => stored.push({ id: stored.length + 1, deal_id: deal, content, add_time: pdTime(at) });
+  const save = (deal: number, content: string, at = Date.now()) => stored.push({ id: nextId++, deal_id: deal, content, add_time: pdTime(at) });
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
@@ -462,12 +465,16 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
     stored = [];
     outcomes = [];
     searchDown = false;
+    afterPageRead = undefined;
+    postDelayMs = 0;
+    nextId = 1;
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.mocked(pipedrivePost).mockImplementation((async (path: string, body: Record<string, unknown>) => {
       if (path !== '/notes') return { success: true, data: { id: 1 } };
       const outcome = outcomes.shift() ?? 'ok';
       // 'perdida…': Pipedrive la guarda y la respuesta no llega (tiempo límite, 5xx o red).
       if (outcome === 'ok' || outcome.startsWith('perdida')) save(Number(body.deal_id), String(body.content));
+      later(postDelayMs);
       if (outcome === 'ok') return { success: true, data: { id: stored.length } };
       if (outcome === 'perdida-5xx') return { success: false, data: null, error: 'HTTP 502: Bad Gateway' };
       if (outcome === 'perdida-red') return { success: false, data: null, error: 'fetch failed' };
@@ -479,6 +486,7 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
       const all = stored.filter((n) => n.deal_id === Number(query.deal_id)).sort((a, b) => b.add_time.localeCompare(a.add_time) || b.id - a.id);
       const start = Number(query.start);
       const page = all.slice(start, start + Number(query.limit));
+      afterPageRead?.(start);
       return {
         success: true, data: page.length ? page : null,
         additional_data: { pagination: { start, limit: Number(query.limit), more_items_in_collection: all.length > start + page.length } },
@@ -620,7 +628,7 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
     later(NOTE_SETTLE_MS);
     expect(await retryWhatsAppWrite(pending)).toEqual(pending);
     expect(posts()).toHaveLength(1);
-    expect(searches().map(([, query]) => (query as { start: string }).start)).toEqual(['0', '50', '100', '150']);
+    expect(searches().map(([, query]) => (query as { start: string }).start)).toEqual(Array.from({ length: NOTE_SEARCH_MAX_PAGES }, (_, i) => String(i * (NOTE_SEARCH_LIMIT - NOTE_SEARCH_OVERLAP))));
     // Si las páginas llegan hasta antes del envío incierto, la nota no está: se manda.
     stored.splice(0, stored.length, ...stored.slice(-(NOTE_SEARCH_LIMIT - 1)));
     save(9001, 'Nota de ventas antigua', Date.now() - 3 * 3_600_000);
@@ -640,7 +648,7 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
     later(NOTE_SETTLE_MS);
     expect(await retryWhatsAppWrite(pending)).toBeUndefined();
     expect(posts()).toHaveLength(1);
-    expect(searches().map(([, query]) => (query as { start: string }).start)).toEqual(['0', '50']);
+    expect(searches().map(([, query]) => (query as { start: string }).start)).toEqual(['0', String(NOTE_SEARCH_LIMIT - NOTE_SEARCH_OVERLAP)]);
     expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
   });
 
@@ -712,7 +720,7 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
       const left = (await retryWhatsAppWrite(pending))!;
       expect(left).toMatchObject({ noteRef: pending.noteRef, noteUnsure: first, noteUnsureLast: Date.now() });
       expect(noteSearchAt(left)).toBe(Date.now() + NOTE_SETTLE_MS);
-      // 16 s después del segundo envío (1 s después de su corte): todavía no se busca ni se repite.
+      // En este simulador el POST es inmediato: 16 s desde su corte, todavía no se busca ni se repite.
       later(16_000);
       expect(await retryWhatsAppWrite(left)).toEqual(left);
       expect(searches()).toHaveLength(1);
@@ -777,6 +785,260 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
       }
       expect(posts()).toHaveLength(1);
       expect(stored).toHaveLength(1);
+    });
+  });
+
+
+  describe('ronda 3: última línea, cobertura y plazo desde el corte', () => {
+    async function uncertain(outcome: Outcome = 'timeout') {
+      outcomes = [outcome];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      later(NOTE_SETTLE_MS);
+      return pending;
+    }
+
+    it.each([
+      ['marca dentro de una frase', (ref: string) => 'Ventas: revisar Ref. WhatsApp: ' + ref + ', aun falta la ficha.'],
+      ['marca al principio con contenido posterior', (ref: string) => 'Ref. WhatsApp: ' + ref + '\nFalta la ficha'],
+      ['marca citada y sangrada con contenido posterior', (ref: string) => 'Cita:\n    Ref. WhatsApp: ' + ref + '\nFin de la cita'],
+      ['mayúscula pegada', (ref: string) => 'Ficha\nRef. WhatsApp: ' + ref + 'G'],
+      ['código suelto', (ref: string) => ref],
+      ['salto dentro de la marca', (ref: string) => 'Ref.\nWhatsApp: ' + ref],
+      ['etiqueta escapada es texto visible', (ref: string) => '&lt;br&gt;Ref. WhatsApp: ' + ref],
+      ['entidad de comillas no es un borde', (ref: string) => '&quot;Ref. WhatsApp: ' + ref + '&quot;'],
+    ])('%s no acredita la entrega', async (_label, content) => {
+      const pending = await uncertain();
+      save(9001, content(pending.noteRef!));
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(2);
+      expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+    });
+
+    it.each([
+      ['span', (ref: string) => '<p>Ref. WhatsApp: <span>' + ref + '</span></p>'],
+      ['strong', (ref: string) => 'Ficha<br><strong>Ref.</strong> <strong>WhatsApp:</strong> ' + ref],
+      ['nbsp antes de Ref.', (ref: string) => '<p>&nbsp;Ref. WhatsApp: ' + ref + '</p>'],
+      ['br / y líneas vacías', (ref: string) => 'Ficha<br />Ref. WhatsApp: ' + ref + '<br />  <br>'],
+      ['espacios internos', (ref: string) => '<div>Ficha</div><div>  Ref.&nbsp;  WhatsApp:&nbsp; ' + ref + ' </div>'],
+      ['entidades escapadas no son etiquetas', (ref: string) => '<p>&lt;br&gt; &amp; &quot;Ficha&quot;</p><p>Ref. WhatsApp: ' + ref + '</p>'],
+    ])('reconoce la última línea normalizada: %s', async (_label, content) => {
+      const pending = await uncertain();
+      save(9001, content(pending.noteRef!));
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(1);
+    });
+
+    it.each(['interno', 'entre páginas'] as const)('rechaza desorden %s en la última página incompleta', async (kind) => {
+      const pending = await uncertain();
+      for (let i = 0; i < 51; i++) save(9001, 'Ventas ' + i, Date.now() - 100_000 + i * 1_000);
+      const get = vi.mocked(pipedriveGet).getMockImplementation()!;
+      vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => {
+        const res = await get(path, query);
+        if (Number(query.start) > 0) {
+          const notes = res.data as typeof stored;
+          if (kind === 'interno') notes[notes.length - 1] = { ...notes[notes.length - 1], add_time: pdTime(Date.now()) };
+          else notes.forEach((n) => { n.add_time = pdTime(Date.now()); });
+        }
+        return res;
+      }) as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it('rechaza desorden en la primera página incompleta', async () => {
+      const pending = await uncertain();
+      vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: true, data: [
+        { id: 1, content: 'Ventas', add_time: pdTime(Date.now() - 1_000) },
+        { id: 2, content: 'Ventas', add_time: pdTime(Date.now()) },
+      ], additional_data: { pagination: { more_items_in_collection: false } } } as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it('un borrado antes de la segunda lectura no salta la ficha aceptada (simulador)', async () => {
+      const pending = await uncertain('perdida');
+      for (let i = 0; i < 50; i++) save(9001, 'Ventas ' + i);
+      // Se borra la más nueva, antes del ancla; la ficha queda en la posición que start=50 saltaba.
+      afterPageRead = (start) => { if (start === 0) stored.splice(-1, 1); };
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(1);
+      expect(searches().map(([, q]) => q!.start)).toEqual(['0', String(NOTE_SEARCH_LIMIT - NOTE_SEARCH_OVERLAP)]);
+      expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+    });
+
+    it.each(['borrado', 'movimiento'] as const)('si falta el ancla por %s entre páginas conserva la incertidumbre', async (kind) => {
+      const pending = await uncertain();
+      for (let i = 0; i < 60; i++) save(9001, 'Ventas ' + i);
+      afterPageRead = (start) => {
+        if (start !== 0) return;
+        // Orden descendente por id: el último de la primera página es stored[10].
+        if (kind === 'borrado') stored.splice(10, 1);
+        else stored[10].add_time = pdTime(Date.now() + 1_000);
+      };
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it.each([undefined, null, '', 'ilegible', 0, -1, 1.5])('id ilegible (%s) no permite declarar ausencia', async (id) => {
+      const pending = await uncertain();
+      vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: true, data: [
+        { id, content: 'Ventas', add_time: pdTime(Date.now()) },
+      ] } as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+
+    it('una marca encontrada sin id legible también deja la búsqueda fallida', async () => {
+      const pending = await uncertain();
+      vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: true, data: [
+        { content: pending.note, add_time: pdTime(Date.now()) },
+      ] } as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it('una hora ilegible en página incompleta no permite declarar ausencia', async () => {
+      const pending = await uncertain();
+      vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: true, data: [{ id: 1, content: 'Ventas', add_time: 'ilegible' }] } as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+
+    it('la última página llena también acepta el agotamiento explícito (230 notas)', async () => {
+      const pending = await uncertain();
+      for (let i = 0; i < 230; i++) save(9001, 'Ventas ' + i);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(2);
+      expect(searches()).toHaveLength(NOTE_SEARCH_MAX_PAGES);
+    });
+
+    it('el orden entre páginas se exige aunque el ancla siga presente con su hora', async () => {
+      const pending = await uncertain();
+      for (let i = 0; i < 51; i++) save(9001, 'Ventas ' + i, Date.now() - 100_000 + i * 1_000);
+      const get = vi.mocked(pipedriveGet).getMockImplementation()!;
+      vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => {
+        const res = await get(path, query);
+        if (Number(query.start) > 0) {
+          const notes = res.data as typeof stored;
+          notes[0] = { ...notes[0], add_time: pdTime(Date.now()) };
+        }
+        return res;
+      }) as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it.each([{ label: 'null', data: null }, { label: 'array vacío', data: [] }])('una segunda página vacía ($label) no acredita el ancla', async ({ data }) => {
+      const pending = await uncertain();
+      for (let i = 0; i < 51; i++) save(9001, 'Ventas ' + i);
+      const get = vi.mocked(pipedriveGet).getMockImplementation()!;
+      vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => Number(query.start) > 0
+        ? { success: true, data, additional_data: { pagination: { more_items_in_collection: false } } }
+        : get(path, query)) as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it('ids decimales en texto también sirven de ancla', async () => {
+      const pending = await uncertain();
+      for (let i = 0; i < 51; i++) save(9001, 'Ventas ' + i);
+      const get = vi.mocked(pipedriveGet).getMockImplementation()!;
+      vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => {
+        const res = await get(path, query);
+        return { ...res, data: (res.data as typeof stored).map((n) => ({ ...n, id: String(n.id) })) };
+      }) as never);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(2);
+    });
+
+    it.each([199, 200])('exactamente %s notas y agotamiento explícito: entrega la ausente', async (count) => {
+      const pending = await uncertain();
+      for (let i = 0; i < count; i++) save(9001, 'Ventas ' + i);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(2);
+      expect(stored.filter((n) => n.content === pending.note)).toHaveLength(1);
+    });
+
+    it('more_items_in_collection false manda aunque haya 50 notas', async () => {
+      const pending = await uncertain();
+      for (let i = 0; i < 50; i++) save(9001, 'Ventas ' + i);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(searches()).toHaveLength(1);
+      expect(posts()).toHaveLength(2);
+    });
+
+    it('sin metadatos una página de 50 sigue a la siguiente', async () => {
+      const pending = await uncertain();
+      for (let i = 0; i < 51; i++) save(9001, 'Ventas ' + i);
+      const get = vi.mocked(pipedriveGet).getMockImplementation()!;
+      vi.mocked(pipedriveGet).mockImplementation((async (path: string, query: Record<string, string>) => {
+        const res = await get(path, query);
+        return { success: res.success, data: res.data };
+      }) as never);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(searches()).toHaveLength(2);
+      expect(posts()).toHaveLength(2);
+    });
+
+    it('more_items_in_collection true manda aunque haya menos de 50 notas', async () => {
+      const pending = await uncertain();
+      vi.mocked(pipedriveGet).mockResolvedValueOnce({ success: true, data: [
+        { id: 1, content: 'Ventas', add_time: pdTime(Date.now()) },
+      ], additional_data: { pagination: { more_items_in_collection: true } } } as never);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+    });
+
+    it('el tope deja error con revisar a mano y el negocio', async () => {
+      const pending = await uncertain();
+      const capacity = NOTE_SEARCH_LIMIT + (NOTE_SEARCH_MAX_PAGES - 1) * (NOTE_SEARCH_LIMIT - NOTE_SEARCH_OVERLAP);
+      for (let i = 0; i < capacity + 1; i++) save(9001, 'Ventas ' + i);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(posts()).toHaveLength(1);
+      expect(console.error).toHaveBeenCalledWith(expect.stringMatching(/\[NOTA-REF\].*9001.*revisar a mano/));
+    });
+
+    it('el plazo empieza al terminar un POST de 15 s, conserva el inicio del primero y evita duplicar visibilidad 20 s tras el corte', async () => {
+      const startedAt = Date.now();
+      postDelayMs = 15_000;
+      outcomes = ['timeout'];
+      const pending = (await ensureWhatsAppDeal(params)).pendingWrite!;
+      expect(pending.noteUnsure).toBe(startedAt);
+      expect(pending.noteUnsureLast).toBe(startedAt + 15_000);
+      expect(noteSearchAt(pending)).toBe(startedAt + 15_000 + NOTE_SETTLE_MS);
+      later(15_000);
+      expect(await retryWhatsAppWrite(pending)).toEqual(pending);
+      expect(searches()).toHaveLength(0);
+      later(5_000);
+      save(9001, pending.note!);
+      later(10_000);
+      expect(await retryWhatsAppWrite(pending)).toBeUndefined();
+      expect(posts()).toHaveLength(1);
+      expect(stored).toHaveLength(1);
+    });
+
+    it('otro POST incierto de 15 s actualiza solo el fin del último intento', async () => {
+      postDelayMs = 15_000;
+      const pending = await uncertain();
+      outcomes = ['timeout'];
+      const startedAt = Date.now();
+      const left = (await retryWhatsAppWrite(pending))!;
+      expect(left.noteUnsure).toBe(pending.noteUnsure);
+      expect(left.noteUnsureLast).toBe(startedAt + postDelayMs);
+      expect(noteSearchAt(left)).toBe(Date.now() + NOTE_SETTLE_MS);
+    });
+
+    it.each([false, true])('el presupuesto de 10 s es compartido; agotarlo=%s', async (exhaust) => {
+      const pending = await uncertain();
+      for (let i = 0; i < 170; i++) save(9001, 'Ventas ' + i);
+      const delays = exhaust ? [3_000, 4_000, 3_000] : [3_000, 4_000, 2_000, 0];
+      afterPageRead = () => later(delays.shift() ?? 0);
+      const left = await retryWhatsAppWrite(pending);
+      expect(searches().map(([, , timeout]) => timeout)).toEqual(exhaust ? [10_000, 7_000, 3_000] : [10_000, 7_000, 3_000, 1_000]);
+      expect(left).toEqual(exhaust ? pending : undefined);
+      expect(posts()).toHaveLength(exhaust ? 1 : 2);
     });
   });
 

@@ -136,7 +136,7 @@ async function retryQueuedWrite(phone: string, item: QueuedWrite, mayWriteFields
 /**
  * [NOTA-REF] Las notas con un envio incierto se buscan antes de repetirlas (pipedriveLead.ts). Esa busqueda
  * (hasta 10 s) y el envio salen en segundo plano, con waitUntil: la respuesta no los espera (Twilio corta a
- * los 15 s). Si el ultimo envio incierto es de hace menos de NOTE_SETTLE_MS, se espera a que se cumpla el
+ * los 15 s). Si el corte del ultimo envio incierto es de hace menos de NOTE_SETTLE_MS, se espera hasta el
  * plazo, solo si el reintento todavia cabe en la funcion (hasta `deadline`): asi un mensaje que llega dentro
  * del plazo no la deja esperando a otro mensaje que quizas no llega. Lo que no cabe sigue en la cola para un
  * mensaje siguiente; si la funcion se corta a mitad, la reserva queda sin cerrar y quien la tome despues la

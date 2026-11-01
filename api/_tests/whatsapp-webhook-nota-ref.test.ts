@@ -12,7 +12,7 @@
 //   mandarla, o si la otra la mandó y la soltó después de que esta leyó la cola).
 // - La referencia y la marca siguen en la cola aunque los campos del negocio esperen su reserva.
 // - Una pendiente guardada con el formato anterior (sin referencia) se sigue leyendo y se entrega como antes.
-// - Segunda revisión (verificador): el plazo de 30 s se cuenta desde el último envío incierto; la búsqueda y
+// - Segunda revisión (verificador): el plazo de 30 s se cuenta desde el corte del último envío incierto; la búsqueda y
 //   el reintento salen en segundo plano (la respuesta no los espera) y, si el mensaje llega dentro del plazo,
 //   esperan a que se cumpla; una escritura que revive en la cola (guardado sin respuesta) se busca antes.
 
@@ -34,10 +34,12 @@ const sim = vi.hoisted(() => ({
   searches: 0,
   /** Cuánto tarda la búsqueda de notas, y si falla. */
   searchDelayMs: 0,
+  /** Duración simulada del POST hasta el corte. */
+  postDelayMs: 0,
   searchDown: false,
   /** Pipedrive rechaza los campos del negocio. */
   updateFail: false,
-  /** Notas que Pipedrive termina de guardar 20 s después del envío ('tardia', ya cortada la espera de 15 s). */
+  /** Notas visibles 20 s después del corte del envío incierto ('tardia'). */
   late: [] as Array<{ at: number; save: () => void }>,
   /** Guarda las notas tardías cuya hora ya llegó (todas, con `all`). */
   land(all = false) {
@@ -79,7 +81,8 @@ vi.mock('../_lib/pipedrive/client.js', () => {
       const outcome = sim.outcomes.shift() ?? 'ok';
       const save = () => sim.notes.push({ id: sim.notes.length + 1, content: body.content, deal_id: body.deal_id, add_time: pdTime(Date.now()) });
       if (outcome === 'ok' || outcome === 'perdida') save();
-      if (outcome === 'tardia') sim.late.push({ at: Date.now() + 20_000, save });
+      if (outcome === 'tardia') sim.late.push({ at: Date.now() + sim.postDelayMs + 20_000, save });
+      if (sim.postDelayMs) vi.setSystemTime(Date.now() + sim.postDelayMs);
       if (outcome === 'ok') return { success: true, data: { id: sim.notes.length } };
       if (outcome === 'rechazo') return { success: false, data: null, error: 'HTTP 400: Bad Request' };
       return { success: false, data: null, error: 'Request timeout' };
@@ -91,10 +94,11 @@ vi.mock('../_lib/pipedrive/client.js', () => {
       sim.land();
       if (sim.searchDown) return { success: false, data: null, error: 'Request timeout' };
       const all = sim.notes.filter((n) => n.deal_id === Number(query.deal_id)).sort((a, b) => b.add_time.localeCompare(a.add_time) || b.id - a.id);
-      const page = all.slice(0, Number(query.limit));
+      const start = Number(query.start);
+      const page = all.slice(start, start + Number(query.limit));
       return {
         success: true, data: page.length ? page : null,
-        additional_data: { pagination: { start: 0, limit: Number(query.limit), more_items_in_collection: all.length > page.length } },
+        additional_data: { pagination: { start, limit: Number(query.limit), more_items_in_collection: all.length > start + page.length } },
       };
     }),
   };
@@ -153,7 +157,7 @@ const FULL_CLAUDE = {
   nombre: 'Ana Prueba', correo: 'ana.prueba@example.com', qualifiesForDeal: true,
 };
 const REF_LINE = /\n\nRef\. WhatsApp: (wa-[0-9a-f]{12})$/;
-// [NOTA-REF] La búsqueda espera este plazo desde el envío incierto (NOTE_SETTLE_MS en pipedriveLead.ts).
+// [NOTA-REF] La búsqueda espera este plazo desde el corte del envío incierto (NOTE_SETTLE_MS en pipedriveLead.ts).
 const SETTLE_MS = 30_000;
 const later = (ms: number) => vi.setSystemTime(Date.now() + ms);
 
@@ -185,6 +189,7 @@ beforeEach(() => {
   sim.posts = 0;
   sim.searches = 0;
   sim.searchDelayMs = 0;
+  sim.postDelayMs = 0;
   sim.searchDown = false;
   sim.updateFail = false;
   sim.late = [];
@@ -395,6 +400,64 @@ describe('la cola conserva la referencia', () => {
 });
 
 describe('segunda revisión: el plazo de 30 s y el segundo plano', () => {
+
+  it('ronda 3: la cola conserva el fin del POST de 15 s y el segundo plano espera 30 s desde ese corte', async () => {
+    const hook = await instance();
+    const startedAt = Date.now();
+    sim.postDelayMs = 15_000;
+    const pending = await registered(hook, 'tardia');
+    expect(pending.noteUnsure).toBe(startedAt);
+    expect(pending.noteUnsureLast).toBe(startedAt + 15_000);
+    const cutAt = Date.now();
+    later(15_000);
+    fakeTimers();
+    await post(hook, 'gracias', false);
+    // La respuesta sale y la búsqueda espera otros 15 s: a los 15 s desde el corte todavía no se ve la nota.
+    expect(sim.searches).toBe(0);
+    expect(sim.posts).toBe(1);
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(sim.searches).toBe(0);
+    await vi.advanceTimersByTimeAsync(1);
+    await drain();
+    expect(Date.now()).toBe(cutAt + SETTLE_MS);
+    expect(sim.searches).toBe(1);
+    expect(sim.posts).toBe(1);
+    expect(sim.notes.map((n) => n.content)).toEqual([pending.note]);
+    expect(await queued()).toEqual([]);
+  });
+
+  it('ronda 3: intento sin cerrar usa su inicio al vencer la reserva de 75 s', async () => {
+    const hook = await instance();
+    await registered(hook, 'rechazo');
+    const store = await import('../_lib/whatsapp/stateStore.js');
+    const lead = await import('../_lib/whatsapp/pipedriveLead.js');
+    const [item] = await store.duePendingWrites(phone, store.MAX_PENDING_RETRIES_PER_TURN);
+    const startedAt = Date.now();
+    expect(store.PENDING_CLAIM_TTL_MS).toBe(75_000);
+    expect(await store.claimPendingWrite(phone, item.id)).toBe(true);
+    sim.postDelayMs = 15_000;
+    sim.outcomes = ['perdida'];
+    const left = (await lead.retryWhatsAppWrite(store.sendablePendingWrite(phone, item)!))!;
+    expect(left.noteUnsureLast).toBe(startedAt + 15_000);
+    // La instancia se corta y no guarda left: la reserva es el único rastro del envío.
+    vi.setSystemTime(startedAt + store.PENDING_CLAIM_TTL_MS);
+    await instance();
+    const nextStore = await import('../_lib/whatsapp/stateStore.js');
+    const nextLead = await import('../_lib/whatsapp/pipedriveLead.js');
+    const [next] = await nextStore.duePendingWrites(phone, nextStore.MAX_PENDING_RETRIES_PER_TURN);
+    expect(await nextStore.claimPendingWrite(phone, next.id)).toBe(true);
+    const recovered = nextStore.sendablePendingWrite(phone, next)!;
+    expect(recovered.noteUnsure).toBe(startedAt);
+    expect(recovered.noteUnsureLast).toBe(startedAt);
+    expect(nextLead.noteSearchAt(recovered)).toBeLessThanOrEqual(Date.now());
+    expect(await nextLead.retryWhatsAppWrite(recovered)).toBeUndefined();
+    await nextStore.settlePendingWrite(phone, next.id, undefined);
+    expect(sim.searches).toBe(1);
+    expect(sim.posts).toBe(2);
+    expect(sim.notes).toHaveLength(1);
+    expect(await queued()).toEqual([]);
+  });
+
   it('dos envíos inciertos seguidos: el plazo se cuenta desde el último y la nota que Pipedrive guardó tarde no se repite', async () => {
     const hook = await instance();
     const pending = await registered(hook, 'timeout');

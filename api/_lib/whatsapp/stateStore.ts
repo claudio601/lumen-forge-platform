@@ -593,7 +593,8 @@ const withoutFields = (write: PendingWhatsAppWrite): PendingWhatsAppWrite => {
 
 /**
  * [NOTA-REF] El intento anterior de la nota quedo sin cerrar: pudo llegar a Pipedrive. Solo las notas con
- * referencia (las de antes de este cambio se mandan como antes).
+ * referencia (las de antes de este cambio se mandan como antes). No se conoce el fin del intento: se usa
+ * su inicio para noteUnsureLast; la reserva vence a los 75 s, pasados los 30 s de espera desde ese inicio.
  */
 function withUnsure(write: PendingWhatsAppWrite, since: number | undefined): PendingWhatsAppWrite {
   if (since === undefined || write.note === undefined || typeof write.noteRef !== 'string') return write;

@@ -63,7 +63,7 @@ export interface PendingWhatsAppWrite {
      * una pagina que llegue hasta antes de esa hora.
      */
     noteUnsure?: number;
-    /** [NOTA-REF] Inicio (ms) de su ultimo envio incierto: la busqueda espera NOTE_SETTLE_MS desde ahi. */
+    /** [NOTA-REF] Fin (ms) de su ultimo envio incierto; inicio si quedo sin cerrar (reserva de 75 s). */
     noteUnsureLast?: number;
 }
 
@@ -78,10 +78,13 @@ const NOTE_REF_RE = /^wa-[0-9a-f]{12}$/;
 // [NOTA-REF] La busqueda: paginas de NOTE_SEARCH_LIMIT notas, de la mas nueva a la mas antigua, hasta
 // NOTE_SEARCH_MAX_PAGES paginas y NOTE_SEARCH_TIMEOUT_MS en total (todas las paginas juntas).
 export const NOTE_SEARCH_LIMIT = 50;
-export const NOTE_SEARCH_MAX_PAGES = 4;
+// [NOTA-REF] Cinco notas compartidas permiten comprobar que no se salto la ultima de la pagina anterior.
+export const NOTE_SEARCH_OVERLAP = 5;
+// [NOTA-REF] Cinco paginas cubren hasta 230 notas distintas con el solapamiento (antes, 200 sin el).
+export const NOTE_SEARCH_MAX_PAGES = 5;
 export const NOTE_SEARCH_TIMEOUT_MS = 10_000;
 // [NOTA-REF] Pipedrive puede terminar de guardar una nota despues de que se corto la espera: la busqueda no
-// corre antes de este plazo desde el ultimo envio incierto (webhook.ts la reintenta en segundo plano cuando
+// corre antes de este plazo desde el corte del ultimo envio incierto (webhook.ts la reintenta cuando
 // se cumple, si cabe en la funcion; si no, queda para el mensaje siguiente).
 export const NOTE_SETTLE_MS = 30_000;
 // [NOTA-REF] Margen por la diferencia de reloj con Pipedrive al comparar con la hora de cada nota (add_time).
@@ -121,8 +124,8 @@ export function notePart(write: PendingWhatsAppWrite | undefined): Pick<PendingW
 
 /**
  * [NOTA-REF] Desde cuando (ms) se puede buscar la nota de `write` antes de repetirla: NOTE_SETTLE_MS despues
- * del inicio de su ultimo envio incierto (sin el, de noteUnsure). undefined: no necesita busqueda (sin nota,
- * sin una referencia del bot o sin envio incierto).
+ * del fin de su ultimo envio incierto (sin el, de noteUnsure; un intento sin cerrar usa su inicio y la
+ * reserva vence a los 75 s). undefined: no necesita busqueda (sin nota, referencia del bot o envio incierto).
  */
 export function noteSearchAt(write: PendingWhatsAppWrite | undefined): number | undefined {
     const since = validTime(write?.noteUnsure);
@@ -150,8 +153,25 @@ function pipedriveTime(value: unknown): number {
 }
 
 interface PipedriveNote {
+    id?: unknown;
     content?: unknown;
     add_time?: unknown;
+}
+
+/** [NOTA-REF] Texto visible del HTML: primero los saltos y etiquetas, despues las entidades (una vez). */
+function lastNoteLine(content: string): string | undefined {
+    const entities: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"' };
+    const text = content.replace(/<\/?(?:br|p|div)\b[^>]*>/gi, '\n').replace(/<[^>]*>/g, '')
+          .replace(/&(nbsp|amp|lt|gt|quot);/g, (_match, name: string) => entities[name]);
+    const lines = text.split(/\r\n?|\n|\u2028|\u2029/).map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return lines[lines.length - 1];
+}
+
+/** [NOTA-REF] Pipedrive da ids numericos; admite tambien su representacion decimal en texto. */
+function pipedriveNoteId(value: unknown): string | undefined {
+    if (typeof value !== 'number' && !(typeof value === 'string' && /^\d+$/.test(value))) return undefined;
+    const id = Number(value);
+    return Number.isSafeInteger(id) && id > 0 ? String(id) : undefined;
 }
 
 /**
@@ -170,35 +190,49 @@ function searchRejected(error: unknown): boolean {
  * cuando se revisaron todas las notas desde el primer envio incierto (`since`): la ultima pagina, o una que
  * ya llega a notas anteriores. Las paginas deben venir de la mas nueva a la mas antigua (si Pipedrive no
  * respetara el orden, la mas antigua no diria hasta donde llega). 'failed' (sin respuesta, una respuesta
- * rara, otro orden, o NOTE_SEARCH_MAX_PAGES paginas o NOTE_SEARCH_TIMEOUT_MS sin llegar a `since`): no se
- * repite el envio en este turno, para no duplicarla; queda pendiente. 'rejected': un rechazo definitivo de
- * la busqueda (searchRejected).
+ * rara, otro orden, sin ancla compartida, o NOTE_SEARCH_MAX_PAGES paginas o NOTE_SEARCH_TIMEOUT_MS sin
+ * llegar a `since`): no se repite el envio en este turno, para no duplicarla; queda pendiente. El tope pide
+ * "revisar a mano" en el registro con el negocio: no hay progreso garantizado. 'rejected': un rechazo
+ * definitivo de la busqueda (searchRejected).
  */
 async function findNoteByRef(dealId: number, ref: string, since: number): Promise<'found' | 'absent' | 'failed' | 'rejected'> {
-    // Los espacios de la linea pueden volver como espacios o como &nbsp; en el HTML de Pipedrive.
-    const mark = new RegExp('(?:^|[\\s>])Ref\\.(?:\\s|&nbsp;)+WhatsApp:(?:\\s|&nbsp;)*' + ref + '(?![0-9a-z])');
     const deadline = Date.now() + NOTE_SEARCH_TIMEOUT_MS;
+    let start = 0;
     let newer = Infinity;
+    let anchor: { id: string; time: number } | undefined;
     try {
           for (let page = 0; page < NOTE_SEARCH_MAX_PAGES; page++) {
                   const left = deadline - Date.now();
                   if (left <= 0) return 'failed';
                   const res = await pipedriveGet<PipedriveNote[]>('/notes', {
-                            deal_id: String(dealId), sort: 'add_time DESC', start: String(page * NOTE_SEARCH_LIMIT), limit: String(NOTE_SEARCH_LIMIT),
+                            deal_id: String(dealId), sort: 'add_time DESC', start: String(start), limit: String(NOTE_SEARCH_LIMIT),
                   }, left);
                   if (!res.success) return searchRejected(res.error) ? 'rejected' : 'failed';
-                  // Pipedrive responde data: null cuando el negocio no tiene notas (o no hay mas).
-                  if (res.data === null || res.data === undefined) return 'absent';
+                  const more = res.additional_data?.pagination?.more_items_in_collection;
+                  // [NOTA-REF] Sin notas solo se acredita ausencia en la primera pagina, sin anunciar mas.
+                  // Las siguientes deben contener el ancla aunque sean la ultima pagina o esten vacias.
+                  if (res.data === null || res.data === undefined) return anchor || more === true ? 'failed' : 'absent';
                   if (!Array.isArray(res.data)) return 'failed';
-                  if (res.data.some((n) => typeof n?.content === 'string' && mark.test(n.content))) return 'found';
-                  const full = res.data.length >= NOTE_SEARCH_LIMIT || res.additional_data?.pagination?.more_items_in_collection === true;
-                  if (!full) return 'absent';
+                  if (!res.data.length) return anchor || more === true ? 'failed' : 'absent';
+                  const ids = res.data.map((n) => pipedriveNoteId(n?.id));
+                  if (ids.some((id) => id === undefined) || new Set(ids).size !== ids.length) return 'failed';
                   const times = res.data.map((n) => pipedriveTime(n?.add_time));
-                  // Una hora ilegible (NaN) tampoco pasa: toda comparacion con NaN es falsa.
-                  if (!times.every((t, i) => t <= (i === 0 ? newer : times[i - 1]))) return 'failed';
-                  newer = times[times.length - 1];
-                  if (newer < since - NOTE_CLOCK_MARGIN_MS) return 'absent';
+                  // [NOTA-REF] Toda pagina con notas, incluso incompleta: orden interno y entre paginas.
+                  // newer es la hora justo antes del solapamiento; el ancla debe conservar su hora.
+                  if (!times.every((t, i) => Number.isFinite(t) && t <= (i === 0 ? newer : times[i - 1]))) return 'failed';
+                  if (anchor && times[ids.indexOf(anchor.id)] !== anchor.time) return 'failed';
+                  if (res.data.some((n) => typeof n?.content === 'string' && lastNoteLine(n.content) === NOTE_REF_LABEL + ref)) return 'found';
+                  // [NOTA-REF] El agotamiento explicito manda, incluso si la pagina tiene 50 notas.
+                  const full = typeof more === 'boolean' ? more : res.data.length >= NOTE_SEARCH_LIMIT;
+                  if (!full || times[times.length - 1] < since - NOTE_CLOCK_MARGIN_MS) return 'absent';
+                  const step = res.data.length - NOTE_SEARCH_OVERLAP;
+                  if (step <= 0) return 'failed';
+                  anchor = { id: ids[ids.length - 1]!, time: times[times.length - 1] };
+                  newer = times[step - 1];
+                  start += step;
           }
+          // [NOTA-REF] Reintentar las mismas paginas no garantiza avanzar: requiere revision operativa.
+          console.error(LOG_PREFIX + ' [NOTA-REF] Nota pendiente en deal ' + dealId + ': tope de paginas sin confirmar ausencia de ' + ref + '; revisar a mano');
           return 'failed';
     } catch {
           return 'failed';
@@ -211,7 +245,7 @@ async function findNoteByRef(dealId: number, ref: string, since: number): Promis
  * incierto es de hace menos de NOTE_SETTLE_MS (noteSearchAt), no se manda en este turno. Si Pipedrive
  * rechaza la busqueda de forma definitiva, esperar no sirve y la nota se perderia: se manda como antes de
  * este cambio (puede repetirse) y queda el error en el registro para revisarlo. Un envio incierto deja
- * anotados en `pending` el inicio del primero (noteUnsure) y el del ultimo (noteUnsureLast). Las pendientes
+ * anotados en `pending` el inicio del primero (noteUnsure) y el fin del ultimo (noteUnsureLast). Las pendientes
  * sin referencia (de antes de este cambio) se mandan como antes, sin busqueda: su texto ya se armo sin la
  * linea y un envio anterior no se puede reconocer. true: entregada.
  */
@@ -254,7 +288,8 @@ async function deliverNote(pending: PendingWhatsAppWrite): Promise<boolean> {
     }
     if (ref && unsure) {
           pending.noteUnsure = Math.min(unsureSince ?? startedAt, startedAt);
-          pending.noteUnsureLast = Math.max(validTime(pending.noteUnsureLast) ?? startedAt, startedAt);
+          const finishedAt = Date.now();
+          pending.noteUnsureLast = Math.max(validTime(pending.noteUnsureLast) ?? finishedAt, finishedAt);
     }
     console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId + (ref && unsure ? ' (resultado incierto: se busca antes de repetirla)' : ''));
     return false;
