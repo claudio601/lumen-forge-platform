@@ -1,5 +1,5 @@
 // api/_lib/whatsapp/flowEngine.ts
-// shouldNotify es siempre false aqui — la regla real vive en webhook.ts.
+// shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
 import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
@@ -212,8 +212,10 @@ const EXPLICIT_NEW_REQUEST_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:otr[oa]s
   + '|adem[a\\u00e1]s\\s+(?:necesit|quier|requier)[a-z]*\\s+(?:cotizar|comprar|pedir)'
   + '|(otra\\s+cosa))(?![a-z\\u00e0-\\u00fc])', 'gi');
 const EXISTING_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:el|la|los|las|lo|al|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?|aquel(?:la)?s?)\s+$/i;
+// [CIERRE] Una referencia a lo ya pedido no reinicia por decir "nueva cotizacion".
+const EXISTING_QUOTE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:el|la|los|las|mi|mis|su|sus|nuestr[oa]s?)\\s+(?:nuev[oa]s?|otr[oa]s?)\\s+' + 'cotizaci[o\\u00f3]n(?:es)?(?![a-z\\u00e0-\\u00fc])', 'i');
 const NEGATION_RE = /(?<![a-z\u00e0-\u00fc])(?:no|ni|sin|nunca|jam[a\u00e1]s|tampoco)(?![a-z\u00e0-\u00fc])/i;
-const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
+const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|busco|requiero|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
 const CLAUSE_MARKS = [',', ';', '.', ':', '!', '?', '\n', '\u00bf', '\u00a1'];
 const SENTENCE_END_RE = /[.!?\n]/;
 // "Me pueden enviar otra cotizacion? La anterior no me llego": enviar o mandar otra, sin un producto en el mensaje,
@@ -222,7 +224,7 @@ const SENTENCE_END_RE = /[.!?\n]/;
 // por 30 paneles LED?").
 const SEND_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:re)?(?:envi|env\u00ed|m[a\u00e1]nd)[a-z\u00e0-\u00fc]*\s+(?:(?:me|nos|le|les)\s+)?$/i;
 function explicitNewRequest(body: string): boolean {
-  const text = body.slice(0, MAX_FACTS);
+  const text = body.slice(0, MAX_FACTS).replace(/[*_~]/g, ' ');
   for (const m of text.matchAll(EXPLICIT_NEW_REQUEST_RE)) {
     const head = text.slice(Math.max(0, m.index - 60), m.index);
     const clause = head.slice(Math.max(...CLAUSE_MARKS.map((c) => head.lastIndexOf(c))) + 1);
@@ -240,14 +242,25 @@ function explicitNewRequest(body: string): boolean {
   return false;
 }
 
+// [CIERRE] "Necesito 30 focos para mi nueva cotizacion" sigue pidiendo productos;
+// "Me confirman la nueva cotizacion de 30 focos?" solo consulta lo ya pedido.
+function asksForProducts(text: string): boolean {
+  for (const m of text.matchAll(new RegExp(PRODUCTO_RE.source, 'gi'))) {
+    const head = text.slice(Math.max(0, m.index - 60), m.index).replace(/\b\d{1,5}\s*$/, '');
+    if (ASKS_TO_ORDER_RE.test(head)) return true;
+  }
+  return false;
+}
+
 function looksLikeNewRequest(body: string): boolean {
-  const b = body.trim();
+  const b = body.slice(0, MAX_FACTS).replace(/[*_~]/g, ' ').trim();
   if (NEW_REQ_SOLO_LUZ_RE.test(b)) return false;
   if (NEW_REQ_SOLO_PROYECTO_RE.test(b)) return false;
   if (NEW_REQ_SOLO_RUT_RE.test(b)) return false;
   if (NEW_REQ_SOLO_EMAIL_RE.test(b)) return false;
   if (/^[A-Z\u00c0-\u00dc][a-z\u00e0-\u00fc]+ [A-Z\u00c0-\u00dc][a-z\u00e0-\u00fc]+[.!?\s]*$/.test(b)) return false;
   if (CONTINUATION_RE.test(b)) return false;
+  if (EXISTING_QUOTE_RE.test(b) && !asksForProducts(b)) return false;
   if (NEW_REQ_INTENT_RE.test(b)) return true;
   if (/cotizar|cotizaci[o\u00f3]n|presupuesto/i.test(b) && b.length > 15) return true;
   if (PRODUCTO_RE.test(b) && /\b\d{1,4}\b/.test(b)) return true;
@@ -261,7 +274,7 @@ const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|dayl
 const EMAIL_RE = /(?<![a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
 const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 
-// NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE — no es señal B2B por si sola
+// NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE - no es senal B2B por si sola
 const B2B_SIGNAL_RE = /empresa|factura|obra|proveedor|licitaci[o\u00f3]n|constructora|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
 const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s+led|plafon(?:es)?\s+led|ampolleta(?:s)?\s+led|ampolleta(?:s)?|foco(?:s)?\s+led|foco(?:s)?|dicroico(?:s)?|reflector(?:es)?\s+led|reflector(?:es)?|proyector(?:es)?\s+led|proyector(?:es)?|tira(?:s)?\s+led|cinta(?:s)?\s+led|downlight(?:s)?|empotrado(?:s)?\s+led|tubo(?:s)?\s+led|tubo(?:s)?\s+fluorescente(?:s)?|luminaria(?:s)?\s+led|luminaria(?:s)?)\b/i;
 
@@ -561,7 +574,7 @@ export function recordDealOutcome(phone: string, registered: boolean, conversati
   const state = flowStates.get(phone);
   if (!state) return;
   if (conversationId !== undefined && state.firstMessageAt !== conversationId) {
-    console.log('[flowEngine] resultado del negocio de otra conversacion — no se anota');
+    console.log('[flowEngine] resultado del negocio de otra conversacion \u2014 no se anota');
     return;
   }
   saveFlowState(phone, { ...state, deal: registered ? 'registered' : 'failed', ...(registered && dealId ? { dealId } : {}) });
@@ -1202,7 +1215,7 @@ function mergeProductFields(
     else delete merged.rut_tipo;
   }
 
-  // Calcular leadType — instalacion NO es señal B2B
+  // Calcular leadType - instalacion NO es senal B2B
   // [RUT-VALIDO] Solo un RUT valido de empresa es senal B2B (uno de persona, no).
   let leadType: LeadType = state.leadType;
   if (leadType !== 'B2B') {
@@ -1228,7 +1241,7 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
   const next: FlowState = { ...state, captured: late.merged, captureStatus, leadType: late.leadType };
   saveFlowState(phone, next);
   const registers = Boolean(flowEmail(next));
-  if (registers) console.log('[flowEngine] conversacion cerrada con correo y sin negocio — registrando' + (hadEmail ? ' (reintento)' : ''));
+  if (registers) console.log('[flowEngine] conversacion cerrada con correo y sin negocio \u2014 registrando' + (hadEmail ? ' (reintento)' : ''));
   let reply = closedReply(next);
   if (registers) {
     if (hadEmail) reply = registeredClosing(next);
@@ -1259,7 +1272,7 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
   const captureStatus = computeCaptureStatus(captured, leadType);
   const next: FlowState = { ...state, captured, captureStatus, leadType };
   saveFlowState(phone, next);
-  console.log('[flowEngine] RUT valido despues del cierre — se suma al negocio registrado');
+  console.log('[flowEngine] RUT valido despues del cierre \u2014 se suma al negocio registrado');
   return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
@@ -1354,7 +1367,7 @@ function flowStep(
   const state = getFlowState(phone);
 
   if (state.stage === 'closed') {
-    const correctingRut = state.deal === 'registered' && /\brut\b/i.test(body) && /\b(?:corregir|corrijo|correcci[oó]n|correcto|actualizar|cambiar|cambio|modificar)\b/i.test(body);
+    const correctingRut = state.deal === 'registered' && /\brut\b/i.test(body) && /\b(?:corregir|corrijo|correcci[o\u00f3]n|correcto|actualizar|cambiar|cambio|modificar)\b/i.test(body);
     const correctingEmail = state.deal === 'registered' && correctsEmail(body);
     // [TRANSCRIPCION] Un pedido nuevo explicito gana a las correcciones; las correcciones, a un pedido nuevo que
     // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
@@ -1406,11 +1419,11 @@ function flowStep(
       closedFlow: false,
     };
   }
-  // ───────────────────────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
   // [INSTALL-FLOW] Deteccion de intencion de instalacion
   // Regla de negocio: sin correo no podemos cotizar.
   // No derivar hasta tener nombre + correo + comuna + tipoProyecto.
-  // ───────────────────────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
   const midProducts = state.stage === 'stage2' || state.stage === 'stage3' || Boolean(state.captured.producto);
   const intentText = maskNegated(body);
   const isInstallIntent = midProducts ? installRequestedMidProducts(intentText) : installRequested(intentText);
@@ -1437,14 +1450,14 @@ function flowStep(
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
       saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true });
-      console.log('[flowEngine] install_capture completo — derivando');
+      console.log('[flowEngine] install_capture completo \u2014 derivando');
       return { reply: MSG4_INSTALL, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const repreg = state.repreguntasInstall + 1;
     if (repreg > 3) {
       const captureStatus: CaptureStatus = updatedCaptured.install_correo ? 'partial' : 'incomplete';
       saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true });
-      console.log('[flowEngine] install_capture timeout — cerrando con status=' + captureStatus);
+      console.log('[flowEngine] install_capture timeout \u2014 cerrando con status=' + captureStatus);
       return { reply: installClosingMsg(updatedCaptured), shouldCreateDeal: updatedCaptured.install_correo ? true : false, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
@@ -1453,9 +1466,9 @@ function flowStep(
     return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // FIN INSTALL-FLOW — flujo normal de productos LED
-  // ───────────────────────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // FIN INSTALL-FLOW - flujo normal de productos LED
+  // ---------------------------------------------------------------------------
   // [FIX-WANTSHUMAN] NO activar wantsHuman si el mensaje contiene intencion comercial
   const hasCommercialIntent = COMMERCIAL_INTENT_RE.test(body);
   const wantsHuman = state.wantsHuman || (!hasCommercialIntent && (signals.wantsHuman || Boolean(claudeParsed.wantsHuman))) || WANTS_HUMAN_RE.test(body);
@@ -1488,7 +1501,7 @@ function flowStep(
   // PASO 1: MERGE
   const { merged, leadType: currentLeadType, rutToConfirm, menuPick } = mergeProductFields(state, body, claudeParsed);
 
-  // [FIX-PRIORITY] PASO 2: wantsHuman path — REQUIERE correo antes de derivar
+  // [FIX-PRIORITY] PASO 2: wantsHuman path - REQUIERE correo antes de derivar
   // [FIX-EMAIL-GATE] Si el usuario quiere ejecutivo pero no tiene correo, pedirlo primero
   // [CIERRE-HONESTO] Lo pide una sola vez y sigue en la etapa en que estaba (antes saltaba a
   // stage3 y repetia el pedido en cada mensaje). Despues sigue el flujo normal.
@@ -1500,11 +1513,11 @@ function flowStep(
       return { reply: MSG_HUMAN, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: merged, wantsHuman: true, closedFlow: true };
     }
     if (!state.humanEmailAsked) {
-      // Sin correo: no podemos derivar ni crear deal — pedir correo
+      // Sin correo: no podemos derivar ni crear deal - pedir correo
       const hasAnyContext = Boolean(merged.producto) || Boolean(merged.proyecto_o_uso);
       const reply = hasAnyContext ? MSG_NEED_EMAIL : MSG_NEED_EMAIL_AND_CONTEXT;
       saveFlowState(phone, { ...state, captured: merged, wantsHuman: true, leadType: currentLeadType, humanEmailAsked: true });
-      console.log('[flowEngine] wantsHuman sin correo — pidiendo correo antes de derivar');
+      console.log('[flowEngine] wantsHuman sin correo \u2014 pidiendo correo antes de derivar');
       return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: merged, wantsHuman: true, closedFlow: false, question: askedIn(hasAnyContext ? ['correo de contacto'] : ['producto', 'correo de contacto'], 0) };
     }
   }
@@ -1512,7 +1525,7 @@ function flowStep(
   // llega otra vez sin calzar, queda marcado como invalido y el flujo sigue.
   if (rutToConfirm) {
     saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType, rutRetryAsked: true });
-    console.log('[flowEngine] RUT con digito verificador que no calza — se pide de nuevo una vez');
+    console.log('[flowEngine] RUT con digito verificador que no calza \u2014 se pide de nuevo una vez');
     return { reply: MSG_RUT_INVALID, shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: askedIn(['RUT de la empresa'], 0) };
   }
   // [CASO-1] Un numero suelto despues de la lista numerada de la etapa 1 se aclara: no es la
@@ -1520,7 +1533,7 @@ function flowStep(
   // color no se volvia a preguntar).
   if (menuPick !== undefined && state.stage === 'stage1') {
     saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType });
-    console.log('[flowEngine] numero suelto despues de una lista — se pide aclarar');
+    console.log('[flowEngine] numero suelto despues de una lista \u2014 se pide aclarar');
     return { reply: menuClarifyMsg(menuPick), shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: askedIn(missingStage1(merged), 0) };
   }
   // [CASO-1] En las etapas 2 y 3, un numero suelto despues de su lista (MSG2, MSG3) repite la misma
@@ -1553,7 +1566,7 @@ function flowStep(
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
         const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 'sí' : 'no'));
+        console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
         return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg1 >= 1 && missingCritical.length < 2) { currentStage = 'stage2'; continue; }
@@ -1573,7 +1586,7 @@ function flowStep(
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
         const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 'sí' : 'no'));
+        console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
         return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg2 += 1;
@@ -1594,7 +1607,7 @@ function flowStep(
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ? 'sí' : 'no'));
+        console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
         const canCreate3 = canRegister(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
         return { reply: productClosingMsg(canCreate3, wantsHuman, currentLeadType), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }

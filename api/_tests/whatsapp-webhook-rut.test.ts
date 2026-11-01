@@ -174,6 +174,37 @@ describe('el RUT corregido llega después del cierre', () => {
     expect(sim.notes).toHaveLength(2);
   });
 
+  it.each([
+    'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
+    'NECESITO CORREGIR EL *RUT* DE LA *OTRA COTIZACIÓN*: *761234560*',
+  ])('la corrección "%s" escribe una nota en el mismo negocio', async (body) => {
+    const phone = nextPhone();
+    await closeWithInvalidRut(phone);
+    vi.mocked(notifyTeam).mockClear();
+
+    expect(await send(phone, body)).toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(2);
+    expect(sim.notes[1].deal_id).toBe(sim.notes[0].deal_id);
+    expect(sim.notes[1].content).toContain('RUT: 76.123.456-0 (empresa)');
+    expect(vi.mocked(notifyTeam)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(notifyTeam).mock.calls[0][0]).toMatchObject({ existingDeal: true });
+
+    expect(await send(phone, 'gracias')).toMatch(REGISTRADA);
+    expect(sim.notes).toHaveLength(2);
+  });
+
+  it('consultar la nueva cotización conserva el cierre sin otro negocio, nota ni aviso', async () => {
+    const phone = nextPhone();
+    expect(await send(phone, b2b('77.123.456-9'), B2B_CLAUDE)).toMatch(REGISTRADA);
+    vi.mocked(notifyTeam).mockClear();
+
+    expect(await send(phone, '¿Me confirman la nueva cotización?')).toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(1);
+    expect(vi.mocked(notifyTeam)).not.toHaveBeenCalled();
+  });
+
   it('si Pipedrive falla en ese paso: el negocio sigue registrado y la respuesta no pasa al texto B', async () => {
     const phone = nextPhone();
     await closeWithInvalidRut(phone);
