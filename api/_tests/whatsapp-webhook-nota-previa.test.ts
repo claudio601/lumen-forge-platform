@@ -165,6 +165,32 @@ const FIX = 'Corrijo mi correo: el correcto es ana.nueva@example.com';
 const SWAP = 'Quiero cambiar mi mail ana.prueba@example.com por ana.nueva@example.com';
 const AMB = 'Mis datos: 11.111.111-1; 77.123.456-9';
 
+// Upstash recibe o responde a los 400 ms; respeta el plazo enviado por el cliente.
+function slowUpstash(afterApply = false) {
+  const base = fakeFetch(redis);
+  const deadlines = new WeakMap<AbortSignal, number>();
+  vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms) => {
+    const signal = new AbortController().signal;
+    deadlines.set(signal, ms);
+    return signal;
+  });
+  vi.stubGlobal('fetch', vi.fn(async (input: string | URL, init?: RequestInit) => {
+    const ms = init?.signal ? deadlines.get(init.signal) ?? 800 : 800;
+    const response = afterApply ? await base(input, init) : undefined;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(ms, 400)));
+    if (ms < 400) throw new Error('Upstash simulado: plazo agotado');
+    return response ?? base(input, init);
+  }));
+}
+
+async function withTimers<T>(work: Promise<T>): Promise<T> {
+  let done = false;
+  const result = work.finally(() => { done = true; });
+  for (let i = 0; i < 600 && !done; i++) await vi.advanceTimersByTimeAsync(100);
+  expect(done, 'el trabajo debe terminar dentro de 60 s').toBe(true);
+  return result;
+}
+
 // Estos casos usan solo la API anterior: tambien se ejecutan contra 8b10510.
 describe('A: ventanas del primer envio', () => {
   async function checkPreflight(content: string, id: string) {
@@ -513,6 +539,87 @@ describe('controles compatibles con main', () => {
   });
 });
 
+describe('A: regresiones de respaldo (ronda 3)', () => {
+  it.each(['fail', 'lose'] as const)('A19 D1b: anticipar %s y POST incierto conservan el RUT de otro sid', async (mode) => {
+    sim.outcomes = ['colgada-sin-guardar'];
+    await crash(await instance(), FULL, 'SMd1x');
+    later(75_001);
+    let attempts = 0;
+    redis.intercept = (cmd, args) => {
+      if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar') && ++attempts === 1) return mode;
+    };
+    let rutPosts = 0;
+    sim.onPost = async (content) => { sim.outcomes = [content.includes('11.111.111-1') && ++rutPosts === 1 ? 'timeout' : 'ok']; };
+    await post(await instance(), 'Mi RUT es 11.111.111-1', 'SMd1y');
+    redis.intercept = undefined; sim.onPost = undefined;
+    later(31_000);
+    await post(await instance(), 'gracias', 'SMd1z');
+    later(31_000);
+    await post(await instance(), 'ok', 'SMd1w');
+    expect(sim.notes.filter((note) => note.content.includes('11.111.111-1'))).toHaveLength(1);
+    expect(await queued()).toEqual([]);
+  });
+  it('A20 D2: PUT fallido y rastro de otro sid conservan el correo nuevo', async () => {
+    sim.outcomes = ['colgada-sin-guardar'];
+    await crash(await instance(), FULL, 'SMd2');
+    later(75_001);
+    const { pendingKey } = await import('../_lib/whatsapp/stateStore.js');
+    let reads = 0; let attempts = 0;
+    redis.intercept = (cmd, args) => {
+      if (cmd === 'HGETALL' && args[0] === pendingKey(phone) && ++reads === 1) return 'fail';
+      if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar') && ++attempts === 1) return 'fail';
+    };
+    let puts = 0;
+    sim.onPut = async () => { if (++puts === 1) throw new Error('PUT fallido de prueba'); };
+    await post(await instance(), 'Mi correo correcto es ana.otra@example.com', 'SMd2b');
+    redis.intercept = undefined; sim.onPut = undefined;
+    later(31_000);
+    await post(await instance(), 'gracias', 'SMd2c');
+    later(31_000);
+    await post(await instance(), 'ok', 'SMd2d');
+    expect(sim.updates.at(-1)).toMatchObject({ cf_email: 'ana.otra@example.com' });
+    expect(await queued()).toEqual([]);
+  });
+  it('A21 SB01: Upstash a 400 ms respalda la nota incierta antes de morir la instancia', async () => {
+    fakeTimers(); slowUpstash(); sim.outcomes = ['timeout'];
+    await withTimers(post(await instance(), FULL, 'SMsb1'));
+    expect(await queued()).toHaveLength(1);
+    later(31_000);
+    await withTimers(post(await instance(), 'gracias', 'SMsb2'));
+    later(31_000);
+    await withTimers(post(await instance(), 'ok', 'SMsb3'));
+    expect(sim.notes).toHaveLength(1);
+    expect(await queued()).toEqual([]);
+  });
+  it('A22 SB03: Upstash a 400 ms reguarda la correccion sin reserva', async () => {
+    const hook = await instance();
+    await post(hook, FULL, 'SMsb3a'); later(60_000);
+    const { dealWriteKey } = await import('../_lib/whatsapp/stateStore.js');
+    redis.data.set(dealWriteKey(phone), { value: 'otra-instancia', expiresAt: Date.now() + 30_000 });
+    fakeTimers(); slowUpstash();
+    await withTimers(post(hook, FIX, 'SMsb3b'));
+    expect(await queued()).toHaveLength(1);
+    later(75_001);
+    await withTimers(post(await instance(), 'gracias', 'SMsb3c'));
+    later(31_000);
+    await withTimers(post(await instance(), 'ok', 'SMsb3d'));
+    expect(sim.notes).toHaveLength(2);
+    expect(sim.updates.at(-1)).toMatchObject({ cf_email: 'ana.nueva@example.com' });
+    expect(await queued()).toEqual([]);
+  });
+  it('A23 SB04: Upstash a 400 ms respalda los campos cuando la nota ya llego', async () => {
+    fakeTimers(); slowUpstash();
+    sim.onPut = async () => { throw new Error('PUT fallido de prueba'); };
+    await withTimers(post(await instance(), FULL, 'SMsb4a'));
+    expect(await queued()).toHaveLength(1);
+    sim.onPut = undefined; later(31_000);
+    await withTimers(post(await instance(), 'gracias', 'SMsb4b'));
+    expect(sim.updates.at(-1)).toMatchObject({ cf_email: 'ana.prueba@example.com' });
+    expect(sim.notes).toHaveLength(1);
+    expect(await queued()).toEqual([]);
+  });
+});
+
 // Solo rama: funciones nuevas y forma de la marca. Se excluye este bloque del contraste con main.
 describe('solo rama: marcas y unidad de stateStore', () => {
   const write = () => ({ dealId: 9001, fields: { cf_email: 'ana.nueva@example.com' }, note: 'Nota ficticia\n\nRef. WhatsApp: wa-0123456789ab', noteRef: 'wa-0123456789ab' });
@@ -590,9 +697,10 @@ describe('solo rama: marcas y unidad de stateStore', () => {
     const before = await hash();
     await a.settlePendingWrite(phone, first.item.id, write());
     if (status === 'queued') {
-      expect(await hash()).toEqual(before);
-      const [item] = await a.loadPendingWrites(phone);
-      expect(item.write.note).toBe('Nota de otra reserva');
+      expect(await hash()).toMatchObject(before);
+      const items = await a.loadPendingWrites(phone);
+      expect(items.find((item) => item.id === remote.item.id)?.write.note).toBe('Nota de otra reserva');
+      expect(items.find((item) => item.id.startsWith('f:'))?.write).toEqual({ dealId: 9001, fields: write().fields });
     } else {
       const [item] = await a.loadPendingWrites(phone);
       expect(item.id).toMatch(/^f:/);
@@ -626,6 +734,85 @@ describe('solo rama: marcas y unidad de stateStore', () => {
     await claim.release();
     await take(phone, Date.now() + 100_000);
     expect(redis.data.get(key)!.expiresAt).toBe(Date.now() + REGISTRATION_TTL_MS);
+  });
+  it.each(['registro', 'campos'])('U11: no toma una reserva de %s con limite vencido ni exacto', async (kind) => {
+    const { claimRegistration, claimDealWrite, registrationKey, dealWriteKey } = await import('../_lib/whatsapp/stateStore.js');
+    const take = kind === 'registro' ? claimRegistration : claimDealWrite;
+    const key = (kind === 'registro' ? registrationKey : dealWriteKey)(phone);
+    const fetch = vi.mocked(globalThis.fetch);
+    const before = fetch.mock.calls.length;
+    for (const deadline of [Date.now() - 1, Date.now()]) {
+      const claim = await take(phone, deadline);
+      expect(claim).toMatchObject({ claimed: false, heldBy: 'local' });
+      await claim.release();
+    }
+    expect(fetch.mock.calls).toHaveLength(before);
+    expect(redis.data.has(key)).toBe(false);
+    expect((await take(phone, Date.now() + 60_000)).claimed).toBe(true);
+  });
+  it.each(['ok', 'fail'] as const)('U12: anticipacion con limite vencido y Upstash %s queda sin reserva', async (mode) => {
+    const { anticipateWrite, pendingLeaseUntil } = await import('../_lib/whatsapp/stateStore.js');
+    if (mode === 'fail') redis.intercept = () => 'fail';
+    const result = await anticipateWrite(phone, write(), { ...opts(), leaseUntil: Date.now() });
+    expect(result.status).toBe(mode === 'ok' ? 'new' : 'memory');
+    if (!('item' in result)) throw new Error('sin item');
+    expect(pendingLeaseUntil(phone, result.item.id)).toBe(0);
+    expect(await hash()).not.toHaveProperty('t:' + result.item.id);
+    if (mode === 'fail') expect(result.item.write.noteUnsure).toBe(Date.now());
+  });
+  it.each(['queued', 'delivered'] as const)('U13: load con rastro %s de otro sid conserva nota incierta y campos', async (status) => {
+    const a = await import('../_lib/whatsapp/stateStore.js');
+    redis.intercept = () => 'fail';
+    const local = await a.anticipateWrite(phone, write(), { ...opts(), key: 'r456.9001', reserve: false });
+    expect(local.status).toBe('memory');
+    redis.intercept = undefined; vi.resetModules();
+    const b = await import('../_lib/whatsapp/stateStore.js');
+    const remote = await b.anticipateWrite(phone, { ...write(), note: 'Registro anterior' }, { ...opts(), key: 'r123.9001', sid: 'SMremote' });
+    if (!('item' in remote)) throw new Error('sin item');
+    if (status === 'delivered') await b.settlePendingWrite(phone, remote.item.id, undefined);
+    // Alias de un intento anterior del sid local, cuyo destino ya cambio de sid.
+    const q = await hash(); q['s:SMunit.9001'] = remote.item.id;
+    redis.data.get(b.pendingKey(phone))!.value = JSON.stringify(q);
+    const pending = await a.loadPendingWrites(phone);
+    const kept = pending.find((item) => item.id !== remote.item.id);
+    expect(kept?.id).toMatch(/^n:(?![rm])/);
+    expect(kept?.write).toMatchObject({ ...write(), noteUnsure: Date.now() });
+    if (status === 'queued') expect(pending.find((item) => item.id === remote.item.id)?.write.note).toBe('Registro anterior');
+  });
+  it('U14 T1: reentrega del sid con Upstash a 400 ms recuerda la entrega desde la cola', async () => {
+    sim.outcomes = ['colgada'];
+    await crash(await instance(), FULL, 'SMt1'); later(75_001);
+    fakeTimers(); slowUpstash(true);
+    await withTimers(post(await instance(), FULL, 'SMt1'));
+    expect(sim.notes).toHaveLength(1);
+    expect(sim.searches).toBe(1);
+    expect(await queued()).toEqual([]);
+  });
+  it.each([false, true])('U13b: load con alias del mismo sid conserva solo campos no superados (superados=%s)', async (superseded) => {
+    const a = await import('../_lib/whatsapp/stateStore.js');
+    redis.intercept = () => 'fail';
+    await a.anticipateWrite(phone, write(), { ...opts(), key: 'r456.9001', reserve: false });
+    redis.intercept = undefined; vi.resetModules();
+    const b = await import('../_lib/whatsapp/stateStore.js');
+    const remote = await b.anticipateWrite(phone, { ...write(), note: 'Registro anterior' }, { ...opts(), key: 'r123.9001' });
+    if (!('item' in remote)) throw new Error('sin item');
+    if (superseded) await a.confirmDealFields(phone, 9001, opts().ver + 1);
+    const pending = await a.loadPendingWrites(phone);
+    expect(pending.filter((item) => item.write.note !== undefined)).toEqual([remote.item]);
+    const fields = pending.filter((item) => item.id.startsWith('f:'));
+    expect(fields).toHaveLength(superseded ? 0 : 1);
+    if (!superseded) expect(fields[0].write).toEqual({ dealId: 9001, fields: write().fields });
+  });
+  it('U15: el recuerdo local cubre alias, separa negocios y vence a los cinco minutos', async () => {
+    const { anticipateWrite, settlePendingWrite } = await import('../_lib/whatsapp/stateStore.js');
+    const first = await anticipateWrite(phone, write(), { ...opts(), key: 'r123.9001' });
+    if (!('item' in first)) throw new Error('sin item');
+    await settlePendingWrite(phone, first.item.id, undefined);
+    redis.intercept = () => 'fail';
+    expect(await anticipateWrite(phone, write(), { ...opts(), key: 'r456.9001' })).toMatchObject({ status: 'delivered', mark: { sid: 'SMunit' } });
+    expect(await anticipateWrite(phone, { ...write(), dealId: 9002 }, { ...opts(), key: 'r456.9002' })).toMatchObject({ status: 'memory' });
+    later(5 * 60_000);
+    expect(await anticipateWrite(phone, write(), { ...opts(), key: 'r789.9001' })).toMatchObject({ status: 'memory' });
   });
   it('U3: cola llena no agrega ni reserva', async () => {
     const { anticipateWrite, enqueuePendingWrite } = await import('../_lib/whatsapp/stateStore.js');

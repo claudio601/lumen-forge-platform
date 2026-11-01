@@ -256,17 +256,20 @@ export interface RegistrationClaim {
 
 async function claimReservation(kind: ReservationKind, phone: string, leaseUntil = Infinity): Promise<RegistrationClaim> {
   const none = async () => {};
+  const now = Date.now();
+  // [NOTA-REF] Un limite vencido no permite empezar otro escritor, ni siquiera por 1 ms.
+  if (leaseUntil <= now) return { claimed: false, heldBy: 'local', release: none };
   const inMemory = reservations[kind];
   const label = kind === 'registro' ? 'registro del negocio' : 'campos del negocio';
   const held = inMemory.get(phone);
-  if (held && held.until > Date.now()) return { claimed: false, heldBy: 'local', release: none };
+  if (held && held.until > now) return { claimed: false, heldBy: 'local', release: none };
   const key = reservationKey(kind, phone);
   const token = randomUUID();
   // La memoria se reserva antes de ir a Upstash: otro mensaje de esta instancia que pide la reserva a la
   // vez ya la ve tomada (sin Upstash, los dos la tomaban).
   // [NOTA-REF] Ninguna reserva del turno sobrevive a la funcion que la tomo.
-  const ttl = Math.max(1, Math.min(REGISTRATION_TTL_MS, leaseUntil - Date.now()));
-  inMemory.set(phone, { token, until: Date.now() + ttl });
+  const ttl = Math.min(REGISTRATION_TTL_MS, leaseUntil - now);
+  inMemory.set(phone, { token, until: now + ttl });
   const set = await redisJsonCommandWithTimeout<string | null>(800, 'SET', key, token, 'NX', 'PX', ttl);
   if (set.ok && set.result !== 'OK') {
     if (inMemory.get(phone)?.token === token) inMemory.delete(phone);
@@ -758,11 +761,39 @@ function deliveryMark(item: QueuedWrite): string {
   return JSON.stringify({ at: Date.now(), dealId: item.write.dealId, sid: item.sid, noteIds: item.noteIds });
 }
 
-async function storeAnticipated(phone: string, item: QueuedWrite, lease = '', overwrite = false) {
+// [NOTA-REF] DONE puede terminar antes de un anticipar lento: recordar la entrega y su alias localmente.
+const recentDeliveries = new Map<string, { until: number; mark: string }>();
+const RECENT_DELIVERY_TTL_MS = 5 * 60_000;
+const RECENT_DELIVERY_MAX = 500;
+const registrationAlias = (item: QueuedWrite): string => item.id.startsWith('n:r') && item.sid && /^[A-Za-z0-9]{1,64}$/.test(item.sid)
+  ? 's:' + item.sid + '.' + item.write.dealId : '';
+
+function rememberDelivery(phone: string, item: QueuedWrite, mark: string): void {
+  const now = Date.now();
+  for (const [key, value] of recentDeliveries) if (value.until <= now) recentDeliveries.delete(key);
+  for (const id of [item.id, registrationAlias(item)].filter(Boolean)) {
+    const key = phone + ':' + id;
+    recentDeliveries.delete(key);
+    recentDeliveries.set(key, { until: now + RECENT_DELIVERY_TTL_MS, mark });
+  }
+  while (recentDeliveries.size > RECENT_DELIVERY_MAX) recentDeliveries.delete(recentDeliveries.keys().next().value!);
+}
+
+function recentDelivery(phone: string, item: QueuedWrite): NoteDeliveryMark | undefined {
+  for (const id of [item.id, registrationAlias(item)].filter(Boolean)) {
+    const key = phone + ':' + id;
+    const value = recentDeliveries.get(key);
+    if (!value) continue;
+    if (value.until > Date.now()) return parseDeliveryMark(value.mark);
+    recentDeliveries.delete(key);
+  }
+  return undefined;
+}
+
+async function storeAnticipated(phone: string, item: QueuedWrite, lease = '', overwrite = false, timeoutMs = 800) {
   // [NOTA-REF] El alias protege registros cuyo primer mensaje cambio al reentregarse.
-  const alias = item.id.startsWith('n:r') && item.sid && /^[A-Za-z0-9]{1,64}$/.test(item.sid)
-    ? 's:' + item.sid + '.' + item.write.dealId : '';
-  return redisJsonCommandWithTimeout<unknown>(300,
+  const alias = registrationAlias(item);
+  return redisJsonCommandWithTimeout<unknown>(timeoutMs,
     'EVAL', ANTICIPATE_SCRIPT, '1', pendingKey(phone), item.id, JSON.stringify(item),
     MAX_PENDING_WRITES, MAX_PENDING_TOTAL, PENDING_WRITE_TTL_S, deliveryKey(item.id), lease, overwrite ? '1' : '0', alias,
   );
@@ -773,9 +804,11 @@ export async function anticipateWrite(phone: string, write: PendingWhatsAppWrite
   key, ver, sid, noteIds, reserve = true, leaseUntil = Infinity,
 }: { key: string; ver: number; sid?: string; noteIds?: string[]; reserve?: boolean; leaseUntil?: number }): Promise<Anticipated> {
   const now = Date.now();
+  // [NOTA-REF] Fuera del limite se guarda sin reserva, como una escritura para la cola.
+  reserve = reserve && leaseUntil > now;
   const item: QueuedWrite = { id: 'n:' + key, at: now, ver, write, sid, noteIds: noteIds?.slice(0, 60) };
   const lease = reserve ? String(Math.min(now + PENDING_CLAIM_TTL_MS, leaseUntil)) + ':' + String(now) + ':' + randomUUID() : '';
-  const result = await storeAnticipated(phone, item, lease).catch(() => ({ ok: false as const }));
+  const result = await storeAnticipated(phone, item, lease, false, 300).catch(() => ({ ok: false as const }));
   if (result.ok) {
     const reply = Array.isArray(result.result) ? result.result : [result.result];
     if (Number(reply[0]) === 0) return { status: 'full' };
@@ -796,6 +829,8 @@ export async function anticipateWrite(phone: string, write: PendingWhatsAppWrite
     }
   }
   unavailable('anticipar nota');
+  const recent = recentDelivery(phone, item);
+  if (recent) return { status: 'delivered', mark: recent };
   const previous = queueOf(phone).get(item.id);
   if (previous) return { status: 'queued', item: previous.item };
   const mark = delivered.get(phone)?.get(item.id);
@@ -894,6 +929,19 @@ async function enqueueFields(phone: string, write: PendingWhatsAppWrite, ver: nu
   return false;
 }
 
+// [NOTA-REF] El rastro de otro sid no confirma esta copia: conserva su nota incierta y sus campos.
+async function reconcileAnticipated(phone: string, entry: QueueEntry, sid: string | undefined): Promise<boolean> {
+  const { write } = entry.item;
+  const ver = pendingVersion(entry.item);
+  if (sid !== entry.item.sid) {
+    if (!(await enqueuePendingWrite(phone, write, ver))) return false;
+  } else if (write.fields && !fieldsSuperseded(phone, entry.item)) {
+    if (!(await enqueueFields(phone, { dealId: write.dealId, fields: write.fields }, ver))) return false;
+  }
+  queueOf(phone).delete(entry.item.id);
+  return true;
+}
+
 // Escrituras de un estado anterior que esta instancia ya vio en la cola (no se vuelven a pasar).
 const migrated = new Map<string, Set<string>>();
 
@@ -946,14 +994,13 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
       if (!result.ok) continue;
       const reply = Array.isArray(result.result) ? result.result : [result.result];
       if (Number(reply[0]) === 2) {
-        queueOf(phone).delete(entry.item.id);
-        if (entry.item.write.fields) await enqueueFields(phone, { dealId: entry.item.write.dealId, fields: entry.item.write.fields }, pendingVersion(entry.item));
+        const mark = parseDeliveryMark(reply[1]);
+        if (mark) await reconcileAnticipated(phone, entry, mark.sid);
       } else if (Number(reply[0]) === 1) entry.stored = true;
       else if (Number(reply[0]) === 3) {
-        // [NOTA-REF] El alias encontro otro intento: su entrada reemplaza la copia local sin pisarlo.
+        // [NOTA-REF] El alias conserva el intento remoto; la copia local se reconcilia por sid.
         const previous = claimedItem(reply[2], String(reply[3] ?? entry.item.id));
-        if (previous) {
-          queueOf(phone).delete(entry.item.id);
+        if (previous && await reconcileAnticipated(phone, entry, previous.sid)) {
           queueOf(phone).set(previous.id, { ...entryOf(previous, true), ...parseTry(String(reply[1])) });
         }
       }
@@ -1080,6 +1127,7 @@ export async function settlePendingWrite(phone: string, id: string, remaining: P
   // [NOTA-REF] Tambien al terminar solo campos: la nota pudo salir en un intento anterior.
   const mark = entry && keyedNote(id) && remaining?.note === undefined
     ? deliveryMark(entry.item) : undefined;
+  if (entry && mark) rememberDelivery(phone, entry.item, mark);
   if (!remaining) {
     queueOf(phone).delete(id);
     let tomb = delivered.get(phone);
@@ -1117,11 +1165,12 @@ export async function settlePendingWrite(phone: string, id: string, remaining: P
     if (saved.ok) {
       const reply = Array.isArray(saved.result) ? saved.result : [saved.result];
       if (Number(reply[0]) === 1) entry.stored = true;
-      if (Number(reply[0]) === 2 || Number(reply[0]) === 3) {
-        queueOf(phone).delete(id);
-        if (Number(reply[0]) === 2 && remaining.fields && !fieldsSuperseded(phone, entry.item)) {
-          await enqueueFields(phone, { dealId: remaining.dealId, fields: remaining.fields }, pendingVersion(entry.item));
-        }
+      if (Number(reply[0]) === 2) {
+        const remoteMark = parseDeliveryMark(reply[1]);
+        if (remoteMark) await reconcileAnticipated(phone, entry, remoteMark.sid);
+      } else if (Number(reply[0]) === 3) {
+        const previous = claimedItem(reply[2], String(reply[3] ?? id));
+        if (previous) await reconcileAnticipated(phone, entry, previous.sid);
       }
     } else markUnconfirmed(entry, at);
   }

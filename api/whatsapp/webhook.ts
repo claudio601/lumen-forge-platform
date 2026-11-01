@@ -530,6 +530,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                         const item = anticipated.item;
                         // [NOTA-REF] Sin reserva se dejo para handOff; no se cierra un intento que aun no ocurrio.
                         if (fieldsClaim.claimed || updateDealId === undefined) inBackground(() => settlePendingWrite(phone, item.id, dealResult.pendingWrite));
+                        else if (anticipated.status === 'memory') inBackground(async () => { await loadPendingWrites(phone); });
                 } else if (dealResult.pendingWrite) {
                         const queued = await enqueuePendingWrite(phone, dealResult.pendingWrite, transcriptSeq);
                         if (!queued) noteKept = false;
