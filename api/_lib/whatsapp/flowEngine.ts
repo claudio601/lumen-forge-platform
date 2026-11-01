@@ -4,6 +4,8 @@ import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
+import { findComunaMentions, findComunas, mentionsCompany, officialComuna } from './comunas.js';
+import type { ComunaMention } from './comunas.js';
 
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
 export type CaptureStatus = 'complete' | 'partial' | 'incomplete';
@@ -18,6 +20,9 @@ export interface CapturedFields {
   cantidad_varios?: string;
   proyecto_o_uso?: string;
   comuna_o_ciudad?: string;
+  // [COMUNA] Otras comunas que el cliente dio como lugar ("la obra en Lampa y la factura en Vina del
+  // Mar"), para la nota: la comuna es una sola.
+  comunas_otras?: string[];
   nombre_o_empresa?: string;
   correo?: string;
   // [RUT-VALIDO] RUT con formato NN.NNN.NNN-D (rutCapture.ts). rut_valido: calza el digito
@@ -84,8 +89,9 @@ export interface FlowResult {
   captured: CapturedFields;
   wantsHuman: boolean;
   closedFlow: boolean;
-  // [RUT-VALIDO] Un RUT que llega despues del cierre se suma a un negocio ya registrado: si
-  // Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no lo marca como fallido).
+  // [RUT-VALIDO] Un RUT (o, [TRANSCRIPCION], un correo) que llega despues del cierre se suma a un
+  // negocio ya registrado: si Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no
+  // lo marca como fallido).
   rutUpdate?: boolean;
 }
 
@@ -128,6 +134,9 @@ export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, nec
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
 // (o el paso del flujo fallo): nunca se dice "quedo registrada".
 export const MSG_DEAL_FAILED = 'No pude registrar tu solicitud por un problema t\u00e9cnico. Por favor, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
+// [REGISTRO] Otro mensaje del numero sigue registrando la solicitud y no termino a tiempo: no se afirma el
+// registro ni se da por fallido. Texto aprobado por el dueno (2026-10-31).
+export const MSG_DEAL_PENDING = 'Estoy terminando de registrar tu solicitud; te confirmo por este chat en un momento. Si no te llega la confirmaci\u00f3n, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
 // [RUT-VALIDO] El RUT no calza con su digito verificador: se pide de nuevo, una sola vez.
 // Texto aprobado por el dueno (2026-10-26).
 export const MSG_RUT_INVALID = 'El RUT que me enviaste no calza con su d\u00edgito verificador. \u00bfMe lo escribes de nuevo, con guion y d\u00edgito verificador? Por ejemplo: 12.345.678-5.';
@@ -188,6 +197,49 @@ const PRICE_INTENT_RE = /\b(precio|precios|cu[a\u00e1]nto (cuesta|vale|sale|cues
 const COMMERCIAL_INTENT_RE = /\b(cotizar|cotizaci[o\u00f3]n|comprar|necesito|busco)\b/i;
 const EXECUTIVE_RE = /\b(claudio|constanza)\b/i;
 
+// [TRANSCRIPCION] Un pedido nuevo explicito despues del cierre: "otro pedido", "otra solicitud", "otra
+// cotizacion", "otro proyecto", "tengo otra obra", "un nuevo pedido", "Nuevo pedido:", "Nueva solicitud:", "ademas
+// necesito cotizar" y "Otra cosa:" con un producto. Va antes que el correo tardio (lateEmail), que las
+// correcciones y que la conversacion cerrada sin resultado de Pipedrive (continueClosedWithoutDeal): el negocio
+// anterior no se toca y el flujo nuevo captura el pedido y el correo de ese mensaje.
+// Antes "Otro pedido: paneles LED ... Mi correo es X" cambiaba el correo del anterior.
+// No cuentan el que ya existe ("mi otro pedido", "la otra cotizacion"), el negado ("no es otro pedido", "es el
+// mismo, no otro proyecto", "para no hacer otro pedido") ni una pregunta ("Llego mi otro pedido?"), salvo la que
+// lo pide ("Puedo hacer otro pedido?"), ni la que pide reenviar la misma (SEND_BEFORE_RE).
+const NEW_THING = '(?:pedidos?|solicitud(?:es)?|cotizaci[o\\u00f3]n(?:es)?|proyectos?|compras?|requerimientos?|obras?)';
+const EXPLICIT_NEW_REQUEST_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:otr[oa]s?\\s+' + NEW_THING
+  + '|(?:(?:un|una|unos|unas)\\s+)?nuev[oa]s?\\s+' + NEW_THING
+  + '|adem[a\\u00e1]s\\s+(?:necesit|quier|requier)[a-z]*\\s+(?:cotizar|comprar|pedir)'
+  + '|(otra\\s+cosa))(?![a-z\\u00e0-\\u00fc])', 'gi');
+const EXISTING_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:el|la|los|las|lo|al|del|mi|mis|tu|tus|su|sus|nuestr[oa]s?|es[ea]s?|est[ea]s?|aquel(?:la)?s?)\s+$/i;
+const NEGATION_RE = /(?<![a-z\u00e0-\u00fc])(?:no|ni|sin|nunca|jam[a\u00e1]s|tampoco)(?![a-z\u00e0-\u00fc])/i;
+const ASKS_TO_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:puedo|podemos|podr[i\u00ed]a|podr[i\u00ed]amos|puede|pueden|se\s+puede|quiero|quisiera|queremos|necesito|necesitamos|me\s+gustar[i\u00ed]a)\s+(?:(?:hacer|pedir|solicitar|cotizar|enviar|mandar|ingresar|dejar|generar)(?:le|les)?\s+)?(?:(?:un|una)\s+)?$/i;
+const CLAUSE_MARKS = [',', ';', '.', ':', '!', '?', '\n', '\u00bf', '\u00a1'];
+const SENTENCE_END_RE = /[.!?\n]/;
+// "Me pueden enviar otra cotizacion? La anterior no me llego": enviar o mandar otra, sin un producto en el mensaje,
+// pide reenviar la misma o no trae nada nuevo; no es un pedido nuevo explicito (antes reiniciaba el flujo y la
+// solicitud anterior, quizas sin registrar, no se reintentaba). Con un producto si ("Me pueden enviar otra cotizacion
+// por 30 paneles LED?").
+const SEND_BEFORE_RE = /(?<![a-z\u00e0-\u00fc])(?:re)?(?:envi|env\u00ed|m[a\u00e1]nd)[a-z\u00e0-\u00fc]*\s+(?:(?:me|nos|le|les)\s+)?$/i;
+function explicitNewRequest(body: string): boolean {
+  const text = body.slice(0, MAX_FACTS);
+  for (const m of text.matchAll(EXPLICIT_NEW_REQUEST_RE)) {
+    const head = text.slice(Math.max(0, m.index - 60), m.index);
+    const clause = head.slice(Math.max(...CLAUSE_MARKS.map((c) => head.lastIndexOf(c))) + 1);
+    if (EXISTING_BEFORE_RE.test(head) || NEGATION_RE.test(clause)) continue;
+    const tail = text.slice(m.index);
+    const end = tail.search(SENTENCE_END_RE);
+    const sentence = head.slice(Math.max(...['.', '!', '?', '\n'].map((c) => head.lastIndexOf(c))) + 1) + (end < 0 ? tail : tail.slice(0, end + 1));
+    if ((sentence.includes('?') || sentence.includes('\u00bf')) && !ASKS_TO_ORDER_RE.test(clause)) continue;
+    // "Otra cosa:" pide algo nuevo solo con un producto en la misma oracion ("Otra cosa: mi correo es X" no).
+    const rest = end < 0 ? tail : tail.slice(0, end);
+    if (m[1] && !PRODUCTO_RE.test(rest)) continue;
+    if (SEND_BEFORE_RE.test(clause) && !PRODUCTO_RE.test(text)) continue;
+    return true;
+  }
+  return false;
+}
+
 function looksLikeNewRequest(body: string): boolean {
   const b = body.trim();
   if (NEW_REQ_SOLO_LUZ_RE.test(b)) return false;
@@ -207,7 +259,6 @@ const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|p
 const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
 // [CANTIDAD] Empieza donde empieza la palabra: sin eso, un texto largo sin "@" se recorria una vez por letra.
 const EMAIL_RE = /(?<![a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
-const CIUDAD_RE = /\b(santiago|maipu|pudahuel|quilicura|la florida|penalolen|nunoa|providencia|las condes|vitacura|lo barnechea|san miguel|la cisterna|el bosque|san bernardo|puente alto|valparaiso|vina del mar|concepcion|temuco|rancagua|talca|iquique|antofagasta|arica|copiapo|la serena|coihaique|punta arenas)\b/i;
 const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 
 // NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE — no es señal B2B por si sola
@@ -230,6 +281,128 @@ function extractEmail(text: string): string | undefined {
     if (!OWN_EMAIL_RE.test(email)) return email;
   }
   return undefined;
+}
+// [TRANSCRIPCION] La intencion de corregir el correo despues del cierre: "corregir/cambiar/actualizar mi correo",
+// "cambiar la direccion de correo", "mi correo no es X, es Y", "me equivoque de correo", "el correo esta mal", "el
+// correo que les di esta malo", "escribanme a otro correo". Como la del RUT (correctingRut), se detecta antes que
+// un pedido nuevo: "Necesito corregir mi correo: X" ya no empieza otro flujo. La negrita o la cursiva de WhatsApp
+// ("mi *correo*") no la tapan (correctsEmail).
+const EMAIL_NOUN = '(?:correo|mail|e-?mail|email)';
+const EMAIL_WORD = '(?:(?:la\\s+)?direcci[o\\u00f3]n\\s+de\\s+)?' + EMAIL_NOUN + '(?:\\s+electr[o\\u00f3]nico)?';
+const EMAIL_WRONG = '(?:mal[oa]?|incorrect[oa]|equivocad[oa]|err[o\\u00f3]ne[oa])';
+const EMAIL_CORRECTION_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:'
+  + '(?:corregir|corrijo|corrijan|corrige|correcci[o\\u00f3]n\\s+(?:de|del)|cambiar|cambio|cambien|cambia|actualizar|actualizo|actualicen|actualiza|modificar|modifiquen)\\s+(?:(?:el|la|mi|su|tu|de|del)\\s+)*' + EMAIL_WORD
+  + '|' + EMAIL_WORD + '\\s+(?:no\\s+es|correct[oa]|nuev[oa]|buen[oa]|' + EMAIL_WRONG + '|(?:est[a\\u00e1]|qued[o\\u00f3])\\s+' + EMAIL_WRONG + ')'
+  + '|' + EMAIL_WORD + '\\s+(?:[a-z\\u00e0-\\u00fc]+\\s+){1,5}?(?:est[a\\u00e1]|qued[o\\u00f3]|es|era|fue|sali[o\\u00f3])\\s+' + EMAIL_WRONG
+  + '|me\\s+equivoqu[e\\u00e9]\\s+(?:de|en\\s+el|con\\s+el)\\s+' + EMAIL_WORD
+  + '|(?:otr[oa]|nuev[oa]|distint[oa]|diferente)\\s+(?:direcci[o\\u00f3]n\\s+de\\s+)?' + EMAIL_NOUN
+  + ')(?![a-z\\u00e0-\\u00fc])', 'i');
+/** [TRANSCRIPCION] El mensaje pide corregir el correo (EMAIL_CORRECTION_RE), sin la negrita ni la cursiva de WhatsApp. */
+function correctsEmail(body: string): boolean {
+  return EMAIL_CORRECTION_RE.test(body.slice(0, MAX_FACTS).replace(/[*_~]/g, ' '));
+}
+// Un correo negado o que el cliente descarta: "no es X", "ni X", "en vez de X", "antes era X", "X esta mal", "X no".
+const EMAIL_NEGATED_BEFORE_RE = /(?:(?<![a-z\u00e0-\u00fc])(?:no|ni)(?:\s+(?:es|era|ser[a\u00e1]|va|fue|uses?|usen|usar))?|(?<![a-z\u00e0-\u00fc])en\s+(?:vez|lugar)\s+de(?:l)?|(?<![a-z\u00e0-\u00fc])antes(?:\s+(?:era|fue|dije|puse|di|escrib[i\u00ed]|ten[i\u00ed]a))?|(?<![a-z\u00e0-\u00fc])(?:anterior|viejo|equivocado|incorrecto|malo)(?:\s+(?:era|es|fue))?)\s*:?\s*(?:(?:el|mi|ese|este)\s+)?(?:(?:correo|mail|e-?mail|email)\s*:?\s*)?$/i;
+// Tambien con otras palabras entre la negacion y el correo, en la misma clausula: "No me escriban a X", "No envien
+// nada a X", "Mi correo nunca fue X", "Nunca use X", "No me escriban por ningun motivo a X", "No utilizo la
+// direccion de correo X" (R9 de la ronda 3: antes valian hasta 4 palabras y una negacion mas larga cambiaba el
+// correo). La clausula del correo empieza despues de la puntuacion, de un "sino", "pero", "aunque", "y" o "ahora",
+// o del correo anterior ("no es X sino Y" es Y; "No tengo RUT. Mi correo es Y" tambien). Un correo que va solo en su
+// linea, entre parentesis o tras una coma sigue a la clausula anterior cuando esta lo presenta o le falta el
+// complemento: "No me escriban a este correo:\nX", "No usen el correo antiguo (X)", "No me escriban, por favor, a X"
+// (EMAIL_SOFT_CUTS). La negacion vale para su verbo y lo que depende de el ("No quiero que me escriban a X"), no para
+// otro verbo o "mi correo es" que vienen despues ("No me llego nada al correo escribanme a Y", "No tengo RUT mi
+// correo es Y"). No cuentan "si no", "no olviden / no se olviden / no duden / no dejen de escribirme a X", "no hay
+// problema" ni el "no mas" de "escribanme no mas a X". Con una negacion que no se sabe a que se refiere ("No se si
+// es X"), el correo no se toma: queda el vigente.
+const EMAIL_CLAUSE_CUT_RE = /[,;.!?\n\u00bf\u00a1()]|(?<![a-z\u00e0-\u00fc])(?:sino|pero|aunque|y|ahora)(?![a-z\u00e0-\u00fc])/gi;
+// Los cortes que el correo puede cruzar hacia atras; el fin de la oracion y "pero", "sino" o "ahora" no.
+const EMAIL_SOFT_CUTS = new Set([',', '\n', '(', ')']);
+// Lo que no dice nada propio entre el corte y el correo ("a", "al", "por favor", los dos puntos).
+const EMAIL_FILLER_RE = /^[\s,:()]*(?:(?:a|al|por\s+favor|porfa(?:vor)?|plis|please)(?![a-z\u00e0-\u00fc])[\s,:()]*)*$/i;
+const EMAIL_PREPOSITION_RE = /(?<![a-z\u00e0-\u00fc])al?(?![a-z\u00e0-\u00fc])/i;
+// La clausula anterior presenta el correo: termina en "este correo:", "el correo antiguo" o en dos puntos.
+const EMAIL_POINTER_RE = /(?:(?:correo|mail|e-?mail|email)(?:\s+[a-z\u00e0-\u00fc]+)?\s*:?|:)\s*$/i;
+const EMAIL_CLAUSE_NEGATOR_RE = /(?<![a-z\u00e0-\u00fc])(?<!(?<![a-z\u00e0-\u00fc])si\s+)(?:no|ni|nunca|jam[a\u00e1]s|tampoco)(?![a-z\u00e0-\u00fc])(?!\s+(?:(?:me|nos|se|te|le|les)\s+)?(?:olvid|dud|dej|import|preocup)[a-z\u00e0-\u00fc]*)(?!\s+(?:hay|habr[a\u00e1])\s+(?:problemas?|dramas?|rollos?|inconvenientes?|apuros?|l[i\u00ed]os?)(?![a-z\u00e0-\u00fc]))(?!\s+pasa\s+nada)/gi;
+// Los pronombres que van entre la negacion y su verbo ("No me escriban", "Jamas les di").
+const EMAIL_CLITICS_RE = /^(?:\s+(?:me|nos|se|te|le|les|lo|la|los|las)(?![a-z\u00e0-\u00fc]))*/i;
+const EMAIL_WORD_RE = /^\s+[a-z\u00e0-\u00fc]+/i;
+// Lo que vuelve a presentar el correo despues de la negacion: otro verbo ("escribanme a", "usen", "envien") o "mi
+// correo es", "mi correo nuevo es", "el correo correcto:". Tras un "que" sigue negado ("No quiero que me escriban").
+const EMAIL_FRESH_VERB_RE = /(?<![a-z\u00e0-\u00fc])(?:escr[i\u00ed]b[a-z\u00e0-\u00fc]*|env[i\u00ed][a-z\u00e0-\u00fc]*|m[a\u00e1]nd[a-z\u00e0-\u00fc]*|cont[a\u00e1]ct[a-z\u00e0-\u00fc]*|resp[o\u00f3]nd[a-z\u00e0-\u00fc]*|us(?:e|en|a|an|o|amos|ar)|utili[cz][a-z\u00e0-\u00fc]*|ocup[a-z\u00e0-\u00fc]*|anot[a-z\u00e0-\u00fc]*)(?![a-z\u00e0-\u00fc])/i;
+const EMAIL_FRESH_NOUN_RE = /(?<![a-z\u00e0-\u00fc])(?:mi|nuestro|el)\s+(?:correo|mail|e-?mail|email)(?:\s+(?:nuevo|correcto|bueno|actual|real|personal|de\s+contacto|electr[o\u00f3]nico))*\s*(?:es|ser[i\u00ed]a|queda|:)/i;
+const EMAIL_SUBORDINATE_RE = /(?<![a-z\u00e0-\u00fc])que(?![a-z\u00e0-\u00fc])/i;
+// Entre dos correos solo una "o" ("u"), "ni", "y" ("e") o una coma ("No usen X o Y", "ni X ni Y"): el segundo
+// sigue la suerte del primero.
+const EMAIL_SAME_LIST_RE = /^\s*(?:,|o|u|ni|y|e)?\s*(?:a|al)?\s*$/i;
+const MAX_EMAIL_CLAUSE = 200;
+/** [TRANSCRIPCION] La clausula que termina en el correo; `text` va desde el correo anterior. */
+function emailClause(text: string): string {
+  const cuts = [...text.matchAll(EMAIL_CLAUSE_CUT_RE)];
+  let k = cuts.length - 1;
+  let from = k >= 0 ? cuts[k].index + cuts[k][0].length : 0;
+  while (k >= 0 && EMAIL_SOFT_CUTS.has(cuts[k][0]) && EMAIL_FILLER_RE.test(text.slice(from))) {
+    const cut = cuts[k];
+    const previous = k > 0 ? cuts[k - 1].index + cuts[k - 1][0].length : 0;
+    if (cut[0] !== '(' && !EMAIL_PREPOSITION_RE.test(text.slice(from)) && !EMAIL_POINTER_RE.test(text.slice(previous, cut.index))) break;
+    from = previous;
+    k--;
+  }
+  return text.slice(from);
+}
+/** [TRANSCRIPCION] La presentacion `re` aparece en `text` y no depende de un "que" anterior. */
+function freshIn(text: string, re: RegExp): boolean {
+  const m = re.exec(text);
+  return m !== null && !EMAIL_SUBORDINATE_RE.test(text.slice(0, m.index));
+}
+/** [TRANSCRIPCION] La clausula del correo (`text` va desde el correo anterior) lo niega. */
+function negatedClause(text: string): boolean {
+  const clause = emailClause(text);
+  const negators = [...clause.matchAll(EMAIL_CLAUSE_NEGATOR_RE)];
+  const last = negators[negators.length - 1];
+  if (!last) return false;
+  const rest = clause.slice(last.index + last[0].length);
+  // "Escribanme no mas a X": el "no mas" despues del verbo no niega ("no me vayan a escribir nunca mas a X" si).
+  if (negators.length === 1 && /^no$/i.test(last[0]) && /^\s+m[a\u00e1]s(?![a-z\u00e0-\u00fc])/i.test(rest)
+    && EMAIL_FRESH_VERB_RE.test(clause.slice(0, last.index))) return false;
+  const object = rest.slice(EMAIL_CLITICS_RE.exec(rest)?.[0].length ?? 0);
+  // "No, mi correo es X" sin la coma: la negacion suelta no niega lo que sigue.
+  if (EMAIL_FRESH_NOUN_RE.exec(object.trimStart())?.index === 0) return false;
+  const verb = EMAIL_WORD_RE.exec(object)?.[0] ?? '';
+  const tail = object.slice(verb.length);
+  // "No es mi correo: X": tras "es", "mi correo" sigue negado.
+  const copula = /^\s+(?:es|era|fue|son|ser[a\u00e1]|ser[i\u00ed]a)$/i.test(verb);
+  return !freshIn(tail, EMAIL_FRESH_VERB_RE) && (copula || !freshIn(tail, EMAIL_FRESH_NOUN_RE));
+}
+// Despues del correo: "X esta mal", "X no.", "X no lo usen", "X no por favor", "X ya no".
+const EMAIL_NEGATED_AFTER_RE = /^\s*(?:est[a\u00e1]\s+mal|qued[o\u00f3]\s+mal|es\s+(?:incorrecto|el\s+(?:anterior|viejo|malo|equivocado))|era\s+el\s+anterior|no\s+(?:es|va|sirve|existe|funciona|me\s+llega)|no\s+(?:lo|la)\s+(?:us|utili[cz]|ocup|revis|tom|anot|consider)[a-z\u00e0-\u00fc]*|no\s*(?:[,.;!]|por\s+favor)|ya\s+no|equivocado|incorrecto|mal\s+escrito)/i;
+// El que la correccion marca como el bueno: "el correcto es Y", "el nuevo es Y", "ahora es Y".
+const EMAIL_MARKED_RE = /(?:correct[oa]|buen[oa]|nuev[oa]|actualizad[oa]|ahora)(?:\s+(?:es|ser[i\u00ed]a))?\s*:?\s*$/i;
+interface EmailCandidate { email: string; marked: boolean }
+/** [TRANSCRIPCION] Los correos del cliente en el mensaje (sin los de eLIGHTS), sin los que niega ni repetidos. */
+function affirmedEmails(text: string): EmailCandidate[] {
+  const normalized = text.slice(0, MAX_FACTS);
+  const out: EmailCandidate[] = [];
+  let previousEnd: number | undefined;
+  let previousNegated = false;
+  for (const m of normalized.matchAll(EMAIL_RE_ALL)) {
+    const email = m[0].replace(/[.,;:!]+$/, '').toLowerCase();
+    if (OWN_EMAIL_RE.test(email)) continue;
+    // La negrita o la cursiva de WhatsApp ("*no* es X") no tapan la negacion.
+    const before = normalized.slice(Math.max(0, m.index - 60), m.index).replace(/[*_~]/g, ' ');
+    const after = normalized.slice(m.index + m[0].length, m.index + m[0].length + 40).replace(/[*_~]/g, ' ');
+    const clause = normalized.slice(Math.max(previousEnd ?? 0, m.index - MAX_EMAIL_CLAUSE), m.index).replace(/[*_~]/g, ' ');
+    const negated = EMAIL_NEGATED_BEFORE_RE.test(before) || negatedClause(clause) || EMAIL_NEGATED_AFTER_RE.test(after)
+      || (previousEnd !== undefined && previousNegated && EMAIL_SAME_LIST_RE.test(clause));
+    previousEnd = m.index + m[0].length;
+    previousNegated = negated;
+    if (negated) continue;
+    const marked = EMAIL_MARKED_RE.test(before);
+    const seen = out.find((c) => c.email === email);
+    if (seen) seen.marked ||= marked;
+    else out.push({ email, marked });
+  }
+  return out;
 }
 /** [CIERRE-HONESTO] El correo que trae Claude, solo si es texto y tiene forma de correo. */
 function emailFrom(value: unknown): string | undefined {
@@ -262,14 +435,7 @@ export function looksLikePersonName(value: unknown): value is string {
   const last = words[words.length - 1];
   if (!NAME_WORD_RE.test(first) || !NAME_WORD_RE.test(last)) return false;
   if (!words.slice(1, -1).every((w) => NAME_WORD_RE.test(w) || NAME_PARTICLE_RE.test(w))) return false;
-  const plain = value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return !new RegExp('^(?:' + CIUDAD_RE.source + ')$', 'i').test(plain);
-}
-// [NO-PISAR] La comuna sin importar tildes ni enies (Maipu, Nunoa o Concepcion escritas con ellas), devuelta como
-// la escribio el cliente: CIUDAD_RE las tiene sin tildes y antes solo las encontraba asi.
-function extractCiudad(text: string): string | undefined {
-  const m = bareText(text).match(CIUDAD_RE);
-  return m ? text.slice(m.index, m.index + m[0].length) : undefined;
+  return officialComuna(value) === undefined;
 }
 /** [NO-PISAR] El texto sin tildes ni enies y del mismo largo, para buscar en el y volver al original. */
 function bareText(text: string): string {
@@ -348,7 +514,41 @@ export function getFlowState(phone: string): FlowState {
 }
 
 export function saveFlowState(phone: string, state: FlowState): void {
-  flowStates.set(phone, state);
+  flowStates.set(phone, withOfficialComunas(state));
+}
+
+/**
+ * [COMUNA] Un estado guardado por una version anterior (lo que restaura stateStore.ts) puede traer una
+ * comuna que no es de la lista oficial ("Moragas", de un correo) o escrita de otra forma ("nunoa",
+ * "Maipu, Region Metropolitana"): queda con su nombre oficial o, si no hay ninguna, se borra y el bot
+ * la vuelve a preguntar (la etapa 3 vuelve a la 2). Lo que guarda el flujo ya viene oficial: no cambia.
+ */
+function withOfficialComunas(state: FlowState): FlowState {
+  const captured: CapturedFields = { ...state.captured };
+  let changed = false;
+  for (const field of ['comuna_o_ciudad', 'install_comuna'] as const) {
+    const value: unknown = captured[field];
+    if (value === undefined) continue;
+    const name = officialComuna(value) ?? (typeof value === 'string' ? findComunas(value.slice(0, 200), { answering: true })[0] : undefined);
+    if (name === value) continue;
+    changed = true;
+    if (name) captured[field] = name;
+    else delete captured[field];
+  }
+  const otras: unknown = captured.comunas_otras;
+  if (otras !== undefined) {
+    const list = Array.isArray(otras) ? otras : [];
+    const valid = [...new Set(list.map((o) => officialComuna(o)).filter((o): o is string => Boolean(o)))].slice(0, MAX_COMUNAS_OTRAS);
+    if (valid.length !== list.length || valid.some((o, i) => o !== list[i]) || !Array.isArray(otras)) {
+      changed = true;
+      if (valid.length) captured.comunas_otras = valid;
+      else delete captured.comunas_otras;
+    }
+  }
+  if (!changed) return state;
+  console.log('[flowEngine] comuna guardada fuera de la lista oficial \u2014 se normaliza o se vuelve a preguntar');
+  const askAgain = state.stage === 'stage3' && !state.isInstallFlow && state.captured.comuna_o_ciudad !== undefined && !captured.comuna_o_ciudad;
+  return { ...state, captured, ...(askAgain ? { stage: 'stage2' as const, repreguntasStage2: 0 } : {}) };
 }
 
 /**
@@ -404,10 +604,12 @@ function buildInstallCaptureMsg(captured: CapturedFields): string {
 }
 
 // [INSTALL-FLOW] Registra campos de instalacion desde el mensaje del usuario
+// [COMUNA] answering: la ultima pregunta del bot pedia la comuna (la lista de instalacion o MSG2).
 function mergeInstallFields(
   captured: CapturedFields,
   body: string,
-  claudeParsed: { nombre?: string; empresa?: string; correo?: string; comuna_o_ciudad?: string; proyecto_o_uso?: string; },
+  claudeParsed: ClaudeFields,
+  answering = false,
 ): CapturedFields {
   const updated = { ...captured };
   // [CIERRE-HONESTO] El nombre y el correo que ya dio en el flujo de productos sirven para la
@@ -420,10 +622,13 @@ function mergeInstallFields(
     const email = emailFrom(claudeParsed.correo) ?? extractEmail(body) ?? updated.correo;
     if (email) updated.install_correo = email;
   }
-  if (!updated.install_comuna) {
-    const ciudad = claudeParsed.comuna_o_ciudad ?? extractCiudad(body);
-    if (ciudad) updated.install_comuna = ciudad;
-  }
+  // [COMUNA] La misma regla que la comuna de productos: se corrige ("Perdon, es en Colina") y las demas
+  // van a "Otras comunas mencionadas" (antes solo se llenaba una vez).
+  const facts = factsText(body, claudeParsed);
+  const assertive = maskNegated(withoutQuestions(facts));
+  mergeComuna(updated, 'install_comuna', claudeParsed.comuna_o_ciudad, {
+    answering, company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed: maskNegated(facts), base: assertive,
+  });
   if (!updated.install_tipo_proyecto) {
     const tipo = claudeParsed.proyecto_o_uso ?? extractInstallTipoProyecto(body);
     if (tipo) updated.install_tipo_proyecto = tipo;
@@ -800,10 +1005,26 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
 // del 16-10: "Proyecto/uso: Spa"). Tampoco lo es una parte del nombre de la empresa.
 const LEGAL_FORM_RE = /^(?:s\.?\s?p\.?\s?a\.?|ltda\.?|limitada|s\.?\s?a\.?|e\.?\s?i\.?\s?r\.?\s?l\.?|sociedad(?:\s+an[o\u00f3]nima)?)$/i;
 const SPA_PROJECT_RE = /\bpara\s+(?:un|una|el|la|mi|nuestro|nuestra)\s+spa\b/i;
+// [NO-PISAR] El local, la tienda o la bodega de eLIGHTS donde el cliente retira o va tampoco es el proyecto: "con
+// retiro en su local", "retiro el pedido en la bodega", "puedo pasar a su tienda" (R8 de la ronda 3: "Comuna: Colina
+// con retiro en su local" dejaba "Proyecto/uso: local"). El del cliente si ("focos para su local", "retirar los
+// tubos de la bodega"). Ir, pasar o visitar, en cualquier tiempo y tambien "a buscarlos", solo con "su": "pasare por su
+// tienda", "ire a su local", "paso a buscarlos a su tienda"; "los vamos a pasar a la oficina" es la del cliente.
+const STORE_PLACE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:'
+  + 'retir[a-z\\u00e0-\\u00fc]*(?:\\s+(?:el|la|los|las|mi|mis|nuestr[oa]s?)\\s+(?:pedidos?|compras?|productos?|mercader[i\\u00ed]as?|encargos?))?'
+  + '\\s+(?:en|a|al|por|desde)\\s+(?:(?:su|sus|la|el|vuestr[oa]s?)\\s+)?'
+  + '|(?:ir|ir[e\\u00e9]|iremos|ir[i\\u00ed]a|ir[i\\u00ed]amos|voy|vamos|pas(?:ar|o|e|amos|ar[e\\u00e9]|aremos|ar[i\\u00ed]a|ar[i\\u00ed]amos)'
+  + '|visit(?:ar|o|e|amos|ar[e\\u00e9]|aremos|ar[i\\u00ed]a))(?:\\s+a\\s+(?:buscar|retirar)(?:l[oa]s?)?)?\\s+(?:en|a|al|por)\\s+(?:su|sus|vuestr[oa]s?)\\s+'
+  + ')(?:locale?s?|tiendas?|bodegas?|oficinas?|sucursal(?:es)?|showroom)(?![a-z\\u00e0-\\u00fc])', 'gi');
+/** [NO-PISAR] El texto sin el lugar de la tienda (STORE_PLACE_RE), del mismo largo. */
+function withoutStorePlaces(text: string): string {
+  return text.replace(STORE_PLACE_RE, (m) => ' '.repeat(m.length));
+}
 function claudeProject(claudeParsed: ClaudeFields, body: string): string | undefined {
   const value = claudeText(claudeParsed.proyecto_o_uso);
   if (!value) return undefined;
   if (LEGAL_FORM_RE.test(value) && !SPA_PROJECT_RE.test(body)) return undefined;
+  if (inMessage(value, body) && !inMessage(value, withoutStorePlaces(body))) return undefined;
   const empresa = claudeText(claudeParsed.empresa) ?? claudeText(claudeParsed.nombre);
   if (empresa && comparable(empresa).includes(comparable(value))) return undefined;
   return value;
@@ -837,6 +1058,64 @@ function factsText(body: string, claudeParsed: ClaudeFields): string {
     if (trimmed.length > 2) text = removeLoose(text, trimmed);
   }
   return text.replace(EMAIL_RE_ALL, ' ').replace(RAZON_SOCIAL_RE, ' ');
+}
+
+// [COMUNA] La comuna de la instalacion: con varias en el mensaje, la que eligio Claude (si es una de ellas)
+// o la primera. La de la factura no cuenta, y la de donde es la persona ("Soy de Maipu. La obra es en Lampa.")
+// solo si no hay ninguna de la obra: Claude elige dentro de ese mismo grupo.
+function pickComuna(mentions: ComunaMention[], claudeValue: unknown): string | undefined {
+  const obra = mentions.filter((m) => !m.billing && !m.origin).map((m) => m.name);
+  const places = obra.length ? obra : mentions.filter((m) => !m.billing).map((m) => m.name);
+  const claudePick = officialComuna(claudeText(claudeValue));
+  return claudePick && places.includes(claudePick) ? claudePick : places[0];
+}
+const MAX_COMUNAS_OTRAS = 5;
+/** [COMUNA] Las comunas del mensaje que no quedaron como la comuna van a "Otras comunas mencionadas". */
+function noteOtherComunas(merged: CapturedFields, mentions: ComunaMention[], kept: string | undefined): void {
+  const current = [kept, merged.comuna_o_ciudad, merged.install_comuna].filter(Boolean).map((c) => comparable(c as string));
+  const others = [...(merged.comunas_otras ?? [])];
+  for (const { name: comuna } of mentions) {
+    if (!current.includes(comparable(comuna)) && !others.some((o) => comparable(o) === comparable(comuna))) others.push(comuna);
+  }
+  if (others.length) merged.comunas_otras = others.slice(0, MAX_COMUNAS_OTRAS);
+}
+/**
+ * [COMUNA] La comuna sale solo de la lista oficial y cuando el texto la presenta como lugar o contesta
+ * la pregunta por ella (findComunaMentions): lo que devuelve Claude solo elige entre esas. Una vacia se
+ * llena con lo que el cliente afirma (o, si no, pregunta: "despachan a Temuco?"); una capturada cambia
+ * solo si lo que afirma trae una comuna (o varias, y Claude eligio una), y el cambio queda anotado. La
+ * comuna de la factura ("la facturacion en Vina del Mar"), la de donde es la persona ("soy de Maipu") y las
+ * demas van a "Otras comunas mencionadas". Lo que ya no vale ("antes era en Lampa") no es una mencion: "Corrijo: ahora es en Colina, antes era en
+ * Lampa" cambia a Colina. Vale igual para la comuna de la instalacion (`field`).
+ */
+function mergeComuna(
+  merged: CapturedFields,
+  field: 'comuna_o_ciudad' | 'install_comuna',
+  claudeValue: unknown,
+  texts: { answering: boolean; company: boolean; assertive: string; affirmed: string; base: string },
+): void {
+  const opts = { answering: texts.answering, company: texts.company };
+  const stated = findComunaMentions(texts.assertive, opts);
+  const current = merged[field];
+  if (!current) {
+    const comunas = stated.length ? stated : findComunaMentions(texts.affirmed, opts);
+    const pick = pickComuna(comunas, claudeValue);
+    if (pick) merged[field] = pick;
+    noteOtherComunas(merged, comunas, pick);
+    return;
+  }
+  // withOfficialComunas deja la capturada con su nombre oficial. De donde es la persona ("Soy Ana Prueba de
+  // Maipu", "desde Maipu") no cambia la obra: va a "Otras comunas mencionadas".
+  const inBase = findComunaMentions(texts.base, opts).filter((m) => !m.billing && !m.origin).map((m) => m.name);
+  if (inBase.length && !inBase.includes(current)) {
+    const claudePick = officialComuna(claudeText(claudeValue));
+    const change = inBase.length === 1 ? inBase[0] : claudePick && inBase.includes(claudePick) ? claudePick : undefined;
+    if (change) {
+      merged[field] = change;
+      noteChange(merged, 'comuna_o_ciudad', current, change);
+    }
+  }
+  noteOtherComunas(merged, stated, undefined);
 }
 
 // PASO 1: MERGE de los campos del flujo de productos.
@@ -900,9 +1179,11 @@ function mergeProductFields(
   // ninguna, la del mensaje entero llena el dato vacio.
   mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding);
   const claudeProy = claudeProject(claudeParsed, body);
-  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, extractProyecto(assertive) ?? extractProyecto(affirmed)), backed(claudeProy, rule(PROYECTO_RE), base));
-  const claudeCiudad = claudeText(claudeParsed.comuna_o_ciudad);
-  keepOrChange(merged, 'comuna_o_ciudad', fillWith(claudeCiudad, extractCiudad(assertive) ?? extractCiudad(affirmed)), backed(claudeCiudad, rule(CIUDAD_RE), base));
+  const ownProject = (text: string) => extractProyecto(withoutStorePlaces(text));
+  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(base), PROYECTO_RE), base));
+  mergeComuna(merged, 'comuna_o_ciudad', claudeParsed.comuna_o_ciudad, {
+    answering: Boolean(question?.asks.includes('comuna_o_ciudad')), company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
+  });
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
   // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
@@ -941,7 +1222,7 @@ function mergeProductFields(
 function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): FlowResult {
   const hadEmail = Boolean(flowEmail(state));
   const late = state.isInstallFlow
-    ? { merged: mergeInstallFields(state.captured, body, claudeParsed), leadType: state.leadType }
+    ? { merged: mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)), leadType: state.leadType }
     : mergeProductFields(state, body, claudeParsed);
   const captureStatus = state.isInstallFlow ? computeInstallCaptureStatus(late.merged) : computeCaptureStatus(late.merged, late.leadType);
   const next: FlowState = { ...state, captured: late.merged, captureStatus, leadType: late.leadType };
@@ -982,6 +1263,31 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
   return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
+/**
+ * [TRANSCRIPCION] Conversacion cerrada con el negocio registrado: un correo distinto del capturado
+ * (el corregido despues del cierre) se suma al mismo negocio, como el RUT tardio: nota con el correo
+ * nuevo, la linea de cambios y la conversacion hasta este mensaje. Antes quedaba solo en la
+ * transcripcion, a la espera de un pedido nuevo. La persona de Pipedrive conserva el correo anterior.
+ * Solo vale el correo escrito en este mensaje: Claude ve el historial y puede repetir uno anterior.
+ */
+function lateEmail(phone: string, state: FlowState, body: string, correcting: boolean): FlowResult | undefined {
+  const field = state.isInstallFlow ? 'install_correo' : 'correo';
+  const before = state.captured[field];
+  // [TRANSCRIPCION] Un correo negado nunca se toma ("Mi correo no es X, es Y" es Y). Al corregir, el capturado es
+  // el que se corrige ("cambiar X por Y"). Con varios correos y ninguno marcado ("el correcto es Y"), no cambia nada.
+  let candidates = affirmedEmails(body);
+  if (correcting && before) candidates = candidates.filter((c) => c.email !== before.toLowerCase());
+  if (candidates.length > 1) candidates = candidates.filter((c) => c.marked);
+  const email = candidates.length === 1 ? candidates[0].email : undefined;
+  if (!email || email === before?.toLowerCase()) return undefined;
+  const captured: CapturedFields = { ...state.captured, [field]: email };
+  if (before) captured.cambios = [...(captured.cambios ?? []), 'Correo: antes ' + before + ', ahora ' + email].slice(-MAX_CAMBIOS);
+  const next: FlowState = { ...state, captured };
+  saveFlowState(phone, next);
+  console.log('[flowEngine] correo nuevo despues del cierre - se suma al negocio registrado');
+  return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus: next.captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+}
+
 export function processFlowStep(
   phone: string,
   body: string,
@@ -1013,6 +1319,16 @@ export function recordNoQuestion(phone: string): void {
 }
 
 /**
+ * [COMUNA] La ultima pregunta del bot pedia la comuna: la lista de instalacion, si todavia le faltaba
+ * (con "una casa en Lampa" pide solo el nombre y el correo: "Soy Ana Prueba de Maipu" no contesta la
+ * comuna), o MSG2.
+ */
+function answersComuna(state: FlowState): boolean {
+  if (state.stage === 'install_capture') return !state.captured.install_comuna;
+  return Boolean(lastQuestionOf(state)?.asks.includes('comuna_o_ciudad'));
+}
+
+/**
  * [CANTIDAD] La ultima pregunta del bot. Un estado guardado antes de este cambio no la trae: se
  * deduce de la etapa (el saludo o la repregunta de la etapa 1, MSG2 o MSG3).
  */
@@ -1039,14 +1355,28 @@ function flowStep(
 
   if (state.stage === 'closed') {
     const correctingRut = state.deal === 'registered' && /\brut\b/i.test(body) && /\b(?:corregir|corrijo|correcci[oó]n|correcto|actualizar|cambiar|cambio|modificar)\b/i.test(body);
-    const newRequest = !correctingRut && (looksLikeNewRequest(body) || installRequested(maskNegated(body)));
+    const correctingEmail = state.deal === 'registered' && correctsEmail(body);
+    // [TRANSCRIPCION] Un pedido nuevo explicito gana a las correcciones; las correcciones, a un pedido nuevo que
+    // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
+    const explicit = explicitNewRequest(body);
+    const newRequest = explicit
+      || (!correctingRut && !correctingEmail && (looksLikeNewRequest(body) || installRequested(maskNegated(body))));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
-    if (!state.deal && (!newRequest || messageEmail(body, claudeParsed))) {
+    // [TRANSCRIPCION] Salvo un pedido nuevo explicito ("Otro pedido: ... Mi correo es X"): empieza otra conversacion
+    // con ese correo, tambien si la anterior tenia correo y todavia no hay resultado de Pipedrive (decision 4 del
+    // dueno; R10 de la ronda 3: antes se mezclaba con el pedido anterior). Lo capturado en la anterior no se
+    // reintenta aparte.
+    if (!state.deal && !explicit && (!newRequest || messageEmail(body, claudeParsed))) {
       return continueClosedWithoutDeal(phone, state, body, claudeParsed);
     }
     if (!newRequest) {
-      const late = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
+      // [TRANSCRIPCION] El RUT y el correo tardios van al mismo negocio; si llegan juntos, el correo
+      // parte del estado que ya trae el RUT.
+      const lateRutResult = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
+      const late = state.deal === 'registered'
+        ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
+        : undefined;
       if (late) return late;
       return {
         reply: closedReply(state),
@@ -1087,7 +1417,7 @@ function flowStep(
   const isAlreadyInstallFlow = state.isInstallFlow || state.stage === 'install_capture';
 
   if (isInstallIntent && !isAlreadyInstallFlow) {
-    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed);
+    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
@@ -1102,7 +1432,7 @@ function flowStep(
   }
 
   if (state.stage === 'install_capture') {
-    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed);
+    const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);

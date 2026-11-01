@@ -89,6 +89,8 @@ const RUT_SINTETICO = '77.123.456-9'; // dígito verificador válido (módulo 11
 const TECNICO = /problema t[eé]cnico/i;
 
 let seq = 0;
+// Un MessageSid por mensaje, como Twilio: el registro local deduplica tambien sin Upstash (H11).
+let sidSeq = 0;
 /** Un teléfono nuevo por prueba: el estado del bot vive en la memoria del módulo. */
 const nextPhone = () => '+56900000' + String(100 + ++seq);
 
@@ -120,7 +122,7 @@ function replyText(xml: string | undefined): string {
 async function send(phone: string, body: string, claude: Record<string, unknown> = {}): Promise<{ status: number; reply: string }> {
   sim.claude.push(JSON.stringify({ wantsHuman: false, qualifiesForDeal: false, summary: 'Resumen de prueba.', ...claude }));
   const res = fakeRes();
-  await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMtest' + seq, NumMedia: '0' }), res);
+  await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMtest' + seq + '-' + ++sidSeq, NumMedia: '0' }), res);
   return { status: res.statusCode, reply: replyText(res.body) };
 }
 
@@ -422,7 +424,8 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     expect(sim.deals).toHaveLength(1);
     const note = sim.notes[0].content;
     expect(note).not.toContain('[object Object]');
-    expect(note).toMatch(/^Resumen bot: .+/m);
+    // [RESUMEN] PR 3: el resumen va en su sección.
+    expect(note).toMatch(/^-- RESUMEN DEL BOT \(interpretación, no dato\) --\n.+/m);
     for (const value of Object.values(sim.updates[0].fields)) expect(typeof value).toBe('string');
   });
 
