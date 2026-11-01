@@ -371,3 +371,37 @@ describe('ronda 7 (Codex, ronda 3)', () => {
     expect(readQuantity(text).value).toBeUndefined();
   });
 });
+
+describe('separador de miles con punto (verificación adversaria de la PR #142)', () => {
+  // 1 a 3 cifras y luego un grupo de exactamente 3, seguido de la unidad o el producto: es un entero.
+  it.each([
+    ['1.000 focos', 1000],
+    ['Necesito 1.000 focos LED', 1000],
+    ['1.500 paneles LED', 1500],
+    ['necesito 2.500 paneles', 2500],
+    ['son 12.000 tubos', 12000],
+    ['12 focos', 12],
+  ])('%s → %i', (text, expected) => {
+    expect(readQuantity(text, { claude: '1' })).toEqual({ value: expected, explicit: true });
+  });
+
+  it.each([
+    // metros: es una medida, como "10 metros de cinta" (el bot pregunta las unidades)
+    '10.000 metros de cinta LED',
+    'una tira de 1.5 metros',
+    'una tira de 1,5',
+    'presupuesto de $1.000',
+    'Comercial Prueba SpA, RUT 76.123.456-0',
+    'mi celular es +56 9 1234 5678',
+    'mi celular es 9 1234 5678',
+  ])('%s → vacía, aunque la pregunta pidiera la cantidad y Claude diga el número', (text) => {
+    const number = text.match(/\d[\d.,]*/)?.[0] ?? '';
+    for (const claude of [number, number.replace(/\./g, '')]) {
+      expect(readQuantity(text, { asked: true, claude }).value).toBeUndefined();
+    }
+  });
+
+  it('"2 . 000" con espacios no es un número con separador de miles', () => {
+    expect(readQuantity('necesito 2 . 000 focos').value).not.toBe(2000);
+  });
+});
