@@ -69,6 +69,17 @@ const SEP = '[\\s:#,]*';
 // es cerrado: exige dos puntos o "es (el)", nunca un folio o telefono.
 const QUOTE_REFERENCE = 'de\\s+(?:la|mi|nuestra)\\s+(?:(?:otra|nueva|misma|anterior)\\s+cotizaci[o\\u00f3]n(?:\\s+anterior)?|cotizaci[o\\u00f3]n\\s+anterior)';
 const QUOTE_BRIDGE = `${QUOTE_REFERENCE}(?:\\s*:\\s*|\\s+es\\s+(?:el\\s+)?)`;
+// Un rechazo en la misma oracion ("No usen el RUT de la otra cotizacion: X", "X esta malo", "(no es mio)")
+// deja el puente sin usar, como en main.
+const REJECTED_RE = /(?<![a-z\u00e0-\u00ff])(?:no|ni|nunca|jam[a\u00e1]s|tampoco|mal[oa]?|equivocad[oa]|incorrect[oa]|err[o\u00f3]ne[oa]|errad[oa]|estaba|antigu[oa]|viej[oa])(?![a-z\u00e0-\u00ff])/i;
+const SENTENCE_END_RE = /[!?\n;]|\.(?!\d)/g;
+function rejectedAround(clean: string, start: number, end: number): boolean {
+  const before = clean.slice(Math.max(0, start - 80), start);
+  const cut = Math.max(0, ...[...before.matchAll(SENTENCE_END_RE)].map((m) => m.index + 1));
+  const after = clean.slice(end, end + 80);
+  const stop = [...after.matchAll(SENTENCE_END_RE)][0]?.index ?? after.length;
+  return REJECTED_RE.test(before.slice(cut)) || REJECTED_RE.test(after.slice(0, stop));
+}
 const KEYWORD_RE = new RegExp(
   `\\b(R\\.?U\\.?T)\\b(\\.?(?:${SEP}(?:${FILLER})(?![a-z\u00e0-\u00ff]))*${SEP})(${QUOTE_BRIDGE})?` +
     `(${BODY})(${SPACE}{0,2}${DASH}?${SPACE}{0,2})([0-9k])${END}`,
@@ -157,7 +168,8 @@ function candidates(clean: string, asked: boolean): Candidate[] {
     const found = toFound(m[4], m[6]);
     // El puente solo completa lo que main no encontro: otro RUT explicito conserva su prioridad.
     if (m[3]) {
-      if (found && found.rut !== RUT_EXAMPLE) quoteCandidates.push({ ...found, source: 'keyword', index: m.index, end: m.index + m[0].length });
+      const end = m.index + m[0].length;
+      if (found && found.rut !== RUT_EXAMPLE && !rejectedAround(clean, m.index, end)) quoteCandidates.push({ ...found, source: 'keyword', index: m.index, end });
     } else add('keyword', m.index, m.index + m[0].length, found);
   }
   if (asked) {

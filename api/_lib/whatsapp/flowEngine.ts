@@ -242,15 +242,24 @@ function explicitNewRequest(body: string): boolean {
 
 // [CIERRE] Lista cerrada: toda palabra adicional conserva la decision de main.
 const QUOTE_STATUS_RE = /^(?:(?:hola|buenas|gracias|por favor) )*(?:(?:me|nos) (?:pueden )?confirma(?:n|r)|(?:llego|ya llego|enviaron|mandaron|recibieron)|cuando (?:me|nos) (?:llega|mandan|envian)|(?:como va|en que va|estado de)) (?:la|mi|esa) (?:nueva|otra) cotizacion(?: (?:hola|buenas|gracias|por favor))*$/;
+const COURTESY_RE = /^(?:(?:hola|buenas|gracias|por favor) ?)*$/;
+// Un anuncio ("Mi nueva cotizacion:", "La otra cotizacion \u{1F447}") presenta lo que sigue; no pregunta.
+const ANNOUNCES_RE = /:(?!-?[()])|[\u2193\u2b07\u27a1\u2935\u{1F447}\u{1F449}]/u;
 function asksAboutExistingQuote(body: string, captured: CapturedFields, claudeParsed: ClaudeFields): boolean {
-  // Solo marcas que envuelven palabras completas; un correo o archivo conserva sus signos internos.
-  const text = body.replace(/(?<![\p{L}\p{N}._@/])([*_])(\p{L}(?:[^*_\n]*\p{L})?)\1(?![\p{L}\p{N}._@/])/gu, '$2')
-    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    // Los emojis solo se admiten al final; los internos no se borran.
-    .replace(/(?:(?![*_])(?:[\s\p{P}\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}]|\uFE0F|\u200D))+$/gu, '')
-    .replace(/\p{P}/gu, (mark) => mark === '*' || mark === '_' ? mark : '')
-    .replace(/\s+/g, ' ').trim();
-  if (!QUOTE_STATUS_RE.test(text)) return false;
+  // Solo marcas que envuelven palabras completas o el mensaje entero; un correo o archivo conserva sus signos internos.
+  const marked = body.trim().replace(/^([*_])([^*_]+)\1$/, '$2')
+    .replace(/(?<![\p{L}\p{N}._@/])([*_])(\p{L}(?:[^*_\n]*\p{L})?)\1(?![\p{L}\p{N}._@/])/gu, '$2')
+    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Los emojis solo se admiten al final; los internos no se borran.
+  const tail = /(?:(?![*_])(?:[\s\p{P}\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}]|\uFE0F|\u200D))+$/u.exec(marked)?.[0] ?? '';
+  if (ANNOUNCES_RE.test(tail)) return false;
+  // Una sola oracion pregunta; las demas solo pueden ser saludo o gracias. Antes "Hola, como va? Mi nueva
+  // cotizacion:" se leia como "como va mi nueva cotizacion" y el pedido del mensaje siguiente se perdia.
+  const sentences = marked.slice(0, marked.length - tail.length).split(/[.?!:;\u2026\n]+/)
+    .map((sentence) => sentence.replace(/\p{P}/gu, (mark) => mark === '*' || mark === '_' ? mark : '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  if (sentences.filter((sentence) => !COURTESY_RE.test(sentence)).length !== 1) return false;
+  if (!QUOTE_STATUS_RE.test(sentences.join(' '))) return false;
   const aliases: Record<string, keyof CapturedFields> = { nombre: 'nombre_o_empresa', empresa: 'nombre_o_empresa' };
   return Object.entries(claudeParsed).every(([key, value]) => {
     // askClaude agrega siempre summary: es un resumen para la nota, no un campo del pedido.
