@@ -268,7 +268,9 @@ async function claimReservation(kind: ReservationKind, phone: string, leaseUntil
   // La memoria se reserva antes de ir a Upstash: otro mensaje de esta instancia que pide la reserva a la
   // vez ya la ve tomada (sin Upstash, los dos la tomaban).
   // [NOTA-REF] Ninguna reserva del turno sobrevive a la funcion que la tomo.
-  const ttl = Math.min(REGISTRATION_TTL_MS, leaseUntil - now);
+  // Upstash solo acepta un PX entero: un limite fraccionario se redondea hacia abajo.
+  const ttl = Math.floor(Math.min(REGISTRATION_TTL_MS, leaseUntil - now));
+  if (!(ttl >= 1)) return { claimed: false, heldBy: 'local', release: none };
   inMemory.set(phone, { token, until: now + ttl });
   const set = await redisJsonCommandWithTimeout<string | null>(800, 'SET', key, token, 'NX', 'PX', ttl);
   if (set.ok && set.result !== 'OK') {
@@ -807,8 +809,9 @@ export async function anticipateWrite(phone: string, write: PendingWhatsAppWrite
   // [NOTA-REF] Fuera del limite se guarda sin reserva, como una escritura para la cola.
   reserve = reserve && leaseUntil > now;
   const item: QueuedWrite = { id: 'n:' + key, at: now, ver, write, sid, noteIds: noteIds?.slice(0, 60) };
-  const lease = reserve ? String(Math.min(now + PENDING_CLAIM_TTL_MS, leaseUntil)) + ':' + String(now) + ':' + randomUUID() : '';
-  const result = await storeAnticipated(phone, item, lease, false, 300).catch(() => ({ ok: false as const }));
+  const lease = reserve ? String(Math.floor(Math.min(now + PENDING_CLAIM_TTL_MS, leaseUntil))) + ':' + String(now) + ':' + randomUUID() : '';
+  // [NOTA-REF] 300 ms solo con reserva: sin ella, el relevo de este turno necesita la entrada guardada (800 ms, como main).
+  const result = await storeAnticipated(phone, item, lease, false, reserve ? 300 : 800).catch(() => ({ ok: false as const }));
   if (result.ok) {
     const reply = Array.isArray(result.result) ? result.result : [result.result];
     if (Number(reply[0]) === 0) return { status: 'full' };
@@ -990,7 +993,9 @@ export async function loadPendingWrites(phone: string): Promise<QueuedWrite[]> {
   for (const entry of [...queueOf(phone).values()].sort(byAt)) {
     if (entry.stored || queueOf(phone).get(entry.item.id) !== entry) continue;
     if (keyedNote(entry.item.id)) {
-      const result = await storeAnticipated(phone, entry.item, '', true);
+      // [NOTA-REF] Un primer envio todavia en curso conserva su reserva: otra instancia no lo repite.
+      const held = entry.lease !== undefined && entry.until > Date.now() ? entry.lease : '';
+      const result = await storeAnticipated(phone, entry.item, held, true);
       if (!result.ok) continue;
       const reply = Array.isArray(result.result) ? result.result : [result.result];
       if (Number(reply[0]) === 2) {

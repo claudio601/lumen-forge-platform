@@ -618,6 +618,50 @@ describe('A: regresiones de respaldo (ronda 3)', () => {
     expect(sim.notes).toHaveLength(1);
     expect(await queued()).toEqual([]);
   });
+  it('A24 D1: tambien falla la lectura de la cola; el RUT de otro sid llega por la respuesta 3', async () => {
+    sim.outcomes = ['colgada-sin-guardar'];
+    await crash(await instance(), FULL, 'SMd1a');
+    later(75_001);
+    const { pendingKey } = await import('../_lib/whatsapp/stateStore.js');
+    let reads = 0; let attempts = 0;
+    redis.intercept = (cmd, args) => {
+      if (cmd === 'HGETALL' && args[0] === pendingKey(phone) && ++reads === 1) return 'fail';
+      if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar') && ++attempts === 1) return 'fail';
+    };
+    let rutPosts = 0;
+    sim.onPost = async (content) => { sim.outcomes = [content.includes('11.111.111-1') && ++rutPosts === 1 ? 'timeout' : 'ok']; };
+    await post(await instance(), 'Mi RUT es 11.111.111-1', 'SMd1b');
+    redis.intercept = undefined; sim.onPost = undefined;
+    later(31_000);
+    await post(await instance(), 'gracias', 'SMd1c');
+    later(31_000);
+    await post(await instance(), 'ok', 'SMd1d');
+    later(31_000);
+    await post(await instance(), 'hola', 'SMd1e');
+    // Riesgo aceptado: la nota con el RUT repite las lineas del registro anterior (main deja una sola).
+    expect(sim.notes.filter((note) => note.content.includes('11.111.111-1'))).toHaveLength(1);
+    expect(await queued()).toEqual([]);
+  });
+  it('A25 M09: correccion sin reserva con Upstash a 400 ms sale en el mismo turno', async () => {
+    const hook = await instance();
+    await post(hook, FULL, 'SMm9a'); later(60_000);
+    const { dealWriteKey } = await import('../_lib/whatsapp/stateStore.js');
+    redis.data.set(dealWriteKey(phone), { value: 'otra-instancia', expiresAt: Date.now() + 30_000 });
+    // La otra instancia suelta los campos justo antes del relevo de este turno (segunda peticion de la reserva).
+    let claims = 0;
+    redis.intercept = (cmd, args) => {
+      if (cmd === 'SET' && args[0] === dealWriteKey(phone) && ++claims === 2) redis.data.delete(dealWriteKey(phone));
+      return undefined;
+    };
+    fakeTimers(); slowUpstash();
+    await withTimers(post(hook, FIX, 'SMm9b'));
+    await withTimers(drain());
+    redis.intercept = undefined;
+    expect(claims).toBe(2);
+    expect(sim.updates.at(-1)).toMatchObject({ cf_email: 'ana.nueva@example.com' });
+    expect(sim.notes).toHaveLength(2);
+    expect(await queued()).toEqual([]);
+  });
 });
 
 // Solo rama: funciones nuevas y forma de la marca. Se excluye este bloque del contraste con main.
@@ -748,7 +792,24 @@ describe('solo rama: marcas y unidad de stateStore', () => {
     }
     expect(fetch.mock.calls).toHaveLength(before);
     expect(redis.data.has(key)).toBe(false);
-    expect((await take(phone, Date.now() + 60_000)).claimed).toBe(true);
+    expect((await take(phone, Date.now() + 0.5)).claimed).toBe(false);
+    expect(fetch.mock.calls).toHaveLength(before);
+    expect((await take(phone, Date.now() + 60_000.7)).claimed).toBe(true);
+    expect(redis.data.get(key)!.expiresAt).toBe(Date.now() + 60_000);
+  });
+  it('U16: el reguardado conserva la reserva de un primer envio que sigue en curso', async () => {
+    const { anticipateWrite, loadPendingWrites, pendingLeaseUntil } = await import('../_lib/whatsapp/stateStore.js');
+    redis.intercept = (cmd, args) => (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar') ? 'fail' : undefined);
+    const first = await anticipateWrite(phone, write(), opts());
+    redis.intercept = undefined;
+    expect(first.status).toBe('memory');
+    if (!('item' in first)) throw new Error('sin item');
+    const until = pendingLeaseUntil(phone, first.item.id);
+    expect(until).toBeGreaterThan(Date.now());
+    await loadPendingWrites(phone);
+    const lease = (await hash())['t:' + first.item.id];
+    expect(lease?.startsWith(String(until) + ':')).toBe(true);
+    expect(pendingLeaseUntil(phone, first.item.id)).toBe(until);
   });
   it.each(['ok', 'fail'] as const)('U12: anticipacion con limite vencido y Upstash %s queda sin reserva', async (mode) => {
     const { anticipateWrite, pendingLeaseUntil } = await import('../_lib/whatsapp/stateStore.js');
