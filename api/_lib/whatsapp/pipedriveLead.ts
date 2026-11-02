@@ -37,6 +37,8 @@ export interface WhatsAppLeadParams {
     existingDealId?: number;
     /** [TRANSCRIPCION] La conversacion en texto plano (transcript.ts); sin ella, la nota trae este mensaje. */
     transcript?: string;
+    /** [NOTA-REF] Compuerta de la cola con el negocio conocido, antes del primer PUT/POST. */
+    beforeNote?: (write: PendingWhatsAppWrite) => Promise<PendingWhatsAppWrite>;
 }
 
 export interface WhatsAppDealResult {
@@ -654,9 +656,19 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
     const noteRef = newNoteRef();
     const noteContent = buildNote(params, noteRef);
 
+  // [NOTA-REF] Sin compuerta (o si falla) conserva el envio de siempre.
+  async function sendFirst(write: PendingWhatsAppWrite): Promise<PendingWhatsAppWrite | undefined> {
+    let toSend = write;
+    if (params.beforeNote) {
+      try { toSend = await params.beforeNote(write); }
+      catch (err) { console.error(LOG_PREFIX + ' [NOTA-REF] beforeNote:', redact(err, 'error')); }
+    }
+    return toSend.fields || toSend.note !== undefined ? retryWhatsAppWrite(toSend) : undefined;
+  }
+
   // La correccion tardia usa el negocio guardado, sin buscar abiertos ni crear otro.
   if (params.existingDealId) {
-        const pendingWrite = await retryWhatsAppWrite({ dealId: params.existingDealId, fields: waCustomFields, note: noteContent, noteRef });
+        const pendingWrite = await sendFirst({ dealId: params.existingDealId, fields: waCustomFields, note: noteContent, noteRef });
         return { dealId: params.existingDealId, action: 'found', ...(pendingWrite ? { pendingWrite } : {}) };
   }
 
@@ -692,7 +704,7 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         console.log(LOG_PREFIX + ' dedup_quote_reference_hit dealId=' + dealId);
   }
 
-  const pendingWrite = await retryWhatsAppWrite({
+  const pendingWrite = await sendFirst({
         dealId, personId,
         ...(Object.keys(waCustomFields).length ? { fields: waCustomFields } : {}),
         note: noteContent, noteRef,
