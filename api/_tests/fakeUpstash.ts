@@ -2,8 +2,9 @@
 // Upstash Redis falso, en memoria, para las pruebas de los adjuntos: responde GET, MGET,
 // SET … [NX] EX/PX, EVAL compare-and-delete y el EVAL del contador (INCRBY + EXPIRE) de api/_lib/idempotency/redis.ts.
 // Para el bot de WhatsApp, también HSET/HDEL/HGETALL/HLEN/EXPIRE, el EVAL que guarda con revisión, los
-// EVAL de la cola de pendientes (stateStore.ts: agregar, migrar, reservar, soltar y anotar campos
-// confirmados), el del estado guardado aparte y los del candado de la conversación (marcar y soltar).
+// EVAL de la cola de pendientes (stateStore.ts: agregar, migrar, reservar (con la escritura guardada y el
+// intento anterior), soltar y anotar campos confirmados), el del estado guardado aparte y los del candado
+// de la conversación (marcar y soltar).
 // Los EVAL se imitan en TypeScript, reconocidos por su primera línea: no se ejecuta el Lua.
 // Se instala como fetch; las llamadas al relay de correo (GAS_RELAY_URL) responden
 // {"status":"ok"}. No es una prueba ni una función: vive en api/_tests/ para que Vercel no
@@ -76,6 +77,42 @@ export function fakeFetch(redis: FakeRedis) {
         saveHash(key, hash, Number(ttl));
       }
       result = ok ? 1 : 0;
+    } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:anticipar')) {
+      const [, , key, id, value, maxNotes, maxTotal, ttl, marker, lease, overwrite, alias] = args;
+      const hash = hashOf(key);
+      const target = alias && hash[alias];
+      const resolved = target && (hash[target] !== undefined || hash['d:' + target.slice(2)] !== undefined) ? target : id;
+      const previous = hash[resolved];
+      const delivery = resolved === id ? marker : 'd:' + resolved.slice(2);
+      if (hash[delivery] !== undefined) result = [2, hash[delivery]];
+      else if (previous !== undefined && (overwrite !== '1' || resolved !== id)) result = [3, hash['t:' + resolved] ?? '', previous, resolved];
+      else {
+        const entries = Object.keys(hash).filter((f) => f.startsWith('n:') || f.startsWith('f:'));
+        if (previous === undefined && ((id.startsWith('n:') && entries.filter((f) => f.startsWith('n:')).length >= Number(maxNotes)) || entries.length >= Number(maxTotal))) result = 0;
+        else {
+          hash[id] = value;
+          if (alias) hash[alias] = id;
+          if (lease !== '') hash['t:' + id] = lease;
+          else if (previous === undefined) delete hash['t:' + id];
+          saveHash(key, hash, Number(ttl));
+          result = [1];
+        }
+      }
+    } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:entregada')) {
+      const [, , key, id, marker, value, now, maxAge, ttl] = args;
+      const hash = hashOf(key);
+      delete hash[id]; delete hash['t:' + id];
+      hash[marker] = value;
+      for (const f of Object.keys(hash)) {
+        if (!f.startsWith('d:')) continue;
+        const at = /^\{"at":(\d+)/.exec(hash[f])?.[1];
+        if (at !== undefined && Number(at) < Number(now) - Number(maxAge)) delete hash[f];
+      }
+      for (const f of Object.keys(hash)) {
+        if (f.startsWith('s:') && hash[hash[f]] === undefined && hash['d:' + hash[f].slice(2)] === undefined) delete hash[f];
+      }
+      saveHash(key, hash, Number(ttl));
+      result = 1;
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:migrar')) {
       const [, , key, id, value, marker, ttl] = args;
       const hash = hashOf(key);
@@ -88,23 +125,26 @@ export function fakeFetch(redis: FakeRedis) {
         result = 1;
       }
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:reservar')) {
+      // Reservada: {1, la marca del intento anterior ('' si no hubo), la escritura guardada}.
       const [, , key, now, lease, id] = args;
       const hash = hashOf(key);
       if (hash[id] === undefined || Number(/^(\d+)/.exec(hash['t:' + id] ?? '')?.[1] ?? 0) > Number(now)) {
         result = 0;
       } else {
+        const previous = hash['t:' + id] ?? '';
         hash['t:' + id] = lease;
         saveHash(key, hash);
-        result = 1;
+        result = [1, previous, hash[id]];
       }
     } else if (cmd === 'EVAL' && args[0].startsWith('-- whatsapp:cola:soltar')) {
-      const [, , key, id, expected, meta, value] = args;
+      const [, , key, id, expected, meta, value, marker, markValue] = args;
       const hash = hashOf(key);
       if (hash['t:' + id] !== expected) {
         result = 0;
       } else {
         if (value !== '') hash[id] = value;
         hash['t:' + id] = meta;
+        if (marker !== undefined && marker !== '') hash[marker] = markValue;
         saveHash(key, hash);
         result = 1;
       }

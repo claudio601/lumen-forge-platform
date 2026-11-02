@@ -802,7 +802,15 @@ describe('R4: Pipedrive termina con el correo del mensaje que llegó después', 
       const first = await lateCorrections(two, 20_000, async () => {
         // B ya respondió sin escribir en el negocio (A sigue en Pipedrive): su corrección espera en la cola.
         expect(emails()).toEqual(['ana.prueba@example.com']);
-        expect((await queued()).map((w) => w.fields?.cf_email)).toEqual(['ana.b@example.com']);
+        // [NOTA-REF] A tambien esta anticipada y reservada; B espera sin reserva de nota.
+        expect((await queued()).map((w) => w.fields?.cf_email)).toEqual(['ana.a@example.com', 'ana.b@example.com']);
+        const { pendingKey } = await import('../_lib/whatsapp/stateStore.js');
+        const hash: Record<string, string> = JSON.parse(redis.data.get(pendingKey(phone))!.value);
+        const entries = Object.entries(hash).filter(([id]) => id.startsWith('n:'));
+        const active = entries.find(([, value]) => JSON.parse(value).write.fields?.cf_email === 'ana.a@example.com')!;
+        const waiting = entries.find(([, value]) => JSON.parse(value).write.fields?.cf_email === 'ana.b@example.com')!;
+        expect(Number(hash['t:' + active[0]].split(':')[0])).toBeGreaterThan(Date.now());
+        expect(hash['t:' + waiting[0]]).toBeUndefined();
       });
       expect(emails()).toEqual(['ana.prueba@example.com', 'ana.a@example.com', 'ana.b@example.com']);
       expect(await queued()).toEqual([]);

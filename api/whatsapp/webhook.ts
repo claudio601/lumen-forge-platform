@@ -14,7 +14,7 @@ import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/wh
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
-import { buildWhatsAppUpdate, ensureWhatsAppDeal, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
+import { buildWhatsAppUpdate, ensureWhatsAppDeal, notePart, noteSearchAt, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import type { PendingWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, recordNoQuestion, MSG_MEDIA, MSG_DEAL_FAILED, MSG_DEAL_PENDING } from '../_lib/whatsapp/flowEngine.js';
@@ -25,10 +25,10 @@ import {
   acquireConversationLock, claimMessage, completeMessage, loadConversation, persistConversation, enqueuePendingWrite,
   duePendingWrites, loadPendingWrites, claimPendingWrite, settlePendingWrite, beginFlowStep, settleFlowStep, claimRegistration, awaitRegistration,
   stampFlow, recordRegistrationOutcome, registrationOutcome, awaitConversationUnlock, confirmDealFields, sendablePendingWrite,
-  pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN,
+  anticipateWrite, retryDeliveredWrite, noteWriteKey, pendingLeaseUntil, pendingVersion, claimDealWrite, flowFieldStamp, sameData, MESSAGE_RETRY_WAIT_MS, MAX_PENDING_RETRIES_PER_TURN, MESSAGE_IN_PROGRESS_TTL_S,
 } from '../_lib/whatsapp/stateStore.js';
-import type { QueuedWrite, RegistrationClaim } from '../_lib/whatsapp/stateStore.js';
-import { botReplyText, clearTranscriptAfterNote, inboundText, noteEntryIds, recordTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
+import type { Anticipated, NoteDeliveryMark, QueuedWrite, RegistrationClaim } from '../_lib/whatsapp/stateStore.js';
+import { botReplyText, clearTranscriptAfterNote, getTranscript, inboundText, noteEntryIds, recordTranscript, transcriptForNote } from '../_lib/whatsapp/transcript.js';
 
 const LOG_PREFIX = '[whatsapp/webhook]';
 
@@ -53,6 +53,13 @@ const TURN_WAIT_DEADLINE_MS = 10_000;
 const REGISTRATION_WAIT_DEADLINE_MS = 12_500;
 /** [REGISTRO] Margen entre los relojes de dos instancias al comparar la hora de las escrituras de la cola. */
 const CLOCK_SKEW_MS = 1_000;
+/**
+ * [NOTA-REF] Presupuesto de la funcion desde que empezo el webhook (MESSAGE_IN_PROGRESS_TTL_S son 60 s de
+ * funcion mas 15 de margen) y lo que tarda a lo mas el reintento de una nota incierta en segundo plano: la
+ * busqueda (10 s, NOTE_SEARCH_TIMEOUT_MS en pipedriveLead.ts), la nota (15 s, client.ts) y Upstash.
+ */
+const FUNCTION_BUDGET_MS = (MESSAGE_IN_PROGRESS_TTL_S - 15) * 1000;
+const UNSURE_NOTE_RETRY_MS = 30_000;
 const phoneTurns = new Map<string, Promise<void>>();
 /** Mensajes en curso por numero en esta instancia, incluidos los que dejaron de esperar. */
 const liveTurns = new Map<string, number>();
@@ -104,19 +111,46 @@ async function awaitEarlierSteps(phone: string, seq: number, deadline: number): 
  * [PENDIENTES] Reintenta una escritura de la cola. [REGISTRO] R4: sin los campos que ya supero una escritura
  * de un mensaje posterior (sale la nota); sin la reserva de los campos (`mayWriteFields`), los campos esperan
  * en la cola y sale solo la nota. Los campos que Pipedrive confirma quedan anotados con su numero de orden.
+ * [NOTA-REF] La nota va con su referencia y sus marcas de envio incierto (notePart): sin ellas, el reintento
+ * siguiente la repetiria sin buscarla. Con `noteLater`, la nota espera en la cola (sale en segundo plano,
+ * retryUnsureNotes) y se mandan solo los campos.
  */
-async function retryQueuedWrite(phone: string, item: QueuedWrite, mayWriteFields: boolean): Promise<boolean> {
+async function retryQueuedWrite(phone: string, item: QueuedWrite, mayWriteFields: boolean, noteLater = false): Promise<boolean> {
   const write = sendablePendingWrite(phone, item);
   const heldFields = write?.fields && !mayWriteFields ? write.fields : undefined;
+  const heldNote = noteLater && write?.note !== undefined ? notePart(write) : undefined;
   const base: PendingWhatsAppWrite | undefined = write && { dealId: write.dealId, ...(write.personId ? { personId: write.personId } : {}) };
-  const toSend: PendingWhatsAppWrite | undefined = write && heldFields ? { ...base!, ...(write.note !== undefined ? { note: write.note } : {}) } : write;
+  const toSend: PendingWhatsAppWrite | undefined = write && (heldFields || heldNote)
+    ? { ...base!, ...(heldFields || !write.fields ? {} : { fields: write.fields }), ...(heldNote ? {} : notePart(write)) }
+    : write;
   const left = toSend && (toSend.fields || toSend.note !== undefined) ? await retryWhatsAppWrite(toSend) : undefined;
   if (toSend?.fields && !left?.fields) await confirmDealFields(phone, toSend.dealId, pendingVersion(item));
-  // Los campos que esperan la reserva siguen en la cola, con la nota solo si todavia no llego.
-  const remaining = heldFields ? { ...base!, ...(left?.note !== undefined ? { note: left.note } : {}), fields: heldFields } : left;
+  // Lo que espera (los campos sin su reserva, la nota para despues) sigue en la cola, con lo que no llego.
+  const fields = heldFields ?? left?.fields;
+  const remaining = heldFields || heldNote ? { ...base!, ...(heldNote ?? notePart(left)), ...(fields ? { fields } : {}) } : left;
   await settlePendingWrite(phone, item.id, remaining);
   // Pipedrive recibio lo que se le mando (false: algo fallo y sigue en la cola).
   return !left;
+}
+
+/**
+ * [NOTA-REF] Las notas con un envio incierto se buscan antes de repetirlas (pipedriveLead.ts). Esa busqueda
+ * (hasta 10 s) y el envio salen en segundo plano, con waitUntil: la respuesta no los espera (Twilio corta a
+ * los 15 s). Si el corte del ultimo envio incierto es de hace menos de NOTE_SETTLE_MS, se espera hasta el
+ * plazo, solo si el reintento todavia cabe en la funcion (hasta `deadline`): asi un mensaje que llega dentro
+ * del plazo no la deja esperando a otro mensaje que quizas no llega. Lo que no cabe sigue en la cola para un
+ * mensaje siguiente; si la funcion se corta a mitad, la reserva queda sin cerrar y quien la tome despues la
+ * busca antes de repetirla. Sale solo la nota: los campos esperan su reserva en la cola. Nunca rechaza
+ * (inBackground).
+ */
+async function retryUnsureNotes(phone: string, items: QueuedWrite[], deadline: number): Promise<void> {
+  for (const item of items) {
+    const at = Math.max(Date.now(), pendingLeaseUntil(phone, item.id), noteSearchAt(sendablePendingWrite(phone, item)) ?? 0);
+    if (at + UNSURE_NOTE_RETRY_MS > deadline) continue;
+    if (at > Date.now()) await new Promise<void>((resolve) => setTimeout(resolve, at - Date.now()));
+    if (!(await claimPendingWrite(phone, item.id))) continue;
+    await retryQueuedWrite(phone, item, false);
+  }
 }
 
 /** [REGISTRO] Vueltas de releaseDealWrite: lo que otro mensaje deja en la cola justo antes de que se suelte la reserva. */
@@ -140,7 +174,7 @@ async function handedWrites(phone: string, since: number, skip: (item: QueuedWri
  * que este lo mande (si otro la tomo mientras tanto, lo manda ese al soltarla). Hasta MAX_HANDOFF_ROUNDS
  * vueltas, y cada escritura se intenta una vez por llamada: lo que quede sale con un mensaje siguiente.
  */
-async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: number, flush = true, skip: (item: QueuedWrite) => boolean = () => false): Promise<void> {
+async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: number, flush = true, skip: (item: QueuedWrite) => boolean = () => false, leaseUntil = Infinity): Promise<void> {
   let held: RegistrationClaim | undefined = claim;
   const tried = new Set<string>();
   const handed = () => handedWrites(phone, since, (item) => skip(item) || tried.has(item.id));
@@ -156,7 +190,7 @@ async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: 
       held = undefined;
       await done.release();
       if (round >= MAX_HANDOFF_ROUNDS || !(await handed()).length) return;
-      const again = await claimDealWrite(phone);
+      const again = await claimDealWrite(phone, leaseUntil);
       if (!again.claimed) return;
       held = again;
     }
@@ -169,9 +203,9 @@ async function releaseDealWrite(phone: string, claim: RegistrationClaim, since: 
  * [REGISTRO] Este mensaje dejo su escritura en la cola (desde `since`) porque otro tenia la reserva de los
  * campos: si ese ya la solto, la manda este. Si todavia la tiene, la manda el al soltarla (releaseDealWrite).
  */
-async function handOffDealWrite(phone: string, since: number): Promise<void> {
-  const claim = await claimDealWrite(phone);
-  if (claim.claimed) await releaseDealWrite(phone, claim, since);
+async function handOffDealWrite(phone: string, since: number, leaseUntil: number): Promise<void> {
+  const claim = await claimDealWrite(phone, leaseUntil);
+  if (claim.claimed) await releaseDealWrite(phone, claim, since, true, undefined, leaseUntil);
 }
 
 /**
@@ -217,6 +251,7 @@ type DealResult = Awaited<ReturnType<typeof ensureWhatsAppDeal>>;
 
 interface FlowTurnInput {
     phone: string;
+    messageSid: string;
     body: string;
     profileName: string;
     claudeParsed: Parameters<typeof processFlowStep>[2];
@@ -249,7 +284,7 @@ interface FlowTurnInput {
  * recibio el aviso de ese registro.
  */
 async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; dealResult: DealResult; reply: string; noted: boolean; followUp: boolean }> {
-  const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq, noticeDue } = t;
+  const { phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq, noticeDue, messageSid } = t;
   // Plazo de las esperas de este mensaje (Twilio corta a los 15 s y despues falta guardar y responder).
   const waitDeadline = t.startedAt + REGISTRATION_WAIT_DEADLINE_MS;
 
@@ -331,7 +366,13 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   };
 
   let noteIds: string[] = [];
+  let previousNoteIds: string[] = [];
   let noteKept = true;
+  // [NOTA-REF] El rastro previo decide tambien que lineas ya quedaron en una nota.
+  let trace: NoteDeliveryMark | QueuedWrite | undefined;
+  let anticipated: Anticipated | undefined;
+  let fieldsSent = true;
+  const changed = !sameData(stepCaptured, t.flowBase.captured);
   // [REGISTRO] Otro mensaje del numero registra (o ya registro) el negocio de esta conversacion: este no lo
   // repite. Su resultado decide la respuesta y este mensaje queda en la transcripcion para la nota siguiente.
   let deferred = false;
@@ -351,14 +392,14 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
         // [REGISTRO] La reserva va antes del guardado: quien lea la conversacion cerrada y sin negocio ya la ve.
         // Solo la toma un registro: una correccion o un reintento de campos usan la de los campos (R4), y un
         // pedido nuevo no espera por ellos.
-        let claim = await claimRegistration(phone);
+        let claim = await claimRegistration(phone, t.startedAt + FUNCTION_BUDGET_MS + 5_000);
         if (!claim.claimed) {
                 finished = await awaitRegistration(phone, claim.heldBy ?? 'remote', waitDeadline);
                 const now = getFlowState(phone);
                 // La reserva del otro termino sin resultado para esta conversacion (su instancia se corto y la
                 // reserva vencio): este mensaje registra la solicitud, como el reintento de flowEngine.
                 const unregistered = !registrationOutcome(phone, conversationId) && now.firstMessageAt === conversationId && !now.deal;
-                if (finished && unregistered) claim = await claimRegistration(phone);
+                if (finished && unregistered) claim = await claimRegistration(phone, t.startedAt + FUNCTION_BUDGET_MS + 5_000);
         }
         if (claim.claimed) {
                 t.registration.release = claim.release;
@@ -398,7 +439,7 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   // correccion), pero si se junta con un negocio en el que otro esta escribiendo, sus campos vuelven a la
   // cola para que ese los mande despues de los suyos. Sin Upstash, solo dentro de la instancia.
   const fieldsClaim = updateDealId !== undefined || (flowResult.shouldCreateDeal && !flowResult.rutUpdate && !deferred)
-        ? await claimDealWrite(phone)
+        ? await claimDealWrite(phone, t.startedAt + FUNCTION_BUDGET_MS + 5_000)
         : undefined;
   const claimedAt = Date.now();
   if (fieldsClaim?.claimed && updateDealId !== undefined) {
@@ -423,13 +464,57 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           // aviso de privacidad si la lleva): lo que llegue mientras tanto va a la nota siguiente.
                           transcript: transcriptForNote(phone, { ...noteOpts, reply: botReplyText(flowResult.reply, noticeDue) }),
                 };
+                // [NOTA-REF] La clave del registro vive desde el primer mensaje; la de correccion, desde su sid.
+                const remember = (result: Anticipated): void => {
+                        anticipated = result;
+                        if (result.status === 'queued' || result.status === 'delivered') {
+                                trace = result.status === 'queued' ? result.item : result.mark;
+                                if (result.status === 'queued') inBackground(() => retryUnsureNotes(phone, [result.item], t.startedAt + FUNCTION_BUDGET_MS));
+                        }
+                };
+                const anticipate = async (write: PendingWhatsAppWrite, kind: 'r' | 'm', reserve = true): Promise<Anticipated | undefined> => {
+                        const key = noteWriteKey(kind, kind === 'r' ? String(conversationId) : messageSid, write.dealId);
+                        if (!key) return undefined;
+                        const result = await anticipateWrite(phone, write, { key, ver: transcriptSeq, sid: messageSid, noteIds, reserve, leaseUntil: t.startedAt + FUNCTION_BUDGET_MS + 5_000 });
+                        remember(result);
+                        return result;
+                };
+                const beforeNote = async (write: PendingWhatsAppWrite): Promise<PendingWhatsAppWrite> => {
+                        const kind = updateDealId === undefined ? 'r' : 'm';
+                        let result = await anticipate(write, kind);
+                        if (!result || result.status === 'new' || result.status === 'memory' || result.status === 'full') return write;
+                        const previous = result.status === 'queued' ? result.item : result.mark;
+                        const sameSid = Boolean(messageSid && previous.sid && messageSid === previous.sid);
+                        if (kind === 'r' && !sameSid && changed) {
+                                trace = undefined;
+                                // [NOTA-REF] La correccion no repite las lineas que ya lleva el registro.
+                                previousNoteIds = previous.noteIds ?? [];
+                                const previousIds = new Set(previousNoteIds);
+                                const exclude = new Set(noteOpts.exclude);
+                                for (const e of getTranscript(phone)?.entries ?? []) if (previousIds.has(e.id)) exclude.add(e.seq);
+                                noteIds = noteEntryIds(phone, { ...noteOpts, exclude });
+                                const correction = buildWhatsAppUpdate({ ...lead, existingDealId: write.dealId,
+                                        transcript: transcriptForNote(phone, { ...noteOpts, exclude, reply: botReplyText(flowResult.reply, noticeDue) }) });
+                                write = { ...write, note: correction.note, noteRef: correction.noteRef };
+                                result = await anticipate(write, 'm');
+                                if (!result || result.status === 'new' || result.status === 'memory' || result.status === 'full') return write;
+                        } else if (kind === 'r') {
+                                return { dealId: write.dealId, ...(write.fields ? { fields: write.fields } : {}) };
+                        }
+                        fieldsSent = false;
+                        return { dealId: write.dealId };
+                };
                 let reassert: PendingWhatsAppWrite | undefined;
                 if (updateDealId !== undefined && !fieldsClaim.claimed) {
                         console.log(LOG_PREFIX + ' Otro mensaje del numero esta escribiendo en el negocio: esta escritura va a la cola, en orden');
-                        dealResult = { dealId: updateDealId, action: 'found', pendingWrite: buildWhatsAppUpdate({ ...lead, existingDealId: updateDealId }) };
+                        const write = buildWhatsAppUpdate({ ...lead, existingDealId: updateDealId });
+                        const result = await anticipate(write, 'm', false);
+                        if (result && result.status !== 'full') {
+                                dealResult = { dealId: updateDealId, action: 'found', ...('item' in result && result.status !== 'queued' ? { pendingWrite: result.item.write } : {}) };
+                        } else dealResult = { dealId: updateDealId, action: 'found', pendingWrite: write };
                 } else {
-                        dealResult = await ensureWhatsAppDeal({ ...lead, ...(updateDealId !== undefined ? { existingDealId: updateDealId } : {}) });
-                        const sent = typeof dealResult.dealId === 'number' && !dealResult.pendingWrite?.fields;
+                        dealResult = await ensureWhatsAppDeal({ ...lead, beforeNote, ...(updateDealId !== undefined ? { existingDealId: updateDealId } : {}) });
+                        const sent = fieldsSent && typeof dealResult.dealId === 'number' && !dealResult.pendingWrite?.fields;
                         if (sent && !fieldsClaim.claimed && dealResult.action === 'found') {
                                 reassert = { dealId: dealResult.dealId!, fields: buildWhatsAppUpdate({ ...lead, existingDealId: dealResult.dealId! }).fields };
                         } else if (sent) {
@@ -441,21 +526,26 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                 // [PENDIENTES] Si la cola esta llena, la nota no entra: la transcripcion se conserva para la nota
                 // siguiente, si la hay (con el tope del estado puede omitir mensajes del medio). Los campos
                 // entran igual (enqueuePendingWrite); si ni ellos caben (tope duro), tambien se conserva.
-                if (dealResult.pendingWrite) {
+                if (anticipated && (anticipated.status === 'new' || anticipated.status === 'memory')) {
+                        const item = anticipated.item;
+                        // [NOTA-REF] Sin reserva se dejo para handOff; no se cierra un intento que aun no ocurrio.
+                        if (fieldsClaim.claimed || updateDealId === undefined) inBackground(() => settlePendingWrite(phone, item.id, dealResult.pendingWrite));
+                        else if (anticipated.status === 'memory') inBackground(async () => { await loadPendingWrites(phone); });
+                } else if (dealResult.pendingWrite) {
                         const queued = await enqueuePendingWrite(phone, dealResult.pendingWrite, transcriptSeq);
                         if (!queued) noteKept = false;
                 }
                 if (reassert?.fields && Object.keys(reassert.fields).length) await enqueuePendingWrite(phone, reassert, transcriptSeq);
                 // Lo que este mensaje dejo en la cola a proposito (no lo que fallo en Pipedrive): si quien tenia la
                 // reserva ya la solto, lo manda este, en segundo plano (la respuesta no lo espera).
-                if (!fieldsClaim.claimed && (reassert || updateDealId !== undefined)) inBackground(() => handOffDealWrite(phone, claimedAt));
+                if (!fieldsClaim.claimed && (reassert || updateDealId !== undefined)) inBackground(() => handOffDealWrite(phone, claimedAt, t.startedAt + FUNCTION_BUDGET_MS + 5_000));
         } catch (err) {
                 console.error(LOG_PREFIX + ' Pipedrive error (non-fatal):', redact(err, 'error'));
         } finally {
                 // Lo de otros, solo si a este Pipedrive le respondio (si fallo, queda en la cola para un mensaje
                 // siguiente), en segundo plano: la respuesta de este mensaje no espera las escrituras de otros.
                 const delivered = typeof dealResult.dealId === 'number' && !dealResult.pendingWrite;
-                if (fieldsClaim.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => pendingVersion(item) === transcriptSeq));
+                if (fieldsClaim.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => pendingVersion(item) === transcriptSeq, t.startedAt + FUNCTION_BUDGET_MS + 5_000));
         }
   }
 
@@ -492,8 +582,13 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
   // [TRANSCRIPCION] La nota (o su reintento pendiente) ya lleva la conversacion hasta esta respuesta:
   // se borra solo eso, no lo que otro pedido del mismo numero registro mientras Pipedrive respondia.
   // [CONCURRENCIA] Por id: solo lo que fue en la nota, aunque mientras tanto se haya mezclado algo mas.
-  const noted = typeof dealResult.dealId === 'number' && reply === flowResult.reply && noteKept;
-  if (noted) clearTranscriptAfterNote(phone, noteIds);
+  let noted = typeof dealResult.dealId === 'number' && reply === flowResult.reply && noteKept;
+  if (trace) {
+        const sameSid = Boolean(messageSid && trace.sid && messageSid === trace.sid);
+        const repeated = sameSid ? (getTranscript(phone)?.entries ?? []).filter((e) => e.seq === transcriptSeq).map((e) => e.id) : [];
+        clearTranscriptAfterNote(phone, [...(trace.noteIds ?? []), ...previousNoteIds, ...repeated]);
+        noted = sameSid;
+  } else if (noted) clearTranscriptAfterNote(phone, [...previousNoteIds, ...noteIds]);
 
   addTurn(phone, { role: 'assistant', content: reply }, transcriptSeq + 1);
 
@@ -577,6 +672,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // [CONCURRENCIA] Sin el candado este mensaje igual responde: sus guardados mezclan, no pisan.
     if (!phoneTurn.overlapped) {
           await loadConversation(phone, distributed.acquired);
+          // [NOTA-REF] Nunca esperar las lapidas al responder a Twilio.
+          inBackground(() => retryDeliveredWrite(phone));
           // [PENDIENTES] Unas pocas por mensaje, rotando: primero las que llevan mas sin intentarse, asi las
           // que siempre fallan no frenan a las demas. Cada una se reserva antes de mandarla
           // (claimPendingWrite): otra instancia no la manda a la vez, aunque haya vencido el candado. No las
@@ -587,17 +684,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
                 // numero (como la correccion tardia): sin ella, esperan en la cola y sale solo la nota. Antes de
                 // soltarla se manda lo que otro mensaje dejo en la cola mientras tanto (releaseDealWrite, en
                 // segundo plano: este mensaje sigue con su flujo).
-                const fieldsClaim = due.some((item) => sendablePendingWrite(phone, item)?.fields) ? await claimDealWrite(phone) : undefined;
+                const fieldsClaim = due.some((item) => sendablePendingWrite(phone, item)?.fields) ? await claimDealWrite(phone, startedAt + FUNCTION_BUDGET_MS + 5_000) : undefined;
                 const claimedAt = Date.now();
                 const tried = new Set(due.map((item) => item.id));
                 let delivered = true;
+                // [NOTA-REF] Las de nota con envio incierto: aqui solo sus campos; la nota sale en segundo plano,
+                // despues de buscarla (retryUnsureNotes). Se decide con la escritura que trae la reserva.
+                const unsure: QueuedWrite[] = [];
                 try {
                       for (const item of due) {
                             if (!(await claimPendingWrite(phone, item.id))) continue;
-                            if (!(await retryQueuedWrite(phone, item, Boolean(fieldsClaim?.claimed)))) delivered = false;
+                            const noteLater = noteSearchAt(sendablePendingWrite(phone, item)) !== undefined;
+                            if (noteLater) unsure.push(item);
+                            if (!(await retryQueuedWrite(phone, item, Boolean(fieldsClaim?.claimed), noteLater))) delivered = false;
                       }
                 } finally {
-                      if (fieldsClaim?.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => tried.has(item.id)));
+                      if (fieldsClaim?.claimed) inBackground(() => releaseDealWrite(phone, fieldsClaim, claimedAt, delivered, (item) => tried.has(item.id), startedAt + FUNCTION_BUDGET_MS + 5_000));
+                      if (unsure.length) inBackground(() => retryUnsureNotes(phone, unsure, startedAt + FUNCTION_BUDGET_MS));
                 }
           }
     }
@@ -715,7 +818,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     const turn = await runFlowTurn({
-          phone, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq: seq, noticeDue, flowBase, startedAt, registration,
+          phone, messageSid, body, profileName, claudeParsed, claudeSummary, signals, aiSource, transcriptSeq: seq, noticeDue, flowBase, startedAt, registration,
           contended: distributed.contended, markStepped: distributed.markStepped,
     });
     const { flowResult, dealResult, reply, noted, followUp } = turn;

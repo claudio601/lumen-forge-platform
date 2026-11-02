@@ -2,11 +2,12 @@
 // Crea o reutiliza deal en Pipedrive para leads de WhatsApp.
 // v1: agrega custom fields WA + note estructurada.
 
+import { randomBytes } from 'node:crypto';
 import { redact } from '../logging/redact.js';
 import { findOrCreatePerson } from '../pipedrive/persons.js';
 import { createDeal, updateDeal } from '../pipedrive/deals.js';
 import { initFieldOptions } from '../pipedrive/fieldOptions.js';
-import { pipedrivePost } from '../pipedrive/client.js';
+import { pipedriveGet, pipedrivePost } from '../pipedrive/client.js';
 import type { QuoteCustomer } from '../crm/types.js';
 import { TIPO_SERVICIO } from '../crm/tipo-servicio.js';
 import { looksLikePersonName } from './flowEngine.js';
@@ -36,6 +37,8 @@ export interface WhatsAppLeadParams {
     existingDealId?: number;
     /** [TRANSCRIPCION] La conversacion en texto plano (transcript.ts); sin ella, la nota trae este mensaje. */
     transcript?: string;
+    /** [NOTA-REF] Compuerta de la cola con el negocio conocido, antes del primer PUT/POST. */
+    beforeNote?: (write: PendingWhatsAppWrite) => Promise<PendingWhatsAppWrite>;
 }
 
 export interface WhatsAppDealResult {
@@ -51,6 +54,292 @@ export interface PendingWhatsAppWrite {
     personId?: number;
     fields?: Record<string, string>;
     note?: string;
+    /**
+     * [NOTA-REF] La referencia fija de la nota, que tambien es su ultima linea (buildNote): antes de repetir
+     * un envio incierto se busca en las notas del negocio. Las pendientes de antes de este cambio no la traen.
+     */
+    noteRef?: string;
+    /**
+     * [NOTA-REF] Desde cuando (ms) la nota pudo quedar en Pipedrive sin confirmarse: el inicio de su primer
+     * envio incierto (o un guardado en la cola sin respuesta, stateStore.ts). El siguiente la busca antes, en
+     * una pagina que llegue hasta antes de esa hora.
+     */
+    noteUnsure?: number;
+    /** [NOTA-REF] Fin (ms) de su ultimo envio incierto; inicio si quedo sin cerrar (reserva de 75 s). */
+    noteUnsureLast?: number;
+}
+
+// [NOTA-REF] Cada nota del bot lleva una referencia fija ('wa-' y 12 hex al azar), creada una sola vez al
+// armarla, antes del primer envio, y guardada con la escritura pendiente. Si Pipedrive guarda la nota pero
+// la respuesta se pierde (tiempo limite, red, 5xx), el reintento la busca en las notas recientes del negocio
+// antes de repetirla: si esta, se da por entregada. La linea va al final, separada por una linea vacia; la
+// transcripcion nunca deja una linea sin la hora ni sangria, asi que no se confunde con lo que escribio el
+// cliente, que tampoco conoce la referencia.
+export const NOTE_REF_LABEL = 'Ref. WhatsApp: ';
+const NOTE_REF_RE = /^wa-[0-9a-f]{12}$/;
+// [NOTA-REF] La busqueda: paginas de NOTE_SEARCH_LIMIT notas, de la mas nueva a la mas antigua, hasta
+// NOTE_SEARCH_MAX_PAGES paginas y NOTE_SEARCH_TIMEOUT_MS en total (todas las paginas juntas).
+export const NOTE_SEARCH_LIMIT = 50;
+// [NOTA-REF] Cinco notas compartidas permiten comprobar que no se salto la ultima de la pagina anterior.
+export const NOTE_SEARCH_OVERLAP = 5;
+/** [NOTA-REF] Orden total (Pipedrive v1 acepta varios campos): a igual add_time, el id desempata. */
+export const NOTE_SEARCH_SORT = 'add_time DESC, id DESC';
+// [NOTA-REF] Cinco paginas cubren hasta 230 notas distintas con el solapamiento (antes, 200 sin el).
+export const NOTE_SEARCH_MAX_PAGES = 5;
+export const NOTE_SEARCH_TIMEOUT_MS = 10_000;
+// [NOTA-REF] Pipedrive puede terminar de guardar una nota despues de que se corto la espera: la busqueda no
+// corre antes de este plazo desde el corte del ultimo envio incierto (webhook.ts la reintenta cuando
+// se cumple, si cabe en la funcion; si no, queda para el mensaje siguiente).
+export const NOTE_SETTLE_MS = 30_000;
+// [NOTA-REF] Margen por la diferencia de reloj con Pipedrive al comparar con la hora de cada nota (add_time).
+const NOTE_CLOCK_MARGIN_MS = 10 * 60_000;
+
+/** [NOTA-REF] Una referencia nueva para una nota (una por nota armada). */
+export function newNoteRef(): string {
+    return 'wa-' + randomBytes(6).toString('hex');
+}
+
+function noteRefLine(ref: string): string {
+    return '\n\n' + NOTE_REF_LABEL + ref;
+}
+
+/** [NOTA-REF] La referencia de una escritura, si tiene la forma de las del bot (las anteriores no la traen). */
+function validRef(ref: unknown): string | undefined {
+    return typeof ref === 'string' && NOTE_REF_RE.test(ref) ? ref : undefined;
+}
+
+function validTime(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+/**
+ * [NOTA-REF] La nota de una escritura con su referencia y sus marcas de envio incierto, sin los campos:
+ * webhook.ts la separa de los campos (los que esperan su reserva, o la nota que sale despues) sin perderlas.
+ */
+export function notePart(write: PendingWhatsAppWrite | undefined): Pick<PendingWhatsAppWrite, 'note' | 'noteRef' | 'noteUnsure' | 'noteUnsureLast'> {
+    if (write?.note === undefined) return {};
+    return {
+          note: write.note,
+          ...(write.noteRef !== undefined ? { noteRef: write.noteRef } : {}),
+          ...(write.noteUnsure !== undefined ? { noteUnsure: write.noteUnsure } : {}),
+          ...(write.noteUnsureLast !== undefined ? { noteUnsureLast: write.noteUnsureLast } : {}),
+    };
+}
+
+/**
+ * [NOTA-REF] Desde cuando (ms) se puede buscar la nota de `write` antes de repetirla: NOTE_SETTLE_MS despues
+ * del fin de su ultimo envio incierto (sin el, de noteUnsure; un intento sin cerrar usa su inicio y la
+ * reserva vence a los 75 s). undefined: no necesita busqueda (sin nota, referencia del bot o envio incierto).
+ */
+export function noteSearchAt(write: PendingWhatsAppWrite | undefined): number | undefined {
+    const since = validTime(write?.noteUnsure);
+    if (write?.note === undefined || !validRef(write.noteRef) || since === undefined) return undefined;
+    return (validTime(write.noteUnsureLast) ?? since) + NOTE_SETTLE_MS;
+}
+
+/**
+ * [NOTA-REF] Un envio fallido pudo dejar la nota en Pipedrive, segun lo que devuelve client.ts: el tiempo
+ * limite ('Request timeout'), un error de red o un 'HTTP 5xx' pueden llegar despues de que Pipedrive la
+ * guardo. Un 'HTTP 4xx' es un rechazo (no la guardo) y no necesita busqueda. Otro texto (un error de
+ * Pipedrive en una respuesta 2xx) cuenta como incierto: lo peor es una busqueda de mas. Sin texto
+ * (success: false en una respuesta 2xx), rechazo.
+ */
+function unsureFailure(error: unknown): boolean {
+    if (typeof error !== 'string' || !error) return false;
+    const status = /^HTTP (\d{3})\b/.exec(error);
+    return status ? Number(status[1]) >= 500 : true;
+}
+
+// [NOTA-REF] Pipedrive v1 da las horas como 'YYYY-MM-DD HH:MM:SS' en UTC (como deals.ts). NaN si no se lee.
+function pipedriveTime(value: unknown): number {
+    if (typeof value !== 'string') return NaN;
+    return Date.parse(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? value.replace(' ', 'T') + 'Z' : value);
+}
+
+interface PipedriveNote {
+    id?: unknown;
+    content?: unknown;
+    add_time?: unknown;
+}
+
+// [NOTA-REF] Etiquetas de bloque: el texto que sigue empieza otra linea visible.
+const NOTE_BLOCK_TAG_RE = /^\/?(?:br|p|div|li|ul|ol|h[1-6]|tr|table|blockquote|pre|hr)$/i;
+const NOTE_ENTITIES: Record<string, string> = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+
+/**
+ * [NOTA-REF] Texto visible del HTML en una sola pasada (sin expresiones que retrocedan: muchos '<' sueltos no
+ * la demoran). Como el tokenizador HTML, solo '<' seguido de letra, '/', '!' o '?' abre una etiqueta, que
+ * termina en el primer '>' fuera de comillas; un comentario termina en '-->'. Despues, las entidades (una
+ * vez, tambien las numericas) y sin los caracteres de ancho cero.
+ */
+function noteVisibleText(content: string): string {
+    let out = '';
+    let i = 0;
+    while (i < content.length) {
+          const lt = content.indexOf('<', i);
+          if (lt < 0) { out += content.slice(i); break; }
+          out += content.slice(i, lt);
+          if (content.startsWith('<!--', lt)) {
+                  const close = content.indexOf('-->', lt + 4);
+                  i = close < 0 ? content.length : close + 3;
+                  continue;
+          }
+          if (!/[a-zA-Z/!?]/.test(content.charAt(lt + 1))) { out += '<'; i = lt + 1; continue; }
+          let end = lt + 1;
+          let quote = '';
+          for (; end < content.length; end++) {
+                  const c = content[end];
+                  if (quote) { if (c === quote) quote = ''; }
+                  else if (c === '"' || c === "'") quote = c;
+                  else if (c === '>') break;
+          }
+          if (NOTE_BLOCK_TAG_RE.test(/^\/?[a-zA-Z0-9]*/.exec(content.slice(lt + 1, end))![0])) out += '\n';
+          i = end + 1;
+    }
+    return out
+          .replace(/&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|(nbsp|amp|lt|gt|quot|apos));/g, (match, dec?: string, hex?: string, name?: string) => {
+                  if (name) return NOTE_ENTITIES[name];
+                  const code = dec ? Number(dec) : parseInt(hex!, 16);
+                  return code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff) ? String.fromCodePoint(code) : match;
+          })
+          .replace(/[\u200b-\u200d\u2060\ufeff]/g, '');
+}
+
+/** [NOTA-REF] Ultima linea visible de la nota, con los espacios normalizados. */
+function lastNoteLine(content: string): string | undefined {
+    const lines = noteVisibleText(content).split(/\r\n?|\n|\u2028|\u2029/).map((line) => line.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    return lines[lines.length - 1];
+}
+
+/** [NOTA-REF] Pipedrive da ids numericos; admite tambien su representacion decimal en texto. */
+function pipedriveNoteId(value: unknown): string | undefined {
+    if (typeof value !== 'number' && !(typeof value === 'string' && /^\d+$/.test(value))) return undefined;
+    const id = Number(value);
+    return Number.isSafeInteger(id) && id > 0 ? String(id) : undefined;
+}
+
+/**
+ * [NOTA-REF] La busqueda la rechazo Pipedrive de forma definitiva: un 'HTTP 4xx' que no sea 408 (tiempo
+ * limite) ni 429 (demasiadas llamadas) dice que la consulta o el permiso no sirven, y esperar no lo arregla.
+ */
+function searchRejected(error: unknown): boolean {
+    const status = typeof error === 'string' ? /^HTTP (4\d\d)\b/.exec(error) : null;
+    return Boolean(status) && status![1] !== '408' && status![1] !== '429';
+}
+
+/**
+ * [NOTA-REF] Busca la nota con la referencia `ref` en las notas del negocio, de la mas nueva a la mas antigua
+ * (GET /notes por add_time descendente), pagina por pagina. Solo cuenta la linea completa de la referencia
+ * ("Ref. WhatsApp: wa-..."): una nota de ventas que cita solo el codigo no da la nota por entregada. 'absent'
+ * cuando se revisaron todas las notas desde el primer envio incierto (`since`): la ultima pagina, o una que
+ * ya llega a notas anteriores. Las paginas deben venir de la mas nueva a la mas antigua (si Pipedrive no
+ * respetara el orden, la mas antigua no diria hasta donde llega). 'failed' (sin respuesta, una respuesta
+ * rara, otro orden, sin ancla compartida, o NOTE_SEARCH_MAX_PAGES paginas o NOTE_SEARCH_TIMEOUT_MS sin
+ * llegar a `since`): no se repite el envio en este turno, para no duplicarla; queda pendiente. El tope pide
+ * "revisar a mano" en el registro con el negocio: no hay progreso garantizado. 'rejected': un rechazo
+ * definitivo de la busqueda (searchRejected).
+ */
+async function findNoteByRef(dealId: number, ref: string, since: number): Promise<'found' | 'absent' | 'failed' | 'rejected'> {
+    const deadline = Date.now() + NOTE_SEARCH_TIMEOUT_MS;
+    let start = 0;
+    let newer = Infinity;
+    let anchor: { id: string; time: number } | undefined;
+    try {
+          for (let page = 0; page < NOTE_SEARCH_MAX_PAGES; page++) {
+                  const left = deadline - Date.now();
+                  if (left <= 0) return 'failed';
+                  const res = await pipedriveGet<PipedriveNote[]>('/notes', {
+                            deal_id: String(dealId), sort: NOTE_SEARCH_SORT, start: String(start), limit: String(NOTE_SEARCH_LIMIT),
+                  }, left);
+                  if (!res.success) return searchRejected(res.error) ? 'rejected' : 'failed';
+                  const more = res.additional_data?.pagination?.more_items_in_collection;
+                  // [NOTA-REF] Sin notas solo se acredita ausencia en la primera pagina, sin anunciar mas.
+                  // Las siguientes deben contener el ancla aunque sean la ultima pagina o esten vacias.
+                  if (res.data === null || res.data === undefined) return anchor || more === true ? 'failed' : 'absent';
+                  if (!Array.isArray(res.data)) return 'failed';
+                  if (!res.data.length) return anchor || more === true ? 'failed' : 'absent';
+                  const ids = res.data.map((n) => pipedriveNoteId(n?.id));
+                  if (ids.some((id) => id === undefined) || new Set(ids).size !== ids.length) return 'failed';
+                  const times = res.data.map((n) => pipedriveTime(n?.add_time));
+                  // [NOTA-REF] Toda pagina con notas, incluso incompleta: orden interno y entre paginas.
+                  // newer es la hora justo antes del solapamiento; el ancla debe conservar su hora.
+                  // [NOTA-REF] Dentro de la pagina, el orden es total: a igual hora, el id baja. Sin desempate, las notas
+                  // del mismo segundo podian cambiar de lugar entre lecturas y una quedar sin leer.
+                  if (!times.every((t, i) => Number.isFinite(t) && (i === 0 ? t <= newer
+                            : t < times[i - 1] || (t === times[i - 1] && Number(ids[i]) < Number(ids[i - 1]))))) return 'failed';
+                  if (anchor && times[ids.indexOf(anchor.id)] !== anchor.time) return 'failed';
+                  if (res.data.some((n) => typeof n?.content === 'string' && lastNoteLine(n.content) === NOTE_REF_LABEL + ref)) return 'found';
+                  // [NOTA-REF] El agotamiento explicito manda, incluso si la pagina tiene 50 notas.
+                  const full = typeof more === 'boolean' ? more : res.data.length >= NOTE_SEARCH_LIMIT;
+                  if (!full || times[times.length - 1] < since - NOTE_CLOCK_MARGIN_MS) return 'absent';
+                  const step = res.data.length - NOTE_SEARCH_OVERLAP;
+                  if (step <= 0) return 'failed';
+                  anchor = { id: ids[ids.length - 1]!, time: times[times.length - 1] };
+                  newer = times[step - 1];
+                  start += step;
+          }
+          // [NOTA-REF] Reintentar las mismas paginas no garantiza avanzar: requiere revision operativa.
+          console.error(LOG_PREFIX + ' [NOTA-REF] Nota pendiente en deal ' + dealId + ': tope de paginas sin confirmar ausencia de ' + ref + '; revisar a mano');
+          return 'failed';
+    } catch {
+          return 'failed';
+    }
+}
+
+/**
+ * [NOTA-REF] Manda la nota de `pending` sin repetirla. Con un envio anterior incierto (noteUnsure), primero
+ * la busca por su referencia: si ya esta, se da por entregada; si la busqueda falla, o el ultimo envio
+ * incierto es de hace menos de NOTE_SETTLE_MS (noteSearchAt), no se manda en este turno. Si Pipedrive
+ * rechaza la busqueda de forma definitiva, esperar no sirve y la nota se perderia: se manda como antes de
+ * este cambio (puede repetirse) y queda el error en el registro para revisarlo. Un envio incierto deja
+ * anotados en `pending` el inicio del primero (noteUnsure) y el fin del ultimo (noteUnsureLast). Las pendientes
+ * sin referencia (de antes de este cambio) se mandan como antes, sin busqueda: su texto ya se armo sin la
+ * linea y un envio anterior no se puede reconocer. true: entregada.
+ */
+async function deliverNote(pending: PendingWhatsAppWrite): Promise<boolean> {
+    const ref = validRef(pending.noteRef);
+    const unsureSince = validTime(pending.noteUnsure);
+    const searchAt = noteSearchAt(pending);
+    if (ref && unsureSince !== undefined && searchAt !== undefined) {
+          if (Date.now() < searchAt) {
+                  console.warn(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId + ': envio incierto reciente, se busca cuando se cumpla el plazo');
+                  return false;
+          }
+          const found = await findNoteByRef(pending.dealId, ref, unsureSince);
+          if (found === 'found') {
+                  console.log(LOG_PREFIX + ' Nota ya estaba en deal ' + pending.dealId + ' (' + ref + '): no se repite');
+                  return true;
+          }
+          if (found === 'failed') {
+                  console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId + ': la busqueda de ' + ref + ' no se pudo confirmar, no se repite en este turno');
+                  return false;
+          }
+          if (found === 'rejected') {
+                  console.error(LOG_PREFIX + ' Pipedrive rechazo la busqueda de notas (revisar GET /notes): la nota de deal ' + pending.dealId + ' se manda sin buscarla y puede repetirse');
+          }
+    }
+    const startedAt = Date.now();
+    let unsure = false;
+    try {
+          const result = await pipedrivePost('/notes', {
+                  content: pending.note, deal_id: pending.dealId,
+                  ...(pending.personId ? { person_id: pending.personId } : {}),
+          });
+          if (result.success) {
+                  console.log(LOG_PREFIX + ' Nota creada en deal ' + pending.dealId);
+                  return true;
+          }
+          unsure = unsureFailure(result.error);
+    } catch {
+          // pipedrivePost solo lanza antes de mandar (sin token, client.ts): no hay nota que buscar.
+    }
+    if (ref && unsure) {
+          pending.noteUnsure = Math.min(unsureSince ?? startedAt, startedAt);
+          const finishedAt = Date.now();
+          pending.noteUnsureLast = Math.max(validTime(pending.noteUnsureLast) ?? finishedAt, finishedAt);
+    }
+    console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId + (ref && unsure ? ' (resultado incierto: se busca antes de repetirla)' : ''));
+    return false;
 }
 
 export async function retryWhatsAppWrite(write: PendingWhatsAppWrite): Promise<PendingWhatsAppWrite | undefined> {
@@ -63,21 +352,11 @@ export async function retryWhatsAppWrite(write: PendingWhatsAppWrite): Promise<P
                   console.error(LOG_PREFIX + ' Campos pendientes en deal ' + pending.dealId);
           }
     }
-    if (pending.note) {
-          try {
-                  const result = await pipedrivePost('/notes', {
-                          content: pending.note, deal_id: pending.dealId,
-                          ...(pending.personId ? { person_id: pending.personId } : {}),
-                  });
-                  if (result.success) {
-                          delete pending.note;
-                          console.log(LOG_PREFIX + ' Nota creada en deal ' + pending.dealId);
-                  } else {
-                          console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId);
-                  }
-          } catch {
-                  console.error(LOG_PREFIX + ' Nota pendiente en deal ' + pending.dealId);
-          }
+    if (pending.note && (await deliverNote(pending))) {
+          delete pending.note;
+          delete pending.noteRef;
+          delete pending.noteUnsure;
+          delete pending.noteUnsureLast;
     }
     return pending.fields || pending.note ? pending : undefined;
 }
@@ -255,7 +534,8 @@ function bodyLine(body: unknown): string {
 }
 
 const SUMMARY_MAX = 600;
-export function buildNote(p: WhatsAppLeadParams): string {
+/** [NOTA-REF] `ref`: la referencia de la nota (newNoteRef), que va en su ultima linea. */
+export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): string {
     const c = p.captured ?? {};
     const lead = resolveLead(c);
     const ambiguos = listLines(c.rut_ambiguos);
@@ -293,8 +573,10 @@ export function buildNote(p: WhatsAppLeadParams): string {
           // [TRANSCRIPCION] Reemplaza la linea "Mensaje original": la conversacion completa, en hora de Chile.
           '-- TRANSCRIPCI\u00d3N --',
         ].join('\n') + '\n';
-    // [NOTA] La transcripcion usa lo que la ficha deja libre bajo el tope.
-    return escapeNoteHtml(head + fitTranscript(fmt(p.transcript) ?? bodyLine(p.body), NOTE_MAX_BYTES - noteBytes(head)));
+    // [NOTA] La transcripcion usa lo que la ficha deja libre bajo el tope. [NOTA-REF] La linea de la
+    // referencia va al final y cuenta en el tope.
+    const tail = noteRefLine(ref);
+    return escapeNoteHtml(head + fitTranscript(fmt(p.transcript) ?? bodyLine(p.body), NOTE_MAX_BYTES - noteBytes(head) - noteBytes(tail)) + tail);
 }
 
 function buildWaCustomFields(
@@ -340,10 +622,12 @@ function buildWaCustomFields(
  */
 export function buildWhatsAppUpdate(params: WhatsAppLeadParams & { existingDealId: number }): PendingWhatsAppWrite {
     const resolvedLeadType = params.leadType ?? detectLeadType(params.body, params.captured);
+    const noteRef = newNoteRef();
     return {
           dealId: params.existingDealId,
           fields: buildWaCustomFields(params.captured, params.captureStatus, params.wantsHuman, params.summary, params.body, resolvedLeadType),
-          note: buildNote(params),
+          note: buildNote(params, noteRef),
+          noteRef,
     };
 }
 
@@ -368,11 +652,23 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
     const resolvedPriority: 'Alta' | 'Normal' = wantsHuman ? 'Alta' : (params.priorityTier ?? 'Normal');
 
   const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body, resolvedLeadType);
-    const noteContent = buildNote(params);
+    // [NOTA-REF] La referencia se crea aqui, una vez, y viaja con la nota si queda pendiente.
+    const noteRef = newNoteRef();
+    const noteContent = buildNote(params, noteRef);
+
+  // [NOTA-REF] Sin compuerta (o si falla) conserva el envio de siempre.
+  async function sendFirst(write: PendingWhatsAppWrite): Promise<PendingWhatsAppWrite | undefined> {
+    let toSend = write;
+    if (params.beforeNote) {
+      try { toSend = await params.beforeNote(write); }
+      catch (err) { console.error(LOG_PREFIX + ' [NOTA-REF] beforeNote:', redact(err, 'error')); }
+    }
+    return toSend.fields || toSend.note !== undefined ? retryWhatsAppWrite(toSend) : undefined;
+  }
 
   // La correccion tardia usa el negocio guardado, sin buscar abiertos ni crear otro.
   if (params.existingDealId) {
-        const pendingWrite = await retryWhatsAppWrite({ dealId: params.existingDealId, fields: waCustomFields, note: noteContent });
+        const pendingWrite = await sendFirst({ dealId: params.existingDealId, fields: waCustomFields, note: noteContent, noteRef });
         return { dealId: params.existingDealId, action: 'found', ...(pendingWrite ? { pendingWrite } : {}) };
   }
 
@@ -408,10 +704,10 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         console.log(LOG_PREFIX + ' dedup_quote_reference_hit dealId=' + dealId);
   }
 
-  const pendingWrite = await retryWhatsAppWrite({
+  const pendingWrite = await sendFirst({
         dealId, personId,
         ...(Object.keys(waCustomFields).length ? { fields: waCustomFields } : {}),
-        note: noteContent,
+        note: noteContent, noteRef,
   });
 
   console.log(LOG_PREFIX + ' Deal ' + dealId + ' (' + dealAction + ') for ' + redact(phone, 'phone'));
