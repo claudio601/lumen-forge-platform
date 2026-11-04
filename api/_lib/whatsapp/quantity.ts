@@ -240,6 +240,19 @@ const OTHER_DATUM_BEFORE_RE = /\b(?:modelo|mod|codigo|cod|ref|referencia|sku|ser
 const NEGATED_BEFORE_RE = /(?:\b(?:no|ni|tampoco)\s+(?:(?:lo|la|los|las|me|nos)\s+)?(?:(?:vamos|voy)\s+a\s+)?(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?(?:(?:comprar|cotizar|pedir|llevar|ocupar|usar|necesitar)\s+)?(?:(?:unos|unas|los|las|aprox(?:imadamente)?\.?)\s+)?|\ben\s+(?:vez|lugar)\s+de\s+)$/;
 // Despues del numero: la cantidad que corrige ("eran 25, no 20", "25 en vez de 20").
 const CORRECTION_AFTER_RE = /^\s*,?\s*(?:y\s+)?(?:no\s+\d|en\s+(?:vez|lugar)\s+de\b)/;
+// "Eran 20 focos, ahora son 30": lo anterior no es otro item del pedido actual. Solo si "ahora son"
+// sigue de inmediato (sin otra cifra entre medio) y nombra exactamente lo mismo o nada: "eran 20 focos
+// y ahora son 30 paneles", "eran 20 focos, ahora son 30 focos LED" o "eran 20 focos y necesito 5
+// paneles; ahora son 30" siguen como varios items.
+const PAST_QUANTITY_RE = /\b(?:antes\s+)?eran?\s+\d+(?:\.\d{3})*\b([^\d,;.!?\n]{0,60}?)(\s*,?\s*(?:y\s+)?ahora\s+son\s+\d+(?:\.\d{3})*\b([^\d,;.!?\n]{0,60}))/g;
+
+function withoutPastQuantity(text: string): string {
+  return text.replace(PAST_QUANTITY_RE, (all: string, past: string, now: string, nowItem: string) => {
+    const a = past.trim();
+    const b = nowItem.trim();
+    return !a || !b || a === b ? ' ' + now : all;
+  });
+}
 // Junto a otra cantidad: "30 paneles y 20 de 24W", "entre 20 y 30", "20 o 30 focos".
 const CHAIN_BEFORE_RE = /(?:\by|,|;|\+|\bmas|\bademas|\btambien|\bentre|\botr[oa]s?)\s*$/;
 const CHAIN_AFTER_RE = /^\s*(?:y|o|a|al|hasta|\+|,)\s*\d/;
@@ -332,7 +345,7 @@ export function readQuantity(body: string, options: QuantityOptions = {}): Quant
   const contact = Boolean(options.contact || options.ruts?.length || new RegExp(RUT_DASH_RE.source).test(text));
   const asked = Boolean(options.asked) && !contact;
   if (asked && ONE_ANSWER_RE.test(text)) return { value: 1, explicit: true };
-  const clean = withoutNonQuantities(body, options.ruts);
+  const clean = withoutPastQuantity(withoutNonQuantities(body, options.ruts));
   const found = candidates(clean);
   const explicit = found.filter((c) => c.explicit);
   const values = new Set(explicit.map((c) => c.value));

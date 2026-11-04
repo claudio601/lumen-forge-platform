@@ -1237,3 +1237,92 @@ describe('regresiones de la PR #144: finalidad y pedidos después de una pregunt
     }
   });
 });
+
+describe('negaciones de cantidad y correcciones con cantidad anterior', () => {
+  for (const who of ['vacío', 'acierta', 'se equivoca'] as const) {
+    it(`"No necesito 30 focos, sino 20" (Claude ${who}) conserva solo la cantidad afirmada`, () => {
+      step('Necesito 10 focos LED', { producto: 'focos LED', cantidad: '10' });
+      const r = step('No necesito 30 focos, sino 20', who === 'vacío' ? {} : { cantidad: who === 'acierta' ? '20' : '30' });
+      expect(r.captured.cantidad).toBe('20');
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora 20']);
+    });
+
+    it(`"También necesito 5 paneles LED" (Claude ${who}) sigue sumando otro ítem`, () => {
+      step('Necesito 20 focos LED', { producto: 'focos LED', cantidad: '20' });
+      const r = step('También necesito 5 paneles LED', who === 'vacío' ? {} : { producto: 'paneles LED', cantidad: '5' });
+      expect(r.captured.producto).toBe('focos LED');
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.captured.cantidad_varios).toBe('focos LED: 20 / También necesito 5 paneles LED');
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora varios items']);
+    });
+
+    it.each([
+      'No 1.000 focos, solo los paneles',
+      'Ni 1.000 focos, solo los paneles',
+    ])(`la negación sin verbo "%s" (Claude ${who}) conserva los paneles y sus 20 unidades`, (body) => {
+      step('Necesito 20 paneles LED', { producto: 'paneles LED', cantidad: '20' });
+      const claude = who === 'vacío' ? {} : who === 'acierta'
+        ? { producto: 'paneles LED', cantidad: '20' } : { producto: 'focos', cantidad: '1000' };
+      const r = step(body, claude);
+      expect(r.captured.producto).toBe('paneles LED');
+      expect(r.captured.cantidad).toBe('20');
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toBeUndefined();
+    });
+
+    // "No, 20 focos" responde corrigiendo: la coma separa el "no" del dato que el cliente afirma.
+    it.each([
+      ['No, 20 focos', 'focos LED', '20', ['Cantidad: antes 10, ahora 20']],
+      ['No, 1.000 focos', 'focos LED', '1000', ['Cantidad: antes 10, ahora 1000']],
+      ['No, 20 paneles LED', 'paneles LED', '20', ['Producto: antes focos LED, ahora paneles LED', 'Cantidad: antes 10, ahora 20']],
+    ])(`"%s" después de 10 focos LED (Claude ${who}) toma lo que afirma`, (body, producto, cantidad, cambios) => {
+      step('Necesito 10 focos LED', { producto: 'focos LED', cantidad: '10' });
+      const r = step(body, who === 'vacío' ? {} : who === 'acierta' ? { producto, cantidad } : { cantidad: '10' });
+      expect(r.captured.producto).toBe(producto);
+      expect(r.captured.cantidad).toBe(cantidad);
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(cambios);
+    });
+
+    it.each([
+      'No necesito que me coticen 20 focos',
+      'No quiero que me coticen 20 focos',
+    ])(`la negación "%s" (Claude ${who}) deja pendiente la cantidad`, (body) => {
+      step('Necesito paneles LED luz neutra', { producto: 'paneles LED luz neutra' });
+      const r = step(body, who === 'se equivoca' ? { producto: 'focos', cantidad: '20' } : {});
+      expect(r.captured.producto).toBe('paneles LED luz neutra');
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toBeUndefined();
+      expect(r.reply).toMatch(/cantidad de unidades/i);
+    });
+
+    // Otro producto u otro pedido entre medio: no es una correccion de la misma cantidad (revision de Codex).
+    // Con Claude equivocado el producto lo decide Claude, como en 498bcc4 (fuera de esta PR).
+    if (who === 'vacío') it.each([
+      'Eran 20 focos y ahora son 30 paneles',
+      'Eran 20 focos LED y necesito 5 paneles LED; ahora son 30 focos LED',
+      'Corrijo: eran 20 focos, ahora son 30 focos LED',
+    ])('"%s" después de 20 paneles LED (Claude vacío) no cambia el producto ni pierde ítems', (body) => {
+      step('Necesito 20 paneles LED', { producto: 'paneles LED', cantidad: '20' });
+      const r = step(body, {});
+      expect(r.captured.producto).toBe('paneles LED');
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.captured.cantidad_varios).toContain(body);
+    });
+
+    it.each([
+      'Corrijo: eran 20 focos LED, ahora son 30 focos LED',
+      'Corrijo: eran 20, ahora son 30',
+    ])(`la corrección "%s" (Claude ${who}) deja 30 y anota el cambio`, (body) => {
+      step('Necesito 20 focos LED', { producto: 'focos LED', cantidad: '20' });
+      const claude = who === 'vacío' ? {} : { cantidad: who === 'acierta' ? '30' : '20' };
+      const r = step(body, claude);
+      expect(r.captured.producto).toBe('focos LED');
+      expect(r.captured.cantidad).toBe('30');
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30']);
+    });
+  }
+});
