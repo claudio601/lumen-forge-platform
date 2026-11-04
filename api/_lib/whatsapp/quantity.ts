@@ -169,6 +169,8 @@ const INLINE_MARK_RE = /(^|[\s,;])([1-9])\s*(?:[.):]\s*-?|-)\s+/g;
 
 // Lo que nunca es cantidad, en este orden (cada uno se cambia por un espacio).
 const NOT_QUANTITY: readonly RegExp[] = [
+  // Fechas con puntos, versiones y numeros largos: sacar la secuencia entera antes de partirla.
+  /\b\d+(?:\.\d+){2,}\b/g,
   // RUT con guion y telefonos (+56 9 1234 5678, +56 32 212 3456, 912345678, (9) 0000 1234)
   RUT_DASH_RE,
   /\+?56(?:[\s.()-]*\d){8,9}/g,
@@ -206,7 +208,6 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /(?:^|\n)\s*\d\s*(?:[.)]\s*-?|-)\s/g,
   /\b\d\)/g,
   // numeros largos o con dos puntos (RUT sin guion, celulares), decimales
-  /\b\d{1,3}(?:\.\d{3}){2,}\b/g,
   /\b\d{6,}\b/g,
   /\b\d+,\d+\b/g,
   /\b\d+\.(?!\d{3}\b)\d+\b/g,
@@ -234,8 +235,9 @@ const VERB_BEFORE_RE = /(?:\b(?:necesito|necesitamos|necesitaria|necesitariamos|
 // Antes del numero: otro dato ("modelo 50", "presupuesto clp 50000", "potencia de 24", "fono 1234").
 const OTHER_DATUM_BEFORE_RE = /\b(?:modelo|mod|codigo|cod|ref|referencia|sku|serie|potencia|vatios|watts|presupuesto|precio|valor|monto|costo|clp|usd|uf|fono|telefono|tel|cel|celular|movil|whatsapp|wsp|rut|altura|largo|ancho|alto|diametro|distancia|superficie|temperatura|voltaje|tension|cri|irc|ra|lumenes|flujo|chip|smd|ano)\.?\s*(?:(?:de|del|es|era|seria|sera|son|el|la|los|las|un|una|unos|unas|como|hasta|sobre|cerca\s+de|alrededor\s+de|mas\s+o\s+menos|maximo|minimo|total)\s+|>\s*|=\s*|:\s*|n[\u00b0\u00ba]\.?\s*|#\s*|nro\.?\s*|aprox(?:imado|imadamente)?\.?\s*)*(?:\d+\s*(?:y|o|,|\/)\s*)*$/;
 // Antes del numero: una negacion ("son 7, no 10", "ni 20").
-// Tambien con el pronombre o el verbo que siguen ("no los necesito 20", "no quiero comprar 20 focos", "no vamos a pedir 20").
-const NEGATED_BEFORE_RE = /(?:\b(?:no|ni|tampoco)\s+(?:(?:lo|la|los|las|me|nos)\s+)?(?:(?:vamos|voy)\s+a\s+)?(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?(?:(?:comprar|cotizar|pedir|llevar|ocupar|usar|necesitar)\s+)?(?:(?:unos|unas|los|las)\s+)?|\ben\s+(?:vez|lugar)\s+de\s+)$/;
+// Tambien con el pronombre o el verbo que siguen ("no los necesito 20", "no quiero comprar 20 focos", "no vamos a pedir 20")
+// y con la abreviatura de por medio ("no necesito aprox. 30 focos"): el punto de "aprox." no corta la negacion.
+const NEGATED_BEFORE_RE = /(?:\b(?:no|ni|tampoco)\s+(?:(?:lo|la|los|las|me|nos)\s+)?(?:(?:vamos|voy)\s+a\s+)?(?:(?:son|eran|serian|era|es|necesito|necesitamos|quiero|queremos)\s+)?(?:(?:comprar|cotizar|pedir|llevar|ocupar|usar|necesitar)\s+)?(?:(?:unos|unas|los|las|aprox(?:imadamente)?\.?)\s+)?|\ben\s+(?:vez|lugar)\s+de\s+)$/;
 // Despues del numero: la cantidad que corrige ("eran 25, no 20", "25 en vez de 20").
 const CORRECTION_AFTER_RE = /^\s*,?\s*(?:y\s+)?(?:no\s+\d|en\s+(?:vez|lugar)\s+de\b)/;
 // Junto a otra cantidad: "30 paneles y 20 de 24W", "entre 20 y 30", "20 o 30 focos".

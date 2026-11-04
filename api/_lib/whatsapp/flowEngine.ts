@@ -886,8 +886,13 @@ const INDIRECT_CLAUSE_START = '(?:necesit|quier|quis|requier|requer|busc|ocup|so
 const INDIRECT_QUESTION_RE = new RegExp('\\b(?:saber|consultar|preguntar(?:le|les|te)?)\\s+(?:si|por|cu[a\\u00e1]nt\\w*|qu[e\\u00e9]|c[o\\u00f3]mo|d[o\\u00f3]nde|cu[a\\u00e1]l\\w*)(?![a-z\\u00e0-\\u00fc])'
   + '(?:(?!\\b(?:(?:corrij|corrig)[a-z]*\\s*:|pero\\s+' + INDIRECT_CLAUSE_START + '))'
   + '(?:[^,;.!?\\n]|(?<=\\d)\\.(?=\\d)|[,;](?!\\s*(?:(?:y|pero)\\s+)?' + INDIRECT_CLAUSE_START + ')))*', 'gi');
+// El punto de "aprox. 30" es parte de la abreviatura, no el fin de la pregunta o negacion.
+const APPROX_DOT_RE = /\baprox\./gi;
+function withoutIndirectQuestions(text: string): string {
+  return text.replace(APPROX_DOT_RE, 'aprox ').replace(INDIRECT_QUESTION_RE, ' ');
+}
 function withoutQuestions(text: string): string {
-  return text.replace(INDIRECT_QUESTION_RE, ' ').split(/(?<=[!?\n]|(?<!\d)\.|\.(?!\d))|(?=\u00bf)/).map((part) => {
+  return withoutIndirectQuestions(text).split(/(?<=[!?\n]|(?<!\d)\.|\.(?!\d))|(?=\u00bf)/).map((part) => {
     const clauses = part.split(/(?<=[,;])/);
     if (!/[?\u00bf]/.test(part)) return clauses.length > 1 && CONDITIONAL_RE.test(clauses[0]) && QUESTION_START_RE.test(clauses[1]) ? '' : part;
     if (part.includes('\u00bf')) return '';
@@ -943,6 +948,7 @@ function negatedEnd(text: string, from: number, negator: string, relative: boole
   return from + end;
 }
 function maskNegated(text: string): string {
+  text = text.replace(APPROX_DOT_RE, 'aprox ');
   let out = '';
   let last = 0;
   for (const m of text.matchAll(NEGATOR_RE)) {
@@ -1090,14 +1096,15 @@ function removeLoose(text: string, needle: string): string {
   for (let i = hay.indexOf(key); i >= 0; i = hay.indexOf(key, i + key.length)) out = out.slice(0, i) + ' '.repeat(key.length) + out.slice(i + key.length);
   return out;
 }
-/** [NO-PISAR] El mensaje sin correos ni razon social: esas palabras no son producto, proyecto, comuna ni cantidad. */
+/** [NO-PISAR] El mensaje sin enlaces, correos ni razon social: no son producto, proyecto, comuna ni cantidad. */
 function factsText(body: string, claudeParsed: ClaudeFields): string {
   let text = body.slice(0, MAX_FACTS);
   for (const name of [claudeParsed.empresa, claudeParsed.nombre]) {
     const trimmed = typeof name === 'string' ? name.trim() : '';
     if (trimmed.length > 2) text = removeLoose(text, trimmed);
   }
-  return text.replace(EMAIL_RE_ALL, ' ').replace(RAZON_SOCIAL_RE, ' ');
+  // Los enlaces salen antes de cortar preguntas: el punto del dominio no debe dejar fragmentos con numeros.
+  return text.replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ').replace(RAZON_SOCIAL_RE, ' ');
 }
 
 // [COMUNA] La comuna de la instalacion: con varias en el mensaje, la que eligio Claude (si es una de ellas)
@@ -1198,7 +1205,7 @@ function mergeProductFields(
     contact: EMAIL_RE.test(body),
     claude: claudeParsed.cantidad,
   };
-  const quantity = readQuantity(facts, options);
+  const quantity = readQuantity(maskNegated(withoutIndirectQuestions(facts)), options);
   const stated = assertive === facts ? quantity : readQuantity(assertive, { ...options, menuLength: 0 });
   // Con varios items ("20 paneles y 30 focos") la regla ve uno solo: no cambia el producto.
   const claudeProd = claudeText(claudeParsed.producto);
@@ -1216,7 +1223,7 @@ function mergeProductFields(
   const luzNegated = Boolean(claudeLuz && !luzText && (negatedLuz(facts).has(normalizeLuz(comparable(claudeLuz))) || negatedOnly(claudeLuz)));
   keepOrChange(merged, 'tipo_de_luz', luzConflict ? luzText : luzNegated ? undefined : claudeLuz ?? luzText, textLuz(base));
   // Lo que el cliente afirma decide la cantidad ("Necesito 20 paneles, tienen 30 focos?" es 20); si no afirma
-  // ninguna, la del mensaje entero llena el dato vacio.
+  // ninguna, el mensaje sin negaciones ni consultas indirectas puede llenar el dato vacio.
   mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding);
   const claudeProy = claudeProject(claudeParsed, body);
   const ownProject = (text: string) => extractProyecto(withoutStorePlaces(text));
