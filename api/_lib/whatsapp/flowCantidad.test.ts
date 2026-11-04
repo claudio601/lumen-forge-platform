@@ -50,6 +50,23 @@ describe('§10: el primer mensaje', () => {
 });
 
 describe('varios ítems o números que no son unidades', () => {
+  for (const [who, claude] of [['acierta', {}], ['se equivoca', { cantidad: '1000', producto: 'focos', proyecto_o_uso: 'bodega' }]] as const) {
+    it.each([
+      'https://example.com/1.000/focos',
+      'http://example.com/1.000/focos',
+      'www.example.com/1.000/focos',
+    ])(`una pregunta con la URL "%s" (Claude ${who}) conserva el pedido y la cantidad pendiente`, (url) => {
+      const pedido = { producto: 'paneles LED', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina' };
+      expect(step('Necesito paneles LED luz neutra para una oficina', pedido).reply).toMatch(/cantidad de unidades/i);
+      const r = step('Quiero saber si tienen ' + url + ' para bodega', claude);
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured).toMatchObject(pedido);
+      expect(r.captured.cambios).toBeUndefined();
+      expect(r.reply).toMatch(/cantidad de unidades/i);
+    });
+  }
+
   // Varias cantidades: la cantidad queda vacía, el texto va a la nota y no se vuelve a preguntar.
   for (const body of ['Necesito 30 paneles de 18W y 20 de 24W', 'necesito 2 de 60x60 y 3 de 120x60']) {
     for (const [who, claude] of [['acierta', {}], ['se equivoca', { cantidad: body.match(/\d+/)?.[0] }]] as const) {
@@ -111,6 +128,19 @@ describe('la prueba del dueño del 16-10: razón social, RUT y correo en un mens
 describe('CASO-1 y respuestas agrupadas', () => {
   const START = 'busco focos LED para una bodega';
   const START_CLAUDE = { producto: 'focos LED', proyecto_o_uso: 'bodega' };
+
+  it.each([
+    ['02.11.2026', {}],
+    ['02.11.2026', { cantidad: '2026' }],
+    ['versión 2.3.4', {}],
+    ['versión 2.3.4', { cantidad: '4' }],
+  ])('después de preguntar la cantidad, "%s" (Claude %j) la deja pendiente', (text, claude) => {
+    expect(step(START, START_CLAUDE).reply).toMatch(/cantidad de unidades/i);
+    const r = step(text, claude);
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.reply).toMatch(/cantidad de unidades/i);
+  });
 
   it('el bot pregunta el color y la cantidad en una lista de 2', () => {
     const r = step(START, START_CLAUDE);
@@ -850,6 +880,34 @@ describe('ronda 6 (revisión adversaria de la ronda 5)', () => {
     step('También necesito que me los instalen en la bodega', {});
     expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
   });
+});
+
+describe('aprox. no corta una negación ni una pregunta indirecta', () => {
+  for (const cantidad of [undefined, '20']) {
+    for (const claude of [{}, { producto: 'focos', cantidad: '30', proyecto_o_uso: 'bodega' }]) {
+      it.each([
+        'No necesito aprox. 30 focos para bodega',
+        'Quiero saber si tienen aprox. 30 focos para bodega',
+      ])(`con cantidad ${cantidad ?? 'vacía'} y Claude ${JSON.stringify(claude)}, "%s" conserva el pedido`, (body) => {
+        step(`Necesito ${cantidad ? cantidad + ' ' : ''}paneles LED para oficina`, { producto: 'paneles LED', cantidad, proyecto_o_uso: 'oficina' });
+        const r = step(body, claude);
+        expect(r.captured).toMatchObject({ producto: 'paneles LED', proyecto_o_uso: 'oficina' });
+        expect(r.captured.cantidad).toBe(cantidad);
+        expect(r.captured.cantidad_varios).toBeUndefined();
+        expect(r.captured.cambios).toBeUndefined();
+      });
+    }
+
+    for (const claude of [{ cantidad: '30' }, { cantidad: '3' }]) {
+      it(`con Claude ${JSON.stringify(claude)} y cantidad ${cantidad ?? 'vacía'}, un pedido afirmativo con aprox. captura 30`, () => {
+        step(`Necesito ${cantidad ? cantidad + ' ' : ''}paneles LED para oficina`, { producto: 'paneles LED', cantidad, proyecto_o_uso: 'oficina' });
+        const r = step('Necesito aprox. 30 focos', claude);
+        expect(r.captured.cantidad).toBe('30');
+        expect(r.captured.cantidad_varios).toBeUndefined();
+        expect(r.captured.cambios ?? []).toEqual(expect.arrayContaining(cantidad ? ['Cantidad: antes 20, ahora 30'] : []));
+      });
+    }
+  }
 });
 
 describe('ronda 7 (Codex, ronda 3)', () => {

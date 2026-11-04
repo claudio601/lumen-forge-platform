@@ -219,6 +219,23 @@ const SPEC_TEXTS = [
 ];
 
 describe('B1: la transcripción en la nota', () => {
+  it.each([{}, { cantidad: '1000', producto: 'focos', proyecto_o_uso: 'bodega' }])('una URL en una pregunta no llena la cantidad y se guarda literal en la transcripción (Claude %j)', async (claude) => {
+    const redis = withUpstash();
+    const phone = nextPhone();
+    const first = 'Necesito paneles LED luz neutra para una oficina';
+    const pedido = { producto: 'paneles LED', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina' };
+    expect(await send(phone, first, pedido)).toMatch(/cantidad de unidades/i);
+    const question = 'Quiero saber si tienen https://example.com/1.000/focos para bodega';
+    const reply = await send(phone, question, claude);
+    const saved = JSON.parse(redis.data.get(conversationKey(phone))!.value);
+    expect(saved.transcript.entries.filter((e: { role: string }) => e.role === 'cliente').map((e: { text: string }) => e.text)).toEqual([first, question]);
+    expect(saved.flow.captured.cantidad).toBeUndefined();
+    expect(saved.flow.captured.cantidad_varios).toBeUndefined();
+    expect(saved.flow.captured).toMatchObject(pedido);
+    expect(saved.flow.captured.cambios).toBeUndefined();
+    expect(reply).toMatch(/cantidad de unidades/i);
+  });
+
   it('cada mensaje del cliente llega literal, en orden y con hora, con la respuesta que recibió, y ninguno se pierde', async () => {
     const phone = nextPhone();
     expect(SPEC_TEXTS).toHaveLength(18);
