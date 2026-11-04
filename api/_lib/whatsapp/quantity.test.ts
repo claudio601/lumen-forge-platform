@@ -61,6 +61,25 @@ describe('varios ítems o algo que no son unidades', () => {
 });
 
 describe('respuesta a la pregunta por la cantidad', () => {
+  it.each([
+    '02.11.2026',
+    '2.11.2026',
+    'versión 2.3.4',
+    'versión 2.3.4.5',
+  ])('"%s" se descarta completa, sin dejar cifras como cantidad', (text) => {
+    expect(readQuantity(text, { asked: true })).toEqual({ explicit: false });
+  });
+
+  it.each([
+    ['2.000 focos', 2000],
+    ['1.5 metros', undefined],
+    ['30 focos', 30],
+    ['30 focos para el 02.11.2026', 30],
+    ['versión 2.3.4, necesito 30 focos', 30],
+  ])('"%s" conserva solo la cantidad legítima → %s', (text, expected) => {
+    expect(readQuantity(text, { asked: true }).value).toBe(expected);
+  });
+
   it('"20, luz fría" vale solo si la pregunta pidió la cantidad', () => {
     expect(readQuantity('20, luz fría', { asked: true, menuLength: 2 })).toEqual({ value: 20, explicit: true });
     expect(readQuantity('20, luz fría').value).toBeUndefined();
@@ -403,5 +422,22 @@ describe('separador de miles con punto (verificación adversaria de la PR #142)'
 
   it('"2 . 000" con espacios no es un número con separador de miles', () => {
     expect(readQuantity('necesito 2 . 000 focos').value).not.toBe(2000);
+  });
+});
+
+describe('ronda 8 (el punto de "aprox." no corta la negación)', () => {
+  it.each([
+    'No necesito aprox. 30 focos',
+    'no necesito aproximadamente. 20 focos',
+    'No quiero comprar aprox. 15 paneles',
+  ])('la cantidad negada con la abreviatura "%s" → vacía', (text) => {
+    expect(readQuantity(text).value).toBeUndefined();
+  });
+
+  it.each([
+    ['Necesito aprox. 30 focos', 30],
+    ['Busco aprox. 12 paneles LED', 12],
+  ])('la afirmativa con la abreviatura "%s" → %i', (text, expected) => {
+    expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
   });
 });
