@@ -10,6 +10,7 @@
 //
 // No se agrega Resend ni ningun proveedor externo nuevo.
 
+import { redact } from '../logging/redact.js';
 import {
     createActivity,
     hasFollowup24Created,
@@ -37,11 +38,12 @@ export async function notifyTeam(params: NotifyParams): Promise<void> {
     const { phone, name, message, summary, dealId, personId, existingDeal } = params;
 
   // 1. Log estructurado — siempre, visible en Vercel dashboard
+  // El resumen y el mensaje también pueden contener nombres: registrar solo su largo.
   console.log(
-        `${LOG_PREFIX} [LEAD CALIFICADO] nombre="${name}" tel="${phone}" ` +
-        `deal=${dealId ?? 'n/a'} person=${personId ?? 'n/a'} ` +
-        `resumen="${summary.substring(0, 120)}" msg="${message.substring(0, 80)}"`,
-      );
+    `${LOG_PREFIX} [LEAD CALIFICADO] nombre=${name ? 'sí' : 'no'} tel="${redact(phone, 'phone')}" ` +
+    `deal=${dealId ?? 'n/a'} person=${personId ?? 'n/a'} ` +
+    `resumen_caracteres=${summary.length} msg_caracteres=${message.length}`,
+  );
 
   // 2. Actividad Pipedrive (seguimiento 24h) — requiere dealId y personId
   if (!dealId || !personId) {
@@ -64,7 +66,7 @@ export async function notifyTeam(params: NotifyParams): Promise<void> {
   // duplicate than a silent no-op.
   if (!existingDeal && await hasFollowup24Created(dealId)) {
         console.log(
-                `${LOG_PREFIX} dedup_followup_24h_skipped dealId=${dealId} phone=${phone}`
+                `${LOG_PREFIX} dedup_followup_24h_skipped dealId=${dealId} phone=${redact(phone, 'phone')}`
         );
         return;
   }
@@ -82,6 +84,6 @@ export async function notifyTeam(params: NotifyParams): Promise<void> {
         await markFollowup24Created(dealId);
   } catch (err) {
         // No es fatal — el bot ya respondio al cliente
-      console.error(`${LOG_PREFIX} Error creando actividad Pipedrive:`, err);
+      console.error(`${LOG_PREFIX} Error creando actividad Pipedrive:`, redact(err, 'error'));
   }
 }

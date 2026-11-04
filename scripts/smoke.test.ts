@@ -241,6 +241,11 @@ describe('chequeo de humo', () => {
       expect(rowIssues(r, { base: 'https://nuevo.elights.cl' }).join(' ')).toMatch(/sin X-Robots-Tag/);
       expect(rowIssues({ ...r, xRobots: 'NOINDEX' }, { base: 'https://nuevo.elights.cl' }).join(' ')).not.toMatch(/sin X-Robots-Tag/);
     }
+    // Las redirecciones de Vercel no llevan la cabecera: no cuentan como falla.
+    for (const [status, path] of [[301, '/campana_led'], [307, '/carro'], [308, '/x']] as const) {
+      const r = row(path, 'redirect', status, '', { xRobots: '' });
+      expect(rowIssues(r, { base: 'https://nuevo.elights.cl' }).join(' ')).not.toMatch(/X-Robots-Tag/);
+    }
     for (const path of ['/api', '/api?prueba=1', '/api/', '/api/jumpseller/webhook']) {
       expect(rowIssues(row(path, 'api', 405, 'application/json', { xRobots: '' }))).toEqual([]);
     }

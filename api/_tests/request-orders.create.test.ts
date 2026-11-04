@@ -309,6 +309,24 @@ describe('POST /api/request-orders/create: origen de la visita', () => {
     expect(b).toBe(a);
   });
 
+  it('datos en campos sin validar, productos desconocidos y errores de CRM nunca entran al log', async () => {
+    const pii = 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678';
+    const invalid = await call({ ...base, items: [ar111], subtotal: pii, customerType: pii, requestReference: pii });
+    expect(invalid.statusCode).toBe(400);
+    await call({ ...base, notes: pii, items: [{ ...ar111, jumpsellerId: undefined, sku: pii, name: pii }] });
+    vi.mocked(createDeal).mockRejectedValueOnce(Object.assign(new Error(pii), { body: pii }));
+    expect((await call({ ...base, items: [ar111] })).statusCode).toBe(502);
+    await mailsSettled();
+    const text = logged();
+    // El error del CRM se registra enmascarado (sirve para depurar): sin RUT, correo ni teléfono.
+    // Un nombre dentro del mensaje de error no se reconoce; la política lo permite en los registros.
+    for (const value of ['12.345.678-5', 'prueba@ejemplo.cl', '+56 9 1234 5678']) {
+      expect(text).not.toContain(value);
+    }
+    expect(text).toContain('RC-abc12');
+    expect(text).toContain('Pipedrive createDeal FAIL');
+  });
+
   it('el log no lleva el origen ni datos del cliente, tampoco cuando el relay repite lo que recibió', async () => {
     await call({ ...base, items: [ar111], attribution: ATTRIBUTION });
     vi.stubGlobal('fetch', vi.fn(async () => ({ status: 200, json: async () => ({ status: 'error', message: 'Invalid email: ' + base.email + ' ' + base.fullName }) })));

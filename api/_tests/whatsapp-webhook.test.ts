@@ -20,7 +20,7 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { getHistory } from '../_lib/whatsapp/conversation.js';
-import { MSG1, MSG4, MSG_DEAL_FAILED, MSG_MEDIA } from '../_lib/whatsapp/flowEngine.js';
+import { MSG1, MSG2, MSG4, MSG_DEAL_FAILED, MSG_MEDIA, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 import { buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { PRIVACY_NOTICE, PRIVACY_POLICY_URL } from '../_lib/whatsapp/privacyNotice.js';
 
@@ -78,6 +78,9 @@ function fakeReq(params: Record<string, string>, init: { method?: string; header
   });
 }
 
+// Un MessageSid por mensaje, como Twilio: el registro local deduplica tambien sin Upstash (H11).
+let sidSeq = 0;
+
 /** Un mensaje de WhatsApp tal como lo manda Twilio. */
 async function sendMessage(phone: string, body: string, extra: Record<string, string> = {}): Promise<FakeRes> {
   const res = fakeRes();
@@ -86,7 +89,7 @@ async function sendMessage(phone: string, body: string, extra: Record<string, st
       From: 'whatsapp:' + phone,
       Body: body,
       ProfileName: 'PRUEBA 13w',
-      MessageSid: 'SM' + phone.replace(/\D/g, ''),
+      MessageSid: 'SM' + phone.replace(/\D/g, '') + '-' + ++sidSeq,
       NumMedia: '0',
       ...extra,
     }),
@@ -185,13 +188,14 @@ describe('el aviso no se filtra a otros datos', () => {
     expect(JSON.stringify(getHistory(phone))).not.toContain('Privacidad:');
   });
 
-  it('el log [QA:out] sigue mostrando la plantilla, sin el aviso', async () => {
+  it('el log [QA:out] registra solo el largo de la respuesta, sin plantilla ni aviso', async () => {
     const phone = nextPhone();
     await sendMessage(phone, 'Hola');
     const qaOut = log.mock.calls.map(c => String(c[0])).find(line => line.includes('[QA:out]'));
     expect(qaOut).toBeDefined();
     const payload = JSON.parse(qaOut!.slice(qaOut!.indexOf('{')));
-    expect(payload.reply_preview).toBe(MSG1.substring(0, 60).replace(/\n/g, ' '));
+    expect(payload.reply_caracteres).toBe(MSG1.length);
+    expect(payload).not.toHaveProperty('reply_preview');
     for (const call of log.mock.calls) {
       expect(String(call[0])).not.toContain('Privacidad:');
     }
@@ -258,6 +262,24 @@ describe('fallas: el bot responde igual y un error no marca el número', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe(withNotice(MSG_DEAL_FAILED));
     expect(ensureWhatsAppDeal).not.toHaveBeenCalled();
+  });
+
+  it('si falla el paso del flujo, la lista de MSG2 deja de estar anotada: un "1" siguiente no la contesta', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ producto: 'paneles LED', tipo_de_luz: 'fria', cantidad: '10' }));
+    expect((await sendMessage(phone, 'Necesito 10 paneles LED luz fría', { MessageSid: 'SMPASO1' })).body).toBe(withNotice(MSG2));
+    expect(getFlowState(phone).lastQuestion?.listLength).toBe(2);
+    const parsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'x' };
+    Object.defineProperty(parsed, 'producto', {
+      enumerable: true,
+      get() {
+        throw new Error('falla simulada');
+      },
+    });
+    vi.mocked(askClaude).mockResolvedValueOnce({ ...claudeOk(), parsed } as Awaited<ReturnType<typeof askClaude>>);
+    const res = await sendMessage(phone, 'oficina en Santiago', { MessageSid: 'SMPASO2' });
+    expect(res.body).toBe(buildTwiML(MSG_DEAL_FAILED));
+    expect(getFlowState(phone).lastQuestion).toBeNull();
   });
 
   it('si el envío falla antes de armar la respuesta, el número no queda marcado: el siguiente mensaje lleva el aviso', async () => {

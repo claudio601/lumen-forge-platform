@@ -1,19 +1,23 @@
 // /empresa: quiénes somos, datos de la empresa y cómo se compra (PR 12).
 // Las secciones de proveedores y de postulaciones no se publican (decisión del dueño del
 // 2026-10-05: /quieres-ser-nuestro-proveedor y /trabaja-con-nosotros siguen en 404).
+// La firma de las guías lleva aquí: la página nombra a cada autor con su reseña (dueño, 2026-10-28).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { CompanyFacts } from '@/components/legal/CompanyFacts';
-import { organizationJsonLd } from '@/lib/seo/jsonld';
+import { organizationJsonLd, personJsonLd } from '@/lib/seo/jsonld';
+import { GUIDE_AUTHORS, GUIDES_PATH } from '@/data/guides/index';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_RUT } from '@/config/site';
 import { responseTimePromise } from '@/config/business';
+
+const AUTHORS = Object.values(GUIDE_AUTHORS);
 
 const EmpresaPage = () => (
   <LegalLayout
     path="/empresa"
     description={`${LEGAL_NAME} (RUT ${LEGAL_RUT}), ${LEGAL_COMUNA}: iluminación LED industrial, comercial y solar para proyectos, empresas y hogares. Contacto y horario.`}
-    jsonLd={[organizationJsonLd()]}
+    jsonLd={[organizationJsonLd(), ...AUTHORS.map(personJsonLd)]}
   >
     <p>
       eLIGHTS.cl es una empresa chilena dedicada a la iluminación LED para proyectos, empresas y hogares. Vendemos iluminación
@@ -62,6 +66,13 @@ const EmpresaPage = () => (
         <Link to="/cotizador">Cotizador de proyectos</Link>.
       </li>
     </ul>
+
+    <h2>Quién escribe las guías</h2>
+    {AUTHORS.map(a => (
+      <p key={a.name}>
+        <strong>{a.name}</strong>, {a.bio} Firma las <Link to={GUIDES_PATH}>guías de iluminación</Link> de eLIGHTS.cl.
+      </p>
+    ))}
   </LegalLayout>
 );
 

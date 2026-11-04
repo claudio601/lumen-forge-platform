@@ -3,6 +3,7 @@
 // El control del flujo queda en flowEngine.ts (determinístico).
 import Anthropic from '@anthropic-ai/sdk';
 import type { ConversationTurn } from './conversation.js';
+import { safeSummary } from './summary.js';
 const LOG_PREFIX = '[claudeAgent]';
 export const FALLBACK_REPLY = 'Hola! Gracias por escribirnos. Cu\u00e9ntanos qu\u00e9 necesitas y tu correo de contacto: la respuesta te llega por correo.';
 export interface ClaudeParsed {
@@ -29,7 +30,29 @@ const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl
   'Analiza el mensaje y extrae campos en JSON. NO redactes respuestas para el cliente. ' +
   'Devuelve UNICAMENTE JSON con: producto, tipo_de_luz, cantidad, proyecto_o_uso, ' +
   'comuna_o_ciudad, nombre, empresa, correo (null si no aplica), ' +
-  'wantsHuman (boolean), qualifiesForDeal (boolean), summary (string 1-2 lineas).';
+  'wantsHuman (boolean), qualifiesForDeal (boolean), summary (string 1-2 lineas). ' +
+  // [CANTIDAD] [NO-PISAR] PR 2 del plan del bot; el codigo igual valida los dos campos.
+  'cantidad: numero entero de unidades que el cliente pidio, o null (nunca una potencia, medida, ' +
+  'RUT, telefono ni los numeros de un correo). proyecto_o_uso: el espacio o uso (oficina, bodega), ' +
+  'nunca la razon social ni su tipo (SpA, Ltda.). ' +
+  // [COMUNA] [RESUMEN] PR 3 del plan del bot; el codigo igual valida la comuna y filtra el resumen.
+  'comuna_o_ciudad: la comuna de Chile donde se instala o se despacha, solo si el cliente la dice como ' +
+  'lugar (nunca la de un correo, una calle, la razon social ni la sucursal que pregunta). ' +
+  // [RESUMEN] Ronda 2 (H1): cada frase dice lo que el cliente pide, pregunta o dice; summary.ts bota
+  // las que afirman un hecho, asi que el resumen bien escrito pasa entero.
+  'summary: una o dos frases. Cada frase empieza con "El cliente pide", "El cliente pregunta si", ' +
+  '"El cliente pregunta por" o "El cliente dice que", y cuenta solo lo que el cliente pide, pregunta o dice. ' +
+  'Nunca afirmes un hecho ni un estado comercial: compra, pago, acreditacion, stock, existencias, ' +
+  'un pedido existente, entrega, despacho, llegada ni historial del cliente, en ningun tiempo verbal. ' +
+  // [RESUMEN] R7 (Codex, ronda 3): summary.ts tambien bota esos hechos dichos con un rodeo.
+  'Tampoco con rodeos ("se efectuo la adquisicion", "logro comprar", "estan a su disposicion", "estan preparados"). ' +
+  'Si el cliente pregunta por eso, escribe "El cliente pregunta si hay stock" o "El cliente pregunta si es ' +
+  'cliente frecuente"; si lo cuenta, "El cliente dice que ya pago". Nunca hables por la tienda ' +
+  '("tenemos", "nosotros", "le enviamos") ni escribas "su pedido" o "su compra": nombra el producto ' +
+  '("El cliente pregunta cuando llegan los 20 focos"). ' +
+  // [RESUMEN] Ronda 3: summary.ts tambien bota los rotulos sueltos y lo que paso antes.
+  'No escribas rotulos ni frases sueltas ("Pago OK", "Cliente conocido", "Despacho manana a Lampa") ' +
+  'ni lo que paso antes ("ayer", "la vez anterior") salvo con "El cliente dice que".';
 /**
  * [CIERRE-HONESTO] Cada campo de Claude se usa solo si es texto (un numero se pasa a texto).
  * Un objeto o una lista (dos correos, un pedido con varios items) queda vacio: antes viajaba
@@ -86,7 +109,8 @@ export async function askClaude(
       correo: textField(raw.correo),
       wantsHuman: Boolean(raw.wantsHuman),
       qualifiesForDeal: Boolean(raw.qualifiesForDeal),
-      summary: textField(raw.summary) ?? 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
+      // [RESUMEN] Sin las frases que afirman hechos sin atribuirlos al cliente (summary.ts).
+      summary: textField(raw.summary) !== undefined ? safeSummary(raw.summary) : 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
     };
   } catch {
     console.warn(LOG_PREFIX + ' Response not valid JSON — usando defaults');

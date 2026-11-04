@@ -41,8 +41,8 @@ export const LEGAL_VERSION: string = '1.10';
 // §7) se publicó el 25-10-2026 (PR #118); la 1.7 («Recordar mis datos en este dispositivo»: la
 // Política §2, §3, §7 y §10), el mismo día (PR #112); la 1.6 (adjuntos del cotizador), el 23-10-2026 (PR #105); la
 // 1.5, el 22-10-2026 (PR #103); la 1.4, el 21-10-2026 (PR #90 y #102).
-export const LEGAL_UPDATED: string = '2026-10-30';
-export const LEGAL_UPDATED_LABEL: string = '30 de octubre de 2026';
+export const LEGAL_UPDATED: string = '2026-10-28';
+export const LEGAL_UPDATED_LABEL: string = '28 de octubre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
 export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9'];

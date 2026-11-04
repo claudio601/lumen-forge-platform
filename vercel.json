@@ -619,6 +619,11 @@
       "statusCode": 301
     },
     {
+      "source": "/alumbrado-publico-led-solar-vito-400w-all-in-one-industrial{/}?",
+      "destination": "/producto/alumbrado-publico-led-solar-400w-all-in-one-industrial",
+      "statusCode": 301
+    },
+    {
       "source": "/alumbrado-publico-mini-corros-50w-ip66-ik08{/}?",
       "destination": "/catalogo/alumbrado-publico",
       "statusCode": 301
@@ -646,6 +651,21 @@
     {
       "source": "/alumbrado-publico-mini-cross-50w-ip66-ik08{/}?",
       "destination": "/catalogo/alumbrado-publico",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-solar/all-in-one-urbana{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-solar/panel-separado{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-solar/vito-all-in-one-industrial{/}?",
+      "destination": "/catalogo/solar",
       "statusCode": 301
     },
     {
@@ -7201,6 +7221,9 @@
       "maxDuration": 60
     },
     "api/cron/blob-sweep.ts": {
+      "maxDuration": 60
+    },
+    "api/whatsapp/webhook.ts": {
       "maxDuration": 60
     }
   },

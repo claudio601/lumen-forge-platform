@@ -2,6 +2,7 @@
 // Helpers para validar firma Twilio y construir TwiML.
 // Usa el SDK oficial de Twilio para validateRequest.
 
+import { redact } from '../logging/redact.js';
 import twilio from 'twilio';
 
 /**
@@ -33,7 +34,7 @@ export function validateTwilioSignature(
     try {
           return twilio.validateRequest(authToken, signature, url, params);
     } catch (err) {
-          console.error('[twilio] validateRequest threw:', err);
+          console.error('[twilio] validateRequest threw:', redact(err, 'error'));
           return false;
     }
 }

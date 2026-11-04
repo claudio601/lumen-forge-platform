@@ -32,6 +32,24 @@ describe('especificaciones agrupadas como en las fichas BESTLED', () => {
     expect(unknownLabels).toEqual([]);
   });
 
+  it('etiquetas de las tablas nuevas de Jumpseller (informe del 29-10-2026): cada una en su grupo, ninguna sin regla', () => {
+    const rows = (labels: string[]) => table(labels.map(l => [l, 'x'] as [string, string]));
+    const electricos = ['Flujo luminoso de referencia', 'Flujo luminoso medido', 'Óptica', 'Rango de entrada', 'Aislamiento'];
+    const componentes = ['Control remoto', 'Tipo de driver', 'Regulación'];
+    const construccion = [
+      'Brazo · Ø exterior (acople)', 'Clase de temperatura', 'Documentación', 'Entradas de cable', 'Fijación al poste', 'Lado Total',
+      'Manguito · largo', 'Manguito · Ø exterior', 'Manguito · Ø interior', 'Marcado ATEX (TÜV SÜD)', 'Niebla salina', 'PROTECCIÓN IK',
+      'Peso neto', 'Peso total', 'Procedencia', 'Superficie al viento', 'Temperatura ambiente certificada', 'Terminación', 'Tornillería',
+      'Vida útil LED', 'Vuelo al eje del poste', 'Zonas', 'Área clasificada (Intertek UL 844 / CSA C22.2 N°137)',
+    ];
+    const { specs, unknownLabels } = groupSpecs(rows([...electricos, ...componentes, ...construccion]));
+    expect(unknownLabels).toEqual([]);
+    expect(specs.electricos).toHaveLength(electricos.length);
+    expect(specs.componentes).toHaveLength(componentes.length);
+    expect(specs.construccion).toHaveLength(construccion.length);
+    expect(specs.construccion.map(r => r.label)).toContain('Resistencia al impacto (IK)');
+  });
+
   it('una etiqueta desconocida queda en Construcción y operación y se informa', () => {
     const { specs, unknownLabels } = groupSpecs(table([['Color del cable', 'Rojo']]));
     expect(specs.construccion).toEqual([{ label: 'Color del cable', value: 'Rojo' }]);

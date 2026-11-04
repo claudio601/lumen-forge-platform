@@ -40,7 +40,7 @@ export const RUT_EXAMPLE = '12.345.678-5';
 const MAX_TEXT = 4096;
 
 // Guion comun y los tipograficos del celular o de un PDF (los de src/lib/rut.ts, mas U+2012).
-const DASH = '[-‐‑‒–—−]';
+const DASH = '[-\u2010\u2011\u2012\u2013\u2014\u2212]';
 const SPACE = '[ \\u00a0]';
 // Cuerpo de 7 u 8 digitos: agrupado con puntos, espacios o comas (76.123.456, 76 123 456),
 // siempre como NN.NNN.NNN, o seguido.
@@ -58,15 +58,30 @@ const WITH_DASH_RE = new RegExp(
   'giu',
 );
 // Despues de "RUT" (o "R.U.T."), con un relleno corto de palabras conocidas ("es", "de la
-// empresa", ":", "n°"). Una palabra que no esta en la lista corta el relleno: en "Rut Perez, cel
+// empresa", ":", "nro."). Una palabra que no esta en la lista corta el relleno: en "Rut Perez, cel
 // 912345678" (un nombre y su celular) no hay RUT.
 const FILLER =
-  'es|era|ser[ií]a|el|la|los|las|de|del|mi|mis|nuestra|nuestro|su|sus|para|empresa|' +
-  'compa[ñn][ií]a|sociedad|constructora|instituci[oó]n|municipalidad|cliente|' +
-  'facturaci[oó]n|factura|n[°º.]|nro\\.?';
+  'es|era|ser[i\u00ed]a|el|la|los|las|de|del|mi|mis|nuestra|nuestro|su|sus|para|empresa|' +
+  'compa[\u00f1n][i\u00ed]a|sociedad|constructora|instituci[o\u00f3]n|municipalidad|cliente|' +
+  'facturaci[o\u00f3]n|factura|n[\u00b0\u00ba.]|nro\\.?';
 const SEP = '[\\s:#,]*';
+// [RUT-VALIDO] "RUT de la otra cotizacion: X" presenta un RUT, no un folio. El puente
+// es cerrado: exige dos puntos o "es (el)", nunca un folio o telefono.
+const QUOTE_REFERENCE = 'de\\s+(?:la|mi|nuestra)\\s+(?:(?:otra|nueva|misma|anterior)\\s+cotizaci[o\\u00f3]n(?:\\s+anterior)?|cotizaci[o\\u00f3]n\\s+anterior)';
+const QUOTE_BRIDGE = `${QUOTE_REFERENCE}(?:\\s*:\\s*|\\s+es\\s+(?:el\\s+)?)`;
+// Un rechazo en la misma oracion ("No usen el RUT de la otra cotizacion: X", "X esta malo", "(no es mio)")
+// deja el puente sin usar, como en main.
+const REJECTED_RE = /(?<![a-z\u00e0-\u00ff])(?:no|ni|nunca|jam[a\u00e1]s|tampoco|mal[oa]?|equivocad[oa]|incorrect[oa]|err[o\u00f3]ne[oa]|errad[oa]|estaba|antigu[oa]|viej[oa])(?![a-z\u00e0-\u00ff])/i;
+const SENTENCE_END_RE = /[!?\n;]|\.(?!\d)/g;
+function rejectedAround(clean: string, start: number, end: number): boolean {
+  const before = clean.slice(Math.max(0, start - 80), start);
+  const cut = Math.max(0, ...[...before.matchAll(SENTENCE_END_RE)].map((m) => m.index + 1));
+  const after = clean.slice(end, end + 80);
+  const stop = [...after.matchAll(SENTENCE_END_RE)][0]?.index ?? after.length;
+  return REJECTED_RE.test(before.slice(cut)) || REJECTED_RE.test(after.slice(0, stop));
+}
 const KEYWORD_RE = new RegExp(
-  `\\b(R\\.?U\\.?T)\\b(\\.?(?:${SEP}(?:${FILLER})(?![a-zà-ÿ]))*${SEP})` +
+  `\\b(R\\.?U\\.?T)\\b(\\.?(?:${SEP}(?:${FILLER})(?![a-z\u00e0-\u00ff]))*${SEP})(${QUOTE_BRIDGE})?` +
     `(${BODY})(${SPACE}{0,2}${DASH}?${SPACE}{0,2})([0-9k])${END}`,
   'giu',
 );
@@ -74,15 +89,15 @@ const KEYWORD_RE = new RegExp(
 const BARE_RE = new RegExp(`${NOT_AFTER}(${BODY})(${SPACE}?)([0-9k])${END}`, 'giu');
 
 // Palabras que anuncian otra cosa justo antes del numero (sin digitos entre medio).
-const BEFORE = (words: string) => new RegExp(`(?:(?<![a-zà-ÿ])(?:${words})(?![a-zà-ÿ])|\\$)[^\\d\\n;]{0,15}$`, 'i');
+const BEFORE = (words: string) => new RegExp(`(?:(?<![a-z\u00e0-\u00ff])(?:${words})(?![a-z\u00e0-\u00ff])|\\$)[^\\d\\n;]{0,15}$`, 'i');
 // Tanto con guion como sin el: excluir montos, telefonos, pedidos y folios.
 const NOT_RUT_BEFORE = BEFORE(
-  'presupuesto|monto|pesos|clp|uf|total|valor|precio|cel|celu|celular|fono|tel|tel[eé]fono|' +
-    'whats?app|wsp|wasap|m[oó]vil|ll[aá]m[ae]me|llamar|pedido|orden|oc|folio|boleta|cotizaci[oó]n|n[°º.]|nro\\.?',
+  'presupuesto|monto|pesos|clp|uf|total|valor|precio|cel|celu|celular|fono|tel|tel[e\u00e9]fono|' +
+    'whats?app|wsp|wasap|m[o\u00f3]vil|ll[a\u00e1]m[ae]me|llamar|pedido|orden|oc|folio|boleta|cotizaci[o\u00f3]n|n[\u00b0\u00ba.]|nro\\.?',
 );
 
 /**
- * Tipo segun el numero (especificacion del bot, §4.5): menos de 50.000.000 es persona; 60, 61 y
+ * Tipo segun el numero (especificacion del bot, seccion 4.5): menos de 50.000.000 es persona; 60, 61 y
  * 69 millones, organismo publico; 53 y 56 millones, comunidad; el resto, empresa.
  */
 export function rutTipo(body: number): RutTipo {
@@ -135,6 +150,7 @@ interface Candidate extends RutFound {
 
 function candidates(clean: string, asked: boolean): Candidate[] {
   const out: Candidate[] = [];
+  const quoteCandidates: Candidate[] = [];
   const add = (source: Source, index: number, end: number, found: RutFound | undefined) => {
     if (found && found.rut !== RUT_EXAMPLE) out.push({ ...found, source, index, end });
   };
@@ -145,9 +161,16 @@ function candidates(clean: string, asked: boolean): Candidate[] {
   for (const m of clean.matchAll(KEYWORD_RE)) {
     // "Rut 987654321": el nombre Rut y un celular. Un RUT que empieza con 9 y va seguido se
     // acepta con "RUT" en mayusculas o con algo entre medio ("Rut: 965432107", "rut es ...").
-    const explicit = m[1] === 'RUT' || m[1].includes('.') || m[2].trim() !== '';
-    if (!explicit && mobileShaped(m[3], m[4])) continue;
-    add('keyword', m.index, m.index + m[0].length, toFound(m[3], m[5]));
+    // El puente no convierte el nombre "Rut, de la otra cotizacion" en una etiqueta.
+    const filler = m[3] ? m[2].replace(/[\s.:#,]/g, '') : m[2].trim();
+    const explicit = m[1] === 'RUT' || m[1].includes('.') || filler !== '';
+    if (!explicit && mobileShaped(m[4], m[5])) continue;
+    const found = toFound(m[4], m[6]);
+    // El puente solo completa lo que main no encontro: otro RUT explicito conserva su prioridad.
+    if (m[3]) {
+      const end = m.index + m[0].length;
+      if (found && found.rut !== RUT_EXAMPLE && !rejectedAround(clean, m.index, end)) quoteCandidates.push({ ...found, source: 'keyword', index: m.index, end });
+    } else add('keyword', m.index, m.index + m[0].length, found);
   }
   if (asked) {
     for (const m of clean.matchAll(BARE_RE)) {
@@ -155,24 +178,24 @@ function candidates(clean: string, asked: boolean): Candidate[] {
       // Un celular escrito seguido solo pasa por RUT si es todo el mensaje (sin el correo).
       if (mobileShaped(m[1], m[2])) {
         const rest = clean.slice(0, m.index) + clean.slice(m.index + m[0].length);
-        if (/[0-9a-zà-ÿ]/i.test(rest)) continue;
+        if (/[0-9a-z\u00e0-\u00ff]/i.test(rest)) continue;
       }
       add('bare', m.index, m.index + m[0].length, toFound(m[1], m[3]));
     }
   }
-  return out;
+  return out.length ? out : quoteCandidates;
 }
 
 const SOURCE_ORDER: Record<Source, number> = { keyword: 0, dash: 1, bare: 2 };
 
-/** Con varios RUT validos distintos, solo «mi» o «nuestro» resuelven la pertenencia. */
+/** Con varios RUT validos distintos, solo "mi" o "nuestro" resuelven la pertenencia. */
 export function inspectRut(text: string, options: { asked?: boolean } = {}): { found?: RutFound; ambiguous?: string[] } {
   const clean = withoutContacts(text);
   const all = candidates(clean, Boolean(options.asked));
   const valid = [...new Set(all.filter((c) => c.valido).map((c) => c.rut))];
   let best: Candidate | undefined;
   if (valid.length > 1) {
-    const owned = all.filter((c) => c.valido && (/\b(?:mi|nuestro)\s+(?:(?:r\.?u\.?t\.?|es|de|la|el|empresa|n[uú]mero)\b[\s:,.]*)*$/i.test(clean.slice(Math.max(0, c.index - 60), c.index)) ||
+    const owned = all.filter((c) => c.valido && (/\b(?:mi|nuestro)\s+(?:(?:r\.?u\.?t\.?|es|de|la|el|empresa|n[u\u00fa]mero)\b[\s:,.]*)*$/i.test(clean.slice(Math.max(0, c.index - 60), c.index)) ||
       /^[\s,.:]*(?:es\s+)?(?:mi|nuestro)\s+r\.?u\.?t\.?\b/i.test(clean.slice(c.end, c.end + 30))));
     const ownRuts = [...new Set(owned.map((c) => c.rut))];
     if (ownRuts.length !== 1) return { ambiguous: valid };
@@ -188,6 +211,16 @@ export function inspectRut(text: string, options: { asked?: boolean } = {}): { f
 /** `asked`: el ultimo mensaje del bot pidio el RUT; solo entonces vale el numero solo. */
 export function findRut(text: string, options: { asked?: boolean } = {}): RutFound | undefined {
   return inspectRut(text, options).found;
+}
+
+/**
+ * [CANTIDAD] El texto sin estos RUT, escritos con o sin puntos, espacios o guion: sus digitos no
+ * son cantidad ni telefono.
+ */
+export function removeRuts(text: string, ruts: readonly string[]): string {
+  return ruts.reduce((out, rut) => out.replace(
+    new RegExp(rut.replace(/[.-]/g, '').split('').join('[., \u00a0\u2010\u2011\u2012\u2013\u2014\u2212-]*'), 'gi'), ' ',
+  ), text);
 }
 
 /** Solo un RUT valido de empresa (no de persona) convierte el lead en B2B. */

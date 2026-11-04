@@ -54,7 +54,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG_RUT_INVALID } from '../_lib/whatsapp/flowEngine.js';
+import { MSG_RUT_INVALID, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
@@ -71,6 +71,8 @@ const b2b = (rut: string) =>
   `Necesito 30 paneles LED 60x60 luz fría para una oficina en Providencia. Comercial Prueba SpA, RUT ${rut}, ${CORREO}`;
 
 let seq = 0;
+// Un MessageSid por mensaje, como Twilio: el registro local deduplica tambien sin Upstash (H11).
+let sidSeq = 0;
 const nextPhone = () => '+56900000' + String(700 + ++seq);
 
 function fakeReq(params: Record<string, string>) {
@@ -99,7 +101,7 @@ function replyText(xml: string | undefined): string {
 async function send(phone: string, body: string, claude: Record<string, unknown> = {}): Promise<string> {
   sim.claude.push(JSON.stringify({ wantsHuman: false, qualifiesForDeal: false, summary: 'Resumen de prueba.', ...claude }));
   const res = fakeRes();
-  await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMrut' + seq, NumMedia: '0' }), res);
+  await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMrut' + seq + '-' + ++sidSeq, NumMedia: '0' }), res);
   expect(res.statusCode).toBe(200);
   return replyText(res.body);
 }
@@ -135,6 +137,14 @@ describe('la prueba del dueño: RUT con el dígito cambiado', () => {
     expect(sim.deals[0].leadType).toBe('B2B');
     expect(sim.notes).toHaveLength(1);
     expect(sim.notes[0].content).toContain('RUT: 77.123.456-9 (empresa)');
+    const logged = [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat()).map(String).join('\n');
+    for (const pii of ['77.123.456-8', '77.123.456-9', CORREO, phone, phone.slice(1), 'Perfil Prueba', B2B_CLAUDE.empresa]) {
+      expect(logged).not.toContain(pii);
+    }
+    expect(logged).toContain('…' + phone.slice(-4));
+    expect(logged).toContain('SMrut' + seq);
+
   });
 });
 
@@ -164,6 +174,49 @@ describe('el RUT corregido llega después del cierre', () => {
     expect(sim.notes).toHaveLength(2);
   });
 
+  it.each([
+    'Necesito corregir el RUT de la otra cotización: 76.123.456-0',
+  ])('la corrección "%s" escribe una nota en el mismo negocio', async (body) => {
+    const phone = nextPhone();
+    await closeWithInvalidRut(phone);
+    vi.mocked(notifyTeam).mockClear();
+
+    expect(await send(phone, body)).toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(2);
+    expect(sim.notes[1].deal_id).toBe(sim.notes[0].deal_id);
+    expect(sim.notes[1].content).toContain('RUT: 76.123.456-0 (empresa)');
+    expect(vi.mocked(notifyTeam)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(notifyTeam).mock.calls[0][0]).toMatchObject({ existingDeal: true });
+
+    expect(await send(phone, 'gracias')).toMatch(REGISTRADA);
+    expect(sim.notes).toHaveLength(2);
+  });
+
+  it('la corrección con marcas internas conserva el reinicio de main', async () => {
+    const phone = nextPhone();
+    await closeWithInvalidRut(phone);
+    vi.mocked(notifyTeam).mockClear();
+    expect(await send(phone, 'NECESITO CORREGIR EL *RUT* DE LA *OTRA COTIZACIÓN*: *761234560*')).toMatch(/producto/i);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(1);
+    expect(vi.mocked(notifyTeam)).not.toHaveBeenCalled();
+    expect(getFlowState(phone)).toMatchObject({ stage: 'stage1' });
+    expect(getFlowState(phone).captured.rut).toBeUndefined();
+    expect(getFlowState(phone).dealId).toBeUndefined();
+  });
+
+  it('consultar la nueva cotización conserva el cierre sin otro negocio, nota ni aviso', async () => {
+    const phone = nextPhone();
+    expect(await send(phone, b2b('77.123.456-9'), B2B_CLAUDE)).toMatch(REGISTRADA);
+    vi.mocked(notifyTeam).mockClear();
+
+    expect(await send(phone, '¿Me confirman la nueva cotización?')).toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(1);
+    expect(vi.mocked(notifyTeam)).not.toHaveBeenCalled();
+  });
+
   it('si Pipedrive falla en ese paso: el negocio sigue registrado y la respuesta no pasa al texto B', async () => {
     const phone = nextPhone();
     await closeWithInvalidRut(phone);
@@ -189,5 +242,27 @@ describe('un rango de presupuesto no es un RUT', () => {
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2C');
     expect(sim.notes[0].content).toContain('RUT: -');
+  });
+});
+
+describe('QA sin valores libres del cliente o de Claude', () => {
+  it('ningún slot ni resumen permite que un nombre o contacto vuelva al log', async () => {
+    const phone = nextPhone();
+    const privateText = 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678';
+    await send(phone, privateText, {
+      producto: privateText, tipo_de_luz: privateText, cantidad: privateText,
+      proyecto_o_uso: privateText, comuna_o_ciudad: privateText,
+      nombre: 'Persona Ficticia', empresa: 'Empresa Ficticia', correo: 'prueba@ejemplo.cl',
+      summary: privateText,
+    });
+    await send(phone, 'quiero otra consulta nueva', {});
+    const logged = [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat()).map(String).join('\n');
+    for (const pii of ['Persona Ficticia', 'Empresa Ficticia', '12.345.678-5', 'prueba@ejemplo.cl', '+56 9 1234 5678', phone, phone.slice(1)]) {
+      expect(logged).not.toContain(pii);
+    }
+    expect(logged).toContain('[QA:in]');
+    expect(logged).toContain('[QA:out]');
+    expect(logged).toContain('[QA:claude]');
   });
 });

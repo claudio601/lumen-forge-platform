@@ -140,6 +140,9 @@ describe('vercel.json', () => {
       expect(options.maxDuration, file).toBeLessThanOrEqual(60);
     }
     expect(cfg.functions?.['api/project-quotes/create.ts']?.maxDuration).toBe(60);
+    // Bot de WhatsApp: el reintento de una nota incierta en segundo plano cuenta con 60 s de función
+    // (MESSAGE_IN_PROGRESS_TTL_S = 60 + 15 en api/_lib/whatsapp/stateStore.ts).
+    expect(cfg.functions?.['api/whatsapp/webhook.ts']?.maxDuration).toBe(60);
     for (const cron of cfg.crons ?? []) {
       expect(cron.path, cron.path).toMatch(/^\/api\/cron\/[a-z0-9-]+$/);
       expect(isFunction(cron.path.slice(1) + '.ts'), cron.path).toBe(true);

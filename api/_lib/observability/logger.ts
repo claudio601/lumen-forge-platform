@@ -1,3 +1,4 @@
+import { redact } from '../logging/redact.js';
 import { Axiom } from '@axiomhq/js';
 
 // Singleton instance
@@ -65,7 +66,7 @@ export async function log(
     await client.ingest(dataset, [event]);
   } catch (err) {
     // Don't fail the request if Axiom is down
-    console.error('[axiom-logger] failed to send log to Axiom:', err);
+    console.error('[axiom-logger] failed to send log to Axiom:', redact(err, 'error'));
   }
 }
 

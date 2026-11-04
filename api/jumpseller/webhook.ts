@@ -14,6 +14,7 @@
 //   skipped_update_without_existing -> 200
 //   blocked_idempotency_unavailable -> 503  (triggers Jumpseller retry)
 
+import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 import type { QuotePayload, SourceSystem, LeadType, DealResultStatus } from '../_lib/crm/types.js';
@@ -294,7 +295,7 @@ export default async function handler(
       dealStatus: dealResult.status,
     });
   } catch (err) {
-    console.error(`${LOG_PREFIX} Error processing webhook:`, err);
+    console.error(`${LOG_PREFIX} Error processing webhook:`, redact(err, 'error'));
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

@@ -1,6 +1,7 @@
 // src/lib/pipedrive/activities.ts
 // Create Pipedrive activities for follow-up scheduling (24h / 72h).
 
+import { redact } from '../logging/redact.js';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { getBooleanOptionId } from './fieldOptions.js';
 import type {
@@ -211,12 +212,12 @@ export async function markFollowup24Created(dealId: number): Promise<void> {
     });
     if (!res.success) {
       console.warn(
-        `${LOG_PREFIX} markFollowup24Created failed dealId=${dealId} error=${res.error ?? 'unknown'}`
+        `${LOG_PREFIX} markFollowup24Created failed dealId=${dealId} error=${redact(res.error, 'error')}`
       );
     } else {
       console.log(`${LOG_PREFIX} followup24Created marked dealId=${dealId}`);
     }
   } catch (err) {
-    console.warn(`${LOG_PREFIX} markFollowup24Created error dealId=${dealId}:`, err);
+    console.warn(`${LOG_PREFIX} markFollowup24Created error dealId=${dealId}:`, redact(err, 'error'));
   }
 }

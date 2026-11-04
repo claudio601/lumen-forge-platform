@@ -419,6 +419,26 @@ describe('eventos y parámetros (tablas 3.4 y 3.5)', () => {
     expect(eventsNamed('add_to_quote')[0].results_count).toBeUndefined();
   });
 
+  it.each([
+    ['solo visitas', VISITS, '/buscar?page=2'],
+    ['visitas y anuncios', VISITS_ADS, '/buscar?page=2&gclid=G1'],
+  ])('el texto buscado (q) nunca sale, ni en page_location ni en page_path (%s)', async (_, choice, path) => {
+    window.history.replaceState({}, '', '/buscar?q=foco%20galp%C3%B3n&page=2&gclid=G1');
+    const m = await load();
+    decide(m, choice);
+    m.a.sendPageView('/buscar?q=foco%20galp%C3%B3n&page=2&gclid=G1');
+    m.a.trackSearch(4, '/buscar');
+    const location = window.location.origin + path;
+    const sent = [...pageViews(), ...eventsNamed('search')];
+    expect(sent.length).toBeGreaterThanOrEqual(2);
+    for (const e of sent) {
+      expect(e.page_location).toBe(location);
+      expect(JSON.stringify(e)).not.toContain('galp');
+    }
+    expect(pageViews().at(-1)!.page_path).toBe(path);
+    expect(commands().filter(c => c[0] === 'set').at(-1)).toEqual(['set', { page_location: location }]);
+  });
+
   it('search: sin decisión o con Rechazar, nada (fuera de elights.cl: «dónde se carga»)', async () => {
     const m = await load();
     m.a.trackSearch(3, '/buscar');

@@ -4,7 +4,7 @@
 // nunca lleva el nombre del archivo. fetch está simulado: no sale nada a Pipedrive.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { pipedriveUploadFile } from './client';
+import { pipedriveUploadFile, pipedriveGet } from './client';
 
 const FILE_NAME = 'Plano Juan Pérez.dwg';
 const DWG = new Uint8Array([0x41, 0x43, 0x31, 0x30, 0x33, 0x32]);
@@ -30,6 +30,26 @@ describe('pipedriveUploadFile', () => {
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  it('el cliente general conserva respuestas para su consumidor y registra el error sin RUT, correo ni teléfono', async () => {
+    const privateText = 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678';
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(privateText, { status: 400 })));
+    const failed = await pipedriveGet('/persons/999');
+    expect(failed.error_info).toBe(privateText);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, error: privateText }))));
+    expect((await pipedriveGet('/persons/999')).error).toBe(privateText);
+    const externalError = Object.assign(new Error(privateText), { response: { body: privateText } });
+    vi.stubGlobal('fetch', vi.fn(async () => { throw externalError; }));
+    expect((await pipedriveGet('/persons/999')).error).toBe(privateText);
+    // El error de Pipedrive se registra (sirve para depurar), pero sin RUT, correo ni teléfono.
+    // Un nombre no se reconoce con regex: es raro que Pipedrive lo devuelva en un error.
+    for (const pii of ['12.345.678-5', 'prueba@ejemplo.cl', '+56 9 1234 5678']) {
+      expect(logged()).not.toContain(pii);
+    }
+    expect(logged()).toContain('[RUT] [correo] [teléfono]');
+    expect(logged()).toContain('HTTP 400');
+    expect(logged()).toContain('/persons/999');
   });
 
   it('POST /files en multipart con file (nombre y tipo) y deal_id', async () => {
