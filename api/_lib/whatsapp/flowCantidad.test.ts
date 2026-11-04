@@ -7,11 +7,13 @@
 // - CASO-1: un "1" después de una lista numerada se aclara; "20, luz fría" deja los dos datos.
 // - Un dato ya capturado solo cambia con un dato explícito, y el cambio queda anotado.
 // - "Soy instalador…" con productos va al flujo de productos; un RUT no es teléfono.
+// - Un punto entre cifras ("1.000 focos", "1.5 metros") no corta la oración: la cantidad es 1000, no 1.
 // Cada caso corre con un Claude simulado que acierta y con otro que se equivoca.
 // Solo datos inventados: RUT de prueba con dígito válido (módulo 11) y correos @example.com.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import * as flow from './flowEngine';
+import { buildNote } from './pipedriveLead';
 
 const NO_SIGNALS = { wantsHuman: false, qualifiesForDeal: false };
 const PHONE = '+56900000501';
@@ -1038,5 +1040,142 @@ describe('ronda 7 (Codex, ronda 3)', () => {
   ])('R3-13: teléfono de la instalación en "%s" → %s', (text, expected) => {
     step('Busco un instalador para mi casa, ' + text, {});
     expect(flow.getFlowState(PHONE).captured.install_telefono).toBe(expected);
+  });
+});
+
+describe('un punto entre cifras no corta la oración (verificación adversaria de la PR #142)', () => {
+  // Antes "Necesito 1.000 focos LED" quedaba en "Necesito 1." y "000 focos": la cantidad era 1 (también en la nota).
+  it.each([
+    ['Necesito 1.000 focos LED', '1000'],
+    ['necesito unos 1.000 focos', '1000'],
+    ['Necesito 1.500 paneles LED para una bodega', '1500'],
+    ['Necesito 2.500 paneles LED', '2500'],
+    ['Necesito 1.000 focos LED, tienen despacho?', '1000'],
+    ['Necesito 1.000 focos LED, ¿tienen despacho a regiones?', '1000'],
+    ['Necesito 12 focos LED', '12'],
+  ])('"%s" → cantidad %s, diga Claude el número, otro o nada', (body, expected) => {
+    for (const claude of [{}, { cantidad: expected }, { cantidad: '1' }]) {
+      expect(step(body, { producto: 'focos LED', ...claude }).captured.cantidad).toBe(expected);
+      flow.clearFlowState(PHONE);
+    }
+  });
+
+  it.each([
+    // metros: es una medida, como "10 metros de cinta"
+    'Necesito 10.000 metros de cinta LED',
+    'Necesito 1.5 metros de cinta LED',
+    'Necesito cinta LED de 1,5 metros',
+    'Necesito focos LED, el presupuesto es $1.000',
+    'Necesito focos LED, mi RUT es 76.123.456-0',
+    'Necesito focos LED, mi celular es +56 9 1234 5678',
+  ])('"%s" → cantidad vacía y el bot la pregunta', (body) => {
+    const r = step(body, { producto: 'focos LED' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.reply).toMatch(/cantidad de unidades/i);
+  });
+
+  it('"son 1.000" contesta la pregunta por la cantidad', () => {
+    step('Necesito paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fria' });
+    expect(step('son 1.000', {}).captured.cantidad).toBe('1000');
+  });
+
+  it.each([
+    ['Corrijo: son 1.000 paneles', '1000'],
+    ['no son 1.000, son 2.000', '2000'],
+  ])('la corrección "%s" cambia la cantidad y queda anotada', (text, expected) => {
+    step('Necesito 20 paneles LED', { producto: 'paneles LED', cantidad: '20' });
+    const r = step(text, {});
+    expect(r.captured.cantidad).toBe(expected);
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora ' + expected]);
+  });
+
+  it('"También necesito 1.000 focos" suma un ítem sin cambiar el producto', () => {
+    step('Necesito 20 paneles LED', { producto: 'paneles LED', cantidad: '20' });
+    const r = step('También necesito 1.000 focos', { producto: 'focos' });
+    expect(r.captured.producto).toBe('paneles LED');
+    expect(r.captured.cantidad_varios).toBe('paneles LED: 20 / También necesito 1.000 focos');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora varios items']);
+  });
+
+  it('"no necesito 1.000 focos" no cambia el producto ni la cantidad', () => {
+    step('Necesito 20 paneles LED', { producto: 'paneles LED', cantidad: '20' });
+    const r = step('no necesito 1.000 focos, solo los paneles', {});
+    expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '20' });
+    expect(r.captured.cambios).toBeUndefined();
+  });
+
+  it('la nota de Pipedrive trae "Cantidad: 1000"', () => {
+    const body = 'Necesito 1.000 focos LED';
+    const r = step(body, { producto: 'focos LED' });
+    const note = buildNote({ phone: PHONE, name: 'Cliente Prueba', summary: '', body, captured: r.captured });
+    expect(note).toContain('Cantidad: 1000\n');
+  });
+});
+
+describe('regresiones de la PR #144: finalidad y pedidos después de una pregunta indirecta', () => {
+  for (const who of ['vacío', 'acierta', 'se equivoca'] as const) {
+    it.each([
+      'También necesito 1.000 focos LED para cambiar la luz de mi oficina',
+      'Además necesito 2.500 focos LED para cambiar el color de la sala',
+    ])(`R1: "%s" (Claude ${who}) conserva ambos pedidos`, (body) => {
+      step('Necesito 10 focos LED', { producto: 'focos LED', cantidad: '10' });
+      // Una adición no tiene una cantidad única, aunque Claude devuelva el número del ítem nuevo.
+      const claude = who === 'se equivoca' ? { cantidad: body.match(/\d[\d.]*/)?.[0].replace(/\./g, '') } : {};
+      const r = step(body, who === 'acierta' ? { producto: 'focos LED' } : claude);
+      expect(r.captured.producto).toBe('focos LED');
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.captured.cantidad_varios).toBe('focos LED: 10 / ' + body);
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora varios items']);
+    });
+
+    it.each([
+      ['Quiero saber si tienen 1.000 focos; corrijo: necesito 20 paneles LED', '20'],
+      ['Quiero consultar si tienen 2.500 focos, pero necesito 30 paneles LED', '30'],
+      ['Quiero saber si tienen 1.000 focos pero necesito 20 paneles LED', '20'],
+      ['Quiero saber si tienen 1.000 focos corrijo: necesito 20 paneles LED', '20'],
+    ])(`R2: "%s" (Claude ${who}) toma el pedido que sigue`, (body, expected) => {
+      step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+      const claude = who === 'se equivoca' ? { cantidad: '1000', producto: 'focos' } : {};
+      const r = step(body, who === 'acierta' ? { cantidad: expected, producto: 'paneles LED' } : claude);
+      expect(r.captured.producto).toBe('paneles LED');
+      expect(r.captured.cantidad).toBe(expected);
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora ' + expected]);
+    });
+  }
+
+  it.each([
+    'Quiero saber si tienen 1.000 focos',
+    'Quiero saber si tienen 1.000 focos, mejor precio para 20 paneles LED',
+    'Quiero saber si tienen 1.000 focos; cálidos o fríos',
+    'Quiero saber si tienen 1.000 focos para cambiar la luz de mi oficina',
+  ])('la pregunta indirecta completa "%s" sigue sin cambiar el pedido', (body) => {
+    for (const claude of [{}, { cantidad: '1000', producto: 'focos' }]) {
+      step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+      const r = step(body, claude);
+      expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '10' });
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toBeUndefined();
+      flow.clearFlowState(PHONE);
+    }
+  });
+
+  it.each([
+    'También necesito cambiar la cantidad a 20',
+    'También necesito cambiar a 20 paneles',
+    'También, cámbialo a 20 paneles',
+    'También, corrijo: necesito 20 paneles',
+    'También, mejor 20 paneles',
+    'También necesito 20 paneles en vez de 10',
+  ])('la corrección real "%s" sigue cambiando la cantidad, sin sumar ítems', (body) => {
+    for (const claude of [{}, { cantidad: '20' }, { cantidad: '10' }]) {
+      step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+      const r = step(body, claude);
+      expect(r.captured.cantidad).toBe('20');
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora 20']);
+      flow.clearFlowState(PHONE);
+    }
   });
 });

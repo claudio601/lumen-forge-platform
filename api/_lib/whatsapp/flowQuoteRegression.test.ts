@@ -103,7 +103,8 @@ it.each([
   ['Necesito unos 30 focos para mi nueva cotización', 'focos', '30'],
   ['Busco 10 tubos para mi nueva cotización', undefined, '10'],
   ['Necesito 20 paneles solares para mi nueva cotización', undefined, '20'],
-  ['Necesito 1.000 focos LED para mi nueva cotización', 'focos LED', '1'],
+  // #144: el punto de miles ya no corta la oración (antes quedaba la cantidad 1).
+  ['Necesito 1.000 focos LED para mi nueva cotización', 'focos LED', '1000'],
 ])('conserva la extracción de main: %s', (body, producto, cantidad) => {
   close();
   const r = expectNew(body);
