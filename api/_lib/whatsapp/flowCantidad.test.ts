@@ -1112,3 +1112,70 @@ describe('un punto entre cifras no corta la oración (verificación adversaria d
     expect(note).toContain('Cantidad: 1000\n');
   });
 });
+
+describe('regresiones de la PR #144: finalidad y pedidos después de una pregunta indirecta', () => {
+  for (const who of ['vacío', 'acierta', 'se equivoca'] as const) {
+    it.each([
+      'También necesito 1.000 focos LED para cambiar la luz de mi oficina',
+      'Además necesito 2.500 focos LED para cambiar el color de la sala',
+    ])(`R1: "%s" (Claude ${who}) conserva ambos pedidos`, (body) => {
+      step('Necesito 10 focos LED', { producto: 'focos LED', cantidad: '10' });
+      // Una adición no tiene una cantidad única, aunque Claude devuelva el número del ítem nuevo.
+      const claude = who === 'se equivoca' ? { cantidad: body.match(/\d[\d.]*/)?.[0].replace(/\./g, '') } : {};
+      const r = step(body, who === 'acierta' ? { producto: 'focos LED' } : claude);
+      expect(r.captured.producto).toBe('focos LED');
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.captured.cantidad_varios).toBe('focos LED: 10 / ' + body);
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora varios items']);
+    });
+
+    it.each([
+      ['Quiero saber si tienen 1.000 focos; corrijo: necesito 20 paneles LED', '20'],
+      ['Quiero consultar si tienen 2.500 focos, pero necesito 30 paneles LED', '30'],
+      ['Quiero saber si tienen 1.000 focos pero necesito 20 paneles LED', '20'],
+      ['Quiero saber si tienen 1.000 focos corrijo: necesito 20 paneles LED', '20'],
+    ])(`R2: "%s" (Claude ${who}) toma el pedido que sigue`, (body, expected) => {
+      step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+      const claude = who === 'se equivoca' ? { cantidad: '1000', producto: 'focos' } : {};
+      const r = step(body, who === 'acierta' ? { cantidad: expected, producto: 'paneles LED' } : claude);
+      expect(r.captured.producto).toBe('paneles LED');
+      expect(r.captured.cantidad).toBe(expected);
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora ' + expected]);
+    });
+  }
+
+  it.each([
+    'Quiero saber si tienen 1.000 focos',
+    'Quiero saber si tienen 1.000 focos, mejor precio para 20 paneles LED',
+    'Quiero saber si tienen 1.000 focos; cálidos o fríos',
+    'Quiero saber si tienen 1.000 focos para cambiar la luz de mi oficina',
+  ])('la pregunta indirecta completa "%s" sigue sin cambiar el pedido', (body) => {
+    for (const claude of [{}, { cantidad: '1000', producto: 'focos' }]) {
+      step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+      const r = step(body, claude);
+      expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '10' });
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toBeUndefined();
+      flow.clearFlowState(PHONE);
+    }
+  });
+
+  it.each([
+    'También necesito cambiar la cantidad a 20',
+    'También necesito cambiar a 20 paneles',
+    'También, cámbialo a 20 paneles',
+    'También, corrijo: necesito 20 paneles',
+    'También, mejor 20 paneles',
+    'También necesito 20 paneles en vez de 10',
+  ])('la corrección real "%s" sigue cambiando la cantidad, sin sumar ítems', (body) => {
+    for (const claude of [{}, { cantidad: '20' }, { cantidad: '10' }]) {
+      step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+      const r = step(body, claude);
+      expect(r.captured.cantidad).toBe('20');
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 10, ahora 20']);
+      flow.clearFlowState(PHONE);
+    }
+  });
+});

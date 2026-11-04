@@ -879,7 +879,13 @@ function negatedLuz(facts: string): Set<string> {
 const ASSERTION_RE = /\b(?:necesit|quier|quis|requier|requer|busc|ocup|son\b|ser[i\u00ed]an?\b|ahora\b|cambi|corrij|perd[o\u00f3]n|es\s+para|soy\b|somos\b|estoy\b|estamos\b)/i;
 const CONDITIONAL_RE = /^\s*(?:y\s+|pero\s+)?(?:si|por\s+si|en\s+caso(?:\s+de)?(?:\s+que)?)\s+[^\s,;]/i;
 const QUESTION_START_RE = /^\s*(?:cu[a\u00e1]nt|qu[e\u00e9](?![a-z\u00e0-\u00fc])|cu[a\u00e1]l|c[o\u00f3]mo|d[o\u00f3]nde|hay\b|tienen\b|me\s+hacen|hacen\b|dan\b|sale\b|cuesta|vale\b|habr[i\u00ed]a|ser[i\u00ed]a\b|podr[i\u00ed]an)/i;
-const INDIRECT_QUESTION_RE = /\b(?:saber|consultar|preguntar(?:le|les|te)?)\s+(?:si|por|cu[a\u00e1]nt\w*|qu[e\u00e9]|c[o\u00f3]mo|d[o\u00f3]nde|cu[a\u00e1]l\w*)(?![a-z\u00e0-\u00fc])(?:[^,;.!?\n]|(?<=\d)\.(?=\d)|[,;](?!\s*(?:y\s+)?(?:necesit|quier|quis|requier|requer|busc|ocup|son\b|ser[i\u00ed]an?\b|ahora\b)))*/gi;
+// La pregunta termina ante otro pedido o correccion; "pero necesito" y "corrijo:" tambien sin coma.
+const INDIRECT_CLAUSE_START = '(?:necesit|quier|quis|requier|requer|busc|ocup|son\\b|ser[i\\u00ed]an?\\b|ahora\\b|corrij|corrig|correcci[o\\u00f3]n|me\\s+equivoqu'
+  + '|c[a\\u00e1]mbi[a-z]*\\s+(?:la\\s+cantidad|el\\s+producto|el\\s+color|la\\s+luz|el\\s+tipo|a\\s+\\d)'
+  + '|perd[o\\u00f3]n\\s*,?\\s*(?:son|eran|era|es|ser[i\\u00ed]an)\\b|mejor\\s+(?:\\d|son\\b|que\\s+sean|ser[i\\u00ed]an)|en\\s+(?:vez|lugar)\\s+de\\s+\\d)';
+const INDIRECT_QUESTION_RE = new RegExp('\\b(?:saber|consultar|preguntar(?:le|les|te)?)\\s+(?:si|por|cu[a\\u00e1]nt\\w*|qu[e\\u00e9]|c[o\\u00f3]mo|d[o\\u00f3]nde|cu[a\\u00e1]l\\w*)(?![a-z\\u00e0-\\u00fc])'
+  + '(?:(?!\\b(?:(?:corrij|corrig)[a-z]*\\s*:|pero\\s+' + INDIRECT_CLAUSE_START + '))'
+  + '(?:[^,;.!?\\n]|(?<=\\d)\\.(?=\\d)|[,;](?!\\s*(?:(?:y|pero)\\s+)?' + INDIRECT_CLAUSE_START + ')))*', 'gi');
 function withoutQuestions(text: string): string {
   return text.replace(INDIRECT_QUESTION_RE, ' ').split(/(?<=[!?\n]|(?<!\d)\.|\.(?!\d))|(?=\u00bf)/).map((part) => {
     const clauses = part.split(/(?<=[,;])/);
@@ -959,8 +965,8 @@ const ADD_VERB_RE = /\b(?:agreg(?:a|ar|ame|ale|uen)|sum(?:a|ar|ame|ale))\b|\botr
 // "5 paneles mas", "y 20 focos mas", "mas 20 focos"; nunca "20 o mas", "mas o menos", "mas de 20" ni "mas potentes".
 const MORE_RE = /\b\d+\s+(?:[a-z\u00e0-\u00fc]+\s+){0,3}?(?<!\bo\s)m[a\u00e1]s(?=\s*(?:[,.;!?\n]|$)|\s+(?:y|para|por\s+favor|porfa)\b)|(?:^|[,.;!?\n]|\by)\s*m[a\u00e1]s\s+\d/i;
 // Una correccion de un dato ("corrijo", "me equivoque", "cambia la cantidad a 20", "en vez de 10", "mejor 20"),
-// no las mismas palabras en un pedido ("para cambiar los fluorescentes", "focos con cambio de color", "la mejor calidad").
-const CORRECTION_RE = /(?:corrij|corrig|correcci[o\u00f3]n|me\s+equivoqu|perd[o\u00f3]n\s*,?\s*(?:son|eran|era|es|ser[i\u00ed]an)\b|c[a\u00e1]mbi[a-z]*\s+(?:la\s+cantidad|el\s+producto|el\s+color|la\s+luz|el\s+tipo|a\s+\d)|en\s+(?:vez|lugar)\s+de\s+\d|(?:^|[,.;!?\n]\s*)(?:no\s*,?\s*)?mejor\s+(?:\d|son\b|que\s+sean|ser[i\u00ed]an))/i;
+// no las mismas palabras en un pedido ("para cambiar la luz", "focos con cambio de color", "la mejor calidad").
+const CORRECTION_RE = /(?:corrij|corrig|correcci[o\u00f3]n|me\s+equivoqu|perd[o\u00f3]n\s*,?\s*(?:son|eran|era|es|ser[i\u00ed]an)\b|(?<!\bpara\s+)c[a\u00e1]mbi[a-z]*\s+(?:la\s+cantidad|el\s+producto|el\s+color|la\s+luz|el\s+tipo|a\s+\d)|en\s+(?:vez|lugar)\s+de\s+\d|(?:^|[,.;!?\n]\s*)(?:no\s*,?\s*)?mejor\s+(?:\d|son\b|que\s+sean|ser[i\u00ed]an))/i;
 const MAX_ADDITION_MARKS = 5;
 function additions(text: string, producto: string | undefined): { adding: boolean; base: string } {
   const own = new Set(producto ? productWords(producto) : []);
