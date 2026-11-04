@@ -215,10 +215,6 @@ const GuideLayout = ({ meta, content }: { meta: GuideMeta; content: GuideContent
               </strong>
               , {author.bio}
             </p>
-            <p>
-              Redactamos esta guía con apoyo de herramientas de inteligencia artificial. Verificamos cada dato en las fuentes citadas y{' '}
-              {author.name} la revisó y aprobó antes de publicarla.
-            </p>
           </section>
 
           {related.length > 0 && (
