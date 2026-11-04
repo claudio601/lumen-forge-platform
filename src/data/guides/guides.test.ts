@@ -525,9 +525,8 @@ describe('guías: la página', () => {
         expect(a.getAttribute('rel')).toBe('noopener noreferrer');
       }
       expect(root.textContent).toContain(`Fuentes revisadas el ${c.sourcesReviewed}.`);
-      expect(root.textContent).toContain(
-        `Redactamos esta guía con apoyo de herramientas de inteligencia artificial. Verificamos cada dato en las fuentes citadas y ${GUIDE_AUTHORS[g.author].name} la revisó y aprobó antes de publicarla.`,
-      );
+      // Sin nota sobre inteligencia artificial al pie (dueño, 2026-11-04)
+      expect(root.textContent).not.toMatch(/inteligencia artificial|Redactamos esta gu[ií]a/i);
     });
   }
 
