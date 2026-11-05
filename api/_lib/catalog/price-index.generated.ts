@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '796d22371aec';
+export const SNAPSHOT_HASH = '302bda8e8d13';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -629,19 +629,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   },
   "2286835": {
     "name": "FOCO LED COB BASCULANTE CODO 30W IP33",
-    "sku": "FLCBC30",
+    "sku": "FLCB30",
     "price": 24900,
     "variants": {
       "105152274": {
-        "sku": "FLCBC30F",
+        "sku": "FLCB30F",
         "price": 24900
       },
       "105152275": {
-        "sku": "FLCBC30N",
+        "sku": "FLCB30N",
         "price": 24900
       },
       "118438897": {
-        "sku": "FLCBC30C",
+        "sku": "FLCB30C",
         "price": 24900
       }
     }
@@ -2258,15 +2258,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4122694": {
     "name": "CAMPANA LED UFO NF3 100W 150LM/W IP66",
     "sku": "",
-    "price": 33600,
+    "price": 39600,
     "variants": {
       "6791302": {
         "sku": "CUFONF3100F",
-        "price": 33600
+        "price": 39600
       },
       "88152836": {
         "sku": "CUFONF3100N",
-        "price": 33600
+        "price": 39600
       }
     }
   },
@@ -3774,7 +3774,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "26946977": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W VITO ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS300ALL",
     "price": 238800,
     "variants": {
@@ -3945,7 +3945,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "30511210": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS600ALL",
     "price": 619900,
     "variants": {
@@ -3959,10 +3959,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       },
       "110660217": {
         "sku": "APS600ALL7",
-        "price": 619900
-      },
-      "110660218": {
-        "sku": "APS600ALLF",
         "price": 619900
       }
     }
@@ -3987,7 +3983,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "30534071": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS200ALL",
     "price": 165600,
     "variants": {
@@ -4001,10 +3997,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       },
       "110677477": {
         "sku": "APS200ALL7",
-        "price": 165600
-      },
-      "110677478": {
-        "sku": "APS200ALLF",
         "price": 165600
       }
     }
@@ -4272,5 +4264,24 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "EX-125W-STA1",
     "price": 1199880,
     "variants": {}
+  },
+  "1234852242": {
+    "name": "FOCO LED COB BASCULANTE CODO 40W IP33",
+    "sku": "FLCB40",
+    "price": 27900,
+    "variants": {
+      "123532514": {
+        "sku": "FLCB40C",
+        "price": 27900
+      },
+      "123532515": {
+        "sku": "FLCB40N",
+        "price": 27900
+      },
+      "123532516": {
+        "sku": "FLCB40F",
+        "price": 27900
+      }
+    }
   }
 };
