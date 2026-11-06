@@ -599,6 +599,11 @@
       "statusCode": 301
     },
     {
+      "source": "/alumbrado-publico-led-solar-flyhawk-40w{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
       "source": "/alumbrado-publico-led-solar-flyhawk-60w-luz-calida-ds1{/}?",
       "destination": "/catalogo/solar",
       "statusCode": 301
@@ -609,8 +614,18 @@
       "statusCode": 301
     },
     {
+      "source": "/alumbrado-publico-led-solar-flyhawk-60w{/}?",
+      "destination": "/catalogo/solar",
+      "statusCode": 301
+    },
+    {
       "source": "/alumbrado-publico-led-solar-flyhawk-80w{/}?",
       "destination": "/producto/alumbrado-publico-led-solar-flyhawk-40-80w",
+      "statusCode": 301
+    },
+    {
+      "source": "/alumbrado-publico-led-solar-flyhawk-90w{/}?",
+      "destination": "/catalogo/solar",
       "statusCode": 301
     },
     {
@@ -1084,6 +1099,11 @@
       "statusCode": 301
     },
     {
+      "source": "/aplique-led-solar-10w-luz-fria-500-lm-ip65-02{/}?",
+      "destination": "/catalogo/iluminacion-exterior",
+      "statusCode": 301
+    },
+    {
       "source": "/aplique-led-solar-10w-luz-fria-500-lm-ip65{/}?",
       "destination": "/producto/aplique-led-solar-10w-luz-fria-500-lm-ip65",
       "statusCode": 301
@@ -1290,6 +1310,11 @@
     },
     {
       "source": "/campana-led-ufo-150w-ip65-standard-negra-1{/}?",
+      "destination": "/catalogo/campanas-led",
+      "statusCode": 301
+    },
+    {
+      "source": "/campana-led-ufo-300w-ip65-light-negra{/}?",
       "destination": "/catalogo/campanas-led",
       "statusCode": 301
     },
@@ -2374,6 +2399,11 @@
       "statusCode": 301
     },
     {
+      "source": "/elights-cl_root{/}?",
+      "destination": "/catalogo",
+      "statusCode": 301
+    },
+    {
       "source": "/emergencia-led/kit-de-emergencia{/}?",
       "destination": "/catalogo/emergencia-led",
       "statusCode": 301
@@ -2496,6 +2526,11 @@
     {
       "source": "/foco-a-riel{/}?",
       "destination": "/catalogo/focos-a-riel",
+      "statusCode": 301
+    },
+    {
+      "source": "/foco-dicroico-led-embutido-1w-blanco{/}?",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
@@ -2971,6 +3006,11 @@
     {
       "source": "/fuente-de-poder-para-foco-piscina-30w-12v-ip30-1{/}?",
       "destination": "/producto/fuente-de-poder-para-foco-piscina-60w-12v-ip20",
+      "statusCode": 301
+    },
+    {
+      "source": "/fuente-de-poder-para-foco-piscina-30w-12v-ip30{/}?",
+      "destination": "/catalogo/fuentes-de-poder",
       "statusCode": 301
     },
     {
@@ -3626,6 +3666,11 @@
     {
       "source": "/lineal-led-embutido-en-piso-28w{/}?",
       "destination": "/producto/lineal-led-embutido-en-piso-28w",
+      "statusCode": 301
+    },
+    {
+      "source": "/lineal-led-flat-40w-120-cm-ip20-6500k{/}?",
+      "destination": "/catalogo/lineales-led",
       "statusCode": 301
     },
     {
@@ -5819,6 +5864,11 @@
       "statusCode": 301
     },
     {
+      "source": "/proyector-led-de-emergencia-recargable-smd-10w-ip65{/}?",
+      "destination": "/catalogo/proyectores-led",
+      "statusCode": 301
+    },
+    {
       "source": "/proyector-led-de-emergencia-recargable-smd-20w-ip65-1{/}?",
       "destination": "/producto/proyector-led-de-emergencia-recargable-smd-30w-ip66",
       "statusCode": 301
@@ -6186,6 +6236,11 @@
     {
       "source": "/proyector-led-slim-smd-500w-6500k-ip66{/}?",
       "destination": "/producto/proyector-led-slim-smd-500w-ip66",
+      "statusCode": 301
+    },
+    {
+      "source": "/proyector-led-slim-smd-500w-con-ds43-luz-calida{/}?",
+      "destination": "/catalogo/proyectores-led",
       "statusCode": 301
     },
     {
