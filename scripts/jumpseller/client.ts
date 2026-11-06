@@ -157,6 +157,8 @@ export function createJumpsellerClient(opts: ClientOptions) {
       return n;
     },
     fetchCategories: () => getAllPages<unknown>('categories', 'category'),
+    /** Adjuntos de un producto (fichas técnicas en PDF): [{ attachment: { id, customer_url } }]. */
+    fetchProductAttachments: (id: number) => getJson(`products/${id}/attachments`),
   };
 }
 

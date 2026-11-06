@@ -38,6 +38,7 @@ import { STATIC_ROUTES, categoryPath, noindexGuideRoutes, prerenderedRoutes, pro
 import { products } from '@/data/products';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { productDescriptions } from '@/data/catalog/descriptions.generated';
+import { productDatasheets } from '@/data/catalog/datasheets.generated';
 import { PROJECT_CATEGORIES } from '@/data/catalog/categories.config';
 import type { Product } from '@/data/catalog/types';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -181,8 +182,10 @@ const warrantyRow = (p: Product) => {
   return [...(d?.electricos ?? []), ...(d?.construccion ?? []), ...(d?.componentes ?? [])].find(r => r.label === 'Garantía')?.value;
 };
 const fromJumpseller = products.filter(p => !editorialOverlay[p.jumpseller_id]);
-/** Sin ficha técnica y sin cifra de garantía ("Si" o sin fila): queda la legal. */
-const withoutDatasheet = fromJumpseller.find(p => !p.datasheetUrl && [undefined, 'Si'].includes(warrantyRow(p)))!;
+/** Sin ficha técnica (ni editorial ni adjunta en Jumpseller) y sin cifra de garantía ("Si" o sin fila): queda la legal. */
+const withoutDatasheet = fromJumpseller.find(
+  p => !p.datasheetUrl && !productDatasheets[p.jumpseller_id] && [undefined, 'Si'].includes(warrantyRow(p)),
+)!;
 const oneYear = fromJumpseller.find(p => warrantyRow(p) === '1 año')!;
 const projectProduct = fromJumpseller.find(p => p.categories.some(c => PROJECT_CATEGORIES.includes(c)))!;
 
