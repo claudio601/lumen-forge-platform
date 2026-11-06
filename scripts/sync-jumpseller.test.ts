@@ -225,6 +225,26 @@ describe('cliente Jumpseller', () => {
   });
 });
 
+describe('cliente Jumpseller: hora límite', () => {
+  it('con 429 repetidos no espera ni reintenta más allá de la hora límite', async () => {
+    let t = 0;
+    const api = fakeFetch(() => ({ status: 429, headers: { 'Retry-After': '60' } }));
+    const client = createJumpsellerClient({
+      login: LOGIN, token: TOKEN, fetchImpl: api.fn, now: () => t, sleep: async ms => { t += ms; }, deadlineAt: 100_000,
+    });
+    await expect(client.fetchProductAttachments(1)).rejects.toMatchObject({ kind: 'deadline' });
+    expect(t).toBeLessThan(100_000);
+    expect(api.calls).toHaveLength(2);
+  });
+
+  it('pasada la hora límite no hace la solicitud', async () => {
+    const api = fakeFetch(() => ({ status: 200, body: [] }));
+    const client = createJumpsellerClient({ login: LOGIN, token: TOKEN, fetchImpl: api.fn, now: () => 5, deadlineAt: 5 });
+    await expect(client.fetchProductAttachments(1)).rejects.toMatchObject({ kind: 'deadline' });
+    expect(api.calls).toHaveLength(0);
+  });
+});
+
 describe('sincronización completa', () => {
   let root: string;
   beforeEach(() => { root = tempRoot(); return () => rmSync(root, { recursive: true, force: true }); });
@@ -473,6 +493,15 @@ describe('sincronización completa', () => {
     expect(summary.ogImages).toMatchObject({ own: 3, fallback: 1 });
     expect(readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8')).toContain('⚠️ No se pudieron revisar: 2502343');
     expect(logs.join('\n')).toContain('2502343 (HTTP 404)');
+  });
+});
+
+describe('workflow del robot', () => {
+  it('la PR del robot incluye todos los archivos generados', () => {
+    const yml = readFileSync(join(__dirname, '../.github/workflows/sync-jumpseller.yml'), 'utf8');
+    const block = yml.match(/add-paths: \|\n((?:\s+\S+\.generated\.ts\n)+)/);
+    expect(block, 'add-paths').not.toBeNull();
+    expect(block![1].trim().split(/\s+/).sort()).toEqual(Object.values(OUTPUT_PATHS).sort());
   });
 });
 

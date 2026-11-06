@@ -29,7 +29,7 @@ import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/
 import { normalizeCatalog } from './jumpseller/normalize';
 import { buildDescriptions, diffDescriptions, renderDescriptionsReport } from './jumpseller/descriptions';
 import { buildOgImageFacts, createImageProbe, renderOgImagesReport, summarizeOgImages, type ImageFetch } from './jumpseller/og-images';
-import { buildDatasheets, renderDatasheetsReport, summarizeDatasheets } from './jumpseller/datasheets';
+import { buildDatasheets, DATASHEETS_DEADLINE_MS, renderDatasheetsReport, summarizeDatasheets } from './jumpseller/datasheets';
 import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
 import {
@@ -230,7 +230,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   let rawProducts: unknown[];
   let rawCategories: unknown[];
   let reportedCount: number | undefined;
-  let client: ReturnType<typeof createJumpsellerClient> | undefined;
+  let credentials: { login: string; token: string } | undefined;
   if (args.fromDir) {
     const raw = readRawDir(resolve(root, args.fromDir));
     rawProducts = raw.products;
@@ -247,13 +247,14 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     let countBefore: number;
     let countAfter: number;
     try {
-      client = createJumpsellerClient({ login: login!, token: token!, fetchImpl: opts.fetchImpl, sleep: opts.sleep });
+      const client = createJumpsellerClient({ login: login!, token: token!, fetchImpl: opts.fetchImpl, sleep: opts.sleep });
       // Conteo antes y después: la paginación por offset puede duplicar o saltar
       // productos si el catálogo cambia mientras se descarga.
       countBefore = await client.countAvailableProducts();
       rawProducts = await client.fetchAvailableProducts();
       countAfter = await client.countAvailableProducts();
       rawCategories = await client.fetchCategories();
+      credentials = { login: login!, token: token! };
     } catch (err) {
       if (err instanceof JumpsellerApiError) {
         log(`Error de Jumpseller: ${err.message}`);
@@ -387,8 +388,11 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   // Fichas técnicas en PDF: los adjuntos de cada producto, de a uno y también después de los
   // resguardos. Un producto que no se pudo consultar conserva sus fichas anteriores; con
   // --from-dir no se consulta la API y se mantiene el archivo actual.
+  // Cliente propio con hora límite: ni los reintentos ni las esperas por 429 pasan de ella.
   const previousDatasheets = await loadPreviousDatasheets(root);
-  const sheetsClient = client;
+  const sheetsClient = credentials
+    ? createJumpsellerClient({ ...credentials, fetchImpl: opts.fetchImpl, sleep: opts.sleep, deadlineAt: Date.now() + DATASHEETS_DEADLINE_MS })
+    : undefined;
   const sheets = await buildDatasheets(next, previousDatasheets, sheetsClient ? id => sheetsClient.fetchProductAttachments(id) : null);
   if (sheets.failed.length) log(`Fichas técnicas sin consultar (se mantienen las anteriores): ${sheets.failed.map(f => `${f.id} (${f.reason})`).join(', ')}`);
 

@@ -3,7 +3,9 @@
 // (GET products/<id>/attachments.json). La ficha de producto muestra un botón «Ficha
 // técnica» por PDF, como elights.cl, donde el dueño manda a los clientes a descargarla.
 // - Solo PDF del CDN de Jumpseller de la tienda; cualquier otro adjunto se informa y no se publica.
-// - Una consulta por producto, de a una (el cliente de la API espacia las solicitudes).
+// - Una consulta por producto, de a una (el cliente de la API espacia las solicitudes),
+//   con un tiempo límite. Primero los productos sin ficha guardada; los demás, desde un
+//   punto que cambia cada día, para que un día lento no deje siempre sin revisar a los mismos.
 // - Un producto que no se pudo consultar conserva sus fichas anteriores y se reintenta la
 //   próxima vez. Nunca bloquea la sincronización.
 
@@ -47,6 +49,9 @@ export interface DatasheetsResult {
   rejected: { id: number; url: string }[];
 }
 
+export const DATASHEETS_DEADLINE_MS = 300_000;
+const DAY_MS = 86_400_000;
+
 export interface DatasheetOptions {
   /** Pasado este tiempo no se consultan más productos: la tarea programada nunca llega a su límite de 15 min. */
   deadlineMs?: number;
@@ -61,7 +66,7 @@ export async function buildDatasheets(
   fetchAttachments: FetchAttachments | null,
   opts: DatasheetOptions = {},
 ): Promise<DatasheetsResult> {
-  const deadlineMs = opts.deadlineMs ?? 300_000;
+  const deadlineMs = opts.deadlineMs ?? DATASHEETS_DEADLINE_MS;
   const now = opts.now ?? Date.now;
   const datasheets: Record<number, string[]> = {};
   const failed: DatasheetsResult['failed'] = [];
@@ -77,11 +82,15 @@ export async function buildDatasheets(
   }
 
   const started = now();
+  const pending = next.filter(p => !previous?.[p.jumpseller_id]?.length);
+  const known = next.filter(p => previous?.[p.jumpseller_id]?.length);
+  const shift = known.length ? Math.floor(started / DAY_MS) % known.length : 0;
+  const queue = [...pending, ...known.slice(shift), ...known.slice(0, shift)];
   let queried = 0;
   // Credenciales rechazadas o bloqueo por exceso de solicitudes: las consultas que faltan
   // fallarían igual, así que no se hacen.
   let stopped: string | undefined;
-  for (const p of next) {
+  for (const p of queue) {
     const id = p.jumpseller_id;
     const fail = (reason: string) => {
       failed.push({ id, reason: previous?.[id]?.length ? `${reason}; se mantienen las fichas anteriores` : reason });
@@ -94,8 +103,9 @@ export async function buildDatasheets(
     try {
       body = await fetchAttachments(id);
     } catch (err) {
-      const reason = err instanceof JumpsellerApiError ? err.message : 'error inesperado';
-      if (err instanceof JumpsellerApiError && (err.kind === 'auth' || err.kind === 'rate')) stopped = reason;
+      const api = err instanceof JumpsellerApiError ? err : undefined;
+      const reason = api?.kind === 'deadline' ? DEADLINE_REASON : (api?.message ?? 'error inesperado');
+      if (api && (api.kind === 'auth' || api.kind === 'rate' || api.kind === 'deadline')) stopped = reason;
       fail(reason);
       continue;
     }

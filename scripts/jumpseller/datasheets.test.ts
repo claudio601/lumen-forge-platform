@@ -96,6 +96,37 @@ describe('buildDatasheets', () => {
     expect(r.failed).toEqual([{ id: 2, reason: `${DEADLINE_REASON}; se mantienen las fichas anteriores` }]);
   });
 
+  it('si el cliente llega a su hora límite, no sigue consultando y conserva lo anterior', async () => {
+    const asked: number[] = [];
+    const fetch: FetchAttachments = async id => {
+      asked.push(id);
+      throw new JumpsellerApiError('Se acabó el tiempo de la sincronización (products/1/attachments)', 'deadline');
+    };
+    const r = await buildDatasheets(products(1, 2), { 2: [pdf(2, 'vieja.pdf')] }, fetch);
+    expect(asked).toEqual([1]);
+    expect(r.failed).toEqual([
+      { id: 1, reason: DEADLINE_REASON },
+      { id: 2, reason: `${DEADLINE_REASON}; se mantienen las fichas anteriores` },
+    ]);
+    expect(r.datasheets).toEqual({ 2: [pdf(2, 'vieja.pdf')] });
+  });
+
+  it('primero los productos sin ficha guardada; los demás, desde un punto que cambia cada día', async () => {
+    const DAY = 86_400_000;
+    const previous = Object.fromEntries([1, 2, 3].map(id => [id, [pdf(id, 'a.pdf')]]));
+    const order = async (day: number) => {
+      const asked: number[] = [];
+      await buildDatasheets(products(1, 2, 3, 4), previous, async id => { asked.push(id); return []; }, { now: () => day * DAY });
+      return asked;
+    };
+    expect(await order(0)).toEqual([4, 1, 2, 3]);
+    expect(await order(1)).toEqual([4, 2, 3, 1]);
+    expect(await order(2)).toEqual([4, 3, 1, 2]);
+    // En tres días seguidos con tiempo para una sola consulta de las conocidas, se revisan todas
+    const firstKnown = await Promise.all([0, 1, 2].map(async d => (await order(d))[1]));
+    expect(firstKnown.sort()).toEqual([1, 2, 3]);
+  });
+
   it('sin API (--from-dir) mantiene las fichas anteriores de los productos publicados', async () => {
     const r = await buildDatasheets(products(1), { 1: [pdf(1, 'a.pdf')], 9: [pdf(9, 'b.pdf')] }, null);
     expect(r).toMatchObject({ checked: false, queried: 0, datasheets: { 1: [pdf(1, 'a.pdf')] } });
