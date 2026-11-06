@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '796d22371aec';
+export const SNAPSHOT_HASH = '302bda8e8d13';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -2397,7 +2397,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "jumpseller_id": 2286835,
     "name": "FOCO LED COB BASCULANTE CODO 30W IP33",
     "permalink": "foco-led-cob-basculante-codo-30w-ip33",
-    "sku": "FLCBC30",
+    "sku": "FLCB30",
     "price": 24900,
     "brand": "JIE",
     "featured": false,
@@ -2429,7 +2429,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 118438897,
-        "sku": "FLCBC30C",
+        "sku": "FLCB30C",
         "price": 24900,
         "options": [
           {
@@ -2440,7 +2440,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 105152275,
-        "sku": "FLCBC30N",
+        "sku": "FLCB30N",
         "price": 24900,
         "options": [
           {
@@ -2451,7 +2451,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 105152274,
-        "sku": "FLCBC30F",
+        "sku": "FLCB30F",
         "price": 24900,
         "options": [
           {
@@ -8316,7 +8316,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO NF3 100W 150LM/W IP66",
     "permalink": "campana-led-ufo-nf3-100w",
     "sku": "",
-    "price": 33600,
+    "price": 39600,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -8348,7 +8348,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 88152836,
         "sku": "CUFONF3100N",
-        "price": 33600,
+        "price": 39600,
         "options": [
           {
             "name": "Color",
@@ -8359,7 +8359,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 6791302,
         "sku": "CUFONF3100F",
-        "price": 33600,
+        "price": 39600,
         "options": [
           {
             "name": "Color",
@@ -13503,7 +13503,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 26946977,
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W VITO ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "permalink": "alumbrado-publico-led-solar-300w-all-in-one-industrial",
     "sku": "APS300ALL",
     "price": 238800,
@@ -13581,8 +13581,8 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "featured": true,
     "categories": [
       "iluminacion-exterior",
-      "alumbrado-publico",
-      "solar"
+      "solar",
+      "alumbrado-publico"
     ],
     "images": [
       {
@@ -14150,7 +14150,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 30511210,
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "permalink": "alumbrado-publico-led-solar-600w-all-in-one-industrial",
     "sku": "APS600ALL",
     "price": 619900,
@@ -14213,17 +14213,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Neutra - 4000K"
-          }
-        ]
-      },
-      {
-        "id": 110660218,
-        "sku": "APS600ALLF",
-        "price": 619900,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz fría - 5000K"
           }
         ]
       }
@@ -14301,7 +14290,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
   },
   {
     "jumpseller_id": 30534071,
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "permalink": "alumbrado-publico-led-solar-200w-all-in-one-industrial",
     "sku": "APS200ALL",
     "price": 165600,
@@ -14313,29 +14302,19 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "images": [
       {
-        "id": 65130661,
-        "url": "https://images.jumpseller.com/store/elights-cl/30534071/Alumbrado_Publico_200W_eLIGHTS_FondoBlanco1.jpg?1751660059",
+        "id": 83282406,
+        "url": "https://images.jumpseller.com/store/elights-cl/30534071/Luminaria_20solar_20con_20doble_20m_C3_B3dulo_20LED.png?1793391245",
         "position": 1
       },
       {
-        "id": 65130662,
-        "url": "https://images.jumpseller.com/store/elights-cl/30534071/Alumbrado_Publico_200W_eLIGHTS_FondoBlanco.jpg?1751660059",
+        "id": 65130664,
+        "url": "https://images.jumpseller.com/store/elights-cl/30534071/Alumbrado_Publico_200W_eLIGHTS_FondoBlanc3.jpg?1793391244",
         "position": 2
       },
       {
-        "id": 65130663,
-        "url": "https://images.jumpseller.com/store/elights-cl/30534071/Alumbrado_Publico_200W_eLIGHTS_FondoBlanco2.jpg?1751660059",
-        "position": 3
-      },
-      {
-        "id": 65130664,
-        "url": "https://images.jumpseller.com/store/elights-cl/30534071/Alumbrado_Publico_200W_eLIGHTS_FondoBlanc3.jpg?1751660059",
-        "position": 4
-      },
-      {
         "id": 65130589,
-        "url": "https://images.jumpseller.com/store/elights-cl/30534071/CONTROL_REMOTO.png?1751660058",
-        "position": 5
+        "url": "https://images.jumpseller.com/store/elights-cl/30534071/CONTROL_REMOTO.png?1793391244",
+        "position": 3
       }
     ],
     "variants": [
@@ -14369,17 +14348,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Neutra - 4000K"
-          }
-        ]
-      },
-      {
-        "id": 110677478,
-        "sku": "APS200ALLF",
-        "price": 165600,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz fría - 5000K"
           }
         ]
       }
@@ -15361,5 +15329,74 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       }
     ],
     "variants": []
+  },
+  {
+    "jumpseller_id": 1234852242,
+    "name": "FOCO LED COB BASCULANTE CODO 40W IP33",
+    "permalink": "foco-led-cob-basculante-codo-40w-ip33",
+    "sku": "FLCB40",
+    "price": 27900,
+    "brand": "JIE",
+    "featured": false,
+    "categories": [
+      "paneles-led"
+    ],
+    "images": [
+      {
+        "id": 83498759,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_1.png?1793817981",
+        "position": 1
+      },
+      {
+        "id": 83498760,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_2.png?1793817981",
+        "position": 2
+      },
+      {
+        "id": 83498761,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_3.png?1793817981",
+        "position": 3
+      },
+      {
+        "id": 83498762,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_4.png?1793817981",
+        "position": 4
+      }
+    ],
+    "variants": [
+      {
+        "id": 123532514,
+        "sku": "FLCB40C",
+        "price": 27900,
+        "options": [
+          {
+            "name": "Color de Luz",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
+        "id": 123532515,
+        "sku": "FLCB40N",
+        "price": 27900,
+        "options": [
+          {
+            "name": "Color de Luz",
+            "value": "Luz Neutra - 4000K"
+          }
+        ]
+      },
+      {
+        "id": 123532516,
+        "sku": "FLCB40F",
+        "price": 27900,
+        "options": [
+          {
+            "name": "Color de Luz",
+            "value": "Luz Fría - 6000K"
+          }
+        ]
+      }
+    ]
   }
 ];

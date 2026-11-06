@@ -2779,6 +2779,11 @@
       "statusCode": 301
     },
     {
+      "source": "/foco-led-cob-basculante-codo-40w-ip33{/}?",
+      "destination": "/producto/foco-led-cob-basculante-codo-40w-ip33",
+      "statusCode": 301
+    },
+    {
       "source": "/foco-led-codo-basculante-30w-ip33{/}?",
       "destination": "/catalogo/paneles-led",
       "statusCode": 301
