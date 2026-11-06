@@ -5,6 +5,7 @@
 // - Nunca registra credenciales, headers ni URLs con secretos.
 // - Reintentos con backoff + jitter en 5xx y errores de red; 429 respeta los
 //   headers Jumpseller-*RateLimit-*; máximo ~5 req/s (límite de la API: 20/s).
+// - Con `deadlineAt`, ninguna solicitud, espera ni reintento pasa de esa hora.
 
 export type FetchLike = (input: string, init?: { headers?: Record<string, string>; signal?: AbortSignal }) => Promise<{
   ok: boolean;
@@ -13,7 +14,7 @@ export type FetchLike = (input: string, init?: { headers?: Record<string, string
   json(): Promise<unknown>;
 }>;
 
-export type ApiErrorKind = 'auth' | 'http' | 'network' | 'rate' | 'shape';
+export type ApiErrorKind = 'auth' | 'http' | 'network' | 'rate' | 'shape' | 'deadline';
 
 export class JumpsellerApiError extends Error {
   constructor(message: string, public readonly kind: ApiErrorKind, public readonly status?: number) {
@@ -34,6 +35,8 @@ export interface ClientOptions {
   minIntervalMs?: number;
   timeoutMs?: number;
   pageSize?: number;
+  /** Hora límite (en la escala de `now`): después no hay más solicitudes, esperas ni reintentos. */
+  deadlineAt?: number;
 }
 
 const DEFAULT_BASE = 'https://api.jumpseller.com/v1';
@@ -54,6 +57,7 @@ export function createJumpsellerClient(opts: ClientOptions) {
   const minIntervalMs = opts.minIntervalMs ?? 200;
   const timeoutMs = opts.timeoutMs ?? 15_000;
   const pageSize = opts.pageSize ?? 100;
+  const deadlineAt = opts.deadlineAt ?? Infinity;
   const authorization = 'Basic ' + Buffer.from(`${opts.login}:${opts.token}`, 'utf8').toString('base64');
 
   let lastRequestAt = -Infinity;
@@ -61,6 +65,13 @@ export function createJumpsellerClient(opts: ClientOptions) {
     const wait = lastRequestAt + minIntervalMs - now();
     if (wait > 0) await sleep(wait);
     lastRequestAt = now();
+  }
+
+  const overDeadline = (path: string) => new JumpsellerApiError(`Se acabó el tiempo de la sincronización (${path})`, 'deadline');
+  /** Espera antes de reintentar, salvo que la espera pase la hora límite. */
+  async function pause(ms: number, path: string) {
+    if (now() + ms >= deadlineAt) throw overDeadline(path);
+    await sleep(ms);
   }
 
   const backoff = (attempt: number) => Math.round(500 * 2 ** attempt + random() * 250);
@@ -81,11 +92,12 @@ export function createJumpsellerClient(opts: ClientOptions) {
     const url = `${base}/${path.replace(/^\/+/, '')}.json${qs ? `?${qs}` : ''}`;
 
     for (let attempt = 0; ; attempt++) {
+      if (now() >= deadlineAt) throw overDeadline(path);
       await throttle();
       // El timeout cubre también la lectura del cuerpo: una conexión que se corta o
       // queda colgada a mitad de la respuesta se reintenta como error de red.
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(timeoutMs, deadlineAt - now())));
       let res: Awaited<ReturnType<FetchLike>>;
       try {
         res = await fetchImpl(url, {
@@ -94,7 +106,7 @@ export function createJumpsellerClient(opts: ClientOptions) {
         });
       } catch {
         clearTimeout(timer);
-        if (attempt < maxRetries) { await sleep(backoff(attempt)); continue; }
+        if (attempt < maxRetries) { await pause(backoff(attempt), path); continue; }
         throw new JumpsellerApiError(`Sin respuesta de Jumpseller (${path})`, 'network');
       }
 
@@ -105,12 +117,12 @@ export function createJumpsellerClient(opts: ClientOptions) {
       if (res.status === 429) {
         clearTimeout(timer);
         if (attempt >= maxRetries) throw new JumpsellerApiError('Demasiadas solicitudes a Jumpseller (429)', 'rate', 429);
-        await sleep(rateLimitWait(res.headers));
+        await pause(rateLimitWait(res.headers), path);
         continue;
       }
       if (res.status >= 500) {
         clearTimeout(timer);
-        if (attempt < maxRetries) { await sleep(backoff(attempt)); continue; }
+        if (attempt < maxRetries) { await pause(backoff(attempt), path); continue; }
         throw new JumpsellerApiError(`Jumpseller respondió HTTP ${res.status} (${path})`, 'http', res.status);
       }
       if (!res.ok) {
@@ -123,7 +135,7 @@ export function createJumpsellerClient(opts: ClientOptions) {
         return body;
       } catch {
         clearTimeout(timer);
-        if (attempt < maxRetries) { await sleep(backoff(attempt)); continue; }
+        if (attempt < maxRetries) { await pause(backoff(attempt), path); continue; }
         throw new JumpsellerApiError(`Respuesta incompleta o inválida de Jumpseller (${path})`, 'network');
       }
     }
@@ -157,6 +169,8 @@ export function createJumpsellerClient(opts: ClientOptions) {
       return n;
     },
     fetchCategories: () => getAllPages<unknown>('categories', 'category'),
+    /** Adjuntos de un producto (fichas técnicas en PDF): [{ attachment: { id, customer_url } }]. */
+    fetchProductAttachments: (id: number) => getJson(`products/${id}/attachments`),
   };
 }
 

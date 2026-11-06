@@ -21,9 +21,26 @@ import { STUDY_BOX_CATEGORIES, STUDY_BOX_EXCLUDED, studyBoxHref } from '@/lib/st
 import { DIALUX_BOX_TEXT } from '@/config/navigation';
 import { MAX_LINE_QUANTITY } from '@/lib/quantity';
 import { expectedLineSku } from '@/test/variantRule';
+import { productDatasheets } from '@/data/catalog/datasheets.generated';
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), warning: vi.fn(), error: vi.fn(), success: vi.fn() } }));
 vi.mock('@/lib/analytics', () => ({ sendEvent: vi.fn(), trackLead: vi.fn(), trackGuideCta: vi.fn() }));
+// Fichas técnicas adjuntas en Jumpseller: datos fijos, así un cambio del catálogo no rompe las pruebas.
+// Un PDF para el primer producto sin ficha editorial, dos para el segundo, ninguno para el tercero,
+// y uno para un BESTLED (gana su PDF editorial).
+vi.mock('@/data/catalog/datasheets.generated', async () => {
+  const { products } = await import('@/data/products');
+  const plain = products.filter(p => !p.datasheetUrl);
+  const bestled = products.find(p => p.datasheetUrl)!;
+  const pdf = (id: number, w: number) => `https://images.jumpseller.com/store/elights-cl/${id}/attachments/ab${w}/ficha-${w}w.pdf?1`;
+  return {
+    productDatasheets: {
+      [plain[0].jumpseller_id]: [pdf(plain[0].jumpseller_id, 60)],
+      [plain[1].jumpseller_id]: [pdf(plain[1].jumpseller_id, 80), pdf(plain[1].jumpseller_id, 40)],
+      [bestled.jumpseller_id]: [pdf(bestled.jumpseller_id, 40)],
+    },
+  };
+});
 
 function renderPdp(product: Product) {
   return render(
@@ -53,6 +70,8 @@ const proyector = products.find(p => p.categories.every(c => c === 'proyectores-
 const panel = products.find(p => !inStudyCategories(p) && simple(p))!;
 const bestled = products.find(p => p.datasheetUrl)!;
 const oneAxis = products.find(p => (p.variants?.length ?? 0) > 1 && variantAxes(p).length === 1)!;
+// Fichas técnicas adjuntas en Jumpseller (las del mock de arriba)
+const [oneSheet, manySheets, noSheet] = products.filter(p => !p.datasheetUrl);
 
 const savedRequest = () => JSON.parse(sessionStorage.getItem('elights_request_cart') ?? '[]');
 const savedQuote = () => JSON.parse(sessionStorage.getItem('elights_quote') ?? '[]');
@@ -297,6 +316,31 @@ describe('ficha: «Pedir documentos técnicos» (D-02, paso 1)', () => {
     expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
     const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
     expect(datasheet.parentElement).toBe(wa.parentElement);
+  });
+
+  it('con PDF adjunto en Jumpseller: «Ficha técnica» en el mismo lugar y con el mismo estilo, al PDF del CDN en otra pestaña', () => {
+    renderPdp(oneSheet);
+    const datasheet = screen.getByRole('link', { name: 'Ficha técnica' });
+    expect(datasheet.getAttribute('href')).toBe(productDatasheets[oneSheet.jumpseller_id][0]);
+    expect(datasheet.getAttribute('target')).toBe('_blank');
+    expect(datasheet.getAttribute('rel')).toBe('noopener noreferrer');
+    // `download` no sirve en otro dominio: el PDF se abre en otra pestaña
+    expect(datasheet.hasAttribute('download')).toBe(false);
+    expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
+    const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
+    expect(datasheet.parentElement).toBe(wa.parentElement);
+  });
+
+  it('con varios PDF en Jumpseller: un enlace por PDF, con su potencia y de menor a mayor', () => {
+    renderPdp(manySheets);
+    const links = screen.getAllByRole('link', { name: /^Ficha técnica/ });
+    expect(links.map(l => l.textContent?.trim())).toEqual(['Ficha técnica 40W', 'Ficha técnica 80W']);
+    expect(links.map(l => l.getAttribute('href'))).toEqual([...productDatasheets[manySheets.jumpseller_id]].reverse());
+  });
+
+  it('sin PDF: sin enlace «Ficha técnica»', () => {
+    renderPdp(noSheet);
+    expect(screen.queryByRole('link', { name: /^Ficha técnica/ })).not.toBeInTheDocument();
   });
 
   it('en todas las fichas, siempre a ventas@elights.cl', () => {

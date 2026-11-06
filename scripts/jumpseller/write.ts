@@ -16,6 +16,7 @@ export const OUTPUT_PATHS = {
   siteIds: 'src/data/catalog/site-ids.generated.ts',
   descriptions: 'src/data/catalog/descriptions.generated.ts',
   ogImages: 'src/data/catalog/og-images.generated.ts',
+  datasheets: 'src/data/catalog/datasheets.generated.ts',
 } as const;
 
 /** Claves que nunca pueden aparecer en un archivo generado (defensa en profundidad). */
@@ -144,6 +145,22 @@ import type { ProductImageFacts } from './jumpseller.types';
 export const SNAPSHOT_HASH = '${hash}';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
+${body}
+};
+`;
+}
+
+/**
+ * Fichas técnicas en PDF de cada producto (adjuntos de Jumpseller), por jumpseller_id y un
+ * producto por línea. Archivo aparte: solo lo importa la ficha de producto.
+ */
+export function renderDatasheetsFile(datasheets: Record<number, readonly string[]>, hash: string): string {
+  const ids = Object.keys(datasheets).map(Number).sort((a, b) => a - b);
+  const body = ids.map(id => `  "${id}": ${JSON.stringify(datasheets[id])},`).join('\n');
+  return `${HEADER('Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.')}
+export const SNAPSHOT_HASH = '${hash}';
+
+export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
 ${body}
 };
 `;

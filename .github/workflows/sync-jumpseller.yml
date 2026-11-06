@@ -102,6 +102,7 @@ jobs:
             src/data/catalog/site-ids.generated.ts
             src/data/catalog/descriptions.generated.ts
             src/data/catalog/og-images.generated.ts
+            src/data/catalog/datasheets.generated.ts
           commit-message: 'chore(catalog): sincronización con Jumpseller'
           title: 'Catálogo: sincronización con Jumpseller'
           body-path: reports/jumpseller-sync/diff.md

@@ -37,6 +37,8 @@ import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from '@/lib/seo/jsonld';
 import { categoryPath, productPath } from '@/lib/seo/routes';
 import { productDescriptions } from '@/data/catalog/descriptions.generated';
 import { productImageFacts } from '@/data/catalog/og-images.generated';
+import { productDatasheets } from '@/data/catalog/datasheets.generated';
+import { productDatasheetLinks } from '@/lib/datasheets';
 import { productOgImage } from '@/lib/seo/ogImage';
 import SpecGroups, { type SpecGroupsProps } from '@/components/catalog/SpecGroups';
 import type { SpecRow } from '@/data/catalog/jumpseller.types';
@@ -140,6 +142,8 @@ const ProductDetail = () => {
     // Imagen para compartir: la primera foto original de Jumpseller si es PNG o JPEG de menos de
     // 600 KB (revisada en la sincronización); si no, la de la marca (undefined → DEFAULT_OG).
     const ogImage = productOgImage(product.images?.[0], productImageFacts[product.jumpseller_id], product.name);
+    // Fichas técnicas en PDF: la editorial (BESTLED) o las adjuntas en Jumpseller, como en elights.cl
+    const datasheets = productDatasheetLinks(product.datasheetUrl, productDatasheets[product.jumpseller_id]);
     const seoTitle = product.metaTitle || `${product.name} | eLIGHTS.cl`;
     const seoDescription =
       product.metaDescription ||
@@ -476,21 +480,24 @@ const ProductDetail = () => {
                         
                           {/* Acciones secundarias. «Ficha técnica» sigue aquí y con este estilo, no en el bloque
                               «Documentos técnicos»: los PDF de la agencia (public/fichas/APB*.pdf) dicen «Cumple
-                              DS1» para todas las variantes y hay que reemitirlos antes de destacarlos. */}
+                              DS1» para todas las variantes y hay que reemitirlos antes de destacarlos. Los de
+                              Jumpseller son los que muestra elights.cl (el dueño manda la ficha del producto para
+                              que el cliente los descargue); `download` solo sirve en los PDF propios del sitio. */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                              {product.datasheetUrl && (
+                                              {datasheets.map(d => (
                                                             <a
-                                                              href={product.datasheetUrl}
+                                                              key={d.href}
+                                                              href={d.href}
                                                               target="_blank"
                                                               rel="noopener noreferrer"
-                                                              download
+                                                              download={d.href.startsWith('/') || undefined}
                                                             >
                                                               <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
                                                                 <Download className="h-3.5 w-3.5" />
-                                                                Ficha técnica
+                                                                {d.label}
                                                               </Button>
                                                             </a>
-                                              )}
+                                              ))}
                                               <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                             <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
