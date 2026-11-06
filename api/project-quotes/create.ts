@@ -64,8 +64,8 @@ import { TIPO_SERVICIO } from '../_lib/crm/tipo-servicio.js';
 import { normalizePhone } from '../_lib/crm/validation.js';
 import type { DealResultStatus, LeadType } from '../_lib/crm/types.js';
 import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } from '../_lib/auth.js';
-import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { SITE_URL } from '../_lib/site.js';
+import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import {
   ILLUMINATION_LEVELS,
   MAX_ALTURA,

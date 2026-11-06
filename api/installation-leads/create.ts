@@ -6,7 +6,7 @@
 //
 // Flujo:
 //  1. Rate limiting por IP (10 req / 15 min por IP)
-//  2. Validacion de Origin/Referer (solo nuevo.elights.cl en produccion)
+//  2. Validacion de Origin/Referer (elights.cl, www y nuevo.elights.cl en produccion)
 //  3. Auth (INSTALLATION_API_SECRET server-only, nunca expuesta al cliente)
 //  4. Honeypot anti-bot (campo website debe estar vacio)
 //  4b. Privacidad (clave `consent`, api/_lib/forms/consent.ts): sin la casilla obligatoria,

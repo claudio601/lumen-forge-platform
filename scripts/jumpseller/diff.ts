@@ -3,6 +3,7 @@
 // src/data/products.ts en la primera corrida) y arma el informe en español que el
 // dueño revisa antes de aprobar el PR de sincronización.
 
+import { SITE_URL } from '../../api/_lib/site';
 import type { SnapshotProduct } from '../../src/data/catalog/jumpseller.types';
 import type { Exclusion } from './normalize';
 
@@ -126,7 +127,7 @@ export function renderDiffMarkdown(
   const L: string[] = [];
   const flagged = diff.priceChanges.filter(c => c.flagged).length;
   const flaggedV = diff.variantPriceChanges.filter(c => c.flagged).length;
-  L.push('# Sincronización Jumpseller → nuevo.elights.cl', '');
+  L.push(`# Sincronización Jumpseller → ${new URL(SITE_URL).host}`, '');
   L.push(`Comparado contra: **${diff.baselineLabel}** · Snapshot \`${opts.snapshotHash}\``, '');
   L.push('| | Cantidad |', '|---|---|');
   L.push(`| Productos publicados | ${diff.afterCount} (antes ${diff.beforeCount}) |`);

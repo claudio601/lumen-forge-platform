@@ -432,7 +432,7 @@ describe('por host', () => {
     expect((window as unknown as Record<string, unknown>)['ga-disable-' + ID]).toBe(true);
   });
 
-  it('un host de prueba sin gtm_debug es como nuevo.elights.cl: el aviso no aparece solo', async () => {
+  it('un host de prueba sin gtm_debug ni medición habilitada: el aviso no aparece solo', async () => {
     const { tree } = await setup({ analyticsHosts: null, testHosts: 'localhost' });
     render(tree);
     await act(async () => {});
