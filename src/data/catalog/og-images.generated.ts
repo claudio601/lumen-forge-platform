@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '302bda8e8d13';
+export const SNAPSHOT_HASH = '97f50e9706bc';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
