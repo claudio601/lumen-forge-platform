@@ -212,9 +212,12 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(html).toContain('data-variant-selector');
     expect(html).toContain('Elige una potencia y una temperatura de color para continuar.');
     const price = () => container.querySelector('main p.text-3xl')!.parentElement!.textContent!;
-    // Precios del catálogo del día (cambian con la sincronización): el «desde» es la variante más barata.
+    // Precios del catálogo del día (cambian con la sincronización): la variante más barata, con «desde» solo si
+    // las variantes no cuestan lo mismo (ProductDetail).
     const clp = (n: number) => formatCLP(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    expect(price()).toMatch(new RegExp(`^desde\\s*${clp(Math.min(...flyhawk.variants!.map(v => v.price)))}`));
+    const prices = flyhawk.variants!.map(v => v.price);
+    const from = new Set(prices).size > 1 ? 'desde\\s*' : '';
+    expect(price()).toMatch(new RegExp(`^${from}${clp(Math.min(...prices))}`));
     const radio = (name: RegExp) => [...container.querySelectorAll<HTMLElement>('[role="radio"]')].find(r => name.test(r.closest('label')!.textContent!))!;
     await act(async () => { fireEvent.click(radio(/^80W/)); });
     await act(async () => { fireEvent.click(radio(/^Ámbar 2200K/)); });
@@ -301,9 +304,9 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
 describe('ficha: la cantidad escrita mientras la página se hidrata', () => {
   const path = `/producto/${flyhawk.id}`;
   const quantity = (container: HTMLElement) => container.querySelector<HTMLInputElement>('main input[role="spinbutton"]')!;
-  /** Pesos del «Subtotal desde: $…» de la ficha. */
+  /** Pesos del «Subtotal desde: $…» de la ficha («Subtotal: $…» si las variantes cuestan lo mismo). */
   const subtotal = (container: HTMLElement) =>
-    Number(container.textContent!.replace(/\s/g, ' ').match(/Subtotal desde: \$([\d.]+)/)![1].replace(/\./g, ''));
+    Number(container.textContent!.replace(/\s/g, ' ').match(/Subtotal(?: desde)?: \$([\d.]+)/)![1].replace(/\./g, ''));
 
   it('«1.0» antes de hidratar y «00» después, con el teclado: 1000 (no 100), y aria-valuenow 1000', async () => {
     let typed: HTMLInputElement | undefined;
