@@ -27,6 +27,7 @@ import { NOT_FOUND_ATTR, NOT_FOUND_URL } from '@/lib/notFound';
 import { notFoundSearch } from '@/lib/notFoundSearch';
 import { prerenderedRoutes, STATIC_ROUTES } from '@/lib/seo/routes';
 import { products } from '@/data/products';
+import { formatCLP } from '@/lib/requestOrder';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
 import { COOKIE_CONSENT_STORAGE_KEY, COOKIE_CONSENT_VERSION, COOKIE_TEXTS, __resetForTests, type CookieChoice } from '@/lib/cookieConsent';
@@ -211,11 +212,13 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     expect(html).toContain('data-variant-selector');
     expect(html).toContain('Elige una potencia y una temperatura de color para continuar.');
     const price = () => container.querySelector('main p.text-3xl')!.parentElement!.textContent!;
-    expect(price()).toMatch(/^desde\s*\$442\.800/);
+    // Precios del catálogo del día (cambian con la sincronización): el «desde» es la variante más barata.
+    const clp = (n: number) => formatCLP(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    expect(price()).toMatch(new RegExp(`^desde\\s*${clp(Math.min(...flyhawk.variants!.map(v => v.price)))}`));
     const radio = (name: RegExp) => [...container.querySelectorAll<HTMLElement>('[role="radio"]')].find(r => name.test(r.closest('label')!.textContent!))!;
     await act(async () => { fireEvent.click(radio(/^80W/)); });
     await act(async () => { fireEvent.click(radio(/^Ámbar 2200K/)); });
-    expect(price()).toMatch(/^\$514\.800/);
+    expect(price()).toMatch(new RegExp(`^${clp(flyhawk.variants!.find(v => v.id === 118197864)!.price)}`));
     expect(container.textContent).toContain('Elegiste: 80W · Ámbar 2200K.');
   });
 
