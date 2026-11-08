@@ -32,6 +32,11 @@ import {
   lastConsentRecord,
 } from '../_lib/forms/consent';
 
+/** Precio CON IVA de la AR111 en el catálogo del día: cambia con la sincronización. */
+const AR111 = priceIndex['3305420'].price;
+const TOTAL = 3 * AR111;
+const clp = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
+
 let ipSeq = 0;
 function call(body: unknown, headers: Record<string, string> = {}) {
   const res = {
@@ -118,8 +123,8 @@ describe('POST /api/quotes/create', () => {
     const res = await call(quote('nuevo_elights'));
     expect(res.statusCode).toBeLessThan(300);
     const payload = crmPayload();
-    expect(payload.products[0].unitPriceClp).toBe(16200);
-    expect(payload.quoteAmountClp).toBe(3 * 16200);
+    expect(payload.products[0].unitPriceClp).toBe(AR111);
+    expect(payload.quoteAmountClp).toBe(TOTAL);
     expect(payload.products[0]).not.toHaveProperty('jumpsellerId');
     const [path, body] = vi.mocked(pipedrivePost).mock.calls[0] as unknown as PdCall;
     expect(path).toBe('/notes');
@@ -165,7 +170,7 @@ describe('POST /api/quotes/create', () => {
       giro: 'Prueba',
       direccion: 'Prueba 123, Santiago',
       comentarios: COMENTARIO,
-      total: '$48.600',
+      total: clp(TOTAL),
       modo_precio: 'Con IVA (el cliente veía precios netos, modo empresa)',
     });
     expect(mail.items_lista.split('\n')[0]).toBe('Cotización web NE-abc123 (buscar la referencia en Pipedrive)');
@@ -173,14 +178,14 @@ describe('POST /api/quotes/create', () => {
     expect(Object.values(mail)).not.toContain('undefined');
 
     const payload = crmPayload();
-    expect(payload).toMatchObject({ leadType: 'B2B', organization: { name: RAZON_SOCIAL }, quoteAmountClp: 48600 });
+    expect(payload).toMatchObject({ leadType: 'B2B', organization: { name: RAZON_SOCIAL }, quoteAmountClp: TOTAL });
     for (const key of ['company', 'customerType', 'priceMode']) expect(payload).not.toHaveProperty(key);
 
     const [note] = notes();
     expect(note.deal_id).toBe(77);
     expect(note.content.startsWith('Cotización web NE-abc123')).toBe(true);
     for (const text of ['Tipo de cliente: Empresa', 'Razón social: ' + RAZON_SOCIAL, 'RUT: RUT-PRUEBA', 'Giro: Prueba',
-      'Dirección: Prueba 123, Santiago', 'Jumpseller 3305420', 'TOTAL CON IVA: 48600 CLP', 'precios netos',
+      'Dirección: Prueba 123, Santiago', 'Jumpseller 3305420', `TOTAL CON IVA: ${TOTAL} CLP`, 'precios netos',
       'Comentarios del cliente: ' + COMENTARIO]) {
       expect(note.content).toContain(text);
     }
@@ -383,7 +388,7 @@ describe('POST /api/quotes/create', () => {
       expect(mail.items_lista.length).toBeLessThanOrEqual(8000);
       expect(mail.items_lista).not.toContain('recortado');
       expect(mail.items_lista).toContain('Comentarios del cliente (completos):\n' + comment);
-      const lines = mail.items_lista.split('\n').filter((l) => l === '  [AR111OPC] x1 = 16200 CLP');
+      const lines = mail.items_lista.split('\n').filter((l) => l === `  [AR111OPC] x1 = ${AR111} CLP`);
       if (cut) {
         expect(lines.length).toBeGreaterThan(100);
         expect(mail.items_lista).toContain(`  … y ${count - lines.length} línea(s) más que no caben en el correo`);
@@ -453,14 +458,14 @@ describe('POST /api/quotes/create', () => {
     const res = await call({ ...persona(), products: [quote('').products[0], { ...unidentified[0], unitPriceClp }] });
     expect(res.statusCode).toBe(201);
     const payload = crmPayload();
-    expect(payload.quoteAmountClp).toBe(3 * 16200);
+    expect(payload.quoteAmountClp).toBe(TOTAL);
     expect(payload.products[1]).not.toHaveProperty('unitPriceClp');
 
     const [note] = notes();
     expect(note.content).toContain('REVISAR [VIEJO] Retirado x2 (sin precio del sitio; por confirmar, fuera del total)');
-    expect(note.content).toContain('TOTAL CON IVA: 48600 CLP (no incluye 1 producto sin precio de catálogo: REVISAR)');
+    expect(note.content).toContain(`TOTAL CON IVA: ${TOTAL} CLP (no incluye 1 producto sin precio de catálogo: REVISAR)`);
     expect(note.content).not.toMatch(/e\+300/);
-    expect(gasBodies()[0].total).toBe('$48.600 + 1 producto sin precio de catálogo (por confirmar)');
+    expect(gasBodies()[0].total).toBe(clp(TOTAL) + ' + 1 producto sin precio de catálogo (por confirmar)');
   });
 
   it('producto no identificado con un precio del sitio alto pero posible: se muestra REVISAR y no entra al monto', async () => {
@@ -469,7 +474,7 @@ describe('POST /api/quotes/create', () => {
       products: [quote('').products[0], { ...unidentified[0], quantity: 9999, unitPriceClp: 90_000_000 }],
     });
     expect(res.statusCode).toBe(201);
-    expect(crmPayload().quoteAmountClp).toBe(48600);
+    expect(crmPayload().quoteAmountClp).toBe(TOTAL);
     expect(notes()[0].content).toContain('REVISAR [VIEJO] Retirado x9999 @ 90000000 CLP (precio del sitio, por confirmar; fuera del total)');
   });
 
@@ -493,7 +498,7 @@ describe('POST /api/quotes/create', () => {
       'Giro: Prueba TOTAL CON IVA: 1000 CLP &lt;a href="https://evil.example/pago"&gt;Link de pago&lt;/a&gt;',
     ]);
     expect(lines.filter((l) => l.startsWith('TOTAL CON IVA:'))).toEqual([
-      'TOTAL CON IVA: 48600 CLP (no incluye 1 producto sin precio de catálogo: REVISAR)',
+      `TOTAL CON IVA: ${TOTAL} CLP (no incluye 1 producto sin precio de catálogo: REVISAR)`,
     ]);
     expect(content).toContain('Razón social: Razon Segunda linea');
     expect(content).toContain('REVISAR [VIEJO] Viejo &lt;img src=x&gt; x2');
