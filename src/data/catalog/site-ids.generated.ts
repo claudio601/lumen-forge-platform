@@ -2,7 +2,7 @@
 // Ids del sitio (URLs /producto/:id) de productos nuevos. Solo se agregan entradas: nunca cambian.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '97f50e9706bc';
+export const SNAPSHOT_HASH = '84e0dd4ae5b8';
 
 export const SITE_IDS: Readonly<Record<number, string>> = {
   "2270122": "panel-led-cuadrado-embutido-6w-ip20",
