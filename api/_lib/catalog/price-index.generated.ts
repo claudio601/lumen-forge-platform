@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '97f50e9706bc';
+export const SNAPSHOT_HASH = '84e0dd4ae5b8';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -60,7 +60,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2252959": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 70W IP66",
     "sku": "CHIPX70NF",
-    "price": 20150,
+    "price": 21890,
     "variants": {}
   },
   "2252962": {
@@ -87,7 +87,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2254290": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 200W IP66",
     "sku": "CHIPX200",
-    "price": 62400,
+    "price": 67490,
     "variants": {}
   },
   "2255252": {
@@ -197,19 +197,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2256011": {
     "name": "PANEL LED REDONDO EMBUTIDO 9W IP44",
     "sku": "",
-    "price": 2290,
+    "price": 2790,
     "variants": {
       "94980570": {
         "sku": "PLRE9C",
-        "price": 2290
+        "price": 2790
       },
       "120885493": {
         "sku": "PLRE9N",
-        "price": 2290
+        "price": 2790
       },
       "120885496": {
         "sku": "PLRE9F",
-        "price": 2290
+        "price": 2790
       }
     }
   },
@@ -406,38 +406,38 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2270122": {
     "name": "PANEL LED CUADRADO EMBUTIDO 6W IP44",
     "sku": "",
-    "price": 1890,
+    "price": 2790,
     "variants": {
       "13706525": {
         "sku": "PLCE6C",
-        "price": 1890
+        "price": 2790
       },
       "120885605": {
         "sku": "PLCE6N",
-        "price": 1890
+        "price": 2790
       },
       "120885608": {
         "sku": "PLCE6F",
-        "price": 1890
+        "price": 2790
       }
     }
   },
   "2270155": {
     "name": "PANEL LED CUADRADO EMBUTIDO 12W IP44",
     "sku": "",
-    "price": 2390,
+    "price": 2890,
     "variants": {
       "4163193": {
         "sku": "PLCE12C",
-        "price": 2390
+        "price": 2890
       },
       "120885498": {
         "sku": "PLCE12N",
-        "price": 2390
+        "price": 2890
       },
       "120885501": {
         "sku": "PLCE12F",
-        "price": 2390
+        "price": 2890
       }
     }
   },
@@ -711,7 +711,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2293388": {
     "name": "PROYECTOR LED RGB 20W IP66 NEGRO",
     "sku": "PLCRGB20N",
-    "price": 16560,
+    "price": 17290,
     "variants": {}
   },
   "2293445": {
@@ -723,19 +723,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2293796": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 20W IP66",
     "sku": "PLER20F",
-    "price": 31200,
+    "price": 32490,
     "variants": {}
   },
   "2293830": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 30W IP66",
     "sku": "PLER30F",
-    "price": 46680,
+    "price": 48690,
     "variants": {}
   },
   "2293849": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 50W IP66",
     "sku": "PLER50F",
-    "price": 57000,
+    "price": 60690,
     "variants": {}
   },
   "2294706": {
@@ -1578,7 +1578,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2352646": {
     "name": "LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 40W",
     "sku": "LLTPATPAX40",
-    "price": 358800,
+    "price": 373690,
     "variants": {}
   },
   "2352650": {
@@ -1993,15 +1993,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3283555": {
     "name": "PROYECTOR LED DE ESTADIO 500W IP66 IK09",
     "sku": "",
-    "price": 333600,
+    "price": 347390,
     "variants": {
       "95929944": {
         "sku": "",
-        "price": 333600
+        "price": 347390
       },
       "95929945": {
         "sku": "",
-        "price": 333600
+        "price": 347390
       }
     }
   },
@@ -2027,23 +2027,23 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3309140": {
     "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK08",
     "sku": "",
-    "price": 765600,
+    "price": 797190,
     "variants": {
       "115225152": {
         "sku": "",
-        "price": 765600
+        "price": 797190
       },
       "115225153": {
         "sku": "",
-        "price": 765600
+        "price": 797190
       },
       "115225154": {
         "sku": "",
-        "price": 765600
+        "price": 797190
       },
       "115225155": {
         "sku": "",
-        "price": 765600
+        "price": 797190
       }
     }
   },
@@ -2083,15 +2083,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3398236": {
     "name": "FAROL ORNAMENTAL FREYA 10W IP65 60CM.",
     "sku": "",
-    "price": 31500,
+    "price": 37390,
     "variants": {
       "5957536": {
         "sku": "FOF10C",
-        "price": 31500
+        "price": 37390
       },
       "5957537": {
         "sku": "FOF10F",
-        "price": 31500
+        "price": 37390
       }
     }
   },
@@ -2448,11 +2448,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4450187": {
     "name": "PROYECTOR LED DE ESTADIO 600W IP66 IK09",
     "sku": "",
-    "price": 466800,
+    "price": 486090,
     "variants": {
       "95929972": {
         "sku": "PLE600F",
-        "price": 466800
+        "price": 486090
       }
     }
   },
@@ -2520,54 +2520,54 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "10796623": {
     "name": "LUMINARIA ORNAMENTAL ISLAND 90W IP66 IK08",
     "sku": "",
-    "price": 203900,
+    "price": 248490,
     "variants": {
       "95634500": {
         "sku": "",
-        "price": 203900
+        "price": 248490
       },
       "95634501": {
         "sku": "",
-        "price": 203900
+        "price": 248490
       },
       "106025739": {
         "sku": "",
-        "price": 203900
+        "price": 248490
       },
       "106025740": {
         "sku": "",
-        "price": 203900
+        "price": 248490
       }
     }
   },
   "11521285": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR FLYHAWK 40-80W",
     "sku": "APSB",
-    "price": 442800,
+    "price": 498590,
     "variants": {
       "118197691": {
         "sku": "APSB40N",
-        "price": 442800
+        "price": 498590
       },
       "118197717": {
         "sku": "APSB401",
-        "price": 442800
+        "price": 498590
       },
       "118197718": {
         "sku": "APSB407",
-        "price": 442800
+        "price": 498590
       },
       "118197860": {
         "sku": "APSB60N",
-        "price": 478800
+        "price": 498590
       },
       "118197861": {
         "sku": "APSB601",
-        "price": 478800
+        "price": 498590
       },
       "118197862": {
         "sku": "APSB607",
-        "price": 478800
+        "price": 498590
       },
       "118197863": {
         "sku": "APSB80N",
@@ -2592,23 +2592,23 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "14582065": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 300W CON PANEL SOLAR  CON BRAZO PARA MONTAR EN MURO O POSTE",
     "sku": "APS300P",
-    "price": 159900,
+    "price": 159990,
     "variants": {
       "117807100": {
         "sku": "APS300P1",
-        "price": 159900
+        "price": 159990
       },
       "117807101": {
         "sku": "APS300P7",
-        "price": 159900
+        "price": 159990
       },
       "117807102": {
         "sku": "APS300PN",
-        "price": 159900
+        "price": 159990
       },
       "117807103": {
         "sku": "APS300PF",
-        "price": 159900
+        "price": 159990
       }
     }
   },
@@ -2659,7 +2659,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "15164777": {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 200W",
     "sku": "PLAPEX200F",
-    "price": 321600,
+    "price": 334890,
     "variants": {}
   },
   "15714107": {
@@ -2819,15 +2819,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "16121675": {
     "name": "APLIQUE LED 30W DE PARED MODERNA IP65",
     "sku": "",
-    "price": 18900,
+    "price": 21090,
     "variants": {
       "111714339": {
         "sku": "",
-        "price": 18900
+        "price": 21090
       },
       "111714340": {
         "sku": "",
-        "price": 18900
+        "price": 21090
       }
     }
   },
@@ -2840,13 +2840,13 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "16166612": {
     "name": "PROYECTOR LED RGB 30W IP66 NEGRO",
     "sku": "PLCRGB30N",
-    "price": 20160,
+    "price": 21090,
     "variants": {}
   },
   "16166778": {
     "name": "PROYECTOR LED RGB 50W IP66 NEGRO",
     "sku": "PLCRGB50N",
-    "price": 30000,
+    "price": 31290,
     "variants": {}
   },
   "16273624": {
@@ -2980,7 +2980,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "20450795": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 100W IP66",
     "sku": "PLER100F",
-    "price": 81600,
+    "price": 84990,
     "variants": {}
   },
   "20610994": {
@@ -3258,30 +3258,30 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "21392612": {
     "name": "Foco Dicroico LED Embutido SMD 24W Niquel",
     "sku": "",
-    "price": 24000,
+    "price": 27390,
     "variants": {
       "95520928": {
         "sku": "",
-        "price": 24000
+        "price": 27390
       },
       "95520929": {
         "sku": "",
-        "price": 24000
+        "price": 27390
       }
     }
   },
   "21392713": {
     "name": "Foco Dicroico LED Embutido SMD 30W Niquel",
     "sku": "",
-    "price": 27290,
+    "price": 27390,
     "variants": {
       "95521230": {
         "sku": "",
-        "price": 27290
+        "price": 27390
       },
       "95521231": {
         "sku": "",
-        "price": 27290
+        "price": 27390
       }
     }
   },
@@ -3378,15 +3378,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "23188968": {
     "name": "PROYECTOR LED ULTRA SLIM 600W IP66 NEGRO",
     "sku": "",
-    "price": 177900,
+    "price": 220290,
     "variants": {
       "98856617": {
         "sku": "",
-        "price": 177900
+        "price": 220290
       },
       "98856618": {
         "sku": "",
-        "price": 177900
+        "price": 220290
       }
     }
   },
@@ -3426,22 +3426,22 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "24256942": {
     "name": "PROYECTOR LED ULTRA SLIM 150W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 22690,
+    "price": 30090,
     "variants": {
       "100621990": {
         "sku": "",
-        "price": 22690
+        "price": 30090
       }
     }
   },
   "24257068": {
     "name": "PROYECTOR LED ULTRA SLIM 200W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 27490,
+    "price": 30090,
     "variants": {
       "100622100": {
         "sku": "",
-        "price": 27490
+        "price": 30090
       }
     }
   },
@@ -3524,38 +3524,38 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "24663380": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 200W IP66 IK10",
     "sku": "",
-    "price": 114000,
+    "price": 136290,
     "variants": {
       "101312009": {
         "sku": "",
-        "price": 114000
+        "price": 136290
       },
       "115586119": {
         "sku": "",
-        "price": 114000
+        "price": 136290
       },
       "117590851": {
         "sku": "",
-        "price": 114000
+        "price": 136290
       }
     }
   },
   "24669150": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 300W IP66 IK10",
     "sku": "",
-    "price": 179990,
+    "price": 197490,
     "variants": {
       "101312013": {
         "sku": "",
-        "price": 179990
+        "price": 197490
       },
       "115585933": {
         "sku": "",
-        "price": 179990
+        "price": 197490
       },
       "117590881": {
         "sku": "",
-        "price": 179990
+        "price": 197490
       }
     }
   },
@@ -3600,38 +3600,38 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "24697125": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 1000W IP66 IK10",
     "sku": "",
-    "price": 689900,
+    "price": 709790,
     "variants": {
       "101398930": {
         "sku": "",
-        "price": 689900
+        "price": 709790
       },
       "115585846": {
         "sku": "",
-        "price": 689900
+        "price": 709790
       },
       "117590890": {
         "sku": "",
-        "price": 689900
+        "price": 709790
       }
     }
   },
   "24698439": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 500W IP66 IK10",
     "sku": "",
-    "price": 359900,
+    "price": 361190,
     "variants": {
       "101405875": {
         "sku": "",
-        "price": 359900
+        "price": 361190
       },
       "115585793": {
         "sku": "",
-        "price": 359900
+        "price": 361190
       },
       "117590887": {
         "sku": "",
-        "price": 359900
+        "price": 361190
       }
     }
   },
@@ -4224,38 +4224,38 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "37625224": {
     "name": "PANEL LED CUADRADO EMBUTIDO 9W IP44",
     "sku": "",
-    "price": 2690,
+    "price": 2790,
     "variants": {
       "122880398": {
         "sku": "PLCE9C",
-        "price": 2690
+        "price": 2790
       },
       "122880399": {
         "sku": "PLCE9N",
-        "price": 2690
+        "price": 2790
       },
       "122880400": {
         "sku": "PLCE9F",
-        "price": 2690
+        "price": 2790
       }
     }
   },
   "37625303": {
     "name": "PANEL LED CUADRADO EMBUTIDO 15W IP44",
     "sku": "",
-    "price": 2790,
+    "price": 2890,
     "variants": {
       "122880402": {
         "sku": "PLCE15C",
-        "price": 2790
+        "price": 2890
       },
       "122880403": {
         "sku": "PLCE15N",
-        "price": 2790
+        "price": 2890
       },
       "122880404": {
         "sku": "PLCE15F",
-        "price": 2790
+        "price": 2890
       }
     }
   },

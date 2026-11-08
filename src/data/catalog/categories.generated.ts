@@ -2,7 +2,7 @@
 // Cantidad de productos publicados por categoría del sitio.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '97f50e9706bc';
+export const SNAPSHOT_HASH = '84e0dd4ae5b8';
 
 /** Productos publicados (un producto en 2 categorías cuenta una vez). */
 export const PUBLISHED_PRODUCT_COUNT = 324;
