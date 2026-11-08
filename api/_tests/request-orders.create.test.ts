@@ -18,6 +18,7 @@ import { createDeal } from '../_lib/pipedrive/deals.js';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
+import { priceIndex } from '../_lib/catalog/price-index.generated.js';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -56,6 +57,9 @@ const base = {
 };
 const ar111 = { jumpsellerId: 3305420, sku: 'AR111OPC', name: 'AR111', quantity: 2, unitPrice: 100, currency: 'CLP', lineTotal: 200, url: '/x', attributes: {} };
 
+
+/** Precio CON IVA de la AR111 en el catálogo del día: cambia con la sincronización. */
+const AR111 = priceIndex['3305420'].price;
 describe('POST /api/request-orders/create', () => {
   beforeEach(() => {
     vi.mocked(createDeal).mockClear();
@@ -72,10 +76,10 @@ describe('POST /api/request-orders/create', () => {
     const res = await call({ ...base, items: [ar111], subtotal: 200 });
     expect(res.statusCode).toBe(201);
     const deal = vi.mocked(createDeal).mock.calls[0][0];
-    expect(deal.quoteAmountClp).toBe(2 * 16200);
+    expect(deal.quoteAmountClp).toBe(2 * AR111);
     expect(deal.notes).toContain('[AR111OPC] AMPOLLETA LED AR111');
-    expect(deal.notes).toContain('@ 16200 CLP = 32400 CLP | Jumpseller 3305420');
-    expect(deal.notes).toContain('TOTAL CON IVA: 32400 CLP');
+    expect(deal.notes).toContain(`@ ${AR111} CLP = ${2 * AR111} CLP | Jumpseller 3305420`);
+    expect(deal.notes).toContain(`TOTAL CON IVA: ${2 * AR111} CLP`);
     expect(deal.notes).not.toContain('@ 100 CLP');
   });
 
@@ -91,7 +95,8 @@ describe('POST /api/request-orders/create', () => {
     const res = await call({ ...base, items: [line(95224064), line(111887368)] });
     expect(res.statusCode).toBe(201);
     const deal = vi.mocked(createDeal).mock.calls[0][0];
-    expect(deal.quoteAmountClp).toBe(108500 + 119400);
+    const bestled = priceIndex['2301098'].variants;
+    expect(deal.quoteAmountClp).toBe(bestled['95224064'].price + bestled['111887368'].price);
     expect(deal.notes).toContain('variante 111887368');
   });
 
@@ -101,7 +106,7 @@ describe('POST /api/request-orders/create', () => {
     expect(path).toBe('/notes');
     expect(body.deal_id).toBe(999);
     expect(body.content).toContain('Jumpseller 3305420');
-    expect(body.content).toContain('TOTAL CON IVA: 32400 CLP');
+    expect(body.content).toContain(`TOTAL CON IVA: ${2 * AR111} CLP`);
   });
 
   it('el correo a ventas trae referencia, negocio de Pipedrive, color de luz y modo de precio', async () => {
@@ -122,7 +127,7 @@ describe('POST /api/request-orders/create', () => {
     const res = await call({ ...base, items: [{ ...ar111, jumpsellerId: 2787870, name: 'CAMPANA UFO 150W', unitPrice: 50000 }, ar111] });
     expect(res.statusCode).toBe(201);
     const deal = vi.mocked(createDeal).mock.calls[0][0];
-    expect(deal.quoteAmountClp).toBe(2 * 16200);
+    expect(deal.quoteAmountClp).toBe(2 * AR111);
     expect(deal.notes).toContain('REVISAR [AR111OPC] CAMPANA UFO 150W x2');
     expect(deal.notes).toContain('precio por confirmar (el cliente vio 50000 CLP)');
   });
@@ -393,7 +398,7 @@ describe('POST /api/request-orders/create: privacidad y términos', () => {
     expect(res.statusCode).toBe(201);
     await mailsSettled();
     const [note] = noteBodies();
-    expect(note.content).toContain('TOTAL CON IVA: 32400 CLP\n\n' + expectedSection(marketing) + '\n\n' + ORIGEN_GADS + '\nrequested_items_json: [');
+    expect(note.content).toContain(`TOTAL CON IVA: ${2 * AR111} CLP\n\n` + expectedSection(marketing) + '\n\n' + ORIGEN_GADS + '\nrequested_items_json: [');
     expect(note.content.split('\n').at(-1)).toMatch(/^requested_items_json: \[/);
     expect(lastConsentRecord(note.content)).toMatchObject({ form: 'solicitar-pedido', privacy: true, terms: true, marketing, src: 'web' });
     const [mail] = mails();
