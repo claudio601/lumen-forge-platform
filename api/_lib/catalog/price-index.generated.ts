@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'a3c82d5b1748';
+export const SNAPSHOT_HASH = 'f7fa5652f979';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -2258,15 +2258,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4122694": {
     "name": "CAMPANA LED UFO NF3 100W 150LM/W IP66",
     "sku": "",
-    "price": 58690,
+    "price": 53790,
     "variants": {
       "6791302": {
         "sku": "CUFONF3100F",
-        "price": 58690
+        "price": 53790
       },
       "88152836": {
         "sku": "CUFONF3100N",
-        "price": 58690
+        "price": 53790
       }
     }
   },
