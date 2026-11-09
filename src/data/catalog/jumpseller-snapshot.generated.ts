@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'a3c82d5b1748';
+export const SNAPSHOT_HASH = 'f7fa5652f979';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -8316,7 +8316,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO NF3 100W 150LM/W IP66",
     "permalink": "campana-led-ufo-nf3-100w",
     "sku": "",
-    "price": 58690,
+    "price": 53790,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -8348,7 +8348,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 88152836,
         "sku": "CUFONF3100N",
-        "price": 58690,
+        "price": 53790,
         "options": [
           {
             "name": "Color",
@@ -8359,7 +8359,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 6791302,
         "sku": "CUFONF3100F",
-        "price": 58690,
+        "price": 53790,
         "options": [
           {
             "name": "Color",
