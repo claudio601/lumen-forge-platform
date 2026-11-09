@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'f7fa5652f979';
+export const SNAPSHOT_HASH = 'd62e705bbd8a';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -5952,7 +5952,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "DOWNLIGHT LED SOBREPUESTO CILINDRO 7W IP20",
     "permalink": "downlight-led-sobrepuesto-cilindro-7w-ip20",
     "sku": "DLSC7",
-    "price": 7800,
+    "price": 7390,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -5969,7 +5969,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 11927474,
         "sku": "",
-        "price": 7800,
+        "price": 7390,
         "options": [
           {
             "name": "Color",
@@ -5980,7 +5980,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 11927475,
         "sku": "",
-        "price": 7800,
+        "price": 7390,
         "options": [
           {
             "name": "Color",
@@ -6073,7 +6073,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "KIT DE INSTALACIÓN CABLES SUSPENDIDOS 1 MT. PARA PANELES",
     "permalink": "kit-de-instalacion-cables-suspendidos-1mt-para-paneles",
     "sku": "KPX4",
-    "price": 3770,
+    "price": 3490,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -13941,7 +13941,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED SOLAR 200W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
     "permalink": "proyector-led-solar-200w-ip66-c/panel-solar-c/control-remoto-gris",
     "sku": "PLSG200F",
-    "price": 69900,
+    "price": 69890,
     "brand": "JIE",
     "featured": false,
     "categories": [
