@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '84e0dd4ae5b8';
+export const SNAPSHOT_HASH = '05e078789357';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -156,7 +156,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED ANTIVANDÁLICO 70W IP66",
     "permalink": "proyector-led-antivandalico-70w-ip66",
     "sku": "CHIPX70NF",
-    "price": 21890,
+    "price": 27290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -269,7 +269,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED ANTIVANDÁLICO 200W IP66",
     "permalink": "proyector-led-antivandalico-200w-ip66",
     "sku": "CHIPX200",
-    "price": 67490,
+    "price": 84290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -667,7 +667,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PANEL LED REDONDO EMBUTIDO 9W IP44",
     "permalink": "panel-led-redondo-embutido-9w-ip44",
     "sku": "",
-    "price": 2790,
+    "price": 2890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -699,7 +699,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 120885493,
         "sku": "PLRE9N",
-        "price": 2790,
+        "price": 2890,
         "options": [
           {
             "name": "Color de temperatura",
@@ -710,7 +710,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 120885496,
         "sku": "PLRE9F",
-        "price": 2790,
+        "price": 2890,
         "options": [
           {
             "name": "Color de temperatura",
@@ -721,7 +721,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 94980570,
         "sku": "PLRE9C",
-        "price": 2790,
+        "price": 2890,
         "options": [
           {
             "name": "Color de temperatura",
@@ -2759,7 +2759,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED RGB 20W IP66 NEGRO",
     "permalink": "proyector-led-cob-rgb-20w-ip66",
     "sku": "PLCRGB20N",
-    "price": 17290,
+    "price": 21590,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -2814,7 +2814,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 20W IP66",
     "permalink": "proyector-led-de-emergencia-recargable-smd-20w-ip66",
     "sku": "PLER20F",
-    "price": 32490,
+    "price": 40590,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -2869,7 +2869,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 30W IP66",
     "permalink": "proyector-led-de-emergencia-recargable-smd-30w-ip66",
     "sku": "PLER30F",
-    "price": 48690,
+    "price": 60790,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -2914,7 +2914,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 50W IP66",
     "permalink": "proyector-led-de-emergencia-recargable-smd-50w-ip66",
     "sku": "PLER50F",
-    "price": 60690,
+    "price": 75790,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -3595,7 +3595,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "ALUMBRADO PÚBLICO BESTLED 90W IP66 IK08",
     "permalink": "alumbrado-publico-bestled-90w-ip66-ik08",
     "sku": "",
-    "price": 139900,
+    "price": 167790,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -3617,7 +3617,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111887901,
         "sku": "APB901",
-        "price": 154000,
+        "price": 191490,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -3628,7 +3628,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111887900,
         "sku": "APB907",
-        "price": 154000,
+        "price": 191490,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -3639,7 +3639,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 95224200,
         "sku": "APB90N",
-        "price": 139900,
+        "price": 167790,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -3650,7 +3650,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111887902,
         "sku": "APB90F",
-        "price": 139900,
+        "price": 167790,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -3687,7 +3687,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 116896283,
         "sku": "APB1201",
-        "price": 184600,
+        "price": 229590,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -3698,7 +3698,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 116896284,
         "sku": "APB1207",
-        "price": 184600,
+        "price": 229590,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -7295,7 +7295,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO 500W IP66 IK09",
     "permalink": "proyector-led-de-estadio-500w-ip66-ik09",
     "sku": "",
-    "price": 347390,
+    "price": 416990,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -7333,7 +7333,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 95929944,
         "sku": "",
-        "price": 347390,
+        "price": 416990,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -7344,7 +7344,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 95929945,
         "sku": "",
-        "price": 347390,
+        "price": 416990,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -7423,7 +7423,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK08",
     "permalink": "proyector-led-de-estadio-redondo-1000w-ip66-ik09",
     "sku": "",
-    "price": 797190,
+    "price": 877890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -7461,7 +7461,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115225152,
         "sku": "",
-        "price": 797190,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -7472,7 +7472,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115225154,
         "sku": "",
-        "price": 797190,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -7483,7 +7483,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115225153,
         "sku": "",
-        "price": 797190,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -7494,7 +7494,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115225155,
         "sku": "",
-        "price": 797190,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -7673,7 +7673,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "FAROL ORNAMENTAL FREYA 10W IP65 60CM.",
     "permalink": "farol-ornamental-freya-10w-ip65-60-cm",
     "sku": "",
-    "price": 37390,
+    "price": 46690,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -7710,7 +7710,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 5957536,
         "sku": "FOF10C",
-        "price": 37390,
+        "price": 46690,
         "options": [
           {
             "name": "Color",
@@ -7721,7 +7721,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 5957537,
         "sku": "FOF10F",
-        "price": 37390,
+        "price": 46690,
         "options": [
           {
             "name": "Color",
@@ -8704,7 +8704,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 116896286,
         "sku": "APB1501",
-        "price": 189200,
+        "price": 236490,
         "options": [
           {
             "name": "Color",
@@ -8715,7 +8715,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 113961236,
         "sku": "APB1507",
-        "price": 189200,
+        "price": 236490,
         "options": [
           {
             "name": "Color",
@@ -9015,7 +9015,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO 600W IP66 IK09",
     "permalink": "proyector-led-de-estadio-600w-ip66-ik09",
     "sku": "",
-    "price": 486090,
+    "price": 537890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -9053,7 +9053,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 95929972,
         "sku": "PLE600F",
-        "price": 486090,
+        "price": 537890,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -9278,7 +9278,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "LUMINARIA ORNAMENTAL ISLAND 90W IP66 IK08",
     "permalink": "luminaria-ornamental-island-90w-ip66-ik08",
     "sku": "",
-    "price": 248490,
+    "price": 301790,
     "brand": "JIE",
     "featured": true,
     "categories": [
@@ -9310,7 +9310,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 95634500,
         "sku": "",
-        "price": 248490,
+        "price": 301790,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -9321,7 +9321,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 106025739,
         "sku": "",
-        "price": 248490,
+        "price": 301790,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -9332,7 +9332,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 95634501,
         "sku": "",
-        "price": 248490,
+        "price": 301790,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -9343,7 +9343,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 106025740,
         "sku": "",
-        "price": 248490,
+        "price": 301790,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -9391,7 +9391,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197717,
         "sku": "APSB401",
-        "price": 498590,
+        "price": 623190,
         "options": [
           {
             "name": "Color de Luz",
@@ -9406,7 +9406,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197718,
         "sku": "APSB407",
-        "price": 498590,
+        "price": 623190,
         "options": [
           {
             "name": "Color de Luz",
@@ -9421,7 +9421,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197691,
         "sku": "APSB40N",
-        "price": 498590,
+        "price": 623190,
         "options": [
           {
             "name": "Color de Luz",
@@ -9481,7 +9481,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197864,
         "sku": "APSB801",
-        "price": 514800,
+        "price": 643490,
         "options": [
           {
             "name": "Color de Luz",
@@ -9496,7 +9496,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197865,
         "sku": "APSB807",
-        "price": 514800,
+        "price": 643490,
         "options": [
           {
             "name": "Color de Luz",
@@ -9511,7 +9511,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197863,
         "sku": "APSB80N",
-        "price": 514800,
+        "price": 643490,
         "options": [
           {
             "name": "Color de Luz",
@@ -9560,7 +9560,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "ALUMBRADO PÚBLICO LED SOLAR 300W CON PANEL SOLAR  CON BRAZO PARA MONTAR EN MURO O POSTE",
     "permalink": "alumbrado-publico-led-solar-300w-con-panel-solar-con-brazo-para-montar-en-muro-o-poste",
     "sku": "APS300P",
-    "price": 159990,
+    "price": 199890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -9588,7 +9588,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117807100,
         "sku": "APS300P1",
-        "price": 159990,
+        "price": 199890,
         "options": [
           {
             "name": "Color de Luz",
@@ -9599,7 +9599,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117807101,
         "sku": "APS300P7",
-        "price": 159990,
+        "price": 199890,
         "options": [
           {
             "name": "Color de Luz",
@@ -9610,7 +9610,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117807102,
         "sku": "APS300PN",
-        "price": 159990,
+        "price": 199890,
         "options": [
           {
             "name": "Color de Luz",
@@ -9621,7 +9621,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117807103,
         "sku": "APS300PF",
-        "price": 159990,
+        "price": 199890,
         "options": [
           {
             "name": "Color de Luz",
@@ -9779,7 +9779,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 200W",
     "permalink": "campana-led-ufo-a-prueba-de-explosion-200w",
     "sku": "PLAPEX200F",
-    "price": 334890,
+    "price": 343190,
     "brand": null,
     "featured": false,
     "categories": [
@@ -10332,7 +10332,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "APLIQUE LED 30W DE PARED MODERNA IP65",
     "permalink": "aplique-led-30w-de-pared-moderna-ip65",
     "sku": "",
-    "price": 21090,
+    "price": 26290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -10354,7 +10354,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111714339,
         "sku": "",
-        "price": 21090,
+        "price": 26290,
         "options": [
           {
             "name": "Color de Luz",
@@ -10365,7 +10365,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111714340,
         "sku": "",
-        "price": 21090,
+        "price": 26290,
         "options": [
           {
             "name": "Color de Luz",
@@ -10401,7 +10401,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED RGB 30W IP66 NEGRO",
     "permalink": "proyector-led-rgb-30w-ip66-negro",
     "sku": "PLCRGB30N",
-    "price": 21090,
+    "price": 26290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -10426,7 +10426,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED RGB 50W IP66 NEGRO",
     "permalink": "proyector-led-rgb-50w-ip66-negro",
     "sku": "PLCRGB50N",
-    "price": 31290,
+    "price": 39090,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -10656,7 +10656,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO NF3 250W 150LM/W IP66",
     "permalink": "campana-led-ufo-nf3-250w-150lmw-ip66",
     "sku": "",
-    "price": 117600,
+    "price": 122490,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -10688,7 +10688,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 88800759,
         "sku": "CUFONF3250F",
-        "price": 117600,
+        "price": 122490,
         "options": [
           {
             "name": "Color",
@@ -10851,7 +10851,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "ALUMBRADO PÚBLICO LED SOLAR 90W ALL IN ONE",
     "permalink": "alumbrado-publico-led-solar-90w-all-in-one",
     "sku": "APSALL90",
-    "price": 101400,
+    "price": 126690,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -10897,7 +10897,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 100W IP66",
     "permalink": "proyector-led-de-emergencia-recargable-smd-100w-ip66",
     "sku": "PLER100F",
-    "price": 84990,
+    "price": 106190,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -11425,7 +11425,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "KIT DE EMERGENCIA LED 3-48W 120 MINUTOS DE AUTONOMIA",
     "permalink": "kit-de-emergencia-led-3-48w-120-minutos-de-autonomia",
     "sku": "SS48W",
-    "price": 13080,
+    "price": 15490,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12130,7 +12130,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED ULTRA SLIM 600W IP66 NEGRO",
     "permalink": "proyector-led-ultra-slim-600w-ip66-negro",
     "sku": "",
-    "price": 220290,
+    "price": 262890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12162,7 +12162,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 98856617,
         "sku": "",
-        "price": 220290,
+        "price": 262890,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -12173,7 +12173,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 98856618,
         "sku": "",
-        "price": 220290,
+        "price": 262890,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -12294,7 +12294,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED ULTRA SLIM 150W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "permalink": "proyector-led-ultra-slim-150w-ip66-negro-c/sensor-de-movimiento",
     "sku": "",
-    "price": 30090,
+    "price": 33890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12311,7 +12311,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 100621990,
         "sku": "",
-        "price": 30090,
+        "price": 33890,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -12326,7 +12326,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED ULTRA SLIM 200W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "permalink": "proyector-led-ultra-slim-200w-ip66-negro-c/sensor-de-movimiento",
     "sku": "",
-    "price": 30090,
+    "price": 37590,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12343,7 +12343,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 100622100,
         "sku": "",
-        "price": 30090,
+        "price": 37590,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -12520,7 +12520,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 100W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-100w-ip66-ik10",
     "sku": "",
-    "price": 101760,
+    "price": 127190,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12543,7 +12543,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101312006,
         "sku": "",
-        "price": 101760,
+        "price": 127190,
         "options": [
           {
             "name": "Color de Luz",
@@ -12554,7 +12554,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115586181,
         "sku": "",
-        "price": 101760,
+        "price": 127190,
         "options": [
           {
             "name": "Color de Luz",
@@ -12565,7 +12565,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117590825,
         "sku": "",
-        "price": 101760,
+        "price": 127190,
         "options": [
           {
             "name": "Color de Luz",
@@ -12580,7 +12580,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 200W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-200w-ip66-ik10",
     "sku": "",
-    "price": 136290,
+    "price": 170290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12608,7 +12608,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101312009,
         "sku": "",
-        "price": 136290,
+        "price": 170290,
         "options": [
           {
             "name": "Color de Luz",
@@ -12619,7 +12619,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115586119,
         "sku": "",
-        "price": 136290,
+        "price": 170290,
         "options": [
           {
             "name": "Color de Luz",
@@ -12630,7 +12630,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117590851,
         "sku": "",
-        "price": 136290,
+        "price": 170290,
         "options": [
           {
             "name": "Color de Luz",
@@ -12645,7 +12645,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 300W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-300w-ip66-ik10",
     "sku": "",
-    "price": 197490,
+    "price": 246790,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12668,7 +12668,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101312013,
         "sku": "",
-        "price": 197490,
+        "price": 246790,
         "options": [
           {
             "name": "Color de Luz",
@@ -12679,7 +12679,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115585933,
         "sku": "",
-        "price": 197490,
+        "price": 246790,
         "options": [
           {
             "name": "Color de Luz",
@@ -12690,7 +12690,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117590881,
         "sku": "",
-        "price": 197490,
+        "price": 246790,
         "options": [
           {
             "name": "Color de Luz",
@@ -12705,7 +12705,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 400W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-400w-ip66-ik10",
     "sku": "",
-    "price": 323900,
+    "price": 377890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12728,7 +12728,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101383695,
         "sku": "",
-        "price": 323900,
+        "price": 377890,
         "options": [
           {
             "name": "Color de Luz",
@@ -12739,7 +12739,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115585828,
         "sku": "",
-        "price": 323900,
+        "price": 377890,
         "options": [
           {
             "name": "Color de Luz",
@@ -12750,7 +12750,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117590886,
         "sku": "",
-        "price": 323900,
+        "price": 377890,
         "options": [
           {
             "name": "Color de Luz",
@@ -12765,7 +12765,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 600W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-600w-ip66-ik10",
     "sku": "",
-    "price": 429900,
+    "price": 537290,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12783,7 +12783,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101383761,
         "sku": "",
-        "price": 429900,
+        "price": 537290,
         "options": [
           {
             "name": "Color de Luz",
@@ -12794,7 +12794,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115585822,
         "sku": "",
-        "price": 429900,
+        "price": 537290,
         "options": [
           {
             "name": "Color de Luz",
@@ -12805,7 +12805,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 116874527,
         "sku": "",
-        "price": 429900,
+        "price": 537290,
         "options": [
           {
             "name": "Color de Luz",
@@ -12820,7 +12820,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 1000W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-1000w-ip66-ik10",
     "sku": "",
-    "price": 709790,
+    "price": 877890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12838,7 +12838,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101398930,
         "sku": "",
-        "price": 709790,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -12849,7 +12849,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115585846,
         "sku": "",
-        "price": 709790,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -12860,7 +12860,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117590890,
         "sku": "",
-        "price": 709790,
+        "price": 877890,
         "options": [
           {
             "name": "Color de Luz",
@@ -12875,7 +12875,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "PROYECTOR LED DE ESTADIO MODULAR 500W IP66 IK10",
     "permalink": "proyector-led-de-estadio-modular-500w-ip66-ik10",
     "sku": "",
-    "price": 361190,
+    "price": 451390,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -12898,7 +12898,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 101405875,
         "sku": "",
-        "price": 361190,
+        "price": 451390,
         "options": [
           {
             "name": "Color de Luz",
@@ -12909,7 +12909,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 115585793,
         "sku": "",
-        "price": 361190,
+        "price": 451390,
         "options": [
           {
             "name": "Color de Luz",
@@ -12920,7 +12920,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117590887,
         "sku": "",
-        "price": 361190,
+        "price": 451390,
         "options": [
           {
             "name": "Color de Luz",
@@ -15067,7 +15067,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "SEÑALÉTICA DE EMERGENCIA LED SLIM 24 X 18 CM. SALIDA",
     "permalink": "senaletica-de-emergencia-led-slim-24-x-18-cm-salida",
     "sku": "33716",
-    "price": 19900,
+    "price": 22890,
     "brand": null,
     "featured": false,
     "categories": [
