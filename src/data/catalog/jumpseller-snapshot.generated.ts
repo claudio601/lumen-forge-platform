@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '05e078789357';
+export const SNAPSHOT_HASH = '58c7cef98858';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -9358,7 +9358,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "ALUMBRADO PÚBLICO LED SOLAR FLYHAWK 40-80W",
     "permalink": "alumbrado-publico-led-solar-flyhawk-40-80w",
     "sku": "APSB",
-    "price": 498590,
+    "price": 577690,
     "brand": null,
     "featured": false,
     "categories": [
@@ -9391,7 +9391,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197717,
         "sku": "APSB401",
-        "price": 623190,
+        "price": 577690,
         "options": [
           {
             "name": "Color de Luz",
@@ -9406,7 +9406,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197718,
         "sku": "APSB407",
-        "price": 623190,
+        "price": 577690,
         "options": [
           {
             "name": "Color de Luz",
@@ -9421,7 +9421,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197691,
         "sku": "APSB40N",
-        "price": 623190,
+        "price": 577690,
         "options": [
           {
             "name": "Color de Luz",
@@ -9436,7 +9436,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197861,
         "sku": "APSB601",
-        "price": 498590,
+        "price": 577690,
         "options": [
           {
             "name": "Color de Luz",
@@ -9451,7 +9451,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197862,
         "sku": "APSB607",
-        "price": 498590,
+        "price": 577690,
         "options": [
           {
             "name": "Color de Luz",
@@ -9466,7 +9466,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 118197860,
         "sku": "APSB60N",
-        "price": 498590,
+        "price": 577690,
         "options": [
           {
             "name": "Color de Luz",
