@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '58c7cef98858';
+export const SNAPSHOT_HASH = '6332b40fd9e2';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -896,7 +896,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2301098": {
     "name": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
     "sku": "",
-    "price": 119400,
+    "price": 134890,
     "variants": {
       "95224064": {
         "sku": "APB40N",
@@ -908,11 +908,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       },
       "111887367": {
         "sku": "APB401",
-        "price": 119400
+        "price": 148390
       },
       "111887368": {
         "sku": "APB407",
-        "price": 119400
+        "price": 148390
       }
     }
   },

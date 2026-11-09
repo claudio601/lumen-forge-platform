@@ -2,7 +2,7 @@
 // Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '58c7cef98858';
+export const SNAPSHOT_HASH = '6332b40fd9e2';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2251313": ["https://images.jumpseller.com/store/elights-cl/2251313/attachments/15146e05ea68ef8f78a44b337b0a4525/FT_AMPOLLETA_LED_DICROICA_4-50W_GU10_eLIGHTS.cl.pdf?1669657872"],
