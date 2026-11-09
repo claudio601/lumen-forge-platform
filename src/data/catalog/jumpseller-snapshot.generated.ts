@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '58c7cef98858';
+export const SNAPSHOT_HASH = '6332b40fd9e2';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -3455,7 +3455,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
     "permalink": "alumbrado-publico-bestled-40w-ip66-ik08",
     "sku": "",
-    "price": 119400,
+    "price": 134890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -3477,7 +3477,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111887367,
         "sku": "APB401",
-        "price": 119400,
+        "price": 148390,
         "options": [
           {
             "name": "Color de Temperatura",
@@ -3488,7 +3488,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 111887368,
         "sku": "APB407",
-        "price": 119400,
+        "price": 148390,
         "options": [
           {
             "name": "Color de Temperatura",
