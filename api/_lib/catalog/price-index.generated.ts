@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '05e078789357';
+export const SNAPSHOT_HASH = '58c7cef98858';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -2543,31 +2543,31 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "11521285": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR FLYHAWK 40-80W",
     "sku": "APSB",
-    "price": 498590,
+    "price": 577690,
     "variants": {
       "118197691": {
         "sku": "APSB40N",
-        "price": 623190
+        "price": 577690
       },
       "118197717": {
         "sku": "APSB401",
-        "price": 623190
+        "price": 577690
       },
       "118197718": {
         "sku": "APSB407",
-        "price": 623190
+        "price": 577690
       },
       "118197860": {
         "sku": "APSB60N",
-        "price": 498590
+        "price": 577690
       },
       "118197861": {
         "sku": "APSB601",
-        "price": 498590
+        "price": 577690
       },
       "118197862": {
         "sku": "APSB607",
-        "price": 498590
+        "price": 577690
       },
       "118197863": {
         "sku": "APSB80N",
