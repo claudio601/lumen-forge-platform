@@ -32,7 +32,7 @@ C_INFO         = colors.HexColor('#1b85e8')  # info
 CONTACT_EMAIL  = 'ventas@elights.cl'
 CONTACT_TEL    = '+56 9 9127 3128'
 CONTACT_WEB    = 'www.elights.cl'
-CONTACT_WEB2   = 'nuevo.elights.cl'
+CONTACT_WEB2   = 'elights.cl'  # Dominio público; mantener alineado con api/_lib/site.ts
 
 # Medidas A4
 PW, PH = A4  # 595.28 x 841.89 pt
