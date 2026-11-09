@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'f7fa5652f979';
+export const SNAPSHOT_HASH = 'd62e705bbd8a';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -1601,15 +1601,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2354701": {
     "name": "DOWNLIGHT LED SOBREPUESTO CILINDRO 7W IP20",
     "sku": "DLSC7",
-    "price": 7800,
+    "price": 7390,
     "variants": {
       "11927474": {
         "sku": "",
-        "price": 7800
+        "price": 7390
       },
       "11927475": {
         "sku": "",
-        "price": 7800
+        "price": 7390
       }
     }
   },
@@ -1639,7 +1639,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2402075": {
     "name": "KIT DE INSTALACIÓN CABLES SUSPENDIDOS 1 MT. PARA PANELES",
     "sku": "KPX4",
-    "price": 3770,
+    "price": 3490,
     "variants": {}
   },
   "2404499": {
@@ -3885,7 +3885,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "28648231": {
     "name": "PROYECTOR LED SOLAR 200W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
     "sku": "PLSG200F",
-    "price": 69900,
+    "price": 69890,
     "variants": {}
   },
   "28651673": {
