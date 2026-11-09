@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '6332b40fd9e2';
+export const SNAPSHOT_HASH = 'a3c82d5b1748';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -14718,7 +14718,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO NF7 100W 120LM/W IP65",
     "permalink": "campana-led-ufo-nf7-100w-120lm/w-ip65",
     "sku": "",
-    "price": 24000,
+    "price": 21890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -14735,7 +14735,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117165891,
         "sku": "",
-        "price": 24000,
+        "price": 21890,
         "options": [
           {
             "name": "Color de Luz",
@@ -14750,7 +14750,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO NF7 150W 120LM/W IP65",
     "permalink": "campana-led-ufo-nf7-150w-120lm/w-ip65",
     "sku": "",
-    "price": 21900,
+    "price": 22390,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -14767,7 +14767,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117216175,
         "sku": "",
-        "price": 21900,
+        "price": 22390,
         "options": [
           {
             "name": "Color de Luz",
@@ -14782,7 +14782,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "name": "CAMPANA LED UFO NF7 200W 120LM/W IP65",
     "permalink": "campana-led-ufo-nf7-200w-120lm/w-ip65",
     "sku": "",
-    "price": 28900,
+    "price": 29890,
     "brand": "JIE",
     "featured": false,
     "categories": [
@@ -14799,7 +14799,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       {
         "id": 117248971,
         "sku": "",
-        "price": 28900,
+        "price": 29890,
         "options": [
           {
             "name": "Color de Luz",
