@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '6332b40fd9e2';
+export const SNAPSHOT_HASH = 'a3c82d5b1748';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -4098,33 +4098,33 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "33554875": {
     "name": "CAMPANA LED UFO NF7 100W 120LM/W IP65",
     "sku": "",
-    "price": 24000,
+    "price": 21890,
     "variants": {
       "117165891": {
         "sku": "",
-        "price": 24000
+        "price": 21890
       }
     }
   },
   "33597212": {
     "name": "CAMPANA LED UFO NF7 150W 120LM/W IP65",
     "sku": "",
-    "price": 21900,
+    "price": 22390,
     "variants": {
       "117216175": {
         "sku": "",
-        "price": 21900
+        "price": 22390
       }
     }
   },
   "33610052": {
     "name": "CAMPANA LED UFO NF7 200W 120LM/W IP65",
     "sku": "",
-    "price": 28900,
+    "price": 29890,
     "variants": {
       "117248971": {
         "sku": "",
-        "price": 28900
+        "price": 29890
       }
     }
   },
