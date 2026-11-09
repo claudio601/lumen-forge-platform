@@ -931,6 +931,10 @@ function negatedEnd(text: string, from: number, negator: string, relative: boole
   const verb = NEGATED_VERB_RE.test(first);
   if (/^sin/i.test(negator) || relative || !verb) {
     const at = verb && words[i + 1] && !isMark(words[i + 1][0]) ? words[i + 1].index : words[i].index;
+    // "No 1.000 focos": el producto tambien queda negado, no solo el numero.
+    const quantity = rest.slice(at).match(/^\d+(?:\.\d{3})*\s+/);
+    const product = quantity && rest.slice(at + quantity[0].length).match(PRODUCTO_RE);
+    if (quantity && product?.index === 0) return from + at + quantity[0].length + product[0].length;
     return from + at + (rest.slice(at).match(NARROW_NEGATION_RE)?.[0].length ?? 0);
   }
   // Con verbo: hasta la coma, un verbo que afirma otra cosa o un segundo color ("no fria, calida").

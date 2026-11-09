@@ -9,97 +9,97 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '796d22371aec';
+export const SNAPSHOT_HASH = 'f7fa5652f979';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
     "name": "AMPOLLETA LED BOLA 9W E27",
     "sku": "",
-    "price": 1200,
+    "price": 1290,
     "variants": {
       "94680904": {
         "sku": "ALE9F",
-        "price": 1200
+        "price": 1290
       },
       "123217978": {
         "sku": "ALE9C",
-        "price": 1200
+        "price": 1290
       }
     }
   },
   "2251313": {
     "name": "AMPOLLETA LED DICROICO 4W GU10",
     "sku": "",
-    "price": 990,
+    "price": 1190,
     "variants": {
       "4160760": {
         "sku": "ALE4GC",
-        "price": 990
+        "price": 1190
       },
       "4160761": {
         "sku": "ALE4GF",
-        "price": 990
+        "price": 1190
       }
     }
   },
   "2252771": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 50W IP66",
     "sku": "",
-    "price": 11570,
+    "price": 17590,
     "variants": {
       "4160802": {
         "sku": "CHIPX50NC",
-        "price": 11570
+        "price": 17590
       },
       "4160803": {
         "sku": "CHIPX50NF",
-        "price": 11570
+        "price": 17590
       }
     }
   },
   "2252959": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 70W IP66",
     "sku": "CHIPX70NF",
-    "price": 20150,
+    "price": 27290,
     "variants": {}
   },
   "2252962": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 100W IP66",
     "sku": "",
-    "price": 32500,
+    "price": 47890,
     "variants": {
       "4160895": {
         "sku": "CHIPX100NC",
-        "price": 32500
+        "price": 47890
       },
       "4160896": {
         "sku": "CHIPX100NF",
-        "price": 32500
+        "price": 47890
       }
     }
   },
   "2254279": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 150W IP66",
     "sku": "CHIPX150",
-    "price": 49400,
+    "price": 67490,
     "variants": {}
   },
   "2254290": {
     "name": "PROYECTOR LED ANTIVANDÁLICO 200W IP66",
     "sku": "CHIPX200",
-    "price": 62400,
+    "price": 84290,
     "variants": {}
   },
   "2255252": {
     "name": "FUENTE DE PODER SWITCHING 30W 12V 2.5A INTERIOR PERFORADA",
     "sku": "FU30I",
-    "price": 5990,
+    "price": 6690,
     "variants": {}
   },
   "2255253": {
     "name": "FUENTE DE PODER SWITCHING 60W 12V 5A INTERIOR PERFORADA",
     "sku": "FU60I",
-    "price": 8160,
+    "price": 8090,
     "variants": {}
   },
   "2255432": {
@@ -111,537 +111,537 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2255498": {
     "name": "FUENTE DE PODER SWITCHING 100W 12V 8.5A EXTERIOR IP67",
     "sku": "FU100E",
-    "price": 22950,
+    "price": 21090,
     "variants": {}
   },
   "2255526": {
     "name": "FUENTE DE PODER SWITCHING 60W 12V 5A EXTERIOR IP67",
     "sku": "FU60E",
-    "price": 14160,
+    "price": 14790,
     "variants": {}
   },
   "2255673": {
     "name": "FUENTE DE PODER SWITCHING 200W 12V 16.5A EXTERIOR IP67",
     "sku": "FU200E",
-    "price": 25740,
+    "price": 27390,
     "variants": {}
   },
   "2255707": {
     "name": "FUENTE DE PODER SWITCHING 100W 12V 8A INTERIOR PERFORADA",
     "sku": "FU100I",
-    "price": 11560,
+    "price": 12790,
     "variants": {}
   },
   "2255731": {
     "name": "FUENTE DE PODER SWITCHING 120W 12V 10A INTERIOR PERFORADA",
     "sku": "FU120I",
-    "price": 14960,
+    "price": 14790,
     "variants": {}
   },
   "2255735": {
     "name": "FUENTE DE PODER SWITCHING 150W 12V 12.5A INTERIOR PERFORADA",
     "sku": "FU150I",
-    "price": 20700,
+    "price": 16090,
     "variants": {}
   },
   "2255737": {
     "name": "FUENTE DE PODER SWITCHING 200W 12V 16.6A INTERIOR PERFORADA",
     "sku": "FU200I",
-    "price": 19500,
+    "price": 19790,
     "variants": {}
   },
   "2255747": {
     "name": "FUENTE DE PODER SWITCHING 360W 12V 30A INTERIOR PERFORADA",
     "sku": "FU360I",
-    "price": 37400,
+    "price": 22290,
     "variants": {}
   },
   "2255899": {
     "name": "PANEL LED REDONDO EMBUTIDO 3W IP44",
     "sku": "",
-    "price": 1390,
+    "price": 1890,
     "variants": {
       "94978029": {
         "sku": "PLRE3C",
-        "price": 1390
+        "price": 1890
       },
       "120884238": {
         "sku": "PLRE3N",
-        "price": 1390
+        "price": 1890
       },
       "120884239": {
         "sku": "PLRE3F",
-        "price": 1390
+        "price": 1890
       }
     }
   },
   "2255963": {
     "name": "PANEL LED REDONDO EMBUTIDO 6W IP44",
     "sku": "",
-    "price": 1740,
+    "price": 2790,
     "variants": {
       "94980260": {
         "sku": "PLRE6C",
-        "price": 1740
+        "price": 2790
       },
       "120885636": {
         "sku": "PLRE6N",
-        "price": 1740
+        "price": 2790
       },
       "120885639": {
         "sku": "PLRE6F",
-        "price": 1740
+        "price": 2790
       }
     }
   },
   "2256011": {
     "name": "PANEL LED REDONDO EMBUTIDO 9W IP44",
     "sku": "",
-    "price": 2290,
+    "price": 2890,
     "variants": {
       "94980570": {
         "sku": "PLRE9C",
-        "price": 2290
+        "price": 2890
       },
       "120885493": {
         "sku": "PLRE9N",
-        "price": 2290
+        "price": 2890
       },
       "120885496": {
         "sku": "PLRE9F",
-        "price": 2290
+        "price": 2890
       }
     }
   },
   "2268808": {
     "name": "PANEL LED REDONDO EMBUTIDO 12W IP44",
     "sku": "",
-    "price": 2420,
+    "price": 2890,
     "variants": {
       "94985727": {
         "sku": "PLRE12C",
-        "price": 2420
+        "price": 2890
       },
       "120885505": {
         "sku": "PLRE12N",
-        "price": 2420
+        "price": 2890
       },
       "120885508": {
         "sku": "PLRE12F",
-        "price": 2420
+        "price": 2890
       }
     }
   },
   "2268816": {
     "name": "PANEL LED REDONDO EMBUTIDO 24W IP44",
     "sku": "",
-    "price": 5020,
+    "price": 5690,
     "variants": {
       "95081689": {
         "sku": "PLRE24C",
-        "price": 5020
+        "price": 5690
       },
       "120885628": {
         "sku": "PLRE24N",
-        "price": 5020
+        "price": 5690
       },
       "120885631": {
         "sku": "PLRE24F",
-        "price": 5020
+        "price": 5690
       }
     }
   },
   "2269032": {
     "name": "PANEL LED REDONDO EMBUTIDO 15W IP44",
     "sku": "",
-    "price": 2790,
+    "price": 2890,
     "variants": {
       "95018431": {
         "sku": "PLRE15C",
-        "price": 2790
+        "price": 2890
       },
       "120885644": {
         "sku": "PLRE15N",
-        "price": 2790
+        "price": 2890
       },
       "120885647": {
         "sku": "PLRE15F",
-        "price": 2790
+        "price": 2890
       }
     }
   },
   "2269355": {
     "name": "PANEL LED REDONDO SOBREPUESTO 6W IP44",
     "sku": "",
-    "price": 2100,
+    "price": 2390,
     "variants": {
       "94980013": {
         "sku": "",
-        "price": 2100
+        "price": 2390
       },
       "120884787": {
         "sku": "",
-        "price": 2100
+        "price": 2390
       },
       "120885521": {
         "sku": "",
-        "price": 2100
+        "price": 2390
       }
     }
   },
   "2269456": {
     "name": "PANEL LED REDONDO SOBREPUESTO 9W IP44",
     "sku": "",
-    "price": 2890,
+    "price": 2990,
     "variants": {
       "95314431": {
         "sku": "",
-        "price": 2890
+        "price": 2990
       },
       "120885487": {
         "sku": "",
-        "price": 2890
+        "price": 2990
       },
       "120885489": {
         "sku": "",
-        "price": 2890
+        "price": 2990
       }
     }
   },
   "2269468": {
     "name": "PANEL LED REDONDO SOBREPUESTO 12W IP44",
     "sku": "",
-    "price": 3000,
+    "price": 3190,
     "variants": {
       "6701576": {
         "sku": "PLRS12C",
-        "price": 3000
+        "price": 3190
       },
       "120885517": {
         "sku": "PLRS12N",
-        "price": 3000
+        "price": 3190
       },
       "120885520": {
         "sku": "PLRS12F",
-        "price": 3000
+        "price": 3190
       }
     }
   },
   "2269493": {
     "name": "PANEL LED REDONDO SOBREPUESTO 18W IP44 REGULABLE",
     "sku": "",
-    "price": 15000,
+    "price": 15690,
     "variants": {
       "95081793": {
         "sku": "",
-        "price": 15000
+        "price": 15690
       },
       "120885592": {
         "sku": "",
-        "price": 15000
+        "price": 15690
       },
       "120885595": {
         "sku": "",
-        "price": 15000
+        "price": 15690
       }
     }
   },
   "2269544": {
     "name": "PANEL LED REDONDO SOBREPUESTO 24W IP44",
     "sku": "",
-    "price": 5900,
+    "price": 6990,
     "variants": {
       "95082356": {
         "sku": "",
-        "price": 5900
+        "price": 6990
       },
       "120885534": {
         "sku": "",
-        "price": 5900
+        "price": 6990
       },
       "120885537": {
         "sku": "",
-        "price": 5900
+        "price": 6990
       }
     }
   },
   "2269646": {
     "name": "PANEL LED CUADRADO EMBUTIDO 3W IP44",
     "sku": "",
-    "price": 1390,
+    "price": 2090,
     "variants": {
       "95288390": {
         "sku": "PLCE3C",
-        "price": 1390
+        "price": 2090
       },
       "120885597": {
         "sku": "PLCE3N",
-        "price": 1390
+        "price": 2090
       },
       "120885599": {
         "sku": "PLCE3F",
-        "price": 1390
+        "price": 2090
       }
     }
   },
   "2270107": {
     "name": "PANEL LED CUADRADO EMBUTIDO 4W IP44",
     "sku": "",
-    "price": 1590,
+    "price": 2290,
     "variants": {
       "4160970": {
         "sku": "PLCE4C",
-        "price": 1590
+        "price": 2290
       },
       "120885601": {
         "sku": "PLCE4N",
-        "price": 1590
+        "price": 2290
       },
       "120885603": {
         "sku": "PLCE4F",
-        "price": 1590
+        "price": 2290
       }
     }
   },
   "2270122": {
     "name": "PANEL LED CUADRADO EMBUTIDO 6W IP44",
     "sku": "",
-    "price": 1890,
+    "price": 2790,
     "variants": {
       "13706525": {
         "sku": "PLCE6C",
-        "price": 1890
+        "price": 2790
       },
       "120885605": {
         "sku": "PLCE6N",
-        "price": 1890
+        "price": 2790
       },
       "120885608": {
         "sku": "PLCE6F",
-        "price": 1890
+        "price": 2790
       }
     }
   },
   "2270155": {
     "name": "PANEL LED CUADRADO EMBUTIDO 12W IP44",
     "sku": "",
-    "price": 2390,
+    "price": 2890,
     "variants": {
       "4163193": {
         "sku": "PLCE12C",
-        "price": 2390
+        "price": 2890
       },
       "120885498": {
         "sku": "PLCE12N",
-        "price": 2390
+        "price": 2890
       },
       "120885501": {
         "sku": "PLCE12F",
-        "price": 2390
+        "price": 2890
       }
     }
   },
   "2270214": {
     "name": "PANEL LED CUADRADO EMBUTIDO 18W IP44",
     "sku": "",
-    "price": 3150,
+    "price": 5190,
     "variants": {
       "95091077": {
         "sku": "PLCE18C",
-        "price": 3150
+        "price": 5190
       },
       "120885610": {
         "sku": "PLCE18N",
-        "price": 3150
+        "price": 5190
       },
       "120885613": {
         "sku": "PLCE18F",
-        "price": 3150
+        "price": 5190
       }
     }
   },
   "2270233": {
     "name": "PANEL LED CUADRADO EMBUTIDO 24W IP44",
     "sku": "",
-    "price": 5020,
+    "price": 6590,
     "variants": {
       "95236943": {
         "sku": "PLCE24C",
-        "price": 5020
+        "price": 6590
       },
       "120885618": {
         "sku": "PLCE24N",
-        "price": 5020
+        "price": 6590
       },
       "120885621": {
         "sku": "PLCE24F",
-        "price": 5020
+        "price": 6590
       }
     }
   },
   "2270276": {
     "name": "PANEL LED CUADRADO SOBREPUESTO 6W IP44",
     "sku": "",
-    "price": 1800,
+    "price": 2590,
     "variants": {
       "94979071": {
         "sku": "",
-        "price": 1800
+        "price": 2590
       },
       "120885622": {
         "sku": "",
-        "price": 1800
+        "price": 2590
       },
       "120885625": {
         "sku": "",
-        "price": 1800
+        "price": 2590
       }
     }
   },
   "2270564": {
     "name": "PANEL LED CUADRADO SOBREPUESTO 12W IP44",
     "sku": "",
-    "price": 2900,
+    "price": 3790,
     "variants": {
       "94988327": {
         "sku": "",
-        "price": 2900
+        "price": 3790
       },
       "120885511": {
         "sku": "",
-        "price": 2900
+        "price": 3790
       },
       "120885514": {
         "sku": "",
-        "price": 2900
+        "price": 3790
       }
     }
   },
   "2270590": {
     "name": "PANEL LED CUADRADO SOBREPUESTO 18W IP44",
     "sku": "",
-    "price": 3500,
+    "price": 5290,
     "variants": {
       "95082060": {
         "sku": "",
-        "price": 3500
+        "price": 5290
       },
       "120885530": {
         "sku": "",
-        "price": 3500
+        "price": 5290
       },
       "120885533": {
         "sku": "",
-        "price": 3500
+        "price": 5290
       }
     }
   },
   "2270621": {
     "name": "PANEL LED CUADRADO SOBREPUESTO 24W IP44",
     "sku": "",
-    "price": 7500,
+    "price": 8690,
     "variants": {
       "95082234": {
         "sku": "",
-        "price": 7500
+        "price": 8690
       },
       "120885540": {
         "sku": "",
-        "price": 7500
+        "price": 8690
       },
       "120885543": {
         "sku": "",
-        "price": 7500
+        "price": 8690
       }
     }
   },
   "2282982": {
     "name": "PANEL LED CONCENTRICO OPAL 10W IP20",
     "sku": "",
-    "price": 7900,
+    "price": 9790,
     "variants": {
       "94905391": {
         "sku": "",
-        "price": 7900
+        "price": 9790
       },
       "94905392": {
         "sku": "",
-        "price": 7900
+        "price": 9790
       },
       "94905393": {
         "sku": "",
-        "price": 7900
+        "price": 9790
       }
     }
   },
   "2283811": {
     "name": "PANEL LED CONCENTRICO OPAL 15W IP33",
     "sku": "",
-    "price": 10900,
+    "price": 13590,
     "variants": {
       "94905373": {
         "sku": "",
-        "price": 10900
+        "price": 13590
       },
       "94905374": {
         "sku": "",
-        "price": 10900
+        "price": 13590
       },
       "94905375": {
         "sku": "",
-        "price": 10900
+        "price": 13590
       }
     }
   },
   "2283850": {
     "name": "PANEL LED CONCENTRICO OPAL 30W IP33",
     "sku": "",
-    "price": 15990,
+    "price": 16190,
     "variants": {
       "94905450": {
         "sku": "",
-        "price": 15990
+        "price": 16190
       },
       "94905451": {
         "sku": "",
-        "price": 15990
+        "price": 16190
       },
       "94905452": {
         "sku": "",
-        "price": 15990
+        "price": 16190
       }
     }
   },
   "2284560": {
     "name": "FOCO LED COB BASCULANTE 5W IP44 MARCO BLANCO",
     "sku": "FLCB5B",
-    "price": 5320,
+    "price": 6590,
     "variants": {
       "4165318": {
         "sku": "FLCB5BC",
-        "price": 5320
+        "price": 6590
       },
       "4165319": {
         "sku": "FLCB5BF",
-        "price": 5320
+        "price": 6590
       }
     }
   },
   "2286835": {
     "name": "FOCO LED COB BASCULANTE CODO 30W IP33",
-    "sku": "FLCBC30",
+    "sku": "FLCB30",
     "price": 24900,
     "variants": {
       "105152274": {
-        "sku": "FLCBC30F",
+        "sku": "FLCB30F",
         "price": 24900
       },
       "105152275": {
-        "sku": "FLCBC30N",
+        "sku": "FLCB30N",
         "price": 24900
       },
       "118438897": {
-        "sku": "FLCBC30C",
+        "sku": "FLCB30C",
         "price": 24900
       }
     }
@@ -668,22 +668,22 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2292318": {
     "name": "PROYECTOR LED COB 20W GRIS IP65",
     "sku": "PLC20G",
-    "price": 5800,
+    "price": 7290,
     "variants": {
       "4176509": {
         "sku": "PLC20GC",
-        "price": 5800
+        "price": 7290
       }
     }
   },
   "2292375": {
     "name": "PROYECTOR LED COB 30W GRIS IP65",
     "sku": "PLC30G",
-    "price": 8800,
+    "price": 11090,
     "variants": {
       "4176583": {
         "sku": "PLC30GC",
-        "price": 8800
+        "price": 11090
       }
     }
   },
@@ -711,31 +711,31 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2293388": {
     "name": "PROYECTOR LED RGB 20W IP66 NEGRO",
     "sku": "PLCRGB20N",
-    "price": 16560,
+    "price": 21590,
     "variants": {}
   },
   "2293445": {
     "name": "PROYECTOR LED COB 50W GRIS IP65 CON SENSOR DE MOVIMIENTO",
     "sku": "PLC50GC",
-    "price": 13000,
+    "price": 16290,
     "variants": {}
   },
   "2293796": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 20W IP66",
     "sku": "PLER20F",
-    "price": 31200,
+    "price": 40590,
     "variants": {}
   },
   "2293830": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 30W IP66",
     "sku": "PLER30F",
-    "price": 46680,
+    "price": 60790,
     "variants": {}
   },
   "2293849": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 50W IP66",
     "sku": "PLER50F",
-    "price": 57000,
+    "price": 75790,
     "variants": {}
   },
   "2294706": {
@@ -760,34 +760,34 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2295723": {
     "name": "PROYECTOR LED ULTRA THIN SMD 10W IP66 NEGRO",
     "sku": "",
-    "price": 3190,
+    "price": 2590,
     "variants": {
       "4180522": {
         "sku": "PLUTSMD10NF",
-        "price": 3190
+        "price": 2590
       },
       "88623122": {
         "sku": "PLUTSMD10NN",
-        "price": 3190
+        "price": 2590
       }
     }
   },
   "2300759": {
     "name": "TUBO LED T8 OPAL VIDRIO 9W 60CM 220V",
     "sku": "",
-    "price": 1390,
+    "price": 1890,
     "variants": {
       "4186062": {
         "sku": "TLV9220C",
-        "price": 1390
+        "price": 1890
       },
       "4186063": {
         "sku": "TLV9220N",
-        "price": 1390
+        "price": 1890
       },
       "4186064": {
         "sku": "TLV9220F",
-        "price": 1390
+        "price": 1890
       }
     }
   },
@@ -813,34 +813,34 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2300809": {
     "name": "TUBO LED OPAL ALUMINIO 9W 60CM. 220V.",
     "sku": "",
-    "price": 3250,
+    "price": 2890,
     "variants": {
       "4186125": {
         "sku": "TLOA9W60220VC",
-        "price": 3250
+        "price": 2890
       },
       "6699334": {
         "sku": "TLOA9W60220VF",
-        "price": 3250
+        "price": 2890
       }
     }
   },
   "2300821": {
     "name": "TUBO LED OPAL ALUMINIO 18W 120 CM. 220V",
     "sku": "",
-    "price": 2990,
+    "price": 4390,
     "variants": {
       "4186140": {
         "sku": "TLOA18W120220VF",
-        "price": 2990
+        "price": 4390
       },
       "4186293": {
         "sku": "TLOA18W120220VC",
-        "price": 2990
+        "price": 4390
       },
       "4186294": {
         "sku": "TLOA18W120220VN",
-        "price": 2990
+        "price": 4390
       }
     }
   },
@@ -896,69 +896,69 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2301098": {
     "name": "ALUMBRADO PÚBLICO BESTLED 40W IP66 IK08",
     "sku": "",
-    "price": 108500,
+    "price": 134890,
     "variants": {
       "95224064": {
         "sku": "APB40N",
-        "price": 108500
+        "price": 134890
       },
       "95224065": {
         "sku": "APB40F",
-        "price": 108500
+        "price": 134890
       },
       "111887367": {
         "sku": "APB401",
-        "price": 119400
+        "price": 148390
       },
       "111887368": {
         "sku": "APB407",
-        "price": 119400
+        "price": 148390
       }
     }
   },
   "2301101": {
     "name": "ALUMBRADO PÚBLICO BESTLED 60W IP66 IK08",
     "sku": "",
-    "price": 118500,
+    "price": 138590,
     "variants": {
       "8853471": {
         "sku": "APB60N",
-        "price": 118500
+        "price": 138590
       },
       "107574432": {
         "sku": "APB601",
-        "price": 130400
+        "price": 162190
       },
       "107574433": {
         "sku": "APB607",
-        "price": 130400
+        "price": 162190
       },
       "111887332": {
         "sku": "APB60F",
-        "price": 118500
+        "price": 138590
       }
     }
   },
   "2301105": {
     "name": "ALUMBRADO PÚBLICO BESTLED 90W IP66 IK08",
     "sku": "",
-    "price": 139900,
+    "price": 167790,
     "variants": {
       "95224200": {
         "sku": "APB90N",
-        "price": 139900
+        "price": 167790
       },
       "111887900": {
         "sku": "APB907",
-        "price": 154000
+        "price": 191490
       },
       "111887901": {
         "sku": "APB901",
-        "price": 154000
+        "price": 191490
       },
       "111887902": {
         "sku": "APB90F",
-        "price": 139900
+        "price": 167790
       }
     }
   },
@@ -973,11 +973,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       },
       "116896283": {
         "sku": "APB1201",
-        "price": 184600
+        "price": 229590
       },
       "116896284": {
         "sku": "APB1207",
-        "price": 184600
+        "price": 229590
       },
       "116896285": {
         "sku": "APB120F",
@@ -988,66 +988,66 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2301114": {
     "name": "ALUMBRADO PÚBLICO BESTLED 200W IP66 IK08",
     "sku": "",
-    "price": 225700,
+    "price": 262890,
     "variants": {
       "95224533": {
         "sku": "APB200N",
-        "price": 225700
+        "price": 262890
       },
       "95224534": {
         "sku": "APB200F",
-        "price": 225700
+        "price": 262890
       },
       "116897113": {
         "sku": "APB2001",
-        "price": 248400
+        "price": 289190
       },
       "116897114": {
         "sku": "APB2007",
-        "price": 248400
+        "price": 289190
       }
     }
   },
   "2307410": {
     "name": "CAMPANA LED UFO IP65 PREMIUM GRIS 150W",
     "sku": "UFOP150F",
-    "price": 94800,
+    "price": 98790,
     "variants": {}
   },
   "2312822": {
     "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ CÁLIDA",
     "sku": "CLI505012VC",
-    "price": 8900,
+    "price": 10690,
     "variants": {}
   },
   "2313541": {
     "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ FRÍA",
     "sku": "CLE505012VF",
-    "price": 10990,
+    "price": 15090,
     "variants": {}
   },
   "2313620": {
     "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. ROJO",
     "sku": "CLI50506012VR",
-    "price": 8900,
+    "price": 11090,
     "variants": {}
   },
   "2313626": {
     "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AZUL",
     "sku": "CLI50506012VA",
-    "price": 8900,
+    "price": 11090,
     "variants": {}
   },
   "2313647": {
     "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. VERDE",
     "sku": "CLI50506012VV",
-    "price": 10900,
+    "price": 13590,
     "variants": {}
   },
   "2313648": {
     "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AMARILLO",
     "sku": "CLI50506012VAM",
-    "price": 8900,
+    "price": 11090,
     "variants": {}
   },
   "2313769": {
@@ -1059,49 +1059,49 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2313797": {
     "name": "CINTA LED INTERIOR 14.4W SMD 5050 60LEDs/m 5MT. 12V. LUZ FRÍA",
     "sku": "CLI505012VF",
-    "price": 11044,
+    "price": 10690,
     "variants": {}
   },
   "2313836": {
     "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. ROJO",
     "sku": "CLE50506012VR",
-    "price": 10990,
+    "price": 13690,
     "variants": {}
   },
   "2313842": {
     "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AZUL",
     "sku": "CLE50506012VA",
-    "price": 10990,
+    "price": 13690,
     "variants": {}
   },
   "2313858": {
     "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. VERDE",
     "sku": "CLE50506012VV",
-    "price": 10990,
+    "price": 13690,
     "variants": {}
   },
   "2313868": {
     "name": "CINTA LED EXTERIOR 14.4W SMD 5050 60LEDs/m 5mt. 12V. AMARILLO",
     "sku": "CLE50506012VAM",
-    "price": 10990,
+    "price": 13690,
     "variants": {}
   },
   "2326098": {
     "name": "LINEAL LED MULTIFUNCIÓN 40W 120 CM. IP44",
     "sku": "",
-    "price": 23700,
+    "price": 24890,
     "variants": {
       "7324226": {
         "sku": "LLL40120C",
-        "price": 23700
+        "price": 24890
       },
       "7324228": {
         "sku": "LLL40120N",
-        "price": 23700
+        "price": 24890
       },
       "7324229": {
         "sku": "LLL40120F",
-        "price": 23700
+        "price": 24890
       }
     }
   },
@@ -1183,57 +1183,57 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2339101": {
     "name": "AMPOLLETA LED AR111 15-150W 24° 1200 Lm. IP44",
     "sku": "",
-    "price": 16200,
+    "price": 16890,
     "variants": {
       "4203853": {
         "sku": "ALAR11115F",
-        "price": 16200
+        "price": 16890
       }
     }
   },
   "2340383": {
     "name": "PROYECTOR LED SLIM SMD 300W IP66",
     "sku": "",
-    "price": 88400,
+    "price": 97490,
     "variants": {
       "96644488": {
         "sku": "",
-        "price": 88400
+        "price": 97490
       },
       "96644489": {
         "sku": "",
-        "price": 88400
+        "price": 97490
       },
       "121250279": {
         "sku": "",
-        "price": 88400
+        "price": 97490
       },
       "121250280": {
         "sku": "",
-        "price": 88400
+        "price": 97490
       }
     }
   },
   "2340385": {
     "name": "PROYECTOR LED SLIM SMD 400W IP66",
     "sku": "PLSSMD400",
-    "price": 165600,
+    "price": 175890,
     "variants": {
       "121250397": {
         "sku": "PLSSMD400C",
-        "price": 165600
+        "price": 175890
       },
       "121250398": {
         "sku": "PLSSMD4007",
-        "price": 165600
+        "price": 175890
       },
       "121250399": {
         "sku": "PLSSMD400F",
-        "price": 165600
+        "price": 175890
       },
       "121250400": {
         "sku": "PLSSMD4001",
-        "price": 165600
+        "price": 175890
       }
     }
   },
@@ -1255,135 +1255,135 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2340483": {
     "name": "PROYECTOR LED SLIM SMD 50W IP66 LUZ FRÍA",
     "sku": "PLSSMD50",
-    "price": 11570,
+    "price": 11190,
     "variants": {
       "4205128": {
         "sku": "PLSSMD50F",
-        "price": 11570
+        "price": 11190
       },
       "11927470": {
         "sku": "PLSSMD50C",
-        "price": 11570
+        "price": 11190
       }
     }
   },
   "2340515": {
     "name": "PROYECTOR LED SLIM SMD 150W IP66",
     "sku": "",
-    "price": 41600,
+    "price": 47490,
     "variants": {
       "96644372": {
         "sku": "",
-        "price": 41600
+        "price": 47490
       },
       "96644373": {
         "sku": "",
-        "price": 41600
+        "price": 47490
       },
       "121250257": {
         "sku": "",
-        "price": 41600
+        "price": 47490
       },
       "121250258": {
         "sku": "",
-        "price": 41600
+        "price": 47490
       }
     }
   },
   "2340521": {
     "name": "PROYECTOR LED SLIM SMD 200W IP66",
     "sku": "",
-    "price": 61750,
+    "price": 61890,
     "variants": {
       "121250275": {
         "sku": "",
-        "price": 61750
+        "price": 61890
       },
       "122872218": {
         "sku": "",
-        "price": 61750
+        "price": 61890
       }
     }
   },
   "2340625": {
     "name": "PROYECTOR LED SLIM SMD 100W IP66",
     "sku": "PLSSMD100",
-    "price": 31429,
+    "price": 34890,
     "variants": {
       "4205286": {
         "sku": "PLSSMD100F",
-        "price": 31429
+        "price": 34890
       },
       "11927471": {
         "sku": "PLSSMD100C",
-        "price": 31429
+        "price": 34890
       }
     }
   },
   "2345055": {
     "name": "ESTACA MINI LED COB  5W JARDÍN IP65",
     "sku": "",
-    "price": 6300,
+    "price": 7790,
     "variants": {
       "95315974": {
         "sku": "",
-        "price": 6300
+        "price": 7790
       },
       "114137501": {
         "sku": "",
-        "price": 6300
+        "price": 7790
       }
     }
   },
   "2345134": {
     "name": "RIEL MONOFÁSICO 1 MT.",
     "sku": "RM1MT",
-    "price": 4300,
+    "price": 3890,
     "variants": {
       "4210740": {
         "sku": "RM1MTB",
-        "price": 4300
+        "price": 3890
       },
       "4210741": {
         "sku": "RM1MTN",
-        "price": 4300
+        "price": 3890
       }
     }
   },
   "2345138": {
     "name": "RIEL MONOFÁSICO 2 MT.",
     "sku": "RM2MT",
-    "price": 8500,
+    "price": 7590,
     "variants": {
       "4210753": {
         "sku": "RM2MTB",
-        "price": 8500
+        "price": 7590
       },
       "4210754": {
         "sku": "RM2MTN",
-        "price": 8500
+        "price": 7590
       }
     }
   },
   "2345290": {
     "name": "TORTUGA LED 16W OPAL BLANCA LISA",
     "sku": "TL16PBL",
-    "price": 9350,
+    "price": 11590,
     "variants": {
       "4210916": {
         "sku": "TL16PBLC",
-        "price": 9350
+        "price": 11590
       },
       "4210917": {
         "sku": "TL16PBLF",
-        "price": 9350
+        "price": 11590
       }
     }
   },
   "2345320": {
     "name": "TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 BLANCA",
     "sku": "TAOCRE27B",
-    "price": 3990,
+    "price": 5890,
     "variants": {}
   },
   "2346900": {
@@ -1408,193 +1408,193 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2347029": {
     "name": "FOCO LED EMBUTIDO EN PISO 1W IP67",
     "sku": "",
-    "price": 10900,
+    "price": 8590,
     "variants": {
       "95315043": {
         "sku": "",
-        "price": 10900
+        "price": 8590
       },
       "111913322": {
         "sku": "",
-        "price": 10900
+        "price": 8590
       }
     }
   },
   "2347032": {
     "name": "FOCO LED EMBUTIDO EN PISO 3W IP67",
     "sku": "",
-    "price": 11900,
+    "price": 10890,
     "variants": {
       "4213632": {
         "sku": "FLEP3C",
-        "price": 11900
+        "price": 10890
       },
       "4213633": {
         "sku": "FLEP3F",
-        "price": 11900
+        "price": 10890
       }
     }
   },
   "2347102": {
     "name": "FOCO LED EMBUTIDO EN PISO 5W IP67",
     "sku": "",
-    "price": 14200,
+    "price": 14790,
     "variants": {
       "95315223": {
         "sku": "",
-        "price": 14200
+        "price": 14790
       },
       "95315224": {
         "sku": "",
-        "price": 14200
+        "price": 14790
       }
     }
   },
   "2347159": {
     "name": "FOCO LED EMBUTIDO EN PISO 12W IP67",
     "sku": "",
-    "price": 19900,
+    "price": 26190,
     "variants": {
       "95433611": {
         "sku": "",
-        "price": 19900
+        "price": 26190
       },
       "95433612": {
         "sku": "",
-        "price": 19900
+        "price": 26190
       }
     }
   },
   "2347175": {
     "name": "FOCO LED EMBUTIDO EN PISO 9W IP67",
     "sku": "",
-    "price": 17900,
+    "price": 22290,
     "variants": {
       "4213947": {
         "sku": "FLEP9C",
-        "price": 17900
+        "price": 22290
       },
       "4213948": {
         "sku": "FLEP9F",
-        "price": 17900
+        "price": 22290
       }
     }
   },
   "2347772": {
     "name": "PANEL LED 120X60 CM. 80W PARA CIELO AMERICANO MARCO BLANCO",
     "sku": "",
-    "price": 43100,
+    "price": 44890,
     "variants": {
       "4214389": {
         "sku": "PL12060BC",
-        "price": 43100
+        "price": 44890
       },
       "4214390": {
         "sku": "PL12060BN",
-        "price": 43100
+        "price": 44890
       },
       "4214391": {
         "sku": "PL12060BF",
-        "price": 43100
+        "price": 44890
       }
     }
   },
   "2347849": {
     "name": "PANEL LED 120X15 CM 36W. PARA CIELO AMERICANO",
     "sku": "",
-    "price": 17100,
+    "price": 21890,
     "variants": {
       "4214610": {
         "sku": "PL12015BC",
-        "price": 17100
+        "price": 21890
       },
       "4214611": {
         "sku": "PL12015BN",
-        "price": 17100
+        "price": 21890
       },
       "4214612": {
         "sku": "PL12015BF",
-        "price": 17100
+        "price": 21890
       }
     }
   },
   "2347854": {
     "name": "PANEL LED 120X30 CM. 40W PARA CIELO AMERICANO",
     "sku": "",
-    "price": 21900,
+    "price": 24890,
     "variants": {
       "4214619": {
         "sku": "PL12030BC",
-        "price": 21900
+        "price": 24890
       },
       "4214620": {
         "sku": "PL12030BN",
-        "price": 21900
+        "price": 24890
       },
       "4214621": {
         "sku": "PL12030BF",
-        "price": 21900
+        "price": 24890
       }
     }
   },
   "2348922": {
     "name": "PANEL LED 120X30 CM. 40W PARA CIELO AMERICANO MARCO BLANCO REGULABLE",
     "sku": "",
-    "price": 41400,
+    "price": 43190,
     "variants": {
       "4215385": {
         "sku": "PL12030BDC",
-        "price": 41400
+        "price": 43190
       },
       "4215386": {
         "sku": "PL12030BDN",
-        "price": 41400
+        "price": 43190
       },
       "4215387": {
         "sku": "PL12030BDF",
-        "price": 41400
+        "price": 43190
       }
     }
   },
   "2348936": {
     "name": "PANEL LED 120X60 CM. 80W PARA CIELO AMERICANO MARCO BLANCO REGULABLE",
     "sku": "",
-    "price": 79000,
+    "price": 82390,
     "variants": {
       "4215417": {
         "sku": "PL12060BDC",
-        "price": 79000
+        "price": 82390
       },
       "4215418": {
         "sku": "PL12060BDN",
-        "price": 79000
+        "price": 82390
       },
       "4215419": {
         "sku": "PL12060BDF",
-        "price": 79000
+        "price": 82390
       }
     }
   },
   "2352646": {
     "name": "LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 40W",
     "sku": "LLTPATPAX40",
-    "price": 358800,
+    "price": 373690,
     "variants": {}
   },
   "2352650": {
     "name": "LUMINARIA LED TRI-PROOF A PRUEBA DE EXPLOSIÓN ATEX 60W",
     "sku": "LLTPATPAX60",
-    "price": 551700,
+    "price": 445090,
     "variants": {}
   },
   "2354635": {
     "name": "DOWNLIGHT LED REDONDO EMBUTIDO 16W LUZ FRÍA NIQUEL",
     "sku": "",
-    "price": 11900,
+    "price": 12290,
     "variants": {
       "95492370": {
         "sku": "DLRE16F",
-        "price": 11900
+        "price": 12290
       }
     }
   },
@@ -1627,13 +1627,13 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2401941": {
     "name": "KIT DE EMERGENCIA LED 300W 120 MINUTOS AUTONOMIA",
     "sku": "SS300W",
-    "price": 35760,
+    "price": 37390,
     "variants": {}
   },
   "2401982": {
     "name": "KIT DE EMERGENCIA LED 50W 120 MINUTOS DE AUTONOMIA",
     "sku": "SS50W",
-    "price": 17400,
+    "price": 18790,
     "variants": {}
   },
   "2402075": {
@@ -1689,7 +1689,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2442586": {
     "name": "CAMPANA INDUSTRIAL LED SMD BRIDGELUX 200W 6500K IP44",
     "sku": "CILSMDP200F",
-    "price": 79990,
+    "price": 84990,
     "variants": {}
   },
   "2499415": {
@@ -1714,109 +1714,109 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2499418": {
     "name": "PANEL LED REDONDO EMBUTIDO 18W IP44 REGULABLE",
     "sku": "PLRE18D",
-    "price": 14500,
+    "price": 14790,
     "variants": {
       "4257094": {
         "sku": "PLRE18CD",
-        "price": 14500
+        "price": 14790
       },
       "120885659": {
         "sku": "PLRE18ND",
-        "price": 14500
+        "price": 14790
       },
       "120885662": {
         "sku": "PLRE18FD",
-        "price": 14500
+        "price": 14790
       }
     }
   },
   "2500995": {
     "name": "PANEL LED REDONDO SOBREPUESTO 18W IP44",
     "sku": "",
-    "price": 3480,
+    "price": 3690,
     "variants": {
       "94999119": {
         "sku": "",
-        "price": 3480
+        "price": 3690
       },
       "120885522": {
         "sku": "",
-        "price": 3480
+        "price": 3690
       },
       "120885525": {
         "sku": "",
-        "price": 3480
+        "price": 3690
       }
     }
   },
   "2501112": {
     "name": "Panel LED 60x60 Slim 40W Dimerizable | Extra Plano eLIGHTS",
     "sku": "",
-    "price": 39490,
+    "price": 49290,
     "variants": {
       "4258753": {
         "sku": "PL6060BDC",
-        "price": 39490
+        "price": 49290
       },
       "4258754": {
         "sku": "PL6060BDN",
-        "price": 39490
+        "price": 49290
       },
       "4258755": {
         "sku": "PL6060BDF",
-        "price": 39490
+        "price": 49290
       }
     }
   },
   "2502386": {
     "name": "Foco Dicroico LED Embutido SMD 9W Blanco",
     "sku": "",
-    "price": 4600,
+    "price": 4790,
     "variants": {
       "95518891": {
         "sku": "",
-        "price": 4600
+        "price": 4790
       },
       "95518892": {
         "sku": "",
-        "price": 4600
+        "price": 4790
       }
     }
   },
   "2502408": {
     "name": "FOCO DICROICO LED EMBUTIDO SMD 12W BLANCO",
     "sku": "",
-    "price": 6000,
+    "price": 6290,
     "variants": {
       "95519092": {
         "sku": "",
-        "price": 6000
+        "price": 6290
       },
       "95519093": {
         "sku": "",
-        "price": 6000
+        "price": 6290
       }
     }
   },
   "2502411": {
     "name": "FOCO DICROICO LED EMBUTIDO SMD 12W NIQUEL",
     "sku": "",
-    "price": 6000,
+    "price": 6290,
     "variants": {
       "95519315": {
         "sku": "",
-        "price": 6000
+        "price": 6290
       },
       "95519316": {
         "sku": "",
-        "price": 6000
+        "price": 6290
       }
     }
   },
   "2502678": {
     "name": "APLIQUE LED SOLAR 5W LUZ FRÍA 500 LM IP65",
     "sku": "ALS5F",
-    "price": 6190,
+    "price": 4690,
     "variants": {}
   },
   "2502680": {
@@ -1828,19 +1828,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2506428": {
     "name": "ESTANCA LED 40W 120 CM. IP65",
     "sku": "",
-    "price": 16390,
+    "price": 17390,
     "variants": {
       "8861735": {
         "sku": "EL40120C",
-        "price": 16390
+        "price": 17390
       },
       "8861736": {
         "sku": "EL40120N",
-        "price": 16390
+        "price": 17390
       },
       "8861737": {
         "sku": "EL40120F",
-        "price": 16390
+        "price": 17390
       }
     }
   },
@@ -1853,64 +1853,64 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2506736": {
     "name": "CANOA LED HERMÉTICA 1X18W IP65 IK07 1200 MM. PMMA",
     "sku": "CLH1X18",
-    "price": 7990,
+    "price": 8190,
     "variants": {}
   },
   "2506808": {
     "name": "CANOA LED HERMÉTICA 1X9W IP65 IK07 60 CM. PMMA",
     "sku": "",
-    "price": 6500,
+    "price": 6690,
     "variants": {}
   },
   "2506825": {
     "name": "CANOA LED HERMÉTICA 2X9W IP65 IK07 600 MM. PMMA",
     "sku": "CLH2X9",
-    "price": 8990,
+    "price": 8190,
     "variants": {}
   },
   "2767982": {
     "name": "LUMINARIA ORNAMENTAL ISLAND 60W IP66 IK08",
     "sku": "",
-    "price": 167900,
+    "price": 248490,
     "variants": {
       "95634737": {
         "sku": "",
-        "price": 167900
+        "price": 248490
       },
       "95634738": {
         "sku": "",
-        "price": 167900
+        "price": 248490
       },
       "95634739": {
         "sku": "",
-        "price": 167900
+        "price": 248490
       },
       "106025732": {
         "sku": "",
-        "price": 167900
+        "price": 248490
       }
     }
   },
   "2993067": {
     "name": "PROYECTOR LED SLIM SMD 500W IP66",
     "sku": "",
-    "price": 213600,
+    "price": 222490,
     "variants": {
       "7201884": {
         "sku": "PLSSMD500C",
-        "price": 213600
+        "price": 222490
       },
       "7201885": {
         "sku": "PLSSMD500F",
-        "price": 213600
+        "price": 222490
       },
       "121250285": {
         "sku": "",
-        "price": 213600
+        "price": 222490
       },
       "121250286": {
         "sku": "",
-        "price": 213600
+        "price": 222490
       }
     }
   },
@@ -1932,166 +1932,166 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3123738": {
     "name": "PROYECTOR LED ULTRA THIN SMD 10W IP66 LUZ FRÍA C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 7485,
+    "price": 8790,
     "variants": {
       "7094744": {
         "sku": "PLUTSMD10SMF",
-        "price": 7485
+        "price": 8790
       }
     }
   },
   "3123789": {
     "name": "PROYECTOR LED ULTRA THIN SMD 30W IP66 LUZ FRÍA C/ SENSOR DE MOVIMIENTO",
     "sku": "PLUTSMD30SMF",
-    "price": 11570,
+    "price": 12390,
     "variants": {}
   },
   "3124480": {
     "name": "PROYECTOR LED ULTRA THIN SMD 20W IP66 LUZ FRÍA C/ SENSOR DE MOVIMIENTO",
     "sku": "PLUTSMD20SMF",
-    "price": 9000,
+    "price": 9890,
     "variants": {}
   },
   "3213127": {
     "name": "LINEAL LED EMBUTIDA 40W 120 CM.",
     "sku": "LLE40120",
-    "price": 33670,
+    "price": 35890,
     "variants": {
       "99319919": {
         "sku": "LLE40120N",
-        "price": 33670
+        "price": 35890
       },
       "123218003": {
         "sku": "LLE40120C",
-        "price": 33670
+        "price": 35890
       },
       "123218388": {
         "sku": "LLE40120F",
-        "price": 33670
+        "price": 35890
       }
     }
   },
   "3229761": {
     "name": "PANEL LED CONCENTRICO OPAL 25W IP33",
     "sku": "",
-    "price": 12900,
+    "price": 16090,
     "variants": {
       "94905403": {
         "sku": "",
-        "price": 12900
+        "price": 16090
       },
       "94905404": {
         "sku": "",
-        "price": 12900
+        "price": 16090
       },
       "94905405": {
         "sku": "",
-        "price": 12900
+        "price": 16090
       }
     }
   },
   "3283555": {
     "name": "PROYECTOR LED DE ESTADIO 500W IP66 IK09",
     "sku": "",
-    "price": 333600,
+    "price": 416990,
     "variants": {
       "95929944": {
         "sku": "",
-        "price": 333600
+        "price": 416990
       },
       "95929945": {
         "sku": "",
-        "price": 333600
+        "price": 416990
       }
     }
   },
   "3305420": {
     "name": "AMPOLLETA LED AR111 12-120W OPAL CONCÉNTRICA",
     "sku": "",
-    "price": 16200,
+    "price": 16890,
     "variants": {
       "5890527": {
         "sku": "ALAR11112OCC",
-        "price": 16200
+        "price": 16890
       },
       "5890528": {
         "sku": "ALAR11112OCN",
-        "price": 16200
+        "price": 16890
       },
       "5890529": {
         "sku": "ALAR11112OCF",
-        "price": 16200
+        "price": 16890
       }
     }
   },
   "3309140": {
     "name": "PROYECTOR LED DE ESTADIO REDONDO 1000W IP66 IK08",
     "sku": "",
-    "price": 765600,
+    "price": 877890,
     "variants": {
       "115225152": {
         "sku": "",
-        "price": 765600
+        "price": 877890
       },
       "115225153": {
         "sku": "",
-        "price": 765600
+        "price": 877890
       },
       "115225154": {
         "sku": "",
-        "price": 765600
+        "price": 877890
       },
       "115225155": {
         "sku": "",
-        "price": 765600
+        "price": 877890
       }
     }
   },
   "3313196": {
     "name": "PROYECTOR LED DE ESTADIO 300W IP66 IK09",
     "sku": "",
-    "price": 309600,
+    "price": 322390,
     "variants": {
       "95929929": {
         "sku": "PLE300F",
-        "price": 309600
+        "price": 322390
       },
       "100177907": {
         "sku": "",
-        "price": 309600
+        "price": 322390
       }
     }
   },
   "3381394": {
     "name": "KIT DE EMERGENCIA LED 20W 90 MINUTOS AUTONOMIA",
     "sku": "SS20W",
-    "price": 18500,
+    "price": 17190,
     "variants": {}
   },
   "3387274": {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 100W",
     "sku": "PLAPE100F",
-    "price": 201600,
+    "price": 259890,
     "variants": {}
   },
   "3387318": {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 150W",
     "sku": "PLAPE150F",
-    "price": 251900,
+    "price": 322890,
     "variants": {}
   },
   "3398236": {
     "name": "FAROL ORNAMENTAL FREYA 10W IP65 60CM.",
     "sku": "",
-    "price": 31500,
+    "price": 46690,
     "variants": {
       "5957536": {
         "sku": "FOF10C",
-        "price": 31500
+        "price": 46690
       },
       "5957537": {
         "sku": "FOF10F",
-        "price": 31500
+        "price": 46690
       }
     }
   },
@@ -2130,48 +2130,48 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3612990": {
     "name": "DOWNLIGHT LED SOBREPUESTO 7W LAVADORA SLIM IP20",
     "sku": "DWS7LS",
-    "price": 7650,
+    "price": 7390,
     "variants": {
       "11927495": {
         "sku": "DWS7LSC",
-        "price": 7650
+        "price": 7390
       },
       "11927496": {
         "sku": "DWS7LSF",
-        "price": 7650
+        "price": 7390
       }
     }
   },
   "3613081": {
     "name": "KIT DE EMERGENCIA LED SS36W 90 MINUTOS DE AUTONOMIA",
     "sku": "SS36W",
-    "price": 17400,
+    "price": 28190,
     "variants": {}
   },
   "3614974": {
     "name": "RIEL TRIFÁSICO 1 MT.",
     "sku": "RT1MT",
-    "price": 16660,
+    "price": 12890,
     "variants": {}
   },
   "3615048": {
     "name": "RIEL TRIFÁSICO 2 MT.",
     "sku": "RT2MT",
-    "price": 25500,
+    "price": 23790,
     "variants": {}
   },
   "3702364": {
     "name": "PANEL LED BACKLIGHT 120X60 CM. 96W PARA CIELO AMERICANO",
     "sku": "",
-    "price": 31100,
+    "price": 32390,
     "variants": {
       "6202217": {
         "sku": "PLB120100BF",
-        "price": 31100
+        "price": 32390
       },
       "8717397": {
         "sku": "PLB120100BN",
-        "price": 31100
+        "price": 32390
       }
     }
   },
@@ -2193,7 +2193,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3770404": {
     "name": "TRIPODE PARA PROYECTOR LED 10W / 20W/ 30W/ 50W/ 100W/ 150W/ 200W",
     "sku": "TEPPL",
-    "price": 18000,
+    "price": 19890,
     "variants": {}
   },
   "3921249": {
@@ -2218,19 +2218,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "3952758": {
     "name": "CINTA LED EXTERIOR 14.4W 5730 72 LEDs/Mt. 10MM IP67 100MT 220V",
     "sku": "",
-    "price": 159900,
+    "price": 159990,
     "variants": {
       "6577110": {
         "sku": "CLE155772C",
-        "price": 159900
+        "price": 159990
       },
       "6577111": {
         "sku": "CLE155772F",
-        "price": 159900
+        "price": 159990
       },
       "108161308": {
         "sku": "",
-        "price": 159900
+        "price": 159990
       }
     }
   },
@@ -2258,30 +2258,30 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4122694": {
     "name": "CAMPANA LED UFO NF3 100W 150LM/W IP66",
     "sku": "",
-    "price": 33600,
+    "price": 53790,
     "variants": {
       "6791302": {
         "sku": "CUFONF3100F",
-        "price": 33600
+        "price": 53790
       },
       "88152836": {
         "sku": "CUFONF3100N",
-        "price": 33600
+        "price": 53790
       }
     }
   },
   "4122715": {
     "name": "CAMPANA LED UFO NF3 150W 150 LM/W  IP66",
     "sku": "",
-    "price": 51600,
+    "price": 53790,
     "variants": {
       "95435182": {
         "sku": "",
-        "price": 51600
+        "price": 53790
       },
       "95435183": {
         "sku": "",
-        "price": 51600
+        "price": 53790
       }
     }
   },
@@ -2307,105 +2307,105 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4123096": {
     "name": "FOCO LED A RIEL MONOFÁSICO NEGRO 40W",
     "sku": "",
-    "price": 16250,
+    "price": 20090,
     "variants": {
       "8806989": {
         "sku": "FLRM40NC",
-        "price": 16250
+        "price": 20090
       },
       "8806990": {
         "sku": "FLRM40NN",
-        "price": 16250
+        "price": 20090
       }
     }
   },
   "4129683": {
     "name": "FOCO LED EMBUTIDO EN PISO 18W IP67",
     "sku": "",
-    "price": 26500,
+    "price": 37590,
     "variants": {
       "6800407": {
         "sku": "FLEP18C",
-        "price": 26500
+        "price": 37590
       },
       "6800408": {
         "sku": "FLEP18F",
-        "price": 26500
+        "price": 37590
       }
     }
   },
   "4133126": {
     "name": "120x30 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
     "sku": "MSPL120X30",
-    "price": 10900,
+    "price": 8890,
     "variants": {}
   },
   "4133148": {
     "name": "60x60 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
     "sku": "MSPL60X60",
-    "price": 9390,
+    "price": 6090,
     "variants": {}
   },
   "4133194": {
     "name": "120x60 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
     "sku": "MSPL120X60",
-    "price": 11800,
+    "price": 10390,
     "variants": {}
   },
   "4156930": {
     "name": "ALUMBRADO PÚBLICO BESTLED 150W IP66 IK08",
     "sku": "",
-    "price": 172000,
+    "price": 173690,
     "variants": {
       "8853442": {
         "sku": "APB150N",
-        "price": 172000
+        "price": 173690
       },
       "113961236": {
         "sku": "APB1507",
-        "price": 189200
+        "price": 236490
       },
       "113961237": {
         "sku": "APB150F",
-        "price": 172000
+        "price": 173690
       },
       "116896286": {
         "sku": "APB1501",
-        "price": 189200
+        "price": 236490
       }
     }
   },
   "4190659": {
     "name": "PANEL LED BACKLIGHT 60X60 CM. 48W PARA CIELO AMERICANO",
     "sku": "",
-    "price": 12990,
+    "price": 13590,
     "variants": {
       "103713736": {
         "sku": "",
-        "price": 12990
+        "price": 13590
       },
       "103713737": {
         "sku": "",
-        "price": 12990
+        "price": 13590
       },
       "103713738": {
         "sku": "",
-        "price": 12990
+        "price": 13590
       }
     }
   },
   "4361806": {
     "name": "Foco Dicroico LED Embutido SMD 18W Niquel",
     "sku": "",
-    "price": 16200,
+    "price": 16890,
     "variants": {
       "95520898": {
         "sku": "",
-        "price": 16200
+        "price": 16890
       },
       "95520899": {
         "sku": "",
-        "price": 16200
+        "price": 16890
       }
     }
   },
@@ -2418,81 +2418,81 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4371411": {
     "name": "PANEL LED CONCENTRICO OPAL 40W IP33",
     "sku": "",
-    "price": 22900,
+    "price": 23590,
     "variants": {
       "7500839": {
         "sku": "DLRCO40N",
-        "price": 22900
+        "price": 23590
       }
     }
   },
   "4426526": {
     "name": "PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO",
     "sku": "",
-    "price": 15900,
+    "price": 18590,
     "variants": {
       "8713180": {
         "sku": "PLB12040BC",
-        "price": 15900
+        "price": 18590
       },
       "8741597": {
         "sku": "PLB12040BN",
-        "price": 15900
+        "price": 18590
       },
       "87995436": {
         "sku": "PLB12040BF",
-        "price": 15900
+        "price": 18590
       }
     }
   },
   "4450187": {
     "name": "PROYECTOR LED DE ESTADIO 600W IP66 IK09",
     "sku": "",
-    "price": 466800,
+    "price": 537890,
     "variants": {
       "95929972": {
         "sku": "PLE600F",
-        "price": 466800
+        "price": 537890
       }
     }
   },
   "4537309": {
     "name": "FUENTE DE PODER SWITCHING 150W 12V 12.5A EXTERIOR IP67",
     "sku": "FU150E",
-    "price": 23400,
+    "price": 24790,
     "variants": {}
   },
   "4608256": {
     "name": "PANEL LED SLIM 60X60 CM. 40W PARA CIELO AMERICANO",
     "sku": "",
-    "price": 19800,
+    "price": 20690,
     "variants": {
       "8853489": {
         "sku": "PL6040BC",
-        "price": 19800
+        "price": 20690
       },
       "8853490": {
         "sku": "PL6040BN",
-        "price": 19800
+        "price": 20690
       },
       "8853491": {
         "sku": "PL6040BF",
-        "price": 19800
+        "price": 20690
       }
     }
   },
   "4615634": {
     "name": "ESTACA LED SOLAR 4W JARDÍN IP65",
     "sku": "",
-    "price": 10990,
+    "price": 11090,
     "variants": {
       "95315655": {
         "sku": "ELC5J",
-        "price": 10990
+        "price": 11090
       },
       "118625443": {
         "sku": "",
-        "price": 10990
+        "price": 11090
       }
     }
   },
@@ -2514,72 +2514,72 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "4730253": {
     "name": "120x15 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO",
     "sku": "MSPL120X15",
-    "price": 9500,
+    "price": 9790,
     "variants": {}
   },
   "10796623": {
     "name": "LUMINARIA ORNAMENTAL ISLAND 90W IP66 IK08",
     "sku": "",
-    "price": 203900,
+    "price": 301790,
     "variants": {
       "95634500": {
         "sku": "",
-        "price": 203900
+        "price": 301790
       },
       "95634501": {
         "sku": "",
-        "price": 203900
+        "price": 301790
       },
       "106025739": {
         "sku": "",
-        "price": 203900
+        "price": 301790
       },
       "106025740": {
         "sku": "",
-        "price": 203900
+        "price": 301790
       }
     }
   },
   "11521285": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR FLYHAWK 40-80W",
     "sku": "APSB",
-    "price": 442800,
+    "price": 577690,
     "variants": {
       "118197691": {
         "sku": "APSB40N",
-        "price": 442800
+        "price": 577690
       },
       "118197717": {
         "sku": "APSB401",
-        "price": 442800
+        "price": 577690
       },
       "118197718": {
         "sku": "APSB407",
-        "price": 442800
+        "price": 577690
       },
       "118197860": {
         "sku": "APSB60N",
-        "price": 478800
+        "price": 577690
       },
       "118197861": {
         "sku": "APSB601",
-        "price": 478800
+        "price": 577690
       },
       "118197862": {
         "sku": "APSB607",
-        "price": 478800
+        "price": 577690
       },
       "118197863": {
         "sku": "APSB80N",
-        "price": 514800
+        "price": 643490
       },
       "118197864": {
         "sku": "APSB801",
-        "price": 514800
+        "price": 643490
       },
       "118197865": {
         "sku": "APSB807",
-        "price": 514800
+        "price": 643490
       }
     }
   },
@@ -2592,74 +2592,74 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "14582065": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 300W CON PANEL SOLAR  CON BRAZO PARA MONTAR EN MURO O POSTE",
     "sku": "APS300P",
-    "price": 159900,
+    "price": 199890,
     "variants": {
       "117807100": {
         "sku": "APS300P1",
-        "price": 159900
+        "price": 199890
       },
       "117807101": {
         "sku": "APS300P7",
-        "price": 159900
+        "price": 199890
       },
       "117807102": {
         "sku": "APS300PN",
-        "price": 159900
+        "price": 199890
       },
       "117807103": {
         "sku": "APS300PF",
-        "price": 159900
+        "price": 199890
       }
     }
   },
   "15014164": {
     "name": "LÁMPARA DE EMERGENCIA LED ANTIEXPLOSIVA 2X3W IP65 IK10",
     "sku": "LEATEX2X3",
-    "price": 117900,
+    "price": 122490,
     "variants": {}
   },
   "15021313": {
     "name": "ALUMBRADO PÚBLICO BESTLED 250W IP66 IK08",
     "sku": "",
-    "price": 269900,
+    "price": 335690,
     "variants": {
       "95224603": {
         "sku": "APB250N",
-        "price": 269900
+        "price": 335690
       },
       "95224604": {
         "sku": "APB250F",
-        "price": 269900
+        "price": 335690
       },
       "118465898": {
         "sku": "APB2501",
-        "price": 296900
+        "price": 369290
       },
       "118465899": {
         "sku": "APB2507",
-        "price": 296900
+        "price": 369290
       }
     }
   },
   "15145687": {
     "name": "ESTACA LED COB 5W JARDÍN IP65",
     "sku": "",
-    "price": 7500,
+    "price": 7490,
     "variants": {
       "95315720": {
         "sku": "",
-        "price": 7500
+        "price": 7490
       },
       "114137566": {
         "sku": "",
-        "price": 7500
+        "price": 7490
       }
     }
   },
   "15164777": {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 200W",
     "sku": "PLAPEX200F",
-    "price": 321600,
+    "price": 343190,
     "variants": {}
   },
   "15714107": {
@@ -2671,108 +2671,108 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "15808487": {
     "name": "LINEAL LED SUSPENDIDA SUPERMARKET 40W 120 CM. BLANCA",
     "sku": "",
-    "price": 29900,
+    "price": 38790,
     "variants": {
       "87857357": {
         "sku": "",
-        "price": 29900
+        "price": 38790
       },
       "87857358": {
         "sku": "",
-        "price": 29900
+        "price": 38790
       },
       "87857359": {
         "sku": "",
-        "price": 29900
+        "price": 38790
       }
     }
   },
   "15818366": {
     "name": "LINEAL LED SUSPENDIDA SUPERMARKET 40W 120 CM. GRIS",
     "sku": "",
-    "price": 29900,
+    "price": 37290,
     "variants": {
       "87858310": {
         "sku": "",
-        "price": 29900
+        "price": 37290
       },
       "87858311": {
         "sku": "",
-        "price": 29900
+        "price": 37290
       },
       "87858312": {
         "sku": "",
-        "price": 29900
+        "price": 37290
       }
     }
   },
   "15819821": {
     "name": "LINEAL LED SUSPENDIDA SUPERMARKET 40W 120 CM. NEGRA",
     "sku": "",
-    "price": 29900,
+    "price": 39590,
     "variants": {
       "87858372": {
         "sku": "",
-        "price": 29900
+        "price": 39590
       },
       "87858373": {
         "sku": "",
-        "price": 29900
+        "price": 39590
       },
       "87858374": {
         "sku": "",
-        "price": 29900
+        "price": 39590
       }
     }
   },
   "15913820": {
     "name": "BARRA DE EMERGENCIA 60 LEDs RECARGABLE AUTONOMÍA 3-6 HRS.",
     "sku": "BELR60SMD",
-    "price": 25870,
+    "price": 24890,
     "variants": {}
   },
   "16068709": {
     "name": "CAMPANA LED UFO NF6 150W 110LM/W IP65",
     "sku": "",
-    "price": 33600,
+    "price": 34990,
     "variants": {
       "88022731": {
         "sku": "CLUFONF6150F",
-        "price": 33600
+        "price": 34990
       },
       "88022844": {
         "sku": "CLUFONF6150N",
-        "price": 33600
+        "price": 34990
       }
     }
   },
   "16068999": {
     "name": "CAMPANA LED UFO NF6 200W 110LM/W IP65",
     "sku": "",
-    "price": 45600,
+    "price": 47490,
     "variants": {
       "100156772": {
         "sku": "",
-        "price": 45600
+        "price": 47490
       },
       "100156925": {
         "sku": "",
-        "price": 45600
+        "price": 47490
       }
     }
   },
   "16096437": {
     "name": "FOCO LED A RIEL MONOFÁSICO BLANCO 40W",
     "sku": "",
-    "price": 16250,
+    "price": 20090,
     "variants": {
       "88106085": {
         "sku": "FLRM40BC",
-        "price": 16250
+        "price": 20090
       },
       "88106086": {
         "sku": "FLRM40BN",
-        "price": 16250
+        "price": 20090
       }
     }
   },
@@ -2798,55 +2798,55 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "16097375": {
     "name": "CAMPANA LED UFO A PRUEBA DE EXPLOSIÓN 50W",
     "sku": "PLAPEX50F",
-    "price": 189900,
+    "price": 237290,
     "variants": {}
   },
   "16114117": {
     "name": "CAMPANA LED UFO NF6 100W 110LM/W IP65",
     "sku": "",
-    "price": 25900,
+    "price": 26190,
     "variants": {
       "88157685": {
         "sku": "CLUFONF6100F",
-        "price": 25900
+        "price": 26190
       },
       "88157686": {
         "sku": "CLUFONF6100N",
-        "price": 25900
+        "price": 26190
       }
     }
   },
   "16121675": {
     "name": "APLIQUE LED 30W DE PARED MODERNA IP65",
     "sku": "",
-    "price": 18900,
+    "price": 26290,
     "variants": {
       "111714339": {
         "sku": "",
-        "price": 18900
+        "price": 26290
       },
       "111714340": {
         "sku": "",
-        "price": 18900
+        "price": 26290
       }
     }
   },
   "16160509": {
     "name": "TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 NEGRA",
     "sku": "TAOCRE27N",
-    "price": 3990,
+    "price": 4890,
     "variants": {}
   },
   "16166612": {
     "name": "PROYECTOR LED RGB 30W IP66 NEGRO",
     "sku": "PLCRGB30N",
-    "price": 20160,
+    "price": 26290,
     "variants": {}
   },
   "16166778": {
     "name": "PROYECTOR LED RGB 50W IP66 NEGRO",
     "sku": "PLCRGB50N",
-    "price": 30000,
+    "price": 39090,
     "variants": {}
   },
   "16273624": {
@@ -2867,27 +2867,27 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "16423843": {
     "name": "KIT DE EMERGENCIA LED SS30W 90 MINUTOS DE AUTONOMIA",
     "sku": "SS30W",
-    "price": 11760,
+    "price": 12290,
     "variants": {}
   },
   "16652746": {
     "name": "FOCO LED EMBUTIDO EN PISO GU10 IP67",
     "sku": "FLEPGU10",
-    "price": 10990,
+    "price": 11290,
     "variants": {}
   },
   "16713032": {
     "name": "APLIQUE MURO BIDIRECCIONAL 16W IP54 NEGRO",
     "sku": "AMB16W",
-    "price": 15990,
+    "price": 19390,
     "variants": {
       "118410531": {
         "sku": "AMB16WC",
-        "price": 15990
+        "price": 19390
       },
       "118410532": {
         "sku": "AMB16WF",
-        "price": 15990
+        "price": 19390
       }
     }
   },
@@ -2913,62 +2913,62 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "16755056": {
     "name": "CAMPANA LED UFO NF3 250W 150LM/W IP66",
     "sku": "",
-    "price": 117600,
+    "price": 122490,
     "variants": {
       "88800759": {
         "sku": "CUFONF3250F",
-        "price": 117600
+        "price": 122490
       }
     }
   },
   "16755401": {
     "name": "CAMPANA LED UFO NF3 300W 150LM/W IP66",
     "sku": "",
-    "price": 117900,
+    "price": 122490,
     "variants": {
       "88801056": {
         "sku": "CUFONF3300C",
-        "price": 117900
+        "price": 122490
       },
       "88801057": {
         "sku": "CUFONF3300N",
-        "price": 117900
+        "price": 122490
       },
       "95471323": {
         "sku": "",
-        "price": 117900
+        "price": 122490
       }
     }
   },
   "16842942": {
     "name": "CANOA DOBLE PARA TUBO LED 1200 MM.",
     "sku": "",
-    "price": 2690,
+    "price": 2290,
     "variants": {}
   },
   "16848748": {
     "name": "TUBO LED T8 OPAL VIDRIO 24W 150CM 220V",
     "sku": "",
-    "price": 4560,
+    "price": 4790,
     "variants": {
       "98855111": {
         "sku": "",
-        "price": 4560
+        "price": 4790
       },
       "98855112": {
         "sku": "",
-        "price": 4560
+        "price": 4790
       },
       "98855113": {
         "sku": "",
-        "price": 4560
+        "price": 4790
       }
     }
   },
   "19136920": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 90W ALL IN ONE",
     "sku": "APSALL90",
-    "price": 101400,
+    "price": 126690,
     "variants": {}
   },
   "19841604": {
@@ -2980,192 +2980,192 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "20450795": {
     "name": "PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 100W IP66",
     "sku": "PLER100F",
-    "price": 81600,
+    "price": 106190,
     "variants": {}
   },
   "20610994": {
     "name": "CAMPANA LED UFO NF6 300W 110LM/W IP65",
     "sku": "",
-    "price": 81600,
+    "price": 84990,
     "variants": {
       "94196491": {
         "sku": "CLUFONF6300N",
-        "price": 81600
+        "price": 84990
       },
       "100156806": {
         "sku": "CLUFONF6300F",
-        "price": 81600
+        "price": 84990
       }
     }
   },
   "20743792": {
     "name": "PROYECTOR LED ULTRA SLIM 10W IP66 NEGRO",
     "sku": "",
-    "price": 1890,
+    "price": 2590,
     "variants": {
       "94913516": {
         "sku": "",
-        "price": 1890
+        "price": 2590
       },
       "118661522": {
         "sku": "",
-        "price": 1890
+        "price": 2590
       }
     }
   },
   "20751964": {
     "name": "PROYECTOR LED ULTRA SLIM 20W IP66 NEGRO",
     "sku": "",
-    "price": 2790,
+    "price": 3390,
     "variants": {
       "94913512": {
         "sku": "",
-        "price": 2790
+        "price": 3390
       },
       "118661543": {
         "sku": "",
-        "price": 2790
+        "price": 3390
       }
     }
   },
   "20752601": {
     "name": "PROYECTOR LED ULTRA SLIM 30W IP66 NEGRO",
     "sku": "",
-    "price": 3290,
+    "price": 4090,
     "variants": {
       "118661557": {
         "sku": "",
-        "price": 3290
+        "price": 4090
       },
       "118661558": {
         "sku": "",
-        "price": 3290
+        "price": 4090
       }
     }
   },
   "20754001": {
     "name": "PROYECTOR LED ULTRA SLIM 50W IP66 NEGRO",
     "sku": "",
-    "price": 4190,
+    "price": 8190,
     "variants": {
       "118662213": {
         "sku": "",
-        "price": 4190
+        "price": 8190
       },
       "118662214": {
         "sku": "",
-        "price": 4190
+        "price": 8190
       }
     }
   },
   "20754238": {
     "name": "PROYECTOR LED ULTRA SLIM 100W IP66 NEGRO",
     "sku": "",
-    "price": 9390,
+    "price": 12890,
     "variants": {
       "118663219": {
         "sku": "",
-        "price": 9390
+        "price": 12890
       },
       "118663220": {
         "sku": "",
-        "price": 9390
+        "price": 12890
       }
     }
   },
   "20754402": {
     "name": "PROYECTOR LED ULTRA SLIM 150W IP66 NEGRO",
     "sku": "",
-    "price": 13920,
+    "price": 19890,
     "variants": {
       "94905551": {
         "sku": "",
-        "price": 13920
+        "price": 19890
       },
       "94905552": {
         "sku": "",
-        "price": 13920
+        "price": 19890
       }
     }
   },
   "20754533": {
     "name": "PROYECTOR LED ULTRA SLIM 200W IP66 NEGRO",
     "sku": "",
-    "price": 18480,
+    "price": 22890,
     "variants": {
       "94913533": {
         "sku": "",
-        "price": 18480
+        "price": 22890
       },
       "94913534": {
         "sku": "",
-        "price": 18480
+        "price": 22890
       }
     }
   },
   "20754789": {
     "name": "PROYECTOR LED ULTRA SLIM 300W IP66 NEGRO",
     "sku": "",
-    "price": 58200,
+    "price": 60690,
     "variants": {
       "94913521": {
         "sku": "",
-        "price": 58200
+        "price": 60690
       },
       "94913522": {
         "sku": "",
-        "price": 58200
+        "price": 60690
       }
     }
   },
   "20782912": {
     "name": "PROYECTOR LED ULTRA SLIM 400W IP66 NEGRO",
     "sku": "",
-    "price": 118800,
+    "price": 175890,
     "variants": {
       "94913483": {
         "sku": "",
-        "price": 118800
+        "price": 175890
       },
       "94913484": {
         "sku": "",
-        "price": 118800
+        "price": 175890
       }
     }
   },
   "20783449": {
     "name": "PROYECTOR LED ULTRA SLIM 500W IP66 NEGRO",
     "sku": "",
-    "price": 148800,
+    "price": 220290,
     "variants": {
       "94905568": {
         "sku": "",
-        "price": 148800
+        "price": 220290
       },
       "94905569": {
         "sku": "",
-        "price": 148800
+        "price": 220290
       }
     }
   },
   "20845068": {
     "name": "KIT DE EMERGENCIA LED 3-48W 120 MINUTOS DE AUTONOMIA",
     "sku": "SS48W",
-    "price": 13080,
+    "price": 15490,
     "variants": {}
   },
   "21064489": {
     "name": "PANEL LED CONCENTRICO OPAL 5W IP20",
     "sku": "",
-    "price": 5900,
+    "price": 7290,
     "variants": {
       "94905413": {
         "sku": "",
-        "price": 5900
+        "price": 7290
       },
       "94905414": {
         "sku": "",
-        "price": 5900
+        "price": 7290
       }
     }
   },
@@ -3191,19 +3191,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "21238265": {
     "name": "TUBO LED T5 OPAL VIDRIO 18W 220V",
     "sku": "",
-    "price": 3000,
+    "price": 3190,
     "variants": {
       "95177036": {
         "sku": "",
-        "price": 3000
+        "price": 3190
       },
       "95177037": {
         "sku": "",
-        "price": 3000
+        "price": 3190
       },
       "95177038": {
         "sku": "",
-        "price": 3000
+        "price": 3190
       }
     }
   },
@@ -3237,51 +3237,51 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "21244533": {
     "name": "POSTE TUBULAR GALVANIZADO 6MTS",
     "sku": "PTG6M",
-    "price": 135900,
+    "price": 156190,
     "variants": {}
   },
   "21391522": {
     "name": "FOCO DICROICO LED EMBUTIDO SMD 15W NIQUEL",
     "sku": "",
-    "price": 13000,
+    "price": 13590,
     "variants": {
       "95519334": {
         "sku": "",
-        "price": 13000
+        "price": 13590
       },
       "95519335": {
         "sku": "",
-        "price": 13000
+        "price": 13590
       }
     }
   },
   "21392612": {
     "name": "Foco Dicroico LED Embutido SMD 24W Niquel",
     "sku": "",
-    "price": 24000,
+    "price": 27390,
     "variants": {
       "95520928": {
         "sku": "",
-        "price": 24000
+        "price": 27390
       },
       "95520929": {
         "sku": "",
-        "price": 24000
+        "price": 27390
       }
     }
   },
   "21392713": {
     "name": "Foco Dicroico LED Embutido SMD 30W Niquel",
     "sku": "",
-    "price": 26200,
+    "price": 27390,
     "variants": {
       "95521230": {
         "sku": "",
-        "price": 26200
+        "price": 27390
       },
       "95521231": {
         "sku": "",
-        "price": 26200
+        "price": 27390
       }
     }
   },
@@ -3318,21 +3318,21 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "21743223": {
     "name": "KIT DE EMERGENCIA LED 50W UNIVERSAL 90 MINUTOS DE AUTONOMIA",
     "sku": "SS50WU",
-    "price": 16900,
+    "price": 18790,
     "variants": {}
   },
   "21766686": {
     "name": "PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO",
     "sku": "",
-    "price": 17100,
+    "price": 21890,
     "variants": {
       "96276928": {
         "sku": "",
-        "price": 17100
+        "price": 21890
       },
       "96276929": {
         "sku": "",
-        "price": 17100
+        "price": 21890
       }
     }
   },
@@ -3345,315 +3345,315 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "22672906": {
     "name": "CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AMARILLO",
     "sku": "CLE573072220VAM",
-    "price": 139900,
+    "price": 159990,
     "variants": {}
   },
   "22679546": {
     "name": "CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AZUL",
     "sku": "CLE573072220VA",
-    "price": 139900,
+    "price": 174790,
     "variants": {}
   },
   "22679578": {
     "name": "CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. ROJO",
     "sku": "CLE573072220VR",
-    "price": 139900,
+    "price": 174790,
     "variants": {}
   },
   "23188967": {
     "name": "PROYECTOR LED ULTRA SLIM 1000W IP66 NEGRO",
     "sku": "",
-    "price": 378000,
+    "price": 685490,
     "variants": {
       "98856612": {
         "sku": "",
-        "price": 378000
+        "price": 685490
       },
       "98856613": {
         "sku": "",
-        "price": 378000
+        "price": 685490
       }
     }
   },
   "23188968": {
     "name": "PROYECTOR LED ULTRA SLIM 600W IP66 NEGRO",
     "sku": "",
-    "price": 177900,
+    "price": 262890,
     "variants": {
       "98856617": {
         "sku": "",
-        "price": 177900
+        "price": 262890
       },
       "98856618": {
         "sku": "",
-        "price": 177900
+        "price": 262890
       }
     }
   },
   "24043822": {
     "name": "CAMPANA LED UFO NF8 PRO 300W 150LM/W IP65",
     "sku": "",
-    "price": 97200,
+    "price": 97490,
     "variants": {
       "100182787": {
         "sku": "CUFONF8P300F",
-        "price": 97200
+        "price": 97490
       }
     }
   },
   "24192756": {
     "name": "PROYECTOR LED ULTRA SLIM 50W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 15490,
+    "price": 16190,
     "variants": {
       "100489355": {
         "sku": "",
-        "price": 15490
+        "price": 16190
       }
     }
   },
   "24192873": {
     "name": "PROYECTOR LED ULTRA SLIM 100W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 20290,
+    "price": 30090,
     "variants": {
       "100489826": {
         "sku": "",
-        "price": 20290
+        "price": 30090
       }
     }
   },
   "24256942": {
     "name": "PROYECTOR LED ULTRA SLIM 150W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 22690,
+    "price": 33890,
     "variants": {
       "100621990": {
         "sku": "",
-        "price": 22690
+        "price": 33890
       }
     }
   },
   "24257068": {
     "name": "PROYECTOR LED ULTRA SLIM 200W IP66 NEGRO C/ SENSOR DE MOVIMIENTO",
     "sku": "",
-    "price": 27490,
+    "price": 37590,
     "variants": {
       "100622100": {
         "sku": "",
-        "price": 27490
+        "price": 37590
       }
     }
   },
   "24378602": {
     "name": "PANEL LED REDONDO SOBREPUESTO 12W IP44 NEGRO",
     "sku": "",
-    "price": 3000,
+    "price": 4290,
     "variants": {
       "100817623": {
         "sku": "PLRS12CB",
-        "price": 3000
+        "price": 4290
       },
       "120885664": {
         "sku": "PLRS12NB",
-        "price": 3000
+        "price": 4290
       },
       "120885665": {
         "sku": "PLRS12FB",
-        "price": 3000
+        "price": 4290
       }
     }
   },
   "24378703": {
     "name": "PANEL LED REDONDO SOBREPUESTO 18W IP44 NEGRO",
     "sku": "",
-    "price": 5600,
+    "price": 5390,
     "variants": {
       "100885695": {
         "sku": "",
-        "price": 5600
+        "price": 5390
       },
       "120885666": {
         "sku": "",
-        "price": 5600
+        "price": 5390
       },
       "120885667": {
         "sku": "",
-        "price": 5600
+        "price": 5390
       }
     }
   },
   "24560180": {
     "name": "PANEL LED REDONDO SOBREPUESTO 24W IP44 NEGRO",
     "sku": "",
-    "price": 7590,
+    "price": 8490,
     "variants": {
       "101027288": {
         "sku": "",
-        "price": 7590
+        "price": 8490
       },
       "120885668": {
         "sku": "",
-        "price": 7590
+        "price": 8490
       },
       "120885669": {
         "sku": "",
-        "price": 7590
+        "price": 8490
       }
     }
   },
   "24657400": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 100W IP66 IK10",
     "sku": "",
-    "price": 101760,
+    "price": 127190,
     "variants": {
       "101312006": {
         "sku": "",
-        "price": 101760
+        "price": 127190
       },
       "115586181": {
         "sku": "",
-        "price": 101760
+        "price": 127190
       },
       "117590825": {
         "sku": "",
-        "price": 101760
+        "price": 127190
       }
     }
   },
   "24663380": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 200W IP66 IK10",
     "sku": "",
-    "price": 114000,
+    "price": 170290,
     "variants": {
       "101312009": {
         "sku": "",
-        "price": 114000
+        "price": 170290
       },
       "115586119": {
         "sku": "",
-        "price": 114000
+        "price": 170290
       },
       "117590851": {
         "sku": "",
-        "price": 114000
+        "price": 170290
       }
     }
   },
   "24669150": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 300W IP66 IK10",
     "sku": "",
-    "price": 179990,
+    "price": 246790,
     "variants": {
       "101312013": {
         "sku": "",
-        "price": 179990
+        "price": 246790
       },
       "115585933": {
         "sku": "",
-        "price": 179990
+        "price": 246790
       },
       "117590881": {
         "sku": "",
-        "price": 179990
+        "price": 246790
       }
     }
   },
   "24696340": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 400W IP66 IK10",
     "sku": "",
-    "price": 323900,
+    "price": 377890,
     "variants": {
       "101383695": {
         "sku": "",
-        "price": 323900
+        "price": 377890
       },
       "115585828": {
         "sku": "",
-        "price": 323900
+        "price": 377890
       },
       "117590886": {
         "sku": "",
-        "price": 323900
+        "price": 377890
       }
     }
   },
   "24696451": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 600W IP66 IK10",
     "sku": "",
-    "price": 429900,
+    "price": 537290,
     "variants": {
       "101383761": {
         "sku": "",
-        "price": 429900
+        "price": 537290
       },
       "115585822": {
         "sku": "",
-        "price": 429900
+        "price": 537290
       },
       "116874527": {
         "sku": "",
-        "price": 429900
+        "price": 537290
       }
     }
   },
   "24697125": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 1000W IP66 IK10",
     "sku": "",
-    "price": 689900,
+    "price": 877890,
     "variants": {
       "101398930": {
         "sku": "",
-        "price": 689900
+        "price": 877890
       },
       "115585846": {
         "sku": "",
-        "price": 689900
+        "price": 877890
       },
       "117590890": {
         "sku": "",
-        "price": 689900
+        "price": 877890
       }
     }
   },
   "24698439": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 500W IP66 IK10",
     "sku": "",
-    "price": 359900,
+    "price": 451390,
     "variants": {
       "101405875": {
         "sku": "",
-        "price": 359900
+        "price": 451390
       },
       "115585793": {
         "sku": "",
-        "price": 359900
+        "price": 451390
       },
       "117590887": {
         "sku": "",
-        "price": 359900
+        "price": 451390
       }
     }
   },
   "25714697": {
     "name": "PANEL LED RETRAÍDO OPAL 24W IP40",
     "sku": "",
-    "price": 9440,
+    "price": 14790,
     "variants": {
       "103033375": {
         "sku": "PLRO24N",
-        "price": 9440
+        "price": 14790
       }
     }
   },
   "25714841": {
     "name": "PANEL LED RETRAÍDO OPAL 6W IP40",
     "sku": "",
-    "price": 4640,
+    "price": 7290,
     "variants": {
       "103033507": {
         "sku": "PLRO6N",
-        "price": 4640
+        "price": 7290
       }
     }
   },
@@ -3675,52 +3675,52 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "25885210": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 100W ALL IN ONE C/CONTROL REMOTO",
     "sku": "",
-    "price": 96000,
+    "price": 59890,
     "variants": {
       "103206091": {
         "sku": "",
-        "price": 96000
+        "price": 59890
       },
       "103206092": {
         "sku": "",
-        "price": 96000
+        "price": 59890
       }
     }
   },
   "25888711": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 150W ALL IN ONE C/CONTROL REMOTO",
     "sku": "",
-    "price": 102000,
+    "price": 72890,
     "variants": {
       "103206295": {
         "sku": "",
-        "price": 102000
+        "price": 72890
       },
       "103206296": {
         "sku": "",
-        "price": 102000
+        "price": 72890
       }
     }
   },
   "25888760": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR 60W ALL IN ONE C/CONTROL REMOTO",
     "sku": "",
-    "price": 81600,
+    "price": 59890,
     "variants": {
       "103206381": {
         "sku": "",
-        "price": 81600
+        "price": 59890
       },
       "103206382": {
         "sku": "",
-        "price": 81600
+        "price": 59890
       }
     }
   },
   "25891192": {
     "name": "PROYECTOR LED SOLAR 100W IP65 C/PANEL SOLAR C/CONTROL REMOTO",
     "sku": "PLS100",
-    "price": 59900,
+    "price": 37890,
     "variants": {}
   },
   "25891958": {
@@ -3738,80 +3738,80 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "26797242": {
     "name": "LINEAL LED SUSPENDIDA 36W 120 CM NEGRA",
     "sku": "",
-    "price": 30960,
+    "price": 38690,
     "variants": {
       "104403454": {
         "sku": "",
-        "price": 30960
+        "price": 38690
       },
       "104403455": {
         "sku": "",
-        "price": 30960
+        "price": 38690
       },
       "104403456": {
         "sku": "",
-        "price": 30960
+        "price": 38690
       }
     }
   },
   "26797442": {
     "name": "LINEAL LED SUSPENDIDA 36W 120 CM BLANCA",
     "sku": "",
-    "price": 30960,
+    "price": 38690,
     "variants": {
       "104403732": {
         "sku": "",
-        "price": 30960
+        "price": 38690
       },
       "104403733": {
         "sku": "",
-        "price": 30960
+        "price": 38690
       },
       "104403734": {
         "sku": "",
-        "price": 30960
+        "price": 38690
       }
     }
   },
   "26946977": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 300W VITO ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 300W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS300ALL",
-    "price": 238800,
+    "price": 248690,
     "variants": {
       "110677528": {
         "sku": "APS300ALL1",
-        "price": 238800
+        "price": 248690
       },
       "110677529": {
         "sku": "APS300ALLN",
-        "price": 238800
+        "price": 248690
       },
       "110677530": {
         "sku": "APS300ALL7",
-        "price": 238800
+        "price": 248690
       }
     }
   },
   "27936170": {
     "name": "PAGODA LED SOLAR UFO 300W ALL IN ONE",
     "sku": "",
-    "price": 190800,
+    "price": 212290,
     "variants": {
       "106138466": {
         "sku": "PLSU300N",
-        "price": 190800
+        "price": 212290
       },
       "120597812": {
         "sku": "PLSU300A",
-        "price": 190800
+        "price": 212290
       },
       "120597915": {
         "sku": "PLSU300C",
-        "price": 190800
+        "price": 212290
       },
       "120597916": {
         "sku": "PLSU300F",
-        "price": 190800
+        "price": 212290
       }
     }
   },
@@ -3852,33 +3852,33 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "28035334": {
     "name": "APLIQUE LED DE MURO 2X6W IP65",
     "sku": "",
-    "price": 18900,
+    "price": 18590,
     "variants": {
       "106320060": {
         "sku": "AL6PMC",
-        "price": 18900
+        "price": 18590
       }
     }
   },
   "28172883": {
     "name": "APLIQUE DECORATIVO BAZUCA BIDIRECCIONAL MINI 2x5W IP65 NEGRO",
     "sku": "",
-    "price": 14190,
+    "price": 16090,
     "variants": {
       "106672292": {
         "sku": "ADBBM2X5NC",
-        "price": 14190
+        "price": 16090
       }
     }
   },
   "28622352": {
     "name": "APLIQUE DECORATIVO BAZUCA BIDIRECCIONAL 2x10W IP65 NEGRO",
     "sku": "",
-    "price": 20200,
+    "price": 21090,
     "variants": {
       "107448697": {
         "sku": "ADBB2X10NC",
-        "price": 20200
+        "price": 21090
       }
     }
   },
@@ -3897,7 +3897,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "28666518": {
     "name": "PROYECTOR LED SOLAR 300W IP66 C/PANEL SOLAR C/CONTROL REMOTO (GRIS)",
     "sku": "PLSG300F",
-    "price": 69900,
+    "price": 86490,
     "variants": {}
   },
   "28668257": {
@@ -3909,19 +3909,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "29535391": {
     "name": "PANEL LED COLGANTE REDONDO 48W IP44 NEGRO",
     "sku": "",
-    "price": 35790,
+    "price": 44690,
     "variants": {
       "108896327": {
         "sku": "",
-        "price": 35790
+        "price": 44690
       },
       "120885670": {
         "sku": "",
-        "price": 35790
+        "price": 44690
       },
       "120885671": {
         "sku": "",
-        "price": 35790
+        "price": 44690
       }
     }
   },
@@ -3945,78 +3945,70 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     }
   },
   "30511210": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 600W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS600ALL",
-    "price": 619900,
+    "price": 622290,
     "variants": {
       "110660215": {
         "sku": "APS600ALL1",
-        "price": 619900
+        "price": 622290
       },
       "110660216": {
         "sku": "APS600ALLN",
-        "price": 619900
+        "price": 622290
       },
       "110660217": {
         "sku": "APS600ALL7",
-        "price": 619900
-      },
-      "110660218": {
-        "sku": "APS600ALLF",
-        "price": 619900
+        "price": 622290
       }
     }
   },
   "30518805": {
     "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 400W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS400ALL",
-    "price": 359900,
+    "price": 373690,
     "variants": {
       "110660366": {
         "sku": "APS400ALL1",
-        "price": 359900
+        "price": 373690
       },
       "110660367": {
         "sku": "APS400ALLN",
-        "price": 359900
+        "price": 373690
       },
       "110660368": {
         "sku": "APS400ALL7",
-        "price": 359900
+        "price": 373690
       }
     }
   },
   "30534071": {
-    "name": "ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
+    "name": "ALUMBRADO PÚBLICO LED SOLAR VITO 200W ALL IN ONE INDUSTRIAL C/ CONTROL REMOTO",
     "sku": "APS200ALL",
-    "price": 165600,
+    "price": 172490,
     "variants": {
       "110677475": {
         "sku": "APS200ALL1",
-        "price": 165600
+        "price": 172490
       },
       "110677476": {
         "sku": "APS200ALLN",
-        "price": 165600
+        "price": 172490
       },
       "110677477": {
         "sku": "APS200ALL7",
-        "price": 165600
-      },
-      "110677478": {
-        "sku": "APS200ALLF",
-        "price": 165600
+        "price": 172490
       }
     }
   },
   "31518788": {
     "name": "CAMPANA LED UFO REGULABLE 200W 150LM/W IP66 IK10",
     "sku": "",
-    "price": 63600,
+    "price": 84990,
     "variants": {
       "112625303": {
         "sku": "",
-        "price": 63600
+        "price": 84990
       }
     }
   },
@@ -4040,49 +4032,49 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "32913027": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 800W IP66 IK10",
     "sku": "",
-    "price": 561600,
+    "price": 584790,
     "variants": {
       "115763017": {
         "sku": "",
-        "price": 561600
+        "price": 584790
       },
       "117590910": {
         "sku": "",
-        "price": 561600
+        "price": 584790
       },
       "117590911": {
         "sku": "",
-        "price": 561600
+        "price": 584790
       },
       "117590912": {
         "sku": "",
-        "price": 561600
+        "price": 584790
       }
     }
   },
   "32913142": {
     "name": "PROYECTOR LED DE ESTADIO MODULAR 150W IP66 IK10",
     "sku": "",
-    "price": 129600,
+    "price": 134990,
     "variants": {
       "115763122": {
         "sku": "",
-        "price": 129600
+        "price": 134990
       },
       "115763124": {
         "sku": "",
-        "price": 129600
+        "price": 134990
       },
       "117590901": {
         "sku": "",
-        "price": 129600
+        "price": 134990
       }
     }
   },
   "32954808": {
     "name": "CAMPANA LED UFO NF9 400W 110 Lm/ IP65 44.000 Lm.",
     "sku": "UFOP400F",
-    "price": 159900,
+    "price": 159990,
     "variants": {}
   },
   "33412578": {
@@ -4094,102 +4086,102 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "33412879": {
     "name": "PROYECTOR LED A PRUEBA DE EXPLOSIÓN SQUARE 100W",
     "sku": "PLAPEXS100",
-    "price": 201600,
+    "price": 209990,
     "variants": {}
   },
   "33413008": {
     "name": "PROYECTOR LED A PRUEBA DE EXPLOSIÓN SQUARE 200W",
     "sku": "PLAPEXS200",
-    "price": 321600,
+    "price": 334890,
     "variants": {}
   },
   "33554875": {
     "name": "CAMPANA LED UFO NF7 100W 120LM/W IP65",
     "sku": "",
-    "price": 24000,
+    "price": 21890,
     "variants": {
       "117165891": {
         "sku": "",
-        "price": 24000
+        "price": 21890
       }
     }
   },
   "33597212": {
     "name": "CAMPANA LED UFO NF7 150W 120LM/W IP65",
     "sku": "",
-    "price": 21900,
+    "price": 22390,
     "variants": {
       "117216175": {
         "sku": "",
-        "price": 21900
+        "price": 22390
       }
     }
   },
   "33610052": {
     "name": "CAMPANA LED UFO NF7 200W 120LM/W IP65",
     "sku": "",
-    "price": 28900,
+    "price": 29890,
     "variants": {
       "117248971": {
         "sku": "",
-        "price": 28900
+        "price": 29890
       }
     }
   },
   "33736073": {
     "name": "CAMPANA LED UFO NF9 100W 110LM/W IP65 11.000 Lm.",
     "sku": "",
-    "price": 22000,
+    "price": 21890,
     "variants": {
       "117393879": {
         "sku": "",
-        "price": 22000
+        "price": 21890
       },
       "117394400": {
         "sku": "",
-        "price": 22000
+        "price": 21890
       },
       "117394401": {
         "sku": "",
-        "price": 22000
+        "price": 21890
       }
     }
   },
   "33748536": {
     "name": "CAMPANA LED UFO NF9 150W 110LM/W IP65 16.500 Lm.",
     "sku": "",
-    "price": 20900,
+    "price": 22390,
     "variants": {
       "117397141": {
         "sku": "",
-        "price": 20900
+        "price": 22390
       },
       "117397142": {
         "sku": "",
-        "price": 20900
+        "price": 22390
       },
       "117397143": {
         "sku": "",
-        "price": 20900
+        "price": 22390
       }
     }
   },
   "33748560": {
     "name": "CAMPANA LED UFO NF9 200W 110LM/W IP65 22.000 Lm.",
     "sku": "",
-    "price": 28900,
+    "price": 29890,
     "variants": {
       "117397151": {
         "sku": "",
-        "price": 28900
+        "price": 29890
       },
       "117397152": {
         "sku": "",
-        "price": 28900
+        "price": 29890
       },
       "117397153": {
         "sku": "",
-        "price": 28900
+        "price": 29890
       }
     }
   },
@@ -4202,19 +4194,19 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "35794580": {
     "name": "Luminaria de Emergencia LED 1000 Lúmenes - 2 Faros",
     "sku": "30070",
-    "price": 52836,
+    "price": 49890,
     "variants": {}
   },
   "35808441": {
     "name": "LUMINARIA DE EMERGENCIA LED 6W 2 FAROS 410 LÚMENES",
     "sku": "30146",
-    "price": 23681,
+    "price": 29590,
     "variants": {}
   },
   "37039738": {
     "name": "SEÑALÉTICA DE EMERGENCIA LED SLIM 24 X 18 CM. SALIDA",
     "sku": "33716",
-    "price": 19900,
+    "price": 22890,
     "variants": {}
   },
   "37379454": {
@@ -4232,38 +4224,38 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "37625224": {
     "name": "PANEL LED CUADRADO EMBUTIDO 9W IP44",
     "sku": "",
-    "price": 2190,
+    "price": 2790,
     "variants": {
       "122880398": {
         "sku": "PLCE9C",
-        "price": 2190
+        "price": 2790
       },
       "122880399": {
         "sku": "PLCE9N",
-        "price": 2190
+        "price": 2790
       },
       "122880400": {
         "sku": "PLCE9F",
-        "price": 2190
+        "price": 2790
       }
     }
   },
   "37625303": {
     "name": "PANEL LED CUADRADO EMBUTIDO 15W IP44",
     "sku": "",
-    "price": 2790,
+    "price": 2890,
     "variants": {
       "122880402": {
         "sku": "PLCE15C",
-        "price": 2790
+        "price": 2890
       },
       "122880403": {
         "sku": "PLCE15N",
-        "price": 2790
+        "price": 2890
       },
       "122880404": {
         "sku": "PLCE15F",
-        "price": 2790
+        "price": 2890
       }
     }
   },
@@ -4272,5 +4264,24 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "EX-125W-STA1",
     "price": 1199880,
     "variants": {}
+  },
+  "1234852242": {
+    "name": "FOCO LED COB BASCULANTE CODO 40W IP33",
+    "sku": "FLCB40",
+    "price": 27900,
+    "variants": {
+      "123532514": {
+        "sku": "FLCB40C",
+        "price": 27900
+      },
+      "123532515": {
+        "sku": "FLCB40N",
+        "price": 27900
+      },
+      "123532516": {
+        "sku": "FLCB40F",
+        "price": 27900
+      }
+    }
   }
 };

@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '796d22371aec';
+export const SNAPSHOT_HASH = 'f7fa5652f979';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -305,7 +305,7 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "29536021": {"url":"https://images.jumpseller.com/store/elights-cl/29536021/D_NQ_NP_2X_634394-MLC72421729388_102023-F-lampara-led-colgante-redonda-moderna-60cm-36w-luz-fria.jpg?1744923685","format":"jpeg","bytes":23728,"width":774,"height":782},
   "30511210": {"url":"https://images.jumpseller.com/store/elights-cl/30511210/ChatGPT_20Image_2014_20nov_202025_2C_2011_42_34.png?1764088687","format":"png","bytes":1549757,"width":1024,"height":1024},
   "30518805": {"url":"https://images.jumpseller.com/store/elights-cl/30518805/Alumbrado_20P_C3_BAblico_20Industrial_20400w_20All_20in_20One_20_20eLIGHTS.png?1751576770","format":"png","bytes":6359082,"width":4608,"height":3456},
-  "30534071": {"url":"https://images.jumpseller.com/store/elights-cl/30534071/Alumbrado_Publico_200W_eLIGHTS_FondoBlanco1.jpg?1751660059","format":"jpeg","bytes":157974,"width":2048,"height":1536},
+  "30534071": {"url":"https://images.jumpseller.com/store/elights-cl/30534071/Luminaria_20solar_20con_20doble_20m_C3_B3dulo_20LED.png?1793391245","format":"png","bytes":1065795,"width":1448,"height":1086},
   "31518788": {"url":"https://images.jumpseller.com/store/elights-cl/31518788/CAMPANA_20UFO_20REGULABLE.webp?1756919794","format":"webp","bytes":48786},
   "31731832": {"url":"https://images.jumpseller.com/store/elights-cl/31731832/proyector_201.png?1758112951","format":"png","bytes":415489,"width":960,"height":864},
   "32404303": {"url":"https://images.jumpseller.com/store/elights-cl/32404303/LINEAL_20EMBUTIDA_20EN_20PISO_2025W_20ELIGHTS_2001.jpg?1761596564","format":"jpeg","bytes":267447,"width":1000,"height":1000},
@@ -330,4 +330,5 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "37625224": {"url":"https://images.jumpseller.com/store/elights-cl/37625224/store/elights-cl/2270155/12W_1.png?1791485046","format":"png","bytes":66458,"width":600,"height":600},
   "37625303": {"url":"https://images.jumpseller.com/store/elights-cl/37625303/store/elights-cl/2270155/12W_1.png?1791485052","format":"png","bytes":66458,"width":600,"height":600},
   "37656341": {"url":"https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733","format":"png","bytes":90456,"width":500,"height":403},
+  "1234852242": {"url":"https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_1.png?1793817981","format":"png","bytes":241250,"width":600,"height":600},
 };

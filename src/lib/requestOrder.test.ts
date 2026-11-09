@@ -10,16 +10,16 @@ const item = (over: Partial<RequestCartItem>): RequestCartItem => ({
 });
 
 describe('reconcileRequestItems: carritos guardados antes de una sincronización', () => {
-  it('actualiza precio (AR111 $100.000 → $16.200), nombre e ids de Jumpseller', () => {
+  it('actualiza precio (AR111 $100.000 → el del catálogo), nombre e ids de Jumpseller', () => {
     const r = reconcileRequestItems([item({})], products);
     expect(r.changed).toBe(true);
     expect(r.repriced).toBe(1);
-    expect(r.items[0]).toMatchObject({ unitPrice: 16200, name: ar111.name, jumpsellerId: 3305420 });
+    expect(r.items[0]).toMatchObject({ unitPrice: ar111.price, name: ar111.name, jumpsellerId: 3305420 });
   });
 
   it('una línea vieja guardada en modo neto queda con el precio CON IVA del catálogo, sin priceMode (F-01)', () => {
-    const r = reconcileRequestItems([item({ unitPrice: Math.round(16200 / 1.19), priceMode: 'neto' })], products);
-    expect(r.items[0].unitPrice).toBe(16200);
+    const r = reconcileRequestItems([item({ unitPrice: Math.round(ar111.price / 1.19), priceMode: 'neto' })], products);
+    expect(r.items[0].unitPrice).toBe(ar111.price);
     expect(r.items[0]).not.toHaveProperty('priceMode');
   });
 
@@ -29,12 +29,13 @@ describe('reconcileRequestItems: carritos guardados antes de una sincronización
     expect(r.items[0]).toMatchObject({ unitPrice: v2700.price, variantId: v2700.jumpseller_variant_id });
   });
 
-  it('usa el precio de la variante elegida en el selector genérico (Flyhawk 80W: $514.800, no $442.800)', () => {
+  it('usa el precio de la variante elegida en el selector genérico (Flyhawk 80W)', () => {
     const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
-    const line = item({ productId: flyhawk.id, jumpsellerId: flyhawk.jumpseller_id, sku: 'JS-11521285', variantId: 118197864, unitPrice: 514800, attributes: { colorLuz: '80W · Ámbar 2200K' } });
+    const v80 = flyhawk.variants!.find(v => v.id === 118197864)!.price;
+    const line = item({ productId: flyhawk.id, jumpsellerId: flyhawk.jumpseller_id, sku: 'JS-11521285', variantId: 118197864, unitPrice: v80, attributes: { colorLuz: '80W · Ámbar 2200K' } });
     const r = reconcileRequestItems([line], products);
     expect(r.repriced).toBe(0);
-    expect(r.items[0]).toMatchObject({ unitPrice: 514800, variantId: 118197864, sku: 'JS-11521285', attributes: { colorLuz: '80W · Ámbar 2200K' } });
+    expect(r.items[0]).toMatchObject({ unitPrice: v80, variantId: 118197864, sku: 'JS-11521285', attributes: { colorLuz: '80W · Ámbar 2200K' } });
   });
 
   it('quita productos que ya no se publican', () => {

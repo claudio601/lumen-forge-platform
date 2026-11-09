@@ -181,8 +181,11 @@ const warrantyRow = (p: Product) => {
   return [...(d?.electricos ?? []), ...(d?.construccion ?? []), ...(d?.componentes ?? [])].find(r => r.label === 'Garantía')?.value;
 };
 const fromJumpseller = products.filter(p => !editorialOverlay[p.jumpseller_id]);
-/** Sin ficha técnica y sin cifra de garantía ("Si" o sin fila): queda la legal. */
-const withoutDatasheet = fromJumpseller.find(p => !p.datasheetUrl && [undefined, 'Si'].includes(warrantyRow(p)))!;
+/**
+ * Sin ficha editorial y sin cifra de garantía ("Si" o sin fila): queda la legal. Puede tener
+ * PDF adjunto en Jumpseller (casi todos lo tienen): la prueba no depende de eso.
+ */
+const legalWarranty = fromJumpseller.find(p => !p.datasheetUrl && [undefined, 'Si'].includes(warrantyRow(p)))!;
 const oneYear = fromJumpseller.find(p => warrantyRow(p) === '1 año')!;
 const projectProduct = fromJumpseller.find(p => p.categories.some(c => PROJECT_CATEGORIES.includes(c)))!;
 
@@ -240,7 +243,7 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
   // Toda oferta de despacho sin costo: el monto de la constante con "sobre" o "mayor a", la zona
   // de la constante y ninguna otra (src/test/freeShipping.ts). También en las fichas (una BESTLED
   // y una de Jumpseller) y en una categoría: ahí se agregaría una promesa junto al precio.
-  for (const path of [...STATIC_ROUTES, productPath(bestled.id), productPath(withoutDatasheet.id), categoryPath(bestled.categories[0]), ...guideRoutes]) {
+  for (const path of [...STATIC_ROUTES, productPath(bestled.id), productPath(legalWarranty.id), categoryPath(bestled.categories[0]), ...guideRoutes]) {
     it(`${path}: el despacho sin costo solo con el monto y la zona de business.ts`, async () => {
       const { root } = await page(path);
       const { claims, issues } = freeShippingIssues(root);
@@ -333,10 +336,14 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(datasheet?.getAttribute('href')).toBe(bestled.datasheetUrl);
   });
 
-  it('ficha sin ficha técnica: sin botón deshabilitado ni "próximamente", con la garantía legal', async () => {
-    const { root, html } = await page(productPath(withoutDatasheet.id));
-    const buttons = [...root.querySelectorAll('button')].filter(b => b.textContent?.trim() === 'Ficha técnica');
-    expect(buttons).toEqual([]);
+  it('ficha sin cifra de garantía: «Ficha técnica» nunca deshabilitada ni "próximamente", con la garantía legal', async () => {
+    const { root, html } = await page(productPath(legalWarranty.id));
+    // Si tiene PDF en Jumpseller, cada botón es un enlace al PDF; si no, no hay botón
+    const buttons = [...root.querySelectorAll('button')].filter(b => b.textContent?.trim().startsWith('Ficha técnica'));
+    for (const b of buttons) {
+      expect(b.hasAttribute('disabled')).toBe(false);
+      expect(b.closest('a')?.getAttribute('href')).toMatch(/^https:\/\/images\.jumpseller\.com\/.+\.pdf/);
+    }
     expect(html).not.toMatch(/Ficha técnica pr[oó]ximamente/i);
     expect(html).not.toContain('Mi cuenta');
     expect(root.textContent).toContain('Garantía legal de 6 meses');

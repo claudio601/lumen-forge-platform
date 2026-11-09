@@ -11,7 +11,8 @@
 //
 // En todos los modos (también --from-dir y la simulación) revisa la primera foto de los
 // productos nuevos o con foto cambiada: GET públicos con Range a images.jumpseller.com,
-// sin credenciales (scripts/jumpseller/og-images.ts).
+// sin credenciales (scripts/jumpseller/og-images.ts). Fuera de --from-dir, también consulta
+// los adjuntos de cada producto: las fichas técnicas en PDF (scripts/jumpseller/datasheets.ts).
 //
 // Credenciales: JUMPSELLER_LOGIN y JUMPSELLER_TOKEN en el entorno (GitHub Secrets) o
 // en .env.local. Nunca se imprimen.
@@ -28,12 +29,14 @@ import { rawCategorySchema, rawProductSchema, validateList } from './jumpseller/
 import { normalizeCatalog } from './jumpseller/normalize';
 import { buildDescriptions, diffDescriptions, renderDescriptionsReport } from './jumpseller/descriptions';
 import { buildOgImageFacts, createImageProbe, renderOgImagesReport, summarizeOgImages, type ImageFetch } from './jumpseller/og-images';
+import { buildDatasheets, DATASHEETS_DEADLINE_MS, renderDatasheetsReport, summarizeDatasheets } from './jumpseller/datasheets';
 import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { diffCatalog, renderDiffMarkdown, type BaselineEntry, type BenchmarkPrice } from './jumpseller/diff';
 import {
   OUTPUT_PATHS,
   findForbiddenKeys,
   renderCategoriesFile,
+  renderDatasheetsFile,
   renderDescriptionsFile,
   renderOgImagesFile,
   type ProductDescription,
@@ -178,6 +181,13 @@ async function loadPreviousOgImages(root: string): Promise<Record<number, Produc
   return { ...mod.productImageFacts };
 }
 
+async function loadPreviousDatasheets(root: string): Promise<Record<number, readonly string[]> | null> {
+  const file = join(root, OUTPUT_PATHS.datasheets);
+  if (!existsSync(file)) return null;
+  const mod = (await import(pathToFileURL(resolve(file)).href)) as { productDatasheets: Record<number, readonly string[]> };
+  return { ...mod.productDatasheets };
+}
+
 async function loadSiteIds(root: string): Promise<Record<number, string>> {
   const file = join(root, OUTPUT_PATHS.siteIds);
   if (!existsSync(file)) return {};
@@ -220,6 +230,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   let rawProducts: unknown[];
   let rawCategories: unknown[];
   let reportedCount: number | undefined;
+  let credentials: { login: string; token: string } | undefined;
   if (args.fromDir) {
     const raw = readRawDir(resolve(root, args.fromDir));
     rawProducts = raw.products;
@@ -243,6 +254,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
       rawProducts = await client.fetchAvailableProducts();
       countAfter = await client.countAvailableProducts();
       rawCategories = await client.fetchCategories();
+      credentials = { login: login!, token: token! };
     } catch (err) {
       if (err instanceof JumpsellerApiError) {
         log(`Error de Jumpseller: ${err.message}`);
@@ -373,6 +385,17 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   const og = await buildOgImageFacts(next, await loadPreviousOgImages(root), probe, { recheck: args.recheckImages });
   if (og.failed.length) log(`Fotos para compartir sin revisar (usan la imagen de la marca): ${og.failed.map(f => `${f.id} (${f.reason})`).join(', ')}`);
 
+  // Fichas técnicas en PDF: los adjuntos de cada producto, de a uno y también después de los
+  // resguardos. Un producto que no se pudo consultar conserva sus fichas anteriores; con
+  // --from-dir no se consulta la API y se mantiene el archivo actual.
+  // Cliente propio con hora límite: ni los reintentos ni las esperas por 429 pasan de ella.
+  const previousDatasheets = await loadPreviousDatasheets(root);
+  const sheetsClient = credentials
+    ? createJumpsellerClient({ ...credentials, fetchImpl: opts.fetchImpl, sleep: opts.sleep, deadlineAt: Date.now() + DATASHEETS_DEADLINE_MS })
+    : undefined;
+  const sheets = await buildDatasheets(next, previousDatasheets, sheetsClient ? id => sheetsClient.fetchProductAttachments(id) : null);
+  if (sheets.failed.length) log(`Fichas técnicas sin consultar (se mantienen las anteriores): ${sheets.failed.map(f => `${f.id} (${f.reason})`).join(', ')}`);
+
   // 6. Generar archivos y verificar que no filtren campos prohibidos
   const hash = snapshotHash(next);
   const files = {
@@ -382,6 +405,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     [OUTPUT_PATHS.siteIds]: renderSiteIdsFile(siteIds, hash),
     ...(desc.available ? { [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(desc.descriptions, hash) } : {}),
     [OUTPUT_PATHS.ogImages]: renderOgImagesFile(og.facts, hash),
+    [OUTPUT_PATHS.datasheets]: renderDatasheetsFile(sheets.datasheets, hash),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);
@@ -407,6 +431,8 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   const contentReport = renderContentReport(contentReview, new Map(next.map(p => [p.jumpseller_id, p.name])));
   const ogReport = renderOgImagesReport(next, og, new Map(next.map(p => [p.jumpseller_id, p.name])));
   const ogSummary = summarizeOgImages(next, og);
+  const sheetsReport = renderDatasheetsReport(next, sheets, previousDatasheets, new Map(next.map(p => [p.jumpseller_id, p.name])));
+  const sheetsSummary = summarizeDatasheets(next, sheets, previousDatasheets);
   if (contentReview.mismatched.length) log(`Contenido SEO a corregir: ${contentReview.mismatched.map(m => m.id).join(', ')}`);
   const summary = {
     snapshotHash: hash,
@@ -442,10 +468,18 @@ export async function runSync(opts: SyncOptions): Promise<number> {
       heavy: ogSummary.heavy,
       otherFormat: ogSummary.otherFormat,
     },
+    datasheets: {
+      checked: sheets.checked,
+      withPdf: sheetsSummary.withPdf,
+      without: sheetsSummary.without,
+      previousWithPdf: sheetsSummary.previousWithPdf,
+      failed: sheetsSummary.failed,
+      rejected: sheetsSummary.rejected,
+    },
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
-  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${ogReport}\n\n${contentReport}\n`, 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${ogReport}\n\n${sheetsReport}\n\n${contentReport}\n`, 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
   // 8. Escribir (solo con --write)

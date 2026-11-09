@@ -1,7 +1,8 @@
 // scripts/sync-jumpseller.test.ts
 // Pruebas de la sincronización con Jumpseller, sin red: la API se simula con fixtures
 // que tienen la forma real de las respuestas (incluido un cost_per_item falso), y el
-// servidor de fotos (imagen para compartir) con un PNG de 600×600.
+// servidor de fotos (imagen para compartir) con un PNG de 600×600. Los adjuntos (fichas
+// técnicas en PDF) tienen la forma real de products/<id>/attachments.json.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -37,10 +38,33 @@ function fakeFetch(route: (url: URL) => Reply) {
   return { fn, calls };
 }
 
-/** API simulada desde los fixtures, paginando de a `limit`. */
-function apiFromFixtures(products = fixture('products-available.json'), categories = fixture('categories.json'), count?: number | number[]) {
+const pdfUrl = (id: number, hash: string, file: string) =>
+  `https://images.jumpseller.com/store/elights-cl/${id}/attachments/${hash}/${file}?1665090171`;
+/** Adjuntos por producto: uno con tilde en el nombre; otro con dos PDF (desordenados) y un archivo que no es PDF. */
+const ATTACHMENTS: Record<number, unknown[]> = {
+  2301098: [{ attachment: { id: 28254391, customer_url: pdfUrl(2301098, '1d392cc84d9b9c62f9306131a3e213ce', 'FT_ALUMBRADO_PÚBLICO_40W_eLIGHTS.cl.pdf') } }],
+  2254290: [
+    { attachment: { id: 74377856, customer_url: pdfUrl(2254290, 'e01251fc442f397a6a4a6216af5f1e15', 'proyector-200w.pdf') } },
+    { attachment: { id: 74377752, customer_url: pdfUrl(2254290, '04fb40497ab8bccfa6df99d8d9b61757', 'proyector-100w.pdf') } },
+    { attachment: { id: 74377900, customer_url: pdfUrl(2254290, '9f0e', 'curva-200w.ies') } },
+  ],
+};
+
+/** API simulada desde los fixtures, paginando de a `limit`. `attachmentStatus` permite que un producto responda con error. */
+function apiFromFixtures(
+  products = fixture('products-available.json'),
+  categories = fixture('categories.json'),
+  count?: number | number[],
+  attachmentStatus: (id: number) => number = () => 200,
+) {
   let countCalls = 0;
   return fakeFetch(url => {
+    const attachments = url.pathname.match(/\/products\/(\d+)\/attachments\.json$/);
+    if (attachments) {
+      const id = Number(attachments[1]);
+      const status = attachmentStatus(id);
+      return status === 200 ? { status, body: ATTACHMENTS[id] ?? [] } : { status };
+    }
     const limit = Number(url.searchParams.get('limit') ?? 50);
     const page = Number(url.searchParams.get('page') ?? 1);
     const slice = (arr: unknown[]) => arr.slice((page - 1) * limit, page * limit);
@@ -125,6 +149,10 @@ function parseExport<T>(file: string, name: string): T {
   return JSON.parse(file.slice(eq, file.lastIndexOf(';')));
 }
 
+/** Fichas técnicas por producto (un producto por línea, con coma final). */
+const datasheets = (root: string) =>
+  JSON.parse(readGenerated(root).datasheets!.replace(/^[\s\S]*?= \{/, '{').replace(/,?\n\};\n$/, '\n}')) as Record<string, string[]>;
+
 /** Datos de las fotos (un producto por línea, con coma final). */
 const ogFacts = (root: string) =>
   JSON.parse(readGenerated(root).ogImages!.replace(/^[\s\S]*?= \{/, '{').replace(/,\n\};\n$/, '\n}')) as Record<string, ProductImageFacts>;
@@ -194,6 +222,26 @@ describe('cliente Jumpseller', () => {
     await expect(client.countAvailableProducts()).rejects.toMatchObject({ kind: 'auth' });
     expect(api.calls).toHaveLength(1);
     expect(new JumpsellerApiError('x', 'auth')).toBeInstanceOf(Error);
+  });
+});
+
+describe('cliente Jumpseller: hora límite', () => {
+  it('con 429 repetidos no espera ni reintenta más allá de la hora límite', async () => {
+    let t = 0;
+    const api = fakeFetch(() => ({ status: 429, headers: { 'Retry-After': '60' } }));
+    const client = createJumpsellerClient({
+      login: LOGIN, token: TOKEN, fetchImpl: api.fn, now: () => t, sleep: async ms => { t += ms; }, deadlineAt: 100_000,
+    });
+    await expect(client.fetchProductAttachments(1)).rejects.toMatchObject({ kind: 'deadline' });
+    expect(t).toBeLessThan(100_000);
+    expect(api.calls).toHaveLength(2);
+  });
+
+  it('pasada la hora límite no hace la solicitud', async () => {
+    const api = fakeFetch(() => ({ status: 200, body: [] }));
+    const client = createJumpsellerClient({ login: LOGIN, token: TOKEN, fetchImpl: api.fn, now: () => 5, deadlineAt: 5 });
+    await expect(client.fetchProductAttachments(1)).rejects.toMatchObject({ kind: 'deadline' });
+    expect(api.calls).toHaveLength(0);
   });
 });
 
@@ -326,6 +374,9 @@ describe('sincronización completa', () => {
     expect(saved).toContain('"description"');
     const first = readGenerated(root);
     const root2 = tempRoot();
+    // --from-dir no consulta los adjuntos: mantiene las fichas técnicas del sitio
+    mkdirSync(join(root2, 'src/data/catalog'), { recursive: true });
+    cpSync(join(root, OUTPUT_PATHS.datasheets), join(root2, OUTPUT_PATHS.datasheets));
     const fetchImpl = vi.fn();
     const again = await run(root2, ['--from-dir', join(root, 'reports/raw'), '--baseline', 'legacy', '--write'], { fetchImpl });
     expect(again.code).toBe(0);
@@ -442,6 +493,65 @@ describe('sincronización completa', () => {
     expect(summary.ogImages).toMatchObject({ own: 3, fallback: 1 });
     expect(readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8')).toContain('⚠️ No se pudieron revisar: 2502343');
     expect(logs.join('\n')).toContain('2502343 (HTTP 404)');
+  });
+});
+
+describe('workflow del robot', () => {
+  it('la PR del robot incluye todos los archivos generados', () => {
+    const yml = readFileSync(join(__dirname, '../.github/workflows/sync-jumpseller.yml'), 'utf8');
+    const block = yml.match(/add-paths: \|\n((?:\s+\S+\.generated\.ts\n)+)/);
+    expect(block, 'add-paths').not.toBeNull();
+    expect(block![1].trim().split(/\s+/).sort()).toEqual(Object.values(OUTPUT_PATHS).sort());
+  });
+});
+
+describe('fichas técnicas en PDF', () => {
+  let root: string;
+  beforeEach(() => { root = tempRoot(); return () => rmSync(root, { recursive: true, force: true }); });
+  const summary = () => JSON.parse(readFileSync(join(root, 'reports/jumpseller-sync/summary.json'), 'utf8'));
+  const report = () => readFileSync(join(root, 'reports/jumpseller-sync/diff.md'), 'utf8');
+
+  it('--write guarda los PDF de cada producto (codificados y en orden de adjunto); lo que no es PDF se informa', async () => {
+    const { code, logs, api } = await run(root, ['--write', '--baseline', 'legacy']);
+    expect(code, logs.join('\n')).toBe(0);
+    expect(datasheets(root)).toEqual({
+      2254290: [
+        pdfUrl(2254290, '04fb40497ab8bccfa6df99d8d9b61757', 'proyector-100w.pdf'),
+        pdfUrl(2254290, 'e01251fc442f397a6a4a6216af5f1e15', 'proyector-200w.pdf'),
+      ],
+      2301098: [pdfUrl(2301098, '1d392cc84d9b9c62f9306131a3e213ce', 'FT_ALUMBRADO_P%C3%9ABLICO_40W_eLIGHTS.cl.pdf')],
+    });
+    // una consulta por producto publicado, con Basic Auth
+    const calls = api!.calls.filter(c => c.url.includes('/attachments.json'));
+    expect(calls.map(c => new URL(c.url).pathname.split('/')[3]).sort()).toEqual(['14582065', '2254290', '2301098', '2502343']);
+    expect(calls.every(c => c.headers.Authorization.startsWith('Basic '))).toBe(true);
+    expect(summary().datasheets).toMatchObject({ checked: true, withPdf: 2, without: [2502343, 14582065], failed: [] });
+    expect(summary().datasheets.rejected).toEqual([{ id: 2254290, url: pdfUrl(2254290, '9f0e', 'curva-200w.ies') }]);
+    expect(report()).toContain('## Fichas técnicas (PDF)');
+    expect(report()).toContain('- Con ficha: 2 · sin ficha: 2');
+  });
+
+  it('un producto que no se pudo consultar conserva sus fichas anteriores y queda en el informe', async () => {
+    await run(root, ['--write', '--baseline', 'legacy']);
+    const before = datasheets(root);
+    const failing = apiFromFixtures(undefined, undefined, undefined, id => (id === 2301098 ? 500 : 200));
+    const { code, logs } = await run(root, ['--write', '--baseline', 'legacy'], { fetchImpl: failing.fn });
+    expect(code, logs.join('\n')).toBe(0);
+    expect(datasheets(root)).toEqual(before);
+    expect(summary().datasheets.failed.map((f: { id: number }) => f.id)).toEqual([2301098]);
+    expect(report()).toContain('⚠️ No se pudieron consultar: 2301098');
+    expect(logs.join('\n')).toContain('Fichas técnicas sin consultar');
+  });
+
+  it('--from-dir no consulta los adjuntos y mantiene las fichas de los productos publicados', async () => {
+    await run(root, ['--write', '--baseline', 'legacy']);
+    const before = datasheets(root);
+    const fetchImpl = vi.fn();
+    const { code } = await run(root, ['--from-dir', FIX, '--baseline', 'legacy', '--write'], { fetchImpl });
+    expect(code).toBe(0);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(datasheets(root)).toEqual(before);
+    expect(summary().datasheets).toMatchObject({ checked: false, withPdf: 2 });
   });
 });
 
