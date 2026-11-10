@@ -1336,6 +1336,8 @@
     {"source": "/senaletica-de-emergencia-led-salida-3w-4-hrs-autonomia", "category": "emergencia-led", "note": "producto que ya no se publica en Jumpseller: va a su categoría (2026-10-22); antes product 3192973"},
     {"source": "/senaletica-de-emergencia-led-slim-24-x-18-cm-salida", "product": 37039738},
     {"source": "/senaletica-de-emergencia-salida-a-prueba-de-explosion", "product": 19841604},
+    {"source": "/sensor-de-movimiento-pir-180-muro-ip44-negro", "product": 1234977373, "note": "producto nuevo del 10-11-2026 (permalink de Jumpseller)"},
+    {"source": "/sensores", "category": "sensores", "note": "categoría raíz nueva de Jumpseller (2894194), del 10-11-2026: a su categoría"},
     {"source": "/servicio-al-cliente", "path": "/cotizador", "note": "categoría de páginas de Jumpseller (pie «Servicio al cliente»); el script de la 404 de elights.cl la manda a /como-comprar-en-elights: el mismo destino"},
     {"source": "/solar", "category": "solar"},
     {"source": "/solar/proyector-solar", "category": "solar"},

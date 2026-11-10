@@ -1,0 +1,44 @@
+{
+  "metaTitle": "Sensor de movimiento PIR 180° de muro IP44 | eLIGHTS",
+  "metaDescription": "Sensor de movimiento PIR de muro: 180°, alcance de 2 a 12 m y retardo de 5 s a 10 min. Para cargas LED de hasta 150 W. Cotiza con despacho a todo Chile.",
+  "description": "El sensor de movimiento PIR 180° de muro enciende de forma automática reflectores y luminarias LED cuando detecta el paso de una persona, y las apaga cuando termina el tiempo que programaste. Es un detector infrarrojo pasivo de cuerpo plástico negro, con grado IP44 y cabezal orientable, pensado para accesos, pasillos exteriores, estacionamientos, patios y perímetros, donde la luz solo hace falta cuando alguien pasa.\n\n**Cómo detecta y qué puedes ajustar**\n\nUn sensor infrarrojo pasivo (PIR) reacciona al calor que emite una persona en movimiento dentro de su campo de detección. Este modelo cubre un ángulo de 180°, con una zona de detección y un alcance que se ajusta de 2 a 12 m. Trae tres perillas de ajuste:\n\n- **SENS**: regula la distancia de detección, entre 2 y 12 m.\n- **TIME**: define cuánto tiempo queda encendida la luz, de 5 segundos a 10 minutos.\n- **LUX**: fija el umbral de luz ambiente, para que el sensor opere solo de noche.\n\n**Carga y conexión eléctrica**\n\nFunciona con una tensión de alimentación de 110 a 240 V AC, a 50/60 Hz, y admite una carga máxima de 150 W en iluminación LED. Si vas a conectar más de un reflector al mismo sensor, la suma de sus potencias no debe pasar de ese valor.\n\nLa conexión es por bornera de 3 polos: el borne 1 (café) recibe la fase de entrada, el 2 (azul) va al neutro y el 3 (rojo) es la salida hacia la luminaria.\n\n**Dónde ubicarlo**\n\nSe monta en muro, y el cabezal orientable permite apuntar la detección hacia la zona de paso: la puerta de un acceso, el tramo de un pasillo o la entrada de un estacionamiento. Un grado IP44 protege contra salpicaduras de agua desde cualquier dirección y contra el ingreso de objetos sólidos pequeños.\n\nPara evitar activaciones falsas, no lo ubiques frente a la luz solar directa, a corrientes de aire ni a fuentes que cambien bruscamente la temperatura.\n\n**Compra y despacho**\n\nSe vende por unidad. Puedes sumarlo a tu solicitud de pedido o a una cotización, junto con los reflectores de tu proyecto, y el equipo comercial responde con la cotización formal y factura. Se despacha a todo Chile en hasta 2 días hábiles desde que el pago está confirmado. Si va a regiones, en ese plazo se entrega al transportista y el tiempo de viaje se informa en la cotización. Para dudas técnicas, escríbenos a ventas@elights.cl.",
+  "keyBenefits": [
+    "Detección de 180° con alcance ajustable de 2 a 12 m para cubrir accesos y pasillos",
+    "Tiempo de luz encendida regulable de 5 segundos a 10 minutos con la perilla TIME",
+    "Perilla LUX: fija el umbral de luz ambiente para que opere solo de noche",
+    "Carga máxima de 150 W en LED: uno o varios reflectores, si su suma no pasa ese valor",
+    "Tensión de 110 a 240 V AC y conexión por bornera de 3 polos",
+    "Grado IP44 y cabezal orientable para dirigir la detección desde el muro"
+  ],
+  "useCases": [
+    "Accesos y entradas",
+    "Pasillos exteriores",
+    "Estacionamientos",
+    "Patios",
+    "Perímetros",
+    "Reflectores LED que quieres encender solo al detectar movimiento"
+  ],
+  "installationInfo": "Antes de instalar, desenergiza el circuito. Fija el sensor en el muro y conecta la bornera de 3 polos: el cable café (1) a la fase de entrada, el azul (2) al neutro y el rojo (3) a la salida hacia la luminaria. Orienta el cabezal hacia la zona de paso y ajusta las perillas: SENS para la distancia, TIME para el tiempo encendido y LUX para que opere solo de noche.\n\nEvita la luz solar directa, las corrientes de aire y las fuentes que alteran bruscamente la temperatura, porque provocan activaciones falsas. El sensor mide 21 cm de largo, 8,8 cm de ancho y 5,2 cm de alto.",
+  "faq": [
+    {
+      "question": "¿Cuántos reflectores puedo conectar a este sensor?",
+      "answer": "Depende de la potencia de cada uno: la suma de todas las luminarias LED conectadas no puede superar la carga máxima del sensor, que es de 150 W. Si tu proyecto necesita más potencia, escríbenos a ventas@elights.cl y vemos contigo cómo repartir la carga."
+    },
+    {
+      "question": "¿Enciende la luz durante el día?",
+      "answer": "Depende de la perilla LUX, que fija el umbral de luz ambiente. Ajustada para operación nocturna, de día no enciende la luz aunque alguien pase frente a él."
+    },
+    {
+      "question": "¿Cuánto tiempo queda encendida la luz?",
+      "answer": "Lo defines con la perilla TIME, de 5 segundos a 10 minutos. Un tiempo corto sirve en pasillos de paso rápido; uno más largo, en accesos donde la gente se detiene, como la entrada de un estacionamiento."
+    },
+    {
+      "question": "¿Se puede instalar en exterior?",
+      "answer": "Sí, en muros exteriores: está pensado para accesos, pasillos exteriores, estacionamientos, patios y perímetros. Su grado IP44 protege contra salpicaduras de agua desde cualquier dirección, pero no contra chorros directos, como los de una manguera o una hidrolavadora. No lo ubiques frente a la luz solar directa, a corrientes de aire ni a fuentes que cambien bruscamente la temperatura, porque provocan activaciones falsas."
+    },
+    {
+      "question": "¿Cómo lo compro y cuándo se despacha?",
+      "answer": "Agrégalo a tu solicitud de pedido o a una cotización, solo o junto con los reflectores de tu proyecto. El equipo comercial responde con la cotización formal y se emite factura. Una vez confirmado el pago, el pedido se despacha en hasta 2 días hábiles. Si va a regiones, ese es el plazo para entregarlo al transportista, y el viaje se informa en la cotización."
+    }
+  ]
+}
