@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'd62e705bbd8a';
+export const SNAPSHOT_HASH = '398203edc90f';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -3666,7 +3666,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "sku": "",
         "price": 106800
       },
-      "122798073": {
+      "123679272": {
         "sku": "",
         "price": 106800
       }

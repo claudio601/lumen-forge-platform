@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'd62e705bbd8a';
+export const SNAPSHOT_HASH = '398203edc90f';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -13030,17 +13030,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 122798073,
-        "sku": "",
-        "price": 106800,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz Cálida - 3000K"
-          }
-        ]
-      },
-      {
         "id": 103125555,
         "sku": "",
         "price": 106800,
@@ -13048,6 +13037,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Fría - 6500K"
+          }
+        ]
+      },
+      {
+        "id": 123679272,
+        "sku": "",
+        "price": 106800,
+        "options": [
+          {
+            "name": "Color de Luz",
+            "value": "Luz Cálida - 2700K"
           }
         ]
       }

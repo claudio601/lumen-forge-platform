@@ -2,7 +2,7 @@
 // Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = 'd62e705bbd8a';
+export const SNAPSHOT_HASH = '398203edc90f';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2251313": ["https://images.jumpseller.com/store/elights-cl/2251313/attachments/15146e05ea68ef8f78a44b337b0a4525/FT_AMPOLLETA_LED_DICROICA_4-50W_GU10_eLIGHTS.cl.pdf?1669657872"],
@@ -270,7 +270,7 @@ export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "24698439": ["https://images.jumpseller.com/store/elights-cl/24698439/attachments/eab01524a33b0fb8f0a4e2c96a2841b7/FT_PROYECTOR_LED_DE_ESTADIO_MODULAR-ELIGHTS__500W.pdf?1764276106"],
   "25714697": ["https://images.jumpseller.com/store/elights-cl/25714697/attachments/1c1d9c29262cf569a0991f938c056a8d/FT_PANEL_LED_RETRAIDO_OPAL24W-ELIGHTS.pdf?1720109444"],
   "25714841": ["https://images.jumpseller.com/store/elights-cl/25714841/attachments/723df70439020ad79f3dc66ef5664f4a/FT-PANEL_LED_RETRAIDO_OPAL_6W_ELIGHTS.pdf?1720109929"],
-  "25818717": ["https://images.jumpseller.com/store/elights-cl/25818717/attachments/786668b191b83793a860f454fea77f24/FT_ALUMBRADO_P%C3%9ABLICO_LED_SOLAR_ALL_IN_ONE_200W-ELIGHTS.CL.pdf?1721663956"],
+  "25818717": ["https://images.jumpseller.com/store/elights-cl/25818717/attachments/8fb2c9f5b36fe97333f1b5b7e02ed300/ALUMBRADO_P%C3%9ABLICO_LED_SOLAR_200W_ALL_IN_ONE_eLIGHTS.pdf?1794327155"],
   "25885210": ["https://images.jumpseller.com/store/elights-cl/25885210/attachments/09570625dda389b72b54dc80dad8e86e/FT_ALUMBRADO_P%C3%9ABLICO_LED_SOLAR_ALL_IN_ONE_100W-ELIGHTS.CL.pdf?1721663915"],
   "25888711": ["https://images.jumpseller.com/store/elights-cl/25888711/attachments/3ae1383bd56c0228b3f9c705c26c4839/FT_ALUMBRADO_P%C3%9ABLICO_LED_SOLAR_ALL_IN_ONE_150W-JIE.pdf?1721847689"],
   "25888760": ["https://images.jumpseller.com/store/elights-cl/25888760/attachments/314936dac6f58a243428426c044b5116/FT_ALUMBRADO_P%C3%9ABLICO_LED_SOLAR_ALL_IN_ONE_60W-ELIGHTS.CL.pdf?1721663865"],
