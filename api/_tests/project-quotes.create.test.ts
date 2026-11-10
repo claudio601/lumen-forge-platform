@@ -172,6 +172,17 @@ describe('POST /api/project-quotes/create', () => {
     expect(dealArgs()).toMatchObject({ leadType: 'B2B' });
   });
 
+  it.each([
+    ['sin datos de empresa', 'B2C', {}],
+    ['con razón social', 'B2B', { razonSocial: 'PRUEBA EMPRESA' }],
+    ['solo con RUT de empresa', 'B2B', { rutEmpresa: RUT }],
+  ] as const)('%s: la persona nueva lleva el tipo de cliente %s, igual que el negocio', async (_name, expected, extra) => {
+    const res = await call({ ...base, ...extra });
+    expect(res.statusCode).toBe(201);
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).toMatchObject({ customerType: expected });
+    expect(dealArgs().leadType).toBe(expected);
+  });
+
   it('la nota del negocio lleva la referencia, el proyecto, el contacto, la empresa y los comentarios', async () => {
     const res = await call(full);
     const reference = refOf(res);

@@ -83,6 +83,17 @@ describe('POST /api/request-orders/create', () => {
     expect(deal.notes).not.toContain('@ 100 CLP');
   });
 
+  it.each([
+    ['persona', 'B2C', {}],
+    ['empresa', 'B2B', { companyName: 'EMPRESA PRUEBA SPA' }],
+  ] as const)('cliente %s: la persona nueva lleva el tipo de cliente %s del formulario (igual que el negocio)', async (customerType, expected, extra) => {
+    vi.mocked(findOrCreatePerson).mockClear();
+    const res = await call({ ...base, customerType, ...extra, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).toMatchObject({ customerType: expected });
+    expect(vi.mocked(createDeal).mock.calls[0][0].leadType).toBe(expected);
+  });
+
   it('un producto sin SKU (JS-<id>) se acepta', async () => {
     const item = { jumpsellerId: 3921249, sku: 'JS-3921249', name: 'Lineal', quantity: 1, unitPrice: 1, currency: 'CLP', lineTotal: 1, url: '/x', attributes: {} };
     const res = await call({ ...base, items: [item] });

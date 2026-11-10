@@ -13,6 +13,11 @@ export interface QuoteCustomer {
   email?: string;
   phone?: string;
   preferredChannel?: 'Email' | 'WhatsApp' | 'Telefono';
+  /**
+   * Person field customerType (B2B/B2C). Only when the source knows it: the site forms and
+   * the WhatsApp bot. Jumpseller does not, so it stays empty.
+   */
+  customerType?: LeadType;
   commune?: string;
 }
 

@@ -676,7 +676,9 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
         name: installName(captured) ?? (name || phone),
         phone,
         email: resolveLead(captured ?? {}).correo,
-        preferredChannel: 'WhatsApp'
+        preferredChannel: 'WhatsApp',
+        // El tipo que detecto el bot; si no lo sabe, la persona queda sin tipo (el negocio dice B2C)
+        customerType: resolvedLeadType === 'Unknown' ? undefined : resolvedLeadType,
   };
 
   const { personId, action: personAction } = await findOrCreatePerson(customer);

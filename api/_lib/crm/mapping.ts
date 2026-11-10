@@ -135,8 +135,19 @@ export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
       ? normalizePhone(payload.customer.phone)
       : undefined,
     preferredChannel: payload.customer?.preferredChannel,
+    customerType: customerTypeOf(payload),
     commune: payload.customer?.commune?.trim() || undefined,
   };
+}
+
+/**
+ * Person field customerType: the leadType the source states (/cotizacion: persona -> B2C,
+ * empresa -> B2B). Never inferred from the organization. Jumpseller does not know it (the
+ * webhook always sends B2C), so its persons stay empty.
+ */
+function customerTypeOf(payload: QuotePayload): LeadType | undefined {
+  if (payload.sourceSystem === 'jumpseller') return undefined;
+  return payload.leadType === 'B2B' || payload.leadType === 'B2C' ? payload.leadType : undefined;
 }
 
 /**
