@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom';
 import {
     Zap, Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
     AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
-    TestTube, Ruler, TrainTrack, UtilityPole,
+    TestTube, Ruler, TrainTrack, UtilityPole, Radar,
 } from 'lucide-react';
 import { categories } from '@/data/catalog/categories.config';
 
 const iconMap: Record<string, React.ElementType> = {
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
     AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
-    TestTube, Ruler, TrainTrack, UtilityPole, Zap,
+    TestTube, Ruler, TrainTrack, UtilityPole, Radar, Zap,
 };
 
 const CategoryGrid = () => (
@@ -32,7 +32,7 @@ const CategoryGrid = () => (
                 <Icon className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="text-xs font-medium leading-tight">{cat.name}</span>
-              <span className="text-[10px] text-muted-foreground">{cat.productCount} productos</span>
+              <span className="text-[10px] text-muted-foreground">{cat.productCount} {cat.productCount === 1 ? 'producto' : 'productos'}</span>
             </Link>
           );
         })}

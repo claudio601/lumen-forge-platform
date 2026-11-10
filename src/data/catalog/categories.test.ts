@@ -27,7 +27,7 @@ describe('categorías del sitio', () => {
 describe('mapa de categorías principales de Jumpseller', () => {
   const entries = Object.entries(JUMPSELLER_TOP_CATEGORY_TO_SLUG);
 
-  it('cubre las 15 categorías del sitio, cada una exactamente una vez', () => {
+  it('cubre todas las categorías del sitio, cada una exactamente una vez', () => {
     const mapped = entries.map(([, slug]) => slug).sort();
     expect(mapped).toEqual([...slugs].sort());
   });

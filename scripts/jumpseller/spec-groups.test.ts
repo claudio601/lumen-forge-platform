@@ -50,6 +50,30 @@ describe('especificaciones agrupadas como en las fichas BESTLED', () => {
     expect(specs.construccion.map(r => r.label)).toContain('Resistencia al impacto (IK)');
   });
 
+  it('sensor de movimiento (10-11-2026): el ángulo de detección conserva su nombre y va con el sensor', () => {
+    const { specs, unknownLabels } = groupSpecs(
+      table([
+        ['Tipo de sensor', 'Infrarrojo pasivo (PIR)'],
+        ['Ángulo de detección', '180°'],
+        ['Retardo de apagado', '5 s a 600 s'],
+        ['Tensión de alimentación', '110 – 240 V AC'],
+        ['Venta', 'Por unidad'],
+        ['Ángulo de apertura', '120°'],
+      ]),
+    );
+    expect(unknownLabels).toEqual([]);
+    expect(specs.componentes).toEqual([
+      { label: 'Tipo de sensor', value: 'Infrarrojo pasivo (PIR)' },
+      { label: 'Ángulo de detección', value: '180°' },
+      { label: 'Retardo de apagado', value: '5 s a 600 s' },
+    ]);
+    expect(specs.electricos).toEqual([
+      { label: 'Tensión de alimentación', value: '110 – 240 V AC' },
+      { label: 'Ángulo de apertura', value: '120°' },
+    ]);
+    expect(specs.construccion).toEqual([{ label: 'Venta', value: 'Por unidad' }]);
+  });
+
   it('una etiqueta desconocida queda en Construcción y operación y se informa', () => {
     const { specs, unknownLabels } = groupSpecs(table([['Color del cable', 'Rojo']]));
     expect(specs.construccion).toEqual([{ label: 'Color del cable', value: 'Rojo' }]);

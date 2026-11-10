@@ -18,7 +18,7 @@ import {
     Menu, ChevronRight, FileText, ClipboardList, Compass, Wrench, Users,
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium,
     RadioTower, AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
-    TestTube, Ruler, TrainTrack, UtilityPole,
+    TestTube, Ruler, TrainTrack, UtilityPole, Radar,
 } from 'lucide-react';
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useApp } from '@/context/AppContext';
@@ -31,7 +31,7 @@ import { trackRequestCartView } from '@/components/request-order/requestCartAnal
 const iconMap: Record<string, React.ElementType> = {
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
     AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings, TestTube,
-    Ruler, TrainTrack, UtilityPole,
+    Ruler, TrainTrack, UtilityPole, Radar,
 };
 
 const rowClass = 'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';

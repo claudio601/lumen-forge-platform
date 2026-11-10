@@ -19,7 +19,7 @@ import {
     Search, FileText, Menu, ChevronDown,
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium,
     RadioTower, AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings,
-    TestTube, Ruler, TrainTrack, UtilityPole, Wrench,
+    TestTube, Ruler, TrainTrack, UtilityPole, Radar, Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
@@ -34,7 +34,7 @@ import RequestCartDrawer, { HEADER_DOOR_CLASS } from '@/components/request-order
 const iconMap: Record<string, React.ElementType> = {
     Lightbulb, PanelTop, Waves, Projector, Warehouse, SunMedium, RadioTower,
     AlignJustify, Siren, PlugZap, ShieldAlert, Sun, Tag, Settings, TestTube,
-    Ruler, TrainTrack, UtilityPole,
+    Ruler, TrainTrack, UtilityPole, Radar,
 };
 
 /** Bajo sm, cada puerta ocupa media fila; desde sm, su propio ancho. */

@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'd62e705bbd8a';
+export const SNAPSHOT_HASH = '7c2228ac40e2';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -13030,17 +13030,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 122798073,
-        "sku": "",
-        "price": 106800,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz Cálida - 3000K"
-          }
-        ]
-      },
-      {
         "id": 103125555,
         "sku": "",
         "price": 106800,
@@ -13048,6 +13037,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Fría - 6500K"
+          }
+        ]
+      },
+      {
+        "id": 123679272,
+        "sku": "",
+        "price": 106800,
+        "options": [
+          {
+            "name": "Color de Luz",
+            "value": "Luz Cálida - 2700K"
           }
         ]
       }
@@ -15398,5 +15398,25 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       }
     ]
+  },
+  {
+    "jumpseller_id": 1234977373,
+    "name": "SENSOR DE MOVIMIENTO PIR 180° MURO IP44 NEGRO",
+    "permalink": "sensor-de-movimiento-pir-180-muro-ip44-negro",
+    "sku": "SPIR180N",
+    "price": 11662,
+    "brand": null,
+    "featured": false,
+    "categories": [
+      "sensores"
+    ],
+    "images": [
+      {
+        "id": 83760265,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234977373/sensor-pir-180-spir180n.jpg?1794340095",
+        "position": 1
+      }
+    ],
+    "variants": []
   }
 ];
