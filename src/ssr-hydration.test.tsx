@@ -30,6 +30,8 @@ import { products } from '@/data/products';
 import { formatCLP } from '@/lib/requestOrder';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
+import { productDatasheets } from '@/data/catalog/datasheets.generated';
+import { productDatasheetLinks } from '@/lib/datasheets';
 import { COOKIE_CONSENT_STORAGE_KEY, COOKIE_CONSENT_VERSION, COOKIE_TEXTS, __resetForTests, type CookieChoice } from '@/lib/cookieConsent';
 import { CONSENT_FIELD_NAMES } from '../api/_lib/forms/consent';
 import { SAVED_CONTACT_STORAGE_KEY, type SavedContact } from '@/lib/savedContact';
@@ -144,6 +146,8 @@ const withContent = products.find(p => hasProductContent(p.jumpseller_id) && !ed
 const bestled = products.find(p => editorialOverlay[p.jumpseller_id])!;
 // Selector de variante genérico con dos ejes (potencia y temperatura de color) y precio «desde»
 const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
+// Sin PDF de ficha técnica: «Pedir ficha técnica» en vez del botón al PDF
+const noSheet = products.find(p => productDatasheetLinks(p.datasheetUrl, productDatasheets[p.jumpseller_id]).length === 0);
 
 const PAGES: [string, string, string][] = [
   ...STATIC_ROUTES.map(r => [`página fija ${r}`, r, r] as [string, string, string]),
@@ -153,6 +157,7 @@ const PAGES: [string, string, string][] = [
   ['ficha con contenido SEO', `/producto/${withContent.id}`, `/producto/${withContent.id}?gclid=abc`],
   ['ficha BESTLED', `/producto/${bestled.id}`, `/producto/${bestled.id}`],
   ['ficha con selector de variante (Flyhawk)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?gclid=abc`],
+  ...(noSheet ? [['ficha sin PDF de ficha técnica', `/producto/${noSheet.id}`, `/producto/${noSheet.id}?gclid=abc`] as [string, string, string]] : []),
   // Guías (plan del blog, §5.6): cada guía publicada, también las sin indexar; G1 llega desde el
   // correo del 12/11 a su sección #plazos
   ...prerenderedRoutes()

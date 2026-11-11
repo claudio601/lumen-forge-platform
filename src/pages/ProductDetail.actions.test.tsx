@@ -1,6 +1,6 @@
 // Ficha, entrega 6 de la auditoría UX: la cantidad se escribe (D-03), la caja «Estudio DIALux
-// (servicio cotizado)» en las fichas de proyecto (E-02) y «Pedir documentos técnicos» en todas
-// (D-02, paso 1). Sin valores fijos del catálogo: los productos se eligen por una propiedad.
+// (servicio cotizado)» en las fichas de proyecto (E-02) y el correo de documentos técnicos en
+// todas (D-02, paso 1), con la ficha técnica destacada bajo Solicitar pedido / Cotizar. Sin valores fijos del catálogo: los productos se eligen por una propiedad.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
@@ -79,7 +79,26 @@ const savedQuote = () => JSON.parse(sessionStorage.getItem('elights_quote') ?? '
 const named = (p: Product) => p.name.replace(/\s+/g, ' ').trim();
 const quantityField = (p: Product) => screen.getByRole('spinbutton', { name: `Cantidad de ${named(p)}` }) as HTMLInputElement;
 const box = () => document.querySelector('[data-dialux-box]') as HTMLElement | null;
-const docsLink = () => screen.getByRole('link', { name: 'Pedir documentos técnicos' });
+// El correo de documentos: «Pedir ficha técnica» arriba si no hay PDF, o «Pedir documentos
+// técnicos» en su bloque si lo hay (nunca los dos)
+const docsLink = () => screen.getByRole('link', { name: /^Pedir (documentos técnicos|ficha técnica)$/ });
+// Fila de Solicitar pedido / Cotizar, y fila de la ficha técnica (la siguiente)
+const ctaRow = () => screen.getByRole('button', { name: /Solicitar pedido/ }).parentElement!;
+const datasheetRow = (link: HTMLElement) => link.closest('[data-datasheets]')!;
+/** Botón de la ficha técnica a primera vista: enlace con borde y texto del color primario, 44 px. */
+function expectProminent(link: HTMLElement) {
+  expect(link.tagName).toBe('A');
+  expect(link.querySelector('button')).toBeNull(); // nunca un <button> dentro de un <a>
+  expect(link.closest('button')).toBeNull();
+  expect(link.closest('[data-docs-block]')).toBeNull();
+  expect(link.className).toMatch(/\bborder-primary\b/);
+  expect(link.className).toMatch(/\btext-primary\b/);
+  expect(link.className).toMatch(/\bh-11\b/);
+  expect(link.className).toMatch(/\bw-full\b/);
+  expect(link.className).toContain('focus-visible:ring-2');
+  expect(link.className).not.toContain('text-muted-foreground');
+  expect(link.querySelector('svg')).not.toBeNull();
+}
 /** Asunto y cuerpo del correo prellenado. */
 function mail(href: string) {
   const [address, query] = href.replace(/^mailto:/, '').split('?');
@@ -305,42 +324,63 @@ describe('ficha: «Pedir documentos técnicos» (D-02, paso 1)', () => {
     expect(mail(docsLink().getAttribute('href')!).body).toMatch(/\r\nTemperatura de color:\r\nSKU: /);
   });
 
-  it('con ficha PDF: «Ficha técnica» sigue donde estaba (junto a WhatsApp), fuera del bloque, hasta que la agencia reemita los PDF', () => {
+  it('BESTLED: «Ficha técnica (PDF)» destacada, justo debajo de Solicitar pedido / Cotizar, y el bloque para pedir lo demás', () => {
     renderPdp(bestled);
+    const datasheet = screen.getByRole('link', { name: 'Ficha técnica (PDF)' });
+    // Su PDF editorial (gana al de Jumpseller), propio del sitio: se descarga
+    expect(datasheet.getAttribute('href')).toBe(bestled.datasheetUrl);
+    expect(datasheet.hasAttribute('download')).toBe(true);
+    expectProminent(datasheet);
+    expect(datasheetRow(datasheet).previousElementSibling).toBe(ctaRow());
+    // Fuera del bloque «Documentos técnicos», que sigue para pedir IES y certificados por variante
     const block = screen.getByRole('region', { name: 'Documentos técnicos' });
     expect(within(block).getByRole('link', { name: 'Pedir documentos técnicos' })).toBeInTheDocument();
-    expect(within(block).queryByRole('link', { name: 'Ficha técnica' })).not.toBeInTheDocument();
-    const datasheet = screen.getByRole('link', { name: 'Ficha técnica' });
-    expect(datasheet.getAttribute('href')).toBe(bestled.datasheetUrl);
-    // El mismo estilo discreto de antes (enlace gris), no un botón con borde
-    expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
-    const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
-    expect(datasheet.parentElement).toBe(wa.parentElement);
+    expect(within(block).queryByRole('link', { name: /Ficha técnica/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pedir ficha técnica' })).not.toBeInTheDocument();
   });
 
-  it('con PDF adjunto en Jumpseller: «Ficha técnica» en el mismo lugar y con el mismo estilo, al PDF del CDN en otra pestaña', () => {
+  it('con PDF adjunto en Jumpseller: un botón destacado al PDF del CDN, en otra pestaña; WhatsApp queda en su fila', () => {
     renderPdp(oneSheet);
-    const datasheet = screen.getByRole('link', { name: 'Ficha técnica' });
+    const datasheet = screen.getByRole('link', { name: 'Ficha técnica (PDF)' });
     expect(datasheet.getAttribute('href')).toBe(productDatasheets[oneSheet.jumpseller_id][0]);
     expect(datasheet.getAttribute('target')).toBe('_blank');
     expect(datasheet.getAttribute('rel')).toBe('noopener noreferrer');
     // `download` no sirve en otro dominio: el PDF se abre en otra pestaña
     expect(datasheet.hasAttribute('download')).toBe(false);
-    expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
+    expectProminent(datasheet);
+    expect(datasheetRow(datasheet).previousElementSibling).toBe(ctaRow());
+    // WhatsApp, en la fila siguiente y con su estilo de siempre
     const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
-    expect(datasheet.parentElement).toBe(wa.parentElement);
+    expect(wa.parentElement).not.toBe(datasheet.parentElement);
+    expect(datasheetRow(datasheet).nextElementSibling).toBe(wa.parentElement);
+    expect(wa.querySelector('button')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Documentos técnicos' })).toBeInTheDocument();
   });
 
-  it('con varios PDF en Jumpseller: un enlace por PDF, con su potencia y de menor a mayor', () => {
+  it('con varios PDF en Jumpseller: un botón por PDF, con su potencia, de menor a mayor y en la misma grilla', () => {
     renderPdp(manySheets);
     const links = screen.getAllByRole('link', { name: /^Ficha técnica/ });
-    expect(links.map(l => l.textContent?.trim())).toEqual(['Ficha técnica 40W', 'Ficha técnica 80W']);
+    expect(links.map(l => l.textContent?.trim())).toEqual(['Ficha técnica 40W (PDF)', 'Ficha técnica 80W (PDF)']);
     expect(links.map(l => l.getAttribute('href'))).toEqual([...productDatasheets[manySheets.jumpseller_id]].reverse());
+    for (const l of links) expectProminent(l);
+    expect(new Set(links.map(l => l.parentElement)).size).toBe(1);
+    expect(datasheetRow(links[0]).previousElementSibling).toBe(ctaRow());
   });
 
-  it('sin PDF: sin enlace «Ficha técnica»', () => {
+  it('sin PDF: «Pedir ficha técnica» igual de visible, en el mismo lugar, con el correo de «Pedir documentos técnicos» (sin repetirlo abajo)', () => {
     renderPdp(noSheet);
     expect(screen.queryByRole('link', { name: /^Ficha técnica/ })).not.toBeInTheDocument();
+    const ask = screen.getByRole('link', { name: 'Pedir ficha técnica' });
+    expectProminent(ask);
+    expect(datasheetRow(ask).previousElementSibling).toBe(ctaRow());
+    const { address, subject } = mail(ask.getAttribute('href')!);
+    expect(address).toBe(contactEmail);
+    expect(subject).toBe(`Documentos técnicos: ${noSheet.name} (SKU ${requestSku(noSheet)})`);
+    expect(ask.getAttribute('aria-describedby')).toBe(screen.getByText(`Abre un correo a ${contactEmail} con el producto y el SKU.`).id);
+    // El mismo correo no se ofrece dos veces
+    expect(screen.queryByRole('region', { name: 'Documentos técnicos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pedir documentos técnicos' })).not.toBeInTheDocument();
+    expect([...document.querySelectorAll('a')].filter(a => a.getAttribute('href') === ask.getAttribute('href'))).toHaveLength(1);
   });
 
   it('en todas las fichas, siempre a ventas@elights.cl', () => {

@@ -8,6 +8,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import ProductDetail from './ProductDetail';
 import proyector100 from '@/data/catalog/content/2252962.json';
 import { products } from '@/data/products';
+import { productDatasheets } from '@/data/catalog/datasheets.generated';
+import { productDatasheetLinks } from '@/lib/datasheets';
 
 const BESTLED = 'alumbrado-publico-bestled-150w-ip66-ik08';
 
@@ -32,7 +34,7 @@ function renderPdp(id: string) {
 describe('ProductDetail: fichas PDF BESTLED', () => {
   it.each([40, 60, 90, 120, 150, 200, 250])('BESTLED %iW: enlace relativo al PDF con descarga y apertura en otra pestaña', (watts) => {
     renderPdp(`alumbrado-publico-bestled-${watts}w-ip66-ik08`);
-    const link = screen.getByRole('link', { name: 'Ficha técnica' });
+    const link = screen.getByRole('link', { name: 'Ficha técnica (PDF)' });
     expect(link).toHaveAttribute('href', `/fichas/APB${watts}.pdf`);
     expect(link).toHaveAttribute('download');
     expect(link).toHaveAttribute('target', '_blank');
@@ -40,6 +42,33 @@ describe('ProductDetail: fichas PDF BESTLED', () => {
     // Desde una ficha anidada y con otro dominio, el PDF se resuelve en la raíz del mismo sitio.
     expect(new URL(link.getAttribute('href')!, `https://sitio.example/producto/bestled-${watts}`).href)
       .toBe(`https://sitio.example/fichas/APB${watts}.pdf`);
+  });
+});
+
+// Todas las fichas publicadas tienen su botón de ficha técnica bajo Solicitar pedido / Cotizar
+// (reclamos de clientes, 2026-11-11): uno por PDF, o «Pedir ficha técnica» si Jumpseller no
+// tiene el PDF. Datos del día, pero la regla no depende de cuáles productos tienen PDF.
+describe('ProductDetail: botón de ficha técnica en todas las fichas', () => {
+  const sheets = (p: (typeof products)[number]) => productDatasheetLinks(p.datasheetUrl, productDatasheets[p.jumpseller_id]);
+  // Una ficha por categoría, más una con varios PDF y una sin PDF si las hay
+  const sample = [...new Map(products.map(p => [p.category, p])).values()];
+  const many = products.find(p => sheets(p).length > 1);
+  const none = products.find(p => sheets(p).length === 0);
+  for (const p of [many, none]) if (p && !sample.includes(p)) sample.push(p);
+
+  it.each(sample.map(p => [p.id, p] as const))('%s', (_id, p) => {
+    renderPdp(p.id);
+    const row = screen.getByRole('button', { name: /Solicitar pedido/ }).parentElement!.nextElementSibling as HTMLElement;
+    expect(row.hasAttribute('data-datasheets')).toBe(true);
+    const links = [...row.querySelectorAll('a')];
+    const expected = sheets(p);
+    if (expected.length) {
+      expect(links.map(a => a.textContent?.trim())).toEqual(expected.map(d => `${d.label} (PDF)`));
+      expect(links.map(a => a.getAttribute('href'))).toEqual(expected.map(d => d.href));
+    } else {
+      expect(links.map(a => a.textContent?.trim())).toEqual(['Pedir ficha técnica']);
+      expect(links[0].getAttribute('href')).toMatch(/^mailto:/);
+    }
   });
 });
 

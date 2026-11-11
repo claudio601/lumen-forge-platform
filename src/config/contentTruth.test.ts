@@ -332,17 +332,20 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text.indexOf('Garantía de 5 años')).toBeLessThan(text.search(/Garant[ií]a\s*5 años/));
     expect(text).toContain('durante esos 6 meses el cliente elige entre reparación, cambio o devolución');
     // Con ficha técnica: el botón descarga el PDF
-    const datasheet = [...root.querySelectorAll('a')].find(a => a.textContent?.trim() === 'Ficha técnica');
+    const datasheet = [...root.querySelectorAll('a')].find(a => a.textContent?.trim() === 'Ficha técnica (PDF)');
     expect(datasheet?.getAttribute('href')).toBe(bestled.datasheetUrl);
   });
 
   it('ficha sin cifra de garantía: «Ficha técnica» nunca deshabilitada ni "próximamente", con la garantía legal', async () => {
     const { root, html } = await page(productPath(legalWarranty.id));
-    // Si tiene PDF en Jumpseller, cada botón es un enlace al PDF; si no, no hay botón
-    const buttons = [...root.querySelectorAll('button')].filter(b => b.textContent?.trim().startsWith('Ficha técnica'));
-    for (const b of buttons) {
-      expect(b.hasAttribute('disabled')).toBe(false);
-      expect(b.closest('a')?.getAttribute('href')).toMatch(/^https:\/\/images\.jumpseller\.com\/.+\.pdf/);
+    // Si tiene PDF en Jumpseller, cada botón es un enlace al PDF; si no, «Pedir ficha técnica» (correo)
+    expect([...root.querySelectorAll('button')].filter(b => /Ficha técnica/i.test(b.textContent ?? ''))).toEqual([]);
+    const links = [...root.querySelectorAll('[data-datasheets] a')];
+    expect(links.length).toBeGreaterThan(0);
+    for (const a of links) {
+      expect(a.getAttribute('href')).toMatch(
+        a.textContent?.trim() === 'Pedir ficha técnica' ? /^mailto:/ : /^https:\/\/images\.jumpseller\.com\/.+\.pdf/,
+      );
     }
     expect(html).not.toMatch(/Ficha técnica pr[oó]ximamente/i);
     expect(html).not.toContain('Mi cuenta');
