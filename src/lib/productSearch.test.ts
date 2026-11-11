@@ -260,6 +260,17 @@ describe('sinónimos agregados en la revisión', () => {
     }
   });
 
+  it('«sensor de presencia» y «detector de presencia» traen lo de «sensor de movimiento», primero lo que es un sensor (10-11-2026)', () => {
+    for (const q of ['sensor de presencia', 'detector de presencia']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of search('sensor de movimiento')) expect(ids(r).has(p.id), `${q}: ${p.name}`).toBe(true);
+      const viaSynonym = r.filter(p => !/detector|presencia/.test(haystack(p)));
+      const starts = viaSynonym.filter(p => leadOf(p).startsWith('sensor'));
+      expect(viaSynonym.slice(0, starts.length), q).toEqual(starts);
+    }
+  });
+
   it('«dimmer» trae lo regulable y lo «dimerizable»', () => {
     const r = ids(search('dimmer'));
     for (const p of products.filter(x => nameHas(x, /\b(regulable|dimerizable)\b/))) expect(r.has(p.id), p.name).toBe(true);

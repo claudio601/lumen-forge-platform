@@ -41,6 +41,7 @@ export const SEARCH_SYNONYMS: readonly SearchSynonym[] = [
   { busca: ['triproof', 'tri proof'], encuentra: 'hermética' },
   { busca: ['empotrado'], encuentra: 'embutido' },
   { busca: ['detector'], encuentra: 'sensor' },
+  { busca: ['presencia'], encuentra: 'movimiento' },
 ];
 
 /**
