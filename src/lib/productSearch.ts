@@ -20,8 +20,11 @@
 // - Orden: lo que llega con una letra de diferencia va al final. Antes, lo que coincide por SKU
 //   (el SKU completo antes que el que solo empieza igual), después por nombre y después el resto;
 //   a igualdad, lo escrito tal cual antes que por sinónimo, la potencia pedida («100w», «100»)
-//   antes que un accesorio que la nombra entre otras, y luego el orden del catálogo
-//   («Relevancia»).
+//   antes que un accesorio que la nombra entre otras, el producto cuyo nombre empieza con una
+//   palabra buscada (sin contar «LED», «luminaria» ni las medidas: «sensor» trae primero el
+//   SENSOR DE MOVIMIENTO y después los proyectores «C/ SENSOR»; no cuentan las palabras después
+//   de «con», «c/», «para» o «sin», ni ninguna si se pide una luz: «luz con sensor», «luminaria
+//   para poste»), y luego el orden del catálogo («Relevancia»).
 // Sin imports de datos de productos: el catálogo llega como argumento.
 
 import type { Product } from '@/data/catalog/types';
@@ -241,6 +244,12 @@ export interface SearchIndex {
    * 10W / 20W/ … 200W» no es un producto de 10 W ni de 100 W.
    */
   power: (number | null)[];
+  /**
+   * Por producto, la primera palabra de su nombre que dice qué es: solo letras y sin las genéricas
+   * («SENSOR DE MOVIMIENTO…» → «sensor», «LUMINARIA SOLAR…» → «solar», «120X30 PANEL…» → «panel»,
+   * «TRI-PROOF…» → «triproof»).
+   */
+  lead: (string | null)[];
 }
 
 const categoryNames = new Map(categories.map(c => [c.id, c.name]));
@@ -257,6 +266,10 @@ function buildIndex(products: readonly Product[]): SearchIndex {
     const named = new Set(searchWords(p.name).flatMap(w => /^(\d+(?:\.\d+)?)w$/.exec(w)?.[1] ?? []).map(Number));
     return named.size === 1 ? [...named][0] : null;
   });
+  // Lo unido por guion, junto, como lo indexa indexWords: «TRI-PROOF…» → «triproof»
+  const lead = products.map(
+    p => searchWords(normalizeSearchText(p.name).replace(/([a-z])-(?=[a-z])/g, '$1')).find(w => LETTERS.test(w) && !isGeneric(w)) ?? null,
+  );
   products.forEach((p, position) => {
     // Las variantes para elegir y la única, que el producto guarda aparte
     const variants = [...(p.variants ?? []), ...(p.singleVariant ? [p.singleVariant] : [])];
@@ -271,7 +284,7 @@ function buildIndex(products: readonly Product[]): SearchIndex {
     ];
     for (const text of rest) for (const w of indexWords(text)) add(w, position, 2);
   });
-  return { products, vocabulary, cache: new Map(), known: new Map(), power };
+  return { products, vocabulary, cache: new Map(), known: new Map(), power, lead };
 }
 
 const indexes = new WeakMap<readonly Product[], SearchIndex>();
@@ -346,7 +359,14 @@ interface Clause {
   /** Como la escribió el cliente, con sus tildes (para las sugerencias). */
   text: string;
   alternatives: Alternative[];
+  /** Dice qué producto se busca: cuenta para el desempate por la primera palabra del nombre. */
+  names: boolean;
 }
+
+/** Lo que viene después dice qué tiene el producto o dónde va: «luz con sensor», «luminaria para poste». */
+const ATTRIBUTE_WORDS = new Set(['con', 'c', 'para', 'sin']);
+/** Piden una luz: «luz de riel» son los focos a riel, no el riel. */
+const LIGHT_WORDS = new Set(['luz', 'luces', 'luminaria', 'lampara', 'iluminacion']);
 
 /**
  * Palabras de la consulta sin las genéricas. Si todas lo son, las que están en el catálogo
@@ -362,6 +382,11 @@ function queryWords(index: SearchIndex, query: string): WordSpan[] {
 
 function parseQuery(index: SearchIndex, query: string): Clause[] {
   const tokens = queryWords(index, query);
+  // Las palabras que no dicen qué producto se busca: las que siguen a «con», «c/», «para» o «sin»,
+  // y todas si se pide una luz («luz con sensor» no es el SENSOR; «lámpara de riel», no el RIEL)
+  const spans = searchWordSpans(query);
+  const attributesFrom = spans.find(s => ATTRIBUTE_WORDS.has(s.word))?.start ?? Infinity;
+  const asksForLight = spans.some(s => forms(s.word).some(f => LIGHT_WORDS.has(f)));
   const fits = (k: SynonymKey, i: number) =>
     k.words.every((w, j) => tokens[i + j] !== undefined && sameKeyWord(tokens[i + j].word, w, !known(index, tokens[i + j].word)));
   const clauses: Clause[] = [];
@@ -381,6 +406,7 @@ function parseQuery(index: SearchIndex, query: string): Clause[] {
         { words, quality: 0, mode },
         ...synonyms.map(k => ({ words: k.meansWords, quality: 1 as const, mode: 'prefix' as const, category: k.category, suggestion: k.means })),
       ],
+      names: !asksForLight && part[0].start < attributesFrom,
     });
     i += length;
   }
@@ -451,6 +477,28 @@ function runClauses(index: SearchIndex, clauses: Clause[]): Product[] {
     }
     ranked = next;
   }
+  // Palabras buscadas (también las de un sinónimo, en su categoría): a igualdad, primero el
+  // producto cuyo nombre empieza con una de ellas, que es esa cosa («sensor» → el SENSOR DE
+  // MOVIMIENTO antes que el PROYECTOR … C/ SENSOR; «proyector» → los proyectores antes que el
+  // TRIPODE PARA PROYECTOR). Sin las palabras que no lo dicen (Clause.names)
+  const leadWords = clauses.filter(c => c.names).flatMap(c =>
+    c.alternatives.flatMap(a =>
+      a.words.map(token => ({
+        token,
+        mode: (a.mode === 'auto' ? (known(index, token) ? 'prefix' : 'typo') : a.mode) as Mode,
+        category: a.category,
+      })),
+    ),
+  );
+  const leads = (position: number) => {
+    const lead = index.lead[position];
+    return (
+      lead !== null &&
+      leadWords.some(
+        w => (!w.category || index.products[position].categories.includes(w.category)) && wordMatch(w.token, lead, w.mode) !== null,
+      )
+    );
+  };
   const flag = (b: boolean) => (b ? 1 : 0);
   return [...ranked!]
     .map(([position, r]) => ({
@@ -460,6 +508,7 @@ function runClauses(index: SearchIndex, clauses: Clause[]): Product[] {
       skuExact: r.skuExact,
       quality: r.quality,
       power: powers.has(index.power[position] ?? NaN),
+      lead: leads(position),
     }))
     .sort(
       (a, b) =>
@@ -468,6 +517,7 @@ function runClauses(index: SearchIndex, clauses: Clause[]): Product[] {
         flag(b.skuExact) - flag(a.skuExact) ||
         a.quality - b.quality ||
         flag(b.power) - flag(a.power) ||
+        flag(b.lead) - flag(a.lead) ||
         a.position - b.position,
     )
     .map(r => index.products[r.position]);

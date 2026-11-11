@@ -40,6 +40,7 @@ export const SEARCH_SYNONYMS: readonly SearchSynonym[] = [
   { busca: ['dimmer', 'dimerizable', 'regulable'], encuentra: ['regulable', 'dimerizable'] },
   { busca: ['triproof', 'tri proof'], encuentra: 'hermética' },
   { busca: ['empotrado'], encuentra: 'embutido' },
+  { busca: ['detector'], encuentra: 'sensor' },
 ];
 
 /**
