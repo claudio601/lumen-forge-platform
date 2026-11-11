@@ -138,6 +138,8 @@ export const OWN_EMAIL_NOTE = 'Ese correo es de eLIGHTS: necesito tu propio corr
 // [PLAZO] Dueno (2026-11-11, decision 4 de la especificacion): el bot promete la respuesta "el mismo dia
 // habil", como la web. Solo con el negocio registrado y cuando el cliente pregunta que sigue o cuanto demora.
 export const MSG_WAIT = 'No tienes que hacer nada m\u00e1s. Te enviaremos la cotizaci\u00f3n por correo el mismo d\u00eda h\u00e1bil.';
+// [PLAZO] Despacho o retiro despues del cierre: el bot no promete plazos de entrega; van en la cotizacion.
+export const MSG_WAIT_DELIVERY = 'El plazo y el costo del despacho van en la cotizaci\u00f3n, que te enviaremos por correo el mismo d\u00eda h\u00e1bil.';
 export const MSG_WAIT_INSTALL = 'No tienes que hacer nada m\u00e1s. Te escribiremos por correo el mismo d\u00eda h\u00e1bil para coordinar la visita y la cotizaci\u00f3n.';
 // [PLAZO] Cualquier otro mensaje con el negocio registrado: un recordatorio corto, no el cierre largo otra vez.
 export const MSG_REGISTERED_SHORT = 'Tu solicitud ya qued\u00f3 registrada; te escribimos por correo.';
@@ -750,8 +752,17 @@ function closedReply(state: FlowState): string {
 // [PLAZO] "Que hago ahora?", "tengo que esperar?", "cuanto demora la respuesta?", "cuando me responden?"
 // (sin tildes: se compara el texto sin acentos). "Buenas tardes" no cuenta: solo "tarda", "tardan", "tardara".
 const WAIT_QUESTION_RE = /\b(?:demor\w*|tarda(?:n|ra|ran|ria|rian)?|esper\w*|plazo|cuando)\b|\bque\s+(?:hago|hace|hacemos|sigue|debo|tengo|tiene)\b|\by\s+ahora\b|\bahora\s+que\b|\bcuant[oa]s?\s+(?:tiempo|tempo|dias)\b/i;
+// [PLAZO] Despacho, entrega, flete o retiro: no es la respuesta por correo (Codex, 2026-11-11: "Cuando llega el
+// despacho?" recibia la promesa de la cotizacion).
+const DELIVERY_QUESTION_RE = /\b(?:despach\w*|entreg\w*|envio|flete|retir\w*)\b|\bllega(?:n|ra|ria)?\s+(?:el|mi|los|las|la)\s+(?:pedido|producto|despacho|luminaria|foco|focos|equipo|equipos|compra|mercaderia)\b/i;
+function normalizedText(body: string): string {
+  return body.slice(0, MAX_FACTS).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function asksAboutDelivery(body: string): boolean {
+  return DELIVERY_QUESTION_RE.test(normalizedText(body));
+}
 function asksWhatNext(body: string): boolean {
-  return WAIT_QUESTION_RE.test(body.slice(0, MAX_FACTS).normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  return WAIT_QUESTION_RE.test(normalizedText(body));
 }
 
 /**
@@ -761,6 +772,7 @@ function asksWhatNext(body: string): boolean {
  */
 function closedFollowUp(state: FlowState, body: string): string {
   if (state.deal !== 'registered') return closedReply(state);
+  if (!state.isInstallFlow && asksAboutDelivery(body)) return MSG_WAIT_DELIVERY;
   if (asksWhatNext(body)) return state.isInstallFlow ? MSG_WAIT_INSTALL : MSG_WAIT;
   return MSG_REGISTERED_SHORT;
 }

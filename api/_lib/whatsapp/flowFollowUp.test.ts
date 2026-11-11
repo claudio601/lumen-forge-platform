@@ -72,6 +72,11 @@ describe('después del cierre con el negocio registrado', () => {
     expect(step(body)).toMatchObject({ reply: flow.MSG_WAIT, shouldCreateDeal: false, closedFlow: true });
   });
 
+  it.each(['¿Cuándo llega el despacho?', '¿Hacen envío a Rancagua?', '¿Cuándo me entregan?', 'puedo retirar en bodega?', '¿cuándo llega el pedido?'])('"%s" (despacho o retiro) no recibe la promesa de la cotización', (body) => {
+    closeRegistered();
+    expect(step(body)).toMatchObject({ reply: flow.MSG_WAIT_DELIVERY, shouldCreateDeal: false, closedFlow: true });
+  });
+
   it.each(['gracias', 'Buenas tardes', 'ok', 'perfecto, muchas gracias'])('"%s" recibe el recordatorio corto', (body) => {
     closeRegistered();
     expect(step(body)).toMatchObject({ reply: flow.MSG_REGISTERED_SHORT, shouldCreateDeal: false, closedFlow: true });
