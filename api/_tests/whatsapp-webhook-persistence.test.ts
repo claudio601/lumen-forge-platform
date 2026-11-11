@@ -743,3 +743,97 @@ describe('R14: MessageSid repetido con Upstash caído', () => {
     expect(await claimMessage('SMstuck', 0)).toEqual({ proceed: true });
   });
 });
+
+// [CANDADO] Informe de Codex del 10-11 (punto 1): el 09-11 hubo varios «respaldo en memoria (liberar candado de
+// conversación)» sin el motivo, y el candado quedaba hasta vencer a los 25 s. Ahora el log dice el motivo y se
+// reintenta una sola vez el mismo Lua, que compara el token: nunca borra el candado de otro mensaje.
+describe('[CANDADO] soltar el candado cuando Upstash falla', () => {
+  const isRelease = (cmd: string, args: string[]) => cmd === 'EVAL' && args[0].startsWith('-- whatsapp:candado:soltar');
+  const warnings = () => vi.mocked(console.warn).mock.calls.map((c) => String(c[0]));
+
+  /** Toma el candado; cada intento de soltarlo sigue `steps` ('fail', 'lose' o una función que corre antes). */
+  async function lockWith(steps: Array<'fail' | 'lose' | ((key: string) => void)>) {
+    const { acquireConversationLock, conversationLockKey } = await import('../_lib/whatsapp/stateStore.js');
+    const key = conversationLockKey(PHONE);
+    const lock = await acquireConversationLock(PHONE, 1000);
+    expect(lock.acquired).toBe(true);
+    const token = redis.data.get(key)!.value;
+    let releases = 0;
+    redis.intercept = (cmd, args) => {
+      if (!isRelease(cmd, args)) return undefined;
+      const step = steps[releases++];
+      if (typeof step === 'function') { step(key); return undefined; }
+      return step;
+    };
+    return { lock, key, token, releases: () => releases };
+  }
+
+  it('el primer intento falla sin aplicarse: el reintento lo suelta (también marcado) y el log dice el motivo, sin teléfono ni token', async () => {
+    const { lock, key, token, releases } = await lockWith(['fail']);
+    await lock.markStepped();
+    expect(redis.data.get(key)!.value).toBe(token + ':paso');
+    await lock.release();
+    expect(releases()).toBe(2);
+    expect(redis.data.has(key)).toBe(false);
+    const line = warnings().find((w) => w.includes('Candado de conversación'));
+    expect(line).toContain('falló el primer intento de liberarlo (motivo=http_500); el reintento respondió (lo borró el reintento)');
+    for (const secret of [PHONE, PHONE.slice(1), token, key]) expect(line).not.toContain(secret);
+  });
+
+  it('el primer intento se aplica y se pierde la respuesta; otro mensaje toma el candado: el reintento no lo borra', async () => {
+    const { lock, key, releases } = await lockWith([
+      'lose',
+      (k) => { redis.data.set(k, { value: 'token-del-sucesor', ttl: 25_000, expiresAt: Date.now() + 25_000 }); },
+    ]);
+    await lock.release();
+    expect(releases()).toBe(2);
+    expect(redis.data.get(key)?.value).toBe('token-del-sucesor');
+    expect(warnings().some((w) => w.includes('ya no era de este mensaje: lo borró el primer intento o venció'))).toBe(true);
+  });
+
+  it('los dos intentos fallan: no hay un tercero, el candado conserva su plazo y vence solo a los 25 s', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const { acquireConversationLock, CONVERSATION_LOCK_TTL_MS } = await import('../_lib/whatsapp/stateStore.js');
+    const { lock, key, token, releases } = await lockWith(['fail', 'fail', 'fail']);
+    const expiresAt = redis.data.get(key)!.expiresAt;
+    await lock.release();
+    expect(releases()).toBe(2);
+    expect(redis.data.get(key)).toMatchObject({ value: token, expiresAt });
+    expect(warnings().some((w) => w.includes('sin liberar en Upstash tras 2 intentos (motivos=http_500,http_500,') && w.includes('vence solo a los 25 s de tomado'))).toBe(true);
+    redis.intercept = undefined;
+    vi.setSystemTime(Date.now() + CONVERSATION_LOCK_TTL_MS);
+    expect((await acquireConversationLock(PHONE, 1000)).acquired).toBe(true);
+  });
+
+  it('timeout del primer intento (Upstash lento): motivo=timeout, y cada intento lleva su propio plazo', async () => {
+    const { LOCK_RELEASE_TIMEOUT_MS, LOCK_RELEASE_RETRY_TIMEOUT_MS } = await import('../_lib/whatsapp/stateStore.js');
+    expect(LOCK_RELEASE_TIMEOUT_MS).toBeLessThanOrEqual(800);
+    expect(LOCK_RELEASE_RETRY_TIMEOUT_MS).toBeLessThanOrEqual(800);
+    const { lock, key } = await lockWith([]);
+    const base = fakeFetch(redis);
+    const signals: Array<AbortSignal | null | undefined> = [];
+    let releases = 0;
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL, init?: RequestInit) => {
+      if (String(init?.body ?? '').includes('whatsapp:candado:soltar')) {
+        signals.push(init?.signal);
+        if (releases++ === 0) throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
+      }
+      return base(input, init);
+    }));
+    await lock.release();
+    expect(releases).toBe(2);
+    expect(signals.every((s) => s instanceof AbortSignal)).toBe(true);
+    expect(redis.data.has(key)).toBe(false);
+    expect(warnings().some((w) => w.includes('motivo=timeout'))).toBe(true);
+  });
+
+  it('upstashFailureReason: solo categorías, nunca el texto del servidor', async () => {
+    const { upstashFailureReason } = await import('../_lib/whatsapp/stateStore.js');
+    expect(upstashFailureReason('HTTP 503: {"error":"lock:whatsapp:algo +56900000801"}')).toBe('http_503');
+    expect(upstashFailureReason('The operation was aborted due to timeout')).toBe('timeout');
+    expect(upstashFailureReason('fetch failed')).toBe('red');
+    expect(upstashFailureReason('Unexpected token \'<\', "<html>" is not valid JSON')).toBe('respuesta_ilegible');
+    expect(upstashFailureReason('ERR Error running script')).toBe('error_redis');
+    expect(upstashFailureReason('UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN not configured')).toBe('sin_configuracion');
+  });
+});
