@@ -142,7 +142,8 @@ describe('conversación cerrada', () => {
     flow.recordDealOutcome(PHONE, false);
     expect(flow.processFlowStep(PHONE, 'hola?', {}, NO_SIGNALS).reply).toBe(flow.MSG_DEAL_FAILED);
     flow.recordDealOutcome(PHONE, true);
-    expect(flow.processFlowStep(PHONE, 'hola?', {}, NO_SIGNALS).reply).toBe(flow.MSG4);
+    // [PLAZO] Con el negocio registrado, el recordatorio corto (sigue diciendo "quedó registrada").
+    expect(flow.processFlowStep(PHONE, 'hola?', {}, NO_SIGNALS).reply).toBe(flow.MSG_REGISTERED_SHORT);
   });
 
   it('"ya derivé" no se repite: después del cierre con negocio responde el cierre normal', () => {

@@ -74,7 +74,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG4, MSG4_INSTALL, MSG4_INSTALL_NO_EMAIL, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { MSG4, MSG4_INSTALL, MSG4_INSTALL_NO_EMAIL, MSG_REGISTERED_SHORT, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
 const webhook = handler as unknown as Handler;
@@ -581,7 +581,8 @@ describe('dos mensajes seguidos mientras se crea el negocio (Pipedrive tarda)', 
     const second = send(phone, 'gracias', {});
     const [a, b] = await Promise.all([first, second]);
     expect(a.reply).toBe(MSG4);
-    expect(b.reply).toBe(MSG4);
+    // [PLAZO] El segundo mensaje recibe el recordatorio corto, no otra vez el cierre largo.
+    expect(b.reply).toBe(MSG_REGISTERED_SHORT);
     expect(b.reply).not.toMatch(TECNICO);
     expect(sim.deals).toHaveLength(1);
   });
