@@ -21,6 +21,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const sim = vi.hoisted(() => ({
   /** Salidas de Claude encoladas (JSON); sin salida, Claude no reconoce nada. */
   claude: [] as string[],
+  /** [RESPUESTA] stop_reason de cada salida encolada (por defecto end_turn). */
+  stopReasons: [] as string[],
   persons: [] as Array<Record<string, unknown>>,
   deals: [] as Array<Record<string, unknown>>,
   updates: [] as Array<{ dealId: number; fields: Record<string, unknown> }>,
@@ -39,6 +41,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
     messages = {
       create: async () => ({
         content: [{ type: 'text', text: sim.claude.shift() ?? '{"wantsHuman":false,"qualifiesForDeal":false,"summary":"Sin datos."}' }],
+        stop_reason: sim.stopReasons.shift() ?? 'end_turn',
       }),
     };
   },
@@ -73,6 +76,7 @@ vi.mock('../_lib/pipedrive/client.js', () => ({
 vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {}) }));
 
 import handler from '../whatsapp/webhook';
+import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
 import { MSG4, MSG4_INSTALL, MSG4_INSTALL_NO_EMAIL, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 
@@ -137,7 +141,7 @@ async function chat(phone: string, turns: Array<[string, Record<string, unknown>
 }
 
 beforeEach(() => {
-  for (const list of [sim.claude, sim.persons, sim.deals, sim.updates, sim.notes]) list.length = 0;
+  for (const list of [sim.claude, sim.stopReasons, sim.persons, sim.deals, sim.updates, sim.notes]) list.length = 0;
   sim.personsDown = false;
   sim.dealsDown = false;
   sim.updateDown = false;
@@ -436,6 +440,84 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     expect(r.reply).toMatch(REGISTRADA);
     expect(sim.deals).toHaveLength(1);
     expect(sim.notes).toHaveLength(1);
+  });
+});
+
+// [RESPUESTA] Informe de Codex del 10-11 (punto 3): con la respuesta de Claude ilegible el flujo sigue con sus reglas
+// (no recibe FALLBACK_REPLY) y el log dice por qué se usaron los valores por defecto, en vez de «Claude ok».
+describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
+  const FULL = 'Necesito 20 paneles LED 60x60 luz neutra para mi casa en Ñuñoa. Soy Pedro Prueba, pedro.prueba@example.com';
+  const FULL_CLAUDE = {
+    producto: 'paneles 60x60', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Ñuñoa',
+    nombre: 'Pedro Prueba', correo: 'pedro.prueba@example.com', wantsHuman: false, qualifiesForDeal: true, summary: 'El cliente pide paneles 60x60.',
+  };
+  const PRIVATE = ['pedro.prueba', 'Pedro Prueba', 'Ñuñoa', 'paneles'];
+
+  /** Un mensaje con la salida de Claude tal cual (texto, no un objeto). */
+  async function sendRaw(phone: string, body: string, raw: string, stopReason = 'end_turn') {
+    sim.claude.push(raw);
+    sim.stopReasons.push(stopReason);
+    const res = fakeRes();
+    await webhook(fakeReq({ From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: 'SMtest' + seq + '-' + ++sidSeq, NumMedia: '0' }), res);
+    return { status: res.statusCode, reply: replyText(res.body) };
+  }
+  const logged = (spy: unknown) => (spy as { mock: { calls: unknown[][] } }).mock.calls.map((c) => String(c[0]));
+  const qaOut = () => logged(console.log).filter((l) => l.includes('[QA:out]')).map((l) => JSON.parse(l.slice(l.indexOf('{'))));
+
+  it('texto sin JSON en un pedido completo: las reglas siguen (repreguntan lo que no reconocen) y registran el negocio, la nota y el aviso a ventas; el log da el motivo y no dice «Claude ok»', async () => {
+    const phone = nextPhone();
+    vi.mocked(notifyTeam).mockClear();
+    const NO_JSON = 'Lo siento, no puedo procesar esa solicitud.';
+    const first = await sendRaw(phone, FULL, NO_JSON);
+    expect(first.status).toBe(200);
+    // Sin Claude, las reglas no reconocen "Soy Pedro Prueba" y lo preguntan (informe de Codex: repreguntas posibles).
+    expect(first.reply).toMatch(/nombre/i);
+    expect(first.reply).not.toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(0);
+    const second = await sendRaw(phone, 'Pedro Prueba', NO_JSON);
+    expect(second.reply).toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.persons[0].email).toBe('pedro.prueba@example.com');
+    expect(sim.notes[0].content).toContain(FULL); // la transcripción literal del cliente
+    expect(notifyTeam).toHaveBeenCalledTimes(1);
+    expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(false);
+    const warn = logged(console.warn).filter((l) => l.includes('Claude sin datos utilizables'));
+    expect(warn).toHaveLength(2);
+    for (const line of warn) {
+      expect(line).toContain('motivo=sin_json stop_reason=end_turn largo=' + NO_JSON.length);
+      for (const piece of PRIVATE) expect(line).not.toContain(piece);
+    }
+    expect(qaOut().map((q) => q.ai)).toEqual(['heuristic', 'heuristic']);
+  });
+
+  it('cortada por max_tokens: respuesta incompleta, valores por defecto con su motivo', async () => {
+    const phone = nextPhone();
+    const r = await sendRaw(phone, 'Hola, busco focos', JSON.stringify(FULL_CLAUDE), 'max_tokens');
+    expect(r.status).toBe(200);
+    expect(r.reply).not.toBe('');
+    expect(logged(console.warn).some((l) => l.includes('motivo=respuesta_incompleta stop_reason=max_tokens'))).toBe(true);
+    expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(false);
+  });
+
+  it('JSON con texto alrededor (sin bloque): se usa y el log dice «Claude ok»', async () => {
+    const phone = nextPhone();
+    const r = await sendRaw(phone, FULL, 'Aquí está el JSON: ' + JSON.stringify(FULL_CLAUDE) + ' Saludos.');
+    expect(r.reply).toMatch(REGISTRADA);
+    expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(true);
+    expect(logged(console.warn).some((l) => l.includes('Claude sin datos') || l.includes('valores por defecto'))).toBe(false);
+    expect(qaOut().at(-1).ai).toBe('claude');
+  });
+
+  it('un campo con otro tipo: los demás se usan y el log nombra el campo, sin «Claude ok»', async () => {
+    const phone = nextPhone();
+    await sendRaw(phone, FULL, JSON.stringify({ ...FULL_CLAUDE, wantsHuman: 'false', cantidad: { paneles: 20 } }));
+    expect(sim.deals).toHaveLength(1);
+    const warn = logged(console.warn).filter((l) => l.includes('Claude con valores por defecto en'));
+    expect(warn).toHaveLength(1);
+    expect(warn[0]).toContain('cantidad=tipo,wantsHuman=tipo stop_reason=end_turn');
+    for (const piece of PRIVATE) expect(warn[0]).not.toContain(piece);
+    expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(false);
+    expect(qaOut().at(-1).ai).toBe('claude');
   });
 });
 

@@ -5,7 +5,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const queue = vi.hoisted(() => [] as string[]);
+// Cada salida: un texto (un bloque, stop_reason end_turn) o varios bloques con su stop_reason.
+const queue = vi.hoisted(() => [] as Array<string | { blocks: string[]; stop_reason?: string }>);
 const systems = vi.hoisted(() => [] as string[]);
 
 vi.mock('@anthropic-ai/sdk', () => ({
@@ -13,13 +14,15 @@ vi.mock('@anthropic-ai/sdk', () => ({
     messages = {
       create: async (args: { system: string }) => {
         systems.push(args.system);
-        return { content: [{ type: 'text', text: queue.shift() ?? '{}' }] };
+        const next = queue.shift() ?? '{}';
+        if (typeof next === 'string') return { content: [{ type: 'text', text: next }], stop_reason: 'end_turn' };
+        return { content: next.blocks.map((text) => ({ type: 'text', text })), stop_reason: next.stop_reason ?? 'end_turn' };
       },
     };
   },
 }));
 
-import { askClaude, textField } from './claudeAgent';
+import { askClaude, extractJsonObject, textField } from './claudeAgent';
 
 beforeEach(() => {
   queue.length = 0;
@@ -118,5 +121,109 @@ describe('askClaude con salidas de otra forma', () => {
       + 'El cliente no pudo enviar el formulario de contacto. Se le envió el número de Starken.';
     expect((await parse({ summary })).summary)
       .toBe('La empresa del cliente se encuentra en Maipú. El cliente no pudo enviar el formulario de contacto.');
+  });
+});
+
+// [RESPUESTA] Informe de Codex del 10-11 (punto 3): el 09-11 hubo 6 «Response not valid JSON — usando defaults» y el
+// webhook registraba «Claude ok» igual. Ahora: el objeto se extrae aunque venga con texto alrededor, una respuesta
+// cortada por max_tokens no se usa, cada campo se valida por separado y el resultado dice qué quedó por defecto.
+describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
+  const MESSAGE = 'Necesito 12 focos LED para una bodega, mi correo es rosa.prueba@example.com';
+  const COMPLETE = { producto: 'focos LED', cantidad: '12', correo: 'rosa.prueba@example.com', wantsHuman: false, qualifiesForDeal: true, summary: 'El cliente pide focos LED.' };
+  const JSON_TEXT = JSON.stringify(COMPLETE);
+  async function ask(output: string | { blocks: string[]; stop_reason?: string }) {
+    queue.push(output);
+    return askClaude([], MESSAGE, 'Perfil Prueba');
+  }
+
+  it('JSON directo: se usa entero y no quedan valores por defecto', async () => {
+    const result = await ask(JSON_TEXT);
+    expect(result.parsed).toMatchObject({ producto: 'focos LED', cantidad: '12', qualifiesForDeal: true, summary: 'El cliente pide focos LED.' });
+    expect(result.diagnostics).toEqual({ usedDefaults: false, fields: {}, stopReason: 'end_turn', length: JSON_TEXT.length });
+  });
+
+  it('bloque ```json o ``` sin etiqueta, con texto alrededor: se usa', async () => {
+    for (const output of ['Aquí va:\n```json\n' + JSON_TEXT + '\n```\nSaludos.', '```\n' + JSON_TEXT + '\n```']) {
+      const result = await ask(output);
+      expect(result.parsed.producto).toBe('focos LED');
+      expect(result.diagnostics?.usedDefaults).toBe(false);
+    }
+  });
+
+  it('texto antes y después del JSON, sin bloque: se usa (antes: valores por defecto)', async () => {
+    const result = await ask('Claro, este es el resultado: ' + JSON_TEXT + ' Quedo atento.');
+    expect(result.parsed).toMatchObject({ producto: 'focos LED', cantidad: '12', correo: 'rosa.prueba@example.com', qualifiesForDeal: true });
+    expect(result.diagnostics?.usedDefaults).toBe(false);
+  });
+
+  it('llaves y comillas escapadas dentro de un texto no cortan el objeto; las llaves de la prosa se saltan', async () => {
+    const inner = JSON.stringify({ ...COMPLETE, producto: 'panel "60x60" {embutido}' });
+    const result = await ask('Resultado {sin formato}: ' + inner + ' fin');
+    expect(result.parsed.producto).toBe('panel "60x60" {embutido}');
+    expect(result.diagnostics?.reason).toBeUndefined();
+  });
+
+  it('varios bloques de texto: se leen todos (antes, solo el primero)', async () => {
+    const result = await ask({ blocks: ['Este es el resultado:', JSON_TEXT] });
+    expect(result.parsed.producto).toBe('focos LED');
+    expect(result.diagnostics?.usedDefaults).toBe(false);
+  });
+
+  it('stop_reason max_tokens: respuesta incompleta, no se usa nada aunque el JSON se lea', async () => {
+    const result = await ask({ blocks: [JSON_TEXT], stop_reason: 'max_tokens' });
+    expect(result.parsed).toEqual({ wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + MESSAGE + '"' });
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'respuesta_incompleta', stopReason: 'max_tokens' });
+  });
+
+  it('JSON cortado sin max_tokens: json_incompleto y valores por defecto', async () => {
+    const result = await ask(JSON_TEXT.slice(0, 40));
+    expect(result.parsed.producto).toBeUndefined();
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'json_incompleto', stopReason: 'end_turn' });
+  });
+
+  it('null, una lista, un texto o un número: no_es_objeto (antes, [] pasaba sin aviso)', async () => {
+    for (const output of ['null', '[]', '[' + JSON_TEXT + ']', '"focos"', '5', '```json\nnull\n```']) {
+      const result = await ask(output);
+      expect(result.diagnostics?.reason).toBe('no_es_objeto');
+      expect(result.parsed.qualifiesForDeal).toBe(false);
+    }
+  });
+
+  it('sin JSON, con llaves que no son JSON o con dos objetos distintos: no se elige nada', async () => {
+    expect((await ask('Lo siento, no puedo ayudar con eso.')).diagnostics?.reason).toBe('sin_json');
+    expect((await ask('{producto: focos, cantidad: 12}')).diagnostics?.reason).toBe('json_invalido');
+    const two = await ask(JSON_TEXT + ' o bien ' + JSON.stringify({ ...COMPLETE, cantidad: '24' }));
+    expect(two.diagnostics?.reason).toBe('varios_json');
+    expect(two.parsed.cantidad).toBeUndefined();
+  });
+
+  it('campo por campo: uno inválido queda por defecto y los demás se usan; "false" (texto) ya no es true', async () => {
+    const result = await ask(JSON.stringify({ ...COMPLETE, wantsHuman: 'false', qualifiesForDeal: null, correo: false, empresa: { nombre: 'Comercial Prueba' } }));
+    expect(result.parsed).toMatchObject({ producto: 'focos LED', cantidad: '12', wantsHuman: false, qualifiesForDeal: false, summary: 'El cliente pide focos LED.' });
+    expect(result.parsed.correo).toBeUndefined();
+    expect(result.parsed.empresa).toBeUndefined();
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, fields: { wantsHuman: 'tipo', qualifiesForDeal: 'falta', correo: 'tipo', empresa: 'tipo' } });
+    expect(result.diagnostics?.reason).toBeUndefined();
+    expect((await ask(JSON.stringify({ ...COMPLETE, wantsHuman: 'true' }))).parsed.wantsHuman).toBe(false);
+  });
+
+  it('texto null o vacío es "no aplica" (no cuenta como valor por defecto); sin resumen, el de respaldo', async () => {
+    const result = await ask(JSON.stringify({ ...COMPLETE, empresa: null, nombre: '', summary: undefined }));
+    expect(result.parsed.summary).toBe('Consulta de Perfil Prueba: "' + MESSAGE.substring(0, 80) + '"');
+    expect(result.diagnostics?.fields).toEqual({ summary: 'falta' });
+    expect((await ask(JSON.stringify({ ...COMPLETE, summary: 7 }))).diagnostics?.fields).toEqual({ summary: 'tipo' });
+  });
+
+  it('el diagnóstico no trae texto del cliente ni de la respuesta', async () => {
+    for (const output of [JSON_TEXT, 'Sin JSON: ' + MESSAGE, JSON.stringify({ ...COMPLETE, wantsHuman: 'rosa.prueba@example.com' })]) {
+      const text = JSON.stringify((await ask(output)).diagnostics);
+      for (const piece of ['rosa.prueba', 'focos', 'bodega', 'Perfil Prueba']) expect(text).not.toContain(piece);
+    }
+  });
+
+  it('extractJsonObject: un trozo entre llaves que no es JSON se salta entero (no se toma un objeto de adentro); un escape no cierra el texto', () => {
+    expect(extractJsonObject('{"a": {"b": 1}, "c": 2,}')).toEqual({ ok: false, reason: 'json_invalido' });
+    expect(extractJsonObject('texto {"a": 1} y { sin cerrar')).toEqual({ ok: true, value: { a: 1 } });
+    expect(extractJsonObject('texto {"a": "\\"}"} fin')).toEqual({ ok: true, value: { a: '"}' } });
   });
 });

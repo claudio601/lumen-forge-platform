@@ -13,6 +13,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
+import type { ClaudeResult } from '../_lib/whatsapp/claudeAgent.js';
 import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
 import { buildWhatsAppUpdate, ensureWhatsAppDeal, notePart, noteSearchAt, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import type { PendingWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
@@ -248,6 +249,21 @@ async function acquirePhoneTurn(phone: string, maxWaitMs: number): Promise<{ rel
 }
 
 type DealResult = Awaited<ReturnType<typeof ensureWhatsAppDeal>>;
+
+/**
+ * [RESPUESTA] La linea del log sobre la respuesta de Claude (informe de Codex del 10-11, punto 3): "Claude ok" solo
+ * si se uso entera; si no, que quedo con su valor por defecto y por que. Solo nombres de campo, motivos,
+ * stop_reason y largo: nunca el texto del cliente ni lo que devolvio Claude. `usable: false`: nada de la
+ * respuesta se uso (el paso queda de las reglas del flujo).
+ */
+function claudeLogLine(result: Pick<ClaudeResult, 'parsed'> & { diagnostics?: ClaudeResult['diagnostics'] }): { level: 'log' | 'warn'; message: string; usable: boolean } {
+    const d = result.diagnostics;
+    if (!d?.usedDefaults) return { level: 'log', message: 'Claude ok — wantsHuman: ' + result.parsed.wantsHuman, usable: true };
+    const tail = ' stop_reason=' + (d.stopReason ?? 'ninguno') + ' largo=' + d.length;
+    if (d.reason) return { level: 'warn', message: 'Claude sin datos utilizables, valores por defecto en todos los campos: motivo=' + d.reason + tail, usable: false };
+    const fields = Object.entries(d.fields).map(([name, why]) => name + '=' + why).join(',');
+    return { level: 'warn', message: 'Claude con valores por defecto en ' + fields + tail, usable: true };
+}
 
 interface FlowTurnInput {
     phone: string;
@@ -798,8 +814,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           const result = await askClaude(history, body, profileName);
           claudeParsed = result.parsed;
           claudeSummary = result.summary;
-          aiSource = 'claude';
-          console.log(LOG_PREFIX + ' Claude ok — wantsHuman: ' + result.parsed.wantsHuman);
+          // [RESPUESTA] "Claude ok" solo si se uso la respuesta entera; si no, el motivo de los valores por
+          // defecto (claudeAgent.ts). Sin nada utilizable, el paso es de las reglas del flujo (heuristic).
+          const outcome = claudeLogLine(result);
+          aiSource = outcome.usable ? 'claude' : 'heuristic';
+          console[outcome.level](LOG_PREFIX + ' ' + outcome.message);
           // QA: presencia de campos; los valores libres pueden incluir datos personales.
         console.log(LOG_PREFIX + ' [QA:claude] ' + JSON.stringify({
                 producto: Boolean(result.parsed.producto),
