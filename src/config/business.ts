@@ -148,7 +148,8 @@ export function waProductUrl(productName: string, sku: string): string {
 
 /**
  * Correo prellenado a ventas para pedir los documentos técnicos de un producto (auditoría UX,
- * D-02, paso 1): «Pedir documentos técnicos» en todas las fichas. Por correo y no por WhatsApp:
+ * D-02, paso 1): «Pedir documentos técnicos» en las fichas con PDF y «Pedir ficha técnica» en las
+ * que no tienen (PR 170). Por correo y no por WhatsApp:
  * los certificados los entrega el equipo con su respaldo. El cuerpo no nombra ningún documento
  * (ficha, IES, certificados): no todos los productos los tienen, y el cliente escribe cuáles
  * necesita. El SKU es el de la línea (el de la variante elegida, o JS-<id>), el mismo de WhatsApp.
