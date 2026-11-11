@@ -156,9 +156,9 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     expect(result.diagnostics?.usedDefaults).toBe(false);
   });
 
-  it('llaves y comillas escapadas dentro de un texto no cortan el objeto; las llaves de la prosa se saltan', async () => {
+  it('llaves y comillas escapadas dentro de un texto del JSON no lo cortan', async () => {
     const inner = JSON.stringify({ ...COMPLETE, producto: 'panel "60x60" {embutido}' });
-    const result = await ask('Resultado {sin formato}: ' + inner + ' fin');
+    const result = await ask('Resultado: ' + inner + ' fin');
     expect(result.parsed.producto).toBe('panel "60x60" {embutido}');
     expect(result.diagnostics?.reason).toBeUndefined();
   });
@@ -175,10 +175,10 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'respuesta_incompleta', stopReason: 'max_tokens' });
   });
 
-  it('JSON cortado sin max_tokens: json_incompleto y valores por defecto', async () => {
+  it('JSON cortado sin max_tokens (sin llave de cierre): sin_json y valores por defecto', async () => {
     const result = await ask(JSON_TEXT.slice(0, 40));
     expect(result.parsed.producto).toBeUndefined();
-    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'json_incompleto', stopReason: 'end_turn' });
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'sin_json', stopReason: 'end_turn' });
   });
 
   it('null, una lista, un texto o un número: no_es_objeto (antes, [] pasaba sin aviso)', async () => {
@@ -193,7 +193,7 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     expect((await ask('Lo siento, no puedo ayudar con eso.')).diagnostics?.reason).toBe('sin_json');
     expect((await ask('{producto: focos, cantidad: 12}')).diagnostics?.reason).toBe('json_invalido');
     const two = await ask(JSON_TEXT + ' o bien ' + JSON.stringify({ ...COMPLETE, cantidad: '24' }));
-    expect(two.diagnostics?.reason).toBe('varios_json');
+    expect(two.diagnostics?.reason).toBe('json_invalido');
     expect(two.parsed.cantidad).toBeUndefined();
   });
 
@@ -221,43 +221,44 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     }
   });
 
-  // [RESPUESTA] Revisión de Codex de la PR 168 (informe del 11-11), hallazgos 1 a 3.
-  it('Codex PR 168, hallazgo 1: una lista en un bloque ```json (o en la prosa) es no_es_objeto; no se toma el objeto de adentro', async () => {
-    for (const output of ['```json\n[' + JSON_TEXT + ']\n```', 'Aquí va:\n```\n[' + JSON_TEXT + ']\n```', 'Resultado: [' + JSON_TEXT + '] listo']) {
+  // [RESPUESTA] Revisión de Codex de la PR 168 (informes 01 y 02 del 11-11): la regla simple, sin recorrer el texto.
+  // Cada caso con su resultado; ante la duda no se usa nada.
+  const B = JSON.stringify({ ...COMPLETE, cantidad: '24' });
+  const CASES: Array<[string, string, 'usa' | 'ambiguo' | 'no_es_objeto' | 'json_invalido' | 'varios_json']> = [
+    ['lista en bloque', '```json\n[' + JSON_TEXT + ']\n```', 'no_es_objeto'],
+    ['comilla con llave en la prosa y bloque válido', 'El cliente escribió "{".\n```json\n' + JSON_TEXT + '\n```', 'usa'],
+    ['objeto y una corrección sin cerrar', JSON_TEXT + ' Corrección: {"nombre":"Rosa Prueba"', 'ambiguo'],
+    ['objeto, comilla de pulgadas y una corrección completa', JSON_TEXT + ' Panel 24" Corrección: {"nombre":"Rosa Prueba"}', 'json_invalido'],
+    ['lista que empieza con null en la prosa', 'Resultado: [null, ' + JSON_TEXT + ']', 'ambiguo'],
+    ['objeto y una lista sin cerrar', JSON_TEXT + ' Corrección: [1,', 'ambiguo'],
+    ['lista inválida en bloque', '```json\n[1, ' + JSON_TEXT + ',]\n```', 'json_invalido'],
+    ['comilla de pulgadas antes del objeto', 'Panel 24" ' + JSON_TEXT, 'usa'],
+    ['dos objetos sin bloque', JSON_TEXT + ' ' + B, 'json_invalido'],
+    ['texto, objeto y texto sin llaves', 'Este es el resultado: ' + JSON_TEXT + ' Quedo atento.', 'usa'],
+    ['dos bloques', '```json\n' + JSON_TEXT + '\n```\nO bien:\n```json\n' + B + '\n```', 'varios_json'],
+    ['un bloque y otro sin cerrar', '```json\n' + JSON_TEXT + '\n```\nCorrección:\n```json\n{"cantidad": "24"', 'varios_json'],
+  ];
+
+  for (const [label, output, expected] of CASES) {
+    it('Codex PR 168, regla simple: ' + label + ' → ' + (expected === 'usa' ? 'se usa' : 'no se usa (' + expected + ')'), async () => {
       const result = await ask(output);
-      expect(result.diagnostics?.reason).toBe('no_es_objeto');
-      expect(result.parsed.producto).toBeUndefined();
-      expect(result.parsed.correo).toBeUndefined();
-    }
-  });
+      if (expected === 'usa') {
+        expect(result.diagnostics?.reason).toBeUndefined();
+        expect(result.parsed).toMatchObject({ producto: 'focos LED', cantidad: '12', qualifiesForDeal: true });
+      } else {
+        expect(extractJsonObject(output)).toEqual({ ok: false, reason: expected });
+        expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: expected });
+        expect(result.parsed).toEqual({ wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + MESSAGE + '"' });
+      }
+    });
+  }
 
-  it('Codex PR 168, hallazgo 2: las comillas de la prosa protegen sus llaves; el bloque válido se usa', async () => {
-    for (const quote of ['"{"', '"{}"', '"dijo \\"{\\" y siguió"', '"{\\"producto\\": \\"otro\\"}"']) {
-      const result = await ask('El cliente escribió ' + quote + '.\n```json\n' + JSON_TEXT + '\n```');
-      expect(result.diagnostics?.reason).toBeUndefined();
-      expect(result.parsed.producto).toBe('focos LED');
-    }
-  });
-
-  it('Codex PR 168, hallazgo 3: un objeto seguido de otro candidato JSON sin cerrar es json_incompleto (B9: no se elige una versión)', async () => {
-    for (const second of ['\nCorrección: {"nombre":"Rosa Prueba"', ' o mejor [{"cantidad": "24"', '\n```json\n{"cantidad": "24",']) {
-      const result = await ask(JSON_TEXT + second);
-      expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'json_incompleto', stopReason: 'end_turn' });
-      expect(result.parsed.producto).toBeUndefined();
-    }
-  });
-
-  it('Codex PR 168, hallazgo 3 (control): una llave suelta de la prosa no es un candidato', async () => {
+  it('Codex PR 168 (control): una llave o un corchete suelto en la prosa, fuera del objeto: no se usa (igual que main)', async () => {
     for (const tail of [' Escríbeme si falta algo {', ' usa llaves { así } en el texto', ' [nota] fin']) {
       const result = await ask(JSON_TEXT + tail);
-      expect(result.diagnostics?.reason).toBeUndefined();
-      expect(result.parsed.producto).toBe('focos LED');
+      expect(result.diagnostics?.usedDefaults).toBe(true);
+      expect(['ambiguo', 'json_invalido']).toContain(result.diagnostics?.reason);
+      expect(result.parsed.producto).toBeUndefined();
     }
-  });
-
-  it('extractJsonObject: un trozo entre llaves que no es JSON se salta entero (no se toma un objeto de adentro); un escape no cierra el texto', () => {
-    expect(extractJsonObject('{"a": {"b": 1}, "c": 2,}')).toEqual({ ok: false, reason: 'json_invalido' });
-    expect(extractJsonObject('texto {"a": 1} y { sin cerrar')).toEqual({ ok: true, value: { a: 1 } });
-    expect(extractJsonObject('texto {"a": "\\"}"} fin')).toEqual({ ok: true, value: { a: '"}' } });
   });
 });

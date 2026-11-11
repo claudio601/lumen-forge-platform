@@ -505,7 +505,7 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
     const r = await sendRaw(phone, FULL, JSON.stringify(FULL_CLAUDE) + '\nCorrección: {"nombre":"Rosa Prueba"');
     expect(r.reply).toMatch(/nombre/i);
     expect(sim.deals).toHaveLength(0);
-    expect(logged(console.warn).some((l) => l.includes('motivo=json_incompleto stop_reason=end_turn'))).toBe(true);
+    expect(logged(console.warn).some((l) => l.includes('motivo=ambiguo stop_reason=end_turn'))).toBe(true);
   });
 
   it('cortada por max_tokens: respuesta incompleta, valores por defecto con su motivo', async () => {

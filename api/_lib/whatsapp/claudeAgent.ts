@@ -22,11 +22,13 @@ export interface ClaudeParsed {
 /**
  * [RESPUESTA] Por que no se uso nada de la respuesta de Claude (todos los campos con su valor por defecto):
  * - respuesta_incompleta: stop_reason max_tokens, el texto se corto;
- * - sin_json: no trae ningun objeto JSON; json_invalido: trae algo entre llaves que no es JSON;
- * - json_incompleto: un objeto empieza y no se cierra; varios_json: mas de un objeto (no se elige);
- * - no_es_objeto: JSON valido que no es un objeto (null, una lista, un texto, un numero).
+ * - varios_json: mas de un bloque ``` (no se elige);
+ * - no_es_objeto: JSON valido que no es un objeto plano (null, una lista, un texto, un numero);
+ * - json_invalido: el bloque, o lo que va de la primera { a la ultima }, no es JSON;
+ * - ambiguo: fuera de esas llaves hay otra llave o un corchete (otra version, una lista, algo cortado);
+ * - sin_json: sin bloque y sin un par de llaves.
  */
-export type ClaudeFallbackReason = 'respuesta_incompleta' | 'sin_json' | 'json_invalido' | 'json_incompleto' | 'varios_json' | 'no_es_objeto';
+export type ClaudeFallbackReason = 'respuesta_incompleta' | 'sin_json' | 'json_invalido' | 'ambiguo' | 'varios_json' | 'no_es_objeto';
 /** [RESPUESTA] Que quedo con su valor por defecto y por que. Solo datos tecnicos: nunca texto del cliente. */
 export interface ClaudeDiagnostics {
   /** Algun campo (o todos) quedo con su valor por defecto. */
@@ -88,94 +90,49 @@ export function textField(value: unknown): string | undefined {
 }
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-/**
- * Un candidato JSON de la respuesta: un objeto, otra raiz valida (lista, null, texto, numero), algo entre llaves
- * que no es JSON, o uno que empieza y no se cierra.
- */
-type JsonCandidate = { kind: 'object'; value: Record<string, unknown> } | { kind: 'other' } | { kind: 'invalid' } | { kind: 'open' };
-function candidateOf(source: string): JsonCandidate {
+/** JSON.parse que no lanza. */
+function parseJson(source: string): { ok: true; value: unknown } | { ok: false } {
   try {
-    const value: unknown = JSON.parse(source);
-    return isPlainObject(value) ? { kind: 'object', value } : { kind: 'other' };
+    return { ok: true, value: JSON.parse(source) as unknown };
   } catch {
-    return { kind: 'invalid' };
+    return { ok: false };
   }
 }
-/** Posicion del cierre de la llave o el corchete que abre en `start` (-1: no se cierra). Respeta comillas y escapes. */
-function closingIndex(text: string, start: number): number {
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let i = start; i < text.length; i++) {
-    const c = text[i];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (c === '\\') escaped = true;
-      else if (c === '"') inString = false;
-    } else if (c === '"') inString = true;
-    else if (c === '{' || c === '[') depth++;
-    else if ((c === '}' || c === ']') && --depth === 0) return i;
-  }
-  return -1;
+type Extracted = { ok: true; value: Record<string, unknown> } | { ok: false; reason: Exclude<ClaudeFallbackReason, 'respuesta_incompleta'> };
+/** Un objeto plano, o el motivo: `no_es_objeto` si es otro JSON, `json_invalido` si no es JSON. */
+function plainObject(source: string): Extracted {
+  const parsed = parseJson(source);
+  if (parsed.ok === false) return { ok: false, reason: 'json_invalido' };
+  return isPlainObject(parsed.value) ? { ok: true, value: parsed.value } : { ok: false, reason: 'no_es_objeto' };
 }
+const FENCE = '```';
+const BRACKETS = /[{}[\]]/;
 /**
- * [RESPUESTA] Revision de Codex de la PR 168 (hallazgo 3): una llave o un corchete empieza un candidato JSON solo si
- * lo que sigue parece JSON (`{"`, `{}`, `{clave:` o `[{`, `[[`, `["`, `[]`); una llave suelta de la prosa ("usa
- * llaves { asi") o una nota entre corchetes ("[nota]") no.
+ * [RESPUESTA] El objeto JSON de la respuesta de Claude, con una regla simple y sin recorrer el texto (revision de
+ * Codex de la PR 168: cada parche del recorrido abria otro borde):
+ * - con bloques ```: uno solo, y su contenido entero debe ser un objeto plano; el texto fuera del bloque se ignora
+ *   (como en main). Tres o mas marcas ``` (dos bloques, o un bloque y otro sin cerrar): varios_json. Nunca se
+ *   rescata un objeto de adentro de una lista ni de un bloque invalido;
+ * - sin bloques: el texto entero; si no es JSON, lo que va de la primera { a la ultima }, siempre que fuera de
+ *   ellas no haya otra llave ni un corchete (si lo hay: ambiguo, puede ser otra version, una lista o algo cortado).
+ * El resultado no usa nada si hay duda: un null honesto vale mas que un dato inventado (especificacion 3.2, B9).
  */
-function startsJson(text: string, at: number): boolean {
-  const rest = text.slice(at + 1).trimStart();
-  return text[at] === '{' ? /^(?:["'}]|[A-Za-z_]\w*\s*:)/.test(rest) : /^["{[\]]/.test(rest);
-}
-/**
- * Los candidatos JSON de la prosa. [RESPUESTA] Revision de Codex de la PR 168 (hallazgo 2): un texto entre comillas
- * de la prosa ("El cliente escribio "{"") no abre nada; sus comillas se cierran a lo mas al final de la linea (un
- * 24" de pulgadas no se traga el resto). Cada candidato se salta entero: no se buscan objetos dentro de el.
- */
-function proseCandidates(text: string): JsonCandidate[] {
-  const found: JsonCandidate[] = [];
-  let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '\\') i++;
-      else if (c === '"' || c === '\n') quoted = false;
-    } else if (c === '"') quoted = true;
-    else if ((c === '{' || c === '[') && startsJson(text, i)) {
-      const end = closingIndex(text, i);
-      if (end === -1) { found.push({ kind: 'open' }); break; }
-      found.push(candidateOf(text.slice(i, end + 1)));
-      i = end;
-    }
-  }
-  return found;
-}
-/**
- * [RESPUESTA] El objeto JSON de la respuesta de Claude: el texto entero o el unico objeto de primer nivel que
- * trae, dentro o fuera de un bloque ```json y con texto antes o despues (informe de Codex del 10-11, punto 3).
- * Cada bloque se lee entero primero: una lista o un null es una raiz que no es objeto y no se buscan objetos
- * dentro de ella (revision de la PR 168, hallazgo 1). En la prosa (lo que queda fuera de los bloques), un texto
- * entre comillas no abre nada. Con mas de un candidato, o con uno que empieza y no se cierra, no se elige ninguno
- * (B9: una correccion a medias no deja elegir la primera version).
- */
-export function extractJsonObject(text: string): { ok: true; value: Record<string, unknown> } | { ok: false; reason: Exclude<ClaudeFallbackReason, 'respuesta_incompleta'> } {
+export function extractJsonObject(text: string): Extracted {
   const trimmed = text.trim();
-  const whole = candidateOf(trimmed);
-  if (whole.kind === 'object') return { ok: true, value: whole.value };
-  if (whole.kind === 'other') return { ok: false, reason: 'no_es_objeto' };
-  const candidates: JsonCandidate[] = [];
-  const fence = /```(?:json)?\s*([\s\S]*?)\s*```/gi;
-  for (const block of trimmed.matchAll(fence)) {
-    const inner = candidateOf(block[1]);
-    // Un bloque que no es JSON entero (texto y un objeto, o un objeto cortado): sus candidatos, como en la prosa.
-    candidates.push(...(inner.kind === 'invalid' ? proseCandidates(block[1]) : [inner]));
+  const fences = trimmed.split(FENCE).length - 1;
+  if (fences > 2) return { ok: false, reason: 'varios_json' };
+  if (fences === 2) {
+    const open = trimmed.indexOf(FENCE) + FENCE.length;
+    return plainObject(trimmed.slice(open, trimmed.indexOf(FENCE, open)).replace(/^json/i, ''));
   }
-  candidates.push(...proseCandidates(trimmed.replace(fence, '\n')));
-  if (candidates.some((c) => c.kind === 'open')) return { ok: false, reason: 'json_incompleto' };
-  const roots = candidates.filter((c) => c.kind === 'object' || c.kind === 'other');
-  if (roots.length > 1) return { ok: false, reason: 'varios_json' };
-  if (roots.length === 1) return roots[0].kind === 'object' ? { ok: true, value: roots[0].value } : { ok: false, reason: 'no_es_objeto' };
-  return { ok: false, reason: candidates.length ? 'json_invalido' : 'sin_json' };
+  const whole = plainObject(trimmed);
+  if (whole.ok === true || whole.reason === 'no_es_objeto') return whole;
+  const first = trimmed.indexOf('{');
+  const last = trimmed.lastIndexOf('}');
+  if (first === -1 || last === -1) return { ok: false, reason: 'sin_json' };
+  if (BRACKETS.test(trimmed.slice(0, first)) || BRACKETS.test(trimmed.slice(last + 1))) return { ok: false, reason: 'ambiguo' };
+  const inner = plainObject(trimmed.slice(first, last + 1));
+  return inner.ok === true ? inner : { ok: false, reason: 'json_invalido' };
 }
 const TEXT_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo'] as const;
 const isMissing = (value: unknown) => value === undefined || value === null;
