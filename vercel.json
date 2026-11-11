@@ -1669,6 +1669,11 @@
       "statusCode": 301
     },
     {
+      "source": "/campana-led-ufo-pro-hl-200w-190lmw-ip65-con-sensor{/}?",
+      "destination": "/producto/campana-led-ufo-pro-hl-200w-190lmw-ip65-con-sensor",
+      "statusCode": 301
+    },
+    {
       "source": "/campana-led-ufo-regulable-200w-150lm/w-ip66-ik10{/}?",
       "destination": "/producto/campana-led-ufo-regulable-200w-150lm-w-ip66-ik10",
       "statusCode": 301
@@ -2440,22 +2445,22 @@
     },
     {
       "source": "/equipo-de-emergencia-2x5w-recargable-autonomia-15-hrs{/}?",
-      "destination": "/producto/equipo-led-de-emergencia-2x12",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
       "source": "/equipo-led-de-emergencia-2x12-1{/}?",
-      "destination": "/producto/equipo-led-de-emergencia-2x12",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
       "source": "/equipo-led-de-emergencia-2x12{/}?",
-      "destination": "/producto/equipo-led-de-emergencia-2x12",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {
       "source": "/equipo-led-de-emergencia-2x5w-recargable-autonomia-15-hrs{/}?",
-      "destination": "/producto/equipo-led-de-emergencia-2x12",
+      "destination": "/catalogo/emergencia-led",
       "statusCode": 301
     },
     {

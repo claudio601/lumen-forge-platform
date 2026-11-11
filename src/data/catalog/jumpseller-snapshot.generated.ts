@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'ad587ab3da7b';
+export const SNAPSHOT_HASH = '1a0aab747d52';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -7783,26 +7783,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       }
     ]
-  },
-  {
-    "jumpseller_id": 3433454,
-    "name": "EQUIPO LED DE EMERGENCIA 2*1.2W",
-    "permalink": "equipo-led-de-emergencia-2x12",
-    "sku": "ELE212",
-    "price": 17760,
-    "brand": "JIE",
-    "featured": false,
-    "categories": [
-      "emergencia-led"
-    ],
-    "images": [
-      {
-        "id": 6099159,
-        "url": "https://images.jumpseller.com/store/elights-cl/3433454/dfsdfdf-1.jpg?1563383334",
-        "position": 1
-      }
-    ],
-    "variants": []
   },
   {
     "jumpseller_id": 3481496,
