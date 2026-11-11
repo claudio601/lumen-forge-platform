@@ -36,6 +36,7 @@ export const categories: Category[] = [
   { id: 'focos-a-riel', name: 'Focos a Riel', slug: 'focos-a-riel', icon: 'TrainTrack', productCount: CATEGORY_PRODUCT_COUNTS['focos-a-riel'] ?? 0, subcategories: [] },
   { id: 'ampolletas-led', name: 'Ampolletas LED', slug: 'ampolletas-led', icon: 'Lightbulb', productCount: CATEGORY_PRODUCT_COUNTS['ampolletas-led'] ?? 0, subcategories: [] },
   { id: 'poste', name: 'Poste', slug: 'poste', icon: 'UtilityPole', productCount: CATEGORY_PRODUCT_COUNTS['poste'] ?? 0, subcategories: [] },
+  { id: 'sensores', name: 'Sensores', slug: 'sensores', icon: 'Radar', productCount: CATEGORY_PRODUCT_COUNTS['sensores'] ?? 0, subcategories: [] },
 ];
 
 /**
@@ -57,8 +58,8 @@ export const popularSearches = [
 
 /**
  * Categorías principales (parent_id = null) de Jumpseller → slug del sitio.
- * Verificado contra la tienda el 2026-09-30. Las subcategorías de Jumpseller se
- * resuelven subiendo por parent_id hasta una de estas.
+ * Verificado contra la tienda el 2026-09-30 (SENSORES, 2894194, se sumó el 2026-11-10).
+ * Las subcategorías de Jumpseller se resuelven subiendo por parent_id hasta una de estas.
  */
 export const JUMPSELLER_TOP_CATEGORY_TO_SLUG: Readonly<Record<number, string>> = {
   285716: 'ampolletas-led',
@@ -76,6 +77,7 @@ export const JUMPSELLER_TOP_CATEGORY_TO_SLUG: Readonly<Record<number, string>> =
   383327: 'alumbrado-publico',
   407229: 'focos-a-riel',
   1637360: 'poste',
+  2894194: 'sensores',
 };
 
 /** Categorías principales de Jumpseller que el sitio ignora a propósito. */

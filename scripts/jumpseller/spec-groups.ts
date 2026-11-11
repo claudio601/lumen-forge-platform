@@ -38,6 +38,7 @@ const RULES: Rule[] = [
   [/equivalencia/, 'electricos'],
   [/^(voltaje|tension)( nominal| de trabajo| de funcionamiento)?$/, 'electricos', 'Tensión'],
   [/^(voltaje|tension) de entrada$/, 'electricos', 'Tensión de entrada'],
+  [/^(voltaje|tension) de alimentacion$/, 'electricos', 'Tensión de alimentación'],
   [/^rango de entrada$/, 'electricos'],
   [/^(voltaje|tension) de salida$/, 'electricos', 'Tensión de salida'],
   [/^(alimentacion|tipo de corriente)$/, 'electricos'],
@@ -53,6 +54,10 @@ const RULES: Rule[] = [
   [/^temperatura (de )?color °k$/, 'electricos'],
   [/^(cri( ra)?|indice de reproduccion cromatica( cri)?)$/, 'electricos', 'Índice cromático (CRI)'],
   [/^codigo fotometrico$/, 'electricos', 'Código fotométrico'],
+  // Sensores de movimiento: van a «Componentes y control» y conservan su nombre (antes de la
+  // regla general de ángulo, que los llamaría «Ángulo de apertura»).
+  [/^tipo de sensor$/, 'componentes', 'Tipo de sensor'],
+  [/^angulo de deteccion$/, 'componentes', 'Ángulo de detección'],
   [/angulo|^a° de iluminacion$/, 'electricos', 'Ángulo de apertura'],
   [/^optica$/, 'electricos'],
   [/^direccion de luz$/, 'electricos'],
@@ -69,7 +74,7 @@ const RULES: Rule[] = [
   [/^(fuente de alimentacion|adaptador|alto fuente|diametro fuente)$/, 'componentes'],
   [/^(regulable|regulacion|regulador de intensidad|selector flujo max y min|apoyo regulador de voltaje)$/, 'componentes'],
   [/^protector sobretensiones/, 'componentes', 'Protector de sobretensiones (SPD)'],
-  [/sensor|deteccion|^modo|^modos|^tiempo de encendido|^encendido$|^boton de prueba$|^led indicativo/, 'componentes'],
+  [/sensor|deteccion|^modo|^modos|^tiempo de encendido|^retardo de apagado$|^encendido$|^boton de prueba$|^led indicativo/, 'componentes'],
   [/^control remoto$/, 'componentes'],
   [/^vida util (de la )?bateria$/, 'componentes', 'Vida útil de la batería'],
   [/bateria|^configuracion de|^panel|tamano (del|de) panel|^tiempo de (carga|trabajo|uso|iluminacion|autonomia)$|^tiempo operacion$|^autonomia$|^carga|^capacidad|^poder de carga$|^voltaje del cargador$|descarga|^duracion$/, 'componentes'],
@@ -116,6 +121,7 @@ const RULES: Rule[] = [
   [/^(packaging|packaking|packeging) (x|por) mayor$/, 'construccion', 'Packaging por mayor'],
   [/^(packaging|packaging total)$/, 'construccion', 'Packaging'],
   [/^(medidas de caja|dimension caja|peso de caja|peso x caja|unidades x caja)$/, 'construccion'],
+  [/^venta$/, 'construccion', 'Venta'],
 ];
 
 const UNKNOWN_GROUP: SpecGroup = 'construccion';

@@ -6889,6 +6889,16 @@
       "statusCode": 301
     },
     {
+      "source": "/sensor-de-movimiento-pir-180-muro-ip44-negro{/}?",
+      "destination": "/producto/sensor-de-movimiento-pir-180-muro-ip44-negro",
+      "statusCode": 301
+    },
+    {
+      "source": "/sensores{/}?",
+      "destination": "/catalogo/sensores",
+      "statusCode": 301
+    },
+    {
       "source": "/servicio-al-cliente{/}?",
       "destination": "/cotizador",
       "statusCode": 301

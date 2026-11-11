@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'd62e705bbd8a';
+export const SNAPSHOT_HASH = '7c2228ac40e2';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -3666,7 +3666,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "sku": "",
         "price": 106800
       },
-      "122798073": {
+      "123679272": {
         "sku": "",
         "price": 106800
       }
@@ -4283,5 +4283,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 27900
       }
     }
+  },
+  "1234977373": {
+    "name": "SENSOR DE MOVIMIENTO PIR 180° MURO IP44 NEGRO",
+    "sku": "SPIR180N",
+    "price": 11662,
+    "variants": {}
   }
 };

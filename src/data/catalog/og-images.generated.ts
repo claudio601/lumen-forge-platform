@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'd62e705bbd8a';
+export const SNAPSHOT_HASH = '7c2228ac40e2';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -331,4 +331,5 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "37625303": {"url":"https://images.jumpseller.com/store/elights-cl/37625303/store/elights-cl/2270155/12W_1.png?1791485052","format":"png","bytes":66458,"width":600,"height":600},
   "37656341": {"url":"https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733","format":"png","bytes":90456,"width":500,"height":403},
   "1234852242": {"url":"https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_1.png?1793817981","format":"png","bytes":241250,"width":600,"height":600},
+  "1234977373": {"url":"https://images.jumpseller.com/store/elights-cl/1234977373/sensor-pir-180-spir180n.jpg?1794340095","format":"jpeg","bytes":69681,"width":1000,"height":1000},
 };
