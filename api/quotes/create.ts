@@ -41,7 +41,7 @@ import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { validateQuotePayload } from '../_lib/crm/validation.js';
 import { processQuoteToCrm, buildSuccessResponse, type CrmProcessingResult } from '../_lib/crm/dedupe.js';
-import type { QuotePayload, QuoteCreateResponse, QuoteCreateSuccessResponse } from '../_lib/crm/types.js';
+import type { LeadType, QuotePayload, QuoteCreateResponse, QuoteCreateSuccessResponse } from '../_lib/crm/types.js';
 import {
   isAllowedOrigin,
   checkRateLimit,
@@ -85,6 +85,10 @@ const CUSTOMER_TYPE_LABEL: Record<CustomerType, string> = {
   empresa: 'Empresa',
   persona: 'Persona natural',
 };
+
+/** Tipo de la persona en Pipedrive: null si el cliente no lo declaró (formulario anterior). */
+const personTypeOf = (type: CustomerType | undefined): LeadType | null =>
+  type === 'empresa' ? 'B2B' : type === 'persona' ? 'B2C' : null;
 
 /** Sin customerType (formulario anterior) el tipo de cliente no se adivina. */
 const customerTypeLabel = (type: CustomerType | undefined) =>
@@ -547,7 +551,9 @@ export default async function handler(
 
   let result: CrmProcessingResult;
   try {
-    result = await processQuoteToCrm(payload);
+    // La persona lleva el tipo que el cliente declaró. Un cuerpo del formulario anterior no lo
+    // declara (su leadType B2B solo indicaba precios netos): la persona queda sin tipo.
+    result = await processQuoteToCrm(payload, site ? { customerType: personTypeOf(site.customerType) } : {});
   } catch (err) {
     console.error(`${LOG_PREFIX} LEAD SIN CRM ${quoteReference} | Pipedrive FAIL: ${redact(err, 'error')}`);
 

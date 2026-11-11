@@ -4,6 +4,7 @@
 import { redact } from '../logging/redact.js';
 import type {
   QuotePayload,
+  LeadType,
   FindOrCreatePersonResult,
   FindOrCreateOrganizationResult,
   CreateDealResult,
@@ -29,6 +30,13 @@ export interface ProcessOptions {
    * Defaults to true. Set to false for order_paid / order_updated.
    */
   allowCreate?: boolean;
+  /**
+   * Tipo de cliente de la persona cuando quien llama lo sabe mejor que el leadType.
+   * null = el cliente no lo declaró (formulario anterior de /cotizacion: su leadType B2B
+   * solo indicaba que veía precios netos) y la persona queda sin tipo. Sin este campo,
+   * sale del leadType (mapPayloadToCustomer).
+   */
+  customerType?: LeadType | null;
 }
 
 export interface CrmProcessingResult {
@@ -62,7 +70,7 @@ export async function processQuoteToCrm(
   await initFieldOptions();
 
   // 2. Find or create person
-  const customer = mapPayloadToCustomer(payload);
+  const customer = mapPayloadToCustomer(payload, options.customerType);
   console.log(`${LOG_PREFIX} Processing person: nombre=${customer.name ? 'sí' : 'no'}`);
   const person = await findOrCreatePerson(customer);
 

@@ -123,8 +123,14 @@ export function mapToActivityParams(
 
 /**
  * Extract the customer object from the payload.
+ *
+ * `declaredType`: the customer type the caller knows better than the leadType (see
+ * ProcessOptions.customerType in dedupe.ts); null leaves the person without a type.
  */
-export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
+export function mapPayloadToCustomer(
+  payload: QuotePayload,
+  declaredType?: LeadType | null
+): QuoteCustomer {
   return {
     name:
       payload.customer?.name?.trim() ||
@@ -135,7 +141,7 @@ export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
       ? normalizePhone(payload.customer.phone)
       : undefined,
     preferredChannel: payload.customer?.preferredChannel,
-    customerType: customerTypeOf(payload),
+    customerType: declaredType === undefined ? customerTypeOf(payload) : declaredType ?? undefined,
     commune: payload.customer?.commune?.trim() || undefined,
   };
 }

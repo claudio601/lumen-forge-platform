@@ -32,6 +32,13 @@ describe('mapPayloadToCustomer: tipo de cliente', () => {
     expect(customer.customerType).toBeUndefined();
   });
 
+  it('tipo declarado por quien llama: gana sobre el leadType, y null deja la persona sin tipo', () => {
+    // /cotizacion con el formulario anterior: leadType B2B solo por los precios netos
+    expect(mapPayloadToCustomer(quote({ leadType: 'B2B' }), null).customerType).toBeUndefined();
+    expect(mapPayloadToCustomer(quote({ leadType: 'B2B' }), 'B2C').customerType).toBe('B2C');
+    expect(mapPayloadToCustomer(quote({ leadType: 'B2C' }), undefined).customerType).toBe('B2C');
+  });
+
   it('un leadType que no es B2B ni B2C no llega a la persona', () => {
     const customer = mapPayloadToCustomer(quote({ leadType: 'b2b' as never }));
     expect(customer.customerType).toBeUndefined();
