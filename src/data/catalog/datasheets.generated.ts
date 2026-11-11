@@ -2,7 +2,7 @@
 // Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = 'ad587ab3da7b';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2251313": ["https://images.jumpseller.com/store/elights-cl/2251313/attachments/15146e05ea68ef8f78a44b337b0a4525/FT_AMPOLLETA_LED_DICROICA_4-50W_GU10_eLIGHTS.cl.pdf?1669657872"],
@@ -318,4 +318,5 @@ export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "37625303": ["https://images.jumpseller.com/store/elights-cl/37625303/attachments/5e6a2d90828f346e2c73145881c7d418/ficha-tecnica-panel-led-cuadrado-embutido-eLIGHTS-v01.pdf?1792508048"],
   "37656341": ["https://images.jumpseller.com/store/elights-cl/37656341/attachments/f90394285fcc606bcadedf96f78417f4/ficha-STA1-125W-eLIGHTS.pdf?1791571733"],
   "1234977373": ["https://images.jumpseller.com/store/elights-cl/1234977373/attachments/356f8549a1ca6602a79696e212c060b5/ficha-sensor-pir-180.pdf?1794340095"],
+  "1234997838": ["https://images.jumpseller.com/store/elights-cl/1234997838/attachments/bfb6d5c8e84622da0207594ad7ddf578/ficha-tecnica-CUFOPROHL200.pdf?1794412243"],
 };

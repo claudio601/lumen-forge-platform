@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = 'ad587ab3da7b';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -332,4 +332,5 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "37656341": {"url":"https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733","format":"png","bytes":90456,"width":500,"height":403},
   "1234852242": {"url":"https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_1.png?1793817981","format":"png","bytes":241250,"width":600,"height":600},
   "1234977373": {"url":"https://images.jumpseller.com/store/elights-cl/1234977373/sensor-pir-180-spir180n.jpg?1794340095","format":"jpeg","bytes":69681,"width":1000,"height":1000},
+  "1234997838": {"url":"https://images.jumpseller.com/store/elights-cl/1234997838/01-cufoprohl200-campana-led-ufo-200w-sensor.jpg?1794412243","format":"jpeg","bytes":136628,"width":1600,"height":1453},
 };

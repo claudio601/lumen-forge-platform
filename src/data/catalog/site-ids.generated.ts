@@ -2,7 +2,7 @@
 // Ids del sitio (URLs /producto/:id) de productos nuevos. Solo se agregan entradas: nunca cambian.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = 'ad587ab3da7b';
 
 export const SITE_IDS: Readonly<Record<number, string>> = {
   "2270122": "panel-led-cuadrado-embutido-6w-ip20",
@@ -15,5 +15,6 @@ export const SITE_IDS: Readonly<Record<number, string>> = {
   "37625303": "panel-led-cuadrado-embutido-15w-ip44",
   "37656341": "luminaria-led-vial-a-prueba-de-explosion-125w-ip66-clase-i-div-2",
   "1234852242": "foco-led-cob-basculante-codo-40w-ip33",
-  "1234977373": "sensor-de-movimiento-pir-180-muro-ip44-negro"
+  "1234977373": "sensor-de-movimiento-pir-180-muro-ip44-negro",
+  "1234997838": "campana-led-ufo-pro-hl-200w-190lmw-ip65-con-sensor"
 };

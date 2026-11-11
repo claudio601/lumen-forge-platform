@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = 'ad587ab3da7b';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -4288,6 +4288,12 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "name": "SENSOR DE MOVIMIENTO PIR 180° MURO IP44 NEGRO",
     "sku": "SPIR180N",
     "price": 11662,
+    "variants": {}
+  },
+  "1234997838": {
+    "name": "CAMPANA LED UFO PRO HL 200W 190LM/W IP65 CON SENSOR",
+    "sku": "CUFOPROHL200",
+    "price": 111390,
     "variants": {}
   }
 };
