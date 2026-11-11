@@ -505,7 +505,21 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
     const r = await sendRaw(phone, FULL, JSON.stringify(FULL_CLAUDE) + '\nCorrección: {"nombre":"Rosa Prueba"');
     expect(r.reply).toMatch(/nombre/i);
     expect(sim.deals).toHaveLength(0);
-    expect(logged(console.warn).some((l) => l.includes('motivo=ambiguo stop_reason=end_turn'))).toBe(true);
+    expect(logged(console.warn).some((l) => l.includes('motivo=json_invalido stop_reason=end_turn'))).toBe(true);
+  });
+
+  // Informe 03: la prosa sin llaves alrededor del objeto puede invalidarlo. Con el rescate del texto alrededor se
+  // tomaban el nombre y el correo de Rosa Prueba y se registraba el negocio; ahora, como en main, no se usa nada.
+  it('Codex PR 168, informe 03: un objeto seguido de una corrección en prosa no se usa: sin negocio, repregunta el nombre', async () => {
+    const phone = nextPhone();
+    const OTHER = { ...FULL_CLAUDE, nombre: 'Rosa Prueba', correo: 'rosa.prueba@example.com' };
+    const r = await sendRaw(phone, FULL, JSON.stringify(OTHER) + ' Corrección: nombre y correo anteriores no corresponden al cliente; dejarlos en null y preguntar de nuevo.');
+    expect(r.reply).toMatch(/nombre/i);
+    expect(r.reply).not.toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(0);
+    expect(sim.persons).toHaveLength(0);
+    expect(logged(console.warn).some((l) => l.includes('motivo=json_invalido stop_reason=end_turn'))).toBe(true);
+    expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(false);
   });
 
   it('cortada por max_tokens: respuesta incompleta, valores por defecto con su motivo', async () => {
@@ -517,9 +531,9 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
     expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(false);
   });
 
-  it('JSON con texto alrededor (sin bloque): se usa y el log dice «Claude ok»', async () => {
+  it('JSON en un bloque con texto alrededor: se usa y el log dice «Claude ok»', async () => {
     const phone = nextPhone();
-    const r = await sendRaw(phone, FULL, 'Aquí está el JSON: ' + JSON.stringify(FULL_CLAUDE) + ' Saludos.');
+    const r = await sendRaw(phone, FULL, 'Aquí está el JSON:\n```json\n' + JSON.stringify(FULL_CLAUDE) + '\n```\nSaludos.');
     expect(r.reply).toMatch(REGISTRADA);
     expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(true);
     expect(logged(console.warn).some((l) => l.includes('Claude sin datos') || l.includes('valores por defecto'))).toBe(false);

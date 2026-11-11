@@ -22,13 +22,13 @@ export interface ClaudeParsed {
 /**
  * [RESPUESTA] Por que no se uso nada de la respuesta de Claude (todos los campos con su valor por defecto):
  * - respuesta_incompleta: stop_reason max_tokens, el texto se corto;
- * - varios_json: mas de un bloque ``` (no se elige);
+ * - json_incompleto: una cantidad impar de marcas ``` (un bloque sin cerrar);
+ * - varios_json: 4 o mas marcas ``` (mas de un bloque, no se elige);
  * - no_es_objeto: JSON valido que no es un objeto plano (null, una lista, un texto, un numero);
- * - json_invalido: el bloque, o lo que va de la primera { a la ultima }, no es JSON;
- * - ambiguo: fuera de esas llaves hay otra llave o un corchete (otra version, una lista, algo cortado);
- * - sin_json: sin bloque y sin un par de llaves.
+ * - json_invalido: el bloque, o el texto entero, no es JSON (con texto alrededor del objeto, por ejemplo);
+ * - sin_json: sin bloque y sin ninguna llave.
  */
-export type ClaudeFallbackReason = 'respuesta_incompleta' | 'sin_json' | 'json_invalido' | 'ambiguo' | 'varios_json' | 'no_es_objeto';
+export type ClaudeFallbackReason = 'respuesta_incompleta' | 'sin_json' | 'json_invalido' | 'json_incompleto' | 'varios_json' | 'no_es_objeto';
 /** [RESPUESTA] Que quedo con su valor por defecto y por que. Solo datos tecnicos: nunca texto del cliente. */
 export interface ClaudeDiagnostics {
   /** Algun campo (o todos) quedo con su valor por defecto. */
@@ -106,33 +106,27 @@ function plainObject(source: string): Extracted {
   return isPlainObject(parsed.value) ? { ok: true, value: parsed.value } : { ok: false, reason: 'no_es_objeto' };
 }
 const FENCE = '```';
-const BRACKETS = /[{}[\]]/;
 /**
- * [RESPUESTA] El objeto JSON de la respuesta de Claude, con una regla simple y sin recorrer el texto (revision de
- * Codex de la PR 168: cada parche del recorrido abria otro borde):
- * - con bloques ```: uno solo, y su contenido entero debe ser un objeto plano; el texto fuera del bloque se ignora
- *   (como en main). Tres o mas marcas ``` (dos bloques, o un bloque y otro sin cerrar): varios_json. Nunca se
- *   rescata un objeto de adentro de una lista ni de un bloque invalido;
- * - sin bloques: el texto entero; si no es JSON, lo que va de la primera { a la ultima }, siempre que fuera de
- *   ellas no haya otra llave ni un corchete (si lo hay: ambiguo, puede ser otra version, una lista o algo cortado).
- * El resultado no usa nada si hay duda: un null honesto vale mas que un dato inventado (especificacion 3.2, B9).
+ * [RESPUESTA] El objeto JSON de la respuesta de Claude, con la regla estricta de main (revisiones de Codex de la
+ * PR 168: cada forma de rescatar un objeto del texto que lo rodea abria otro borde, y la prosa alrededor puede
+ * invalidarlo: "Correccion: ... preguntar de nuevo", "Ejemplo de formato, no son datos del cliente"):
+ * - con marcas ```: solo exactamente 2 (un bloque), y su contenido entero debe ser un objeto plano; el texto fuera
+ *   del bloque se ignora, como en main. Una cantidad impar (un bloque sin cerrar): json_incompleto; 4 o mas (mas de
+ *   un bloque): varios_json. Nunca se rescata un objeto de adentro de una lista ni de un bloque invalido;
+ * - sin marcas: el texto entero debe ser un objeto plano. No se rescata un objeto de en medio del texto.
+ * Ante la duda no se usa nada: un null honesto vale mas que un dato inventado (especificacion 3.2, B9).
  */
 export function extractJsonObject(text: string): Extracted {
   const trimmed = text.trim();
   const fences = trimmed.split(FENCE).length - 1;
-  if (fences > 2) return { ok: false, reason: 'varios_json' };
   if (fences === 2) {
     const open = trimmed.indexOf(FENCE) + FENCE.length;
     return plainObject(trimmed.slice(open, trimmed.indexOf(FENCE, open)).replace(/^json/i, ''));
   }
+  if (fences > 0) return { ok: false, reason: fences % 2 === 1 ? 'json_incompleto' : 'varios_json' };
   const whole = plainObject(trimmed);
-  if (whole.ok === true || whole.reason === 'no_es_objeto') return whole;
-  const first = trimmed.indexOf('{');
-  const last = trimmed.lastIndexOf('}');
-  if (first === -1 || last === -1) return { ok: false, reason: 'sin_json' };
-  if (BRACKETS.test(trimmed.slice(0, first)) || BRACKETS.test(trimmed.slice(last + 1))) return { ok: false, reason: 'ambiguo' };
-  const inner = plainObject(trimmed.slice(first, last + 1));
-  return inner.ok === true ? inner : { ok: false, reason: 'json_invalido' };
+  if (whole.ok === false && whole.reason === 'json_invalido' && !trimmed.includes('{')) return { ok: false, reason: 'sin_json' };
+  return whole;
 }
 const TEXT_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo'] as const;
 const isMissing = (value: unknown) => value === undefined || value === null;

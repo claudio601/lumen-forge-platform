@@ -150,21 +150,21 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     }
   });
 
-  it('texto antes y después del JSON, sin bloque: se usa (antes: valores por defecto)', async () => {
+  it('texto antes y después del JSON, sin bloque: no se usa (igual que main: la prosa puede invalidarlo)', async () => {
     const result = await ask('Claro, este es el resultado: ' + JSON_TEXT + ' Quedo atento.');
-    expect(result.parsed).toMatchObject({ producto: 'focos LED', cantidad: '12', correo: 'rosa.prueba@example.com', qualifiesForDeal: true });
-    expect(result.diagnostics?.usedDefaults).toBe(false);
+    expect(result.parsed.producto).toBeUndefined();
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'json_invalido' });
   });
 
   it('llaves y comillas escapadas dentro de un texto del JSON no lo cortan', async () => {
     const inner = JSON.stringify({ ...COMPLETE, producto: 'panel "60x60" {embutido}' });
-    const result = await ask('Resultado: ' + inner + ' fin');
+    const result = await ask('Resultado:\n```json\n' + inner + '\n```\nfin');
     expect(result.parsed.producto).toBe('panel "60x60" {embutido}');
     expect(result.diagnostics?.reason).toBeUndefined();
   });
 
   it('varios bloques de texto: se leen todos (antes, solo el primero)', async () => {
-    const result = await ask({ blocks: ['Este es el resultado:', JSON_TEXT] });
+    const result = await ask({ blocks: ['Este es el resultado:\n```json', JSON_TEXT, '```'] });
     expect(result.parsed.producto).toBe('focos LED');
     expect(result.diagnostics?.usedDefaults).toBe(false);
   });
@@ -175,10 +175,10 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'respuesta_incompleta', stopReason: 'max_tokens' });
   });
 
-  it('JSON cortado sin max_tokens (sin llave de cierre): sin_json y valores por defecto', async () => {
+  it('JSON cortado sin max_tokens: json_invalido y valores por defecto', async () => {
     const result = await ask(JSON_TEXT.slice(0, 40));
     expect(result.parsed.producto).toBeUndefined();
-    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'sin_json', stopReason: 'end_turn' });
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'json_invalido', stopReason: 'end_turn' });
   });
 
   it('null, una lista, un texto o un número: no_es_objeto (antes, [] pasaba sin aviso)', async () => {
@@ -221,26 +221,31 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     }
   });
 
-  // [RESPUESTA] Revisión de Codex de la PR 168 (informes 01 y 02 del 11-11): la regla simple, sin recorrer el texto.
-  // Cada caso con su resultado; ante la duda no se usa nada.
+  // [RESPUESTA] Revisión de Codex de la PR 168 (informes 01 a 03 del 11-11): la regla estricta de main (el texto entero
+  // o un solo bloque), sin rescatar objetos del texto que los rodea. Cada caso con su resultado; ante la duda, nada.
   const B = JSON.stringify({ ...COMPLETE, cantidad: '24' });
-  const CASES: Array<[string, string, 'usa' | 'ambiguo' | 'no_es_objeto' | 'json_invalido' | 'varios_json']> = [
+  const CASES: Array<[string, string, 'usa' | 'json_incompleto' | 'no_es_objeto' | 'json_invalido' | 'varios_json']> = [
     ['lista en bloque', '```json\n[' + JSON_TEXT + ']\n```', 'no_es_objeto'],
     ['comilla con llave en la prosa y bloque válido', 'El cliente escribió "{".\n```json\n' + JSON_TEXT + '\n```', 'usa'],
-    ['objeto y una corrección sin cerrar', JSON_TEXT + ' Corrección: {"nombre":"Rosa Prueba"', 'ambiguo'],
+    ['objeto y una corrección sin cerrar', JSON_TEXT + ' Corrección: {"nombre":"Rosa Prueba"', 'json_invalido'],
     ['objeto, comilla de pulgadas y una corrección completa', JSON_TEXT + ' Panel 24" Corrección: {"nombre":"Rosa Prueba"}', 'json_invalido'],
-    ['lista que empieza con null en la prosa', 'Resultado: [null, ' + JSON_TEXT + ']', 'ambiguo'],
-    ['objeto y una lista sin cerrar', JSON_TEXT + ' Corrección: [1,', 'ambiguo'],
+    ['lista que empieza con null en la prosa', 'Resultado: [null, ' + JSON_TEXT + ']', 'json_invalido'],
+    ['objeto y una lista sin cerrar', JSON_TEXT + ' Corrección: [1,', 'json_invalido'],
     ['lista inválida en bloque', '```json\n[1, ' + JSON_TEXT + ',]\n```', 'json_invalido'],
-    ['comilla de pulgadas antes del objeto', 'Panel 24" ' + JSON_TEXT, 'usa'],
+    ['comilla de pulgadas antes del objeto', 'Panel 24" ' + JSON_TEXT, 'json_invalido'],
     ['dos objetos sin bloque', JSON_TEXT + ' ' + B, 'json_invalido'],
-    ['texto, objeto y texto sin llaves', 'Este es el resultado: ' + JSON_TEXT + ' Quedo atento.', 'usa'],
+    ['texto, objeto y texto sin llaves', 'Este es el resultado: ' + JSON_TEXT + ' Quedo atento.', 'json_invalido'],
     ['dos bloques', '```json\n' + JSON_TEXT + '\n```\nO bien:\n```json\n' + B + '\n```', 'varios_json'],
-    ['un bloque y otro sin cerrar', '```json\n' + JSON_TEXT + '\n```\nCorrección:\n```json\n{"cantidad": "24"', 'varios_json'],
+    ['un bloque y otro sin cerrar', '```json\n' + JSON_TEXT + '\n```\nCorrección:\n```json\n{"cantidad": "24"', 'json_incompleto'],
+    // Informe 03: la prosa sin llaves alrededor del objeto puede invalidarlo; una marca ``` sin pareja.
+    ['objeto y una corrección en prosa', JSON_TEXT + ' Corrección: nombre y correo anteriores no corresponden al cliente; dejarlos en null y preguntar de nuevo.', 'json_invalido'],
+    ['ejemplo de formato, no son datos del cliente', 'Ejemplo de formato, no son datos del cliente: ' + JSON_TEXT + '. No usar esos datos.', 'json_invalido'],
+    ['una sola marca ``` sin cerrar', '```json\n' + JSON_TEXT, 'json_incompleto'],
+    ['objeto y una corrección en un bloque sin cerrar', JSON_TEXT + '\nCorrección:\n```json\nnull', 'json_incompleto'],
   ];
 
   for (const [label, output, expected] of CASES) {
-    it('Codex PR 168, regla simple: ' + label + ' → ' + (expected === 'usa' ? 'se usa' : 'no se usa (' + expected + ')'), async () => {
+    it('Codex PR 168, regla estricta: ' + label + ' → ' + (expected === 'usa' ? 'se usa' : 'no se usa (' + expected + ')'), async () => {
       const result = await ask(output);
       if (expected === 'usa') {
         expect(result.diagnostics?.reason).toBeUndefined();
@@ -257,7 +262,7 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     for (const tail of [' Escríbeme si falta algo {', ' usa llaves { así } en el texto', ' [nota] fin']) {
       const result = await ask(JSON_TEXT + tail);
       expect(result.diagnostics?.usedDefaults).toBe(true);
-      expect(['ambiguo', 'json_invalido']).toContain(result.diagnostics?.reason);
+      expect(result.diagnostics?.reason).toBe('json_invalido');
       expect(result.parsed.producto).toBeUndefined();
     }
   });
