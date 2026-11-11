@@ -8,13 +8,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../_lib/pipedrive/persons.js', () => ({ findOrCreatePerson: vi.fn() }));
-vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}) }));
+vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}), getOptionId: vi.fn() }));
 vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(), pipedriveGet: vi.fn(), pipedrivePut: vi.fn() }));
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn() }));
 
 import handler from '../estudio-luminico/create';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { pipedrivePost, pipedriveGet } from '../_lib/pipedrive/client.js';
+import { getOptionId } from '../_lib/pipedrive/fieldOptions.js';
 import { waitUntil } from '@vercel/functions';
 import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
 import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types';
@@ -65,6 +66,8 @@ const pdCalls = (path: string) => (vi.mocked(pipedrivePost).mock.calls as unknow
 const gasBodies = () =>
   (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit][]).map(([, init]) => JSON.parse(init.body as string) as Record<string, string>);
 const relay = (text: string) => vi.fn(async () => ({ ok: true, status: 200, text: async () => text }));
+/** Hora de Pipedrive v1 ('YYYY-MM-DD HH:MM:SS', UTC), hace `minutes` minutos. */
+const pipedriveNow = (minutes = 0) => new Date(Date.now() - minutes * 60_000).toISOString().slice(0, 19).replace('T', ' ');
 /** Espera los correos registrados en waitUntil. */
 const mailsSettled = () => Promise.all(vi.mocked(waitUntil).mock.calls.map(([p]) => p));
 const logged = () =>
@@ -375,12 +378,12 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
   });
 
   it('negocio repetido (updated): la nota del negocio existente lleva la sección', async () => {
-    vi.stubEnv('PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF', REF_FIELD);
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE', REF_FIELD);
     const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
     vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
       // Forma real de /deals/search: sin pipeline_id (el embudo viene como pipeline: { id })
       if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42, type: 'deal', status: 'open', pipeline: { id: 2 } } }] } };
-      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'open', [REF_FIELD]: sentRef() } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'open', update_time: pipedriveNow(), [REF_FIELD]: sentRef() } };
       return { success: false, data: null };
     }) as never);
     const res = await call({ ...base, attribution: ATTRIBUTION });
@@ -391,11 +394,11 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
   });
 
   it('negocio con la misma referencia pero ganado: se crea uno nuevo (el estado se mira en el negocio completo)', async () => {
-    vi.stubEnv('PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF', REF_FIELD);
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE', REF_FIELD);
     const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
     vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
       if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42, type: 'deal', status: 'won', pipeline: { id: 2 } } }] } };
-      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'won', [REF_FIELD]: sentRef() } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'won', update_time: pipedriveNow(), [REF_FIELD]: sentRef() } };
       return { success: false, data: null };
     }) as never);
     const res = await call(base);
@@ -671,5 +674,122 @@ describe('POST /api/estudio-luminico/create: D.S. N°1/2022', () => {
     await call({ ...base, requiereDs1: 'si' });
     const [[, deal]] = pdCalls('/deals');
     expect(JSON.stringify(deal)).not.toMatch(/D\.S\.|requiereDs1/);
+  });
+});
+
+// Los campos PIPEDRIVE_ESTUDIO_FIELD_* no existen en Pipedrive (revisado el 2026-10-06 y el
+// 2026-11-10): sin ellos la deduplicación nunca corría y el negocio no decía de dónde venía.
+// El estudio usa los campos de negocio que ya usan los demás formularios: quoteReference (la
+// ESTL-, para deduplicar) y sourceSystem (nuevo_elights). Todo el formulario sigue en la nota.
+describe('POST /api/estudio-luminico/create: referencia y origen en los campos del negocio', () => {
+  const QUOTE_REF = 'cf_quote_ref';
+  const SOURCE = 'cf_source_system';
+  const leadRef = (res: { body: unknown }) => (res.body as { leadRef: string }).leadRef;
+  const searches = () =>
+    (vi.mocked(pipedriveGet).mock.calls as unknown as [string, Record<string, string>][]).filter(([p]) => p === '/deals/search');
+
+  beforeEach(() => {
+    vi.mocked(findOrCreatePerson).mockReset().mockResolvedValue({ personId: 11, action: 'created' });
+    vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
+      path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
+    vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(getOptionId).mockReset().mockImplementation((entity, key, label) =>
+      entity === 'deal' && key === SOURCE && label === 'nuevo_elights' ? 931 : undefined);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
+    vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
+    vi.stubEnv('PIPEDRIVE_OWNER_USER_ID', '1');
+    vi.stubEnv('PIPEDRIVE_FIELD_TIPO_SERVICIO', 'tipo_key');
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE', QUOTE_REF);
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_SOURCE_SYSTEM', SOURCE);
+    vi.stubEnv('PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF', '');
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it('el negocio nuevo lleva la ESTL- en quoteReference (la misma del correo y la nota) y el origen nuevo_elights', async () => {
+    const res = await call(base);
+    expect(res.statusCode).toBe(201);
+    const ref = leadRef(res);
+    const [[, deal]] = pdCalls('/deals');
+    expect(deal).toMatchObject({ [QUOTE_REF]: ref, [SOURCE]: 931, tipo_key: 91 });
+    expect(gasBodies()[0].items_lista).toContain('Referencia: ' + ref);
+    expect(pdCalls('/notes')[0][1].content).toContain('Referencia: ' + ref);
+  });
+
+  it('a la vuelta de la hora, el campo lleva la misma ESTL- que el correo (se calcula una sola vez)', async () => {
+    // Cada lectura de Date.now() cae en una hora distinta: si la referencia se calculara dos
+    // veces (en create.ts y en el mapeo), el campo y el correo tendrían ESTL- distintas.
+    const start = new Date('2026-11-20T13:59:59.999Z').getTime();
+    let reads = 0;
+    vi.spyOn(Date, 'now').mockImplementation(() => start + reads++ * 3_600_000);
+    const res = await call(base);
+    expect(res.statusCode).toBe(201);
+    const [[, deal]] = pdCalls('/deals');
+    expect(deal[QUOTE_REF]).toBe(leadRef(res));
+    expect(gasBodies()[0].items_lista).toContain('Referencia: ' + leadRef(res));
+  });
+
+  it('busca la referencia en quoteReference, solo entre negocios abiertos', async () => {
+    const res = await call(base);
+    expect(searches()).toHaveLength(1);
+    expect(searches()[0][1]).toMatchObject({ term: leadRef(res), fields: 'custom_fields', exact_match: 'true', status: 'open' });
+  });
+
+  it('doble envío: el negocio abierto con la misma referencia se actualiza, sin crear otro', async () => {
+    const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42 } }] } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'open', update_time: pipedriveNow(5), [QUOTE_REF]: sentRef() } };
+      return { success: false, data: null };
+    }) as never);
+    const res = await call(base);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ dealId: 42, dealAction: 'updated' });
+    expect(pdCalls('/deals')).toHaveLength(0);
+    expect(pdCalls('/notes')[0][1].deal_id).toBe(42);
+  });
+
+  it('un negocio de otro embudo con la misma referencia no cuenta', async () => {
+    const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42 } }] } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 1, status: 'open', update_time: pipedriveNow(5), [QUOTE_REF]: sentRef() } };
+      return { success: false, data: null };
+    }) as never);
+    const res = await call(base);
+    expect(res.body).toMatchObject({ dealId: 555, dealAction: 'created' });
+  });
+
+  it('la búsqueda falla: el negocio se crea igual (la deduplicación no bloquea)', async () => {
+    vi.mocked(pipedriveGet).mockResolvedValue({ success: false, data: null } as never);
+    const res = await call(base);
+    expect(res.statusCode).toBe(201);
+    expect(res.body).toMatchObject({ dealId: 555, dealAction: 'created' });
+  });
+
+  it('sin la variable de quoteReference: no busca y crea el negocio', async () => {
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE', '');
+    const res = await call(base);
+    expect(res.statusCode).toBe(201);
+    expect(searches()).toHaveLength(0);
+    const [[, deal]] = pdCalls('/deals');
+    expect(deal).not.toHaveProperty(QUOTE_REF);
+  });
+
+  it('sin la opción nuevo_elights en Pipedrive: el negocio se crea sin el campo de origen', async () => {
+    vi.mocked(getOptionId).mockReturnValue(undefined);
+    const res = await call(base);
+    expect(res.statusCode).toBe(201);
+    const [[, deal]] = pdCalls('/deals');
+    expect(deal).not.toHaveProperty(SOURCE);
+  });
+
+  it('la persona nueva no lleva tipo de cliente: el formulario no lo pregunta', async () => {
+    await call({ ...base, empresa: 'PRUEBA EMPRESA' });
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).not.toHaveProperty('customerType');
   });
 });

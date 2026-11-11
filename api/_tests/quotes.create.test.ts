@@ -179,6 +179,7 @@ describe('POST /api/quotes/create', () => {
 
     const payload = crmPayload();
     expect(payload).toMatchObject({ leadType: 'B2B', organization: { name: RAZON_SOCIAL }, quoteAmountClp: TOTAL });
+    expect(vi.mocked(processQuoteToCrm).mock.calls[0][1]).toEqual({ customerType: 'B2B' });
     for (const key of ['company', 'customerType', 'priceMode']) expect(payload).not.toHaveProperty(key);
 
     const [note] = notes();
@@ -210,6 +211,7 @@ describe('POST /api/quotes/create', () => {
     expect(res.statusCode).toBe(201);
     const payload = crmPayload();
     expect(payload.leadType).toBe('B2C');
+    expect(vi.mocked(processQuoteToCrm).mock.calls[0][1]).toEqual({ customerType: 'B2C' });
     expect(payload.organization).toBeUndefined();
     expect(payload).not.toHaveProperty('company');
 
@@ -444,6 +446,15 @@ describe('POST /api/quotes/create', () => {
     const [note] = notes();
     expect(note.content).toContain('Tipo de cliente: no indicado (formulario anterior)');
     expect(note.content).not.toContain('Persona natural');
+    expect(vi.mocked(processQuoteToCrm).mock.calls[0][1]).toEqual({ customerType: null });
+  });
+
+  it('formulario anterior en modo empresa (leadType B2B, sin customerType): el negocio sigue B2B y la persona queda sin tipo', async () => {
+    // El leadType B2B del formulario anterior solo decía que el cliente veía precios netos
+    const res = await call(quote('nuevo_elights'));
+    expect(res.statusCode).toBe(201);
+    expect(crmPayload()).toMatchObject({ leadType: 'B2B' });
+    expect(vi.mocked(processQuoteToCrm).mock.calls[0][1]).toEqual({ customerType: null });
   });
 
   // --- Productos que el catálogo no identifica: el monto sale solo del catálogo ---

@@ -118,6 +118,8 @@ export interface CreateEstudioDealParams {
   stageId: number;
   ownerId: number;
   title: string;
+  /** ESTL-xxxx: la misma del correo y la nota; llave de deduplicacion (campo quoteReference). */
+  leadRef: string;
   customFields: Record<string, string | number | boolean>;
   noteContent: string;
 }

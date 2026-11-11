@@ -160,9 +160,10 @@ export async function findOrCreatePerson(
     }
 
   // Custom fields (resolved at runtime via fieldOptions cache)
+  // customerType comes from the customer type, never from the channel ('WhatsApp' never matches B2B/B2C)
   const customerTypeKey = process.env.PIPEDRIVE_PERSON_FIELD_CUSTOMER_TYPE;
-    if (customerTypeKey && customer.preferredChannel) {
-          const optionId = getOptionId('person', customerTypeKey, customer.preferredChannel);
+    if (customerTypeKey && customer.customerType) {
+          const optionId = getOptionId('person', customerTypeKey, customer.customerType);
           if (optionId !== undefined) {
                   body[customerTypeKey] = optionId;
           }

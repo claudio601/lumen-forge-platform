@@ -40,8 +40,9 @@ import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
-import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
-import type { PipedriveDeal, PipedriveDealSearchItem } from '../_lib/crm/types.js';
+import { pipedrivePost, pipedrivePut } from '../_lib/pipedrive/client.js';
+import { findDealByQuoteReference } from '../_lib/pipedrive/deals.js';
+import type { PipedriveDeal } from '../_lib/crm/types.js';
 import {
   mapEstudioPayloadToDealParams,
   buildEstudioLeadRef,
@@ -86,58 +87,32 @@ function isAuthorized(req: VercelRequest): boolean {
   return false;
 }
 
-// ── Deduplicacion (busca deal existente por leadRef en el campo custom) ───────
-
-async function findExistingEstudioDeal(
-  leadRef: string,
-  pipelineId: number
-): Promise<PipedriveDeal | null> {
-  const fieldKey = process.env.PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF;
-  if (!fieldKey) {
-    // Sin campo configurado: skip dedup silencioso (no bloquea la creacion)
-    return null;
-  }
-
-  try {
-    const res = await pipedriveGet<{ items: Array<{ item: PipedriveDealSearchItem }> }>(
-      '/deals/search',
-      { term: leadRef, fields: 'custom_fields', exact_match: 'true', limit: '5' }
-    );
-
-    if (!res.success || !res.data?.items) return null;
-
-    for (const { item } of res.data.items) {
-      // /deals/search no trae pipeline_id: el pipeline y el estado se miran en el deal completo
-      const full = await pipedriveGet<PipedriveDeal>('/deals/' + item.id);
-      if (
-        full.success && full.data &&
-        full.data.pipeline_id === pipelineId && full.data.status === 'open' &&
-        String(full.data[fieldKey]) === leadRef
-      ) {
-        return full.data;
-      }
-    }
-  } catch (err) {
-    console.warn(LOG + ' Dedup search failed (non-blocking):', redact(err, 'error'));
-  }
-
-  return null;
-}
+// ── Deduplicacion (doble clic o reenvio en la misma hora) ─────────────────────
+// La referencia ESTL- va en el campo de negocio quoteReference, el mismo de los demas
+// formularios (los PIPEDRIVE_ESTUDIO_FIELD_* no existen en Pipedrive). La ESTL- cambia cada
+// hora: un negocio con la misma es de esa hora, y solo cuenta si sigue abierto.
+const ESTUDIO_DEDUP_WINDOW_DAYS = 1;
+/** Tope de la busqueda (paginas, detalle y un reintento): el correo ya salio. */
+const ESTUDIO_DEDUP_BUDGET_MS = 10_000;
 
 // ── Crear o actualizar deal en Pipedrive ──────────────────────────────────────
 
 async function createEstudioDeal(
   params: CreateEstudioDealParams
 ): Promise<{ dealId: number; dealAction: 'created' | 'updated' }> {
-  const leadRef = params.customFields[process.env.PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF ?? ''];
-
-  if (typeof leadRef === 'string' && leadRef) {
-    const existing = await findExistingEstudioDeal(leadRef, params.pipelineId);
-    if (existing) {
-      console.log(LOG + ' Found existing deal: ' + existing.id + ' — updating title');
-      await pipedrivePut('/deals/' + existing.id, { title: params.title });
-      return { dealId: existing.id, dealAction: 'updated' };
-    }
+  // Si la busqueda falla (o falta la env var del campo), se crea igual: no bloquea el lead.
+  const found = await findDealByQuoteReference(params.leadRef, params.pipelineId, {
+    openWithinDays: ESTUDIO_DEDUP_WINDOW_DAYS,
+    deadline: Date.now() + ESTUDIO_DEDUP_BUDGET_MS,
+  });
+  if (found.status === 'found') {
+    const existing: PipedriveDeal = found.deal;
+    console.log(LOG + ' Found existing deal: ' + existing.id + ' — updating title');
+    await pipedrivePut('/deals/' + existing.id, { title: params.title });
+    return { dealId: existing.id, dealAction: 'updated' };
+  }
+  if (found.status !== 'absent') {
+    console.warn(LOG + ' Dedup search ' + found.status + ' (non-blocking): ' + found.reason);
   }
 
   const body: Record<string, unknown> = {
@@ -303,12 +278,9 @@ export default async function handler(
 
     console.log(ref + ' Person: ' + person.personId + ' (' + person.action + ')');
 
-    // La nota y el campo de referencia llevan la misma ESTL- que el correo
-    const mapped = mapEstudioPayloadToDealParams(payload, person.personId);
-    const refField = process.env.PIPEDRIVE_ESTUDIO_FIELD_LEAD_REF;
+    // La nota y el campo quoteReference llevan la misma ESTL- que el correo
     const dealParams: CreateEstudioDealParams = {
-      ...mapped,
-      customFields: refField ? { ...mapped.customFields, [refField]: leadRef } : mapped.customFields,
+      ...mapEstudioPayloadToDealParams(payload, person.personId, leadRef),
       noteContent: note,
     };
     const result = await createEstudioDeal(dealParams);

@@ -123,8 +123,14 @@ export function mapToActivityParams(
 
 /**
  * Extract the customer object from the payload.
+ *
+ * `declaredType`: the customer type the caller knows better than the leadType (see
+ * ProcessOptions.customerType in dedupe.ts); null leaves the person without a type.
  */
-export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
+export function mapPayloadToCustomer(
+  payload: QuotePayload,
+  declaredType?: LeadType | null
+): QuoteCustomer {
   return {
     name:
       payload.customer?.name?.trim() ||
@@ -135,8 +141,19 @@ export function mapPayloadToCustomer(payload: QuotePayload): QuoteCustomer {
       ? normalizePhone(payload.customer.phone)
       : undefined,
     preferredChannel: payload.customer?.preferredChannel,
+    customerType: declaredType === undefined ? customerTypeOf(payload) : declaredType ?? undefined,
     commune: payload.customer?.commune?.trim() || undefined,
   };
+}
+
+/**
+ * Person field customerType: the leadType the source states (/cotizacion: persona -> B2C,
+ * empresa -> B2B). Never inferred from the organization. Jumpseller does not know it (the
+ * webhook always sends B2C), so its persons stay empty.
+ */
+function customerTypeOf(payload: QuotePayload): LeadType | undefined {
+  if (payload.sourceSystem === 'jumpseller') return undefined;
+  return payload.leadType === 'B2B' || payload.leadType === 'B2C' ? payload.leadType : undefined;
 }
 
 /**

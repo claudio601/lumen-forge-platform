@@ -377,6 +377,8 @@ export default async function handler(
       name: payload.fullName,
       email: payload.email,
       phone: payload.phone,
+      // Persona o empresa del formulario, igual que el negocio
+      customerType: leadType,
       commune: payload.commune,
     });
 

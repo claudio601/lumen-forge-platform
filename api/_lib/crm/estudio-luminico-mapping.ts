@@ -17,6 +17,7 @@ import type {
   CreateEstudioDealParams,
 } from './estudio-luminico-types.js';
 import { TIPO_SERVICIO } from './tipo-servicio.js';
+import { getOptionId } from '../pipedrive/fieldOptions.js';
 
 const LOG_PREFIX = '[estudio-luminico-mapping]';
 
@@ -165,6 +166,14 @@ function buildEstudioCustomFields(
   // Campo global "Tipo de Servicio" (enum, option ID numerico) compartido con el resto de endpoints.
   setField('PIPEDRIVE_FIELD_TIPO_SERVICIO', TIPO_SERVICIO.ESTUDIO_LUMINICO);
 
+  // Campos de negocio que ya existen en Pipedrive y usan los demas formularios: la referencia
+  // ESTL- en quoteReference (deduplicacion) y el origen nuevo_elights en sourceSystem (enum).
+  // Los PIPEDRIVE_ESTUDIO_FIELD_* de abajo no existen en la cuenta (revisado el 2026-10-06 y el
+  // 2026-11-10): sin su env var no escriben nada y el dato queda en la nota.
+  setField('PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE', leadRef);
+  const sourceKey = process.env.PIPEDRIVE_DEAL_FIELD_SOURCE_SYSTEM;
+  if (sourceKey) setField('PIPEDRIVE_DEAL_FIELD_SOURCE_SYSTEM', getOptionId('deal', sourceKey, 'nuevo_elights'));
+
   setField('PIPEDRIVE_ESTUDIO_FIELD_SOURCE', payload.origen);
   setField('PIPEDRIVE_ESTUDIO_FIELD_PROJECT_TYPE', label(TIPO_PROYECTO_LABELS, payload.tipoProyecto));
   setField('PIPEDRIVE_ESTUDIO_FIELD_COMMUNE', payload.comunaCiudad);
@@ -229,12 +238,16 @@ export function buildEstudioDealNote(
 
 // ── Mapper principal ──────────────────────────────────────────────────────────
 
+/**
+ * `leadRef`: la referencia que ya llevan el correo y la nota. create.ts la calcula una sola vez y
+ * la pasa: calcularla de nuevo podria dar otra ESTL- si cambia la hora entre ambas.
+ */
 export function mapEstudioPayloadToDealParams(
   payload: EstudioLuminicoPayload,
-  personId: number
+  personId: number,
+  leadRef: string = buildEstudioLeadRef(payload)
 ): CreateEstudioDealParams {
   const { pipelineId, stageId, ownerId } = getEstudioPipelineConfig();
-  const leadRef = buildEstudioLeadRef(payload);
 
   console.log(LOG_PREFIX + ' Mapping deal: ' + leadRef);
 
@@ -244,6 +257,7 @@ export function mapEstudioPayloadToDealParams(
     stageId,
     ownerId,
     title: buildEstudioDealTitle(payload),
+    leadRef,
     customFields: buildEstudioCustomFields(payload, leadRef),
     noteContent: buildEstudioDealNote(payload, leadRef),
   };

@@ -89,6 +89,11 @@ export async function initFieldOptions(): Promise<void> {
 
 // --- Public API ---
 
+/** Case- and accent-insensitive label: 'Telefono' matches the "Teléfono" option. */
+function normalizeLabel(label: string): string {
+  return label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 /**
  * Get the numeric option ID for a given entity field key and label.
  * Returns undefined if not found (caller should handle gracefully).
@@ -105,9 +110,8 @@ export function getOptionId(
     console.warn(`[fieldOptions] No cached metadata for ${entity}/${fieldKey}`);
     return undefined;
   }
-  const option = meta.options.find(
-    (o) => o.label.toLowerCase() === label.toLowerCase()
-  );
+  const wanted = normalizeLabel(label);
+  const option = meta.options.find((o) => normalizeLabel(o.label) === wanted);
   if (!option) {
     console.warn(
       `[fieldOptions] Option "${label}" not found for ${entity}/${fieldKey}. Available: ${meta.options.map((o) => o.label).join(', ')}`

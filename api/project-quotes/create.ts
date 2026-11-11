@@ -556,6 +556,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       name: quote.nombre,
       email: quote.email,
       phone: normalizePhone(quote.telefono),
+      // La persona lleva el mismo tipo de cliente que el negocio
+      customerType: leadType,
       commune: quote.ciudad,
     };
     // Sin productos ni monto: el puntaje sale del tipo de cliente, la empresa y el teléfono.

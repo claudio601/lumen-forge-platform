@@ -224,6 +224,39 @@ describe('tipo de cliente del negocio según el RUT (PR 6, B12)', () => {
   });
 });
 
+describe('tipo de cliente de la persona nueva (campo customerType)', () => {
+  const base: WhatsAppLeadParams = {
+    phone: PHONE,
+    name: 'Perfil Prueba',
+    summary: 'Pide paneles LED.',
+    body: 'compras@comercial-prueba.example.com',
+    captured: { producto: 'paneles LED', correo: 'compras@comercial-prueba.example.com' },
+    captureStatus: 'complete',
+  };
+  const person = () => vi.mocked(findOrCreatePerson).mock.calls[0][0];
+
+  it('el tipo que detectó el bot llega a la persona, junto con el canal WhatsApp', async () => {
+    await ensureWhatsAppDeal({ ...base, leadType: 'B2B' });
+    expect(person()).toMatchObject({ customerType: 'B2B', preferredChannel: 'WhatsApp' });
+  });
+
+  it('un RUT válido de empresa: persona B2B, igual que el negocio', async () => {
+    await ensureWhatsAppDeal({ ...base, captured: { ...base.captured, rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' } });
+    expect(person().customerType).toBe('B2B');
+  });
+
+  it('un mensaje largo sin señales de empresa: persona B2C', async () => {
+    await ensureWhatsAppDeal(base);
+    expect(person().customerType).toBe('B2C');
+  });
+
+  it('el bot no lo sabe (Unknown): la persona queda sin tipo, aunque el negocio diga B2C', async () => {
+    await ensureWhatsAppDeal({ ...base, body: 'hola', leadType: 'Unknown' });
+    expect(person().customerType).toBeUndefined();
+    expect((vi.mocked(createDeal).mock.calls[0][0] as { leadType?: string }).leadType).toBe('B2C');
+  });
+});
+
 describe('PR 3, revisión de Codex: la nota cabe en Pipedrive (hallazgo 12)', () => {
   // El tope de la nota ya escapada: 90.000 bytes, bajo los ~100 KB por nota que admite Pipedrive.
   const MAX_BYTES = 90_000;
