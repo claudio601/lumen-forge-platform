@@ -31,6 +31,11 @@ const nameHas = (p: Product, re: RegExp) => re.test(norm(p.name));
 const sameSet = (a: readonly Product[], b: readonly Product[]) => expect([...ids(a)].sort()).toEqual([...ids(b)].sort());
 const allSkus = (p: Product) => [p.sku, ...allVariants(p).map(v => v.sku)].filter(Boolean).map(norm);
 const synonymTargets = (s: (typeof SEARCH_SYNONYMS)[number]) => [s.encuentra].flat();
+/** La primera palabra que cuenta del nombre, como la ve la búsqueda («SENSOR DE…» → «sensor»). */
+const leadOf = (p: Product) => {
+  const index = searchIndex(products);
+  return index.lead[index.products.indexOf(p)] ?? '';
+};
 
 describe('texto normalizado', () => {
   it('sin tildes y en minúsculas', () => {
@@ -242,6 +247,30 @@ describe('sinónimos agregados en la revisión', () => {
     }
   });
 
+  it('«detector» y «detector de movimiento» traen lo que dice «sensor», primero lo que es un sensor (10-11-2026)', () => {
+    for (const [q, base] of [['detector', 'sensor'], ['detector de movimiento', 'sensor de movimiento']]) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of search(base)) expect(ids(r).has(p.id), `${q}: ${p.name}`).toBe(true);
+      // Lo que llega por el sinónimo (lo que dice «detector» va antes, tal cual): primero lo que
+      // empieza con «sensor», también «SENSORES…»
+      const viaSynonym = r.filter(p => !haystack(p).includes('detector'));
+      const starts = viaSynonym.filter(p => leadOf(p).startsWith('sensor'));
+      expect(viaSynonym.slice(0, starts.length), q).toEqual(starts);
+    }
+  });
+
+  it('«sensor de presencia» y «detector de presencia» traen lo de «sensor de movimiento», primero lo que es un sensor (10-11-2026)', () => {
+    for (const q of ['sensor de presencia', 'detector de presencia']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of search('sensor de movimiento')) expect(ids(r).has(p.id), `${q}: ${p.name}`).toBe(true);
+      const viaSynonym = r.filter(p => !/detector|presencia/.test(haystack(p)));
+      const starts = viaSynonym.filter(p => leadOf(p).startsWith('sensor'));
+      expect(viaSynonym.slice(0, starts.length), q).toEqual(starts);
+    }
+  });
+
   it('«dimmer» trae lo regulable y lo «dimerizable»', () => {
     const r = ids(search('dimmer'));
     for (const p of products.filter(x => nameHas(x, /\b(regulable|dimerizable)\b/))) expect(r.has(p.id), p.name).toBe(true);
@@ -286,14 +315,65 @@ describe('reglas de la búsqueda', () => {
     expect(search('campana palabraquenoexiste')).toEqual([]);
   });
 
-  it('orden: SKU, nombre y el resto; a igualdad, el orden del catálogo', () => {
+  it('orden: SKU, nombre y el resto; en el nombre, primero los que empiezan con la palabra; a igualdad, el orden del catálogo', () => {
     const r = search('proyector');
     const inName = r.filter(p => nameHas(p, /proyector/));
     expect(inName.length).toBeGreaterThan(0);
     expect(r.slice(0, inName.length)).toEqual(inName);
     const position = new Map(products.map((p, i) => [p.id, i]));
-    const order = inName.map(p => position.get(p.id)!);
-    expect(order).toEqual([...order].sort((a, b) => a - b));
+    // Como la búsqueda: también «PROYECTORES…»
+    const starts = inName.filter(p => leadOf(p).startsWith('proyector'));
+    const rest = inName.filter(p => !leadOf(p).startsWith('proyector'));
+    expect(inName).toEqual([...starts, ...rest]);
+    for (const group of [starts, rest]) {
+      const order = group.map(p => position.get(p.id)!);
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+    }
+  });
+
+  it('a igualdad, primero el producto cuyo nombre empieza con la palabra buscada: el sensor antes que el proyector «C/ SENSOR», el poste antes que la solar «PARA … POSTE»', () => {
+    const cases: [string, string][] = [
+      ['sensor', 'sensor'], ['sensores', 'sensor'], ['proyector', 'proyector'], ['poste', 'poste'],
+      ['brazo', 'brazo'], ['riel', 'riel'], ['marco', 'marco'],
+    ];
+    let checked = 0;
+    for (const [q, word] of cases) {
+      // Los que dicen la palabra en el nombre, en el orden en que salen
+      const inName = search(q).filter(p => nameHas(p, new RegExp(`\\b${word}`)));
+      // Como la búsqueda: también el plural o una palabra más larga («SENSORES…»)
+      const starts = inName.filter(p => leadOf(p).startsWith(word));
+      if (starts.length && starts.length < inName.length) checked++;
+      expect(inName.slice(0, starts.length), q).toEqual(starts);
+    }
+    // El catálogo cambia: basta con que haya casos donde se mezclan los dos grupos
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('no cuenta lo que viene después de «con», «c/», «para» o «sin», ni nada si se pide una luz: «luz con sensor» no trae primero el SENSOR', () => {
+    const position = new Map(products.map((p, i) => [p.id, i]));
+    // Sin desempate: los que dicen la palabra en el nombre van en el orden del catálogo
+    for (const [q, word] of [
+      ['luz con sensor', 'sensor'], ['led con sensor', 'sensor'], ['luminaria para poste', 'poste'],
+      ['luminaria con brazo', 'brazo'], ['luces de riel', 'riel'], ['lámpara riel', 'riel'],
+    ]) {
+      const inName = search(q).filter(p => nameHas(p, new RegExp(`\\b${word}`)));
+      const order = inName.map(p => position.get(p.id)!);
+      expect(order, q).toEqual([...order].sort((a, b) => a - b));
+    }
+    // Lo que va antes de «con» sí cuenta: «panel con marco», primero los paneles, después los marcos
+    const both = search('panel con marco').filter(p => nameHas(p, /\bpanel/) && nameHas(p, /\bmarco/));
+    const panels = both.filter(p => leadOf(p).startsWith('panel'));
+    expect(both.slice(0, panels.length)).toEqual(panels);
+  });
+
+  it('la primera palabra que cuenta del nombre: sin «LED», «luminaria» ni las medidas', () => {
+    const lead = (name: string) => searchIndex([{ ...products[0], name }]).lead[0];
+    expect(lead('SENSOR DE MOVIMIENTO PIR 180° MURO IP44 NEGRO')).toBe('sensor');
+    expect(lead('LUMINARIA SOLAR LED 100W')).toBe('solar');
+    expect(lead('LÁMPARA DE EMERGENCIA LED 2X3W')).toBe('emergencia');
+    expect(lead('120x30 MARCO PARA SOBREPONER PANEL LED')).toBe('marco');
+    expect(lead('TRI-PROOF LED 40W IP65')).toBe('triproof');
+    expect(lead('LED 220V')).toBeNull();
   });
 
   it('«foco»: primero lo que dice «foco» en el nombre, después los proyectores (sinónimo)', () => {
