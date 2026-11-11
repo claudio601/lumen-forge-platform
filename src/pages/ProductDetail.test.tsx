@@ -34,20 +34,24 @@ function renderPdp(id: string) {
 describe('ProductDetail: fichas PDF BESTLED', () => {
   it.each([40, 60, 90, 120, 150, 200, 250])('BESTLED %iW: enlace relativo al PDF con descarga y apertura en otra pestaña', (watts) => {
     renderPdp(`alumbrado-publico-bestled-${watts}w-ip66-ik08`);
-    const link = screen.getByRole('link', { name: 'Ficha técnica (PDF)' });
-    expect(link).toHaveAttribute('href', `/fichas/APB${watts}.pdf`);
-    expect(link).toHaveAttribute('download');
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    // Desde una ficha anidada y con otro dominio, el PDF se resuelve en la raíz del mismo sitio.
-    expect(new URL(link.getAttribute('href')!, `https://sitio.example/producto/bestled-${watts}`).href)
-      .toBe(`https://sitio.example/fichas/APB${watts}.pdf`);
+    // El botón bajo Solicitar pedido / Cotizar y el acceso corto sobre el título: el mismo PDF
+    const links = screen.getAllByRole('link', { name: 'Ficha técnica (PDF)' });
+    expect(links.map(a => a.hasAttribute('data-datasheet-shortcut') || !!a.closest('[data-datasheets]'))).toEqual([true, true]);
+    for (const link of links) {
+      expect(link).toHaveAttribute('href', `/fichas/APB${watts}.pdf`);
+      expect(link).toHaveAttribute('download');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      // Desde una ficha anidada y con otro dominio, el PDF se resuelve en la raíz del mismo sitio.
+      expect(new URL(link.getAttribute('href')!, `https://sitio.example/producto/bestled-${watts}`).href)
+        .toBe(`https://sitio.example/fichas/APB${watts}.pdf`);
+    }
   });
 });
 
 // Todas las fichas publicadas tienen su botón de ficha técnica bajo Solicitar pedido / Cotizar
 // (reclamos de clientes, 2026-11-11): uno por PDF, o «Pedir ficha técnica» si Jumpseller no
-// tiene el PDF. Datos del día, pero la regla no depende de cuáles productos tienen PDF.
+// tiene el PDF, y un acceso corto sobre el título. Datos del día, pero la regla no depende de cuáles productos tienen PDF.
 describe('ProductDetail: botón de ficha técnica en todas las fichas', () => {
   const sheets = (p: (typeof products)[number]) => productDatasheetLinks(p.datasheetUrl, productDatasheets[p.jumpseller_id]);
   // Una ficha por categoría, más una con varios PDF y una sin PDF si las hay
@@ -68,6 +72,20 @@ describe('ProductDetail: botón de ficha técnica en todas las fichas', () => {
     } else {
       expect(links.map(a => a.textContent?.trim())).toEqual(['Pedir ficha técnica']);
       expect(links[0].getAttribute('href')).toMatch(/^mailto:/);
+    }
+    // Acceso corto sobre el título (a la vista también con selector de variante): con un PDF, el
+    // PDF; con varios o sin PDF, el ancla de esa fila
+    const shortcuts = document.querySelectorAll('[data-datasheet-shortcut]');
+    expect(shortcuts).toHaveLength(1);
+    const shortcut = shortcuts[0];
+    expect(shortcut.parentElement!.nextElementSibling!.tagName).toBe('H1'); // en la línea del código
+    expect(row.id).toBe('ficha-tecnica');
+    if (expected.length === 1) {
+      expect(shortcut.textContent?.trim()).toBe(`${expected[0].label} (PDF)`);
+      expect(shortcut.getAttribute('href')).toBe(expected[0].href);
+    } else {
+      expect(shortcut.textContent?.trim()).toBe(expected.length ? 'Fichas técnicas (PDF)' : 'Pedir ficha técnica');
+      expect(shortcut.getAttribute('href')).toBe('#ficha-tecnica');
     }
   });
 });

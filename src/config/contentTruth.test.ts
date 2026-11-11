@@ -331,9 +331,9 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text).not.toContain('Garantía legal de 6 meses');
     expect(text.indexOf('Garantía de 5 años')).toBeLessThan(text.search(/Garant[ií]a\s*5 años/));
     expect(text).toContain('durante esos 6 meses el cliente elige entre reparación, cambio o devolución');
-    // Con ficha técnica: el botón descarga el PDF
-    const datasheet = [...root.querySelectorAll('a')].find(a => a.textContent?.trim() === 'Ficha técnica (PDF)');
-    expect(datasheet?.getAttribute('href')).toBe(bestled.datasheetUrl);
+    // Con ficha técnica: el botón y el acceso corto sobre el título descargan el PDF
+    const datasheets = [...root.querySelectorAll('a')].filter(a => a.textContent?.trim() === 'Ficha técnica (PDF)');
+    expect(datasheets.map(a => a.getAttribute('href'))).toEqual([bestled.datasheetUrl, bestled.datasheetUrl]);
   });
 
   it('ficha sin cifra de garantía: «Ficha técnica» nunca deshabilitada ni "próximamente", con la garantía legal', async () => {

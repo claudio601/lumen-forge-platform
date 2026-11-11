@@ -23,7 +23,7 @@ import {
     FileText, FileDown, Mail, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { contactEmail, docsRequestMailto, waProductUrl } from '@/config/business';
@@ -93,11 +93,31 @@ function renderDescriptionBlocks(text: string): ReactNode {
   });
 }
 
-// Botones «Ficha técnica (PDF)» / «Pedir ficha técnica»: visibles a primera vista (borde y texto
-// del color primario, 44 px de alto), ancho completo en el teléfono; varios PDF se reparten la
-// fila en columnas iguales (pasan a la línea siguiente si el texto no cabe).
+// Botón con borde de la ficha: «Cotizar» y la ficha técnica comparten el mismo tratamiento (borde
+// y texto del color primario, 48 px de alto), para que el orden sea Solicitar pedido (relleno) >
+// Cotizar = Ficha técnica. Para marcar más el borde, se cambia aquí y suben los dos a la vez.
+const OUTLINE_CTA = 'h-12 gap-2 border-primary/30 text-primary hover:bg-accent';
+// Botones «Ficha técnica (PDF)» / «Pedir ficha técnica»: ancho completo en el teléfono; varios PDF
+// se reparten la fila en columnas iguales (pasan a la línea siguiente si el texto no cabe).
 const DATASHEET_GRID = 'mb-3 grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))]';
-const DATASHEET_BUTTON = 'h-11 w-full gap-2 px-4 border-primary text-primary font-semibold hover:bg-accent hover:text-primary';
+const DATASHEET_BUTTON = `w-full px-4 ${OUTLINE_CTA}`;
+// Fila de los botones de la ficha técnica: destino del acceso corto de arriba
+const DATASHEETS_ANCHOR = 'ficha-tecnica';
+// Acceso corto a la ficha técnica, en la línea del código, sobre el título (a la vista sin
+// desplazarse también en las fichas con selector de variante). Objetivo táctil de 24 px de alto;
+// el margen negativo lo deja en el alto de esa línea (16 px), sin mover lo de abajo.
+const DATASHEET_SHORTCUT = 'inline-flex min-h-6 -my-1 items-center gap-1.5 rounded-sm text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+
+/** Con varios PDF o sin PDF, el acceso corto baja a la fila de la ficha técnica y le pasa el foco
+ *  (sin cambiar la URL ni el historial). Sin JS, el ancla hace lo mismo. */
+function jumpToDatasheets(e: ReactMouseEvent<HTMLAnchorElement>) {
+  const row = document.getElementById(DATASHEETS_ANCHOR);
+  if (!row) return;
+  e.preventDefault();
+  row.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  row.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+}
 
 // Contenido SEO del producto (formato BESTLED) sobre los datos de Jumpseller. Los BESTLED
 // tienen su ficha editorial completa y no lo usan.
@@ -389,7 +409,33 @@ const ProductDetail = () => {
                 
                   {/* ── Info + CTAs ─────────────────────────────────────── */}
                         <div>
-                                  <p className="text-xs text-muted-foreground font-mono mb-1 min-h-4">{headerSku}</p>
+                          {/* Código y, a la derecha, el acceso corto a la ficha técnica: a la vista sin desplazarse
+                              (en 1366×768 los botones de abajo quedan bajo el pliegue en las fichas con selector). Va
+                              en esta línea para no sumar alto: en la fila de «Consultar disponibilidad» la partía en
+                              dos y bajaba 24 px Solicitar pedido en todas las fichas. Con un PDF, el PDF; con varios
+                              o sin PDF, baja a sus botones. */}
+                                  <div className="flex flex-wrap items-center justify-between gap-x-3 mb-1 min-h-4">
+                                              <p className="text-xs text-muted-foreground font-mono">{headerSku}</p>
+                                              {datasheets.length === 1 ? (
+                                                            <a
+                                                              href={datasheets[0].href}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              download={datasheets[0].href.startsWith('/') || undefined}
+                                                              className={DATASHEET_SHORTCUT}
+                                                              data-datasheet-shortcut=""
+                                                            >
+                                                              <FileDown aria-hidden="true" className="h-4 w-4" />
+                                                              {datasheets[0].label} (PDF)
+                                                            </a>
+                                              ) : (
+                                                            <a href={`#${DATASHEETS_ANCHOR}`} onClick={jumpToDatasheets} className={DATASHEET_SHORTCUT} data-datasheet-shortcut="">
+                                                              {datasheets.length > 1
+                                                                ? <><FileDown aria-hidden="true" className="h-4 w-4" />Fichas técnicas (PDF)</>
+                                                                : <><Mail aria-hidden="true" className="h-4 w-4" />Pedir ficha técnica</>}
+                                                            </a>
+                                              )}
+                                  </div>
                                   <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
                         
                           {(product.tags ?? []).length > 0 && (
@@ -473,7 +519,7 @@ const ProductDetail = () => {
                                                               variant="outline"
                                                               disabled={ctaDisabled}
                                                               aria-describedby={hasVariantChoice ? hintId : undefined}
-                                                              className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
+                                                              className={`flex-1 ${OUTLINE_CTA}`}
                                                               onClick={() => {
                                                                                 addToQuote(product, qty, undefined, quoteSelection);
                                                                                 toast.success('Agregado a cotización', chosenLabel ? { description: `${product.name} – ${chosenLabel}` } : undefined);
@@ -486,7 +532,8 @@ const ProductDetail = () => {
                         
                           {/* Ficha técnica, destacada justo debajo de Solicitar pedido / Cotizar (reclamos de
                               clientes que no veían el enlace gris, decisión del dueño, 2026-11-11): un botón por
-                              PDF («Ficha técnica 40W (PDF)» con varios), en una grilla pareja que llena la fila.
+                              PDF («Ficha técnica 40W (PDF)» con varios), en una grilla pareja que llena la fila, con
+                              el mismo tratamiento que Cotizar (OUTLINE_CTA) y un acceso corto sobre el título.
                               Los PDF de Jumpseller son los que muestra elights.cl (el dueño manda la ficha del
                               producto para que el cliente los descargue); el editorial de las BESTLED gana
                               (src/lib/datasheets.ts) y `download` solo sirve en los PDF propios del sitio. Los PDF
@@ -494,7 +541,7 @@ const ProductDetail = () => {
                               «Cumple DS1» para todas las variantes: falta reemitirlos (certificado solo en 2200K y
                               2700K). Sin PDF, en el mismo lugar, «Pedir ficha técnica»: el correo de «Pedir
                               documentos técnicos». */}
-                                  <div className={DATASHEET_GRID} data-datasheets="">
+                                  <div id={DATASHEETS_ANCHOR} className={DATASHEET_GRID} data-datasheets="">
                                               {datasheets.length > 0 ? datasheets.map(d => (
                                                             <Button key={d.href} asChild variant="outline" className={DATASHEET_BUTTON}>
                                                               <a
