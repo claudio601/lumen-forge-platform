@@ -88,8 +88,21 @@ export function textField(value: unknown): string | undefined {
 }
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-/** Posicion de la llave que cierra la que abre en `start` (-1: no se cierra). Respeta comillas y escapes. */
-function closingBrace(text: string, start: number): number {
+/**
+ * Un candidato JSON de la respuesta: un objeto, otra raiz valida (lista, null, texto, numero), algo entre llaves
+ * que no es JSON, o uno que empieza y no se cierra.
+ */
+type JsonCandidate = { kind: 'object'; value: Record<string, unknown> } | { kind: 'other' } | { kind: 'invalid' } | { kind: 'open' };
+function candidateOf(source: string): JsonCandidate {
+  try {
+    const value: unknown = JSON.parse(source);
+    return isPlainObject(value) ? { kind: 'object', value } : { kind: 'other' };
+  } catch {
+    return { kind: 'invalid' };
+  }
+}
+/** Posicion del cierre de la llave o el corchete que abre en `start` (-1: no se cierra). Respeta comillas y escapes. */
+function closingIndex(text: string, start: number): number {
   let depth = 0;
   let inString = false;
   let escaped = false;
@@ -100,47 +113,69 @@ function closingBrace(text: string, start: number): number {
       else if (c === '\\') escaped = true;
       else if (c === '"') inString = false;
     } else if (c === '"') inString = true;
-    else if (c === '{') depth++;
-    else if (c === '}' && --depth === 0) return i;
+    else if (c === '{' || c === '[') depth++;
+    else if ((c === '}' || c === ']') && --depth === 0) return i;
   }
   return -1;
 }
 /**
+ * [RESPUESTA] Revision de Codex de la PR 168 (hallazgo 3): una llave o un corchete empieza un candidato JSON solo si
+ * lo que sigue parece JSON (`{"`, `{}`, `{clave:` o `[{`, `[[`, `["`, `[]`); una llave suelta de la prosa ("usa
+ * llaves { asi") o una nota entre corchetes ("[nota]") no.
+ */
+function startsJson(text: string, at: number): boolean {
+  const rest = text.slice(at + 1).trimStart();
+  return text[at] === '{' ? /^(?:["'}]|[A-Za-z_]\w*\s*:)/.test(rest) : /^["{[\]]/.test(rest);
+}
+/**
+ * Los candidatos JSON de la prosa. [RESPUESTA] Revision de Codex de la PR 168 (hallazgo 2): un texto entre comillas
+ * de la prosa ("El cliente escribio "{"") no abre nada; sus comillas se cierran a lo mas al final de la linea (un
+ * 24" de pulgadas no se traga el resto). Cada candidato se salta entero: no se buscan objetos dentro de el.
+ */
+function proseCandidates(text: string): JsonCandidate[] {
+  const found: JsonCandidate[] = [];
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '\\') i++;
+      else if (c === '"' || c === '\n') quoted = false;
+    } else if (c === '"') quoted = true;
+    else if ((c === '{' || c === '[') && startsJson(text, i)) {
+      const end = closingIndex(text, i);
+      if (end === -1) { found.push({ kind: 'open' }); break; }
+      found.push(candidateOf(text.slice(i, end + 1)));
+      i = end;
+    }
+  }
+  return found;
+}
+/**
  * [RESPUESTA] El objeto JSON de la respuesta de Claude: el texto entero o el unico objeto de primer nivel que
  * trae, dentro o fuera de un bloque ```json y con texto antes o despues (informe de Codex del 10-11, punto 3).
- * Una llave dentro de un texto entre comillas no abre ni cierra nada; un trozo entre llaves que no es JSON se
- * salta entero (no se busca un objeto dentro de el). Con mas de un objeto no se elige ninguno.
+ * Cada bloque se lee entero primero: una lista o un null es una raiz que no es objeto y no se buscan objetos
+ * dentro de ella (revision de la PR 168, hallazgo 1). En la prosa (lo que queda fuera de los bloques), un texto
+ * entre comillas no abre nada. Con mas de un candidato, o con uno que empieza y no se cierra, no se elige ninguno
+ * (B9: una correccion a medias no deja elegir la primera version).
  */
 export function extractJsonObject(text: string): { ok: true; value: Record<string, unknown> } | { ok: false; reason: Exclude<ClaudeFallbackReason, 'respuesta_incompleta'> } {
   const trimmed = text.trim();
-  try {
-    const whole: unknown = JSON.parse(trimmed);
-    return isPlainObject(whole) ? { ok: true, value: whole } : { ok: false, reason: 'no_es_objeto' };
-  } catch { /* texto alrededor, un bloque o un JSON cortado: se busca el objeto */ }
-  const objects: Record<string, unknown>[] = [];
-  let sawBraces = false;
-  for (let start = trimmed.indexOf('{'); start !== -1; ) {
-    const end = closingBrace(trimmed, start);
-    if (end === -1) {
-      if (!objects.length) return { ok: false, reason: 'json_incompleto' };
-      break;
-    }
-    sawBraces = true;
-    try {
-      const value: unknown = JSON.parse(trimmed.slice(start, end + 1));
-      if (isPlainObject(value)) objects.push(value);
-    } catch { /* no es JSON: se salta entero */ }
-    start = trimmed.indexOf('{', end + 1);
+  const whole = candidateOf(trimmed);
+  if (whole.kind === 'object') return { ok: true, value: whole.value };
+  if (whole.kind === 'other') return { ok: false, reason: 'no_es_objeto' };
+  const candidates: JsonCandidate[] = [];
+  const fence = /```(?:json)?\s*([\s\S]*?)\s*```/gi;
+  for (const block of trimmed.matchAll(fence)) {
+    const inner = candidateOf(block[1]);
+    // Un bloque que no es JSON entero (texto y un objeto, o un objeto cortado): sus candidatos, como en la prosa.
+    candidates.push(...(inner.kind === 'invalid' ? proseCandidates(block[1]) : [inner]));
   }
-  if (objects.length === 1) return { ok: true, value: objects[0] };
-  if (objects.length > 1) return { ok: false, reason: 'varios_json' };
-  // Un bloque ```json con null, una lista o un texto.
-  for (const fence of trimmed.matchAll(/```(?:json)?\s*([\s\S]*?)\s*```/gi)) {
-    try {
-      if (!isPlainObject(JSON.parse(fence[1]))) return { ok: false, reason: 'no_es_objeto' };
-    } catch { /* sigue */ }
-  }
-  return { ok: false, reason: sawBraces ? 'json_invalido' : 'sin_json' };
+  candidates.push(...proseCandidates(trimmed.replace(fence, '\n')));
+  if (candidates.some((c) => c.kind === 'open')) return { ok: false, reason: 'json_incompleto' };
+  const roots = candidates.filter((c) => c.kind === 'object' || c.kind === 'other');
+  if (roots.length > 1) return { ok: false, reason: 'varios_json' };
+  if (roots.length === 1) return roots[0].kind === 'object' ? { ok: true, value: roots[0].value } : { ok: false, reason: 'no_es_objeto' };
+  return { ok: false, reason: candidates.length ? 'json_invalido' : 'sin_json' };
 }
 const TEXT_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo'] as const;
 const isMissing = (value: unknown) => value === undefined || value === null;

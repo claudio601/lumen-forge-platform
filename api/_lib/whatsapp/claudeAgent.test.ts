@@ -221,6 +221,40 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
     }
   });
 
+  // [RESPUESTA] Revisión de Codex de la PR 168 (informe del 11-11), hallazgos 1 a 3.
+  it('Codex PR 168, hallazgo 1: una lista en un bloque ```json (o en la prosa) es no_es_objeto; no se toma el objeto de adentro', async () => {
+    for (const output of ['```json\n[' + JSON_TEXT + ']\n```', 'Aquí va:\n```\n[' + JSON_TEXT + ']\n```', 'Resultado: [' + JSON_TEXT + '] listo']) {
+      const result = await ask(output);
+      expect(result.diagnostics?.reason).toBe('no_es_objeto');
+      expect(result.parsed.producto).toBeUndefined();
+      expect(result.parsed.correo).toBeUndefined();
+    }
+  });
+
+  it('Codex PR 168, hallazgo 2: las comillas de la prosa protegen sus llaves; el bloque válido se usa', async () => {
+    for (const quote of ['"{"', '"{}"', '"dijo \\"{\\" y siguió"', '"{\\"producto\\": \\"otro\\"}"']) {
+      const result = await ask('El cliente escribió ' + quote + '.\n```json\n' + JSON_TEXT + '\n```');
+      expect(result.diagnostics?.reason).toBeUndefined();
+      expect(result.parsed.producto).toBe('focos LED');
+    }
+  });
+
+  it('Codex PR 168, hallazgo 3: un objeto seguido de otro candidato JSON sin cerrar es json_incompleto (B9: no se elige una versión)', async () => {
+    for (const second of ['\nCorrección: {"nombre":"Rosa Prueba"', ' o mejor [{"cantidad": "24"', '\n```json\n{"cantidad": "24",']) {
+      const result = await ask(JSON_TEXT + second);
+      expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'json_incompleto', stopReason: 'end_turn' });
+      expect(result.parsed.producto).toBeUndefined();
+    }
+  });
+
+  it('Codex PR 168, hallazgo 3 (control): una llave suelta de la prosa no es un candidato', async () => {
+    for (const tail of [' Escríbeme si falta algo {', ' usa llaves { así } en el texto', ' [nota] fin']) {
+      const result = await ask(JSON_TEXT + tail);
+      expect(result.diagnostics?.reason).toBeUndefined();
+      expect(result.parsed.producto).toBe('focos LED');
+    }
+  });
+
   it('extractJsonObject: un trozo entre llaves que no es JSON se salta entero (no se toma un objeto de adentro); un escape no cierra el texto', () => {
     expect(extractJsonObject('{"a": {"b": 1}, "c": 2,}')).toEqual({ ok: false, reason: 'json_invalido' });
     expect(extractJsonObject('texto {"a": 1} y { sin cerrar')).toEqual({ ok: true, value: { a: 1 } });

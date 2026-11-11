@@ -490,6 +490,24 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
     expect(qaOut().map((q) => q.ai)).toEqual(['heuristic', 'heuristic']);
   });
 
+  // [RESPUESTA] Revisión de Codex de la PR 168 (informe del 11-11): en estos dos casos la versión anterior cerraba y
+  // creaba el negocio con datos que no debía tomar; ahora, como en main, las reglas repreguntan el nombre.
+  it('Codex PR 168, hallazgo 1: una lista en un bloque ```json no se toma como objeto: sin negocio, repregunta el nombre', async () => {
+    const phone = nextPhone();
+    const r = await sendRaw(phone, FULL, '```json\n[' + JSON.stringify(FULL_CLAUDE) + ']\n```');
+    expect(r.reply).toMatch(/nombre/i);
+    expect(sim.deals).toHaveLength(0);
+    expect(logged(console.warn).some((l) => l.includes('motivo=no_es_objeto'))).toBe(true);
+  });
+
+  it('Codex PR 168, hallazgo 3: un objeto seguido de una corrección sin cerrar no se usa: sin negocio, repregunta el nombre', async () => {
+    const phone = nextPhone();
+    const r = await sendRaw(phone, FULL, JSON.stringify(FULL_CLAUDE) + '\nCorrección: {"nombre":"Rosa Prueba"');
+    expect(r.reply).toMatch(/nombre/i);
+    expect(sim.deals).toHaveLength(0);
+    expect(logged(console.warn).some((l) => l.includes('motivo=json_incompleto stop_reason=end_turn'))).toBe(true);
+  });
+
   it('cortada por max_tokens: respuesta incompleta, valores por defecto con su motivo', async () => {
     const phone = nextPhone();
     const r = await sendRaw(phone, 'Hola, busco focos', JSON.stringify(FULL_CLAUDE), 'max_tokens');
