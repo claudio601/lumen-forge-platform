@@ -14,7 +14,7 @@ vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn() }));
 
 import handler from '../estudio-luminico/create';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
-import { pipedrivePost, pipedriveGet } from '../_lib/pipedrive/client.js';
+import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
 import { getOptionId } from '../_lib/pipedrive/fieldOptions.js';
 import { waitUntil } from '@vercel/functions';
 import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
@@ -332,6 +332,7 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(waitUntil).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
@@ -495,6 +496,7 @@ describe('POST /api/estudio-luminico/create: privacidad y topes', () => {
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(waitUntil).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
@@ -617,6 +619,7 @@ describe('POST /api/estudio-luminico/create: D.S. N°1/2022', () => {
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(waitUntil).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
@@ -693,6 +696,7 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(getOptionId).mockReset().mockImplementation((entity, key, label) =>
       entity === 'deal' && key === SOURCE && label === 'nuevo_elights' ? 931 : undefined);
     vi.mocked(waitUntil).mockClear();
@@ -733,10 +737,13 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     expect(gasBodies()[0].items_lista).toContain('Referencia: ' + leadRef(res));
   });
 
-  it('busca la referencia en quoteReference, solo entre negocios abiertos', async () => {
+  it('busca la referencia en quoteReference, solo entre negocios abiertos, antes y después del candado', async () => {
     const res = await call(base);
-    expect(searches()).toHaveLength(1);
-    expect(searches()[0][1]).toMatchObject({ term: leadRef(res), fields: 'custom_fields', exact_match: 'true', status: 'open' });
+    // Sin hallazgo, dedupByQuoteReference vuelve a buscar antes de crear (otro envío pudo crearlo).
+    expect(searches()).toHaveLength(2);
+    for (const [, params] of searches()) {
+      expect(params).toMatchObject({ term: leadRef(res), fields: 'custom_fields', exact_match: 'true', status: 'open' });
+    }
   });
 
   it('doble envío: el negocio abierto con la misma referencia se actualiza, sin crear otro', async () => {
@@ -751,6 +758,26 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     expect(res.body).toMatchObject({ dealId: 42, dealAction: 'updated' });
     expect(pdCalls('/deals')).toHaveLength(0);
     expect(pdCalls('/notes')[0][1].deal_id).toBe(42);
+  });
+
+  it.each([
+    ['responde success: false', () => vi.mocked(pipedrivePut).mockResolvedValue({ success: false, data: null, error: 'HTTP 500' } as never)],
+    ['rechaza (red)', () => vi.mocked(pipedrivePut).mockRejectedValue(new TypeError('fetch failed'))],
+  ])('doble envío y el cambio de título %s: se reutiliza el negocio (reused), sin crear otro ni avisar falla', async (_caso, failPut) => {
+    failPut();
+    const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42 } }] } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'open', update_time: pipedriveNow(5), [QUOTE_REF]: sentRef() } };
+      return { success: false, data: null };
+    }) as never);
+    const res = await call(base);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, dealId: 42, dealAction: 'reused' });
+    expect(pdCalls('/deals')).toHaveLength(0);
+    expect(pdCalls('/notes')[0][1].deal_id).toBe(42);
+    expect(gasBodies()).toHaveLength(1); // sin el segundo correo «crear el negocio a mano»
+    expect(vi.mocked(console.warn).mock.calls.flat().map(String).join('\n')).toContain('Title update FAIL, reusing deal 42');
   });
 
   it('un negocio de otro embudo con la misma referencia no cuenta', async () => {

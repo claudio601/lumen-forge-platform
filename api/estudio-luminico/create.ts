@@ -22,6 +22,7 @@
 //       + segundo correo "ATENCIÓN ... Crear el negocio a mano."
 //    -> Fallan ambos: 502 con error visible al usuario
 // 9. Retornar 201/200 { success, personId, dealId, dealAction, leadRef }
+//    dealAction: 'created' (201), 'updated' o 'reused' (ya existia y Pipedrive no acepto el titulo)
 //
 // La nota (y el correo, que lleva el mismo texto) lleva, si el visitante respondió, la sección
 // del D.S. N°1/2022 (_lib/forms/estudioLuminicoValidation.ts, auditoría UX, entrega 4), y termina con la constancia "PRIVACIDAD Y
@@ -41,7 +42,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost, pipedrivePut } from '../_lib/pipedrive/client.js';
-import { findDealByQuoteReference } from '../_lib/pipedrive/deals.js';
+import { dedupByQuoteReference } from '../_lib/pipedrive/deals.js';
 import type { PipedriveDeal } from '../_lib/crm/types.js';
 import {
   mapEstudioPayloadToDealParams,
@@ -51,6 +52,7 @@ import {
 import type {
   EstudioLuminicoPayload,
   EstudioLuminicoResponse,
+  EstudioLuminicoResult,
   EstudioLuminicoSuccessResponse,
   CreateEstudioDealParams,
 } from '../_lib/crm/estudio-luminico-types.js';
@@ -91,30 +93,17 @@ function isAuthorized(req: VercelRequest): boolean {
 // La referencia ESTL- va en el campo de negocio quoteReference, el mismo de los demas
 // formularios (los PIPEDRIVE_ESTUDIO_FIELD_* no existen en Pipedrive). La ESTL- cambia cada
 // hora: un negocio con la misma es de esa hora, y solo cuenta si sigue abierto.
+// dedupByQuoteReference (api/_lib/pipedrive/deals.ts) es la misma de los demas formularios:
+// busca, toma el candado de Redis por referencia y embudo, vuelve a mirar (mapeo de 10 minutos
+// y busqueda) y recien entonces crea. Asi dos envios simultaneos o un reenvio antes de que
+// Pipedrive indexe el negocio no crean dos. Si Redis o la busqueda fallan, se crea igual.
 const ESTUDIO_DEDUP_WINDOW_DAYS = 1;
-/** Tope de la busqueda (paginas, detalle y un reintento): el correo ya salio. */
+/** Tope de la busqueda, la espera del candado y la segunda busqueda: el correo ya salio. */
 const ESTUDIO_DEDUP_BUDGET_MS = 10_000;
 
 // ── Crear o actualizar deal en Pipedrive ──────────────────────────────────────
 
-async function createEstudioDeal(
-  params: CreateEstudioDealParams
-): Promise<{ dealId: number; dealAction: 'created' | 'updated' }> {
-  // Si la busqueda falla (o falta la env var del campo), se crea igual: no bloquea el lead.
-  const found = await findDealByQuoteReference(params.leadRef, params.pipelineId, {
-    openWithinDays: ESTUDIO_DEDUP_WINDOW_DAYS,
-    deadline: Date.now() + ESTUDIO_DEDUP_BUDGET_MS,
-  });
-  if (found.status === 'found') {
-    const existing: PipedriveDeal = found.deal;
-    console.log(LOG + ' Found existing deal: ' + existing.id + ' — updating title');
-    await pipedrivePut('/deals/' + existing.id, { title: params.title });
-    return { dealId: existing.id, dealAction: 'updated' };
-  }
-  if (found.status !== 'absent') {
-    console.warn(LOG + ' Dedup search ' + found.status + ' (non-blocking): ' + found.reason);
-  }
-
+async function postEstudioDeal(params: CreateEstudioDealParams): Promise<number> {
   const body: Record<string, unknown> = {
     title: params.title,
     person_id: params.personId,
@@ -130,9 +119,32 @@ async function createEstudioDeal(
   if (!res.success || !res.data) {
     throw new Error(LOG + ' Failed to create deal: ' + (res.error ?? 'unknown'));
   }
-
   console.log(LOG + ' Created deal: ' + res.data.id);
-  return { dealId: res.data.id, dealAction: 'created' };
+  return res.data.id;
+}
+
+async function createEstudioDeal(
+  params: CreateEstudioDealParams
+): Promise<{ dealId: number; dealAction: EstudioLuminicoResult['dealAction'] }> {
+  const dedup = await dedupByQuoteReference(
+    params.leadRef,
+    params.pipelineId,
+    { openWithinDays: ESTUDIO_DEDUP_WINDOW_DAYS, budgetMs: ESTUDIO_DEDUP_BUDGET_MS },
+    () => postEstudioDeal(params)
+  );
+  if (dedup.status === 'created') return { dealId: dedup.dealId, dealAction: 'created' };
+
+  // Ya existe: se le actualiza el titulo. Si Pipedrive rechaza el cambio, el negocio se
+  // reutiliza igual (la nota va a el) y se informa 'reused': nunca se crea otro.
+  console.log(LOG + ' Found existing deal: ' + dedup.dealId + ' — updating title');
+  try {
+    const put = await pipedrivePut('/deals/' + dedup.dealId, { title: params.title });
+    if (put.success) return { dealId: dedup.dealId, dealAction: 'updated' };
+    console.warn(LOG + ' Title update FAIL, reusing deal ' + dedup.dealId + ': ' + redact(put.error, 'error'));
+  } catch (err) {
+    console.warn(LOG + ' Title update FAIL, reusing deal ' + dedup.dealId + ': ' + redact(err, 'error'));
+  }
+  return { dealId: dedup.dealId, dealAction: 'reused' };
 }
 
 // ── Adjuntar nota al deal (no bloquea: el correo ya lleva los mismos datos) ───
@@ -262,7 +274,7 @@ export default async function handler(
 
   // ── PASO 2: Pipedrive ─────────────────────────────────────────────────────
   let dealId: number;
-  let dealAction: 'created' | 'updated';
+  let dealAction: EstudioLuminicoResult['dealAction'];
   let personId: number;
 
   try {

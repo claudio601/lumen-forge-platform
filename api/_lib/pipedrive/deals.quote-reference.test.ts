@@ -1,6 +1,7 @@
 // Uses the real Pipedrive client and Redis module with fetch intercepted at the boundary.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createDeal, findDealByQuoteReference, type CreateDealParams } from './deals.js';
+import { createDeal, dedupByQuoteReference, findDealByQuoteReference, type CreateDealParams } from './deals.js';
+import { pipedrivePost } from './client.js';
 import {
   acquireQuoteReferenceLock, quoteReferenceLockKey, releaseQuoteReferenceLock,
   quoteReferenceMappingKey, writeQuoteReferenceMapping, QUOTE_MAPPING_TTL_S,
@@ -234,6 +235,55 @@ describe('quoteReference — query failures, pagination and shared locks', () =>
     expect(commands[savedAt]).toEqual(['SET', mappingKey, '999', 'EX', '600']);
     const mappedRead = commands.findIndex(([cmd, key], i) => i > releasedAt && cmd === 'GET' && key === mappingKey);
     expect(mappedRead).toBeGreaterThan(releasedAt);
+  });
+
+  describe('lighting study (api/estudio-luminico): same lock, its own POST', () => {
+    const ESTL = 'ESTL-prueba-2026111209';
+    const opts = { openWithinDays: 1, budgetMs: 10_000 };
+    const createStudy = async () => {
+      const res = await pipedrivePost<{ id: number }>('/deals', { title: 'Estudio', pipeline_id: 2, cf_quote_ref: ESTL });
+      if (!res.success || !res.data) throw new Error('create failed');
+      return res.data.id;
+    };
+
+    it('two simultaneous submissions: both see absence, only one POST', async () => {
+      let unblock!: () => void;
+      const bothSearching = new Promise<void>((resolve) => { unblock = resolve; });
+      search = async () => {
+        if (searchCalls <= 2) {
+          const captured = page([]);
+          if (searchCalls === 2) unblock();
+          await bothSearching;
+          return captured;
+        }
+        expect(redis.data.has(quoteReferenceLockKey(ESTL, 2))).toBe(true);
+        return page(deals.map((d) => d.id));
+      };
+      const results = await Promise.all([
+        dedupByQuoteReference(ESTL, 2, opts, createStudy),
+        dedupByQuoteReference(ESTL, 2, opts, createStudy),
+      ]);
+      expect(results.map((r) => r.status).sort()).toEqual(['created', 'found']);
+      expect(results.map((r) => r.dealId)).toEqual([999, 999]);
+      expect(createCalls).toBe(1);
+      expect(redis.data.has(quoteReferenceLockKey(ESTL, 2))).toBe(false);
+    });
+
+    it('resubmitted before Pipedrive indexes the deal: the 10-minute mapping finds it (open, recent, same reference)', async () => {
+      search = () => page([]); // The new deal never shows up in search.
+      expect(await dedupByQuoteReference(ESTL, 2, opts, createStudy)).toEqual({ status: 'created', dealId: 999, uncertain: false });
+      expect(await dedupByQuoteReference(ESTL, 2, opts, createStudy)).toEqual({ status: 'found', dealId: 999 });
+      expect(createCalls).toBe(1);
+      expect(redis.data.get(quoteReferenceMappingKey(ESTL, 2))?.value).toBe('999');
+    });
+
+    it('Redis down: creates anyway (the lead is never lost)', async () => {
+      redis.down = true;
+      search = () => page([]);
+      expect(await dedupByQuoteReference(ESTL, 2, opts, createStudy)).toEqual({ status: 'created', dealId: 999, uncertain: false });
+      expect(createCalls).toBe(1);
+      warning('quote_lock_unavailable');
+    });
   });
 
   it('an expired mapping no longer prevents creation', async () => {
