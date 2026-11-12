@@ -98,8 +98,12 @@ function isAuthorized(req: VercelRequest): boolean {
 // y busqueda) y recien entonces crea. Asi dos envios simultaneos o un reenvio antes de que
 // Pipedrive indexe el negocio no crean dos. Si Redis o la busqueda fallan, se crea igual.
 const ESTUDIO_DEDUP_WINDOW_DAYS = 1;
-/** Tope de la busqueda, la espera del candado y la segunda busqueda: el correo ya salio. */
-const ESTUDIO_DEDUP_BUDGET_MS = 10_000;
+/**
+ * Tope de la busqueda, la espera del candado y la segunda busqueda (el correo ya salio).
+ * 20 s, como los demas formularios: cubre el POST de quien tiene el candado (hasta 15 s), asi
+ * un segundo envio no se cansa de esperar y crea otro negocio mientras el primero se crea.
+ */
+const ESTUDIO_DEDUP_BUDGET_MS = 20_000;
 
 // ── Crear o actualizar deal en Pipedrive ──────────────────────────────────────
 

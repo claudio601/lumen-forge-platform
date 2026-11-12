@@ -17,6 +17,7 @@ import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
 import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
 import { getOptionId } from '../_lib/pipedrive/fieldOptions.js';
 import { waitUntil } from '@vercel/functions';
+import { createFakeRedis, fakeFetch, UPSTASH_URL } from './fakeUpstash.js';
 import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
 import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types';
 import { DS1_NOTE_HEADING, ESTUDIO_MAX_LENGTHS, REQUIERE_DS1_LABELS } from '../_lib/forms/estudioLuminicoValidation';
@@ -778,6 +779,42 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     expect(pdCalls('/notes')[0][1].deal_id).toBe(42);
     expect(gasBodies()).toHaveLength(1); // sin el segundo correo «crear el negocio a mano»
     expect(vi.mocked(console.warn).mock.calls.flat().map(String).join('\n')).toContain('Title update FAIL, reusing deal 42');
+  });
+
+  it('dos envíos simultáneos con el POST lento y sin indexar: un solo negocio y las dos notas a él', async () => {
+    // Endpoint completo con el candado de Redis (simulado): el segundo envío espera al primero.
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', UPSTASH_URL);
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'invented-test-token');
+    vi.stubGlobal('fetch', fakeFetch(createFakeRedis()));
+    const created: Record<string, unknown>[] = [];
+    let initialSearches = 0;
+    let unblock!: () => void;
+    const bothSearched = new Promise<void>((resolve) => { unblock = resolve; });
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') {
+        // Los dos ven ausencia al principio y Pipedrive nunca indexa el negocio nuevo.
+        if (++initialSearches <= 2) {
+          if (initialSearches === 2) unblock();
+          await bothSearched;
+        }
+        return { success: true, data: { items: [] } };
+      }
+      const id = Number(path.match(/^\/deals\/(\d+)$/)?.[1]);
+      const deal = created.find((d) => d.id === id);
+      return deal ? { success: true, data: deal } : { success: false, data: null };
+    }) as never);
+    vi.mocked(pipedrivePost).mockImplementation((async (path: string, body: Record<string, unknown>) => {
+      if (path !== '/deals') return { success: true, data: { id: 1 } };
+      await new Promise((resolve) => setTimeout(resolve, 700)); // el otro envío espera el candado
+      const deal = { ...body, id: 555 + created.length, status: 'open', update_time: pipedriveNow() };
+      created.push(deal);
+      return { success: true, data: deal };
+    }) as never);
+    const bodies = (await Promise.all([call(base), call(base)])).map((r) => r.body as { dealId?: number; dealAction?: string });
+    expect(created).toHaveLength(1);
+    expect(bodies.map((r) => r.dealId)).toEqual([555, 555]);
+    expect(bodies.map((r) => r.dealAction).sort()).toEqual(['created', 'updated']);
+    expect(pdCalls('/notes').map(([, note]) => note.deal_id)).toEqual([555, 555]);
   });
 
   it('un negocio de otro embudo con la misma referencia no cuenta', async () => {
