@@ -302,13 +302,16 @@ function looksLikeNewRequest(body: string): boolean {
 
 const WANTS_HUMAN_RE = /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|asesor|contacten|contactar|quiero hablar|necesito hablar/i;
 const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
-const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
+// [LUZ] Cualquier temperatura de color entre 2000 y 6999 K ("5700k", "2700 K"): antes solo 3000, 4000, 5000 y 6500.
+const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|[2-6]\d{3}\s*k(?![a-z])|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
 // [CANTIDAD] Empieza donde empieza la palabra: sin eso, un texto largo sin "@" se recorria una vez por letra.
 const EMAIL_RE = /(?<![a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
-const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
+const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jard[i\u00ed]n|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 
 // NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE - no es senal B2B por si sola
-const B2B_SIGNAL_RE = /empresa|factura|obra|proveedor|licitaci[o\u00f3]n|constructora|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
+// [B2B] Palabras completas: "despacho" y "espacio" traen "spa", y "sobra" o "cobra" traen "obra" (caso del 12-11:
+// una persona que pregunto por el despacho paso a empresa y se le pidio el RUT de la empresa).
+const B2B_SIGNAL_RE = /(?<![a-z\u00e0-\u00fc])(?:empresa\w*|factur\w*|obras?|proveedor\w*|licitaci\w*|constructor\w*|bodegas?|oficinas?|locale?s?\s+comercial(?:es)?|proyectos?\s+comercial(?:es)?|spa|ltda)(?![a-z\u00e0-\u00fc])|(?<![a-z\u00e0-\u00fc])s\.\s?a\./i;
 const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s+led|plafon(?:es)?\s+led|ampolleta(?:s)?\s+led|ampolleta(?:s)?|foco(?:s)?\s+led|foco(?:s)?|dicroico(?:s)?|reflector(?:es)?\s+led|reflector(?:es)?|proyector(?:es)?\s+led|proyector(?:es)?|tira(?:s)?\s+led|cinta(?:s)?\s+led|downlight(?:s)?|empotrado(?:s)?\s+led|tubo(?:s)?\s+led|tubo(?:s)?\s+fluorescente(?:s)?|luminaria(?:s)?\s+led|luminaria(?:s)?)\b/i;
 
 // [INSTALL-FLOW] Tipo de proyecto para instalacion
@@ -527,6 +530,9 @@ function normalizeLuz(raw: string): string {
   if (/fr[i\u00ed][ao]/.test(r) || /cool/i.test(r) || /daylight/i.test(r) || /6500/i.test(r)) return 'fria';
   if (/blanca/.test(r) && /c[a\u00e1]lid/.test(r)) return 'calida';
   if (/blanca/.test(r) && /fr[i\u00ed]/.test(r)) return 'fria';
+  // [LUZ] Otra temperatura ("5700k") queda tal cual, como la escribe el cliente: "5700K".
+  const cct = r.match(/^(\d{4})\s*k$/);
+  if (cct) return cct[1] + 'K';
   return r;
 }
 
@@ -833,6 +839,14 @@ const stem = (word: string) => (/\d/.test(word) ? word : word.replace(/ces$/, 'z
 function productWords(text: string): string[] {
   return comparable(text).replace(/\b(?:para|en)\b.*$/, '').split(/[^a-z0-9]+/).filter((w) => w && !PRODUCT_NOISE_RE.test(w)).map(stem);
 }
+// [NO-DEGRADAR] Palabras que solo nombran la familia ("focos", "luminarias LED"), sin modelo ni medida.
+const GENERIC_PRODUCT_STEMS = new Set(['foco', 'panel', 'luminaria', 'ampolleta', 'reflector', 'proyector', 'lampara', 'tubo', 'tira',
+  'cinta', 'downlight', 'plafon', 'plafone', 'campana', 'dicroico', 'spot', 'equipo', 'producto', 'luz', 'luce', 'articulo', 'item', 'unidad', 'cosa']);
+/** [NO-DEGRADAR] El producto es solo una familia ("focos"), sin modelo, medida ni tipo ("Estaca LED COB 5W"). */
+function genericProduct(text: string): boolean {
+  const words = productWords(text);
+  return words.length > 0 && words.every((w) => GENERIC_PRODUCT_STEMS.has(w));
+}
 /** [NO-PISAR] Las palabras de `text` que no quedan en `kept` (lo que el cliente nego). */
 function droppedStems(text: string, kept: string): Set<string> {
   const words = (s: string) => comparable(s).split(/[^a-z0-9]+/).filter(Boolean).map(stem);
@@ -891,6 +905,32 @@ function inMessage(value: string, text: string): boolean {
   return words.length > 0 && words.every((w) => textWords.some((t) => t === w || (/\d/.test(w)
     ? sameSpec(t, w)
     : Math.min(t.length, w.length) >= 4 && (t.startsWith(w) || w.startsWith(t)))));
+}
+
+/** [RESPALDO] Alguna palabra del dato de Claude (no "LED" ni "para") esta en el texto, sin tildes ni plurales. */
+function sharesWord(value: string, text: string): boolean {
+  return comparable(value).split(/[^a-z0-9]+/).filter((w) => (w.length >= 4 || /\d/.test(w)) && !IN_MESSAGE_SKIP_RE.test(w))
+    .some((w) => inMessage(w, text));
+}
+/** [RESPALDO] Las palabras de los enlaces del mensaje ("…/estaca-led-cob-5w-para-jardin" → "estaca led cob 5w para jardin"). */
+function linkWords(body: string): string {
+  return (body.slice(0, MAX_FACTS).match(/(?:https?:\/\/|www\.)\S*/gi) ?? [])
+    .map((url) => url.replace(/^(?:https?:\/\/)?[^/]*/i, '').replace(/[-_/.?=&#%+]+/g, ' ')).join(' ');
+}
+/** [RESPALDO] El texto sin los nombres de producto (los de Claude y el capturado), del mismo largo cuando se puede. */
+function withoutProductNames(text: string, names: Array<string | undefined>): string {
+  let out = text;
+  for (const name of names) if (name && name.trim().length > 2) out = removeLoose(out, name.trim());
+  return out;
+}
+// [NO-DEGRADAR] Cambiar de producto sin palabra de correccion: "mejor focos", "en vez de estacas, focos", "no, focos".
+const PRODUCT_SWITCH_RE = /(?:^|[,.;!?\n]\s*)(?:(?:no\s*,\s*)|(?:no\s*,?\s*)?mejor\s+|en\s+(?:vez|lugar)\s+de\s+)/i;
+// [LUZ] Lo que es un color de luz: el de LUZ_RE (calida, neutra, fria, 2200 a 6500 K), ambar, RGB y otros colores.
+const LUZ_VALUE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:' + LUZ_RE.source
+  + '|blanc[oa]s?|amarill[oa]s?|[a\\u00e1]mbar|rgbw?|multicolor|colores|d[i\\u00ed]a|natural|roj[oa]s?|verdes?|azul(?:es)?|morad[oa]s?|violetas?|naranj[oa]s?|rosad[oa]s?|lila|\\d{4}\\s*k(?:elvin)?)(?![a-z\\u00e0-\\u00fc])', 'i');
+/** [LUZ] El color que trae Claude, solo si es un color de luz. */
+function luzValue(value: string | undefined): string | undefined {
+  return value && LUZ_VALUE_RE.test(value) ? value : undefined;
 }
 
 /**
@@ -1136,9 +1176,11 @@ const STORE_PLACE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:'
 function withoutStorePlaces(text: string): string {
   return text.replace(STORE_PLACE_RE, (m) => ' '.repeat(m.length));
 }
-function claudeProject(claudeParsed: ClaudeFields, body: string): string | undefined {
+function claudeProject(claudeParsed: ClaudeFields, body: string, said: string): string | undefined {
   const value = claudeText(claudeParsed.proyecto_o_uso);
   if (!value) return undefined;
+  // [RESPALDO] Solo el uso que el cliente dice en este mensaje, fuera del nombre del producto.
+  if (!inMessage(value, said)) return undefined;
   if (LEGAL_FORM_RE.test(value) && !SPA_PROJECT_RE.test(body)) return undefined;
   if (inMessage(value, body) && !inMessage(value, withoutStorePlaces(body))) return undefined;
   const empresa = claudeText(claudeParsed.empresa) ?? claudeText(claudeParsed.nombre);
@@ -1286,10 +1328,19 @@ function mergeProductFields(
   const negated = droppedStems(facts, affirmed);
   const dropsNegated = Boolean(prodChange && merged.producto
     && productWords(merged.producto).some((w) => negated.has(w) && !productWords(prodChange).includes(w)));
-  keepOrChange(merged, 'producto', fillWith(claudeProd, extractProducto(assertive) ?? (itemsIn(assertive).length ? undefined : extractProducto(affirmed))), prodChange, dropsNegated);
+  // [NO-DEGRADAR] Caso del 12-11: "5 focos" no cambia "Estaca LED COB 5W para jardin" por "focos". Un nombre
+  // generico nunca reemplaza a uno especifico, salvo una correccion ("corrijo, mejor focos", "no quiero estacas,
+  // quiero focos"). De generico a especifico, o entre dos genericos, si cambia.
+  const downgrade = Boolean(prodChange && merged.producto && genericProduct(prodChange) && !genericProduct(merged.producto)
+    && !dropsNegated && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive));
+  // [RESPALDO] El producto de Claude llena el dato vacio solo si alguna de sus palabras esta en el mensaje o en el
+  // enlace de la ficha (negocio 206: "Sistemas de seguridad" salia del nombre del perfil).
+  const claudeProdFill = claudeProd && sharesWord(claudeProd, facts + ' ' + linkWords(body)) ? claudeProd : undefined;
+  keepOrChange(merged, 'producto', fillWith(claudeProdFill, extractProducto(assertive) ?? (itemsIn(assertive).length ? undefined : extractProducto(affirmed))), downgrade ? undefined : prodChange, dropsNegated);
   // El color del texto gana al de Claude cuando no calzan (Claude puede repetir uno negado o viejo).
   const luzText = textLuz(assertive) ?? textLuz(affirmed);
-  const claudeLuz = claudeText(claudeParsed.tipo_de_luz);
+  // [LUZ] El de Claude solo si es un color de luz: nunca "LED", "luz interior" ni el uso (negocios 148 y 156).
+  const claudeLuz = luzValue(claudeText(claudeParsed.tipo_de_luz));
   const luzConflict = Boolean(luzText && claudeLuz && normalizeLuz(comparable(claudeLuz)) !== luzText);
   // El color que el cliente niega ("no fria") no llena el dato, aunque Claude lo devuelva.
   const luzNegated = Boolean(claudeLuz && !luzText && (negatedLuz(facts).has(normalizeLuz(comparable(claudeLuz))) || negatedOnly(claudeLuz)));
@@ -1301,9 +1352,13 @@ function mergeProductFields(
   const mediaItem = hasMedia && Boolean(merged.cantidad || merged.cantidad_varios)
     && (stated.value !== undefined || quantity.value !== undefined) && !CORRECTION_RE.test(assertive);
   mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem);
-  const claudeProy = claudeProject(claudeParsed, body);
-  const ownProject = (text: string) => extractProyecto(withoutStorePlaces(text));
-  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(base), PROYECTO_RE), base));
+  // [RESPALDO] El uso sale de lo que el cliente dice, no del nombre del producto ("PROYECTOR LED DE ESTADIO",
+  // "Estaca LED COB 5W para jardin") ni de lo que Claude deduce (negocios 119, 197 y 206).
+  const productNames = [claudeProd, merged.producto, state.captured.producto];
+  const noProduct = (text: string) => withoutProductNames(text, productNames);
+  const claudeProy = claudeProject(claudeParsed, body, noProduct(facts));
+  const ownProject = (text: string) => extractProyecto(withoutStorePlaces(noProduct(text)));
+  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(noProduct(base)), PROYECTO_RE), base));
   mergeComuna(merged, 'comuna_o_ciudad', claudeParsed.comuna_o_ciudad, {
     answering: Boolean(question?.asks.includes('comuna_o_ciudad')), company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
   });
@@ -1329,7 +1384,9 @@ function mergeProductFields(
   // [RUT-VALIDO] Solo un RUT valido de empresa es senal B2B (uno de persona, no).
   let leadType: LeadType = state.leadType;
   if (leadType !== 'B2B') {
-    const isB2BSignal = B2B_SIGNAL_RE.test(body) || isBusinessRut(rutFound) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
+    // Sin enlaces ni correos: "ana@empresa.cl" no es una empresa.
+    const b2bText = body.slice(0, MAX_FACTS).replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ');
+    const isB2BSignal = B2B_SIGNAL_RE.test(b2bText) || isBusinessRut(rutFound) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
     if (isB2BSignal) { leadType = 'B2B'; }
     else if (leadType === 'Unknown' && body.trim().length > 10) { leadType = 'B2C'; }
   }
@@ -1810,7 +1867,8 @@ function articleFor(proyecto: string): string {
 function buildRepregunta1(missing: string[], captured: CapturedFields = {}): string {
   const hints: string[] = [];
   if (captured.proyecto_o_uso) { const art = articleFor(captured.proyecto_o_uso); hints.push(art + ' ' + captured.proyecto_o_uso); }
-  if (captured.tipo_de_luz) hints.push('luz ' + captured.tipo_de_luz);
+  // [LUZ] Sin "luz luz" cuando el color ya trae la palabra ("luz cálida").
+  if (captured.tipo_de_luz) hints.push(/^luz\b/i.test(captured.tipo_de_luz) ? captured.tipo_de_luz : 'luz ' + captured.tipo_de_luz);
   const intro = hints.length > 0 ? 'Entendido, para ' + hints.join(', ') + ' podemos orientarte bien.' : 'Gracias por tu mensaje, podemos ayudarte.';
   if (missing.length === 1) return intro + ' Solo necesito saber ' + missing[0] + ' para continuar.';
   const items = missing.map((x, i) => i + 1 + ') ' + capitalize(x));

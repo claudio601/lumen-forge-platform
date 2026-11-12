@@ -37,6 +37,13 @@ const ALIASES: Record<string, string> = {
   'pta arenas': 'Punta Arenas',
   'chol chol': 'Cholchol',
   'san jose de la mariquina': 'Mariquina',
+  // [COMUNA] Abreviaturas de la Region Metropolitana (negocio 156: "comuna san bdo" quedaba en Santiago).
+  'san bdo': 'San Bernardo',
+  'sn bdo': 'San Bernardo',
+  'sbdo': 'San Bernardo',
+  'pte alto': 'Puente Alto',
+  'est central': 'Estaci\u00f3n Central',
+  'qta normal': 'Quinta Normal',
 };
 
 // Comunas que tambien son palabras comunes ("la granja", "nogales", "caldera"): fuera de la respuesta
@@ -451,6 +458,8 @@ function purposeOf(text: string, start: number, end: number, name: string, key: 
  * antes cuenta como de donde es la persona (weak). El texto debe venir sin correos ni la razon social que dio
  * Claude (factsText); un nombre con su forma juridica se tapa aqui, sin la comuna que va justo antes.
  */
+const OTHER_COMUNA_LABEL_RE = /(?<![\p{L}])comuna\s*(?::\s*|\s+(?:de\s+)?)(?!santiago(?![\p{L}]))\p{L}/iu;
+const SANTIAGO_LABEL_RE = /(?<![\p{L}])comuna\s*(?::\s*|\s+(?:de\s+)?)(?:es\s+)?santiago(?![\p{L}])/iu;
 export function findComunaMentions(source: string, opts: ComunaOptions = {}): ComunaMention[] {
   // La negrita, la cursiva y el tachado de WhatsApp ("*DIRECCION*:") no tapan las etiquetas (mismo largo).
   const text = source.replace(/[*_~]/g, ' ');
@@ -486,6 +495,12 @@ export function findComunaMentions(source: string, opts: ComunaOptions = {}): Co
     if (purpose === 'weak' && coordinated) purpose = 'place';
     placeEnd = purpose === 'place' ? end : undefined;
     if (purpose) found.set(name, Math.max(found.get(name) ?? RANK.billing, RANK[purpose]));
+  }
+  // [COMUNA] "Santiago, comuna san bdo" (negocio 156): con "comuna <X>" en el mensaje, un "Santiago" que no va
+  // despues de "comuna" es la ciudad o la provincia, no la comuna. Si X no se reconoce, no queda ninguna.
+  if (found.has('Santiago')) {
+    const bare = withoutMarks(masked);
+    if (OTHER_COMUNA_LABEL_RE.test(bare) && !SANTIAGO_LABEL_RE.test(bare)) found.delete('Santiago');
   }
   // La obra explicita (place) gana a la mencion debil (weak); cualquiera de las dos, a la respuesta "Soy de Maipu".
   const ranks = [...found.values()];

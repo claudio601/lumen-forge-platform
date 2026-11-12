@@ -754,3 +754,24 @@ describe('rendimiento', () => {
     expect(performance.now() - t0).toBeLessThan(1000);
   });
 });
+
+// [COMUNA] Fase 1 del bot (negocio 156): abreviaturas de la Region Metropolitana y "Santiago" como ciudad.
+describe('abreviaturas y Santiago con otra comuna', () => {
+  it.each([
+    ['san bdo', 'San Bernardo'], ['San Bdo.', 'San Bernardo'], ['sn bdo', 'San Bernardo'], ['sbdo', 'San Bernardo'],
+    ['pte alto', 'Puente Alto'], ['est central', 'Estación Central'], ['qta normal', 'Quinta Normal'],
+  ])('"%s" es %s', (alias, name) => {
+    expect(officialComuna(alias)).toBe(name);
+  });
+
+  it.each([
+    ['Santiago, comuna san bdo', ['San Bernardo']],
+    ['Santiago, comuna San Bernardo', ['San Bernardo']],
+    ['Santiago, comuna xyz', []],
+    ['en Santiago, comuna de Maipú', ['Maipú']],
+    ['Santiago', ['Santiago']],
+    ['la comuna es Santiago', ['Santiago']],
+  ])('"%s" → %j', (text, names) => {
+    expect(findComunaMentions(text, { answering: true }).map((m) => m.name)).toEqual(names);
+  });
+});

@@ -8,12 +8,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Cada salida: un texto (un bloque, stop_reason end_turn) o varios bloques con su stop_reason.
 const queue = vi.hoisted(() => [] as Array<string | { blocks: string[]; stop_reason?: string }>);
 const systems = vi.hoisted(() => [] as string[]);
+const sent = vi.hoisted(() => [] as Array<Array<{ role: string; content: unknown }>>);
 
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class FakeAnthropic {
     messages = {
-      create: async (args: { system: string }) => {
+      create: async (args: { system: string; messages: Array<{ role: string; content: unknown }> }) => {
         systems.push(args.system);
+        sent.push(args.messages);
         const next = queue.shift() ?? '{}';
         if (typeof next === 'string') return { content: [{ type: 'text', text: next }], stop_reason: 'end_turn' };
         return { content: next.blocks.map((text) => ({ type: 'text', text })), stop_reason: next.stop_reason ?? 'end_turn' };
@@ -265,5 +267,38 @@ describe('[RESPUESTA] respuesta de Claude que no es solo el JSON', () => {
       expect(result.diagnostics?.reason).toBe('json_invalido');
       expect(result.parsed.producto).toBeUndefined();
     }
+  });
+});
+
+// [RESPALDO] [LUZ] Fase 1 del bot (12-11-2026): el nombre del perfil va aparte del mensaje y el prompt pide el
+// producto específico, el uso y el producto del último mensaje y un color de luz que sea un color.
+describe('fase 1: el mensaje y el prompt', () => {
+  it('el último bloque enviado es exactamente el mensaje del cliente, sin "[Cliente:"', async () => {
+    queue.push('{}');
+    await askClaude([], 'necesito 6 unidades', 'Sistemas de seguridad');
+    const last = sent.at(-1)!.at(-1)!;
+    expect(last.role).toBe('user');
+    const blocks = last.content as Array<{ type: string; text: string }>;
+    expect(blocks.at(-1)).toEqual({ type: 'text', text: 'necesito 6 unidades' });
+    expect(JSON.stringify(last.content)).not.toContain('[Cliente:');
+    expect(blocks[0].text).toContain('Nombre del perfil de WhatsApp');
+    expect(blocks[0].text).toContain('"Sistemas de seguridad"');
+    expect(systems.at(-1)).not.toContain('Sistemas de seguridad');
+  });
+
+  it('sin nombre de perfil, el mensaje va solo', async () => {
+    queue.push('{}');
+    await askClaude([], 'necesito 6 unidades', '');
+    expect(sent.at(-1)!.at(-1)).toEqual({ role: 'user', content: 'necesito 6 unidades' });
+  });
+
+  it('el prompt trae las reglas de producto, uso y color de luz', async () => {
+    queue.push('{}');
+    await askClaude([], 'Hola', 'Perfil Prueba');
+    const system = systems.at(-1) ?? '';
+    expect(system).toContain('producto: el nombre mas especifico que dio el cliente');
+    expect(system).toContain('nunca los deduzcas del nombre del producto ni del nombre del perfil');
+    expect(system).toContain('tipo_de_luz: solo el color de luz que el cliente nombra');
+    expect(system).toContain('nunca LED, interior, exterior ni el uso');
   });
 });
