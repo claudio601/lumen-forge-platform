@@ -27,8 +27,10 @@ import { redact } from '../logging/redact.js';
 
 // El mismo relay que api/request-orders/create.ts. En las pruebas,
 // vitest.api.config.ts define GAS_RELAY_URL con un puerto muerto.
+// Relay v2 (12-11-2026): Apps Script de claudio@elights.cl que envía como ventas@elights.cl
+// y pone el tipo en el asunto (PEDIDO, COTIZACIÓN...). La v1 estaba en un Gmail personal.
 const DEFAULT_GAS_RELAY_URL =
-  'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec';
+  'https://script.google.com/macros/s/AKfycbzlP9_ccElZcIDcuOdw2u2dzz24Alf-h6T01rLb71lYMY20zrZKCwvUbX2qynyx2XEi1A/exec';
 
 const MAX_CUERPO = 8000;
 const MAX_CAMPO = 500;
