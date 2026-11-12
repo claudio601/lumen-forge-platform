@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = '1a0aab747d52';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -164,7 +164,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "3387318": {"url":"https://images.jumpseller.com/store/elights-cl/3387318/PROYECTOR_LED_A_PRUEBA_DE_EXPLOSION.150W.1.png?1740165646","format":"png","bytes":616881,"width":1080,"height":1080},
   "3398236": {"url":"https://images.jumpseller.com/store/elights-cl/3398236/farol-ornamental-cob-ip65-60-cm.png?1562355487","format":"png","bytes":53009,"width":750,"height":750},
   "3409235": {"url":"https://images.jumpseller.com/store/elights-cl/3409235/aplique-decorativo-ovalado-muro-10w-ip65-negro.jpg?1562600882","format":"jpeg","bytes":31968,"width":600,"height":600},
-  "3433454": {"url":"https://images.jumpseller.com/store/elights-cl/3433454/dfsdfdf-1.jpg?1563383334","format":"jpeg","bytes":20916,"width":800,"height":600},
   "3481496": {"url":"https://images.jumpseller.com/store/elights-cl/3481496/downlight-led-retraido-opal-40w-ip33.jpg?1564003219","format":"jpeg","bytes":22434,"width":1000,"height":1000},
   "3612990": {"url":"https://images.jumpseller.com/store/elights-cl/3612990/downlight-led-sobrepuesto-7w-lavadora-slim-ip20.jpg?1566317423","format":"jpeg","bytes":20650,"width":600,"height":600},
   "3613081": {"url":"https://images.jumpseller.com/store/elights-cl/3613081/KIT_DE_EMERGENCIA_36W-E-lights.png?1692282552","format":"png","bytes":432822,"width":1080,"height":1080},
@@ -332,4 +331,5 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "37656341": {"url":"https://images.jumpseller.com/store/elights-cl/37656341/VENAS-STA-08-render-proyector.png?1791571733","format":"png","bytes":90456,"width":500,"height":403},
   "1234852242": {"url":"https://images.jumpseller.com/store/elights-cl/1234852242/store/elights-cl/2286835/Codo_LED_40W_1.png?1793817981","format":"png","bytes":241250,"width":600,"height":600},
   "1234977373": {"url":"https://images.jumpseller.com/store/elights-cl/1234977373/sensor-pir-180-spir180n.jpg?1794340095","format":"jpeg","bytes":69681,"width":1000,"height":1000},
+  "1234997838": {"url":"https://images.jumpseller.com/store/elights-cl/1234997838/01-cufoprohl200-campana-led-ufo-200w-sensor.jpg?1794412243","format":"jpeg","bytes":136628,"width":1600,"height":1453},
 };

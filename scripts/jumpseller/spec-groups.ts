@@ -34,6 +34,7 @@ const RULES: Rule[] = [
 
   // Eléctrico y fotométrico
   [/^potencia( nominal| de los leds)?$/, 'electricos', 'Potencia'],
+  [/^selector de potencia$/, 'electricos', 'Selector de potencia'],
   [/^(consumo|consume|consumo de energia|costo energetico)$/, 'electricos', 'Consumo'],
   [/equivalencia/, 'electricos'],
   [/^(voltaje|tension)( nominal| de trabajo| de funcionamiento)?$/, 'electricos', 'Tensión'],
