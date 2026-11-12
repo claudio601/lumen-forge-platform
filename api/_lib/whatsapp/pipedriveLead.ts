@@ -534,6 +534,7 @@ function bodyLine(body: unknown): string {
 }
 
 const SUMMARY_MAX = 600;
+const VARIOS_MAX = 1200;
 /** [NOTA-REF] `ref`: la referencia de la nota (newNoteRef), que va en su ultima linea. */
 export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): string {
     const c = p.captured ?? {};
@@ -541,7 +542,10 @@ export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): st
     const ambiguos = listLines(c.rut_ambiguos);
     const otras = listLines(c.comunas_otras);
     const cambios = listLines(c.cambios, changeLine);
-    const varios = oneLine(c.cantidad_varios);
+    // [VARIOS] Un pedido largo de varios items va entero (antes se cortaba en 300 y se perdian items).
+    const varios = oneLine(c.cantidad_varios, VARIOS_MAX);
+    // [METROS] "Cantidad: 500 m" cuando el cliente pidio metros.
+    const cantidad = oneLine(c.cantidad);
     const head = [
           '== Lead WhatsApp eLIGHTS ==',
           'Telefono: ' + (oneLine(p.phone) ?? '-'),
@@ -553,7 +557,7 @@ export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): st
           'Producto: ' + (oneLine(c.producto) ?? '-'),
           'Tipo de luz: ' + (oneLine(c.tipo_de_luz) ?? '-'),
           // [CANTIDAD] Con varias cantidades en un mensaje, el texto del cliente para revisar.
-          'Cantidad: ' + (oneLine(c.cantidad) ?? (varios ? 'varios items, revisar: ' + varios : '-')),
+          'Cantidad: ' + (cantidad ? cantidad + (c.cantidad_unidad === 'm' ? ' m' : '') : varios ? 'varios items, revisar: ' + varios : '-'),
           'Proyecto/uso: ' + (oneLine(lead.proyecto) ?? '-'),
           'Comuna/ciudad: ' + (oneLine(lead.comuna) ?? '-'),
           // [COMUNA] Otras comunas que el cliente dio como lugar (la de la factura, una segunda obra).

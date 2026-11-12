@@ -18,6 +18,9 @@ export interface CapturedFields {
   // [CANTIDAD] Varias cantidades en un mensaje (varios items, hasta la PR 9): la cantidad queda
   // vacia y aqui va el texto del cliente, para la nota. Cuenta como respondida: no se repregunta.
   cantidad_varios?: string;
+  // [METROS] La cantidad es en metros ("500 metros" de cinta): la nota dice "500 m". Se escribe y se borra junto
+  // con la cantidad (stateStore mezcla dato por dato).
+  cantidad_unidad?: 'm';
   proyecto_o_uso?: string;
   comuna_o_ciudad?: string;
   // [COMUNA] Otras comunas que el cliente dio como lugar ("la obra en Lampa y la factura en Vina del
@@ -1059,7 +1062,9 @@ function additions(text: string, producto: string | undefined): { adding: boolea
   return { adding: spans.length > 0, base };
 }
 
-const MAX_VARIOS = 160;
+// [VARIOS] Un pedido largo de varios items en un mensaje (negocios 139, 197 y 211) queda entero en la nota: con 160
+// caracteres se perdian el tercer y el cuarto item.
+const MAX_VARIOS = 600;
 function appendVarios(merged: CapturedFields, text: string): void {
   if (comparable(merged.cantidad_varios ?? '').includes(comparable(text))) return;
   merged.cantidad_varios = ((merged.cantidad_varios ? merged.cantidad_varios + ' / ' : '') + text).slice(0, 2 * MAX_VARIOS);
@@ -1076,8 +1081,9 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
   if (adding && (merged.cantidad || merged.cantidad_varios)) {
     if (merged.cantidad) {
       noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
-      merged.cantidad_varios = ((merged.producto ? merged.producto + ': ' : '') + merged.cantidad + ' / ' + text).slice(0, 2 * MAX_VARIOS);
+      merged.cantidad_varios = ((merged.producto ? merged.producto + ': ' : '') + merged.cantidad + (merged.cantidad_unidad === 'm' ? ' m' : '') + ' / ' + text).slice(0, 2 * MAX_VARIOS);
       delete merged.cantidad;
+      delete merged.cantidad_unidad;
     } else appendVarios(merged, text);
     return;
   }
@@ -1086,6 +1092,7 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
     if (!stated.several) return;
     noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
     delete merged.cantidad;
+    delete merged.cantidad_unidad;
     merged.cantidad_varios = text;
     return;
   }
@@ -1097,9 +1104,17 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
     noteChange(merged, 'cantidad', 'varios items (' + merged.cantidad_varios.slice(0, 80) + ')', value);
     delete merged.cantidad_varios;
     merged.cantidad = value;
+    setUnit(merged, quantity);
     return;
   }
+  const before = merged.cantidad;
   keepOrChange(merged, 'cantidad', value, change);
+  if (merged.cantidad === value && before !== value) setUnit(merged, quantity);
+}
+/** [METROS] La unidad va con la cantidad que se acaba de anotar: metros, o (sin unidad) unidades. */
+function setUnit(merged: CapturedFields, quantity: QuantityRead): void {
+  if (quantity.unit) merged.cantidad_unidad = quantity.unit;
+  else delete merged.cantidad_unidad;
 }
 
 // [NO-PISAR] "SpA", "Ltda." o "S.A." son el tipo de una razon social, nunca el proyecto (prueba
@@ -1231,12 +1246,14 @@ function mergeProductFields(
   state: FlowState,
   body: string,
   claudeParsed: ClaudeFields,
+  hasMedia = false,
 ): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number } {
   const merged: CapturedFields = { ...state.captured };
   // [CANTIDAD] Un estado guardado antes de este cambio puede traer un dato que no es texto (un
   // objeto de Claude) o una cantidad que no es un entero ("No especificada"): se descarta y se pregunta.
   for (const field of KEPT_FIELDS) if (merged[field] !== undefined && typeof merged[field] !== 'string') delete merged[field];
   if (merged.cantidad && !/^\d{1,5}$/.test(merged.cantidad)) delete merged.cantidad;
+  if (!merged.cantidad || (merged.cantidad_unidad !== undefined && merged.cantidad_unidad !== 'm')) delete merged.cantidad_unidad;
   const inspected = inspectRut(body, { asked: rutAsked(state) });
   const ruts = inspected.found ? [inspected.found.rut] : inspected.ambiguous ?? [];
   const facts = factsText(body, claudeParsed);
@@ -1279,7 +1296,11 @@ function mergeProductFields(
   keepOrChange(merged, 'tipo_de_luz', luzConflict ? luzText : luzNegated ? undefined : claudeLuz ?? luzText, textLuz(base));
   // Lo que el cliente afirma decide la cantidad ("Necesito 20 paneles, tienen 30 focos?" es 20); si no afirma
   // ninguna, el mensaje sin negaciones ni consultas indirectas puede llenar el dato vacio.
-  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding);
+  // [VARIOS-IMAGEN] Negocio 130: cada imagen con su cantidad ("12 UND" y luego "5 UND") es otro item, no una
+  // correccion: lo capturado pasa a varios items. Con "perdon", "mejor" o "corrijo" si corrige.
+  const mediaItem = hasMedia && Boolean(merged.cantidad || merged.cantidad_varios)
+    && (stated.value !== undefined || quantity.value !== undefined) && !CORRECTION_RE.test(assertive);
+  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem);
   const claudeProy = claudeProject(claudeParsed, body);
   const ownProject = (text: string) => extractProyecto(withoutStorePlaces(text));
   keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(base), PROYECTO_RE), base));
@@ -1390,11 +1411,14 @@ function lateEmail(phone: string, state: FlowState, body: string, correcting: bo
   return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus: next.captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
+/** Lo que webhook.ts sabe del mensaje. hasMedia: trae una imagen o un archivo (con su texto). */
+export interface FlowSignals { wantsHuman: boolean; qualifiesForDeal: boolean; hasMedia?: boolean }
+
 export function processFlowStep(
   phone: string,
   body: string,
   claudeParsed: ClaudeFields,
-  signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
+  signals: FlowSignals,
 ): FlowResult {
   const { question, ...stepResult } = flowStep(phone, body, claudeParsed, signals);
   const result = explainOwnEmail(stepResult, body);
@@ -1464,7 +1488,7 @@ function flowStep(
   phone: string,
   body: string,
   claudeParsed: ClaudeFields,
-  signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
+  signals: FlowSignals,
 ): StepResult {
   const state = getFlowState(phone);
 
@@ -1601,7 +1625,7 @@ function flowStep(
   }
 
   // PASO 1: MERGE
-  const { merged, leadType: currentLeadType, rutToConfirm, menuPick } = mergeProductFields(state, body, claudeParsed);
+  const { merged, leadType: currentLeadType, rutToConfirm, menuPick } = mergeProductFields(state, body, claudeParsed, Boolean(signals.hasMedia));
 
   // [FIX-PRIORITY] PASO 2: wantsHuman path - REQUIERE correo antes de derivar
   // [FIX-EMAIL-GATE] Si el usuario quiere ejecutivo pero no tiene correo, pedirlo primero

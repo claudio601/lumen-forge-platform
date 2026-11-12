@@ -405,8 +405,7 @@ describe('separador de miles con punto (verificación adversaria de la PR #142)'
   });
 
   it.each([
-    // metros: es una medida, como "10 metros de cinta" (el bot pregunta las unidades)
-    '10.000 metros de cinta LED',
+    // [METROS] "10.000 metros de cinta LED" ya no queda vacía: son 10.000 m (ver "metros que se piden")
     'una tira de 1.5 metros',
     'una tira de 1,5',
     'presupuesto de $1.000',
@@ -439,5 +438,63 @@ describe('ronda 8 (el punto de "aprox." no corta la negación)', () => {
     ['Busco aprox. 12 paneles LED', 12],
   ])('la afirmativa con la abreviatura "%s" → %i', (text, expected) => {
     expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+});
+
+// [LED-INTERNOS] Fase 1 del bot (negocios 120, 122 y 164): los LED que trae el producto no son unidades.
+describe('los LED del producto no son la cantidad', () => {
+  it.each([
+    'Luz De 36 LED Barra De 50 Cm Con Sensor De Movimiento En Luz Blanca Recargable',
+    'cinta led interior calida de de 60 led por 5 metros',
+    'Luminaria vial solar led\n600w\n126 led\n3000 lumenes\nIp 65',
+    '60 leds/m',
+  ])('%s → vacía, aunque la pregunta pidiera la cantidad y Claude diga la cifra', (text) => {
+    const number = text.match(/\d+(?=\s*led)/i)?.[0] ?? '';
+    for (const claude of [undefined, number]) {
+      expect(readQuantity(text, { asked: true, claude }).value).toBeUndefined();
+      expect(readQuantity(text, { claude }).value).toBeUndefined();
+    }
+  });
+
+  it.each([
+    ['80 LED redondo embutido, 18 W, luz fría', 80],
+    ['necesito 20 led', 20],
+    ['necesito 2 barras de 36 led', 2],
+  ])('%s → %i (LED como producto, o la cantidad de barras)', (text, expected) => {
+    expect(readQuantity(text, { asked: true }).value).toBe(expected);
+  });
+});
+
+// [METROS] Fase 1 del bot (negocios 143, 156, 208 y 212): los metros que se piden quedan con su unidad.
+describe('metros que se piden', () => {
+  it.each([
+    ['10.000 metros de cinta LED', 10000, false],
+    ['Necesito 500 metros', 500, false],
+    ['Cinta Led, 2000 metros, comuna Tierra Amarilla', 2000, false],
+    ['500 metros de cinta neoflex', 500, false],
+    ['90 mtros', 90, true],
+  ])('%s → %i m', (text, value, asked) => {
+    expect(readQuantity(text, { asked })).toEqual({ value, explicit: true, unit: 'm' });
+  });
+
+  it('"1 rollo de 50 mts o +" es 1 rollo, sin metros', () => {
+    expect(readQuantity('1 rollo de 50 mts o +')).toEqual({ value: 1, explicit: true });
+  });
+
+  it.each([
+    'cinta led para exterior de 50 mts',
+    'Necesito 1.5 metros de cinta LED',
+    'cinta LED de 1,5 metros',
+    'focos para un poste a 3 metros',
+    'necesito lo siguiente en 200 metros',
+    'una cinta de 5 metros',
+    'https://example.com/cinta-led-50m',
+    'necesito focos para un pasillo de 30 metros de largo',
+  ])('%s → vacía (es una medida, no lo que se pide)', (text) => {
+    expect(readQuantity(text).value).toBeUndefined();
+  });
+
+  it('"90 mtros" sin la pregunta por la cantidad no es nada (antes eran 90 unidades)', () => {
+    expect(readQuantity('90 mtros').value).toBeUndefined();
   });
 });

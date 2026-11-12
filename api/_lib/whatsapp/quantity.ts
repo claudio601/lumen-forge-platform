@@ -25,6 +25,8 @@ export interface QuantityRead {
   menuPick?: number;
   /** Varias cantidades de items distintos (varios items): ninguna es "la" cantidad. */
   several?: boolean;
+  /** [METROS] La cantidad es en metros ("500 metros" de cinta): se anota "500 m", nunca como rollos. */
+  unit?: 'm';
 }
 
 export interface QuantityOptions {
@@ -203,7 +205,10 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\b\d+(?:[.,]\d+)?\s+por\s+\d+(?:[.,]\d+)?\b/g,
   /\b(?:e\s(?:27|14|40|12)|gu\s(?:10|5\.3)|mr\s(?:16|11)|ar\s111|t\s(?:5|8|12)|g\s(?:13|9|4|24))\b/g,
   LED_CHIP_RE,
-  /\b\d+\s*leds?\s*(?:\/|x|por)\s*(?:m|mts?|mtrs?|metros?)\b/g,
+  // [LED-INTERNOS] Los LED que trae el producto no son unidades: "60 leds/m", "60 led por 5 metros", "barra de 36
+  // LED", "luminaria con 126 led" (negocios 120, 122 y 164: quedaban 36, 60 y 126 unidades).
+  /\b\d+\s*leds?\s*(?:\/|x|por|cada)\s*(?:\d+(?:[.,]\d+)?\s*)?(?:m|mts?|mtrs?|mtros?|metros?)\b/g,
+  /\b(?:de|con)\s+\d+\s*leds?\b/g,
   // marcas de una lista copiada ("1) paneles", "2. fria")
   /(?:^|\n)\s*\d\s*(?:[.)]\s*-?|-)\s/g,
   /\b\d\)/g,
@@ -212,7 +217,7 @@ const NOT_QUANTITY: readonly RegExp[] = [
   /\b\d+,\d+\b/g,
   /\b\d+\.(?!\d{3}\b)\d+\b/g,
   // numeros con unidad, tambien en rango (15W, 4000 K, 3000-4000K, 3 m, 40 cms, 200 m2, 220V, 30%, 2 km)
-  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|m|metros?|v|volts?|vac|vdc|lm|lms|lumen(?:es|s)?|kelvins?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg|km|kms|kilometros?|hectareas?|cuadras?)(?![a-z])/g,
+  /\b\d+(?:[.,]\d+)?(?:\s*[-/\u2013]\s*\d+(?:[.,]\d+)?)?\s*(?:w|watts?|wats?|whatts?|watt|vatios?|wts?|kw|kwh|kva|kv|k|kelvin|cm|cms|cmts?|ctms?|centimetros?|mm|mms|milimetros?|m2|mt2|mts?2|m\u00b2|mts?|mtrs?|mtros?|m|metros?|v|volts?|vac|vdc|lm|lms|lumen(?:es|s)?|kelvins?|lux|hz|mah|ah|kg|kilos?|lts?|litros?|grados?|pulgadas?|pulg|km|kms|kilometros?|hectareas?|cuadras?)(?![a-z])/g,
   /\b\d+(?:[.,]\d+)?\s*(?:\u00b0|\u00ba|%|")/g,
   // grados IP/IK y codigos de modelo (VENUSII08017, BL-200, E27, GU10, T8, 2do)
   /\b(?:ip|ik)\s*\d+/g,
@@ -286,6 +291,9 @@ export function withoutNonQuantities(text: string, ruts: readonly string[] = [])
       /\d/.test(s.slice(0, offset).trimEnd().slice(-1)) ? all : lead + n + ' unidades ');
   const marks = [...new Set([...out.matchAll(INLINE_MARK_RE)].map((m) => Number(m[2])))].sort((a, b) => a - b);
   if (marks.length >= 2 && marks.every((n, i) => i === 0 || n === marks[i - 1] + 1)) out = out.replace(INLINE_MARK_RE, '$1 ');
+  // [LED-INTERNOS] "126 led" al final de una linea o clausula de especificaciones, con otro producto nombrado
+  // ("Luminaria vial solar\n600w\n126 led"): son los LED del producto. "necesito 20 led" solo, si cuenta.
+  if (itemsIn(text).length) out = out.replace(/\b\d+\s*leds?(?=\s*(?:[,;.\n]|$))/g, ' ');
   for (const re of NOT_QUANTITY) out = out.replace(re, ' ');
   return out;
 }
@@ -332,6 +340,32 @@ function candidates(clean: string): Candidate[] {
   return out;
 }
 
+// [METROS] Lo que se vende por metro: con uno de estos en el mensaje, "2000 metros" es lo que se pide.
+const LINEAR_RE = /\b(?:cintas?|tiras?|mangueras?|neon|neoflex|cables?|rieles?|perfiles?|huinchas?)\b/;
+const METERS_RE = /(^|[^\d.,])(\d{1,3}(?:\.\d{3})+|\d{1,5})\s*(?:metros?|mtros?|mtrs?|mts?|m)(?![a-z\d\u00b2])/g;
+/**
+ * [METROS] Los metros que se piden (negocios 143, 156, 208 y 212): "necesito 500 metros", "Cinta Led, 2000 metros",
+ * "500 metros de cinta", "90 mtros" si el bot pidio la cantidad. Un solo valor y entero. Nunca una medida del
+ * producto o del lugar: "rollo de 50 mts", "cinta de 5 metros", "60 led por 5 metros", "a 3 metros", "en 200
+ * metros", "1.5 metros".
+ * Nunca se convierten a rollos.
+ */
+function readMeters(text: string, asked: boolean): QuantityRead | undefined {
+  const values = new Set<number>();
+  for (const m of text.matchAll(METERS_RE)) {
+    const at = m.index + m[1].length;
+    const before = text.slice(Math.max(0, at - 40), at);
+    const after = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
+    if (/\b(?:de|a|en|por|x|cada|hasta|desde|altura|alto|largo|ancho|distancia)\s*$/.test(before) && !VERB_BEFORE_RE.test(before)) continue;
+    if (/^\s*(?:de\s+(?:altura|alto|largo|ancho|distancia)|cuadrad|lineales?\s+de\s+altura)/.test(after)) continue;
+    const order = VERB_BEFORE_RE.test(before) || /^\s*de\b/.test(after) || LINEAR_RE.test(text) || asked;
+    if (!order) continue;
+    const value = Number(m[2].replace(/\./g, ''));
+    if (value >= 1 && value <= MAX_QUANTITY) values.add(value);
+  }
+  return values.size === 1 ? { value: [...values][0], explicit: true, unit: 'm' } : undefined;
+}
+
 /** La cantidad que trae el mensaje, segun las reglas de arriba. */
 export function readQuantity(body: string, options: QuantityOptions = {}): QuantityRead {
   const text = plain(body);
@@ -357,5 +391,10 @@ export function readQuantity(body: string, options: QuantityOptions = {}): Quant
   if (asked && loose.length === 1) return { value: loose[0], explicit: true };
   if (asked && loose.length > 1 && chainedLoose) return { explicit: false, several: true };
   if (!found.length && claudeQuantity(options.claude) === 1 && ONE_UNIT_RE.test(clean)) return { value: 1, explicit: false };
+  // [METROS] Sin ninguna cantidad de unidades, los metros que se piden.
+  if (!found.length) {
+    const meters = readMeters(text.replace(URL_RE, ' ').replace(EMAIL_RE, ' '), asked);
+    if (meters) return meters;
+  }
   return loose.length === 1 && claudeQuantity(options.claude) === loose[0] ? { value: loose[0], explicit: false } : { explicit: false };
 }

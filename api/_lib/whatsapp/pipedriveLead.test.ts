@@ -1173,3 +1173,27 @@ describe('decisión 10: la nota no se repite si Pipedrive la guardó y se perdi�
     });
   });
 });
+
+// [METROS] Fase 1 del bot: la nota dice "500 m" y el campo de cantidad sigue recibiendo solo el número (su tipo
+// en Pipedrive puede ser numérico).
+describe('cantidad en metros', () => {
+  const params: WhatsAppLeadParams = {
+    phone: PHONE,
+    name: 'Perfil Prueba',
+    summary: 'El cliente pide cinta LED.',
+    body: 'Necesito 500 metros',
+    captured: { producto: 'cinta LED neoflex', cantidad: '500', cantidad_unidad: 'm', correo: 'ana.prueba@example.com' },
+    captureStatus: 'partial',
+  };
+
+  it('la nota dice "Cantidad: 500 m" y el campo lleva 500', () => {
+    const update = buildWhatsAppUpdate({ ...params, existingDealId: 9001 });
+    expect(update.note).toContain('Cantidad: 500 m\n');
+    expect(update.fields?.cf_wa_cantidad).toBe('500');
+  });
+
+  it('sin unidad, la nota sigue igual', () => {
+    const note = buildNote({ ...params, captured: { ...params.captured, cantidad_unidad: undefined } });
+    expect(note).toContain('Cantidad: 500\n');
+  });
+});

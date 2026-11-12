@@ -301,6 +301,18 @@ describe('B1: la transcripción en la nota', () => {
     expect(lines[0]).toMatch(/Cliente: \[El cliente envió 2 imágenes\] Necesito 20 focos LED como estos, luz fría, para una bodega en Lampa$/);
   });
 
+  // [VARIOS-IMAGEN] Fase 1 del bot (negocio 130): el webhook le dice al flujo que el texto acompaña una imagen.
+  it('dos imágenes con "12 UND" y "5 UND" quedan como dos ítems, no como una corrección', async () => {
+    const phone = nextPhone();
+    await send(phone, 'NECESITO COTIZACION DE PRODUCTOS');
+    await send(phone, '12 UND', { cantidad: '12' }, { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    await send(phone, '5 UND', { cantidad: '5' }, { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    const { captured } = getFlowState(phone);
+    expect(captured.cantidad).toBeUndefined();
+    expect(captured.cantidad_varios).toContain('12');
+    expect(captured.cantidad_varios).toContain('5 UND');
+  });
+
   it('una conversación de 100 mensajes llega al tope y lo avisa', async () => {
     const phone = nextPhone();
     for (let i = 1; i <= 100; i++) await send(phone, 'Mensaje de prueba número ' + i);

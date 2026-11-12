@@ -791,7 +791,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             },
       }));
 
-    const signals = evaluateLeadSignals(body);
+    // [VARIOS-IMAGEN] El flujo sabe si el texto acompana una imagen: cada imagen con su cantidad es otro item.
+    const signals = { ...evaluateLeadSignals(body), hasMedia: numMedia > 0 };
       const history = getHistory(phone);
 
     // claudeParsed con tipo explícito alineado a lo que espera processFlowStep
