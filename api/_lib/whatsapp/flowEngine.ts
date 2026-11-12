@@ -131,6 +131,18 @@ export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directament
 // [CIERRE-HONESTO] Texto A, aprobado por el dueno (2026-10-16). Se usa cuando pidio un ejecutivo
 // y falta el correo, y en el cierre sin correo (sin correo la solicitud no queda registrada).
 export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, necesito tu correo. \u00bfMe lo escribes por aqu\u00ed? Si prefieres, env\u00eda tu solicitud a ventas@elights.cl.';
+// [CORREO-PROPIO] Dueno (2026-11-11): un correo @elights.cl que no publica el bot (gerencia@, en una prueba)
+// nunca se registra como el del cliente; antes el bot repetia el texto A sin decir por que.
+export const MSG_OWN_EMAIL = 'Ese correo es de eLIGHTS. Para registrar tu solicitud necesito tu propio correo, de tu empresa o personal. \u00bfMe lo escribes por aqu\u00ed? Si prefieres, env\u00eda tu solicitud a ventas@elights.cl.';
+export const OWN_EMAIL_NOTE = 'Ese correo es de eLIGHTS: necesito tu propio correo, de tu empresa o personal.';
+// [PLAZO] Dueno (2026-11-11, decision 4 de la especificacion): el bot promete la respuesta "el mismo dia
+// habil", como la web. Solo con el negocio registrado y cuando el cliente pregunta que sigue o cuanto demora.
+export const MSG_WAIT = 'No tienes que hacer nada m\u00e1s. Te enviaremos la cotizaci\u00f3n por correo el mismo d\u00eda h\u00e1bil.';
+// [PLAZO] Despacho o retiro despues del cierre: el bot no promete plazos de entrega; van en la cotizacion.
+export const MSG_WAIT_DELIVERY = 'El plazo y el costo del despacho van en la cotizaci\u00f3n, que te enviaremos por correo el mismo d\u00eda h\u00e1bil.';
+export const MSG_WAIT_INSTALL = 'No tienes que hacer nada m\u00e1s. Te escribiremos por correo el mismo d\u00eda h\u00e1bil para coordinar la visita y la cotizaci\u00f3n.';
+// [PLAZO] Cualquier otro mensaje con el negocio registrado: un recordatorio corto, no el cierre largo otra vez.
+export const MSG_REGISTERED_SHORT = 'Tu solicitud ya qued\u00f3 registrada; te escribimos por correo.';
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
 // (o el paso del flujo fallo): nunca se dice "quedo registrada".
 export const MSG_DEAL_FAILED = 'No pude registrar tu solicitud por un problema t\u00e9cnico. Por favor, env\u00edala a ventas@elights.cl y Claudio Quero te responde por correo.';
@@ -303,6 +315,17 @@ const INSTALL_TIPO_PROYECTO_RE = /\b(casa|departamento|depto|oficina|local comer
 // Si el cliente responde "le escribo a ventas@elights.cl", no hay correo suyo que registrar.
 const EMAIL_RE_ALL = new RegExp(EMAIL_RE.source, 'gi');
 const OWN_EMAIL_RE = /@(?:[a-z0-9-]+\.)*elights\.cl$/i;
+// [CORREO-PROPIO] Los que publica el bot: si el cliente los nombra, es para escribirles, no su correo.
+const PUBLISHED_EMAILS = new Set(['ventas@elights.cl', 'claudio@elights.cl', 'constanza@elights.cl']);
+/** [CORREO-PROPIO] El mensaje trae un correo de eLIGHTS que el bot no publica y ningun correo del cliente. */
+function offersOwnEmail(text: string): boolean {
+  const normalized = text.slice(0, MAX_FACTS);
+  if (extractEmail(normalized)) return false;
+  return (normalized.match(EMAIL_RE_ALL) ?? []).some((raw) => {
+    const email = raw.replace(/[.,;:!]+$/, '').toLowerCase();
+    return OWN_EMAIL_RE.test(email) && !PUBLISHED_EMAILS.has(email);
+  });
+}
 function extractEmail(text: string): string | undefined {
   // [FIX-EMAIL-PARSER] Normalizar texto: quitar espacios, limpiar prefijos
   const normalized = text.slice(0, MAX_FACTS).trim();
@@ -724,6 +747,34 @@ function closedReply(state: FlowState): string {
   if (state.deal === 'registered') return registeredClosing(state);
   if (state.deal === 'failed') return MSG_DEAL_FAILED;
   return state.isInstallFlow ? MSG4_INSTALL_NO_EMAIL : MSG_NEED_EMAIL;
+}
+
+// [PLAZO] "Que hago ahora?", "tengo que esperar?", "cuanto demora la respuesta?", "cuando me responden?"
+// (sin tildes: se compara el texto sin acentos). "Buenas tardes" no cuenta: solo "tarda", "tardan", "tardara".
+const WAIT_QUESTION_RE = /\b(?:demor\w*|tarda(?:n|ra|ran|ria|rian)?|esper\w*|plazo|cuando)\b|\bque\s+(?:hago|hace|hacemos|sigue|debo|tengo|tiene)\b|\by\s+ahora\b|\bahora\s+que\b|\bcuant[oa]s?\s+(?:tiempo|tempo|dias)\b/i;
+// [PLAZO] Despacho, entrega, flete o retiro: no es la respuesta por correo (Codex, 2026-11-11: "Cuando llega el
+// despacho?" recibia la promesa de la cotizacion).
+const DELIVERY_QUESTION_RE = /\b(?:despach\w*|entreg\w*|envio|flete|retir\w*)\b|\bllega(?:n|ra|ria)?\s+(?:el|mi|los|las|la)\s+(?:pedido|producto|despacho|luminaria|foco|focos|equipo|equipos|compra|mercaderia)\b/i;
+function normalizedText(body: string): string {
+  return body.slice(0, MAX_FACTS).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function asksAboutDelivery(body: string): boolean {
+  return DELIVERY_QUESTION_RE.test(normalizedText(body));
+}
+function asksWhatNext(body: string): boolean {
+  return WAIT_QUESTION_RE.test(normalizedText(body));
+}
+
+/**
+ * [PLAZO] Mensaje en una conversacion cerrada que no es un pedido nuevo ni un dato tardio. Con el negocio
+ * registrado ya no se repite el cierre largo: si pregunta que sigue o cuanto demora, el plazo; si no, el
+ * recordatorio corto. Sin negocio confirmado, lo de siempre (closedReply).
+ */
+function closedFollowUp(state: FlowState, body: string): string {
+  if (state.deal !== 'registered') return closedReply(state);
+  if (!state.isInstallFlow && asksAboutDelivery(body)) return MSG_WAIT_DELIVERY;
+  if (asksWhatNext(body)) return state.isInstallFlow ? MSG_WAIT_INSTALL : MSG_WAIT;
+  return MSG_REGISTERED_SHORT;
 }
 
 type ClaudeFields = {
@@ -1345,11 +1396,24 @@ export function processFlowStep(
   claudeParsed: ClaudeFields,
   signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
 ): FlowResult {
-  const { question, ...result } = flowStep(phone, body, claudeParsed, signals);
+  const { question, ...stepResult } = flowStep(phone, body, claudeParsed, signals);
+  const result = explainOwnEmail(stepResult, body);
   // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
   // [CANTIDAD] Tambien que pregunta hizo (sin pregunta, ninguna: un numero suelto no es cantidad).
   const state = flowStates.get(phone);
   if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply), lastQuestion: question ?? null });
+  return result;
+}
+
+/**
+ * [CORREO-PROPIO] Si el cliente dio un correo de eLIGHTS (no uno que publica el bot) y la respuesta le vuelve a
+ * pedir el correo, se le dice por que no sirve: el texto A cambia por MSG_OWN_EMAIL y otra pregunta que pide el
+ * correo lleva la nota antes. Nunca cambia que se registra ni el negocio.
+ */
+function explainOwnEmail(result: FlowResult, body: string): FlowResult {
+  if (!offersOwnEmail(body)) return result;
+  if (result.reply === MSG_NEED_EMAIL || result.reply === MSG_NEED_EMAIL_AND_CONTEXT) return { ...result, reply: MSG_OWN_EMAIL };
+  if (/\bcorreo\b/i.test(result.reply) && !result.shouldCreateDeal) return { ...result, reply: OWN_EMAIL_NOTE + '\n\n' + result.reply };
   return result;
 }
 
@@ -1430,7 +1494,7 @@ function flowStep(
         : undefined;
       if (late) return late;
       return {
-        reply: closedReply(state),
+        reply: closedFollowUp(state, body),
         shouldCreateDeal: false,
         shouldNotify: false,
         captureStatus: state.captureStatus,

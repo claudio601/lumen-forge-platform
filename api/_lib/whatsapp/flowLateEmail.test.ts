@@ -41,7 +41,7 @@ function expectCorrection(r: ReturnType<typeof step>, email: string) {
 
 /** Nada cambia: la respuesta de la conversación cerrada, sin nota ni flujo nuevo. */
 function expectUntouched(r: ReturnType<typeof step>) {
-  expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false, closedFlow: true });
+  expect(r).toMatchObject({ reply: flow.MSG_REGISTERED_SHORT, shouldCreateDeal: false, closedFlow: true });
   expect(r.rutUpdate).toBeUndefined();
   expect(r.captured.correo).toBe('ana.prueba@example.com');
   expect(r.captured.cambios).toBeUndefined();

@@ -266,7 +266,7 @@ describe('RUT que llega después del cierre (revisión de la #121)', () => {
     expect(r.captureStatus).toBe('complete');
 
     const thanks = flow.processFlowStep(PHONE, 'gracias', {}, NO_SIGNALS);
-    expect(thanks).toMatchObject({ reply: flow.MSG4_B2B, shouldCreateDeal: false });
+    expect(thanks).toMatchObject({ reply: flow.MSG_REGISTERED_SHORT, shouldCreateDeal: false });
     expect(thanks.rutUpdate).toBeUndefined();
   });
 

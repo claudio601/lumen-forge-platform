@@ -207,7 +207,7 @@ describe('consulta estrecha, normalización y datos de Claude', () => {
     close(kind);
     const r = step('¿Me confirman la nueva cotización?');
     expect(r.closedFlow).toBe(true);
-    expect(r.reply).toBe({ failed: flow.MSG_DEAL_FAILED, pending: flow.MSG4, 'no-email': flow.MSG_NEED_EMAIL, install: flow.MSG4_INSTALL }[kind]);
+    expect(r.reply).toBe({ failed: flow.MSG_DEAL_FAILED, pending: flow.MSG4, 'no-email': flow.MSG_NEED_EMAIL, install: flow.MSG_REGISTERED_SHORT }[kind]);
     expect(r.shouldCreateDeal).toBe(kind === 'pending');
   });
 });
