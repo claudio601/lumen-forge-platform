@@ -14,9 +14,10 @@ vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn() }));
 
 import handler from '../estudio-luminico/create';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
-import { pipedrivePost, pipedriveGet } from '../_lib/pipedrive/client.js';
+import { pipedrivePost, pipedriveGet, pipedrivePut } from '../_lib/pipedrive/client.js';
 import { getOptionId } from '../_lib/pipedrive/fieldOptions.js';
 import { waitUntil } from '@vercel/functions';
+import { createFakeRedis, fakeFetch, UPSTASH_URL } from './fakeUpstash.js';
 import { buildEstudioDealNote } from '../_lib/crm/estudio-luminico-mapping';
 import type { EstudioLuminicoPayload } from '../_lib/crm/estudio-luminico-types';
 import { DS1_NOTE_HEADING, ESTUDIO_MAX_LENGTHS, REQUIERE_DS1_LABELS } from '../_lib/forms/estudioLuminicoValidation';
@@ -332,6 +333,7 @@ describe('POST /api/estudio-luminico/create: origen de la visita', () => {
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(waitUntil).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
@@ -495,6 +497,7 @@ describe('POST /api/estudio-luminico/create: privacidad y topes', () => {
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(waitUntil).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
@@ -617,6 +620,7 @@ describe('POST /api/estudio-luminico/create: D.S. N°1/2022', () => {
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(waitUntil).mockClear();
     vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
     vi.stubEnv('PIPEDRIVE_STAGE_NEW_LEAD_ID', '10');
@@ -693,6 +697,7 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     vi.mocked(pipedrivePost).mockReset().mockImplementation((async (path: string) =>
       path === '/deals' ? { success: true, data: { id: 555 } } : { success: true, data: { id: 1 } }) as never);
     vi.mocked(pipedriveGet).mockReset().mockResolvedValue({ success: true, data: { items: [] } } as never);
+    vi.mocked(pipedrivePut).mockReset().mockResolvedValue({ success: true, data: null } as never);
     vi.mocked(getOptionId).mockReset().mockImplementation((entity, key, label) =>
       entity === 'deal' && key === SOURCE && label === 'nuevo_elights' ? 931 : undefined);
     vi.mocked(waitUntil).mockClear();
@@ -733,10 +738,13 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     expect(gasBodies()[0].items_lista).toContain('Referencia: ' + leadRef(res));
   });
 
-  it('busca la referencia en quoteReference, solo entre negocios abiertos', async () => {
+  it('busca la referencia en quoteReference, solo entre negocios abiertos, antes y después del candado', async () => {
     const res = await call(base);
-    expect(searches()).toHaveLength(1);
-    expect(searches()[0][1]).toMatchObject({ term: leadRef(res), fields: 'custom_fields', exact_match: 'true', status: 'open' });
+    // Sin hallazgo, dedupByQuoteReference vuelve a buscar antes de crear (otro envío pudo crearlo).
+    expect(searches()).toHaveLength(2);
+    for (const [, params] of searches()) {
+      expect(params).toMatchObject({ term: leadRef(res), fields: 'custom_fields', exact_match: 'true', status: 'open' });
+    }
   });
 
   it('doble envío: el negocio abierto con la misma referencia se actualiza, sin crear otro', async () => {
@@ -751,6 +759,62 @@ describe('POST /api/estudio-luminico/create: referencia y origen en los campos d
     expect(res.body).toMatchObject({ dealId: 42, dealAction: 'updated' });
     expect(pdCalls('/deals')).toHaveLength(0);
     expect(pdCalls('/notes')[0][1].deal_id).toBe(42);
+  });
+
+  it.each([
+    ['responde success: false', () => vi.mocked(pipedrivePut).mockResolvedValue({ success: false, data: null, error: 'HTTP 500' } as never)],
+    ['rechaza (red)', () => vi.mocked(pipedrivePut).mockRejectedValue(new TypeError('fetch failed'))],
+  ])('doble envío y el cambio de título %s: se reutiliza el negocio (reused), sin crear otro ni avisar falla', async (_caso, failPut) => {
+    failPut();
+    const sentRef = () => gasBodies()[0]?.items_lista.match(/ESTL-[0-9a-z]+/)?.[0] ?? '';
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') return { success: true, data: { items: [{ item: { id: 42 } }] } };
+      if (path === '/deals/42') return { success: true, data: { id: 42, pipeline_id: 2, status: 'open', update_time: pipedriveNow(5), [QUOTE_REF]: sentRef() } };
+      return { success: false, data: null };
+    }) as never);
+    const res = await call(base);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ success: true, dealId: 42, dealAction: 'reused' });
+    expect(pdCalls('/deals')).toHaveLength(0);
+    expect(pdCalls('/notes')[0][1].deal_id).toBe(42);
+    expect(gasBodies()).toHaveLength(1); // sin el segundo correo «crear el negocio a mano»
+    expect(vi.mocked(console.warn).mock.calls.flat().map(String).join('\n')).toContain('Title update FAIL, reusing deal 42');
+  });
+
+  it('dos envíos simultáneos con el POST lento y sin indexar: un solo negocio y las dos notas a él', async () => {
+    // Endpoint completo con el candado de Redis (simulado): el segundo envío espera al primero.
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', UPSTASH_URL);
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'invented-test-token');
+    vi.stubGlobal('fetch', fakeFetch(createFakeRedis()));
+    const created: Record<string, unknown>[] = [];
+    let initialSearches = 0;
+    let unblock!: () => void;
+    const bothSearched = new Promise<void>((resolve) => { unblock = resolve; });
+    vi.mocked(pipedriveGet).mockImplementation((async (path: string) => {
+      if (path === '/deals/search') {
+        // Los dos ven ausencia al principio y Pipedrive nunca indexa el negocio nuevo.
+        if (++initialSearches <= 2) {
+          if (initialSearches === 2) unblock();
+          await bothSearched;
+        }
+        return { success: true, data: { items: [] } };
+      }
+      const id = Number(path.match(/^\/deals\/(\d+)$/)?.[1]);
+      const deal = created.find((d) => d.id === id);
+      return deal ? { success: true, data: deal } : { success: false, data: null };
+    }) as never);
+    vi.mocked(pipedrivePost).mockImplementation((async (path: string, body: Record<string, unknown>) => {
+      if (path !== '/deals') return { success: true, data: { id: 1 } };
+      await new Promise((resolve) => setTimeout(resolve, 700)); // el otro envío espera el candado
+      const deal = { ...body, id: 555 + created.length, status: 'open', update_time: pipedriveNow() };
+      created.push(deal);
+      return { success: true, data: deal };
+    }) as never);
+    const bodies = (await Promise.all([call(base), call(base)])).map((r) => r.body as { dealId?: number; dealAction?: string });
+    expect(created).toHaveLength(1);
+    expect(bodies.map((r) => r.dealId)).toEqual([555, 555]);
+    expect(bodies.map((r) => r.dealAction).sort()).toEqual(['created', 'updated']);
+    expect(pdCalls('/notes').map(([, note]) => note.deal_id)).toEqual([555, 555]);
   });
 
   it('un negocio de otro embudo con la misma referencia no cuenta', async () => {

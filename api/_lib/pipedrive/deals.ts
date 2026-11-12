@@ -493,29 +493,63 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
   // =========================================================================
   // NON-JUMPSELLER PATH: search, then serialize and search again before creating.
   // =========================================================================
+  const dedup = await dedupByQuoteReference(
+        params.quoteReference,
+        params.pipelineId,
+        { openWithinDays: params.dedupOpenWithinDays, budgetMs: QUOTE_DEDUP_BUDGET_MS },
+        () => createDealInPipedrive(params, undefined, undefined)
+  );
+  if (dedup.status === 'found') return { dealId: dedup.dealId, status: 'skipped_duplicate' };
+  if (dedup.uncertain) await addDealNote(dedup.dealId, POSSIBLE_DUPLICATE_NOTE);
+  console.log(`${LOG_PREFIX} Created deal: ${dedup.dealId} (${redact(params.quoteReference)})`);
+  return { dealId: dedup.dealId, status: 'created' };
+}
+
+export type QuoteReferenceDedupResult =
+    | { status: 'found'; dealId: number }
+    | { status: 'created'; dealId: number; uncertain: boolean };
+
+/**
+ * Deduplication by quoteReference shared by the site forms (createDeal) and the lighting
+ * study (api/estudio-luminico/create.ts):
+ *   1. paginated search by exact quoteReference (one retry);
+ *   2. quoteReference + pipeline lock in Redis, then the short Redis mapping (bridges the
+ *      search indexing lag) and the search again, because the first read may predate another
+ *      request's POST;
+ *   3. `create()` only if nothing was found, then the new id goes to the mapping for 10 minutes.
+ * Redis down, a stuck lock or a failed search never block: it creates anyway and returns
+ * `uncertain: true` (logged as quote_dedup_uncertain_created). `budgetMs` is shared by the
+ * initial read, the wait for the lock and the read under the lock.
+ */
+export async function dedupByQuoteReference(
+    quoteReference: string,
+    pipelineId: number,
+    { openWithinDays, budgetMs }: { openWithinDays?: number; budgetMs: number },
+    create: () => Promise<number>
+): Promise<QuoteReferenceDedupResult> {
   // Shared across the initial read, contention and the read under the lock, leaving
   // time for the POST and warning note even when Pipedrive is slow.
-  const deadline = Date.now() + QUOTE_DEDUP_BUDGET_MS;
-  const options = { openWithinDays: params.dedupOpenWithinDays, deadline };
-  const initial = await findDealByQuoteReference(params.quoteReference, params.pipelineId, options);
+  const deadline = Date.now() + budgetMs;
+  const options = { openWithinDays, deadline };
+  const initial = await findDealByQuoteReference(quoteReference, pipelineId, options);
   if (initial.status === 'found') {
         console.log(JSON.stringify({ level: 'info', event: 'dedup_quote_reference_hit', dealId: initial.deal.id }));
-        return { dealId: initial.deal.id, status: 'skipped_duplicate' };
+        return { status: 'found', dealId: initial.deal.id };
   }
 
   const lockValue = randomUUID();
   let locked = false;
   while (!locked) {
-        const lock = await acquireQuoteReferenceLock(params.quoteReference, params.pipelineId, lockValue);
+        const lock = await acquireQuoteReferenceLock(quoteReference, pipelineId, lockValue);
         if ('unavailable' in lock) {
-            console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_unavailable', pipelineId: params.pipelineId }));
+            console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_unavailable', pipelineId }));
             break;
         }
         locked = lock.acquired;
         if (!locked) {
             if (Date.now() >= deadline) {
                 // Fail open rather than lose the order, including a stuck lock.
-                console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_wait_timeout', pipelineId: params.pipelineId }));
+                console.warn(JSON.stringify({ level: 'warn', event: 'quote_lock_wait_timeout', pipelineId }));
                 break;
             }
             await new Promise((resolve) => setTimeout(resolve, Math.max(1, Math.min(LOCK_RETRY_CHECK_MS, deadline - Date.now()))));
@@ -527,12 +561,12 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
   let mappingCheckFailed = false;
   try {
         if (locked) {
-            const mapping = await readQuoteReferenceMapping(params.quoteReference, params.pipelineId);
+            const mapping = await readQuoteReferenceMapping(quoteReference, pipelineId);
             if (mapping.ok === false) {
-                console.warn(JSON.stringify({ level: 'warn', event: 'quote_mapping_read_failed', pipelineId: params.pipelineId }));
+                console.warn(JSON.stringify({ level: 'warn', event: 'quote_mapping_read_failed', pipelineId }));
             } else if (mapping.dealId !== null) {
                 // WhatsApp must still be open/recent: a cached ID alone cannot establish that.
-                let reusable = params.dedupOpenWithinDays === undefined;
+                let reusable = openWithinDays === undefined;
                 if (!reusable) {
                     const remaining = deadline - Date.now();
                     const full = remaining > 0
@@ -540,46 +574,45 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
                         : null;
                     if (!full?.success || !full.data) {
                         mappingCheckFailed = true;
-                        console.warn(JSON.stringify({ level: 'warn', event: 'quote_mapping_detail_failed', pipelineId: params.pipelineId, dealId: mapping.dealId }));
+                        console.warn(JSON.stringify({ level: 'warn', event: 'quote_mapping_detail_failed', pipelineId, dealId: mapping.dealId }));
                     } else {
                         const d = full.data;
                         const fieldKey = process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE;
-                        reusable = d.id === mapping.dealId && d.pipeline_id === params.pipelineId &&
-                            !!fieldKey && String(d[fieldKey]) === params.quoteReference && d.status === 'open' &&
-                            pipedriveTime(d.update_time) >= Date.now() - params.dedupOpenWithinDays! * DAY_MS;
+                        reusable = d.id === mapping.dealId && d.pipeline_id === pipelineId &&
+                            !!fieldKey && String(d[fieldKey]) === quoteReference && d.status === 'open' &&
+                            pipedriveTime(d.update_time) >= Date.now() - openWithinDays! * DAY_MS;
                     }
                 }
                 if (reusable) {
                     console.log(JSON.stringify({ level: 'info', event: 'dedup_quote_mapping_hit', dealId: mapping.dealId }));
-                    return { dealId: mapping.dealId, status: 'skipped_duplicate' };
+                    return { status: 'found', dealId: mapping.dealId };
                 }
             }
         }
         // The initial read may predate another request's POST, especially after contention.
         // Recheck even if Redis went down while waiting and we must proceed unlocked.
-        result = await findDealByQuoteReference(params.quoteReference, params.pipelineId, options);
+        result = await findDealByQuoteReference(quoteReference, pipelineId, options);
         if (result.status === 'found') {
             console.log(JSON.stringify({ level: 'info', event: 'dedup_quote_reference_hit', dealId: result.deal.id }));
-            return { dealId: result.deal.id, status: 'skipped_duplicate' };
+            return { status: 'found', dealId: result.deal.id };
         }
-        dealId = await createDealInPipedrive(params, undefined, undefined);
-        const saved = await writeQuoteReferenceMapping(params.quoteReference, params.pipelineId, dealId);
+        dealId = await create();
+        const saved = await writeQuoteReferenceMapping(quoteReference, pipelineId, dealId);
         if (saved.ok === false) {
-            console.warn(JSON.stringify({ level: 'warn', event: 'quote_mapping_write_failed', pipelineId: params.pipelineId, dealId }));
+            console.warn(JSON.stringify({ level: 'warn', event: 'quote_mapping_write_failed', pipelineId, dealId }));
         }
   } finally {
-        if (locked) await releaseQuoteReferenceLock(params.quoteReference, params.pipelineId, lockValue);
+        if (locked) await releaseQuoteReferenceLock(quoteReference, pipelineId, lockValue);
   }
-  if (result.status === 'failed' || result.status === 'incomplete' || mappingCheckFailed) {
+  const uncertain = result.status === 'failed' || result.status === 'incomplete' || mappingCheckFailed;
+  if (uncertain) {
         console.warn(JSON.stringify({
             level: 'warn', event: 'quote_dedup_uncertain_created', dealId,
             searchStatus: result.status, reason: result.status === 'failed' || result.status === 'incomplete'
                 ? result.reason : 'mapping_detail_request_failed',
         }));
-        await addDealNote(dealId, POSSIBLE_DUPLICATE_NOTE);
   }
-  console.log(`${LOG_PREFIX} Created deal: ${dealId} (${redact(params.quoteReference)})`);
-  return { dealId, status: 'created' };
+  return { status: 'created', dealId, uncertain };
 }
 
 // --- Internal: create a deal in Pipedrive (shared by both paths) ---

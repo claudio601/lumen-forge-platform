@@ -12,6 +12,23 @@ vi.mock('../_lib/pipedrive/deals.js', () => ({ createDeal: vi.fn(async () => ({ 
 vi.mock('../_lib/pipedrive/fieldOptions.js', () => ({ initFieldOptions: vi.fn(async () => {}) }));
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn((p: Promise<unknown>) => p) }));
 vi.mock('../_lib/pipedrive/client.js', () => ({ pipedrivePost: vi.fn(async () => ({ success: true, data: { id: 1 } })) }));
+// Índice de precios inventado: las pruebas no dependen de que estos productos sigan en el
+// catálogo del día (una sincronización que retire uno no rompe la PR del robot). Los ids son
+// los de siempre para que los textos esperados no cambien; nombres y precios son de prueba.
+vi.mock('../_lib/catalog/price-index.generated.js', () => ({
+  SNAPSHOT_HASH: 'prueba',
+  priceIndex: {
+    '3305420': { name: 'AMPOLLETA LED AR111', sku: 'AR111OPC', price: 4321, variants: {} },
+    '3921249': { name: 'LINEAL PRUEBA', sku: '', price: 7654, variants: {} },
+    '2301098': {
+      name: 'BESTLED PRUEBA', sku: '', price: 100000,
+      variants: { '95224064': { sku: 'BL-A', price: 100000 }, '111887368': { sku: 'BL-B', price: 123456 } },
+    },
+    // Pedido anterior sin jumpsellerId: se identifica por el nombre.
+    '2301110': { name: 'ALUMBRADO PÚBLICO BESTLED 120W IP66 IK08', sku: '', price: 150000, variants: { '95224099': { sku: 'APB120', price: 150000 } } },
+    '4156930': { name: 'BESTLED 150W PRUEBA', sku: '', price: 200000, variants: { '113961236': { sku: 'APB1507', price: 200000 } } },
+  },
+}));
 
 import handler, { itemsJsonLine } from '../request-orders/create';
 import { createDeal } from '../_lib/pipedrive/deals.js';
@@ -58,7 +75,7 @@ const base = {
 const ar111 = { jumpsellerId: 3305420, sku: 'AR111OPC', name: 'AR111', quantity: 2, unitPrice: 100, currency: 'CLP', lineTotal: 200, url: '/x', attributes: {} };
 
 
-/** Precio CON IVA de la AR111 en el catálogo del día: cambia con la sincronización. */
+/** Precio CON IVA de la AR111 en el índice simulado de arriba. */
 const AR111 = priceIndex['3305420'].price;
 describe('POST /api/request-orders/create', () => {
   beforeEach(() => {

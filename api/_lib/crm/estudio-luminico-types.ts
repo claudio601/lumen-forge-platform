@@ -88,7 +88,8 @@ export interface EstudioLuminicoResult {
   personId: number;
   personAction: 'found' | 'created';
   dealId: number;
-  dealAction: 'created' | 'updated';
+  /** 'reused': el negocio ya existia y Pipedrive no acepto el cambio de titulo. */
+  dealAction: 'created' | 'updated' | 'reused';
 }
 
 // ── Respuestas de la API ──────────────────────────────────────────────────────
@@ -97,7 +98,8 @@ export interface EstudioLuminicoSuccessResponse {
   success: true;
   personId: number;
   dealId: number;
-  dealAction: 'created' | 'updated';
+  /** 'reused': el negocio ya existia y Pipedrive no acepto el cambio de titulo. */
+  dealAction: 'created' | 'updated' | 'reused';
 }
 
 export interface EstudioLuminicoErrorResponse {
