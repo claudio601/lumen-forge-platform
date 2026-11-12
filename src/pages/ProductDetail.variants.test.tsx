@@ -105,7 +105,8 @@ const mainPrice = (container: HTMLElement) =>
     .map(el => el.textContent)
     .filter(t => !/^Precio/.test(t ?? ''))
     .join(' ');
-const headerSku = (container: HTMLElement) => container.querySelector('h1')!.previousElementSibling!.textContent;
+// Código visible: el primero de la línea sobre el título (a su derecha va el acceso a la ficha técnica)
+const headerSku = (container: HTMLElement) => container.querySelector('h1')!.previousElementSibling!.firstElementChild!.textContent;
 const requestButton = () => screen.getByRole('button', { name: /Solicitar pedido/ });
 // El de la ficha es el primero (las tarjetas de «Productos relacionados» también tienen uno)
 const quoteButton = () => screen.getAllByRole('button', { name: /^Cotizar$/ })[0];

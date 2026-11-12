@@ -110,7 +110,26 @@ export function productOffer(product: Pick<Product, 'id' | 'price' | 'variants'>
   return { '@type': 'Offer', url, priceCurrency: 'CLP', price: product.price, seller };
 }
 
+/** Largo máximo del sku que acepta Google en las fichas de comerciantes. */
+export const MAX_SKU_LENGTH = 50;
+
+/**
+ * El SKU de la ficha para Google: solo el de Jumpseller (el del producto o, si no tiene, el único
+ * SKU de sus variantes). Sin eso no se publica: Google no lo exige. Antes caía al id del sitio (el
+ * permalink), que no es un SKU y en 21 fichas pasaba los 50 caracteres que acepta Google (Search
+ * Console, 11-11-2026: «La longitud de cadena del campo "sku" no es válida»).
+ */
+export function productSku(product: Pick<Product, 'sku' | 'variants' | 'singleVariant'>): string | undefined {
+  const own = product.sku?.trim();
+  const fromVariants = [
+    ...new Set([...(product.variants ?? []), product.singleVariant].map(v => v?.sku?.trim()).filter(Boolean)),
+  ];
+  const sku = own || (fromVariants.length === 1 ? fromVariants[0] : undefined);
+  return sku && sku.length <= MAX_SKU_LENGTH ? sku : undefined;
+}
+
 export function productJsonLd(product: Product, description: string): JsonLd {
+  const sku = productSku(product);
   const images = product.images?.length ? product.images : [product.image].filter(Boolean);
   return {
     '@context': 'https://schema.org/',
@@ -119,8 +138,7 @@ export function productJsonLd(product: Product, description: string): JsonLd {
     // Todas las fotos originales (Google acepta WebP y archivos pesados), codificadas como og:image
     image: images.map(encodeImageUrl),
     description,
-    sku: product.sku || product.id,
-    mpn: product.sku || product.id,
+    ...(sku ? { sku, mpn: sku } : {}),
     ...(product.brand ? { brand: { '@type': 'Brand', name: product.brand } } : {}),
     offers: productOffer(product),
   };

@@ -1,6 +1,7 @@
 // Ficha, entrega 6 de la auditoría UX: la cantidad se escribe (D-03), la caja «Estudio DIALux
-// (servicio cotizado)» en las fichas de proyecto (E-02) y «Pedir documentos técnicos» en todas
-// (D-02, paso 1). Sin valores fijos del catálogo: los productos se eligen por una propiedad.
+// (servicio cotizado)» en las fichas de proyecto (E-02) y el correo de documentos técnicos en
+// todas (D-02, paso 1), con la ficha técnica destacada bajo Solicitar pedido / Cotizar y un acceso
+// corto sobre el título. Sin valores fijos del catálogo: los productos se eligen por una propiedad.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
@@ -79,7 +80,54 @@ const savedQuote = () => JSON.parse(sessionStorage.getItem('elights_quote') ?? '
 const named = (p: Product) => p.name.replace(/\s+/g, ' ').trim();
 const quantityField = (p: Product) => screen.getByRole('spinbutton', { name: `Cantidad de ${named(p)}` }) as HTMLInputElement;
 const box = () => document.querySelector('[data-dialux-box]') as HTMLElement | null;
-const docsLink = () => screen.getByRole('link', { name: 'Pedir documentos técnicos' });
+// El correo de documentos: «Pedir ficha técnica» arriba si no hay PDF, o «Pedir documentos
+// técnicos» en su bloque si lo hay (nunca los dos). El acceso corto «Pedir ficha técnica» de
+// arriba no es el correo: baja a ese botón.
+const docsLink = () => {
+  const links = screen.getAllByRole('link', { name: /^Pedir (documentos técnicos|ficha técnica)$/ })
+    .filter(a => a.getAttribute('href')?.startsWith('mailto:'));
+  expect(links).toHaveLength(1);
+  return links[0];
+};
+// Fila de Solicitar pedido / Cotizar, y fila de la ficha técnica (la siguiente)
+const ctaRow = () => screen.getByRole('button', { name: /Solicitar pedido/ }).parentElement!;
+const datasheetRow = (link: HTMLElement) => link.closest('[data-datasheets]')!;
+const datasheetButtons = () => within(document.querySelector<HTMLElement>('[data-datasheets]')!).getAllByRole('link');
+// Acceso corto a la ficha técnica, en la línea del código, sobre el título
+const shortcut = () => document.querySelector<HTMLAnchorElement>('[data-datasheet-shortcut]')!;
+const before = (a: Node, b: Node) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+/** Acceso corto arriba: en la línea del código (justo sobre el título), antes del selector y de los botones. */
+function expectShortcutOnTop() {
+  const a = shortcut();
+  expect(a.tagName).toBe('A');
+  expect(a.parentElement!.nextElementSibling).toBe(screen.getByRole('heading', { level: 1 }));
+  expect(before(a, ctaRow())).toBe(true);
+  const selector = document.querySelector('[role="radiogroup"]');
+  if (selector) expect(before(a, selector)).toBe(true);
+  expect(a.className).toMatch(/\btext-primary\b/);
+  expect(a.className).toMatch(/\bmin-h-6\b/); // objetivo táctil de 24 px
+  expect(a.className).toMatch(/(^|\s)-my-1(\s|$)/); // sin sumar alto a la línea del código
+  expect(a.querySelector('svg')).not.toBeNull();
+}
+/** Botón de la ficha técnica: el mismo tratamiento que «Cotizar» (borde y texto del color primario,
+ *  48 px), ancho completo; nunca más fuerte que Cotizar. */
+function expectProminent(link: HTMLElement) {
+  expect(link.tagName).toBe('A');
+  expect(link.querySelector('button')).toBeNull(); // nunca un <button> dentro de un <a>
+  expect(link.closest('button')).toBeNull();
+  expect(link.closest('[data-docs-block]')).toBeNull();
+  const quote = within(ctaRow()).getByRole('button', { name: 'Cotizar' }).className.split(/\s+/);
+  const own = link.className.split(/\s+/);
+  for (const token of ['h-12', 'border-primary/30', 'text-primary', 'hover:bg-accent']) {
+    expect(own).toContain(token);
+    expect(quote).toContain(token);
+  }
+  expect(own).toContain('w-full');
+  expect(link.className).not.toMatch(/\bfont-(semibold|bold)\b/);
+  expect(link.className).toContain('focus-visible:ring-2');
+  expect(link.className).not.toContain('text-muted-foreground');
+  expect(link.querySelector('svg')).not.toBeNull();
+}
 /** Asunto y cuerpo del correo prellenado. */
 function mail(href: string) {
   const [address, query] = href.replace(/^mailto:/, '').split('?');
@@ -305,42 +353,109 @@ describe('ficha: «Pedir documentos técnicos» (D-02, paso 1)', () => {
     expect(mail(docsLink().getAttribute('href')!).body).toMatch(/\r\nTemperatura de color:\r\nSKU: /);
   });
 
-  it('con ficha PDF: «Ficha técnica» sigue donde estaba (junto a WhatsApp), fuera del bloque, hasta que la agencia reemita los PDF', () => {
+  it('BESTLED: «Ficha técnica (PDF)» destacada, justo debajo de Solicitar pedido / Cotizar, y el bloque para pedir lo demás', () => {
     renderPdp(bestled);
+    const [datasheet, ...rest] = datasheetButtons();
+    expect(rest).toEqual([]);
+    expect(datasheet).toHaveAccessibleName('Ficha técnica (PDF)');
+    // Su PDF editorial (gana al de Jumpseller), propio del sitio: se descarga
+    expect(datasheet.getAttribute('href')).toBe(bestled.datasheetUrl);
+    expect(datasheet.hasAttribute('download')).toBe(true);
+    expectProminent(datasheet);
+    expect(datasheetRow(datasheet).previousElementSibling).toBe(ctaRow());
+    // Arriba, sobre el título y antes del selector, el acceso corto al mismo PDF
+    expectShortcutOnTop();
+    expect(shortcut()).toHaveAccessibleName('Ficha técnica (PDF)');
+    expect(shortcut().getAttribute('href')).toBe(bestled.datasheetUrl);
+    expect(shortcut().hasAttribute('download')).toBe(true);
+    // Fuera del bloque «Documentos técnicos», que sigue para pedir IES y certificados por variante
     const block = screen.getByRole('region', { name: 'Documentos técnicos' });
     expect(within(block).getByRole('link', { name: 'Pedir documentos técnicos' })).toBeInTheDocument();
-    expect(within(block).queryByRole('link', { name: 'Ficha técnica' })).not.toBeInTheDocument();
-    const datasheet = screen.getByRole('link', { name: 'Ficha técnica' });
-    expect(datasheet.getAttribute('href')).toBe(bestled.datasheetUrl);
-    // El mismo estilo discreto de antes (enlace gris), no un botón con borde
-    expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
-    const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
-    expect(datasheet.parentElement).toBe(wa.parentElement);
+    expect(within(block).queryByRole('link', { name: /Ficha técnica/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pedir ficha técnica' })).not.toBeInTheDocument();
   });
 
-  it('con PDF adjunto en Jumpseller: «Ficha técnica» en el mismo lugar y con el mismo estilo, al PDF del CDN en otra pestaña', () => {
+  it('con PDF adjunto en Jumpseller: un botón destacado al PDF del CDN, en otra pestaña; WhatsApp queda en su fila', () => {
     renderPdp(oneSheet);
-    const datasheet = screen.getByRole('link', { name: 'Ficha técnica' });
+    const [datasheet, ...rest] = datasheetButtons();
+    expect(rest).toEqual([]);
+    expect(datasheet).toHaveAccessibleName('Ficha técnica (PDF)');
     expect(datasheet.getAttribute('href')).toBe(productDatasheets[oneSheet.jumpseller_id][0]);
     expect(datasheet.getAttribute('target')).toBe('_blank');
     expect(datasheet.getAttribute('rel')).toBe('noopener noreferrer');
     // `download` no sirve en otro dominio: el PDF se abre en otra pestaña
     expect(datasheet.hasAttribute('download')).toBe(false);
-    expect(datasheet.querySelector('button')?.className).toContain('text-muted-foreground');
+    expectProminent(datasheet);
+    expect(datasheetRow(datasheet).previousElementSibling).toBe(ctaRow());
+    // WhatsApp, en la fila siguiente y con su estilo de siempre
     const wa = screen.getByRole('link', { name: /Escríbenos por WhatsApp/ });
-    expect(datasheet.parentElement).toBe(wa.parentElement);
+    expect(wa.parentElement).not.toBe(datasheet.parentElement);
+    expect(datasheetRow(datasheet).nextElementSibling).toBe(wa.parentElement);
+    expect(wa.querySelector('button')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Documentos técnicos' })).toBeInTheDocument();
+    // El acceso corto de arriba abre el mismo PDF, también en otra pestaña
+    expectShortcutOnTop();
+    expect(shortcut()).toHaveAccessibleName('Ficha técnica (PDF)');
+    expect(shortcut().getAttribute('href')).toBe(datasheet.getAttribute('href'));
+    expect(shortcut().getAttribute('target')).toBe('_blank');
+    expect(shortcut().getAttribute('rel')).toBe('noopener noreferrer');
+    expect(shortcut().hasAttribute('download')).toBe(false);
   });
 
-  it('con varios PDF en Jumpseller: un enlace por PDF, con su potencia y de menor a mayor', () => {
+  it('con varios PDF en Jumpseller: un botón por PDF, con su potencia, de menor a mayor y en la misma grilla', () => {
     renderPdp(manySheets);
-    const links = screen.getAllByRole('link', { name: /^Ficha técnica/ });
-    expect(links.map(l => l.textContent?.trim())).toEqual(['Ficha técnica 40W', 'Ficha técnica 80W']);
+    const links = datasheetButtons();
+    expect(links.map(l => l.textContent?.trim())).toEqual(['Ficha técnica 40W (PDF)', 'Ficha técnica 80W (PDF)']);
     expect(links.map(l => l.getAttribute('href'))).toEqual([...productDatasheets[manySheets.jumpseller_id]].reverse());
+    for (const l of links) expectProminent(l);
+    expect(new Set(links.map(l => l.parentElement)).size).toBe(1);
+    expect(datasheetRow(links[0]).previousElementSibling).toBe(ctaRow());
   });
 
-  it('sin PDF: sin enlace «Ficha técnica»', () => {
+  it('con varios PDF: el acceso corto «Fichas técnicas (PDF)» baja a los botones y le pasa el foco al primero, sin cambiar la URL', () => {
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    try {
+      renderPdp(manySheets);
+      expectShortcutOnTop();
+      const a = shortcut();
+      expect(a).toHaveAccessibleName('Fichas técnicas (PDF)');
+      expect(a.getAttribute('href')).toBe('#ficha-tecnica');
+      expect(a.hasAttribute('target')).toBe(false);
+      const row = document.getElementById('ficha-tecnica')!;
+      expect(row.hasAttribute('data-datasheets')).toBe(true);
+      expect(fireEvent.click(a)).toBe(false); // sin navegar: el ancla queda solo para sin JS
+      expect(document.activeElement).toBe(datasheetButtons()[0]);
+      expect(scroll).toHaveBeenCalledTimes(1);
+      expect(scroll.mock.contexts[0]).toBe(row);
+      expect(scroll.mock.calls[0][0]).toMatchObject({ block: 'center' });
+    } finally {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
+  it('sin PDF: «Pedir ficha técnica» igual de visible, en el mismo lugar, con el correo de «Pedir documentos técnicos» (sin repetirlo abajo)', () => {
     renderPdp(noSheet);
-    expect(screen.queryByRole('link', { name: /^Ficha técnica/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /^Fichas? técnicas?/ })).not.toBeInTheDocument();
+    const [ask, ...rest] = datasheetButtons();
+    expect(rest).toEqual([]);
+    expect(ask).toHaveAccessibleName('Pedir ficha técnica');
+    expectProminent(ask);
+    expect(datasheetRow(ask).previousElementSibling).toBe(ctaRow());
+    const { address, subject } = mail(ask.getAttribute('href')!);
+    expect(address).toBe(contactEmail);
+    expect(subject).toBe(`Documentos técnicos: ${noSheet.name} (SKU ${requestSku(noSheet)})`);
+    expect(ask.getAttribute('aria-describedby')).toBe(screen.getByText(`Abre un correo a ${contactEmail} con el producto y el SKU.`).id);
+    // El mismo correo no se ofrece dos veces
+    expect(screen.queryByRole('region', { name: 'Documentos técnicos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Pedir documentos técnicos' })).not.toBeInTheDocument();
+    expect([...document.querySelectorAll('a')].filter(a => a.getAttribute('href') === ask.getAttribute('href'))).toHaveLength(1);
+    // Arriba, «Pedir ficha técnica» no abre el correo: baja a este botón y su nota
+    expectShortcutOnTop();
+    expect(shortcut()).toHaveAccessibleName('Pedir ficha técnica');
+    expect(shortcut().getAttribute('href')).toBe('#ficha-tecnica');
+    expect(fireEvent.click(shortcut())).toBe(false);
+    expect(document.activeElement).toBe(ask);
   });
 
   it('en todas las fichas, siempre a ventas@elights.cl', () => {

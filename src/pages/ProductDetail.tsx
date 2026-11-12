@@ -20,10 +20,10 @@ import {
     Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from '@/components/ui/accordion';
 import {
-    FileText, Download, Mail, MessageCircle, Zap,
+    FileText, FileDown, Mail, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { contactEmail, docsRequestMailto, waProductUrl } from '@/config/business';
@@ -91,6 +91,32 @@ function renderDescriptionBlocks(text: string): ReactNode {
       </p>
     );
   });
+}
+
+// Botón con borde de la ficha: «Cotizar» y la ficha técnica comparten el mismo tratamiento (borde
+// y texto del color primario, 48 px de alto), para que el orden sea Solicitar pedido (relleno) >
+// Cotizar = Ficha técnica. Para marcar más el borde, se cambia aquí y suben los dos a la vez.
+const OUTLINE_CTA = 'h-12 gap-2 border-primary/30 text-primary hover:bg-accent';
+// Botones «Ficha técnica (PDF)» / «Pedir ficha técnica»: ancho completo en el teléfono; varios PDF
+// se reparten la fila en columnas iguales (pasan a la línea siguiente si el texto no cabe).
+const DATASHEET_GRID = 'mb-3 grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))]';
+const DATASHEET_BUTTON = `w-full px-4 ${OUTLINE_CTA}`;
+// Fila de los botones de la ficha técnica: destino del acceso corto de arriba
+const DATASHEETS_ANCHOR = 'ficha-tecnica';
+// Acceso corto a la ficha técnica, en la línea del código, sobre el título (a la vista sin
+// desplazarse también en las fichas con selector de variante). Objetivo táctil de 24 px de alto;
+// el margen negativo lo deja en el alto de esa línea (16 px), sin mover lo de abajo.
+const DATASHEET_SHORTCUT = 'inline-flex min-h-6 -my-1 items-center gap-1.5 rounded-sm text-sm font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2';
+
+/** Con varios PDF o sin PDF, el acceso corto baja a la fila de la ficha técnica y le pasa el foco
+ *  (sin cambiar la URL ni el historial). Sin JS, el ancla hace lo mismo. */
+function jumpToDatasheets(e: ReactMouseEvent<HTMLAnchorElement>) {
+  const row = document.getElementById(DATASHEETS_ANCHOR);
+  if (!row) return;
+  e.preventDefault();
+  row.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
+  const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  row.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
 }
 
 // Contenido SEO del producto (formato BESTLED) sobre los datos de Jumpseller. Los BESTLED
@@ -383,7 +409,33 @@ const ProductDetail = () => {
                 
                   {/* ── Info + CTAs ─────────────────────────────────────── */}
                         <div>
-                                  <p className="text-xs text-muted-foreground font-mono mb-1 min-h-4">{headerSku}</p>
+                          {/* Código y, a la derecha, el acceso corto a la ficha técnica: a la vista sin desplazarse
+                              (en 1366×768 los botones de abajo quedan bajo el pliegue en las fichas con selector). Va
+                              en esta línea para no sumar alto: en la fila de «Consultar disponibilidad» la partía en
+                              dos y bajaba 24 px Solicitar pedido en todas las fichas. Con un PDF, el PDF; con varios
+                              o sin PDF, baja a sus botones. */}
+                                  <div className="flex flex-wrap items-center justify-between gap-x-3 mb-1 min-h-4">
+                                              <p className="text-xs text-muted-foreground font-mono">{headerSku}</p>
+                                              {datasheets.length === 1 ? (
+                                                            <a
+                                                              href={datasheets[0].href}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              download={datasheets[0].href.startsWith('/') || undefined}
+                                                              className={DATASHEET_SHORTCUT}
+                                                              data-datasheet-shortcut=""
+                                                            >
+                                                              <FileDown aria-hidden="true" className="h-4 w-4" />
+                                                              {datasheets[0].label} (PDF)
+                                                            </a>
+                                              ) : (
+                                                            <a href={`#${DATASHEETS_ANCHOR}`} onClick={jumpToDatasheets} className={DATASHEET_SHORTCUT} data-datasheet-shortcut="">
+                                                              {datasheets.length > 1
+                                                                ? <><FileDown aria-hidden="true" className="h-4 w-4" />Fichas técnicas (PDF)</>
+                                                                : <><Mail aria-hidden="true" className="h-4 w-4" />Pedir ficha técnica</>}
+                                                            </a>
+                                              )}
+                                  </div>
                                   <h1 className="text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
                         
                           {(product.tags ?? []).length > 0 && (
@@ -457,7 +509,7 @@ const ProductDetail = () => {
                                   </div>
 
                           {/* ── CTAs principales ── */}
-                                  <div className="flex flex-wrap gap-3 mb-6">
+                                  <div className="flex flex-wrap gap-3 mb-3">
                                     {/* FASE 1: CTA principal = Solicitar pedido */}
                                               <RequestOrderButton item={requestItem} quantity={qty} variant="pdp" disabled={ctaDisabled} aria-describedby={hasVariantChoice ? hintId : undefined} />
                                     {/* Cotizar (QuoteCart) se mantiene como accion secundaria.
@@ -467,7 +519,7 @@ const ProductDetail = () => {
                                                               variant="outline"
                                                               disabled={ctaDisabled}
                                                               aria-describedby={hasVariantChoice ? hintId : undefined}
-                                                              className="flex-1 gap-2 border-primary/30 text-primary hover:bg-accent h-12"
+                                                              className={`flex-1 ${OUTLINE_CTA}`}
                                                               onClick={() => {
                                                                                 addToQuote(product, qty, undefined, quoteSelection);
                                                                                 toast.success('Agregado a cotización', chosenLabel ? { description: `${product.name} – ${chosenLabel}` } : undefined);
@@ -478,39 +530,62 @@ const ProductDetail = () => {
                                               </Button>
                                   </div>
                         
-                          {/* Acciones secundarias. «Ficha técnica» sigue aquí y con este estilo, no en el bloque
-                              «Documentos técnicos»: los PDF de la agencia (public/fichas/APB*.pdf) dicen «Cumple
-                              DS1» para todas las variantes y hay que reemitirlos antes de destacarlos. Los de
-                              Jumpseller son los que muestra elights.cl (el dueño manda la ficha del producto para
-                              que el cliente los descargue); `download` solo sirve en los PDF propios del sitio. */}
+                          {/* Ficha técnica, destacada justo debajo de Solicitar pedido / Cotizar (reclamos de
+                              clientes que no veían el enlace gris, decisión del dueño, 2026-11-11): un botón por
+                              PDF («Ficha técnica 40W (PDF)» con varios), en una grilla pareja que llena la fila, con
+                              el mismo tratamiento que Cotizar (OUTLINE_CTA) y un acceso corto sobre el título.
+                              Los PDF de Jumpseller son los que muestra elights.cl (el dueño manda la ficha del
+                              producto para que el cliente los descargue); el editorial de las BESTLED gana
+                              (src/lib/datasheets.ts) y `download` solo sirve en los PDF propios del sitio. Los PDF
+                              de las BESTLED (public/fichas/APB*.pdf, los mismos adjuntos en Jumpseller) dicen
+                              «Cumple DS1» para todas las variantes: falta reemitirlos (certificado solo en 2200K y
+                              2700K). Sin PDF, en el mismo lugar, «Pedir ficha técnica»: el correo de «Pedir
+                              documentos técnicos». */}
+                                  <div id={DATASHEETS_ANCHOR} className={DATASHEET_GRID} data-datasheets="">
+                                              {datasheets.length > 0 ? datasheets.map(d => (
+                                                            <Button key={d.href} asChild variant="outline" className={DATASHEET_BUTTON}>
+                                                              <a
+                                                                href={d.href}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                download={d.href.startsWith('/') || undefined}
+                                                              >
+                                                                <FileDown aria-hidden="true" />
+                                                                {d.label} (PDF)
+                                                              </a>
+                                                            </Button>
+                                              )) : (
+                                                            <Button asChild variant="outline" className={DATASHEET_BUTTON}>
+                                                              <a href={docsMailto} aria-describedby={docsHintId}>
+                                                                <Mail aria-hidden="true" />
+                                                                Pedir ficha técnica
+                                                              </a>
+                                                            </Button>
+                                              )}
+                                  </div>
+                                  {datasheets.length === 0 && (
+                                              <p id={docsHintId} className="-mt-1 mb-3 text-xs text-muted-foreground">
+                                                Abre un correo a {contactEmail} con el producto y el SKU.
+                                              </p>
+                                  )}
+
+                          {/* Acciones secundarias */}
                                   <div className="flex flex-wrap gap-x-3 gap-y-1">
-                                              {datasheets.map(d => (
-                                                            <a
-                                                              key={d.href}
-                                                              href={d.href}
-                                                              target="_blank"
-                                                              rel="noopener noreferrer"
-                                                              download={d.href.startsWith('/') || undefined}
-                                                            >
-                                                              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground">
-                                                                <Download className="h-3.5 w-3.5" />
-                                                                {d.label}
-                                                              </Button>
-                                                            </a>
-                                              ))}
-                                              <a href={waUrl} target="_blank" rel="noopener noreferrer">
-                                                            <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
+                                              <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs text-[#25D366] hover:text-[#25D366]">
+                                                            <a href={waUrl} target="_blank" rel="noopener noreferrer">
                                                                             <MessageCircle className="h-3.5 w-3.5" />
                                                                             Escríbenos por WhatsApp
-                                                            </Button>
-                                              </a>
+                                                            </a>
+                                              </Button>
                                   </div>
 
                           {/* Estudio DIALux (servicio cotizado), en las fichas de proyecto (auditoría UX, E-02) */}
                           {studyHref && <DialuxStudyBox href={studyHref} />}
 
-                          {/* Documentos técnicos, en todas las fichas (auditoría UX, D-02, paso 1): el correo
-                              prellenado a ventas con el producto y el SKU de la línea */}
+                          {/* Documentos técnicos (auditoría UX, D-02, paso 1): el correo prellenado a ventas con el
+                              producto y el SKU de la línea, para pedir lo que el PDF no trae (IES, certificados por
+                              variante). Sin PDF, ese mismo correo ya es «Pedir ficha técnica», arriba: no se repite. */}
+                          {datasheets.length > 0 && (
                                   <section aria-labelledby={docsTitleId} className="mt-6 border-t pt-4" data-docs-block="">
                                               <h2 id={docsTitleId} className="text-sm font-semibold mb-2">Documentos técnicos</h2>
                                               <div className="flex flex-wrap gap-2">
@@ -525,6 +600,7 @@ const ProductDetail = () => {
                                                 Abre un correo a {contactEmail} con el producto y el SKU.
                                               </p>
                                   </section>
+                          )}
                         </div>
                 </div>
           

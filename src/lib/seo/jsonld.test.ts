@@ -9,6 +9,8 @@ import {
   organizationJsonLd,
   productJsonLd,
   productOffer,
+  productSku,
+  MAX_SKU_LENGTH,
   serializeJsonLd,
 } from './jsonld';
 
@@ -30,6 +32,38 @@ describe('JSON-LD', () => {
       seller: { '@type': 'Organization', name: 'eLIGHTS.cl' },
     });
     expect(JSON.stringify(ld)).not.toMatch(/availability|InStock|OutOfStock/);
+  });
+
+  // Search Console (11-11-2026): el sku caía al id del sitio y en 21 fichas pasaba los 50 caracteres
+  it('sku y mpn: solo el SKU de Jumpseller (del producto o el único de sus variantes); si no hay, no van', () => {
+    const base = { ...products[0], variants: undefined, singleVariant: undefined };
+    const v = (sku: string) => ({ id: 1, sku, price: 1000, options: [] });
+    const ld = (p: typeof base) => productJsonLd(p, 'desc') as Record<string, unknown>;
+    expect(ld({ ...base, sku: 'PL6060BD' })).toMatchObject({ sku: 'PL6060BD', mpn: 'PL6060BD' });
+    expect(ld({ ...base, sku: '', variants: [v('SPIR180N'), v('SPIR180N')] })).toMatchObject({ sku: 'SPIR180N', mpn: 'SPIR180N' });
+    expect(ld({ ...base, sku: '', singleVariant: { sku: 'PLC20GC', options: [] } })).toMatchObject({ sku: 'PLC20GC' });
+    for (const p of [
+      { ...base, sku: '' },
+      { ...base, sku: '', variants: [v('PL6060BDC'), v('PL6060BDN')] },
+      { ...base, sku: 'X'.repeat(MAX_SKU_LENGTH + 1) },
+    ]) {
+      expect(ld(p)).not.toHaveProperty('sku');
+      expect(ld(p)).not.toHaveProperty('mpn');
+    }
+  });
+
+  it('en el catálogo: ninguna ficha publica un sku vacío, de más de 50 caracteres o que no venga de Jumpseller', () => {
+    let withSku = 0;
+    for (const p of products) {
+      const sku = productSku(p);
+      if (sku === undefined) continue;
+      withSku++;
+      expect(sku.length).toBeGreaterThan(0);
+      expect(sku.length).toBeLessThanOrEqual(MAX_SKU_LENGTH);
+      const fromJumpseller = [p.sku, p.singleVariant?.sku, ...(p.variants ?? []).map(x => x.sku)].map(s => s?.trim());
+      expect(fromJumpseller).toContain(sku);
+    }
+    expect(withSku).toBeGreaterThan(0);
   });
 
   // Auditoría UX, I-03: antes, un solo Offer con el precio más bajo (la 2700K costaba más)
