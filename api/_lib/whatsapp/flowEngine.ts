@@ -139,12 +139,23 @@ export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, nec
 // [CORREO-PROPIO] Dueno (2026-11-11): un correo @elights.cl que no publica el bot (gerencia@, en una prueba)
 // nunca se registra como el del cliente; antes el bot repetia el texto A sin decir por que.
 export const MSG_OWN_EMAIL = 'Ese correo es de eLIGHTS. Para registrar tu solicitud necesito tu propio correo, de tu empresa o personal. \u00bfMe lo escribes por aqu\u00ed? Si prefieres, env\u00eda tu solicitud a ventas@elights.cl.';
+// [SIN-REPETIR] La pregunta corta por el correo de la etapa 3 (texto existente). Tambien alterna con el texto A para
+// no repetirlo igual en mensajes seguidos.
+export const MSG_EMAIL_SHORT = 'Para registrar tu solicitud necesito tu correo de contacto.';
 export const OWN_EMAIL_NOTE = 'Ese correo es de eLIGHTS: necesito tu propio correo, de tu empresa o personal.';
 // [PLAZO] Dueno (2026-11-11, decision 4 de la especificacion): el bot promete la respuesta "el mismo dia
 // habil", como la web. Solo con el negocio registrado y cuando el cliente pregunta que sigue o cuanto demora.
 export const MSG_WAIT = 'No tienes que hacer nada m\u00e1s. Te enviaremos la cotizaci\u00f3n por correo el mismo d\u00eda h\u00e1bil.';
 // [PLAZO] Despacho o retiro despues del cierre: el bot no promete plazos de entrega; van en la cotizacion.
 export const MSG_WAIT_DELIVERY = 'El plazo y el costo del despacho van en la cotizaci\u00f3n, que te enviaremos por correo el mismo d\u00eda h\u00e1bil.';
+// [PREGUNTA] Textos aprobados por el dueno (2026-11-11, propuesta-dueno.md): pregunta por precio o stock, por ficha
+// tecnica o una duda tecnica, y por la ubicacion. El bot no contesta precios, stock ni asesoria tecnica.
+export const MSG_Q_PRICE = 'Claudio Quero revisar\u00e1 el precio y la disponibilidad y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil. \u00bfCu\u00e1l es tu correo?';
+export const MSG_Q_TECH = 'Claudio Quero revisar\u00e1 tu consulta y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil. \u00bfCu\u00e1l es tu correo?';
+export const MSG_LOCATION = 'Somos una tienda online con bodega en Quinta Normal y despachamos a todo Chile.';
+// [PREGUNTA] Con el correo ya anotado, los mismos textos sin la pregunta final por el correo.
+export const MSG_Q_PRICE_HAS_EMAIL = 'Claudio Quero revisar\u00e1 el precio y la disponibilidad y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
+export const MSG_Q_TECH_HAS_EMAIL = 'Claudio Quero revisar\u00e1 tu consulta y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
 // [PLAZO] Cualquier otro mensaje con el negocio registrado: un recordatorio corto, no el cierre largo otra vez.
 export const MSG_REGISTERED_SHORT = 'Tu solicitud ya qued\u00f3 registrada; te escribimos por correo.';
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
@@ -779,6 +790,70 @@ function asksWhatNext(body: string): boolean {
   return WAIT_QUESTION_RE.test(normalizedText(body));
 }
 
+// [PREGUNTA] Lo que el cliente pregunta (fase 2, 12-11-2026): antes el bot contestaba con la pregunta siguiente
+// del formulario (negocios 142, 149, 159, 178, 204, 205 y el caso de las estacas). Solo cuenta una pregunta: con
+// "?" o "\u00bf", o que empieza como pregunta ("Sabes cuando demora el despacho") o la pide ("necesito saber si
+// tienen ficha tecnica"). "Necesito despacho a Temuco", "quiero cotizar 20 paneles" o el titulo de una ficha con
+// "IP65" no preguntan nada. Se compara sin tildes.
+export type QuestionKind = 'precio' | 'tecnica' | 'ubicacion' | 'despacho';
+const ASK_LEAD_RE = /^(?:(?:hola|buenas|buenos\s+dias|buenas\s+(?:tardes|noches)|ok|oye|y|pero|consulta|una\s+consulta|disculpa|perdon|estimad[oa]s?|gracias)[\s,.:;!]+)+/;
+const ASK_START_RE = /^(?:cuant|que\b|cual|como\b|donde|cuando|hay\b(?!\s+que\b)|tienen\b|tiene\b|tendran?\b|me\s+(?:pueden|podrian|puede|podria)\b|pueden\b|podrian\b|puedo\b|hacen\b|venden\b|cuentan\b|ustedes\b|sab(?:es|en|e|ria|rian)\b|sale\b|cuesta|vale\b|habria|seria\b)/;
+const ASK_INDIRECT_RE = /\b(?:saber|consultar|preguntar(?:les|le|te)?)\s+(?:si\b|cuant|cual|como\b|donde|cuando|que\b|(?:por\s+)?(?:el|la|los|las|su|sus)\s+(?:precio|valor|stock|disponib|ficha|despacho|envio|plazo|direccion|ubicacion))/;
+const ASK_PRICE_RE = /\bprecios?\b|\bvalor(?:es)?\b|\bcuest(?:a|an)\b|\b(?:cuanto|que)\s+valen?\b|\bcobr(?:a|an)\b|\bcostos?\b|\bstock\b|\bdisponib\w*|\b(?:tienen|tiene|hay|quedan|tendran)\s+(?:unas?\s+|unos\s+)?\d+|\bdescuentos?\b|\bcuanto\s+salen?\b/;
+// El costo del despacho es una pregunta por el despacho, no por el precio del producto.
+const DELIVERY_COST_RE = /\b(?:cuanto\s+)?(?:cuesta|vale|sale|cobran?|costos?|precio|valor)\s+(?:el\s+|del\s+|de\s+|la\s+|un\s+|los\s+)?(?:despacho|envio|flete|traslado)\w*|\b(?:despacho|envio|flete)\w*\s+(?:cuesta|vale|cobran?|tiene\s+(?:costo|valor))/g;
+const ASK_TECH_RE = /\bficha\w*|\bespecificaci\w*|\bdatasheet|\bcatalogo\w*|\bdimensi\w*|\bmedidas?\b|\btamano\b|\bgarantia\w*|\bcompatib\w*|\bcertific\w*|\bvoltaje\b|\blumen\w*|\bdimm?er\w*|\bdimeriz\w*|\bregulab\w*|\bintensidad\b|\bcomo\s+se\s+(?:controla|instala|conecta|usa|programa)\w*|\bsirven?\s+para\b|\bfuncionan?\s+con\b|\bcorrespond\w*|\bes\s+(?:apt[oa]|sumergible|resistente)\b|\baguant\w*|\bresiste\w*|\bconsum\w*|\bduracion\b|\bvida\s+util\b|\bmonocrom\w*/;
+// "Te envio mi correo?" no es un envio, y "cuando me entregan la cotizacion?" pregunta por la respuesta (MSG_WAIT).
+const NOT_DELIVERY_RE = /\b(?:te|le|les|se|lo|la|los|las|me|nos)\s+envio\b/g;
+const ABOUT_QUOTE_RE = /\bcotiz|\bpresupuesto|\brespuesta|\brespond/;
+const DELIVERY_WORD_RE = /\bdespach|\bflete|\bretir|\benvio\b/;
+const ASK_LOCATION_RE = /\bdonde\s+(?:estan|se\s+encuentran|quedan|queda|se\s+ubican|ubicad\w*|esta\s+(?:la\s+)?(?:tienda|bodega|oficina|local))|\bubicad\w*|\bubicacion\b|\bdireccion\b|\bsucursal\w*|\btienda\s+fisica|\blocal\s+fisico|\bshowroom\b|\bsala\s+de\s+ventas\b/;
+/** [PREGUNTA] Los trozos del mensaje que son preguntas, sin enlaces ni correos y sin tildes. */
+function questionParts(body: string): string[] {
+  const text = normalizedText(body).toLowerCase().replace(/(?:https?:\/\/|www\.)\S*/g, ' ').replace(EMAIL_RE_ALL, ' ');
+  return text.split(/(?<=[?!\n])|(?<=[a-z\s])\.(?!\d)|(?=\u00bf)/).map((part) => part.trim()).filter((part) => {
+    if (!part) return false;
+    const lead = part.replace(/^[\u00bf\s*_~]+/, '').replace(ASK_LEAD_RE, '');
+    return /[?\u00bf]/.test(part) || ASK_START_RE.test(lead) || ASK_INDIRECT_RE.test(part);
+  });
+}
+/** [PREGUNTA] Que pregunta el cliente: precio o stock, ficha o duda tecnica, ubicacion o despacho. */
+export function questionKinds(body: string): Set<QuestionKind> {
+  const kinds = new Set<QuestionKind>();
+  for (const part of questionParts(body)) {
+    const delivery = part.replace(NOT_DELIVERY_RE, ' ');
+    if (DELIVERY_QUESTION_RE.test(delivery) && (!ABOUT_QUOTE_RE.test(delivery) || DELIVERY_WORD_RE.test(delivery))) kinds.add('despacho');
+    if (ASK_LOCATION_RE.test(part)) kinds.add('ubicacion');
+    if (ASK_TECH_RE.test(part)) kinds.add('tecnica');
+    if (ASK_PRICE_RE.test(part.replace(DELIVERY_COST_RE, ' '))) kinds.add('precio');
+  }
+  return kinds;
+}
+/**
+ * [PREGUNTA] Lo que se contesta antes de la respuesta del flujo: la ubicacion, el despacho y, si ya hay correo, que
+ * Claudio Quero revisa el precio o la consulta. `withEmail` false deja fuera el precio y la consulta tecnica: se
+ * contestan con MSG_Q_PRICE o MSG_Q_TECH, que piden el correo.
+ */
+function questionAnswers(kinds: Set<QuestionKind>, withEmail: boolean, install: boolean): string[] {
+  const out: string[] = [];
+  if (kinds.has('ubicacion')) out.push(MSG_LOCATION);
+  if (kinds.has('despacho') && !install) out.push(MSG_WAIT_DELIVERY);
+  if (withEmail && kinds.has('tecnica')) out.push(MSG_Q_TECH_HAS_EMAIL);
+  else if (withEmail && kinds.has('precio')) out.push(MSG_Q_PRICE_HAS_EMAIL);
+  return out;
+}
+/** [PREGUNTA] Precio o consulta tecnica sin correo: el texto aprobado que lo pide. */
+function questionAsksEmail(kinds: Set<QuestionKind>): string | undefined {
+  if (kinds.has('tecnica')) return MSG_Q_TECH;
+  if (kinds.has('precio')) return MSG_Q_PRICE;
+  return undefined;
+}
+/** [PREGUNTA] Antepone las respuestas a la del flujo, sin repetir una que ya esta. */
+function withAnswers(answers: string[], reply: string): string {
+  const missing = answers.filter((answer) => !reply.includes(answer));
+  return missing.length ? [...missing, reply].join('\n\n') : reply;
+}
+
 /**
  * [PLAZO] Mensaje en una conversacion cerrada que no es un pedido nuevo ni un dato tardio. Con el negocio
  * registrado ya no se repite el cierre largo: si pregunta que sigue o cuanto demora, el plazo; si no, el
@@ -786,9 +861,19 @@ function asksWhatNext(body: string): boolean {
  */
 function closedFollowUp(state: FlowState, body: string): string {
   if (state.deal !== 'registered') return closedReply(state);
-  if (!state.isInstallFlow && asksAboutDelivery(body)) return MSG_WAIT_DELIVERY;
+  // [PREGUNTA] La ubicacion, el despacho y el precio o la consulta tecnica (Claudio Quero la revisa: va en la nota).
+  const kinds = questionKinds(body);
+  if (!state.isInstallFlow && asksAboutDelivery(body)) kinds.add('despacho');
+  const answers = questionAnswers(kinds, true, Boolean(state.isInstallFlow));
+  if (answers.length) return answers.join('\n\n');
   if (asksWhatNext(body)) return MSG_WAIT;
   return MSG_REGISTERED_SHORT;
+}
+/** [PREGUNTA] Con el negocio registrado, una pregunta de precio o tecnica va en una nota al mismo negocio. */
+function asksForClaudio(state: FlowState, body: string): boolean {
+  if (state.deal !== 'registered' || state.isInstallFlow) return false;
+  const kinds = questionKinds(body);
+  return kinds.has('precio') || kinds.has('tecnica');
 }
 
 type ClaudeFields = {
@@ -1419,6 +1504,14 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
     if (hadEmail) reply = registeredClosing(next);
     else reply = next.isInstallFlow ? installClosingMsg(late.merged) : productClosingMsg(true, next.wantsHuman, next.leadType);
   }
+  // [PREGUNTA] Se contesta lo que pregunta antes de pedir el correo o de cerrar (caso de las estacas: "Sabes cuando
+  // demora el despacho" recibia otra vez la peticion del correo). Sin correo, el precio o la consulta tecnica piden
+  // el correo con su texto aprobado.
+  const kinds = questionKinds(body);
+  const install = Boolean(next.isInstallFlow);
+  const asksEmail = !registers && !state.deal && !install ? questionAsksEmail(kinds) : undefined;
+  if (asksEmail) reply = withAnswers(questionAnswers(kinds, false, install), asksEmail);
+  else reply = withAnswers(questionAnswers(kinds, registers, install), reply);
   return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true };
 }
 
@@ -1545,7 +1638,8 @@ function lateEmail(phone: string, state: FlowState, body: string, correcting: bo
 }
 
 /** Lo que webhook.ts sabe del mensaje. hasMedia: trae una imagen o un archivo (con su texto). */
-export interface FlowSignals { wantsHuman: boolean; qualifiesForDeal: boolean; hasMedia?: boolean }
+// [SIN-REPETIR] lastReply: la ultima respuesta que recibio el cliente (webhook.ts la toma del historial).
+export interface FlowSignals { wantsHuman: boolean; qualifiesForDeal: boolean; hasMedia?: boolean; lastReply?: string }
 
 export function processFlowStep(
   phone: string,
@@ -1553,12 +1647,46 @@ export function processFlowStep(
   claudeParsed: ClaudeFields,
   signals: FlowSignals,
 ): FlowResult {
+  const before = flowStates.get(phone);
+  const lastReply = typeof signals.lastReply === 'string' ? signals.lastReply : undefined;
   const { question, ...stepResult } = flowStep(phone, body, claudeParsed, signals);
-  const result = explainOwnEmail(stepResult, body);
+  let result = explainOwnEmail(stepResult, body);
+  const state = flowStates.get(phone);
+  // Abierta antes, o el mensaje empezo otro pedido (la conversacion cerrada siguio abierta).
+  const open = !before || before.stage !== 'closed' || !result.closedFlow;
+  // [PREGUNTA] Con la conversacion abierta, la ubicacion, el despacho y (con correo) el precio o la consulta tecnica
+  // se contestan antes de la respuesta del flujo, que sigue con el dato que falta. Las conversaciones cerradas y la
+  // instalacion lo contestan en su rama.
+  if (open && state && !state.isInstallFlow) {
+    const reply = withAnswers(questionAnswers(questionKinds(body), Boolean(state.captured.correo), false), result.reply);
+    if (reply !== result.reply) result = { ...result, reply };
+  }
+  result = notRepeated(result, lastReply);
   // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
   // [CANTIDAD] Tambien que pregunta hizo (sin pregunta, ninguna: un numero suelto no es cantidad).
-  const state = flowStates.get(phone);
   if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply), lastQuestion: question ?? null });
+  return result;
+}
+
+// [SIN-REPETIR] Si la respuesta es igual a la anterior, otro texto ya aprobado que dice lo mismo (caso de las
+// estacas: tres veces seguidas la misma peticion del correo). El saludo, el texto B y el registro pendiente no
+// cambian. Si no hay otro texto para esa respuesta, se repite.
+const ALTERNATE_REPLY: Record<string, string> = {
+  [MSG_NEED_EMAIL]: MSG_EMAIL_SHORT,
+  [MSG_EMAIL_SHORT]: MSG_NEED_EMAIL,
+  [MSG4_INSTALL_NO_EMAIL]: MSG_NEED_EMAIL,
+  [MSG_Q_PRICE]: MSG_Q_TECH,
+  [MSG_Q_TECH]: MSG_NEED_EMAIL,
+  [MSG_WAIT]: MSG_REGISTERED_SHORT,
+  [MSG_WAIT_DELIVERY]: MSG_REGISTERED_SHORT,
+  [MSG_REGISTERED_SHORT]: MSG_WAIT,
+};
+function notRepeated(result: FlowResult, lastReply: string | undefined): FlowResult {
+  if (!lastReply || result.reply !== lastReply) return result;
+  for (const [text, other] of Object.entries(ALTERNATE_REPLY)) {
+    if (result.reply === text) return { ...result, reply: other };
+    if (result.reply.endsWith('\n\n' + text)) return { ...result, reply: result.reply.slice(0, -text.length) + other };
+  }
   return result;
 }
 
@@ -1653,9 +1781,11 @@ function flowStep(
           ?? lateChange(phone, state, body, claudeParsed, Boolean(signals.hasMedia))
         : undefined;
       if (late) return late;
+      const forClaudio = asksForClaudio(state, body);
       return {
         reply: closedFollowUp(state, body),
-        shouldCreateDeal: false,
+        shouldCreateDeal: forClaudio,
+        ...(forClaudio ? { rutUpdate: true } : {}),
         shouldNotify: false,
         captureStatus: state.captureStatus,
         captured: state.captured,
@@ -1743,26 +1873,6 @@ function flowStep(
     return { reply: MSG1, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: state.captured, wantsHuman, closedFlow: false, question: greetQuestion(state.captured) };
   }
 
-  // [FIX-2] Intencion de precio sin producto
-  if (
-    PRICE_INTENT_RE.test(body) &&
-    !claudeParsed.producto &&
-    !extractProducto(body) &&
-    !state.captured.producto
-  ) {
-    saveFlowState(phone, { ...state, wantsHuman });
-    return {
-      reply: 'Con gusto te ayudo con los precios. Que producto necesitas cotizar? (por ejemplo: focos LED, paneles, ampolletas, reflectores, etc.)',
-      shouldCreateDeal: false,
-      shouldNotify: false,
-      captureStatus: 'incomplete',
-      captured: state.captured,
-      wantsHuman,
-      closedFlow: false,
-      question: askedIn(['producto'], 0),
-    };
-  }
-
   // PASO 1: MERGE
   const { merged, leadType: currentLeadType, rutToConfirm, menuPick } = mergeProductFields(state, body, claudeParsed, Boolean(signals.hasMedia));
 
@@ -1809,6 +1919,20 @@ function flowStep(
     saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType, menuRepeatedIn: state.stage });
     console.log('[flowEngine] numero suelto despues de la lista de la ' + state.stage + ' \u2014 se repite la pregunta');
     return { reply: again, shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: lastQuestionOf(state) ?? undefined };
+  }
+
+  // [PREGUNTA] Precio, stock o una consulta tecnica sin correo: el texto aprobado que pide el correo, sin avanzar de
+  // etapa (los datos del mensaje quedan guardados). Reemplaza a FIX-2 ("Con gusto te ayudo con los precios..."):
+  // pedir precio sin producto tambien cuenta. La ubicacion y el despacho se contestan antes de la respuesta del
+  // flujo (processFlowStep).
+  const kinds = questionKinds(body);
+  if (PRICE_INTENT_RE.test(body) && !merged.producto) kinds.add('precio');
+  const asksEmail = !merged.correo ? questionAsksEmail(kinds) : undefined;
+  if (asksEmail) {
+    saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType });
+    const reply = withAnswers(questionAnswers(kinds, false, false), asksEmail);
+    console.log('[flowEngine] pregunta de precio o tecnica sin correo \u2014 se pide el correo');
+    return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: askedIn(['correo de contacto'], 0) };
   }
 
   // PASO 3: AVANCE MULTI-STAGE
@@ -1966,7 +2090,7 @@ function buildRepregunta3(missing: string[], leadType: LeadType): string {
   if (missing.length === 1) {
     const campo = missing[0];
     if (campo === 'RUT de la empresa') return 'Para registrar tu solicitud necesito el RUT de la empresa.';
-    if (campo === 'correo de contacto') return 'Para registrar tu solicitud necesito tu correo de contacto.';
+    if (campo === 'correo de contacto') return MSG_EMAIL_SHORT;
     if (campo === 'nombre') return 'Para registrar tu solicitud necesito tu nombre.';
     return 'Para registrar tu solicitud necesito tu ' + campo + '.';
   }
