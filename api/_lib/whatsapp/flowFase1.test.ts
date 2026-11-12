@@ -5,6 +5,9 @@
 // - [LUZ] "luz interior" o "LED" no son un color de luz; 5700K se anota tal cual.
 // - [RESPALDO] El uso y el producto salen de lo que el cliente dice, no del nombre del producto ni del perfil.
 // - [COMUNA] "comuna san bdo" es San Bernardo, no Santiago.
+// - [SIN-VISITA] Describir la instalación propia no pide el servicio, y ningún cierre ofrece una visita (negocio 195).
+// - [REINICIO] Después del cierre, solo otro pedido empieza otra conversación; un cambio del mismo pedido va al
+//   negocio registrado (negocios 144, 145 y 186).
 // Cada caso corre con un Claude simulado que acierta y con otro que se equivoca. Solo datos inventados.
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -176,5 +179,126 @@ describe('[COMUNA] abreviaturas y "Santiago" como ciudad', () => {
   it('"Santiago" solo, como respuesta a la pregunta por la comuna, es Santiago', () => {
     step('Necesito 10 focos LED luz cálida', { producto: 'focos LED', cantidad: '10', tipo_de_luz: 'cálida' });
     expect(step('Santiago').captured.comuna_o_ciudad).toBe('Santiago');
+  });
+});
+
+const CLOSE_FIELDS = { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' };
+/** Cierra con el negocio registrado (id 4242), como lo deja el webhook. */
+function closeRegistered(body = 'Necesito 12 focos LED luz cálida para mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com', claude: Claude = CLOSE_FIELDS) {
+  step(body, claude);
+  expect(flow.getFlowState(PHONE).stage).toBe('closed');
+  flow.recordDealOutcome(PHONE, true, undefined, 4242);
+}
+
+describe('[SIN-VISITA] comprar productos no es pedir una instalación', () => {
+  it('negocio 195: "nuestra instalación funciona con 12V" pide 6 focos, no el servicio', () => {
+    const r = step('Hola, busco 6 focos LED sumergibles RGB de 10W IP68 para piscina. Nuestra instalación funciona con un transformador de 12V AC. ¿Qué modelos tienen?', { producto: 'focos LED sumergibles RGB 10W IP68', cantidad: '6', proyecto_o_uso: 'piscina' });
+    const state = flow.getFlowState(PHONE);
+    expect(state.isInstallFlow).toBeFalsy();
+    expect(state.stage).not.toBe('install_capture');
+    expect(r.captured.cantidad).toBe('6');
+    expect(r.reply).not.toMatch(/instalaci|visita|terreno/i);
+  });
+
+  it('"Mi instalación eléctrica es de 220V, necesito 10 paneles LED" sigue en productos', () => {
+    const r = step('Mi instalación eléctrica es de 220V, necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBeFalsy();
+    expect(r.captured).toMatchObject({ producto: 'paneles LED', cantidad: '10' });
+  });
+
+  it.each(['Necesito el servicio de instalación de 10 focos', 'Quiero instalar focos en mi casa', 'Busco un instalador para mi casa'])('"%s" sí pide el servicio', (body) => {
+    step(body);
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBe(true);
+  });
+
+  it('con el negocio registrado, "la instalación la hace mi eléctrico" no empieza otra conversación', () => {
+    closeRegistered();
+    const r = step('la instalación la hace mi eléctrico');
+    expect(r.closedFlow).toBe(true);
+    expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+    expect(flow.getFlowState(PHONE).isInstallFlow).toBeFalsy();
+    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '12' });
+  });
+
+  it('ningún mensaje fijo ni el cierre de instalación ofrece una visita o una llamada', () => {
+    const texts = Object.entries(flow).filter(([k, v]) => /^MSG/.test(k) && typeof v === 'string').map(([, v]) => v as string);
+    texts.push(flow.installClosingMsg({ install_correo: 'ana.prueba@example.com' }), flow.installClosingMsg({}));
+    for (const text of texts) expect(text).not.toMatch(/visita|terreno|llam/i);
+    expect(flow.installClosingMsg({ install_correo: 'ana.prueba@example.com' })).toBe('Tu solicitud quedó registrada. Claudio Quero te responderá por correo el mismo día hábil.');
+  });
+
+  it('el cierre de instalación registrado y la pregunta por lo que sigue no prometen visita', () => {
+    step('Quiero instalar focos en mi casa');
+    const r = step('Soy Ana Prueba, ana.prueba@example.com, casa en Maipú', { nombre: 'Ana Prueba' });
+    expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: true, reply: flow.MSG4_INSTALL });
+    flow.recordDealOutcome(PHONE, true, undefined, 4242);
+    expect(step('¿Y ahora qué hago?').reply).toBe(flow.MSG_WAIT);
+  });
+});
+
+describe('[REINICIO] después del cierre, el mismo pedido sigue en el mismo negocio', () => {
+  it('negocio 144: "necesito hablar con un vendedor" no vuelve a pedir la cantidad', () => {
+    closeRegistered('PLRE9F (Luz fría - 6500K), 25 unidades para mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com', { producto: 'PLRE9F', tipo_de_luz: 'Luz fría 6500K', cantidad: '25', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' });
+    const r = step('necesito hablar con un vendedor{', { wantsHuman: true });
+    expect(r.closedFlow).toBe(true);
+    expect(r.reply).not.toMatch(/cantidad/i);
+    expect(r.captured).toMatchObject({ producto: 'PLRE9F', cantidad: '25' });
+    expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+  });
+
+  for (const claude of [{}, { producto: 'campana UFO 100W driver Philips', tipo_de_luz: '5700K', cantidad: '100', comuna_o_ciudad: 'Osorno' }]) {
+    it(`negocio 145: el color definitivo va al mismo negocio y se conservan 100 y Osorno (Claude ${Object.keys(claude).length ? 'repite' : 'vacío'})`, () => {
+      closeRegistered('Necesito cotizar 100 luminarias UFO 100W con driver Philips, luz neutra, para un galpón industrial en Osorno. Soy Ana Prueba, ana.prueba@example.com', { producto: 'luminarias UFO 100W con driver Philips', cantidad: '100', tipo_de_luz: 'neutra', proyecto_o_uso: 'galpón industrial', comuna_o_ciudad: 'Osorno', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' });
+      const r = step('Estimado, las luminarias que necesitamos definitivamente son: campana Ufo 100W driver philips color 5700k 90 grados', claude);
+      expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
+      expect(r.reply).not.toMatch(/cantidad/i);
+      expect(r.captured).toMatchObject({ tipo_de_luz: '5700K', cantidad: '100', comuna_o_ciudad: 'Osorno' });
+      expect(r.captured.cambios).toContain('Tipo de luz: antes neutra, ahora 5700K');
+      expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+    });
+  }
+
+  it('negocio 186: "ya me cotizaron, quiero ese artículo, ¿cómo lo puedo comprar?" conserva la cantidad 1', () => {
+    step('quiero este artículo: https://example.com/panel-led-cuadrado-sobrepuesto-18w-ip44', { producto: 'Panel LED cuadrado sobrepuesto 18W IP44' });
+    step('luz: Neutra', { tipo_de_luz: 'Neutra' });
+    step('Cantidad: 1', { cantidad: '1' });
+    for (let i = 0; i < 4 && flow.getFlowState(PHONE).stage !== 'closed'; i++) step('no sé');
+    expect(flow.getFlowState(PHONE).stage).toBe('closed');
+    const r = step('ya me cotizaron, quiero ese artículo, como lo puedo comprar?');
+    expect(r.closedFlow).toBe(true);
+    expect(r.reply).not.toMatch(/cantidad/i);
+    expect(r.captured).toMatchObject({ producto: 'Panel LED cuadrado sobrepuesto 18W IP44', cantidad: '1' });
+    const end = step('ana.prueba@example.com', { correo: 'ana.prueba@example.com' });
+    expect(end).toMatchObject({ closedFlow: true, shouldCreateDeal: true });
+    expect(end.captured).toMatchObject({ producto: 'Panel LED cuadrado sobrepuesto 18W IP44', cantidad: '1', correo: 'ana.prueba@example.com' });
+  });
+
+  it('otro producto con su cantidad sí es otro pedido', () => {
+    closeRegistered();
+    const r = step('Necesito 30 paneles LED 60x60 para una oficina', { producto: 'paneles LED 60x60', cantidad: '30', proyecto_o_uso: 'oficina' });
+    expect(r.closedFlow).toBe(false);
+    expect(flow.getFlowState(PHONE).dealId).toBeUndefined();
+    expect(r.captured).toMatchObject({ producto: 'paneles LED 60x60', cantidad: '30' });
+  });
+
+  it('una cantidad nueva del mismo producto va al mismo negocio, con el cambio anotado', () => {
+    closeRegistered();
+    const r = step('Necesito 20 focos LED, no 12', { producto: 'focos LED', cantidad: '20' });
+    expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '20', comuna_o_ciudad: 'Maipú' });
+    expect(r.captured.cambios?.join(' ')).toMatch(/Cantidad: antes 12, ahora 20/);
+  });
+
+  it('lo que Claude repite del historial no se escribe otra vez', () => {
+    closeRegistered();
+    const r = step('gracias', CLOSE_FIELDS);
+    expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: false, reply: flow.MSG_REGISTERED_SHORT });
+  });
+
+  it('"Claudio me dijo que eran 25 unidades para Maipú": la cantidad y la comuna se guardan antes de responder', () => {
+    step('Necesito paneles LED luz fría', { producto: 'paneles LED', tipo_de_luz: 'fría' });
+    const r = step('Claudio me dijo que eran 25 unidades para Maipú', { cantidad: '25', comuna_o_ciudad: 'Maipú' });
+    expect(r.reply).toBe(flow.MSG_EXECUTIVE);
+    expect(flow.getFlowState(PHONE).captured).toMatchObject({ producto: 'paneles LED', cantidad: '25', comuna_o_ciudad: 'Maipú' });
   });
 });

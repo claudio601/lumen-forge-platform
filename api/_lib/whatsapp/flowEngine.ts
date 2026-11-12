@@ -113,7 +113,9 @@ export const MSG4 = 'Listo! Tu solicitud quedo registrada en eLIGHTS.cl y ya la 
 export const MSG4_B2B = 'Listo! Tu requerimiento comercial quedo registrado en eLIGHTS.cl y ya lo derivamos a nuestro equipo de ventas.\n\nUn ejecutivo revisara tu proyecto y te enviara la cotizacion por correo.';
 
 // [INSTALL-FLOW] Mensaje de cierre para flujo de instalacion
-export const MSG4_INSTALL = 'Perfecto, tu solicitud de instalaci\u00f3n qued\u00f3 registrada. Te vamos a escribir por correo para coordinar la visita y la cotizaci\u00f3n.';
+// [SIN-VISITA] Especificacion 5: el bot nunca ofrece visitas (negocio 195: "coordinar la visita" a quien solo
+// compraba focos). Es el cierre aprobado por el dueno (2026-11-11, "Cierre con la solicitud registrada").
+export const MSG4_INSTALL = 'Tu solicitud qued\u00f3 registrada. Claudio Quero te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
 // [BOT-SOLO-CORREO] Cierre de instalacion sin correo (tras las repreguntas): no se crea el
 // negocio, asi que no se promete contacto; se pide el correo o escribir a ventas@.
 export const MSG4_INSTALL_NO_EMAIL = 'Gracias. Para cotizar tu instalaci\u00f3n necesitamos tu correo de contacto: escr\u00edbelo por aqu\u00ed o env\u00edanos tu solicitud a ventas@elights.cl.';
@@ -143,7 +145,6 @@ export const OWN_EMAIL_NOTE = 'Ese correo es de eLIGHTS: necesito tu propio corr
 export const MSG_WAIT = 'No tienes que hacer nada m\u00e1s. Te enviaremos la cotizaci\u00f3n por correo el mismo d\u00eda h\u00e1bil.';
 // [PLAZO] Despacho o retiro despues del cierre: el bot no promete plazos de entrega; van en la cotizacion.
 export const MSG_WAIT_DELIVERY = 'El plazo y el costo del despacho van en la cotizaci\u00f3n, que te enviaremos por correo el mismo d\u00eda h\u00e1bil.';
-export const MSG_WAIT_INSTALL = 'No tienes que hacer nada m\u00e1s. Te escribiremos por correo el mismo d\u00eda h\u00e1bil para coordinar la visita y la cotizaci\u00f3n.';
 // [PLAZO] Cualquier otro mensaje con el negocio registrado: un recordatorio corto, no el cierre largo otra vez.
 export const MSG_REGISTERED_SHORT = 'Tu solicitud ya qued\u00f3 registrada; te escribimos por correo.';
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
@@ -163,9 +164,8 @@ export function menuClarifyMsg(pick: number): string {
   return '\u00bfMe confirmas a qu\u00e9 te refieres con \u00ab' + pick + '\u00bb? Cu\u00e9ntame qu\u00e9 producto buscas, cu\u00e1ntas unidades y el color de luz.';
 }
 export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
-// [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio
-// Activa el flujo de captura de lead para instalacion antes de cualquier derivacion
-const INSTALL_INTENT_RE = /\b(instalaci[o\u00f3]n|instalar|servicio\s+de\s+instal|quiero\s+instalar|necesito\s+instalar|cotizar\s+instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n|instalador|instaladores)\b/i;
+// [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio (installRequested): activa el flujo de captura de
+// lead para instalacion antes de cualquier derivacion.
 // [INSTALL-FLOW] "Soy instalador" describe a quien escribe (compra para instalar), no pide una
 // instalacion: va al flujo de productos. "Busco un instalador" si la pide.
 const INSTALLER_SELF_RE = /\b(?:(?:soy|somos)\s+(?:(?!(?:busco|buscamos|necesito|necesitamos|quiero|queremos|requiero|que|para)\b)[a-z\u00e0-\u00fc]+\s+){0,3}?instalador(?:a|es|as)?(?:\s+el[e\u00e9]ctric[oa]s?)?|(?:trabajo|me\s+desempe[n\u00f1]o)\s+(?:como|de)\s+instalador(?:a|es|as)?|me\s+dedico\s+a\s+(?:la\s+|las\s+)?instal\w*|soy\s+(?:un\s+|una\s+)?(?:electricista|contratista|t[e\u00e9]cnico\s+el[e\u00e9]ctrico))\b/gi;
@@ -187,10 +187,15 @@ function quotesService(text: string): boolean {
   return quantity.value === undefined && !quantity.several;
 }
 // [INSTALL-FLOW] `body` llega sin lo que el cliente niega (maskNegated): "no quiero instalacion" no la pide.
+// [SIN-VISITA] El sustantivo solo no pide el servicio: "Nuestra instalacion funciona con 12V" o "Mi instalacion
+// electrica es de 220V" describen la del cliente (negocio 195). Si lo piden "quiero instalar", "busco un
+// instalador", "servicio de instalacion", "cotizar instalacion" o "que me los instalen".
 function installRequested(body: string): boolean {
   const rest = body.replace(INSTALLER_SELF_RE, ' ');
-  return rest === body ? INSTALL_INTENT_RE.test(body) : INSTALL_SERVICE_RE.test(rest) || quotesService(rest);
+  if (rest !== body) return INSTALL_SERVICE_RE.test(rest) || quotesService(rest);
+  return installRequestedMidProducts(body) || INSTALL_ASK_RE.test(body);
 }
+const INSTALL_ASK_RE = /\b(?:instalador(?:a|es|as)?|servicio\s+de\s+instal\w*|cotizar\s+(?:la\s+|una\s+)?instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n)\b/i;
 // A mitad del flujo de productos, "la instalacion es en una bodega" o "los voy a instalar en mi casa" contestan
 // la pregunta del bot (MSG2): solo un pedido de instalacion ("que me los instalen", "quiero instalar focos en
 // mi casa", "cuanto cobran la instalacion") cambia de flujo.
@@ -782,7 +787,7 @@ function asksWhatNext(body: string): boolean {
 function closedFollowUp(state: FlowState, body: string): string {
   if (state.deal !== 'registered') return closedReply(state);
   if (!state.isInstallFlow && asksAboutDelivery(body)) return MSG_WAIT_DELIVERY;
-  if (asksWhatNext(body)) return state.isInstallFlow ? MSG_WAIT_INSTALL : MSG_WAIT;
+  if (asksWhatNext(body)) return MSG_WAIT;
   return MSG_REGISTERED_SHORT;
 }
 
@@ -1444,6 +1449,77 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
 }
 
 /**
+ * [REINICIO] El mensaje despues del cierre abre otro pedido: lo que antes era un pedido nuevo (looksLikeNewRequest),
+ * salvo pedir un vendedor sin nombrar un producto con el negocio registrado, no nombrar producto ni cantidad ("quiero
+ * ese articulo, como lo compro?") o nombrar el mismo producto ya capturado ("campana Ufo 100W ... 5700k" es la
+ * "Luminaria UFO 100W" de antes, con otro color).
+ */
+function opensNewRequest(body: string, state: FlowState, claudeParsed: ClaudeFields): boolean {
+  if (!looksLikeNewRequest(body)) return false;
+  // Nombrar una cotizacion ("la nueva cotizacion para Quilicura") u otro proyecto ("mi nuevo proyecto") sigue la regla
+  // anterior (PR 142, ronda 3), y un mensaje demasiado largo para leerlo entero tambien; "ya me cotizaron" habla de
+  // la que ya existe.
+  const plain = body.replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ');
+  if (body.length > MAX_FACTS || QUOTE_WORD_RE.test(plain) || OTHER_ORDER_RE.test(plain)) return true;
+  const captured = state.captured;
+  const facts = maskNegated(factsText(body, claudeParsed));
+  const claudeProd = claudeText(claudeParsed.producto);
+  const named = [extractProducto(facts), ...itemsIn(facts), claudeProd && inMessage(claudeProd, facts) ? claudeProd : undefined]
+    .filter((p): p is string => Boolean(p) && productWords(p as string).length > 0);
+  const quantity = readQuantity(facts);
+  // Sin negocio registrado, pedir un vendedor empieza otra conversacion como antes: alli lo atiende el atajo del
+  // ejecutivo (wantsHuman), que registra con el correo siguiente.
+  if (!named.length && (WANTS_HUMAN_RE.test(body) || EXECUTIVE_RE.test(body))) return state.deal !== 'registered';
+  if (!named.length && quantity.value === undefined && !quantity.several) return false;
+  if (!captured.producto || !named.length) return true;
+  // El mismo producto: comparten una palabra que no es solo la familia ("ufo"), o todas sus palabras ya estaban
+  // ("focos LED" otra vez, con otra cantidad).
+  const own = productWords(captured.producto);
+  return !named.some((p) => {
+    const words = productWords(p);
+    return words.some((w) => own.includes(w) && !GENERIC_PRODUCT_STEMS.has(w)) || words.every((w) => own.includes(w));
+  });
+}
+
+const OTHER_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:nuev|otr)[oa]s?\s+(?:proyecto|obra|pedido|solicitud|requerimiento|compra)/i;
+const QUOTE_WORD_RE = /cotizaci[o\u00f3]n|presupuesto|cotizar(?![a-z\u00e0-\u00fc])/i;
+const LATE_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'cantidad_varios', 'cantidad_unidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'comunas_otras'] as const;
+/**
+ * [REINICIO] Conversacion cerrada con el negocio registrado: un dato que cambia o se completa (otro color, la
+ * cantidad, la comuna) va al mismo negocio, como el RUT y el correo tardios (rutUpdate: nota y campos). Antes el
+ * mensaje reiniciaba la conversacion, volvia a pedir la cantidad y perdia la comuna (negocios 144, 145 y 186).
+ * Solo cuenta lo que este mensaje dice: un dato que Claude repite del historial no se escribe.
+ */
+function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean): FlowResult | undefined {
+  // Preguntar por el despacho ("¿Hacen envio a Rancagua?") no cambia la comuna ni otro dato.
+  if (state.isInstallFlow || asksAboutDelivery(body)) return undefined;
+  const question = /[?\u00bf]/.test(body);
+  const { merged, leadType } = mergeProductFields(state, body, claudeParsed, hasMedia);
+  const facts = factsText(body, claudeParsed);
+  const captured: CapturedFields = { ...state.captured };
+  let changed = false;
+  for (const field of LATE_FIELDS) {
+    const before = JSON.stringify(state.captured[field] ?? null);
+    const after = JSON.stringify(merged[field] ?? null);
+    if (before === after) continue;
+    const value = merged[field];
+    // Una comuna en una pregunta ("¿tienen sucursal en Concepcion?") no es la de la entrega.
+    if (question && (field === 'comuna_o_ciudad' || field === 'comunas_otras')) continue;
+    // El color o el uso que se llena con lo que Claude recuerda (sin decirlo en este mensaje) no cuenta.
+    if ((field === 'tipo_de_luz' || field === 'proyecto_o_uso' || field === 'producto') && typeof value === 'string' && !sharesWord(value, facts) && !textLuz(facts)) continue;
+    (captured as Record<string, unknown>)[field] = value;
+    changed = true;
+  }
+  if (!changed) return undefined;
+  if (merged.cambios) captured.cambios = merged.cambios;
+  const captureStatus = computeCaptureStatus(captured, leadType);
+  const next: FlowState = { ...state, captured, captureStatus, leadType };
+  saveFlowState(phone, next);
+  console.log('[flowEngine] dato nuevo despues del cierre \u2014 se suma al negocio registrado');
+  return { reply: closedFollowUp(next, body), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+}
+
+/**
  * [TRANSCRIPCION] Conversacion cerrada con el negocio registrado: un correo distinto del capturado
  * (el corregido despues del cierre) se suma al mismo negocio, como el RUT tardio: nota con el correo
  * nuevo, la linea de cambios y la conversacion hasta este mensaje. Antes quedaba solo en la
@@ -1555,8 +1631,10 @@ function flowStep(
     // [TRANSCRIPCION] Un pedido nuevo explicito gana a las correcciones; las correcciones, a un pedido nuevo que
     // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
     const explicit = explicitNewRequest(body);
+    // [REINICIO] Solo otro pedido abre otra conversacion: pedir un vendedor (negocio 144), cambiar el color del mismo
+    // producto (145) o preguntar como comprar lo cotizado (186) siguen en la misma.
     const newRequest = explicit
-      || (!correctingRut && !correctingEmail && ((looksLikeNewRequest(body) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
+      || (!correctingRut && !correctingEmail && ((opensNewRequest(body, state, claudeParsed) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
     // [TRANSCRIPCION] Salvo un pedido nuevo explicito ("Otro pedido: ... Mi correo es X"): empieza otra conversacion
@@ -1572,6 +1650,7 @@ function flowStep(
       const lateRutResult = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
       const late = state.deal === 'registered'
         ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
+          ?? lateChange(phone, state, body, claudeParsed, Boolean(signals.hasMedia))
         : undefined;
       if (late) return late;
       return {
@@ -1590,14 +1669,17 @@ function flowStep(
   }
 
   // [EXECUTIVE-RE] Guard
+  // [GUARDAR-ANTES] Los datos del mensaje se guardan antes de responder: "Claudio me dijo que eran 25 unidades para
+  // Maipu" ya no pierde la cantidad ni la comuna.
   if (EXECUTIVE_RE.test(body) && !COMMERCIAL_INTENT_RE.test(body)) {
-    saveFlowState(phone, { ...state });
+    const kept = state.isInstallFlow ? { merged: state.captured, leadType: state.leadType } : mergeProductFields(state, body, claudeParsed, Boolean(signals.hasMedia));
+    saveFlowState(phone, { ...state, captured: kept.merged, leadType: kept.leadType });
     return {
       reply: MSG_EXECUTIVE,
       shouldCreateDeal: false,
       shouldNotify: false,
-      captureStatus: state.captureStatus,
-      captured: state.captured,
+      captureStatus: computeCaptureStatus(kept.merged, kept.leadType),
+      captured: kept.merged,
       wantsHuman: false,
       closedFlow: false,
     };
