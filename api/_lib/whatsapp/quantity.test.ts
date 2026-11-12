@@ -6,6 +6,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { claudeQuantity, readQuantity } from './quantity';
+import { jumpsellerSnapshot } from '../../../src/data/catalog/jumpseller-snapshot.generated';
+import { waProductUrl } from '../../../src/config/business';
+import { isSyncBot } from '../../../src/test/syncBot';
 
 describe('cantidad explícita en el texto', () => {
   it.each([
@@ -496,5 +499,63 @@ describe('metros que se piden', () => {
 
   it('"90 mtros" sin la pregunta por la cantidad no es nada (antes eran 90 unidades)', () => {
     expect(readQuantity('90 mtros').value).toBeUndefined();
+  });
+});
+
+// [METROS] y [LED-INTERNOS] (revisión del 12-11-2026): el largo del lugar o del producto no es lo que se pide, y la
+// cantidad dicha con "alrededor de" o "un pedido de" sigue contando.
+describe('revisión del 12-11: metros del lugar o del título, y LED', () => {
+  it.each([
+    'Necesito reflectores LED luz fría para 80 metros de fachada en Quilicura',
+    'Tengo 50 metros de muro perimetral, necesito reflectores LED',
+    'focos solares para 300 metros de calle',
+    'Necesito luminarias solares para 200 metros de calle en Lampa, luz fría',
+    'Necesito reflectores para 300 metros de cerco',
+    'Necesito iluminar 100 metros de pasillo',
+    'quiero postes solares para 500 metros de camino',
+    'Necesito 80 metros de fachada',
+    'Hola, me interesa la Tira LED 5m 12V luz cálida',
+    'Hola, consulta por CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AZUL (SKU: ABC123)',
+    'Hola, consulta por KIT DE INSTALACIÓN CABLES SUSPENDIDOS 1 MT. PARA PANELES (SKU: ABC123)',
+  ])('%s → sin metros', (text) => {
+    for (const asked of [false, true]) expect(readQuantity(text, { asked }).unit).toBeUndefined();
+    expect(readQuantity(text).value).toBeUndefined();
+  });
+
+  it('negocio 146: el título repetido después de la pregunta ("120M/W") no son 120 m', () => {
+    expect(readQuantity('FOCO LED PORTATIL RECARGABLE SMD20W, IP66, 120M/W,2400 LUMENES', { asked: true }).unit).toBeUndefined();
+  });
+
+  it('con un producto que no se vende por metro, "Necesito 200 metros" no son metros; con cinta, sí', () => {
+    expect(readQuantity('Necesito 200 metros', { product: 'reflectores LED' }).value).toBeUndefined();
+    expect(readQuantity('Necesito 200 metros', { product: 'cinta LED neoflex' })).toEqual({ value: 200, explicit: true, unit: 'm' });
+  });
+
+  it('el botón de la ficha con "BARRA DE EMERGENCIA 60 LEDs" no trae cantidad', () => {
+    for (const asked of [false, true]) {
+      expect(readQuantity('Hola, consulta por BARRA DE EMERGENCIA 60 LEDs RECARGABLE AUTONOMÍA 3-6 HRS. (SKU: ABC123)', { asked }).value).toBeUndefined();
+    }
+  });
+
+  it.each([
+    ['Necesito alrededor de 50 led', 50],
+    ['cerca de 40 leds para mi local', 40],
+    ['un total de 30 led', 30],
+    ['Necesito un pedido de 100 leds', 100],
+    ['Quiero una cotización de 20 LED para mi casa', 20],
+  ])('%s → %i (la cantidad, como en main)', (text, expected) => {
+    expect(readQuantity(text).value).toBe(expected);
+  });
+
+  // Depende de los nombres del catálogo del día: en el robot de sincronización solo informa (src/test/syncBot.ts).
+  it.skipIf(isSyncBot)('el texto del botón de cada ficha del catálogo nunca trae metros ni cantidad', () => {
+    const wrong: string[] = [];
+    for (const product of jumpsellerSnapshot) {
+      const sku = product.sku || product.variants[0]?.sku || 'ABC123';
+      const text = new URL(waProductUrl(product.name, sku)).searchParams.get('text') ?? '';
+      const free = readQuantity(text);
+      if (free.value !== undefined || free.several || readQuantity(text, { asked: true }).unit) wrong.push(text);
+    }
+    expect(wrong).toEqual([]);
   });
 });

@@ -458,8 +458,22 @@ function purposeOf(text: string, start: number, end: number, name: string, key: 
  * antes cuenta como de donde es la persona (weak). El texto debe venir sin correos ni la razon social que dio
  * Claude (factsText); un nombre con su forma juridica se tapa aqui, sin la comuna que va justo antes.
  */
-const OTHER_COMUNA_LABEL_RE = /(?<![\p{L}])comuna\s*(?::\s*|\s+(?:de\s+)?)(?!santiago(?![\p{L}]))\p{L}/iu;
+const OTHER_COMUNA_LABEL_RE = /(?<![\p{L}])comuna\s*(?::\s*|\s+(?:de\s+)?)(?:es\s+)?/giu;
 const SANTIAGO_LABEL_RE = /(?<![\p{L}])comuna\s*(?::\s*|\s+(?:de\s+)?)(?:es\s+)?santiago(?![\p{L}])/iu;
+const COMUNA_AT_RE = new RegExp(COMUNA_RE.source, 'iuy');
+/**
+ * [COMUNA] (revision 12-11) "comuna <X>" con X una comuna reconocida (o su alias, "san bdo") que no es Santiago. "aun no
+ * se la comuna exacta" o "comuna xyz" no cuentan: el Santiago del mensaje sigue siendo la comuna, como en main.
+ */
+function labelsOtherComuna(bare: string): boolean {
+  for (const label of bare.matchAll(OTHER_COMUNA_LABEL_RE)) {
+    COMUNA_AT_RE.lastIndex = label.index + label[0].length;
+    const m = COMUNA_AT_RE.exec(bare);
+    const name = m ? BY_KEY.get(comunaKey(m[0])) : undefined;
+    if (name && name !== 'Santiago') return true;
+  }
+  return false;
+}
 export function findComunaMentions(source: string, opts: ComunaOptions = {}): ComunaMention[] {
   // La negrita, la cursiva y el tachado de WhatsApp ("*DIRECCION*:") no tapan las etiquetas (mismo largo).
   const text = source.replace(/[*_~]/g, ' ');
@@ -497,10 +511,10 @@ export function findComunaMentions(source: string, opts: ComunaOptions = {}): Co
     if (purpose) found.set(name, Math.max(found.get(name) ?? RANK.billing, RANK[purpose]));
   }
   // [COMUNA] "Santiago, comuna san bdo" (negocio 156): con "comuna <X>" en el mensaje, un "Santiago" que no va
-  // despues de "comuna" es la ciudad o la provincia, no la comuna. Si X no se reconoce, no queda ninguna.
+  // despues de "comuna" es la ciudad o la provincia, no la comuna. Solo si X es una comuna reconocida (labelsOtherComuna).
   if (found.has('Santiago')) {
     const bare = withoutMarks(masked);
-    if (OTHER_COMUNA_LABEL_RE.test(bare) && !SANTIAGO_LABEL_RE.test(bare)) found.delete('Santiago');
+    if (labelsOtherComuna(bare) && !SANTIAGO_LABEL_RE.test(bare)) found.delete('Santiago');
   }
   // La obra explicita (place) gana a la mencion debil (weak); cualquiera de las dos, a la respuesta "Soy de Maipu".
   const ranks = [...found.values()];

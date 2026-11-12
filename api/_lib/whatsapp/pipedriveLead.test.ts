@@ -1197,3 +1197,33 @@ describe('cantidad en metros', () => {
     expect(note).toContain('Cantidad: 500\n');
   });
 });
+
+// [REGISTRO] (revisión 12-11-2026) Una escritura en el negocio que ya existe (pregunta o dato tardío) no recalcula el
+// tipo desde el mensaje nuevo: nunca baja de B2B a B2C. Un RUT de empresa tardío sí lo sube.
+describe('tipo de cliente en un negocio que ya existe', () => {
+  const params: WhatsAppLeadParams = {
+    phone: PHONE,
+    name: 'Perfil Prueba',
+    summary: 'Pregunta el precio de las campanas.',
+    body: '¿Cuánto cuesta cada una de las campanas?',
+    captured: { producto: 'campanas LED 150W', cantidad: '20', correo: 'compras@constructoraprueba.example' },
+    captureStatus: 'partial',
+  };
+  beforeEach(() => { vi.stubEnv('PIPEDRIVE_DEAL_FIELD_WA_LEAD_TYPE', 'cf_wa_tipo'); });
+
+  it('"¿Cuánto cuesta cada una de las campanas?" no escribe B2C en el negocio registrado', async () => {
+    expect(buildWhatsAppUpdate({ ...params, existingDealId: 9001 }).fields?.cf_wa_tipo).toBeUndefined();
+    await ensureWhatsAppDeal({ ...params, existingDealId: 9001 });
+    for (const [, payload] of vi.mocked(updateDeal).mock.calls) expect(JSON.stringify(payload)).not.toContain('B2C');
+  });
+
+  it('un RUT de empresa tardío sí deja el negocio en B2B', () => {
+    const update = buildWhatsAppUpdate({ ...params, body: '77.123.456-9', captured: { ...params.captured, rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' }, existingDealId: 9001 });
+    expect(update.fields?.cf_wa_tipo).toBe('B2B');
+  });
+
+  it('el negocio nuevo sigue llevando su tipo, también B2C', async () => {
+    await ensureWhatsAppDeal({ ...params, body: 'Necesito 20 campanas LED 150W para mi casa en Maipú' });
+    expect(vi.mocked(createDeal).mock.calls[0][0]).toMatchObject({ leadType: 'B2C' });
+  });
+});

@@ -4,7 +4,8 @@
 // claudeAgent.ts) y Pipedrive en sus módulos (corre el ensureWhatsAppDeal real). Sin red.
 //
 // Debe cumplir:
-// - Ninguna respuesta repite la anterior (antes, el mismo pedido del correo tres veces seguidas).
+// - Ninguna respuesta repite la anterior (antes, el mismo pedido del correo tres veces seguidas), salvo el texto A en
+//   la conversación cerrada sin correo: es la decisión pendiente del dueño (T-X1b, revisión del 12-11-2026).
 // - «Sabes cuando demora el despacho» recibe el texto aprobado del despacho.
 // - «5 focos» no cambia la estaca por «focos»: la ficha dice Estaca LED COB 5W para jardín, cantidad 5 y uso jardín.
 // - El correo queda en el negocio; es una persona: no se le pide el RUT ni recibe el cierre de empresa.
@@ -53,7 +54,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG4_B2B, MSG_WAIT_DELIVERY, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { MSG4_B2B, MSG_NEED_EMAIL, MSG_WAIT_DELIVERY, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
 const webhook = handler as unknown as Handler;
@@ -121,12 +122,19 @@ const TURNS: Array<[string, Record<string, unknown>]> = [
 ];
 
 describe('caso de las estacas (12-11-2026), de punta a punta por el webhook', () => {
-  it('sin respuestas repetidas, el despacho contestado y la ficha con la estaca, 5 unidades, jardín y el correo', async () => {
+  it('sin respuestas repetidas (salvo el texto A pendiente), el despacho contestado y la ficha con la estaca, 5 unidades, jardín y el correo', async () => {
     const phone = nextPhone();
     const replies: string[] = [];
     for (const [body, claude] of TURNS) replies.push(await send(phone, body, claude));
 
-    for (let i = 1; i < replies.length; i++) expect(replies[i], 'respuesta ' + (i + 1)).not.toBe(replies[i - 1]);
+    // DECISIÓN PENDIENTE DEL DUEÑO (revisión del 12-11-2026): «5 focos» cierra sin correo con el texto A, y en la
+    // conversación cerrada sin correo el texto A se repite (T-X1b), hasta que apruebe otro texto. Fuera de eso, nada
+    // se repite.
+    expect(replies.slice(3, 6)).toEqual([MSG_NEED_EMAIL, MSG_NEED_EMAIL, MSG_NEED_EMAIL]);
+    for (let i = 1; i < replies.length; i++) {
+      if (i >= 4 && i <= 5) continue;
+      expect(replies[i], 'respuesta ' + (i + 1)).not.toBe(replies[i - 1]);
+    }
     expect(replies[TURNS.findIndex(([body]) => body === DESPACHO)]).toContain(MSG_WAIT_DELIVERY);
     for (const reply of replies) {
       expect(reply).not.toMatch(/RUT/);

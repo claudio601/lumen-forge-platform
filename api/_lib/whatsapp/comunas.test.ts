@@ -767,7 +767,10 @@ describe('abreviaturas y Santiago con otra comuna', () => {
   it.each([
     ['Santiago, comuna san bdo', ['San Bernardo']],
     ['Santiago, comuna San Bernardo', ['San Bernardo']],
-    ['Santiago, comuna xyz', []],
+    // (revisión 12-11) Solo una comuna reconocida después de «comuna» quita Santiago, como en main.
+    ['Santiago, comuna xyz', ['Santiago']],
+    ['Para mi casa, en Santiago, aún no sé la comuna exacta', ['Santiago']],
+    ['Santiago, comuna: pte alto', ['Puente Alto']],
     ['en Santiago, comuna de Maipú', ['Maipú']],
     ['Santiago', ['Santiago']],
     ['la comuna es Santiago', ['Santiago']],

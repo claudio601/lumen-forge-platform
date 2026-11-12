@@ -214,7 +214,14 @@ describe('caso de las estacas, de punta a punta por el flujo', () => {
         last = step(turn[0], turn[pick]);
         replies.push(last.reply);
       }
-      for (let i = 1; i < replies.length; i++) expect(replies[i], 'respuesta ' + (i + 1)).not.toBe(replies[i - 1]);
+      // DECISIÓN PENDIENTE DEL DUEÑO (revisión del 12-11-2026): cerrada sin correo, el texto A se repite (T-X1b) hasta
+      // que apruebe otro texto. Fuera de eso, ninguna respuesta repite la anterior.
+      const closedA = replies.map((r, i) => i > 0 && r === flow.MSG_NEED_EMAIL && replies[i - 1] === flow.MSG_NEED_EMAIL);
+      expect(closedA.filter(Boolean).length).toBeLessThanOrEqual(2);
+      for (let i = 1; i < replies.length; i++) {
+        if (closedA[i]) continue;
+        expect(replies[i], 'respuesta ' + (i + 1)).not.toBe(replies[i - 1]);
+      }
       expect(replies[TURNS.findIndex((t) => t[0] === DESPACHO)]).toContain(flow.MSG_WAIT_DELIVERY);
       for (const reply of replies) {
         expect(reply).not.toMatch(/RUT/);

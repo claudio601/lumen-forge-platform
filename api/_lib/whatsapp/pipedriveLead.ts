@@ -589,7 +589,7 @@ function buildWaCustomFields(
     wantsHuman: boolean | undefined,
     summary: string,
     body: string,
-    resolvedLeadType: string,
+    resolvedLeadType: string | undefined,
   ): Record<string, string> {
     const waCustomFields: Record<string, string> = {};
     const lead = resolveLead(captured ?? {});
@@ -625,14 +625,22 @@ function buildWaCustomFields(
  * mensaje del numero sigue escribiendo en ese negocio, para que Pipedrive reciba los valores en orden.
  */
 export function buildWhatsAppUpdate(params: WhatsAppLeadParams & { existingDealId: number }): PendingWhatsAppWrite {
-    const resolvedLeadType = params.leadType ?? detectLeadType(params.body, params.captured);
     const noteRef = newNoteRef();
     return {
           dealId: params.existingDealId,
-          fields: buildWaCustomFields(params.captured, params.captureStatus, params.wantsHuman, params.summary, params.body, resolvedLeadType),
+          fields: buildWaCustomFields(params.captured, params.captureStatus, params.wantsHuman, params.summary, params.body, updateLeadType(params)),
           note: buildNote(params, noteRef),
           noteRef,
     };
+}
+
+/**
+ * [REGISTRO] (revision 12-11) El tipo que se escribe en un negocio que ya existe: solo B2B (un RUT de empresa tardio
+ * lo sube). Una pregunta o un dato tardio sin palabras de empresa ("Cuanto cuesta cada una de las campanas?") no lo
+ * vuelve B2C: el tipo del registro no se recalcula desde el mensaje nuevo.
+ */
+function updateLeadType(params: WhatsAppLeadParams): 'B2B' | undefined {
+    return (params.leadType ?? detectLeadType(params.body, params.captured)) === 'B2B' ? 'B2B' : undefined;
 }
 
 export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<WhatsAppDealResult> {
@@ -655,7 +663,8 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
   const resolvedLeadType = params.leadType ?? detectLeadType(params.body, captured);
     const resolvedPriority: 'Alta' | 'Normal' = wantsHuman ? 'Alta' : (params.priorityTier ?? 'Normal');
 
-  const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body, resolvedLeadType);
+  const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body,
+    params.existingDealId ? updateLeadType(params) : resolvedLeadType);
     // [NOTA-REF] La referencia se crea aqui, una vez, y viaja con la nota si queda pendiente.
     const noteRef = newNoteRef();
     const noteContent = buildNote(params, noteRef);

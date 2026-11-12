@@ -170,10 +170,11 @@ describe('[COMUNA] abreviaturas y "Santiago" como ciudad', () => {
     });
   }
 
-  it('"Santiago, comuna xyz": ninguna, y se pregunta', () => {
+  // (revisión 12-11) Solo una comuna reconocida después de «comuna» quita Santiago: con otra palabra ("xyz", "exacta"),
+  // Santiago sigue siendo la comuna, como en main (Claudio la necesita para el despacho en la Provincia de Santiago).
+  it.each(['Santiago, comuna xyz', 'Para mi casa, en Santiago, aún no sé la comuna exacta', 'Santiago, la comuna todavía no la sé'])('"%s": Santiago', (body) => {
     step('Necesito 10 focos LED luz cálida', { producto: 'focos LED', cantidad: '10', tipo_de_luz: 'cálida' });
-    const r = step('Santiago, comuna xyz');
-    expect(r.captured.comuna_o_ciudad).toBeUndefined();
+    expect(step(body).captured.comuna_o_ciudad).toBe('Santiago');
   });
 
   it('"Santiago" solo, como respuesta a la pregunta por la comuna, es Santiago', () => {

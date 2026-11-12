@@ -40,6 +40,8 @@ export interface QuantityOptions {
   contact?: boolean;
   /** Lo que devolvio Claude en "cantidad". */
   claude?: unknown;
+  /** [METROS] (revision 12-11) El producto ya anotado (o el de Claude): los metros cuentan solo si se vende por metro. */
+  product?: string;
 }
 
 /** Minusculas y sin tildes, para comparar. */
@@ -208,7 +210,7 @@ const NOT_QUANTITY: readonly RegExp[] = [
   // [LED-INTERNOS] Los LED que trae el producto no son unidades: "60 leds/m", "60 led por 5 metros", "barra de 36
   // LED", "luminaria con 126 led" (negocios 120, 122 y 164: quedaban 36, 60 y 126 unidades).
   /\b\d+\s*leds?\s*(?:\/|x|por|cada)\s*(?:\d+(?:[.,]\d+)?\s*)?(?:m|mts?|mtrs?|mtros?|metros?)\b/g,
-  /\b(?:de|con)\s+\d+\s*leds?\b/g,
+  // "barra de 36 LED" y "luminaria con 126 led" van en withoutProductLeds: solo despues de un producto nombrado.
   // marcas de una lista copiada ("1) paneles", "2. fria")
   /(?:^|\n)\s*\d\s*(?:[.)]\s*-?|-)\s/g,
   /\b\d\)/g,
@@ -294,8 +296,24 @@ export function withoutNonQuantities(text: string, ruts: readonly string[] = [])
   // [LED-INTERNOS] "126 led" al final de una linea o clausula de especificaciones, con otro producto nombrado
   // ("Luminaria vial solar\n600w\n126 led"): son los LED del producto. "necesito 20 led" solo, si cuenta.
   if (itemsIn(text).length) out = out.replace(/\b\d+\s*leds?(?=\s*(?:[,;.\n]|$))/g, ' ');
+  out = withoutProductLeds(out);
   for (const re of NOT_QUANTITY) out = out.replace(re, ' ');
   return out;
+}
+
+// [LED-INTERNOS] (revision 12-11) El producto que lleva LED: "barra de 36 LED", "luminaria con 126 led", "BARRA DE
+// EMERGENCIA 60 LEDs RECARGABLE" (el titulo de la ficha que manda el boton). "una cotizacion de 20 LED", "alrededor de
+// 50 led", "un pedido de 100 leds" o "necesito 20 led" siguen siendo la cantidad.
+const LED_HOST_RE = /\b(?:barras?|cintas?|tiras?|luminarias?|focos?|reflector(?:es)?|panel(?:es)?|plafon(?:es)?|campanas?|proyector(?:es)?|lamparas?|apliques?|equipos?|modulos?|mangueras?|luz|luces|ampolletas?|tubos?|farol(?:es)?|faros?|postes?|downlights?|emergencias?|kits?|spots?|regletas?|linternas?|letreros?|balizas?)\b/;
+const LED_IN_PRODUCT_RE = /(\b(?:de|con)\s+)?\b(\d+)\s*leds?\b/g;
+function withoutProductLeds(text: string): string {
+  return text.replace(LED_IN_PRODUCT_RE, (all: string, _of: string | undefined, _n: string, offset: number) => {
+    const before = text.slice(Math.max(0, offset - 50), offset);
+    // Solo dentro de la misma clausula, y nunca justo despues de un verbo de pedido ("para la barra necesito 20 led").
+    const clause = before.split(/[,;\n]|\.\s/).pop() ?? '';
+    if (!LED_HOST_RE.test(clause) || VERB_BEFORE_RE.test(before)) return all;
+    return ' '.repeat(all.length);
+  });
 }
 
 /** [B2] Lo que devolvio Claude, solo si es un entero entre 1 y 99.999 ("30", 30, "30 paneles"). */
@@ -342,7 +360,13 @@ function candidates(clean: string): Candidate[] {
 
 // [METROS] Lo que se vende por metro: con uno de estos en el mensaje, "2000 metros" es lo que se pide.
 const LINEAR_RE = /\b(?:cintas?|tiras?|mangueras?|neon|neoflex|cables?|rieles?|perfiles?|huinchas?)\b/;
-const METERS_RE = /(^|[^\d.,])(\d{1,3}(?:\.\d{3})+|\d{1,5})\s*(?:metros?|mtros?|mtrs?|mts?|m)(?![a-z\d\u00b2])/g;
+// (revision 12-11) "120M/W" (lumenes por watt) no son metros.
+const METERS_RE = /(^|[^\d.,])(\d{1,3}(?:\.\d{3})+|\d{1,5})\s*(?:metros?|mtros?|mtrs?|mts?|m)(?![a-z\d\u00b2/])/g;
+// [METROS] (revision 12-11) "N metros de cinta" se pide; "N metros de calle, fachada o muro" es el lugar.
+const LINEAR_AFTER_RE = /^\s*(?:de|del)\s+(?:(?:la|el|las|los)\s+)?(?:cintas?|tiras?|mangueras?|neon|neoflex|cables?|rieles?|perfiles?|huinchas?|leds?)\b/;
+const PLACE_AFTER_RE = /^\s*(?:lineales?\s+)?(?:de|del)\s+(?:(?:la|el|las|los|un|una|mi|su|nuestr[oa])\s+)?(?:calles?|caminos?|fachadas?|muros?|cercos?|cercas?|pasillos?|perimetros?|perimetral|terrenos?|paredes|pared|veredas?|pasajes?|galpon(?:es)?|bodegas?|patios?|jardin(?:es)?|estacionamientos?|canchas?|recorridos?|rutas?|vias?|tuneles?|tunel|puentes?|longitud|frentes?|deslindes?|rejas?|avenidas?|carreteras?|senderos?|accesos?|entradas?|riberas?|costaneras?)\b/;
+// El boton de la ficha ("Hola, consulta por <titulo> (SKU: X)"): sus medidas son del producto, no lo que se pide.
+const PRODUCT_BUTTON_RE = /\bconsulta\s+por\b[^\n]*\(sku:/;
 /**
  * [METROS] Los metros que se piden (negocios 143, 156, 208 y 212): "necesito 500 metros", "Cinta Led, 2000 metros",
  * "500 metros de cinta", "90 mtros" si el bot pidio la cantidad. Un solo valor y entero. Nunca una medida del
@@ -350,15 +374,24 @@ const METERS_RE = /(^|[^\d.,])(\d{1,3}(?:\.\d{3})+|\d{1,5})\s*(?:metros?|mtros?|
  * metros", "1.5 metros".
  * Nunca se convierten a rollos.
  */
-function readMeters(text: string, asked: boolean): QuantityRead | undefined {
+function readMeters(text: string, asked: boolean, product?: string): QuantityRead | undefined {
+  if (PRODUCT_BUTTON_RE.test(text)) return undefined;
   const values = new Set<number>();
+  // (revision 12-11) Lo que se vende por metro: el producto del mensaje o el ya anotado. Sin ninguno, no se sabe.
+  const linear = LINEAR_RE.test(text) ? true : product ? LINEAR_RE.test(plain(product)) : undefined;
+  const shortAnswer = text.trim().split(/\s+/).length <= 5;
   for (const m of text.matchAll(METERS_RE)) {
     const at = m.index + m[1].length;
     const before = text.slice(Math.max(0, at - 40), at);
     const after = text.slice(m.index + m[0].length, m.index + m[0].length + 30);
     if (/\b(?:de|a|en|por|x|cada|hasta|desde|altura|alto|largo|ancho|distancia)\s*$/.test(before) && !VERB_BEFORE_RE.test(before)) continue;
     if (/^\s*(?:de\s+(?:altura|alto|largo|ancho|distancia)|cuadrad|lineales?\s+de\s+altura)/.test(after)) continue;
-    const order = VERB_BEFORE_RE.test(before) || /^\s*de\b/.test(after) || LINEAR_RE.test(text) || asked;
+    if (PLACE_AFTER_RE.test(after)) continue;
+    // El numero pegado a la unidad ("5m", "100MT") o la unidad abreviada con punto ("1 MT.") es el titulo de un producto.
+    const title = !/^\s/.test(text.slice(at + m[2].length)) || /^\s*\.(?!\d)/.test(after);
+    const verb = VERB_BEFORE_RE.test(before);
+    const order = (verb && linear !== false) || LINEAR_AFTER_RE.test(after)
+      || (linear === true && !title) || (asked && shortAnswer && linear !== false);
     if (!order) continue;
     const value = Number(m[2].replace(/\./g, ''));
     if (value >= 1 && value <= MAX_QUANTITY) values.add(value);
@@ -393,7 +426,7 @@ export function readQuantity(body: string, options: QuantityOptions = {}): Quant
   if (!found.length && claudeQuantity(options.claude) === 1 && ONE_UNIT_RE.test(clean)) return { value: 1, explicit: false };
   // [METROS] Sin ninguna cantidad de unidades, los metros que se piden.
   if (!found.length) {
-    const meters = readMeters(text.replace(URL_RE, ' ').replace(EMAIL_RE, ' '), asked);
+    const meters = readMeters(text.replace(URL_RE, ' ').replace(EMAIL_RE, ' '), asked, options.product);
     if (meters) return meters;
   }
   return loose.length === 1 && claudeQuantity(options.claude) === loose[0] ? { value: loose[0], explicit: false } : { explicit: false };
