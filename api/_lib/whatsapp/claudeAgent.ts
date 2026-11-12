@@ -19,12 +19,36 @@ export interface ClaudeParsed {
   qualifiesForDeal: boolean;
   summary: string;
 }
+/**
+ * [RESPUESTA] Por que no se uso nada de la respuesta de Claude (todos los campos con su valor por defecto):
+ * - respuesta_incompleta: stop_reason max_tokens, el texto se corto;
+ * - json_incompleto: una cantidad impar de marcas ``` (un bloque sin cerrar);
+ * - varios_json: 4 o mas marcas ``` (mas de un bloque, no se elige);
+ * - no_es_objeto: JSON valido que no es un objeto plano (null, una lista, un texto, un numero);
+ * - json_invalido: el bloque, o el texto entero, no es JSON (con texto alrededor del objeto, por ejemplo);
+ * - sin_json: sin bloque y sin ninguna llave.
+ */
+export type ClaudeFallbackReason = 'respuesta_incompleta' | 'sin_json' | 'json_invalido' | 'json_incompleto' | 'varios_json' | 'no_es_objeto';
+/** [RESPUESTA] Que quedo con su valor por defecto y por que. Solo datos tecnicos: nunca texto del cliente. */
+export interface ClaudeDiagnostics {
+  /** Algun campo (o todos) quedo con su valor por defecto. */
+  usedDefaults: boolean;
+  /** Nada de la respuesta se pudo usar. */
+  reason?: ClaudeFallbackReason;
+  /** Campo con su valor por defecto: 'falta' (no vino o vino null) o 'tipo' (vino con otro tipo). */
+  fields: Partial<Record<keyof ClaudeParsed, 'falta' | 'tipo'>>;
+  stopReason: string | null;
+  /** Largo del texto que devolvio Claude (caracteres). */
+  length: number;
+}
 export interface ClaudeResult {
   reply: string;
   summary: string;
   shouldCreateDeal: boolean;
   shouldNotify: boolean;
   parsed: ClaudeParsed;
+  /** [RESPUESTA] askClaude siempre lo trae; opcional para los dobles de prueba del webhook. */
+  diagnostics?: ClaudeDiagnostics;
 }
 const SYSTEM_PROMPT = 'Eres el extractor de datos del bot WhatsApp de eLIGHTS.cl. ' +
   'Analiza el mensaje y extrae campos en JSON. NO redactes respuestas para el cliente. ' +
@@ -64,6 +88,73 @@ export function textField(value: unknown): string | undefined {
   const text = value.trim();
   return text || undefined;
 }
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+/** JSON.parse que no lanza. */
+function parseJson(source: string): { ok: true; value: unknown } | { ok: false } {
+  try {
+    return { ok: true, value: JSON.parse(source) as unknown };
+  } catch {
+    return { ok: false };
+  }
+}
+type Extracted = { ok: true; value: Record<string, unknown> } | { ok: false; reason: Exclude<ClaudeFallbackReason, 'respuesta_incompleta'> };
+/** Un objeto plano, o el motivo: `no_es_objeto` si es otro JSON, `json_invalido` si no es JSON. */
+function plainObject(source: string): Extracted {
+  const parsed = parseJson(source);
+  if (parsed.ok === false) return { ok: false, reason: 'json_invalido' };
+  return isPlainObject(parsed.value) ? { ok: true, value: parsed.value } : { ok: false, reason: 'no_es_objeto' };
+}
+const FENCE = '```';
+/**
+ * [RESPUESTA] El objeto JSON de la respuesta de Claude, con la regla estricta de main (revisiones de Codex de la
+ * PR 168: cada forma de rescatar un objeto del texto que lo rodea abria otro borde, y la prosa alrededor puede
+ * invalidarlo: "Correccion: ... preguntar de nuevo", "Ejemplo de formato, no son datos del cliente"):
+ * - con marcas ```: solo exactamente 2 (un bloque), y su contenido entero debe ser un objeto plano; el texto fuera
+ *   del bloque se ignora, como en main. Una cantidad impar (un bloque sin cerrar): json_incompleto; 4 o mas (mas de
+ *   un bloque): varios_json. Nunca se rescata un objeto de adentro de una lista ni de un bloque invalido;
+ * - sin marcas: el texto entero debe ser un objeto plano. No se rescata un objeto de en medio del texto.
+ * Ante la duda no se usa nada: un null honesto vale mas que un dato inventado (especificacion 3.2, B9).
+ */
+export function extractJsonObject(text: string): Extracted {
+  const trimmed = text.trim();
+  const fences = trimmed.split(FENCE).length - 1;
+  if (fences === 2) {
+    const open = trimmed.indexOf(FENCE) + FENCE.length;
+    return plainObject(trimmed.slice(open, trimmed.indexOf(FENCE, open)).replace(/^json/i, ''));
+  }
+  if (fences > 0) return { ok: false, reason: fences % 2 === 1 ? 'json_incompleto' : 'varios_json' };
+  const whole = plainObject(trimmed);
+  if (whole.ok === false && whole.reason === 'json_invalido' && !trimmed.includes('{')) return { ok: false, reason: 'sin_json' };
+  return whole;
+}
+const TEXT_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo'] as const;
+const isMissing = (value: unknown) => value === undefined || value === null;
+/**
+ * [RESPUESTA] Los campos de la respuesta, uno por uno: un campo con otro tipo queda con su valor por defecto
+ * (vacio, false o el resumen de respaldo) y los demas se usan igual. Un texto null o vacio es "no aplica".
+ */
+export function readClaudeFields(raw: Record<string, unknown>, fallbackSummary: string): { parsed: ClaudeParsed; fields: ClaudeDiagnostics['fields'] } {
+  const fields: ClaudeDiagnostics['fields'] = {};
+  const parsed: ClaudeParsed = { wantsHuman: false, qualifiesForDeal: false, summary: fallbackSummary };
+  for (const name of TEXT_FIELDS) {
+    const value = raw[name];
+    const text = textField(value);
+    if (text !== undefined) parsed[name] = text;
+    else if (!isMissing(value) && typeof value !== 'string') fields[name] = 'tipo';
+  }
+  for (const name of ['wantsHuman', 'qualifiesForDeal'] as const) {
+    const value = raw[name];
+    // Solo un booleano: "false" (texto) ya no se lee como true.
+    if (typeof value === 'boolean') parsed[name] = value;
+    else fields[name] = isMissing(value) ? 'falta' : 'tipo';
+  }
+  const summary = raw.summary;
+  // [RESUMEN] Sin las frases que afirman hechos sin atribuirlos al cliente (summary.ts).
+  if (typeof summary === 'string' && summary.trim()) parsed.summary = safeSummary(summary);
+  else fields.summary = isMissing(summary) || typeof summary === 'string' ? 'falta' : 'tipo';
+  return { parsed, fields };
+}
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (!_client) {
@@ -89,32 +180,25 @@ export async function askClaude(
     system: SYSTEM_PROMPT,
     messages,
   });
-  const textBlock = response.content.find((b) => b.type === 'text');
-  if (!textBlock || textBlock.type !== 'text') throw new Error(LOG_PREFIX + ' No text block');
-  const rawText = textBlock.text.trim();
-  let jsonStr = rawText;
-  const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-  if (fenceMatch) jsonStr = fenceMatch[1];
-  let parsed: ClaudeParsed;
-  try {
-    const raw = JSON.parse(jsonStr) as Record<string, unknown>;
-    parsed = {
-      producto: textField(raw.producto),
-      tipo_de_luz: textField(raw.tipo_de_luz),
-      cantidad: textField(raw.cantidad),
-      proyecto_o_uso: textField(raw.proyecto_o_uso),
-      comuna_o_ciudad: textField(raw.comuna_o_ciudad),
-      nombre: textField(raw.nombre),
-      empresa: textField(raw.empresa),
-      correo: textField(raw.correo),
-      wantsHuman: Boolean(raw.wantsHuman),
-      qualifiesForDeal: Boolean(raw.qualifiesForDeal),
-      // [RESUMEN] Sin las frases que afirman hechos sin atribuirlos al cliente (summary.ts).
-      summary: textField(raw.summary) !== undefined ? safeSummary(raw.summary) : 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"',
-    };
-  } catch {
-    console.warn(LOG_PREFIX + ' Response not valid JSON — usando defaults');
-    parsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + newMessage.substring(0, 100) + '"' };
+  // [RESPUESTA] Todos los bloques de texto, en orden (antes, solo el primero).
+  const texts = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : []));
+  if (!texts.length) throw new Error(LOG_PREFIX + ' No text block');
+  const rawText = texts.join('\n');
+  const stopReason = response.stop_reason ?? null;
+  const diagnostics: ClaudeDiagnostics = { usedDefaults: false, fields: {}, stopReason, length: rawText.length };
+  // [RESPUESTA] Cortada por max_tokens: incompleta, no se usa nada (un dato a medias no es un dato).
+  const extracted = stopReason === 'max_tokens' ? { ok: false as const, reason: 'respuesta_incompleta' as const } : extractJsonObject(rawText);
+  // Sin nada utilizable, los valores por defecto de siempre; el webhook registra el motivo (en vez de "Claude ok")
+  // y el paso queda de las reglas del flujo. (=== false: sin strictNullChecks, `if (x.ok)` no estrecha la union.)
+  let parsed: ClaudeParsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + newMessage.substring(0, 100) + '"' };
+  if (extracted.ok === false) {
+    diagnostics.reason = extracted.reason;
+    diagnostics.usedDefaults = true;
+  } else {
+    const read = readClaudeFields(extracted.value, 'Consulta de ' + (profileName || 'cliente') + ': "' + newMessage.substring(0, 80) + '"');
+    parsed = read.parsed;
+    diagnostics.fields = read.fields;
+    diagnostics.usedDefaults = Object.keys(read.fields).length > 0;
   }
-  return { reply: FALLBACK_REPLY, summary: parsed.summary, shouldCreateDeal: parsed.qualifiesForDeal, shouldNotify: parsed.wantsHuman, parsed };
+  return { reply: FALLBACK_REPLY, summary: parsed.summary, shouldCreateDeal: parsed.qualifiesForDeal, shouldNotify: parsed.wantsHuman, parsed, diagnostics };
 }
