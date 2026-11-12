@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = '1a0aab747d52';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -7785,26 +7785,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ]
   },
   {
-    "jumpseller_id": 3433454,
-    "name": "EQUIPO LED DE EMERGENCIA 2*1.2W",
-    "permalink": "equipo-led-de-emergencia-2x12",
-    "sku": "ELE212",
-    "price": 17760,
-    "brand": "JIE",
-    "featured": false,
-    "categories": [
-      "emergencia-led"
-    ],
-    "images": [
-      {
-        "id": 6099159,
-        "url": "https://images.jumpseller.com/store/elights-cl/3433454/dfsdfdf-1.jpg?1563383334",
-        "position": 1
-      }
-    ],
-    "variants": []
-  },
-  {
     "jumpseller_id": 3481496,
     "name": "PANEL LED RETRAÍDO OPAL 40W IP40",
     "permalink": "panel-led-retraido-concentrico-opal-40w-ip40",
@@ -15415,6 +15395,61 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "id": 83760265,
         "url": "https://images.jumpseller.com/store/elights-cl/1234977373/sensor-pir-180-spir180n.jpg?1794340095",
         "position": 1
+      }
+    ],
+    "variants": []
+  },
+  {
+    "jumpseller_id": 1234997838,
+    "name": "CAMPANA LED UFO PRO HL 200W 190LM/W IP65 CON SENSOR",
+    "permalink": "campana-led-ufo-pro-hl-200w-190lmw-ip65-con-sensor",
+    "sku": "CUFOPROHL200",
+    "price": 111390,
+    "brand": null,
+    "featured": false,
+    "categories": [
+      "campanas-led"
+    ],
+    "images": [
+      {
+        "id": 83808411,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/01-cufoprohl200-campana-led-ufo-200w-sensor.jpg?1794412243",
+        "position": 1
+      },
+      {
+        "id": 83808409,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/02-cufoprohl200-vista-frontal-led.jpg?1794412243",
+        "position": 2
+      },
+      {
+        "id": 83808410,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/03-cufoprohl200-modulo-led.jpg?1794412243",
+        "position": 3
+      },
+      {
+        "id": 83808412,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/04-cufoprohl200-sensor-montado.jpg?1794412243",
+        "position": 4
+      },
+      {
+        "id": 83808414,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/05-cufoprohl200-sensor-microondas.jpg?1794412243",
+        "position": 5
+      },
+      {
+        "id": 83808413,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/06-cufoprohl200-base-sensor.jpg?1794412243",
+        "position": 6
+      },
+      {
+        "id": 83808416,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/07-cufoprohl200-control-remoto.jpg?1794412243",
+        "position": 7
+      },
+      {
+        "id": 83808418,
+        "url": "https://images.jumpseller.com/store/elights-cl/1234997838/08-cufoprohl200-campana-encendida-bodega.jpg?1794412243",
+        "position": 8
       }
     ],
     "variants": []

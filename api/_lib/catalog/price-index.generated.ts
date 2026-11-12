@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = '1a0aab747d52';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -2109,12 +2109,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "price": 25160
       }
     }
-  },
-  "3433454": {
-    "name": "EQUIPO LED DE EMERGENCIA 2*1.2W",
-    "sku": "ELE212",
-    "price": 17760,
-    "variants": {}
   },
   "3481496": {
     "name": "PANEL LED RETRAÍDO OPAL 40W IP40",
@@ -4288,6 +4282,12 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "name": "SENSOR DE MOVIMIENTO PIR 180° MURO IP44 NEGRO",
     "sku": "SPIR180N",
     "price": 11662,
+    "variants": {}
+  },
+  "1234997838": {
+    "name": "CAMPANA LED UFO PRO HL 200W 190LM/W IP65 CON SENSOR",
+    "sku": "CUFOPROHL200",
+    "price": 111390,
     "variants": {}
   }
 };

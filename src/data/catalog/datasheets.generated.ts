@@ -2,7 +2,7 @@
 // Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '7c2228ac40e2';
+export const SNAPSHOT_HASH = '1a0aab747d52';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2251313": ["https://images.jumpseller.com/store/elights-cl/2251313/attachments/15146e05ea68ef8f78a44b337b0a4525/FT_AMPOLLETA_LED_DICROICA_4-50W_GU10_eLIGHTS.cl.pdf?1669657872"],
@@ -26,6 +26,7 @@ export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2255963": ["https://images.jumpseller.com/store/elights-cl/2255963/attachments/8729d4b9558c676a7946ac655e7c7abb/FT-Panel-LED-Redondo-Embutido-eLIGHTS.pdf?1790362590"],
   "2256011": ["https://images.jumpseller.com/store/elights-cl/2256011/attachments/04edce14924390ac76078776e6c66aa3/FT-Panel-LED-Redondo-Embutido-eLIGHTS.pdf?1790362647"],
   "2268808": ["https://images.jumpseller.com/store/elights-cl/2268808/attachments/34884a07a5a7c58f6cbca41da9926760/FT-Panel-LED-Redondo-Embutido-eLIGHTS.pdf?1790362686"],
+  "2268816": ["https://images.jumpseller.com/store/elights-cl/2268816/attachments/49ea63a40dcf0af41c8d3351b39f0d62/FT-Panel-LED-Redondo-Embutido-eLIGHTS.pdf?1794421672"],
   "2269032": ["https://images.jumpseller.com/store/elights-cl/2269032/attachments/28447fb477d111234fb1b106654c9923/FT-Panel-LED-Redondo-Embutido-eLIGHTS.pdf?1790362729"],
   "2269355": ["https://images.jumpseller.com/store/elights-cl/2269355/attachments/c1ba244f6eff80ce91ed8bbc25c62722/FT_Panel_Led_Redondo_Sobrepuesto_6W_eLIGHTS.cl.pdf?0"],
   "2269456": ["https://images.jumpseller.com/store/elights-cl/2269456/attachments/f1eb9cf1e284192af11e69df9c3aaa46/FT_Panel_Led_Redondo_Sobrepuesto_9W_eLIGHTS.cl__1_.pdf?1699455481"],
@@ -318,4 +319,5 @@ export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "37625303": ["https://images.jumpseller.com/store/elights-cl/37625303/attachments/5e6a2d90828f346e2c73145881c7d418/ficha-tecnica-panel-led-cuadrado-embutido-eLIGHTS-v01.pdf?1792508048"],
   "37656341": ["https://images.jumpseller.com/store/elights-cl/37656341/attachments/f90394285fcc606bcadedf96f78417f4/ficha-STA1-125W-eLIGHTS.pdf?1791571733"],
   "1234977373": ["https://images.jumpseller.com/store/elights-cl/1234977373/attachments/356f8549a1ca6602a79696e212c060b5/ficha-sensor-pir-180.pdf?1794340095"],
+  "1234997838": ["https://images.jumpseller.com/store/elights-cl/1234997838/attachments/bfb6d5c8e84622da0207594ad7ddf578/ficha-tecnica-CUFOPROHL200.pdf?1794412243"],
 };
