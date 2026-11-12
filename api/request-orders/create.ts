@@ -469,7 +469,7 @@ export default async function handler(
 
 // ── GAS Relay (igual que QuoteCartPage / InstallationLeadForm) ────────────────
 const GAS_URL =
-  'https://script.google.com/macros/s/AKfycbwn2Qv3nJsNrUfBvzdpB9X70NmQfAVXgBKVw8bdmG-CXMXGsL-2IUcJaKX0mpO4kNwfOw/exec';
+  'https://script.google.com/macros/s/AKfycbzlP9_ccElZcIDcuOdw2u2dzz24Alf-h6T01rLb71lYMY20zrZKCwvUbX2qynyx2XEi1A/exec';
 
 async function sendGasEmail(
   payload: RequestOrderPayload,
