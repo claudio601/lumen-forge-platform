@@ -189,6 +189,51 @@ local v = redis.call('get', KEYS[1])
 if v == ARGV[1] or v == ARGV[1] .. ARGV[2] then return redis.call('del', KEYS[1]) end
 return 0`;
 
+// [CANDADO] Plazo de cada intento de soltar el candado y del unico reintento (informe de Codex del 10-11, punto 1).
+// Se suelta en el finally del webhook, despues de responder a Twilio: el reintento alarga la funcion, no la
+// respuesta, y a lo mas en LOCK_RELEASE_RETRY_TIMEOUT_MS.
+export const LOCK_RELEASE_TIMEOUT_MS = 800;
+export const LOCK_RELEASE_RETRY_TIMEOUT_MS = 800;
+
+/**
+ * [CANDADO] Motivo de una falla de Upstash para el log: solo una categoria. Nunca el texto del servidor ni del
+ * error (puede traer la clave, el cuerpo de la respuesta o un trozo de ella).
+ */
+export function upstashFailureReason(error: string): string {
+  if (/not configured/i.test(error)) return 'sin_configuracion';
+  const http = /^HTTP (\d{3})\b/.exec(error);
+  if (http) return 'http_' + http[1];
+  if (/timeout|abort/i.test(error)) return 'timeout';
+  if (/fetch failed|ECONN|ENOTFOUND|EAI_AGAIN|socket|network/i.test(error)) return 'red';
+  if (/JSON|Unexpected (token|end)/i.test(error)) return 'respuesta_ilegible';
+  return 'error_redis';
+}
+
+/**
+ * [CANDADO] Suelta el candado de la conversacion. Si el EVAL falla (timeout de 800 ms, red, HTTP, Redis), lo
+ * reintenta una sola vez con el mismo Lua, que solo borra el candado si sigue siendo de este mensaje (su token,
+ * marcado o no): si el primer intento ya lo borro y se perdio la respuesta, o si otro mensaje ya tomo uno nuevo,
+ * el reintento no borra nada ajeno. Nunca un DEL directo. El log dice el motivo de cada falla y la duracion
+ * (sin telefono, clave ni token). Si los dos fallan, el candado vence solo a los CONVERSATION_LOCK_TTL_MS de
+ * tomado (como antes).
+ */
+async function releaseConversationLock(key: string, token: string): Promise<void> {
+  const startedAt = Date.now();
+  const first = await redisJsonCommandWithTimeout<number>(LOCK_RELEASE_TIMEOUT_MS, 'EVAL', RELEASE_LOCK_SCRIPT, '1', key, token, STEPPED);
+  // [CANDADO] Comparaciones con === false: sin strictNullChecks (tsconfig.api.json) `if (x.ok)` no estrecha la union.
+  if (first.ok !== false) return;
+  const firstReason = upstashFailureReason(first.error);
+  const retry = await redisJsonCommandWithTimeout<number>(LOCK_RELEASE_RETRY_TIMEOUT_MS, 'EVAL', RELEASE_LOCK_SCRIPT, '1', key, token, STEPPED);
+  const elapsed = Date.now() - startedAt;
+  if (retry.ok !== false) {
+    const outcome = Number(retry.result) === 1 ? 'lo borró el reintento' : 'ya no era de este mensaje: lo borró el primer intento o venció';
+    console.warn(LOG_PREFIX + ' Candado de conversación: falló el primer intento de liberarlo (motivo=' + firstReason + '); el reintento respondió (' + outcome + '), ' + elapsed + ' ms');
+    return;
+  }
+  console.warn(LOG_PREFIX + ' Candado de conversación sin liberar en Upstash tras 2 intentos (motivos=' + firstReason + ',' + upstashFailureReason(retry.error) +
+    ', ' + elapsed + ' ms): vence solo a los ' + CONVERSATION_LOCK_TTL_MS / 1000 + ' s de tomado');
+}
+
 /**
  * La fila local sigue vigente. Contencion o caida: continuar como antes, con aviso.
  * `contended`: otro mensaje del numero tiene el candado (no es que Upstash este caido): este no
@@ -215,10 +260,7 @@ export async function acquireConversationLock(phone: string, maxWaitMs: number):
       return {
         acquired: true,
         contended: false,
-        release: async () => {
-          const released = await redisJsonCommand('EVAL', RELEASE_LOCK_SCRIPT, '1', key, token, STEPPED);
-          if (!released.ok) unavailable('liberar candado de conversaci\u00f3n');
-        },
+        release: () => releaseConversationLock(key, token),
         markStepped: async () => {
           const marked = await redisJsonCommand('EVAL', MARK_LOCK_SCRIPT, '1', key, token, STEPPED);
           if (!marked.ok) unavailable('marcar candado de conversaci\u00f3n');
