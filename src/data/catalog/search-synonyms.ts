@@ -50,7 +50,7 @@ export const SEARCH_SYNONYMS: readonly SearchSynonym[] = [
   { busca: ['skyfly', 'sky fly'], encuentra: 'flyhawk' },
   // El «tubo PC» es el de aluminio con policarbonato, no el de vidrio
   { busca: ['tubo pc', 'tubo policarbonato'], encuentra: 'tubo opal aluminio' },
-  // «Antares» es nuestra línea de ampolletas bola E27 y dicroica GU10 (no las AR111)
+  // «Antares» es nuestra línea de ampolletas bola E27 y dicroicas GU10 (no las AR111)
   { busca: ['antares'], encuentra: ['ampolleta bola', 'ampolleta gu10'] },
   // Los antivandálicos son IK08: el «antivandálico IK10» es el proyector de estadio modular
   { busca: ['antivandalico ik10'], encuentra: 'proyector de estadio modular' },
