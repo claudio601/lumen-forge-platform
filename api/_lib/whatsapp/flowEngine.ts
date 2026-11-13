@@ -156,6 +156,8 @@ export const MSG_LOCATION = 'Somos una tienda online con bodega en Quinta Normal
 // [PREGUNTA] Con el correo ya anotado, los mismos textos sin la pregunta final por el correo.
 export const MSG_Q_PRICE_HAS_EMAIL = 'Claudio Quero revisar\u00e1 el precio y la disponibilidad y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
 export const MSG_Q_TECH_HAS_EMAIL = 'Claudio Quero revisar\u00e1 tu consulta y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
+// [YA-ESCRIBI] (aprobado por el dueno el 12-11) "Ok, yo le escribi a Claudio" sin su correo (caso de las estacas).
+export const MSG_ALREADY_WROTE = 'Perfecto. D\u00e9jame tu correo y lo uno a tu solicitud para que no se pierda.';
 // [PLAZO] Cualquier otro mensaje con el negocio registrado: un recordatorio corto, no el cierre largo otra vez.
 export const MSG_REGISTERED_SHORT = 'Tu solicitud ya qued\u00f3 registrada; te escribimos por correo.';
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
@@ -1315,8 +1317,15 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
     return;
   }
   const before = merged.cantidad;
+  const unitBefore = merged.cantidad_unidad;
   keepOrChange(merged, 'cantidad', value, change);
   if (merged.cantidad === value && before !== value) setUnit(merged, quantity);
+  // (revision 13-11) El mismo numero con otra unidad, afirmado: "Corrijo: necesito 5 metros de cinta LED" despues de
+  // "5 cintas LED", o al reves ("5 cintas LED" nombra unidades). Un "son 5" sin unidad no borra los metros.
+  else if (change && before === value && (quantity.unit ? quantity.unit !== unitBefore : unitBefore !== undefined && itemsIn(facts).length > 0)) {
+    noteChange(merged, 'cantidad', value + (unitBefore === 'm' ? ' m' : ''), value + (quantity.unit === 'm' ? ' m' : ''));
+    setUnit(merged, quantity);
+  }
 }
 /** [METROS] La unidad va con la cantidad que se acaba de anotar: metros, o (sin unidad) unidades. */
 function setUnit(merged: CapturedFields, quantity: QuantityRead): void {
@@ -1676,10 +1685,18 @@ function opensNewRequest(body: string, state: FlowState, claudeParsed: ClaudeFie
       && words.every((w) => !/\d/.test(w) || own.includes(w));
   });
   if (!same) return true;
+  // (revision 13-11) Otra medida en cualquiera de los nombres es otro producto, aunque la familia ("campanas") coincida:
+  // "10 campanas UFO 200W" despues de "10 campanas UFO 100W".
+  if (named.some((p) => productWords(p).some((w) => /\d/.test(w) && !own.includes(w)))) return true;
+  // (revision 13-11) El mismo producto para otra comuna es otro pedido, como en main ("Ahora necesito 10 campanas UFO
+  // 100W para un galpon en Quilicura"), salvo que la corrija.
+  const place = officialComuna(captured.comuna_o_ciudad);
+  const places = findComunas(facts);
+  if (place && places.length && !places.includes(place) && !correctsCaptured(body, captured, places[0])) return true;
   // (revision 12-11) El mismo producto con otra cantidad es otro pedido ("Ahora necesito 10 focos LED para la casa de
   // mi mama en Pirque"), como en main, salvo que corrija la que ya estaba ("Corrijo: son 10", "20 focos, no 12").
   const other = quantity.value !== undefined && captured.cantidad !== undefined && String(quantity.value) !== captured.cantidad;
-  return other && !correctsCaptured(body, captured);
+  return other && !correctsCaptured(body, captured, String(quantity.value));
 }
 
 // [REINICIO] (revision 12-11) Despues del cierre, un dato ya registrado cambia solo si el mensaje lo corrige: con
@@ -1687,9 +1704,13 @@ function opensNewRequest(body: string, state: FlowState, claudeParsed: ClaudeFie
 // "al final" (negocio 145), o negando el dato anterior ("20 focos LED, no 12"). "Gracias, mi otra casa esta en
 // Pirque" o "son 3 dormitorios y el living" son comentarios.
 const LATE_CORRECTION_RE = /(?<![a-zà-ü])(?:definitiv[a-z]*|en\s+realidad|al\s+final|finalmente|actualiz[a-z]*|modific[a-z]*|cambi[a-z]*|quise\s+decir|quer[ií]a\s+decir|me\s+confund[a-z]*)(?![a-zà-ü])/i;
-function correctsCaptured(body: string, captured: CapturedFields): boolean {
+// (revision 13-11) "definitivamente", "al final" o "finalmente" corrigen solo el dato (`value`) que traen en su misma
+// oracion: "Gracias, finalmente me respondieron. Mi otra casa esta en Pirque" no cambia la comuna; "La comuna
+// definitiva es Pirque" si.
+function correctsCaptured(body: string, captured: CapturedFields, value?: unknown): boolean {
   const text = body.slice(0, MAX_FACTS);
-  if (CORRECTION_RE.test(text) || PRODUCT_SWITCH_RE.test(text) || LATE_CORRECTION_RE.test(text)) return true;
+  if (CORRECTION_RE.test(text) || PRODUCT_SWITCH_RE.test(text)) return true;
+  if (text.split(/[.;!?\n]+/).some((part) => LATE_CORRECTION_RE.test(part) && mentionsValue(part, value))) return true;
   const plain = comparable(text);
   return [captured.cantidad, captured.comuna_o_ciudad, captured.tipo_de_luz].some((value) => {
     if (!value) return false;
@@ -1698,8 +1719,16 @@ function correctsCaptured(body: string, captured: CapturedFields): boolean {
   });
 }
 
+function mentionsValue(part: string, value: unknown): boolean {
+  if (typeof value !== 'string' || !value) return false;
+  const v = comparable(value);
+  if (/^\d+$/.test(v)) return new RegExp('(?<![0-9])' + v + '(?![0-9])').test(comparable(part));
+  return comparable(part).includes(v) || sharesWord(value, part);
+}
+
 const OTHER_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:nuev|otr)[oa]s?\s+(?:proyecto|obra|pedido|solicitud|requerimiento|compra)/i;
 const QUOTE_WORD_RE = /cotizaci[o\u00f3]n|presupuesto|cotizar(?![a-z\u00e0-\u00fc])/i;
+const QTY_FIELDS = ['cantidad', 'cantidad_varios', 'cantidad_unidad'] as const;
 const LATE_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'cantidad_varios', 'cantidad_unidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'comunas_otras'] as const;
 /**
  * [REINICIO] Conversacion cerrada con el negocio registrado: un dato que cambia o se completa (otro color, la
@@ -1708,22 +1737,33 @@ const LATE_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'cantidad_varios', '
  * Solo cuenta lo que este mensaje dice: un dato que Claude repite del historial no se escribe.
  */
 function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean): FlowResult | undefined {
-  // Preguntar por el despacho ("¿Hacen envio a Rancagua?") no cambia la comuna ni otro dato.
-  if (state.isInstallFlow || asksAboutDelivery(body)) return undefined;
+  // Preguntar por el despacho ("¿Hacen envio a Rancagua?") no cambia la comuna ni otro dato. (revision 13-11) Corregirlo
+  // si: "Corrijo: el despacho es a Quilicura".
+  if (state.isInstallFlow || (asksAboutDelivery(body) && !CORRECTION_RE.test(body.slice(0, MAX_FACTS)))) return undefined;
   const question = /[?\u00bf]/.test(body);
   const { merged, leadType } = mergeProductFields(state, body, claudeParsed, hasMedia);
   const facts = factsText(body, claudeParsed);
   const captured: CapturedFields = { ...state.captured };
-  const corrects = correctsCaptured(body, state.captured);
-  // La cantidad y sus acompanantes (varios items, metros) se aplican juntos; las otras comunas, con la comuna.
   const filled = (field: typeof LATE_FIELDS[number]): boolean => {
-    if (field === 'cantidad_varios' || field === 'cantidad_unidad') return Boolean(state.captured.cantidad || state.captured.cantidad_varios);
     if (field === 'comunas_otras') return Boolean(state.captured.comuna_o_ciudad);
     return state.captured[field] !== undefined && state.captured[field] !== '';
   };
   const applied = new Set<string>();
   let changed = false;
+  // (revision 13-11) La cantidad, los varios items y los metros cambian juntos o no cambian: "Son 5 unidades" despues de
+  // "12 focos y 5 paneles" ya no deja el numero y los varios items a la vez.
+  const sameQty = QTY_FIELDS.every((field) => JSON.stringify(state.captured[field] ?? null) === JSON.stringify(merged[field] ?? null));
+  const hadQty = Boolean(state.captured.cantidad || state.captured.cantidad_varios);
+  if (!sameQty && (!hadQty || correctsCaptured(body, state.captured, merged.cantidad ?? merged.cantidad_varios))) {
+    for (const field of QTY_FIELDS) {
+      if (merged[field] === undefined) delete captured[field];
+      else (captured as Record<string, unknown>)[field] = merged[field];
+    }
+    applied.add('cantidad');
+    changed = true;
+  }
   for (const field of LATE_FIELDS) {
+    if ((QTY_FIELDS as readonly string[]).includes(field)) continue;
     const before = JSON.stringify(state.captured[field] ?? null);
     const after = JSON.stringify(merged[field] ?? null);
     if (before === after) continue;
@@ -1733,9 +1773,9 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
     // El color o el uso que se llena con lo que Claude recuerda (sin decirlo en este mensaje) no cuenta.
     if ((field === 'tipo_de_luz' || field === 'proyecto_o_uso' || field === 'producto') && typeof value === 'string' && !sharesWord(value, facts) && !textLuz(facts)) continue;
     // (revision 12-11) Un dato ya registrado cambia solo con una correccion (correctsCaptured); uno vacio se completa.
-    if (filled(field) && !corrects) continue;
+    if (filled(field) && !correctsCaptured(body, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value)) continue;
     (captured as Record<string, unknown>)[field] = value;
-    applied.add(field === 'cantidad_varios' || field === 'cantidad_unidad' ? 'cantidad' : field === 'comunas_otras' ? 'comuna_o_ciudad' : field);
+    applied.add(field === 'comunas_otras' ? 'comuna_o_ciudad' : field);
     changed = true;
   }
   if (!changed) return undefined;
@@ -1800,10 +1840,16 @@ export function processFlowStep(
     const reply = withAnswers(questionAnswers(questionKinds(body), Boolean(state.captured.correo), false), result.reply);
     if (reply !== result.reply) result = { ...result, reply };
   }
-  // [SIN-REPETIR] (revision 12-11) Cerrada sin negocio ni correo, el texto A y MSG4_INSTALL_NO_EMAIL se repiten como en
-  // main: es la decision pendiente del dueno (T-X1b), sin un texto aprobado para alternar.
-  const closedWithoutDeal = Boolean(result.closedFlow && state?.stage === 'closed' && !state.deal);
-  if (!closedWithoutDeal) result = notRepeated(result, lastReply);
+  // [YA-ESCRIBI] Dice que ya le escribio a Claudio o a ventas@ y la respuesta le pide el correo: el texto aprobado.
+  if (!result.shouldCreateDeal && ALREADY_WROTE_RE.test(body.slice(0, MAX_FACTS))) {
+    for (const ask of [MSG_NEED_EMAIL, MSG_EMAIL_SHORT]) {
+      if (result.reply === ask) result = { ...result, reply: MSG_ALREADY_WROTE };
+      else if (result.reply.endsWith('\n\n' + ask)) result = { ...result, reply: result.reply.slice(0, -ask.length) + MSG_ALREADY_WROTE };
+    }
+  }
+  // [SIN-REPETIR] (dueno, 12-11) Tampoco se repite el texto A en la conversacion cerrada sin negocio ni correo (T-X1b):
+  // la segunda vez va MSG_EMAIL_SHORT.
+  result = notRepeated(result, lastReply);
   // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
   // [CANTIDAD] Tambien que pregunta hizo (sin pregunta, ninguna: un numero suelto no es cantidad).
   if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply), lastQuestion: question ?? null });
@@ -1813,10 +1859,13 @@ export function processFlowStep(
 // [SIN-REPETIR] Si la respuesta es igual a la anterior, otro texto ya aprobado que dice lo mismo (caso de las
 // estacas: tres veces seguidas la misma peticion del correo). El saludo, el texto B y el registro pendiente no
 // cambian. Si no hay otro texto para esa respuesta, se repite.
+// "Ok, yo le escribi a Claudio", "ya les mande un correo", "le envie un mail a ventas".
+const ALREADY_WROTE_RE = /(?<![a-z\u00e0-\u00fc])(?:(?:le|les)\s+(?:escrib[i\u00ed]|mand[e\u00e9]|envi[e\u00e9])|(?:ya\s+)?(?:escrib[i\u00ed]|mand[e\u00e9]|envi[e\u00e9])\s+(?:un\s+)?(?:a|al|correo|mail|email)\b)(?![a-z\u00e0-\u00fc])/i;
 const ALTERNATE_REPLY: Record<string, string> = {
+  [MSG_ALREADY_WROTE]: MSG_EMAIL_SHORT,
   [MSG_NEED_EMAIL]: MSG_EMAIL_SHORT,
   [MSG_EMAIL_SHORT]: MSG_NEED_EMAIL,
-  [MSG4_INSTALL_NO_EMAIL]: MSG_NEED_EMAIL,
+  [MSG4_INSTALL_NO_EMAIL]: MSG_EMAIL_SHORT,
   [MSG_Q_PRICE]: MSG_Q_TECH,
   [MSG_Q_TECH]: MSG_NEED_EMAIL,
   // (revision 12-11) Con el correo ya dado: "¿tienen stock?" y "¿y cuanto cuestan?" seguidas.

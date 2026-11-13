@@ -559,3 +559,13 @@ describe('revisión del 12-11: metros del lugar o del título, y LED', () => {
     expect(wrong).toEqual([]);
   });
 });
+
+// Revisión de Codex del 13-11-2026: con un verbo de pedido en la misma oración, "N LED" es la cantidad, como en main.
+describe('[LED-INTERNOS] (revisión 13-11) la cantidad pedida con otro producto nombrado', () => {
+  it.each(['Para los focos necesito 20 led', 'Necesito focos, 20 LED'])('"%s" → 20', (text) => {
+    expect(readQuantity(text, { asked: true }).value).toBe(20);
+  });
+  it('la lista de especificaciones sigue sin cantidad', () => {
+    expect(readQuantity('Luminaria vial solar led\n600w\n126 led\n3000 lumenes\nIp 65', { asked: true }).value).toBeUndefined();
+  });
+});

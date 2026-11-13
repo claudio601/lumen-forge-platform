@@ -78,7 +78,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 import handler from '../whatsapp/webhook';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG4, MSG4_INSTALL, MSG4_INSTALL_NO_EMAIL, MSG_REGISTERED_SHORT, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { MSG4, MSG4_INSTALL, MSG4_INSTALL_NO_EMAIL, MSG_ALREADY_WROTE, MSG_EMAIL_SHORT, MSG_REGISTERED_SHORT, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
 const webhook = handler as unknown as Handler;
@@ -206,7 +206,8 @@ describe('T-X1 · pide un ejecutivo y la conversación se cierra sin correo', ()
     // El correo se pidió antes de cerrar, y el cierre sin correo es el texto A.
     expect(turns.slice(0, 3).some((t) => /correo/i.test(t.reply))).toBe(true);
     expect(turns[3].reply).toBe(TEXT_A);
-    expect(turns[4].reply).toBe(TEXT_A);
+    // (dueno, 12-11) La segunda peticion seguida del correo no repite el texto A.
+    expect(turns[4].reply).toBe(MSG_EMAIL_SHORT);
     // El correo tardío crea el negocio y recién ahí "ya derivé" (una vez).
     expect(turns[5].deals).toBe(1);
     expect(turns[5].reply).toMatch(YA_DERIVE);
@@ -245,10 +246,9 @@ describe('T-X1b · pidió un vendedor y siguen 4 mensajes sin intención comerci
     expect(replies.filter((r) => r === replies[0])).toHaveLength(1);
     for (let i = 1; i < 4; i++) expect(replies[i]).not.toBe(replies[i - 1]);
     expect(replies[3]).toBe(TEXT_A); // cierre sin correo
-    // DECISIÓN PENDIENTE DEL DUEÑO: con la conversación cerrada y sin correo, cada mensaje sin
-    // correo recibe otra vez el texto A (como hoy MSG4_INSTALL_NO_EMAIL en instalación). No hay un
-    // texto aprobado para no repetirlo; si se aprueba uno (o no responder), esta línea cambia.
-    expect(replies[4]).toBe(TEXT_A);
+    // DECISIÓN DEL DUEÑO (12-11): con la conversación cerrada y sin correo, el mensaje siguiente no
+    // repite el texto A: recibe MSG_EMAIL_SHORT (y así, alternados).
+    expect(replies[4]).toBe(MSG_EMAIL_SHORT);
     for (const r of replies) {
       expect(r).not.toMatch(YA_DERIVE);
       expect(r).not.toMatch(REGISTRADA);
@@ -319,8 +319,9 @@ describe('T-X2 · no sabe la comuna', () => {
       ['Busco 12 focos LED luz cálida para mi casa en Maipú', { producto: 'focos LED', tipo_de_luz: 'cálida', cantidad: '12', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú' }],
       ['no sé', {}],
     ]);
+    // (dueno, 12-11) El cierre fue el texto A: los mensajes siguientes lo alternan con MSG_EMAIL_SHORT.
     const closed = await send(phone, 'hola?', {});
-    expect(closed.reply).toBe(TEXT_A);
+    expect(closed.reply).toBe(MSG_EMAIL_SHORT);
     const name = await send(phone, 'Ana Prueba', { nombre: 'Ana Prueba' });
     expect(name.reply).toBe(TEXT_A);
     expect(sim.deals).toHaveLength(0);
@@ -574,7 +575,7 @@ describe('el correo de eLIGHTS (ventas@, que sugieren los textos A y B) no es el
     expect(sim.deals).toHaveLength(0);
   });
 
-  it('conversación cerrada sin correo, luego "ya la envié a ventas@elights.cl": el texto A, sin negocio', async () => {
+  it('conversación cerrada sin correo, luego "ya la envié a ventas@elights.cl": el texto aprobado de "ya le escribí", sin negocio', async () => {
     const phone = nextPhone();
     await chat(phone, [
       ['Hola, busco focos LED para un patio', { producto: 'focos LED', proyecto_o_uso: 'patio' }],
@@ -583,7 +584,7 @@ describe('el correo de eLIGHTS (ventas@, que sugieren los textos A y B) no es el
       ['no sé', {}],
     ]);
     const r = await send(phone, 'listo, ya la envié a ventas@elights.cl', {});
-    expect(r.reply).toBe(TEXT_A);
+    expect(r.reply).toBe(MSG_ALREADY_WROTE);
     expect(sim.deals).toHaveLength(0);
   });
 
@@ -591,7 +592,8 @@ describe('el correo de eLIGHTS (ventas@, que sugieren los textos A y B) no es el
     const phone = nextPhone();
     await chat(phone, [['quiero instalar focos en mi casa', {}], ['mmm', {}], ['mmm', {}], ['mmm', {}]]);
     const r = await send(phone, 'ok, se la mando a ventas@elights.cl', {});
-    expect(r.reply).toBe(MSG4_INSTALL_NO_EMAIL);
+    // (dueno, 12-11) Sin repetir el cierre de instalacion sin correo.
+    expect(r.reply).toBe(MSG_EMAIL_SHORT);
     expect(sim.deals).toHaveLength(0);
   });
 

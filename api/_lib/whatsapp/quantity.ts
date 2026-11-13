@@ -295,12 +295,17 @@ export function withoutNonQuantities(text: string, ruts: readonly string[] = [])
   if (marks.length >= 2 && marks.every((n, i) => i === 0 || n === marks[i - 1] + 1)) out = out.replace(INLINE_MARK_RE, '$1 ');
   // [LED-INTERNOS] "126 led" al final de una linea o clausula de especificaciones, con otro producto nombrado
   // ("Luminaria vial solar\n600w\n126 led"): son los LED del producto. "necesito 20 led" solo, si cuenta.
-  if (itemsIn(text).length) out = out.replace(/\b\d+\s*leds?(?=\s*(?:[,;.\n]|$))/g, ' ');
+  // (revision 13-11) Con un verbo de pedido antes, en la misma oracion, es la cantidad como en main: "Para los focos
+  // necesito 20 led", "Necesito focos, 20 LED".
+  if (itemsIn(text).length) out = out.replace(/\b\d+\s*leds?(?=\s*(?:[,;.\n]|$))/g, (all: string, offset: number, s: string) =>
+    ORDER_VERB_RE.test(s.slice(0, offset).split(/[.;\n]/).pop() ?? '') ? all : ' ');
   out = withoutProductLeds(out);
   for (const re of NOT_QUANTITY) out = out.replace(re, ' ');
   return out;
 }
 
+// [LED-INTERNOS] (revision 13-11) Un verbo de pedido: lo que sigue en la oracion es lo que se pide.
+const ORDER_VERB_RE = /\b(?:necesit[a-z]*|quier[a-z]*|quisiera|requier[a-z]*|requerimos|cotiz[a-z]*|ocup[a-z]*|busc[a-z]*|compr[a-z]*|pid[a-z]*|son|seran|serian)\b/;
 // [LED-INTERNOS] (revision 12-11) El producto que lleva LED: "barra de 36 LED", "luminaria con 126 led", "BARRA DE
 // EMERGENCIA 60 LEDs RECARGABLE" (el titulo de la ficha que manda el boton). "una cotizacion de 20 LED", "alrededor de
 // 50 led", "un pedido de 100 leds" o "necesito 20 led" siguen siendo la cantidad.

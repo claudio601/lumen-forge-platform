@@ -476,6 +476,8 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           captured: flowResult.captured,
                           captureStatus: flowResult.captureStatus,
                           wantsHuman: flowResult.wantsHuman,
+                          // [REGISTRO] (revision 13-11) En un negocio que ya existe, el tipo del flujo, no el del mensaje.
+                          flowLeadType: getFlowState(phone).leadType,
                           // [TRANSCRIPCION] Hasta este mensaje, con la respuesta que lo acompana (y la marca del
                           // aviso de privacidad si la lleva): lo que llegue mientras tanto va a la nota siguiente.
                           transcript: transcriptForNote(phone, { ...noteOpts, reply: botReplyText(flowResult.reply, noticeDue) }),

@@ -1217,6 +1217,16 @@ describe('tipo de cliente en un negocio que ya existe', () => {
     for (const [, payload] of vi.mocked(updateDeal).mock.calls) expect(JSON.stringify(payload)).not.toContain('B2C');
   });
 
+  // (revisión de Codex, 13-11) "despacho" contenía "spa" y el webhook no pasaba el tipo del flujo.
+  it.each([['B2C' as const], [undefined]])('"¿Cuál es el precio con despacho?" de una persona no sube el negocio a B2B (tipo del flujo: %s)', (flowLeadType) => {
+    const person = { ...params, body: '¿Cuál es el precio con despacho?', captured: { producto: 'focos LED', cantidad: '10', proyecto_o_uso: 'casa' }, flowLeadType };
+    expect(buildWhatsAppUpdate({ ...person, existingDealId: 9001 }).fields?.cf_wa_tipo).toBeUndefined();
+  });
+
+  it('el tipo B2B del flujo sí llega al negocio registrado', () => {
+    expect(buildWhatsAppUpdate({ ...params, flowLeadType: 'B2B', existingDealId: 9001 }).fields?.cf_wa_tipo).toBe('B2B');
+  });
+
   it('un RUT de empresa tardío sí deja el negocio en B2B', () => {
     const update = buildWhatsAppUpdate({ ...params, body: '77.123.456-9', captured: { ...params.captured, rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' }, existingDealId: 9001 });
     expect(update.fields?.cf_wa_tipo).toBe('B2B');

@@ -33,6 +33,8 @@ export interface WhatsAppLeadParams {
     captureStatus?: CaptureStatus;
     wantsHuman?: boolean;
     leadType?: 'B2B' | 'B2C' | 'Unknown';
+    /** [REGISTRO] (revision 13-11) El tipo que lleva el flujo: en un negocio que ya existe manda sobre el mensaje. */
+    flowLeadType?: 'B2B' | 'B2C' | 'Unknown';
     priorityTier?: 'Alta' | 'Normal';
     existingDealId?: number;
     /** [TRANSCRIPCION] La conversacion en texto plano (transcript.ts); sin ella, la nota trae este mensaje. */
@@ -639,8 +641,10 @@ export function buildWhatsAppUpdate(params: WhatsAppLeadParams & { existingDealI
  * lo sube). Una pregunta o un dato tardio sin palabras de empresa ("Cuanto cuesta cada una de las campanas?") no lo
  * vuelve B2C: el tipo del registro no se recalcula desde el mensaje nuevo.
  */
+// (revision 13-11) Con el tipo del flujo no se vuelve a detectar desde el mensaje: "¿Cual es el precio con despacho?"
+// de una persona ya no sube el negocio a B2B.
 function updateLeadType(params: WhatsAppLeadParams): 'B2B' | undefined {
-    return (params.leadType ?? detectLeadType(params.body, params.captured)) === 'B2B' ? 'B2B' : undefined;
+    return (params.leadType ?? params.flowLeadType ?? detectLeadType(params.body, params.captured)) === 'B2B' ? 'B2B' : undefined;
 }
 
 export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<WhatsAppDealResult> {
@@ -730,7 +734,8 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
 }
 
 function detectLeadType(body: string, captured?: CapturedFields): 'B2B' | 'B2C' | 'Unknown' {
-    const B2B_RE = /empresa|constructora|obra|factura|licitaci[o\u00f3]n|proveedor|s\.a\.|spa|ltda|ingenier\u00eda|arquitectura|instalador/i;
+    // (revision 13-11) Palabras enteras al comienzo: "despacho" ya no es "spa".
+    const B2B_RE = /(?<![a-z\u00e0-\u00fc])(?:empresa|constructora|obra|factura|licitaci[o\u00f3]n|proveedor|s\.a\.|spa(?![a-z\u00e0-\u00fc])|ltda|ingenier\u00eda|arquitectura|instalador)/i;
     const text = body + ' ' + (fmt(captured?.nombre_o_empresa) ?? '');
     if (B2B_RE.test(text)) return 'B2B';
     // [RUT-VALIDO] Un RUT valido de empresa, organismo o comunidad (no de persona) es B2B.

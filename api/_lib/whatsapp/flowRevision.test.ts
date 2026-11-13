@@ -295,11 +295,80 @@ describe('[SIN-REPETIR] con el negocio registrado', () => {
     expect(second.reply).toBe(flow.MSG_Q_TECH_HAS_EMAIL);
   });
 
-  it('cerrada sin correo: el texto A se repite (decisión pendiente del dueño, T-X1b)', () => {
+  it('cerrada sin correo: el texto A no se repite, alterna con MSG_EMAIL_SHORT (dueño, 12-11, T-X1b)', () => {
     step('Necesito 12 focos LED luz cálida para mi casa en Maipú', { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú' });
     for (let i = 0; i < 4 && flow.getFlowState(PHONE).stage !== 'closed'; i++) step('no sé');
     expect(flow.getFlowState(PHONE).stage).toBe('closed');
-    expect(step('hola?').reply).toBe(flow.MSG_NEED_EMAIL);
+    expect(step('hola?').reply).toBe(flow.MSG_EMAIL_SHORT);
     expect(step('ok').reply).toBe(flow.MSG_NEED_EMAIL);
+  });
+});
+
+// Revisión de Codex del 13-11-2026 (informe-01): cada hallazgo con su escenario.
+describe('[REVISION-CODEX 13-11] correcciones después del cierre y textos del dueño', () => {
+  const UFO = 'Necesito 10 campanas UFO 100W luz fría para un galpón en Maipú. Soy Ana Prueba, ana.prueba@example.com';
+  const UFO_CLAUDE: Claude = { producto: 'campanas UFO 100W', cantidad: '10', tipo_de_luz: 'fría', proyecto_o_uso: 'galpón', comuna_o_ciudad: 'Maipú', ...ANA };
+
+  it('"Gracias, finalmente me respondieron. Mi otra casa está en Pirque" no cambia la comuna registrada', () => {
+    closeRegistered(UFO, UFO_CLAUDE);
+    const r = step('Gracias, finalmente me respondieron. Mi otra casa está en Pirque', { comuna_o_ciudad: 'Pirque' });
+    expect(r.rutUpdate).toBeUndefined();
+    expect(flow.getFlowState(PHONE).captured.comuna_o_ciudad).toBe('Maipú');
+  });
+
+  // El caso positivo de la misma oracion ("necesitamos definitivamente ... 5700k") es el negocio 145 de flowFase1.test.ts.
+
+  for (const [who, claude] of [['acierta', { producto: 'campanas UFO 200W', cantidad: '10', proyecto_o_uso: 'galpón', comuna_o_ciudad: 'Quilicura' }], ['vacío', {}]] as const) {
+    it(`"Necesito 10 campanas UFO 200W para un galpón en Quilicura" (misma cantidad, otro modelo) abre otra conversación (Claude ${who})`, () => {
+      closeRegistered(UFO, UFO_CLAUDE);
+      const r = step('Necesito 10 campanas UFO 200W para un galpón en Quilicura', claude);
+      expect(r.closedFlow).toBe(false);
+      expect(r.rutUpdate).toBeUndefined();
+      expect(r.captured.comuna_o_ciudad).toBe('Quilicura');
+    });
+  }
+
+  it('"Ahora necesito 10 campanas UFO 100W para un galpón en Quilicura" (otra comuna) abre otra conversación, como en main', () => {
+    closeRegistered(UFO, UFO_CLAUDE);
+    const r = step('Ahora necesito 10 campanas UFO 100W para un galpón en Quilicura', UFO_CLAUDE.producto ? { producto: 'campanas UFO 100W', cantidad: '10', comuna_o_ciudad: 'Quilicura' } : {});
+    expect(r.closedFlow).toBe(false);
+    expect(r.captured.comuna_o_ciudad).toBe('Quilicura');
+  });
+
+  it('"Corrijo: el despacho es a Quilicura" cambia la comuna; "¿Despachan a Quilicura?" no', () => {
+    closeRegistered(UFO, UFO_CLAUDE);
+    step('¿Despachan a Quilicura?', { comuna_o_ciudad: 'Quilicura' });
+    expect(flow.getFlowState(PHONE).captured.comuna_o_ciudad).toBe('Maipú');
+    const r = step('Corrijo: el despacho es a Quilicura', { comuna_o_ciudad: 'Quilicura' });
+    expect(r.rutUpdate).toBe(true);
+    expect(flow.getFlowState(PHONE).captured.comuna_o_ciudad).toBe('Quilicura');
+  });
+
+  it('"Son 5 unidades" después de varios ítems registrados no deja el número y los varios ítems a la vez', () => {
+    closeRegistered('Necesito 12 focos LED y 5 paneles LED luz cálida para mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com', { tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', ...ANA });
+    const before = flow.getFlowState(PHONE).captured;
+    step('Son 5 unidades', { cantidad: '5' });
+    const after = flow.getFlowState(PHONE).captured;
+    expect(Boolean(after.cantidad && after.cantidad_varios)).toBe(false);
+    expect(after.cantidad).toBe(before.cantidad);
+    expect(after.cantidad_varios).toBe(before.cantidad_varios);
+  });
+
+  it.each([
+    ['Necesito 5 cintas LED', 'Corrijo: necesito 5 metros de cinta LED', 'm'],
+    ['Necesito 5 metros de cinta LED', 'Corrijo: necesito 5 cintas LED', undefined],
+  ])('"%s" y luego "%s": la unidad cambia con el mismo número', (first, second, unit) => {
+    step(first, {});
+    step(second, {});
+    const captured = flow.getFlowState(PHONE).captured;
+    expect(captured.cantidad).toBe('5');
+    expect(captured.cantidad_unidad).toBe(unit);
+  });
+
+  it('"Ok, yo le escribí a Claudio" sin correo recibe el texto aprobado y no se repite', () => {
+    step('Necesito 12 focos LED luz cálida para mi casa en Maipú', { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú' });
+    for (let i = 0; i < 4 && flow.getFlowState(PHONE).stage !== 'closed'; i++) step('no sé');
+    expect(step('Ok, yo le escribí a Claudio').reply).toBe(flow.MSG_ALREADY_WROTE);
+    expect(step('ya le escribí').reply).toBe(flow.MSG_EMAIL_SHORT);
   });
 });
