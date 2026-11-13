@@ -155,6 +155,36 @@ describe('POST /api/quotes/create', () => {
     expect(pipedrivePost).not.toHaveBeenCalled();
   });
 
+  it.each([undefined, null, '', '   ', 'correo-invalido', 123])(
+    'sitio con teléfono y correo %s: 400 antes de las integraciones, también con API key', async (email) => {
+      vi.stubEnv('QUOTES_API_KEY', 'k');
+      for (const headers of [{}, { 'x-api-key': 'k' }]) {
+        const res = await call({ ...persona(), customer: { ...customer, email } }, headers);
+        expect(res.statusCode).toBe(400);
+        expect(res.body).toMatchObject({ success: false, error: 'Validation failed' });
+        expect(fetch).not.toHaveBeenCalled();
+        expect(processQuoteToCrm).not.toHaveBeenCalled();
+        expect(pipedrivePost).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it('formulario anterior del sitio sin correo: 400 aunque tenga teléfono', async () => {
+    const res = await call({ ...quote('nuevo_elights'), customer: { name: NAME, phone: PHONE } });
+    expect(res.statusCode).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(processQuoteToCrm).not.toHaveBeenCalled();
+  });
+
+  it.each(['jumpseller', 'whatsapp', 'manual'])('%s con API key conserva el contacto solo por teléfono', async (source) => {
+    vi.stubEnv('QUOTES_API_KEY', 'k');
+    const res = await call({ ...quote(source), customer: { name: NAME, phone: PHONE } }, { 'x-api-key': 'k' });
+    expect(res.statusCode).toBe(201);
+    expect(crmPayload().customer).toEqual({ name: NAME, phone: PHONE });
+    expect(fetch).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+  });
+
   it('empresa: un correo ANTES de Pipedrive con los datos de facturación y el total CON IVA', async () => {
     const res = await call(empresa());
     expect(res.statusCode).toBe(201);

@@ -212,9 +212,17 @@ function buildNotes(
     resend
       ? `Reenvío de la solicitud ${p.requestReference} (misma referencia; no se creó un negocio nuevo)`
       : `Solicitud de pedido ${p.requestReference}`,
+    `Nombre: ${p.fullName}`,
+    `Correo: ${p.email}`,
+    `Teléfono: ${p.phone}`,
+    `Tipo de cliente: ${p.customerType === 'empresa' ? 'Empresa' : 'Persona natural'}`,
+    `Documento: ${p.customerType === 'empresa' ? 'Factura' : 'Boleta'}`,
     `Region: ${p.region} | Comuna: ${p.commune}`,
   ];
-  if (p.rut) lines.push(`RUT: ${p.rut}`);
+  if (p.customerType === 'empresa') {
+    lines.push(`Empresa: ${p.companyName}`);
+    if (p.rut) lines.push(`RUT: ${p.rut}`);
+  }
   if (p.notes) lines.push(`Notas del cliente: ${p.notes}`);
   lines.push('--- Items solicitados (precios CON IVA desde Jumpseller) ---');
   p.items.forEach((i) => {

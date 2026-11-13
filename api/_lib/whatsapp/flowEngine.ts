@@ -328,16 +328,16 @@ const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|dayl
 const EMAIL_RE = /(?<![a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
 const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jard[i\u00ed]n|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 
-// NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE - no es senal B2B por si sola
-// [B2B] Palabras completas: "despacho" y "espacio" traen "spa", y "sobra" o "cobra" traen "obra" (caso del 12-11:
+// El recinto de instalacion (oficina, bodega, obra, local o proyecto comercial) no identifica al comprador.
+// [B2B] Palabras completas: "despacho" y "espacio" traen "spa" (caso del 12-11:
 // una persona que pregunto por el despacho paso a empresa y se le pidio el RUT de la empresa).
 // (revision 12-11) Con letras con tilde: "\w" no incluye la "o" con tilde y "licitacion" o "facturacion" escritas con
 // tilde dejaban de ser empresa.
-const B2B_SIGNAL_RE = /(?<![a-z\u00e0-\u00fc])(?:empresa[a-z\u00e0-\u00fc]*|factur[a-z\u00e0-\u00fc]*|obras?|proveedor[a-z\u00e0-\u00fc]*|licitaci[a-z\u00e0-\u00fc]*|constructor[a-z\u00e0-\u00fc]*|bodegas?|oficinas?|locale?s?\s+comercial(?:es)?|proyectos?\s+comercial(?:es)?|spa|ltda)(?![a-z\u00e0-\u00fc])|(?<![a-z\u00e0-\u00fc])s\.\s?a\./i;
+const B2B_SIGNAL_RE = /(?<![a-z\u00e0-\u00fc])(?:empresa[a-z\u00e0-\u00fc]*|factur[a-z\u00e0-\u00fc]*|proveedor[a-z\u00e0-\u00fc]*|licitaci[a-z\u00e0-\u00fc]*|constructor[a-z\u00e0-\u00fc]*|razon\s+social|giro\s*:|spa|ltda)(?![a-z\u00e0-\u00fc])|(?<![a-z\u00e0-\u00fc])s\.\s?a\./i;
 // [B2B] La bodega, la oficina, el local o la tienda de eLIGHTS no son del cliente: "Donde queda su bodega?", "Puedo
 // retirar en la bodega?" (la respuesta natural a MSG_LOCATION) o "Tienen oficina para ir a verlos?" no lo vuelven
-// empresa. En una pregunta por la ubicacion o el despacho esas palabras salen; "la obra", "la empresa" o la del cliente
-// ("Despachan a nuestra bodega en Lampa?") no.
+// empresa. En una pregunta por la ubicacion o el despacho esas palabras salen; se conservan las referencias al cliente
+// para reconocer sus senales explicitas de empresa.
 const STORE_WORD_RE = /(?<![a-z\u00e0-\u00fc])(?<!\b(?:mi|mis|nuestr[oa]s?|tu|tus)\s+)(?:bodegas?|oficinas?|locale?s?(?:\s+comercial(?:es)?)?|tiendas?|sucursal(?:es)?)(?![a-z\u00e0-\u00fc])/gi;
 /** [B2B] El mensaje para buscar senales de empresa: sin enlaces, correos ni tildes, ni los lugares de la tienda. */
 function b2bText(body: string): string {

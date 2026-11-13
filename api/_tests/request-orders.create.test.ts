@@ -33,6 +33,8 @@ vi.mock('../_lib/catalog/price-index.generated.js', () => ({
 import handler, { itemsJsonLine } from '../request-orders/create';
 import { createDeal } from '../_lib/pipedrive/deals.js';
 import { findOrCreatePerson } from '../_lib/pipedrive/persons.js';
+import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
+import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { priceIndex } from '../_lib/catalog/price-index.generated.js';
@@ -81,6 +83,9 @@ describe('POST /api/request-orders/create', () => {
   beforeEach(() => {
     vi.mocked(createDeal).mockClear();
     vi.mocked(pipedrivePost).mockClear();
+    vi.mocked(findOrCreatePerson).mockClear();
+    vi.mocked(findOrCreateOrganization).mockClear();
+    vi.mocked(initFieldOptions).mockClear();
     process.env.PIPEDRIVE_PIPELINE_ID = '1';
     process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID = '2';
     vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ status: 'ok' }) })));
@@ -88,6 +93,46 @@ describe('POST /api/request-orders/create', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it.each([undefined, '', '   ', 'correo-invalido'])('pedido con correo %s: 400 sin iniciar integraciones', async (email) => {
+    const res = await call({ ...base, email, items: [ar111] });
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toMatchObject({ success: false, error: 'Validation failed' });
+    expect(initFieldOptions).not.toHaveBeenCalled();
+    expect(findOrCreatePerson).not.toHaveBeenCalled();
+    expect(findOrCreateOrganization).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+    expect(pipedrivePost).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['persona', 'Persona natural', 'Boleta'],
+    ['empresa', 'Empresa', 'Factura'],
+  ])('nota de %s: conserva comprador y documento, incluso en reenvíos', async (customerType, tipo, documento) => {
+    const companyName = 'COMERCIAL PRUEBA SPA';
+    const rut = 'RUT-EMPRESA-PRUEBA';
+    for (const status of ['created', 'skipped_duplicate']) {
+      vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status } as never);
+      const res = await call({ ...base, customerType, companyName, rut, items: [ar111], notes: 'COMENTARIO PRUEBA' });
+      expect(res.statusCode).toBe(201);
+      const [, note] = vi.mocked(pipedrivePost).mock.calls.at(-1) as unknown as [string, { content: string }];
+      for (const line of [
+        `Nombre: ${base.fullName}`, `Correo: ${base.email}`, `Teléfono: ${base.phone}`,
+        `Tipo de cliente: ${tipo}`, `Documento: ${documento}`,
+      ]) expect(note.content).toContain(line);
+      if (customerType === 'empresa') {
+        expect(note.content).toContain(`Empresa: ${companyName}`);
+        expect(note.content).toContain(`RUT: ${rut}`);
+      } else {
+        expect(note.content).not.toContain(companyName);
+        expect(note.content).not.toContain(rut);
+        expect(note.content).not.toContain('RUT:');
+      }
+      expect(note.content.indexOf('Notas del cliente: COMENTARIO PRUEBA')).toBeLessThan(note.content.indexOf('--- Items solicitados'));
+      expect(note.content.split('\n').at(-1)).toMatch(/^requested_items_json: /);
+    }
+  });
 
   it('un precio alterado en el navegador no llega a Pipedrive: se usa el del catálogo (CON IVA)', async () => {
     const res = await call({ ...base, items: [ar111], subtotal: 200 });

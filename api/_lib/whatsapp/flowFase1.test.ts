@@ -75,6 +75,8 @@ describe('[B2B] una persona que pregunta por el despacho sigue siendo persona', 
     'hacen despachos a regiones?',
     'me sobra uno',
     'es para un espacio de mi casa en Maipú',
+    'es para una obra',
+    'necesito un proyector con giro de 180 grados',
     'Sabes cuando demora el despacho',
   ])('"%s" deja B2C y nunca pide el RUT de la empresa', (body) => {
     step('Hola, necesito 5 focos LED luz cálida para mi casa', { producto: 'focos LED', cantidad: '5', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa' });
@@ -85,7 +87,7 @@ describe('[B2B] una persona que pregunta por el despacho sigue siendo persona', 
     expect(end.reply).not.toBe(flow.MSG4_B2B);
   });
 
-  it.each(['Somos Comercial Prueba SpA', 'es para una obra', 'necesito factura', 'Somos una constructora'])('"%s" sigue siendo B2B', (body) => {
+  it.each(['Somos Comercial Prueba SpA', 'necesito factura', 'Somos una constructora'])('"%s" sigue siendo B2B', (body) => {
     step('Hola, necesito 5 focos LED luz cálida', { producto: 'focos LED', cantidad: '5', tipo_de_luz: 'cálida' });
     step(body);
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
