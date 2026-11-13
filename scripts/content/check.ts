@@ -173,6 +173,12 @@ const FORBIDDEN: [RegExp, string][] = [
   ],
   [/mejor precio|precios? (?:bajos?|competitivos?|imbatibles?)|m[aá]s barat|oferta|descuento|liquidaci[oó]n|promoci[oó]n/i, 'habla de precios u ofertas'],
   [/de por vida/i, 'garantía de por vida'],
+  // Persona natural: boleta; empresa: factura (regla del dueño, 13-11-2026). «factura» sola solo
+  // cuando dice que es para la empresa
+  [
+    /(?<!boleta o )\bfactur\w*\b(?! para (?:empresas|municipios|tu empresa)| a nombre de tu empresa)/i,
+    'promete factura en toda compra: las personas reciben boleta (va "boleta o factura"; "factura" sola, solo "para empresas")',
+  ],
   // «D.S. N°1/2022» (la norma de contaminación lumínica) no es declararse «N°1»
   [/(?<!D\.\s?S\.\s?)\bn[°º]\s?1\b|n[uú]mero uno|l[ií]der (?:del|en el) mercado/i, 'se declara líder'],
   [/24\/7/, 'promete atención 24/7'],

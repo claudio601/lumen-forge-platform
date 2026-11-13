@@ -214,6 +214,9 @@ const EDITORIAL_EDITS: [string, string][] = [
     'cuenta con certificación SEC en sus 4 variantes y con certificación DS1 en sus variantes 2200K y 2700K.',
   ],
   ['(1% luz azul)', '(luz azul ≤1%)'],
+  // Persona natural: boleta; empresa: factura (regla del dueño, 13-11-2026)
+  ['desde la fecha de emisión de factura', 'desde la fecha de emisión de boleta o factura'],
+  ['con número de factura y descripción', 'con número de boleta o factura y descripción'],
   ['(7% luz azul)', '(luz azul ≤7%)'],
   ...BESTLED_WATTS.flatMap((w): [string, string][] => [
     [`APB${w}A`, `APB${w}1`],
