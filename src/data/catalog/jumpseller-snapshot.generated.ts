@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '1a0aab747d52';
+export const SNAPSHOT_HASH = '4a4c305e188a';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -9117,59 +9117,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Fría"
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "jumpseller_id": 4615634,
-    "name": "ESTACA LED SOLAR 4W JARDÍN IP65",
-    "permalink": "estaca-led-cob-2w-jardin-ip65",
-    "sku": "",
-    "price": 11090,
-    "brand": "JIE",
-    "featured": false,
-    "categories": [
-      "iluminacion-exterior"
-    ],
-    "images": [
-      {
-        "id": 7898354,
-        "url": "https://images.jumpseller.com/store/elights-cl/4615634/01-estaca-led-solar.png?1583786236",
-        "position": 1
-      },
-      {
-        "id": 7923737,
-        "url": "https://images.jumpseller.com/store/elights-cl/4615634/muro-estaca-led-jardin-solar.png?1584043522",
-        "position": 2
-      },
-      {
-        "id": 7923745,
-        "url": "https://images.jumpseller.com/store/elights-cl/4615634/02-estaca-led-jardin-solar.png?1584043605",
-        "position": 3
-      }
-    ],
-    "variants": [
-      {
-        "id": 118625443,
-        "sku": "",
-        "price": 11090,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Cálida - 3000K"
-          }
-        ]
-      },
-      {
-        "id": 95315655,
-        "sku": "ELC5J",
-        "price": 11090,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
           }
         ]
       }
