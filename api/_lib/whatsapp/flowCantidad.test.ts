@@ -1119,8 +1119,7 @@ describe('un punto entre cifras no corta la oración (verificación adversaria d
   });
 
   it.each([
-    // metros: es una medida, como "10 metros de cinta"
-    'Necesito 10.000 metros de cinta LED',
+    // metros con decimales: es una medida, como "1,5 metros de cinta" ([METROS]: "10.000 metros" ya cuenta)
     'Necesito 1.5 metros de cinta LED',
     'Necesito cinta LED de 1,5 metros',
     'Necesito focos LED, el presupuesto es $1.000',
@@ -1325,4 +1324,107 @@ describe('negaciones de cantidad y correcciones con cantidad anterior', () => {
       expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30']);
     });
   }
+});
+
+// Fase 1 del bot (12-11-2026, propuesta del dueño punto 5): metros, varios ítems por imagen y pedidos largos.
+describe('[METROS] los metros que se piden quedan con su unidad', () => {
+  it('después de "cinta LED neoflex", "Necesito 500 metros" es 500 m, no vuelve a preguntar y la nota dice "500 m"', () => {
+    step('Necesito cinta LED neoflex luz cálida', { producto: 'cinta LED neoflex', tipo_de_luz: 'cálida' });
+    const r = step('Necesito 500 metros', { cantidad: '500' });
+    expect(r.captured).toMatchObject({ cantidad: '500', cantidad_unidad: 'm' });
+    expect(r.reply).not.toMatch(/cantidad de unidades/i);
+    const note = buildNote({ phone: PHONE, name: 'Cliente Prueba', summary: '', body: 'Necesito 500 metros', captured: r.captured });
+    expect(note).toContain('Cantidad: 500 m\n');
+  });
+
+  it('"10.000 metros de cinta LED" es 10.000 m', () => {
+    const r = step('Necesito 10.000 metros de cinta LED', { producto: 'cinta LED', cantidad: '10000' });
+    expect(r.captured).toMatchObject({ cantidad: '10000', cantidad_unidad: 'm' });
+  });
+
+  it('"Cinta Led, 2000 metros, comuna Tierra Amarilla": 2000 m y la comuna', () => {
+    const r = step('Cinta Led, 2000 metros, comuna Tierra Amarilla', { producto: 'Cinta Led' });
+    expect(r.captured).toMatchObject({ cantidad: '2000', cantidad_unidad: 'm', comuna_o_ciudad: 'Tierra Amarilla' });
+  });
+
+  it('"90 mtros" como respuesta a la pregunta por la cantidad es 90 m, no 90 unidades', () => {
+    step('Hola, necesito cinta LED', { producto: 'cinta LED' });
+    const r = step('90 mtros', { cantidad: '90' });
+    expect(r.captured).toMatchObject({ cantidad: '90', cantidad_unidad: 'm' });
+  });
+
+  it('después de los metros, una cantidad en unidades borra la unidad', () => {
+    step('Necesito 500 metros de cinta LED', { producto: 'cinta LED' });
+    const r = step('perdón, son 5 rollos', { cantidad: '5' });
+    expect(r.captured.cantidad).toBe('5');
+    expect(r.captured.cantidad_unidad).toBeUndefined();
+  });
+
+  it.each(['1 rollo de 50 mts o +', 'necesito 1 rollo de 50 mts'])('"%s" es 1, sin metros', (body) => {
+    const r = step(body, { producto: 'cinta LED' });
+    expect(r.captured.cantidad).toBe('1');
+    expect(r.captured.cantidad_unidad).toBeUndefined();
+  });
+
+  it.each(['cinta led para exterior de 50 mts', 'focos para un poste a 3 metros', 'necesito lo siguiente en 200 metros'])('"%s" deja la cantidad vacía', (body) => {
+    expect(step(body, { producto: 'cinta LED' }).captured.cantidad).toBeUndefined();
+  });
+});
+
+describe('[LED-INTERNOS] los LED del producto no son la cantidad', () => {
+  it.each([
+    ['Luz De 36 LED Barra De 50 Cm Con Sensor De Movimiento En Luz Blanca Recargable', '36'],
+    ['cinta led interior calida de de 60 led por 5 metros', '60'],
+    ['Luminaria vial solar led\n600w\n126 led\n3000 lumenes\nIp 65', '126'],
+  ])('"%s" deja la cantidad vacía y la pregunta, aunque Claude diga %s', (body, number) => {
+    for (const claude of [{}, { cantidad: number }]) {
+      const r = step(body, { producto: 'luminaria', ...claude });
+      expect(r.captured.cantidad).toBeUndefined();
+      expect(r.reply).toMatch(/cantidad de unidades/i);
+      flow.clearFlowState(PHONE);
+    }
+  });
+});
+
+describe('[VARIOS-IMAGEN] cada imagen con su cantidad es otro ítem', () => {
+  const MEDIA = { ...NO_SIGNALS, hasMedia: true };
+  const media = (body: string, claude: Claude = {}) => flow.processFlowStep(PHONE, body, claude, MEDIA);
+
+  it('"12 UND" y "5 UND" con una imagen cada uno quedan los dos, para revisar', () => {
+    step('NECESITO COTIZACION DE PRODUCTOS');
+    expect(media('12 UND', { cantidad: '12' }).captured.cantidad).toBe('12');
+    const r = media('5 UND', { cantidad: '5' });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toContain('12');
+    expect(r.captured.cantidad_varios).toContain('5 UND');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 12, ahora varios items']);
+    const note = buildNote({ phone: PHONE, name: 'Cliente Prueba', summary: '', body: '5 UND', captured: r.captured });
+    expect(note).toMatch(/Cantidad: varios items, revisar: .*12.* 5 UND/);
+  });
+
+  it('con una imagen, "perdón, son 5" sí corrige la cantidad', () => {
+    step('NECESITO COTIZACION DE PRODUCTOS');
+    media('12 UND', { cantidad: '12' });
+    const r = media('perdón, son 5', { cantidad: '5' });
+    expect(r.captured.cantidad).toBe('5');
+  });
+
+  it('sin imagen, "mejor que sean 3 paneles" sigue cambiando la cantidad', () => {
+    step('Necesito 10 paneles LED', { producto: 'paneles LED', cantidad: '10' });
+    const r = step('mejor que sean 3 paneles', { cantidad: '3' });
+    expect(r.captured.cantidad).toBe('3');
+  });
+});
+
+describe('[VARIOS] un pedido largo de varios ítems queda entero en la nota', () => {
+  it('los tres ítems de un mensaje con especificaciones llegan a la nota', () => {
+    const body = '141 tubos LED T5 G5 de 6.500 K, 16–20 W, ≥1.800 lm, CRI ≥80, FP ≥0,90, 220 V, largo ~1.149–1.170 mm\n60 plafones LED circulares sobrepuestos 24W luz fría\n141 portalámparas G5';
+    const r = step(body, { producto: 'tubos LED T5' });
+    expect(r.captured.cantidad).toBeUndefined();
+    for (const item of ['141 tubos', '60 plafones', '141 portalámparas']) expect(r.captured.cantidad_varios).toContain(item);
+    const note = buildNote({ phone: PHONE, name: 'Cliente Prueba', summary: '', body, captured: r.captured });
+    expect(note).toContain('Cantidad: varios items, revisar:');
+    expect(note).toContain('60 plafones LED circulares');
+    expect(note).toContain('141 portalámparas G5');
+  });
 });

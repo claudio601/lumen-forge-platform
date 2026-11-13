@@ -154,11 +154,9 @@ const EMAILS = [
 describe.each<Closure>(['registered', 'failed'])('regresiones conservadas: correo con cierre %s', (kind) => {
   it.each(EMAILS)('%s', (body, correo) => {
     close(kind);
-    // Main ya reiniciaba estas dos formas con negocio fallido: no hay corrección registrada.
-    if (kind === 'failed' && (body.startsWith('Necesito') || body.startsWith('Mi correo nuevo'))) {
-      expectNew(body);
-      return;
-    }
+    // [REINICIO] (fase 1, 12-11-2026) Con el negocio fallido, "Necesito corregir mi correo: X" y "Mi correo nuevo es
+    // nueva_cotizacion@…" ya no empiezan otra conversación (antes la reiniciaban y perdían el pedido): no nombran
+    // otro producto ni otra cantidad, y la palabra del correo no es una cotización. Siguen como las demás formas.
     const r = step(body);
     expect(r.closedFlow).toBe(true);
     expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '12' });

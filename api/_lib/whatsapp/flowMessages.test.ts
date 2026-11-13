@@ -34,8 +34,9 @@ describe('solo correo: ningún mensaje ofrece seguir por WhatsApp o por teléfon
     expect(flow.MSG_HUMAN).toContain('Te va a atender Claudio Quero directamente por correo');
   });
 
-  it('cierre de instalación con correo: se escribe por correo', () => {
-    expect(flow.MSG4_INSTALL).toContain('Te vamos a escribir por correo');
+  it('cierre de instalación con correo: el cierre aprobado (11-11-2026), por correo y sin visita', () => {
+    expect(flow.MSG4_INSTALL).toBe('Tu solicitud quedó registrada. Claudio Quero te responderá por correo el mismo día hábil.');
+    expect(flow.MSG4_INSTALL).not.toMatch(/visita|terreno|llam/i);
     expect(flow.installClosingMsg({ install_correo: 'a@example.com' })).toBe(flow.MSG4_INSTALL);
   });
 

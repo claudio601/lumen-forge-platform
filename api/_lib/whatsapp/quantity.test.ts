@@ -6,6 +6,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { claudeQuantity, readQuantity } from './quantity';
+import { jumpsellerSnapshot } from '../../../src/data/catalog/jumpseller-snapshot.generated';
+import { waProductUrl } from '../../../src/config/business';
+import { isSyncBot } from '../../../src/test/syncBot';
 
 describe('cantidad explícita en el texto', () => {
   it.each([
@@ -405,8 +408,7 @@ describe('separador de miles con punto (verificación adversaria de la PR #142)'
   });
 
   it.each([
-    // metros: es una medida, como "10 metros de cinta" (el bot pregunta las unidades)
-    '10.000 metros de cinta LED',
+    // [METROS] "10.000 metros de cinta LED" ya no queda vacía: son 10.000 m (ver "metros que se piden")
     'una tira de 1.5 metros',
     'una tira de 1,5',
     'presupuesto de $1.000',
@@ -439,5 +441,131 @@ describe('ronda 8 (el punto de "aprox." no corta la negación)', () => {
     ['Busco aprox. 12 paneles LED', 12],
   ])('la afirmativa con la abreviatura "%s" → %i', (text, expected) => {
     expect(readQuantity(text)).toEqual({ value: expected, explicit: true });
+  });
+});
+
+// [LED-INTERNOS] Fase 1 del bot (negocios 120, 122 y 164): los LED que trae el producto no son unidades.
+describe('los LED del producto no son la cantidad', () => {
+  it.each([
+    'Luz De 36 LED Barra De 50 Cm Con Sensor De Movimiento En Luz Blanca Recargable',
+    'cinta led interior calida de de 60 led por 5 metros',
+    'Luminaria vial solar led\n600w\n126 led\n3000 lumenes\nIp 65',
+    '60 leds/m',
+  ])('%s → vacía, aunque la pregunta pidiera la cantidad y Claude diga la cifra', (text) => {
+    const number = text.match(/\d+(?=\s*led)/i)?.[0] ?? '';
+    for (const claude of [undefined, number]) {
+      expect(readQuantity(text, { asked: true, claude }).value).toBeUndefined();
+      expect(readQuantity(text, { claude }).value).toBeUndefined();
+    }
+  });
+
+  it.each([
+    ['80 LED redondo embutido, 18 W, luz fría', 80],
+    ['necesito 20 led', 20],
+    ['necesito 2 barras de 36 led', 2],
+  ])('%s → %i (LED como producto, o la cantidad de barras)', (text, expected) => {
+    expect(readQuantity(text, { asked: true }).value).toBe(expected);
+  });
+});
+
+// [METROS] Fase 1 del bot (negocios 143, 156, 208 y 212): los metros que se piden quedan con su unidad.
+describe('metros que se piden', () => {
+  it.each([
+    ['10.000 metros de cinta LED', 10000, false],
+    ['Necesito 500 metros', 500, false],
+    ['Cinta Led, 2000 metros, comuna Tierra Amarilla', 2000, false],
+    ['500 metros de cinta neoflex', 500, false],
+    ['90 mtros', 90, true],
+  ])('%s → %i m', (text, value, asked) => {
+    expect(readQuantity(text, { asked })).toEqual({ value, explicit: true, unit: 'm' });
+  });
+
+  it('"1 rollo de 50 mts o +" es 1 rollo, sin metros', () => {
+    expect(readQuantity('1 rollo de 50 mts o +')).toEqual({ value: 1, explicit: true });
+  });
+
+  it.each([
+    'cinta led para exterior de 50 mts',
+    'Necesito 1.5 metros de cinta LED',
+    'cinta LED de 1,5 metros',
+    'focos para un poste a 3 metros',
+    'necesito lo siguiente en 200 metros',
+    'una cinta de 5 metros',
+    'https://example.com/cinta-led-50m',
+    'necesito focos para un pasillo de 30 metros de largo',
+  ])('%s → vacía (es una medida, no lo que se pide)', (text) => {
+    expect(readQuantity(text).value).toBeUndefined();
+  });
+
+  it('"90 mtros" sin la pregunta por la cantidad no es nada (antes eran 90 unidades)', () => {
+    expect(readQuantity('90 mtros').value).toBeUndefined();
+  });
+});
+
+// [METROS] y [LED-INTERNOS] (revisión del 12-11-2026): el largo del lugar o del producto no es lo que se pide, y la
+// cantidad dicha con "alrededor de" o "un pedido de" sigue contando.
+describe('revisión del 12-11: metros del lugar o del título, y LED', () => {
+  it.each([
+    'Necesito reflectores LED luz fría para 80 metros de fachada en Quilicura',
+    'Tengo 50 metros de muro perimetral, necesito reflectores LED',
+    'focos solares para 300 metros de calle',
+    'Necesito luminarias solares para 200 metros de calle en Lampa, luz fría',
+    'Necesito reflectores para 300 metros de cerco',
+    'Necesito iluminar 100 metros de pasillo',
+    'quiero postes solares para 500 metros de camino',
+    'Necesito 80 metros de fachada',
+    'Hola, me interesa la Tira LED 5m 12V luz cálida',
+    'Hola, consulta por CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AZUL (SKU: ABC123)',
+    'Hola, consulta por KIT DE INSTALACIÓN CABLES SUSPENDIDOS 1 MT. PARA PANELES (SKU: ABC123)',
+  ])('%s → sin metros', (text) => {
+    for (const asked of [false, true]) expect(readQuantity(text, { asked }).unit).toBeUndefined();
+    expect(readQuantity(text).value).toBeUndefined();
+  });
+
+  it('negocio 146: el título repetido después de la pregunta ("120M/W") no son 120 m', () => {
+    expect(readQuantity('FOCO LED PORTATIL RECARGABLE SMD20W, IP66, 120M/W,2400 LUMENES', { asked: true }).unit).toBeUndefined();
+  });
+
+  it('con un producto que no se vende por metro, "Necesito 200 metros" no son metros; con cinta, sí', () => {
+    expect(readQuantity('Necesito 200 metros', { product: 'reflectores LED' }).value).toBeUndefined();
+    expect(readQuantity('Necesito 200 metros', { product: 'cinta LED neoflex' })).toEqual({ value: 200, explicit: true, unit: 'm' });
+  });
+
+  it('el botón de la ficha con "BARRA DE EMERGENCIA 60 LEDs" no trae cantidad', () => {
+    for (const asked of [false, true]) {
+      expect(readQuantity('Hola, consulta por BARRA DE EMERGENCIA 60 LEDs RECARGABLE AUTONOMÍA 3-6 HRS. (SKU: ABC123)', { asked }).value).toBeUndefined();
+    }
+  });
+
+  it.each([
+    ['Necesito alrededor de 50 led', 50],
+    ['cerca de 40 leds para mi local', 40],
+    ['un total de 30 led', 30],
+    ['Necesito un pedido de 100 leds', 100],
+    ['Quiero una cotización de 20 LED para mi casa', 20],
+  ])('%s → %i (la cantidad, como en main)', (text, expected) => {
+    expect(readQuantity(text).value).toBe(expected);
+  });
+
+  // Depende de los nombres del catálogo del día: en el robot de sincronización solo informa (src/test/syncBot.ts).
+  it.skipIf(isSyncBot)('el texto del botón de cada ficha del catálogo nunca trae metros ni cantidad', () => {
+    const wrong: string[] = [];
+    for (const product of jumpsellerSnapshot) {
+      const sku = product.sku || product.variants[0]?.sku || 'ABC123';
+      const text = new URL(waProductUrl(product.name, sku)).searchParams.get('text') ?? '';
+      const free = readQuantity(text);
+      if (free.value !== undefined || free.several || readQuantity(text, { asked: true }).unit) wrong.push(text);
+    }
+    expect(wrong).toEqual([]);
+  });
+});
+
+// Revisión de Codex del 13-11-2026: con un verbo de pedido en la misma oración, "N LED" es la cantidad, como en main.
+describe('[LED-INTERNOS] (revisión 13-11) la cantidad pedida con otro producto nombrado', () => {
+  it.each(['Para los focos necesito 20 led', 'Necesito focos, 20 LED'])('"%s" → 20', (text) => {
+    expect(readQuantity(text, { asked: true }).value).toBe(20);
+  });
+  it('la lista de especificaciones sigue sin cantidad', () => {
+    expect(readQuantity('Luminaria vial solar led\n600w\n126 led\n3000 lumenes\nIp 65', { asked: true }).value).toBeUndefined();
   });
 });

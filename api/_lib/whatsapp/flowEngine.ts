@@ -18,6 +18,9 @@ export interface CapturedFields {
   // [CANTIDAD] Varias cantidades en un mensaje (varios items, hasta la PR 9): la cantidad queda
   // vacia y aqui va el texto del cliente, para la nota. Cuenta como respondida: no se repregunta.
   cantidad_varios?: string;
+  // [METROS] La cantidad es en metros ("500 metros" de cinta): la nota dice "500 m". Se escribe y se borra junto
+  // con la cantidad (stateStore mezcla dato por dato).
+  cantidad_unidad?: 'm';
   proyecto_o_uso?: string;
   comuna_o_ciudad?: string;
   // [COMUNA] Otras comunas que el cliente dio como lugar ("la obra en Lampa y la factura en Vina del
@@ -110,7 +113,9 @@ export const MSG4 = 'Listo! Tu solicitud quedo registrada en eLIGHTS.cl y ya la 
 export const MSG4_B2B = 'Listo! Tu requerimiento comercial quedo registrado en eLIGHTS.cl y ya lo derivamos a nuestro equipo de ventas.\n\nUn ejecutivo revisara tu proyecto y te enviara la cotizacion por correo.';
 
 // [INSTALL-FLOW] Mensaje de cierre para flujo de instalacion
-export const MSG4_INSTALL = 'Perfecto, tu solicitud de instalaci\u00f3n qued\u00f3 registrada. Te vamos a escribir por correo para coordinar la visita y la cotizaci\u00f3n.';
+// [SIN-VISITA] Especificacion 5: el bot nunca ofrece visitas (negocio 195: "coordinar la visita" a quien solo
+// compraba focos). Es el cierre aprobado por el dueno (2026-11-11, "Cierre con la solicitud registrada").
+export const MSG4_INSTALL = 'Tu solicitud qued\u00f3 registrada. Claudio Quero te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
 // [BOT-SOLO-CORREO] Cierre de instalacion sin correo (tras las repreguntas): no se crea el
 // negocio, asi que no se promete contacto; se pide el correo o escribir a ventas@.
 export const MSG4_INSTALL_NO_EMAIL = 'Gracias. Para cotizar tu instalaci\u00f3n necesitamos tu correo de contacto: escr\u00edbelo por aqu\u00ed o env\u00edanos tu solicitud a ventas@elights.cl.';
@@ -134,13 +139,25 @@ export const MSG_NEED_EMAIL = 'Para que Claudio Quero te atienda por correo, nec
 // [CORREO-PROPIO] Dueno (2026-11-11): un correo @elights.cl que no publica el bot (gerencia@, en una prueba)
 // nunca se registra como el del cliente; antes el bot repetia el texto A sin decir por que.
 export const MSG_OWN_EMAIL = 'Ese correo es de eLIGHTS. Para registrar tu solicitud necesito tu propio correo, de tu empresa o personal. \u00bfMe lo escribes por aqu\u00ed? Si prefieres, env\u00eda tu solicitud a ventas@elights.cl.';
+// [SIN-REPETIR] La pregunta corta por el correo de la etapa 3 (texto existente). Tambien alterna con el texto A para
+// no repetirlo igual en mensajes seguidos.
+export const MSG_EMAIL_SHORT = 'Para registrar tu solicitud necesito tu correo de contacto.';
 export const OWN_EMAIL_NOTE = 'Ese correo es de eLIGHTS: necesito tu propio correo, de tu empresa o personal.';
 // [PLAZO] Dueno (2026-11-11, decision 4 de la especificacion): el bot promete la respuesta "el mismo dia
 // habil", como la web. Solo con el negocio registrado y cuando el cliente pregunta que sigue o cuanto demora.
 export const MSG_WAIT = 'No tienes que hacer nada m\u00e1s. Te enviaremos la cotizaci\u00f3n por correo el mismo d\u00eda h\u00e1bil.';
 // [PLAZO] Despacho o retiro despues del cierre: el bot no promete plazos de entrega; van en la cotizacion.
 export const MSG_WAIT_DELIVERY = 'El plazo y el costo del despacho van en la cotizaci\u00f3n, que te enviaremos por correo el mismo d\u00eda h\u00e1bil.';
-export const MSG_WAIT_INSTALL = 'No tienes que hacer nada m\u00e1s. Te escribiremos por correo el mismo d\u00eda h\u00e1bil para coordinar la visita y la cotizaci\u00f3n.';
+// [PREGUNTA] Textos aprobados por el dueno (2026-11-11, propuesta-dueno.md): pregunta por precio o stock, por ficha
+// tecnica o una duda tecnica, y por la ubicacion. El bot no contesta precios, stock ni asesoria tecnica.
+export const MSG_Q_PRICE = 'Claudio Quero revisar\u00e1 el precio y la disponibilidad y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil. \u00bfCu\u00e1l es tu correo?';
+export const MSG_Q_TECH = 'Claudio Quero revisar\u00e1 tu consulta y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil. \u00bfCu\u00e1l es tu correo?';
+export const MSG_LOCATION = 'Somos una tienda online con bodega en Quinta Normal y despachamos a todo Chile.';
+// [PREGUNTA] Con el correo ya anotado, los mismos textos sin la pregunta final por el correo.
+export const MSG_Q_PRICE_HAS_EMAIL = 'Claudio Quero revisar\u00e1 el precio y la disponibilidad y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
+export const MSG_Q_TECH_HAS_EMAIL = 'Claudio Quero revisar\u00e1 tu consulta y te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
+// [YA-ESCRIBI] (aprobado por el dueno el 12-11) "Ok, yo le escribi a Claudio" sin su correo (caso de las estacas).
+export const MSG_ALREADY_WROTE = 'Perfecto. D\u00e9jame tu correo y lo uno a tu solicitud para que no se pierda.';
 // [PLAZO] Cualquier otro mensaje con el negocio registrado: un recordatorio corto, no el cierre largo otra vez.
 export const MSG_REGISTERED_SHORT = 'Tu solicitud ya qued\u00f3 registrada; te escribimos por correo.';
 // [CIERRE-HONESTO] Texto B, aprobado por el dueno (2026-10-16). Pipedrive no confirmo el negocio
@@ -160,9 +177,8 @@ export function menuClarifyMsg(pick: number): string {
   return '\u00bfMe confirmas a qu\u00e9 te refieres con \u00ab' + pick + '\u00bb? Cu\u00e9ntame qu\u00e9 producto buscas, cu\u00e1ntas unidades y el color de luz.';
 }
 export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
-// [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio
-// Activa el flujo de captura de lead para instalacion antes de cualquier derivacion
-const INSTALL_INTENT_RE = /\b(instalaci[o\u00f3]n|instalar|servicio\s+de\s+instal|quiero\s+instalar|necesito\s+instalar|cotizar\s+instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n|instalador|instaladores)\b/i;
+// [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio (installRequested): activa el flujo de captura de
+// lead para instalacion antes de cualquier derivacion.
 // [INSTALL-FLOW] "Soy instalador" describe a quien escribe (compra para instalar), no pide una
 // instalacion: va al flujo de productos. "Busco un instalador" si la pide.
 const INSTALLER_SELF_RE = /\b(?:(?:soy|somos)\s+(?:(?!(?:busco|buscamos|necesito|necesitamos|quiero|queremos|requiero|que|para)\b)[a-z\u00e0-\u00fc]+\s+){0,3}?instalador(?:a|es|as)?(?:\s+el[e\u00e9]ctric[oa]s?)?|(?:trabajo|me\s+desempe[n\u00f1]o)\s+(?:como|de)\s+instalador(?:a|es|as)?|me\s+dedico\s+a\s+(?:la\s+|las\s+)?instal\w*|soy\s+(?:un\s+|una\s+)?(?:electricista|contratista|t[e\u00e9]cnico\s+el[e\u00e9]ctrico))\b/gi;
@@ -184,10 +200,17 @@ function quotesService(text: string): boolean {
   return quantity.value === undefined && !quantity.several;
 }
 // [INSTALL-FLOW] `body` llega sin lo que el cliente niega (maskNegated): "no quiero instalacion" no la pide.
+// [SIN-VISITA] El sustantivo solo no pide el servicio: "Nuestra instalacion funciona con 12V" o "Mi instalacion
+// electrica es de 220V" describen la del cliente (negocio 195). Si lo piden "quiero instalar", "busco un
+// instalador", "servicio de instalacion", "cotizar instalacion" o "que me los instalen".
 function installRequested(body: string): boolean {
   const rest = body.replace(INSTALLER_SELF_RE, ' ');
-  return rest === body ? INSTALL_INTENT_RE.test(body) : INSTALL_SERVICE_RE.test(rest) || quotesService(rest);
+  if (rest !== body) return INSTALL_SERVICE_RE.test(rest) || quotesService(rest);
+  return installRequestedMidProducts(body) || INSTALL_ASK_RE.test(body);
 }
+// [SIN-VISITA] (revision 12-11) Tambien "busco instalacion electrica", "con instalacion incluida" e "incluye instalacion?":
+// piden el servicio, como en main. Describir la propia ("mi instalacion es de 220V") sigue sin pedirlo.
+const INSTALL_ASK_RE = /\b(?:instalador(?:a|es|as)?|servicio\s+de\s+instal\w*|cotizar\s+(?:la\s+|una\s+)?instalaci[o\u00f3]n|proyecto\s+de\s+instalaci[o\u00f3]n|(?:busco|buscamos|necesito|necesitamos|quiero|queremos|requiero|requerimos)\s+(?:la\s+|una\s+|el\s+|un\s+)?instalaci[o\u00f3]n|con\s+(?:la\s+|su\s+)?instalaci[o\u00f3]n(?=\s*(?:[?.!,;]|$)|\s+(?:y|para|en|por|incluid[oa])\b)|instalaci[o\u00f3]n\s+incluida|incluyen?\s+(?:la\s+|el\s+servicio\s+de\s+)?instalaci[o\u00f3]n)\b/i;
 // A mitad del flujo de productos, "la instalacion es en una bodega" o "los voy a instalar en mi casa" contestan
 // la pregunta del bot (MSG2): solo un pedido de instalacion ("que me los instalen", "quiero instalar focos en
 // mi casa", "cuanto cobran la instalacion") cambia de flujo.
@@ -299,13 +322,31 @@ function looksLikeNewRequest(body: string): boolean {
 
 const WANTS_HUMAN_RE = /ejecutivo|hablar con|hablar a|llamar|vendedor|humano|asesor|contacten|contactar|quiero hablar|necesito hablar/i;
 const EXPLICIT_QUOTE = /cotizar|cotizacion|precio|cu[ao]nto (cuesta|vale|sale)|presupuesto|valor/i;
-const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|3000\s*k|4000\s*k|5000\s*k|6500\s*k|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
+// [LUZ] Cualquier temperatura de color entre 2000 y 6999 K ("5700k", "2700 K"): antes solo 3000, 4000, 5000 y 6500.
+const LUZ_RE = /c[a\u00e1]lid[ao]s?|neutr[ao]s?|fr[i\u00ed][ao]s?|warm|cool|daylight|[2-6]\d{3}\s*k(?![a-z])|blancas?\s+c[a\u00e1]lid[ao]s?|blancas?\s+fr[i\u00ed][ao]s?|luz\s+c[a\u00e1]lid[ao]?|luz\s+fr[i\u00ed][ao]?|blanco\s+fr[i\u00ed]o|blanco\s+c[a\u00e1]lido/i;
 // [CANTIDAD] Empieza donde empieza la palabra: sin eso, un texto largo sin "@" se recorria una vez por letra.
 const EMAIL_RE = /(?<![a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;  // [FIX-EMAIL-PARSER] case insensitive
-const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jardin|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
+const PROYECTO_RE = /\b(quincho|terraza|patio|living|comedor|dormitorio|habitaci[o\u00f3]n|cocina|ba[\u00f1n]o|ba[\u00f1n]os|jard[i\u00ed]n|bodega|oficina|casa|local\s+comercial|local|galp[o\u00f3]n|galpon|faena|tienda|exterior|interior|planta|f[a\u00e1]brica|fabrica|nave\s+industrial|departamento|edificio|colegio|hospital|estacionamiento|pasillo|sala)\b/i;
 
 // NOTA: 'instalacion' fue removido de B2B_SIGNAL_RE - no es senal B2B por si sola
-const B2B_SIGNAL_RE = /empresa|factura|obra|proveedor|licitaci[o\u00f3]n|constructora|bodega|oficina|local comercial|proyecto comercial|s\.a\.|spa|ltda/i;
+// [B2B] Palabras completas: "despacho" y "espacio" traen "spa", y "sobra" o "cobra" traen "obra" (caso del 12-11:
+// una persona que pregunto por el despacho paso a empresa y se le pidio el RUT de la empresa).
+// (revision 12-11) Con letras con tilde: "\w" no incluye la "o" con tilde y "licitacion" o "facturacion" escritas con
+// tilde dejaban de ser empresa.
+const B2B_SIGNAL_RE = /(?<![a-z\u00e0-\u00fc])(?:empresa[a-z\u00e0-\u00fc]*|factur[a-z\u00e0-\u00fc]*|obras?|proveedor[a-z\u00e0-\u00fc]*|licitaci[a-z\u00e0-\u00fc]*|constructor[a-z\u00e0-\u00fc]*|bodegas?|oficinas?|locale?s?\s+comercial(?:es)?|proyectos?\s+comercial(?:es)?|spa|ltda)(?![a-z\u00e0-\u00fc])|(?<![a-z\u00e0-\u00fc])s\.\s?a\./i;
+// [B2B] La bodega, la oficina, el local o la tienda de eLIGHTS no son del cliente: "Donde queda su bodega?", "Puedo
+// retirar en la bodega?" (la respuesta natural a MSG_LOCATION) o "Tienen oficina para ir a verlos?" no lo vuelven
+// empresa. En una pregunta por la ubicacion o el despacho esas palabras salen; "la obra", "la empresa" o la del cliente
+// ("Despachan a nuestra bodega en Lampa?") no.
+const STORE_WORD_RE = /(?<![a-z\u00e0-\u00fc])(?<!\b(?:mi|mis|nuestr[oa]s?|tu|tus)\s+)(?:bodegas?|oficinas?|locale?s?(?:\s+comercial(?:es)?)?|tiendas?|sucursal(?:es)?)(?![a-z\u00e0-\u00fc])/gi;
+/** [B2B] El mensaje para buscar senales de empresa: sin enlaces, correos ni tildes, ni los lugares de la tienda. */
+function b2bText(body: string): string {
+  return questionSplit(withoutStorePlaces(questionText(body))).map(({ part, question }) => {
+    if (!question) return part;
+    const kinds = partKinds(part);
+    return kinds.has('ubicacion') || kinds.has('despacho') ? part.replace(STORE_WORD_RE, ' ') : part;
+  }).join(' . ');
+}
 const PRODUCTO_RE = /\b(campana(?:s)?\s+(?:led|industrial(?:es)?)|panel(?:es)?\s+led|plafon(?:es)?\s+led|ampolleta(?:s)?\s+led|ampolleta(?:s)?|foco(?:s)?\s+led|foco(?:s)?|dicroico(?:s)?|reflector(?:es)?\s+led|reflector(?:es)?|proyector(?:es)?\s+led|proyector(?:es)?|tira(?:s)?\s+led|cinta(?:s)?\s+led|downlight(?:s)?|empotrado(?:s)?\s+led|tubo(?:s)?\s+led|tubo(?:s)?\s+fluorescente(?:s)?|luminaria(?:s)?\s+led|luminaria(?:s)?)\b/i;
 
 // [INSTALL-FLOW] Tipo de proyecto para instalacion
@@ -524,6 +565,9 @@ function normalizeLuz(raw: string): string {
   if (/fr[i\u00ed][ao]/.test(r) || /cool/i.test(r) || /daylight/i.test(r) || /6500/i.test(r)) return 'fria';
   if (/blanca/.test(r) && /c[a\u00e1]lid/.test(r)) return 'calida';
   if (/blanca/.test(r) && /fr[i\u00ed]/.test(r)) return 'fria';
+  // [LUZ] Otra temperatura ("5700k") queda tal cual, como la escribe el cliente: "5700K".
+  const cct = r.match(/^(\d{4})\s*k$/);
+  if (cct) return cct[1] + 'K';
   return r;
 }
 
@@ -754,7 +798,7 @@ function closedReply(state: FlowState): string {
 const WAIT_QUESTION_RE = /\b(?:demor\w*|tarda(?:n|ra|ran|ria|rian)?|esper\w*|plazo|cuando)\b|\bque\s+(?:hago|hace|hacemos|sigue|debo|tengo|tiene)\b|\by\s+ahora\b|\bahora\s+que\b|\bcuant[oa]s?\s+(?:tiempo|tempo|dias)\b/i;
 // [PLAZO] Despacho, entrega, flete o retiro: no es la respuesta por correo (Codex, 2026-11-11: "Cuando llega el
 // despacho?" recibia la promesa de la cotizacion).
-const DELIVERY_QUESTION_RE = /\b(?:despach\w*|entreg\w*|envio|flete|retir\w*)\b|\bllega(?:n|ra|ria)?\s+(?:el|mi|los|las|la)\s+(?:pedido|producto|despacho|luminaria|foco|focos|equipo|equipos|compra|mercaderia)\b/i;
+const DELIVERY_QUESTION_RE = /\b(?:despach\w*|entreg\w*|envios?|flete|retir\w*)\b|\bllega(?:n|ra|ria)?\s+(?:el|mi|los|las|la)\s+(?:pedido|producto|despacho|luminaria|foco|focos|equipo|equipos|compra|mercaderia)\b/i;
 function normalizedText(body: string): string {
   return body.slice(0, MAX_FACTS).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
@@ -765,6 +809,113 @@ function asksWhatNext(body: string): boolean {
   return WAIT_QUESTION_RE.test(normalizedText(body));
 }
 
+// [PREGUNTA] Lo que el cliente pregunta (fase 2, 12-11-2026): antes el bot contestaba con la pregunta siguiente
+// del formulario (negocios 142, 149, 159, 178, 204, 205 y el caso de las estacas). Solo cuenta una pregunta: con
+// "?" o "\u00bf", o que empieza como pregunta ("Sabes cuando demora el despacho") o la pide ("necesito saber si
+// tienen ficha tecnica"). "Necesito despacho a Temuco", "quiero cotizar 20 paneles" o el titulo de una ficha con
+// "IP65" no preguntan nada. Se compara sin tildes.
+export type QuestionKind = 'precio' | 'tecnica' | 'ubicacion' | 'despacho';
+const ASK_LEAD_RE = /^(?:(?:hola|buenas|buenos\s+dias|buenas\s+(?:tardes|noches)|ok|oye|y|pero|consulta|una\s+consulta|disculpa|perdon|estimad[oa]s?|gracias)[\s,.:;!]+)+/;
+const ASK_START_RE = /^(?:cuant|que\b|cual|como\b|donde|cuando|hay\b(?!\s+que\b)|tienen\b|tiene\b|tendran?\b|me\s+(?:pueden|podrian|puede|podria)\b|pueden\b|podrian\b|puedo\b|hacen\b|venden\b|cuentan\b|ustedes\b|sab(?:es|en|e|ria|rian)\b|sale\b|cuesta|vale\b|habria|seria\b)/;
+const ASK_INDIRECT_RE = /\b(?:saber|consultar|preguntar(?:les|le|te)?)\s+(?:si\b|cuant|cual|como\b|donde|cuando|que\b|(?:por\s+)?(?:el|la|los|las|su|sus)\s+(?:precio|valor|stock|disponib|ficha|despacho|envio|plazo|direccion|ubicacion))/;
+const ASK_PRICE_RE = /\bprecios?\b|\bvalor(?:es)?\b|\bcuest(?:a|an)\b|\b(?:cuanto|que)\s+valen?\b|\bcobr(?:a|an)\b|\bcostos?\b|\bstock\b|\bdisponib\w*|\bdescuentos?\b|\bcuanto\s+salen?\b/;
+// [PREGUNTA] (revision 12-11) "Tienen 50 de estos?" pregunta por el stock; "Hay 3 galpones", "Tiene 8 metros de alto" o
+// "Tienen 2 bodegas de 500 m2" describen el lugar: el numero seguido de un lugar o una medida no es stock.
+const ASK_STOCK_NUMBER_RE = /\b(?:tienen|tiene|hay|quedan|tendran)\s+(?:unas?\s+|unos\s+)?\d+(?!\d|[.,]\d|\s*(?:galpon\w*|naves?|bodegas?|metros?|mts?|m2|m|cm|mm|km|pisos?|locale?s?|oficinas?|salas?|casas?|departamentos?|habitacion\w*|dormitorios?|piezas?|banos?|canchas?|pasillos?|sectores?|lineas?|areas?|zonas?|plantas?|edificios?|niveles?|hectareas?|anos?|dias?|meses|horas?|personas?|trabajadores|puertas?|ventanas?|muros?|paredes|postes?|galerias?|estacionamientos?|calles?|sucursal\w*|tiendas?|faenas?|obras?)\b)/;
+// [PREGUNTA] Enviar o mandar el pedido es el despacho; enviar o mandar un documento ("la ficha", "la cotizacion"), no.
+const SEND_VERB_RE = /\b(?:envi(?:an|a|amos|ar|aran|arian|aria|en)|mand(?:an|a|amos|ar|aran|arian|aria|en))\b/;
+const SEND_DOC_RE = /\b(?:ficha|cotiz|presupuesto|catalogo|informacion|info\b|datos|fotos?\b|imagen|link|enlace|precios?\b|lista|correo|mail|pdf|archivo|detalle|factura|boleta|propuesta|planilla|plano|cuenta|numero)/;
+// El costo del despacho es una pregunta por el despacho, no por el precio del producto.
+const DELIVERY_COST_RE = /\b(?:cuanto\s+)?(?:cuesta|vale|sale|cobran?|costos?|precio|valor)\s+(?:el\s+|del\s+|de\s+|la\s+|un\s+|los\s+)?(?:despach|envi|mandar|flete|traslad)\w*|\b(?:despacho|envio|flete)\w*\s+(?:cuesta|vale|cobran?|tiene\s+(?:costo|valor))/g;
+const ASK_TECH_RE = /\bficha\w*|\bespecificaci\w*|\bdatasheet|\bcatalogo\w*|\bdimensi\w*|\bmedidas?\b|\btamano\b|\bgarantia\w*|\bcompatib\w*|\bcertific\w*|\bvoltaje\b|\blumen\w*|\bdimm?er\w*|\bdimeriz\w*|\bregulab\w*|\bintensidad\b|\bcomo\s+se\s+(?:controla|instala|conecta|usa|programa)\w*|\bsirven?\s+para\b|\bfuncionan?\s+con\b|\bcorrespond\w*|\bes\s+(?:apt[oa]|sumergible|resistente)\b|\baguant\w*|\bresiste\w*|\bconsum\w*|\bduracion\b|\bvida\s+util\b|\bmonocrom\w*/;
+// "Te envio mi correo?" no es un envio, y "cuando me entregan la cotizacion?" pregunta por la respuesta (MSG_WAIT).
+const NOT_DELIVERY_RE = /\b(?:te|le|les|se|lo|la|los|las|me|nos)\s+envio\b/g;
+const ABOUT_QUOTE_RE = /\bcotiz|\bpresupuesto|\brespuesta|\brespond/;
+const DELIVERY_WORD_RE = /\bdespach|\bflete|\bretir|\benvio\b/;
+const ASK_LOCATION_RE = /\bdonde\s+(?:estan|se\s+encuentran|quedan|queda|se\s+ubican|ubicad\w*|esta\s+(?:la\s+)?(?:tienda|bodega|oficina|local))|\bubicad\w*|\bubicacion\b|\bdireccion\b|\bsucursal\w*|\btienda\s+fisica|\blocal\s+fisico|\bshowroom\b|\bsala\s+de\s+ventas\b|\b(?:tienen|tiene|hay|cuentan\s+con)\s+(?:una?\s+)?(?:oficinas?|tiendas?|locale?s?|sucursal\w*|bodegas?|showroom)\b|\b(?:ir|pasar)\s+a\s+(?:ver|buscar|retirar)(?:l[oa]s?)?\b/;
+// (revision 12-11) Lo ultimo: "Tienen oficina para ir a verlos?", "hay tienda?", "puedo pasar a buscarlos?".
+/** [PREGUNTA] El mensaje en minusculas, sin enlaces, correos ni tildes. */
+function questionText(body: string): string {
+  return normalizedText(body).toLowerCase().replace(/(?:https?:\/\/|www\.)\S*/g, ' ').replace(EMAIL_RE_ALL, ' ');
+}
+/** [PREGUNTA] El trozo es una pregunta: con "?" o "\u00bf", empieza como pregunta o la pide ("necesito saber si"). */
+function isQuestionPart(part: string): boolean {
+  const lead = part.replace(/^[\u00bf\s*_~]+/, '').replace(ASK_LEAD_RE, '');
+  return /[?\u00bf]/.test(part) || ASK_START_RE.test(lead) || ASK_INDIRECT_RE.test(part);
+}
+/**
+ * [PREGUNTA] El texto (de questionText) en trozos: cada frase, hasta "?", "!" o el salto de linea, se corta en sus
+ * puntos. (revision 12-11) La pregunta indirecta sigue hasta el fin de su frase: en el negocio 147 ("Necesito saber si
+ * este producto CINTA LED ... 5mt. 12V. AZUL. Corresponde a LEDS monocromaticos") los puntos del titulo de la ficha
+ * dejaban la pregunta sin lo que pregunta.
+ */
+function questionSplit(text: string): Array<{ part: string; question: boolean }> {
+  const out: Array<{ part: string; question: boolean }> = [];
+  for (const sentence of text.split(/(?<=[?!\n])|(?=\u00bf)/)) {
+    const pieces = sentence.split(/(?<=[a-z\s])\.(?!\d)/);
+    for (let i = 0; i < pieces.length; i++) {
+      const part = pieces[i].trim();
+      if (!part) continue;
+      if (ASK_INDIRECT_RE.test(part) && i < pieces.length - 1) {
+        out.push({ part: pieces.slice(i).join('.').trim(), question: true });
+        break;
+      }
+      out.push({ part, question: isQuestionPart(part) });
+    }
+  }
+  return out;
+}
+/** [PREGUNTA] Los trozos del mensaje que son preguntas, sin enlaces ni correos y sin tildes. */
+function questionParts(body: string): string[] {
+  return questionSplit(questionText(body)).filter((p) => p.question).map((p) => p.part);
+}
+/** [PREGUNTA] Que pregunta un trozo: precio o stock, ficha o duda tecnica, ubicacion o despacho. */
+function partKinds(part: string): Set<QuestionKind> {
+  const kinds = new Set<QuestionKind>();
+  const delivery = part.replace(NOT_DELIVERY_RE, ' ');
+  // (revision 12-11) "Envian a Temuco?", "Mandan a regiones?" y "cuanto cuesta enviar": el despacho.
+  const sends = SEND_VERB_RE.test(delivery) && !SEND_DOC_RE.test(delivery);
+  if ((DELIVERY_QUESTION_RE.test(delivery) || sends) && (!ABOUT_QUOTE_RE.test(delivery) || DELIVERY_WORD_RE.test(delivery))) kinds.add('despacho');
+  if (ASK_LOCATION_RE.test(part)) kinds.add('ubicacion');
+  if (ASK_TECH_RE.test(part)) kinds.add('tecnica');
+  const price = part.replace(DELIVERY_COST_RE, ' ');
+  if (ASK_PRICE_RE.test(price) || ASK_STOCK_NUMBER_RE.test(price)) kinds.add('precio');
+  return kinds;
+}
+/** [PREGUNTA] Que pregunta el cliente: precio o stock, ficha o duda tecnica, ubicacion o despacho. */
+export function questionKinds(body: string): Set<QuestionKind> {
+  const kinds = new Set<QuestionKind>();
+  for (const part of questionParts(body)) for (const kind of partKinds(part)) kinds.add(kind);
+  return kinds;
+}
+/**
+ * [PREGUNTA] Lo que se contesta antes de la respuesta del flujo: la ubicacion, el despacho y, si ya hay correo, que
+ * Claudio Quero revisa el precio o la consulta. `withEmail` false deja fuera el precio y la consulta tecnica: se
+ * contestan con MSG_Q_PRICE o MSG_Q_TECH, que piden el correo.
+ */
+function questionAnswers(kinds: Set<QuestionKind>, withEmail: boolean, install: boolean): string[] {
+  const out: string[] = [];
+  if (kinds.has('ubicacion')) out.push(MSG_LOCATION);
+  if (kinds.has('despacho') && !install) out.push(MSG_WAIT_DELIVERY);
+  // (revision 12-11) En la instalacion la pregunta no va en una nota a Claudio (asksForClaudio): no se promete que la
+  // revisa ni se habla de disponibilidad.
+  if (install) return out;
+  if (withEmail && kinds.has('tecnica')) out.push(MSG_Q_TECH_HAS_EMAIL);
+  else if (withEmail && kinds.has('precio')) out.push(MSG_Q_PRICE_HAS_EMAIL);
+  return out;
+}
+/** [PREGUNTA] Precio o consulta tecnica sin correo: el texto aprobado que lo pide. */
+function questionAsksEmail(kinds: Set<QuestionKind>): string | undefined {
+  if (kinds.has('tecnica')) return MSG_Q_TECH;
+  if (kinds.has('precio')) return MSG_Q_PRICE;
+  return undefined;
+}
+/** [PREGUNTA] Antepone las respuestas a la del flujo, sin repetir una que ya esta. */
+function withAnswers(answers: string[], reply: string): string {
+  const missing = answers.filter((answer) => !reply.includes(answer));
+  return missing.length ? [...missing, reply].join('\n\n') : reply;
+}
+
 /**
  * [PLAZO] Mensaje en una conversacion cerrada que no es un pedido nuevo ni un dato tardio. Con el negocio
  * registrado ya no se repite el cierre largo: si pregunta que sigue o cuanto demora, el plazo; si no, el
@@ -772,9 +923,19 @@ function asksWhatNext(body: string): boolean {
  */
 function closedFollowUp(state: FlowState, body: string): string {
   if (state.deal !== 'registered') return closedReply(state);
-  if (!state.isInstallFlow && asksAboutDelivery(body)) return MSG_WAIT_DELIVERY;
-  if (asksWhatNext(body)) return state.isInstallFlow ? MSG_WAIT_INSTALL : MSG_WAIT;
+  // [PREGUNTA] La ubicacion, el despacho y el precio o la consulta tecnica (Claudio Quero la revisa: va en la nota).
+  const kinds = questionKinds(body);
+  if (!state.isInstallFlow && asksAboutDelivery(body)) kinds.add('despacho');
+  const answers = questionAnswers(kinds, true, Boolean(state.isInstallFlow));
+  if (answers.length) return answers.join('\n\n');
+  if (asksWhatNext(body)) return MSG_WAIT;
   return MSG_REGISTERED_SHORT;
+}
+/** [PREGUNTA] Con el negocio registrado, una pregunta de precio o tecnica va en una nota al mismo negocio. */
+function asksForClaudio(state: FlowState, body: string): boolean {
+  if (state.deal !== 'registered' || state.isInstallFlow) return false;
+  const kinds = questionKinds(body);
+  return kinds.has('precio') || kinds.has('tecnica');
 }
 
 type ClaudeFields = {
@@ -829,6 +990,26 @@ const PRODUCT_NOISE_RE = /^(?:led|leds|de|del|con|la|el|los|las|un|una|unos|unas
 const stem = (word: string) => (/\d/.test(word) ? word : word.replace(/ces$/, 'z').replace(/s$/, '').replace(/e$/, ''));
 function productWords(text: string): string[] {
   return comparable(text).replace(/\b(?:para|en)\b.*$/, '').split(/[^a-z0-9]+/).filter((w) => w && !PRODUCT_NOISE_RE.test(w)).map(stem);
+}
+// [NO-DEGRADAR] Palabras que solo nombran la familia ("focos", "luminarias LED"), sin modelo ni medida.
+const GENERIC_PRODUCT_STEMS = new Set(['foco', 'panel', 'luminaria', 'ampolleta', 'reflector', 'proyector', 'lampara', 'tubo', 'tira',
+  'cinta', 'downlight', 'plafon', 'plafone', 'campana', 'dicroico', 'spot', 'equipo', 'producto', 'luz', 'luce', 'articulo', 'item', 'unidad', 'cosa']);
+/** [NO-DEGRADAR] El producto es solo una familia ("focos"), sin modelo, medida ni tipo ("Estaca LED COB 5W"). */
+function genericProduct(text: string): boolean {
+  const words = productWords(text);
+  return words.length > 0 && words.every((w) => GENERIC_PRODUCT_STEMS.has(w));
+}
+// [NO-DEGRADAR] (revision 12-11) Las palabras que sirven para cualquier luminaria: "focos" o "luminarias" tambien
+// nombran una estaca o una campana. "Paneles", "reflectores" o "tubos" son otra familia.
+const ANY_PRODUCT_STEMS = new Set(['foco', 'luminaria', 'equipo', 'producto', 'luz', 'luce', 'articulo', 'item', 'unidad', 'cosa']);
+/**
+ * [NO-DEGRADAR] El nombre generico `generic` nombra el mismo producto que `specific`, con menos precision: cada palabra
+ * sirve para cualquier luminaria o ya esta en el especifico ("campanas" y "Campana UFO 200W"). "10 reflectores LED"
+ * despues de la campana es otro producto.
+ */
+function sameFamily(generic: string, specific: string): boolean {
+  const own = productWords(specific);
+  return productWords(generic).every((w) => ANY_PRODUCT_STEMS.has(w) || own.includes(w));
 }
 /** [NO-PISAR] Las palabras de `text` que no quedan en `kept` (lo que el cliente nego). */
 function droppedStems(text: string, kept: string): Set<string> {
@@ -888,6 +1069,37 @@ function inMessage(value: string, text: string): boolean {
   return words.length > 0 && words.every((w) => textWords.some((t) => t === w || (/\d/.test(w)
     ? sameSpec(t, w)
     : Math.min(t.length, w.length) >= 4 && (t.startsWith(w) || w.startsWith(t)))));
+}
+
+/** [RESPALDO] Alguna palabra del dato de Claude (no "LED" ni "para") esta en el texto, sin tildes ni plurales. */
+function sharesWord(value: string, text: string): boolean {
+  return comparable(value).split(/[^a-z0-9]+/).filter((w) => (w.length >= 4 || /\d/.test(w)) && !IN_MESSAGE_SKIP_RE.test(w))
+    .some((w) => inMessage(w, text));
+}
+/** [RESPALDO] Las palabras de los enlaces del mensaje ("…/estaca-led-cob-5w-para-jardin" → "estaca led cob 5w para jardin"). */
+function linkWords(body: string): string {
+  return (body.slice(0, MAX_FACTS).match(/(?:https?:\/\/|www\.)\S*/gi) ?? [])
+    .map((url) => url.replace(/^(?:https?:\/\/)?[^/]*/i, '').replace(/[-_/.?=&#%+]+/g, ' ')).join(' ');
+}
+/** [RESPALDO] El texto sin los nombres de producto (los de Claude y el capturado), del mismo largo cuando se puede. */
+function withoutProductNames(text: string, names: Array<string | undefined>): string {
+  let out = text;
+  for (const name of names) if (name && name.trim().length > 2) out = removeLoose(out, name.trim());
+  return out;
+}
+// [VARIOS-IMAGEN] (revision 12-11) El mensaje de la imagen senala el producto: "este modelo", "como este", "de este",
+// "de estos", "el mismo". Se compara sin tildes.
+const THIS_ONE_RE = /(?<![a-z])(?:(?:de|como|igual(?:es)?\s+a)\s+(?:est[eao]s?|es[eao]s?|aquel(?:la|los|las)?)|(?:est[eao]s?|es[eao]s?)\s+(?:mism[oa]s?\s+)?(?:modelos?|productos?|equipos?|luminarias?|items?|articulos?)|(?:el|la|los|las)\s+mism[oa]s?)(?![a-z])/;
+// [NO-DEGRADAR] Cambiar de producto sin palabra de correccion: "mejor focos", "en vez de estacas, focos", "no, focos".
+const PRODUCT_SWITCH_RE = /(?:^|[,.;!?\n]\s*)(?:(?:no\s*,\s*)|(?:no\s*,?\s*)?mejor\s+|en\s+(?:vez|lugar)\s+de\s+)/i;
+// [LUZ] Lo que es un color de luz: el de LUZ_RE (calida, neutra, fria, 2200 a 6500 K), ambar, RGB y otros colores.
+const LUZ_VALUE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:' + LUZ_RE.source
+  + '|blanc[oa]s?|amarill[oa]s?|[a\\u00e1]mbar|rgbw?|multicolor|colores|d[i\\u00ed]a|natural|roj[oa]s?|verdes?|azul(?:es)?|morad[oa]s?|violetas?|naranj[oa]s?|rosad[oa]s?|lila|\\d{4}\\s*k(?:elvin)?'
+  // (revision 12-11) Luz de cultivo o especial ("Tipo de luz: UV" en las conversaciones reales): antes se volvia a pedir.
+  + '|uv[abc]?|ultravioleta|infrarroj[oa]s?|espectro\\s+completo|(?:full|dual)\\s+spectrum|monocrom[a\\u00e1]tic[oa]s?)(?![a-z\\u00e0-\\u00fc])', 'i');
+/** [LUZ] El color que trae Claude, solo si es un color de luz. */
+function luzValue(value: string | undefined): string | undefined {
+  return value && LUZ_VALUE_RE.test(value) ? value : undefined;
 }
 
 /**
@@ -1059,7 +1271,9 @@ function additions(text: string, producto: string | undefined): { adding: boolea
   return { adding: spans.length > 0, base };
 }
 
-const MAX_VARIOS = 160;
+// [VARIOS] Un pedido largo de varios items en un mensaje (negocios 139, 197 y 211) queda entero en la nota: con 160
+// caracteres se perdian el tercer y el cuarto item.
+const MAX_VARIOS = 600;
 function appendVarios(merged: CapturedFields, text: string): void {
   if (comparable(merged.cantidad_varios ?? '').includes(comparable(text))) return;
   merged.cantidad_varios = ((merged.cantidad_varios ? merged.cantidad_varios + ' / ' : '') + text).slice(0, 2 * MAX_VARIOS);
@@ -1076,8 +1290,9 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
   if (adding && (merged.cantidad || merged.cantidad_varios)) {
     if (merged.cantidad) {
       noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
-      merged.cantidad_varios = ((merged.producto ? merged.producto + ': ' : '') + merged.cantidad + ' / ' + text).slice(0, 2 * MAX_VARIOS);
+      merged.cantidad_varios = ((merged.producto ? merged.producto + ': ' : '') + merged.cantidad + (merged.cantidad_unidad === 'm' ? ' m' : '') + ' / ' + text).slice(0, 2 * MAX_VARIOS);
       delete merged.cantidad;
+      delete merged.cantidad_unidad;
     } else appendVarios(merged, text);
     return;
   }
@@ -1086,6 +1301,7 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
     if (!stated.several) return;
     noteChange(merged, 'cantidad', merged.cantidad, 'varios items');
     delete merged.cantidad;
+    delete merged.cantidad_unidad;
     merged.cantidad_varios = text;
     return;
   }
@@ -1097,9 +1313,24 @@ function mergeQuantity(merged: CapturedFields, quantity: QuantityRead, stated: Q
     noteChange(merged, 'cantidad', 'varios items (' + merged.cantidad_varios.slice(0, 80) + ')', value);
     delete merged.cantidad_varios;
     merged.cantidad = value;
+    setUnit(merged, quantity);
     return;
   }
+  const before = merged.cantidad;
+  const unitBefore = merged.cantidad_unidad;
   keepOrChange(merged, 'cantidad', value, change);
+  if (merged.cantidad === value && before !== value) setUnit(merged, quantity);
+  // (revision 13-11) El mismo numero con otra unidad, afirmado: "Corrijo: necesito 5 metros de cinta LED" despues de
+  // "5 cintas LED", o al reves ("5 cintas LED" nombra unidades). Un "son 5" sin unidad no borra los metros.
+  else if (change && before === value && (quantity.unit ? quantity.unit !== unitBefore : unitBefore !== undefined && itemsIn(facts).length > 0)) {
+    noteChange(merged, 'cantidad', value + (unitBefore === 'm' ? ' m' : ''), value + (quantity.unit === 'm' ? ' m' : ''));
+    setUnit(merged, quantity);
+  }
+}
+/** [METROS] La unidad va con la cantidad que se acaba de anotar: metros, o (sin unidad) unidades. */
+function setUnit(merged: CapturedFields, quantity: QuantityRead): void {
+  if (quantity.unit) merged.cantidad_unidad = quantity.unit;
+  else delete merged.cantidad_unidad;
 }
 
 // [NO-PISAR] "SpA", "Ltda." o "S.A." son el tipo de una razon social, nunca el proyecto (prueba
@@ -1117,13 +1348,28 @@ const STORE_PLACE_RE = new RegExp('(?<![a-z\\u00e0-\\u00fc])(?:'
   + '|(?:ir|ir[e\\u00e9]|iremos|ir[i\\u00ed]a|ir[i\\u00ed]amos|voy|vamos|pas(?:ar|o|e|amos|ar[e\\u00e9]|aremos|ar[i\\u00ed]a|ar[i\\u00ed]amos)'
   + '|visit(?:ar|o|e|amos|ar[e\\u00e9]|aremos|ar[i\\u00ed]a))(?:\\s+a\\s+(?:buscar|retirar)(?:l[oa]s?)?)?\\s+(?:en|a|al|por)\\s+(?:su|sus|vuestr[oa]s?)\\s+'
   + ')(?:locale?s?|tiendas?|bodegas?|oficinas?|sucursal(?:es)?|showroom)(?![a-z\\u00e0-\\u00fc])', 'gi');
+// [RESPALDO] Lo que no dice un uso en la respuesta a la pregunta por el uso: saludos, "no se", la comuna o el color.
+const NOT_A_USE_RE = /^(?:hola|buenas|buenos|dias|tardes|noches|gracias|saludos|ok|okey|vale|bueno|si|no|se|nose|aun|todavia|quizas|tal|vez|para|por|con|del|las|los|una|unos|unas|que|mi|mis|su|sus|el|la|en|es|son|led|leds|luz|comuna|ciudad|region|santiago)$/;
+/** [RESPALDO] El mensaje dice algo mas que la comuna, el color o un saludo: lo que queda es el uso que contesta. */
+function saysAUse(said: string, claudeParsed: ClaudeFields): boolean {
+  let rest = comparable(said);
+  for (const value of [claudeText(claudeParsed.comuna_o_ciudad), claudeText(claudeParsed.tipo_de_luz), claudeText(claudeParsed.nombre)]) {
+    if (value) rest = rest.split(comparable(value)).join(' ');
+  }
+  rest = rest.replace(LUZ_RE_ALL, ' ').replace(/\d+/g, ' ');
+  return rest.split(/[^a-z]+/).some((w) => w.length >= 4 && !NOT_A_USE_RE.test(w));
+}
 /** [NO-PISAR] El texto sin el lugar de la tienda (STORE_PLACE_RE), del mismo largo. */
 function withoutStorePlaces(text: string): string {
   return text.replace(STORE_PLACE_RE, (m) => ' '.repeat(m.length));
 }
-function claudeProject(claudeParsed: ClaudeFields, body: string): string | undefined {
+function claudeProject(claudeParsed: ClaudeFields, body: string, said: string, answering = false): string | undefined {
   const value = claudeText(claudeParsed.proyecto_o_uso);
   if (!value) return undefined;
+  // [RESPALDO] Solo el uso que el cliente dice en este mensaje, fuera del nombre del producto. (revision 12-11) Si el
+  // mensaje contesta la pregunta por el uso con otras palabras ("Para mi negocio de comida rapida" y Claude
+  // "restaurante"), vale lo de Claude: el cliente si lo dijo.
+  if (!inMessage(value, said) && !(answering && saysAUse(said, claudeParsed))) return undefined;
   if (LEGAL_FORM_RE.test(value) && !SPA_PROJECT_RE.test(body)) return undefined;
   if (inMessage(value, body) && !inMessage(value, withoutStorePlaces(body))) return undefined;
   const empresa = claudeText(claudeParsed.empresa) ?? claudeText(claudeParsed.nombre);
@@ -1231,12 +1477,14 @@ function mergeProductFields(
   state: FlowState,
   body: string,
   claudeParsed: ClaudeFields,
+  hasMedia = false,
 ): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number } {
   const merged: CapturedFields = { ...state.captured };
   // [CANTIDAD] Un estado guardado antes de este cambio puede traer un dato que no es texto (un
   // objeto de Claude) o una cantidad que no es un entero ("No especificada"): se descarta y se pregunta.
   for (const field of KEPT_FIELDS) if (merged[field] !== undefined && typeof merged[field] !== 'string') delete merged[field];
   if (merged.cantidad && !/^\d{1,5}$/.test(merged.cantidad)) delete merged.cantidad;
+  if (!merged.cantidad || (merged.cantidad_unidad !== undefined && merged.cantidad_unidad !== 'm')) delete merged.cantidad_unidad;
   const inspected = inspectRut(body, { asked: rutAsked(state) });
   const ruts = inspected.found ? [inspected.found.rut] : inspected.ambiguous ?? [];
   const facts = factsText(body, claudeParsed);
@@ -1259,6 +1507,8 @@ function mergeProductFields(
     menuLength: question?.listLength ?? 0,
     contact: EMAIL_RE.test(body),
     claude: claudeParsed.cantidad,
+    // [METROS] (revision 12-11) Los metros cuentan solo si el producto se vende por metro.
+    product: merged.producto ?? claudeText(claudeParsed.producto),
   };
   const quantity = readQuantity(maskNegated(withoutIndirectQuestions(facts)), options);
   const stated = assertive === facts ? quantity : readQuantity(assertive, { ...options, menuLength: 0 });
@@ -1269,20 +1519,46 @@ function mergeProductFields(
   const negated = droppedStems(facts, affirmed);
   const dropsNegated = Boolean(prodChange && merged.producto
     && productWords(merged.producto).some((w) => negated.has(w) && !productWords(prodChange).includes(w)));
-  keepOrChange(merged, 'producto', fillWith(claudeProd, extractProducto(assertive) ?? (itemsIn(assertive).length ? undefined : extractProducto(affirmed))), prodChange, dropsNegated);
+  // [NO-DEGRADAR] Caso del 12-11: "5 focos" no cambia "Estaca LED COB 5W para jardin" por "focos". Un nombre
+  // generico nunca reemplaza a uno especifico, salvo una correccion ("corrijo, mejor focos", "no quiero estacas,
+  // quiero focos"). De generico a especifico, o entre dos genericos, si cambia.
+  // (revision 12-11) Solo la misma familia: "10 reflectores LED" despues de la campana, o "paneles" despues de la
+  // estaca, cambian el producto (sameFamily).
+  const downgrade = Boolean(prodChange && merged.producto && genericProduct(prodChange) && !genericProduct(merged.producto)
+    && sameFamily(prodChange, merged.producto)
+    && !dropsNegated && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive));
+  // [RESPALDO] El producto de Claude llena el dato vacio solo si alguna de sus palabras esta en el mensaje o en el
+  // enlace de la ficha (negocio 206: "Sistemas de seguridad" salia del nombre del perfil).
+  const claudeProdFill = claudeProd && sharesWord(claudeProd, facts + ' ' + linkWords(body)) ? claudeProd : undefined;
+  keepOrChange(merged, 'producto', fillWith(claudeProdFill, extractProducto(assertive) ?? (itemsIn(assertive).length ? undefined : extractProducto(affirmed))), downgrade ? undefined : prodChange, dropsNegated);
   // El color del texto gana al de Claude cuando no calzan (Claude puede repetir uno negado o viejo).
   const luzText = textLuz(assertive) ?? textLuz(affirmed);
-  const claudeLuz = claudeText(claudeParsed.tipo_de_luz);
+  // [LUZ] El de Claude solo si es un color de luz: nunca "LED", "luz interior" ni el uso (negocios 148 y 156).
+  const claudeLuz = luzValue(claudeText(claudeParsed.tipo_de_luz));
   const luzConflict = Boolean(luzText && claudeLuz && normalizeLuz(comparable(claudeLuz)) !== luzText);
   // El color que el cliente niega ("no fria") no llena el dato, aunque Claude lo devuelva.
   const luzNegated = Boolean(claudeLuz && !luzText && (negatedLuz(facts).has(normalizeLuz(comparable(claudeLuz))) || negatedOnly(claudeLuz)));
   keepOrChange(merged, 'tipo_de_luz', luzConflict ? luzText : luzNegated ? undefined : claudeLuz ?? luzText, textLuz(base));
   // Lo que el cliente afirma decide la cantidad ("Necesito 20 paneles, tienen 30 focos?" es 20); si no afirma
   // ninguna, el mensaje sin negaciones ni consultas indirectas puede llenar el dato vacio.
-  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding);
-  const claudeProy = claudeProject(claudeParsed, body);
-  const ownProject = (text: string) => extractProyecto(withoutStorePlaces(text));
-  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(base), PROYECTO_RE), base));
+  // [VARIOS-IMAGEN] Negocio 130: cada imagen con su cantidad ("12 UND" y luego "5 UND") es otro item, no una
+  // correccion: lo capturado pasa a varios items. Con "perdon", "mejor" o "corrijo" si corrige.
+  // (revision 12-11) La imagen del mismo producto ("Este modelo, 10 unidades", "Son 15 de este") confirma o corrige la
+  // cantidad: no es otro item.
+  const mediaItem = hasMedia && Boolean(merged.cantidad || merged.cantidad_varios)
+    && (stated.value !== undefined || quantity.value !== undefined) && !CORRECTION_RE.test(assertive)
+    && !THIS_ONE_RE.test(comparable(assertive));
+  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem);
+  // [RESPALDO] El uso sale de lo que el cliente dice, no del nombre del producto ("PROYECTOR LED DE ESTADIO",
+  // "Estaca LED COB 5W para jardin") ni de lo que Claude deduce (negocios 119, 197 y 206).
+  // (revision 12-11) De un nombre generico ("focos LED para jardin") sale solo la familia: "para jardin" es el uso que
+  // el cliente dio. El nombre de una ficha ("Estaca LED COB 5W para jardin") sale entero.
+  const productNames = [claudeProd, merged.producto, state.captured.producto]
+    .map((name) => (name && genericProduct(name) ? name.replace(/\s+(?:para|en)\s+.*$/i, '') : name));
+  const noProduct = (text: string) => withoutProductNames(text, productNames);
+  const claudeProy = claudeProject(claudeParsed, body, noProduct(facts), Boolean(question?.asks.includes('proyecto_o_uso')) && !merged.proyecto_o_uso);
+  const ownProject = (text: string) => extractProyecto(withoutStorePlaces(noProduct(text)));
+  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(noProduct(base)), PROYECTO_RE), base));
   mergeComuna(merged, 'comuna_o_ciudad', claudeParsed.comuna_o_ciudad, {
     answering: Boolean(question?.asks.includes('comuna_o_ciudad')), company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
   });
@@ -1308,7 +1584,8 @@ function mergeProductFields(
   // [RUT-VALIDO] Solo un RUT valido de empresa es senal B2B (uno de persona, no).
   let leadType: LeadType = state.leadType;
   if (leadType !== 'B2B') {
-    const isB2BSignal = B2B_SIGNAL_RE.test(body) || isBusinessRut(rutFound) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
+    // Sin enlaces ni correos ("ana@empresa.cl" no es una empresa) ni los lugares de la tienda (b2bText).
+    const isB2BSignal = B2B_SIGNAL_RE.test(b2bText(body)) || isBusinessRut(rutFound) || (claudeParsed.empresa && claudeParsed.empresa.length > 0);
     if (isB2BSignal) { leadType = 'B2B'; }
     else if (leadType === 'Unknown' && body.trim().length > 10) { leadType = 'B2C'; }
   }
@@ -1336,6 +1613,14 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
     if (hadEmail) reply = registeredClosing(next);
     else reply = next.isInstallFlow ? installClosingMsg(late.merged) : productClosingMsg(true, next.wantsHuman, next.leadType);
   }
+  // [PREGUNTA] Se contesta lo que pregunta antes de pedir el correo o de cerrar (caso de las estacas: "Sabes cuando
+  // demora el despacho" recibia otra vez la peticion del correo). Sin correo, el precio o la consulta tecnica piden
+  // el correo con su texto aprobado.
+  const kinds = questionKinds(body);
+  const install = Boolean(next.isInstallFlow);
+  const asksEmail = !registers && !state.deal && !install ? questionAsksEmail(kinds) : undefined;
+  if (asksEmail) reply = withAnswers(questionAnswers(kinds, false, install), asksEmail);
+  else reply = withAnswers(questionAnswers(kinds, registers, install), reply);
   return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true };
 }
 
@@ -1366,6 +1651,147 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
 }
 
 /**
+ * [REINICIO] El mensaje despues del cierre abre otro pedido: lo que antes era un pedido nuevo (looksLikeNewRequest),
+ * salvo pedir un vendedor sin nombrar un producto con el negocio registrado, no nombrar producto ni cantidad ("quiero
+ * ese articulo, como lo compro?") o nombrar el mismo producto ya capturado ("campana Ufo 100W ... 5700k" es la
+ * "Luminaria UFO 100W" de antes, con otro color).
+ */
+function opensNewRequest(body: string, state: FlowState, claudeParsed: ClaudeFields): boolean {
+  if (!looksLikeNewRequest(body)) return false;
+  // Nombrar una cotizacion ("la nueva cotizacion para Quilicura") u otro proyecto ("mi nuevo proyecto") sigue la regla
+  // anterior (PR 142, ronda 3), y un mensaje demasiado largo para leerlo entero tambien; "ya me cotizaron" habla de
+  // la que ya existe.
+  const plain = body.replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ');
+  if (body.length > MAX_FACTS || QUOTE_WORD_RE.test(plain) || OTHER_ORDER_RE.test(plain)) return true;
+  const captured = state.captured;
+  const facts = maskNegated(factsText(body, claudeParsed));
+  const claudeProd = claudeText(claudeParsed.producto);
+  const named = [extractProducto(facts), ...itemsIn(facts), claudeProd && inMessage(claudeProd, facts) ? claudeProd : undefined]
+    .filter((p): p is string => Boolean(p) && productWords(p as string).length > 0);
+  const quantity = readQuantity(facts);
+  // Sin negocio registrado, pedir un vendedor empieza otra conversacion como antes: alli lo atiende el atajo del
+  // ejecutivo (wantsHuman), que registra con el correo siguiente.
+  if (!named.length && (WANTS_HUMAN_RE.test(body) || EXECUTIVE_RE.test(body))) return state.deal !== 'registered';
+  if (!named.length && quantity.value === undefined && !quantity.several) return false;
+  if (!captured.producto || !named.length) return true;
+  // El mismo producto: comparten una palabra del modelo que no es solo la familia ni una medida ("ufo"), sin otra
+  // medida ("campanas UFO 200W" no es la "UFO 100W"; "reflectores 40W" no es el "panel 60x60 40W"), o todas sus
+  // palabras ya estaban ("focos LED" otra vez).
+  const own = productWords(captured.producto);
+  const same = named.some((p) => {
+    const words = productWords(p);
+    if (words.every((w) => own.includes(w))) return true;
+    return words.some((w) => own.includes(w) && !GENERIC_PRODUCT_STEMS.has(w) && !/\d/.test(w))
+      && words.every((w) => !/\d/.test(w) || own.includes(w));
+  });
+  if (!same) return true;
+  // (revision 13-11) Otra medida en cualquiera de los nombres es otro producto, aunque la familia ("campanas") coincida:
+  // "10 campanas UFO 200W" despues de "10 campanas UFO 100W".
+  if (named.some((p) => productWords(p).some((w) => /\d/.test(w) && !own.includes(w)))) return true;
+  // (revision 13-11) El mismo producto para otra comuna es otro pedido, como en main ("Ahora necesito 10 campanas UFO
+  // 100W para un galpon en Quilicura"), salvo que la corrija.
+  const place = officialComuna(captured.comuna_o_ciudad);
+  const places = findComunas(facts);
+  if (place && places.length && !places.includes(place) && !correctsCaptured(body, captured, places[0])) return true;
+  // (revision 12-11) El mismo producto con otra cantidad es otro pedido ("Ahora necesito 10 focos LED para la casa de
+  // mi mama en Pirque"), como en main, salvo que corrija la que ya estaba ("Corrijo: son 10", "20 focos, no 12").
+  const other = quantity.value !== undefined && captured.cantidad !== undefined && String(quantity.value) !== captured.cantidad;
+  return other && !correctsCaptured(body, captured, String(quantity.value));
+}
+
+// [REINICIO] (revision 12-11) Despues del cierre, un dato ya registrado cambia solo si el mensaje lo corrige: con
+// palabra de correccion ("corrijo", "perdon, son", "mejor", "en vez de"), con un "definitivamente", "en realidad" o
+// "al final" (negocio 145), o negando el dato anterior ("20 focos LED, no 12"). "Gracias, mi otra casa esta en
+// Pirque" o "son 3 dormitorios y el living" son comentarios.
+const LATE_CORRECTION_RE = /(?<![a-zà-ü])(?:definitiv[a-z]*|en\s+realidad|al\s+final|finalmente|actualiz[a-z]*|modific[a-z]*|cambi[a-z]*|quise\s+decir|quer[ií]a\s+decir|me\s+confund[a-z]*)(?![a-zà-ü])/i;
+// (revision 13-11) "definitivamente", "al final" o "finalmente" corrigen solo el dato (`value`) que traen en su misma
+// oracion: "Gracias, finalmente me respondieron. Mi otra casa esta en Pirque" no cambia la comuna; "La comuna
+// definitiva es Pirque" si.
+function correctsCaptured(body: string, captured: CapturedFields, value?: unknown): boolean {
+  const text = body.slice(0, MAX_FACTS);
+  if (CORRECTION_RE.test(text) || PRODUCT_SWITCH_RE.test(text)) return true;
+  if (text.split(/[.;!?\n]+/).some((part) => LATE_CORRECTION_RE.test(part) && mentionsValue(part, value))) return true;
+  const plain = comparable(text);
+  return [captured.cantidad, captured.comuna_o_ciudad, captured.tipo_de_luz].some((value) => {
+    if (!value) return false;
+    const escaped = comparable(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('(?<![a-z0-9])no\\s+(?:son|eran|es|era|en|sea|sean)?\\s*' + escaped + '(?![a-z0-9])').test(plain);
+  });
+}
+
+function mentionsValue(part: string, value: unknown): boolean {
+  if (typeof value !== 'string' || !value) return false;
+  const v = comparable(value);
+  if (/^\d+$/.test(v)) return new RegExp('(?<![0-9])' + v + '(?![0-9])').test(comparable(part));
+  return comparable(part).includes(v) || sharesWord(value, part);
+}
+
+const OTHER_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:nuev|otr)[oa]s?\s+(?:proyecto|obra|pedido|solicitud|requerimiento|compra)/i;
+const QUOTE_WORD_RE = /cotizaci[o\u00f3]n|presupuesto|cotizar(?![a-z\u00e0-\u00fc])/i;
+const QTY_FIELDS = ['cantidad', 'cantidad_varios', 'cantidad_unidad'] as const;
+const LATE_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'cantidad_varios', 'cantidad_unidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'comunas_otras'] as const;
+/**
+ * [REINICIO] Conversacion cerrada con el negocio registrado: un dato que cambia o se completa (otro color, la
+ * cantidad, la comuna) va al mismo negocio, como el RUT y el correo tardios (rutUpdate: nota y campos). Antes el
+ * mensaje reiniciaba la conversacion, volvia a pedir la cantidad y perdia la comuna (negocios 144, 145 y 186).
+ * Solo cuenta lo que este mensaje dice: un dato que Claude repite del historial no se escribe.
+ */
+function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean): FlowResult | undefined {
+  // Preguntar por el despacho ("¿Hacen envio a Rancagua?") no cambia la comuna ni otro dato. (revision 13-11) Corregirlo
+  // si: "Corrijo: el despacho es a Quilicura".
+  if (state.isInstallFlow || (asksAboutDelivery(body) && !CORRECTION_RE.test(body.slice(0, MAX_FACTS)))) return undefined;
+  const question = /[?\u00bf]/.test(body);
+  const { merged, leadType } = mergeProductFields(state, body, claudeParsed, hasMedia);
+  const facts = factsText(body, claudeParsed);
+  const captured: CapturedFields = { ...state.captured };
+  const filled = (field: typeof LATE_FIELDS[number]): boolean => {
+    if (field === 'comunas_otras') return Boolean(state.captured.comuna_o_ciudad);
+    return state.captured[field] !== undefined && state.captured[field] !== '';
+  };
+  const applied = new Set<string>();
+  let changed = false;
+  // (revision 13-11) La cantidad, los varios items y los metros cambian juntos o no cambian: "Son 5 unidades" despues de
+  // "12 focos y 5 paneles" ya no deja el numero y los varios items a la vez.
+  const sameQty = QTY_FIELDS.every((field) => JSON.stringify(state.captured[field] ?? null) === JSON.stringify(merged[field] ?? null));
+  const hadQty = Boolean(state.captured.cantidad || state.captured.cantidad_varios);
+  if (!sameQty && (!hadQty || correctsCaptured(body, state.captured, merged.cantidad ?? merged.cantidad_varios))) {
+    for (const field of QTY_FIELDS) {
+      if (merged[field] === undefined) delete captured[field];
+      else (captured as Record<string, unknown>)[field] = merged[field];
+    }
+    applied.add('cantidad');
+    changed = true;
+  }
+  for (const field of LATE_FIELDS) {
+    if ((QTY_FIELDS as readonly string[]).includes(field)) continue;
+    const before = JSON.stringify(state.captured[field] ?? null);
+    const after = JSON.stringify(merged[field] ?? null);
+    if (before === after) continue;
+    const value = merged[field];
+    // Una comuna en una pregunta ("¿tienen sucursal en Concepcion?") no es la de la entrega.
+    if (question && (field === 'comuna_o_ciudad' || field === 'comunas_otras')) continue;
+    // El color o el uso que se llena con lo que Claude recuerda (sin decirlo en este mensaje) no cuenta.
+    if ((field === 'tipo_de_luz' || field === 'proyecto_o_uso' || field === 'producto') && typeof value === 'string' && !sharesWord(value, facts) && !textLuz(facts)) continue;
+    // (revision 12-11) Un dato ya registrado cambia solo con una correccion (correctsCaptured); uno vacio se completa.
+    if (filled(field) && !correctsCaptured(body, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value)) continue;
+    (captured as Record<string, unknown>)[field] = value;
+    applied.add(field === 'comunas_otras' ? 'comuna_o_ciudad' : field);
+    changed = true;
+  }
+  if (!changed) return undefined;
+  // Solo las lineas de cambio de los datos que se aplicaron.
+  const labels = [...applied].map((field) => KEPT_LABEL[field as KeptField]).filter(Boolean);
+  const previous = state.captured.cambios ?? [];
+  const added = (merged.cambios ?? []).filter((line) => !previous.includes(line) && labels.some((label) => line.startsWith(label + ':')));
+  if (added.length) captured.cambios = [...previous, ...added].slice(-MAX_CAMBIOS);
+  const captureStatus = computeCaptureStatus(captured, leadType);
+  const next: FlowState = { ...state, captured, captureStatus, leadType };
+  saveFlowState(phone, next);
+  console.log('[flowEngine] dato nuevo despues del cierre \u2014 se suma al negocio registrado');
+  return { reply: closedFollowUp(next, body), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+}
+
+/**
  * [TRANSCRIPCION] Conversacion cerrada con el negocio registrado: un correo distinto del capturado
  * (el corregido despues del cierre) se suma al mismo negocio, como el RUT tardio: nota con el correo
  * nuevo, la linea de cambios y la conversacion hasta este mensaje. Antes quedaba solo en la
@@ -1390,18 +1816,71 @@ function lateEmail(phone: string, state: FlowState, body: string, correcting: bo
   return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus: next.captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
+/** Lo que webhook.ts sabe del mensaje. hasMedia: trae una imagen o un archivo (con su texto). */
+// [SIN-REPETIR] lastReply: la ultima respuesta que recibio el cliente (webhook.ts la toma del historial).
+export interface FlowSignals { wantsHuman: boolean; qualifiesForDeal: boolean; hasMedia?: boolean; lastReply?: string }
+
 export function processFlowStep(
   phone: string,
   body: string,
   claudeParsed: ClaudeFields,
-  signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
+  signals: FlowSignals,
 ): FlowResult {
+  const before = flowStates.get(phone);
+  const lastReply = typeof signals.lastReply === 'string' ? signals.lastReply : undefined;
   const { question, ...stepResult } = flowStep(phone, body, claudeParsed, signals);
-  const result = explainOwnEmail(stepResult, body);
+  let result = explainOwnEmail(stepResult, body);
+  const state = flowStates.get(phone);
+  // Abierta antes, o el mensaje empezo otro pedido (la conversacion cerrada siguio abierta).
+  const open = !before || before.stage !== 'closed' || !result.closedFlow;
+  // [PREGUNTA] Con la conversacion abierta, la ubicacion, el despacho y (con correo) el precio o la consulta tecnica
+  // se contestan antes de la respuesta del flujo, que sigue con el dato que falta. Las conversaciones cerradas y la
+  // instalacion lo contestan en su rama.
+  if (open && state && !state.isInstallFlow) {
+    const reply = withAnswers(questionAnswers(questionKinds(body), Boolean(state.captured.correo), false), result.reply);
+    if (reply !== result.reply) result = { ...result, reply };
+  }
+  // [YA-ESCRIBI] Dice que ya le escribio a Claudio o a ventas@ y la respuesta le pide el correo: el texto aprobado.
+  if (!result.shouldCreateDeal && ALREADY_WROTE_RE.test(body.slice(0, MAX_FACTS))) {
+    for (const ask of [MSG_NEED_EMAIL, MSG_EMAIL_SHORT]) {
+      if (result.reply === ask) result = { ...result, reply: MSG_ALREADY_WROTE };
+      else if (result.reply.endsWith('\n\n' + ask)) result = { ...result, reply: result.reply.slice(0, -ask.length) + MSG_ALREADY_WROTE };
+    }
+  }
+  // [SIN-REPETIR] (dueno, 12-11) Tampoco se repite el texto A en la conversacion cerrada sin negocio ni correo (T-X1b):
+  // la segunda vez va MSG_EMAIL_SHORT.
+  result = notRepeated(result, lastReply);
   // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
   // [CANTIDAD] Tambien que pregunta hizo (sin pregunta, ninguna: un numero suelto no es cantidad).
-  const state = flowStates.get(phone);
   if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply), lastQuestion: question ?? null });
+  return result;
+}
+
+// [SIN-REPETIR] Si la respuesta es igual a la anterior, otro texto ya aprobado que dice lo mismo (caso de las
+// estacas: tres veces seguidas la misma peticion del correo). El saludo, el texto B y el registro pendiente no
+// cambian. Si no hay otro texto para esa respuesta, se repite.
+// "Ok, yo le escribi a Claudio", "ya les mande un correo", "le envie un mail a ventas".
+const ALREADY_WROTE_RE = /(?<![a-z\u00e0-\u00fc])(?:(?:le|les)\s+(?:escrib[i\u00ed]|mand[e\u00e9]|envi[e\u00e9])|(?:ya\s+)?(?:escrib[i\u00ed]|mand[e\u00e9]|envi[e\u00e9])\s+(?:un\s+)?(?:a|al|correo|mail|email)\b)(?![a-z\u00e0-\u00fc])/i;
+const ALTERNATE_REPLY: Record<string, string> = {
+  [MSG_ALREADY_WROTE]: MSG_EMAIL_SHORT,
+  [MSG_NEED_EMAIL]: MSG_EMAIL_SHORT,
+  [MSG_EMAIL_SHORT]: MSG_NEED_EMAIL,
+  [MSG4_INSTALL_NO_EMAIL]: MSG_EMAIL_SHORT,
+  [MSG_Q_PRICE]: MSG_Q_TECH,
+  [MSG_Q_TECH]: MSG_NEED_EMAIL,
+  // (revision 12-11) Con el correo ya dado: "¿tienen stock?" y "¿y cuanto cuestan?" seguidas.
+  [MSG_Q_PRICE_HAS_EMAIL]: MSG_Q_TECH_HAS_EMAIL,
+  [MSG_Q_TECH_HAS_EMAIL]: MSG_REGISTERED_SHORT,
+  [MSG_WAIT]: MSG_REGISTERED_SHORT,
+  [MSG_WAIT_DELIVERY]: MSG_REGISTERED_SHORT,
+  [MSG_REGISTERED_SHORT]: MSG_WAIT,
+};
+function notRepeated(result: FlowResult, lastReply: string | undefined): FlowResult {
+  if (!lastReply || result.reply !== lastReply) return result;
+  for (const [text, other] of Object.entries(ALTERNATE_REPLY)) {
+    if (result.reply === text) return { ...result, reply: other };
+    if (result.reply.endsWith('\n\n' + text)) return { ...result, reply: result.reply.slice(0, -text.length) + other };
+  }
   return result;
 }
 
@@ -1464,7 +1943,7 @@ function flowStep(
   phone: string,
   body: string,
   claudeParsed: ClaudeFields,
-  signals: { wantsHuman: boolean; qualifiesForDeal: boolean },
+  signals: FlowSignals,
 ): StepResult {
   const state = getFlowState(phone);
 
@@ -1474,8 +1953,10 @@ function flowStep(
     // [TRANSCRIPCION] Un pedido nuevo explicito gana a las correcciones; las correcciones, a un pedido nuevo que
     // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
     const explicit = explicitNewRequest(body);
+    // [REINICIO] Solo otro pedido abre otra conversacion: pedir un vendedor (negocio 144), cambiar el color del mismo
+    // producto (145) o preguntar como comprar lo cotizado (186) siguen en la misma.
     const newRequest = explicit
-      || (!correctingRut && !correctingEmail && ((looksLikeNewRequest(body) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
+      || (!correctingRut && !correctingEmail && ((opensNewRequest(body, state, claudeParsed) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
     // [TRANSCRIPCION] Salvo un pedido nuevo explicito ("Otro pedido: ... Mi correo es X"): empieza otra conversacion
@@ -1491,11 +1972,14 @@ function flowStep(
       const lateRutResult = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
       const late = state.deal === 'registered'
         ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
+          ?? lateChange(phone, state, body, claudeParsed, Boolean(signals.hasMedia))
         : undefined;
       if (late) return late;
+      const forClaudio = asksForClaudio(state, body);
       return {
         reply: closedFollowUp(state, body),
-        shouldCreateDeal: false,
+        shouldCreateDeal: forClaudio,
+        ...(forClaudio ? { rutUpdate: true } : {}),
         shouldNotify: false,
         captureStatus: state.captureStatus,
         captured: state.captured,
@@ -1509,14 +1993,17 @@ function flowStep(
   }
 
   // [EXECUTIVE-RE] Guard
+  // [GUARDAR-ANTES] Los datos del mensaje se guardan antes de responder: "Claudio me dijo que eran 25 unidades para
+  // Maipu" ya no pierde la cantidad ni la comuna.
   if (EXECUTIVE_RE.test(body) && !COMMERCIAL_INTENT_RE.test(body)) {
-    saveFlowState(phone, { ...state });
+    const kept = state.isInstallFlow ? { merged: state.captured, leadType: state.leadType } : mergeProductFields(state, body, claudeParsed, Boolean(signals.hasMedia));
+    saveFlowState(phone, { ...state, captured: kept.merged, leadType: kept.leadType });
     return {
       reply: MSG_EXECUTIVE,
       shouldCreateDeal: false,
       shouldNotify: false,
-      captureStatus: state.captureStatus,
-      captured: state.captured,
+      captureStatus: computeCaptureStatus(kept.merged, kept.leadType),
+      captured: kept.merged,
       wantsHuman: false,
       closedFlow: false,
     };
@@ -1580,28 +2067,8 @@ function flowStep(
     return { reply: MSG1, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: state.captured, wantsHuman, closedFlow: false, question: greetQuestion(state.captured) };
   }
 
-  // [FIX-2] Intencion de precio sin producto
-  if (
-    PRICE_INTENT_RE.test(body) &&
-    !claudeParsed.producto &&
-    !extractProducto(body) &&
-    !state.captured.producto
-  ) {
-    saveFlowState(phone, { ...state, wantsHuman });
-    return {
-      reply: 'Con gusto te ayudo con los precios. Que producto necesitas cotizar? (por ejemplo: focos LED, paneles, ampolletas, reflectores, etc.)',
-      shouldCreateDeal: false,
-      shouldNotify: false,
-      captureStatus: 'incomplete',
-      captured: state.captured,
-      wantsHuman,
-      closedFlow: false,
-      question: askedIn(['producto'], 0),
-    };
-  }
-
   // PASO 1: MERGE
-  const { merged, leadType: currentLeadType, rutToConfirm, menuPick } = mergeProductFields(state, body, claudeParsed);
+  const { merged, leadType: currentLeadType, rutToConfirm, menuPick } = mergeProductFields(state, body, claudeParsed, Boolean(signals.hasMedia));
 
   // [FIX-PRIORITY] PASO 2: wantsHuman path - REQUIERE correo antes de derivar
   // [FIX-EMAIL-GATE] Si el usuario quiere ejecutivo pero no tiene correo, pedirlo primero
@@ -1646,6 +2113,20 @@ function flowStep(
     saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType, menuRepeatedIn: state.stage });
     console.log('[flowEngine] numero suelto despues de la lista de la ' + state.stage + ' \u2014 se repite la pregunta');
     return { reply: again, shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: lastQuestionOf(state) ?? undefined };
+  }
+
+  // [PREGUNTA] Precio, stock o una consulta tecnica sin correo: el texto aprobado que pide el correo, sin avanzar de
+  // etapa (los datos del mensaje quedan guardados). Reemplaza a FIX-2 ("Con gusto te ayudo con los precios..."):
+  // pedir precio sin producto tambien cuenta. La ubicacion y el despacho se contestan antes de la respuesta del
+  // flujo (processFlowStep).
+  const kinds = questionKinds(body);
+  if (PRICE_INTENT_RE.test(body) && !merged.producto) kinds.add('precio');
+  const asksEmail = !merged.correo ? questionAsksEmail(kinds) : undefined;
+  if (asksEmail) {
+    saveFlowState(phone, { ...state, captured: merged, wantsHuman, leadType: currentLeadType });
+    const reply = withAnswers(questionAnswers(kinds, false, false), asksEmail);
+    console.log('[flowEngine] pregunta de precio o tecnica sin correo \u2014 se pide el correo');
+    return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: computeCaptureStatus(merged, currentLeadType), captured: merged, wantsHuman, closedFlow: false, question: askedIn(['correo de contacto'], 0) };
   }
 
   // PASO 3: AVANCE MULTI-STAGE
@@ -1786,7 +2267,8 @@ function articleFor(proyecto: string): string {
 function buildRepregunta1(missing: string[], captured: CapturedFields = {}): string {
   const hints: string[] = [];
   if (captured.proyecto_o_uso) { const art = articleFor(captured.proyecto_o_uso); hints.push(art + ' ' + captured.proyecto_o_uso); }
-  if (captured.tipo_de_luz) hints.push('luz ' + captured.tipo_de_luz);
+  // [LUZ] Sin "luz luz" cuando el color ya trae la palabra ("luz cálida").
+  if (captured.tipo_de_luz) hints.push(/^luz\b/i.test(captured.tipo_de_luz) ? captured.tipo_de_luz : 'luz ' + captured.tipo_de_luz);
   const intro = hints.length > 0 ? 'Entendido, para ' + hints.join(', ') + ' podemos orientarte bien.' : 'Gracias por tu mensaje, podemos ayudarte.';
   if (missing.length === 1) return intro + ' Solo necesito saber ' + missing[0] + ' para continuar.';
   const items = missing.map((x, i) => i + 1 + ') ' + capitalize(x));
@@ -1802,7 +2284,7 @@ function buildRepregunta3(missing: string[], leadType: LeadType): string {
   if (missing.length === 1) {
     const campo = missing[0];
     if (campo === 'RUT de la empresa') return 'Para registrar tu solicitud necesito el RUT de la empresa.';
-    if (campo === 'correo de contacto') return 'Para registrar tu solicitud necesito tu correo de contacto.';
+    if (campo === 'correo de contacto') return MSG_EMAIL_SHORT;
     if (campo === 'nombre') return 'Para registrar tu solicitud necesito tu nombre.';
     return 'Para registrar tu solicitud necesito tu ' + campo + '.';
   }

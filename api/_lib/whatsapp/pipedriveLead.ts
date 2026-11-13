@@ -33,6 +33,8 @@ export interface WhatsAppLeadParams {
     captureStatus?: CaptureStatus;
     wantsHuman?: boolean;
     leadType?: 'B2B' | 'B2C' | 'Unknown';
+    /** [REGISTRO] (revision 13-11) El tipo que lleva el flujo: en un negocio que ya existe manda sobre el mensaje. */
+    flowLeadType?: 'B2B' | 'B2C' | 'Unknown';
     priorityTier?: 'Alta' | 'Normal';
     existingDealId?: number;
     /** [TRANSCRIPCION] La conversacion en texto plano (transcript.ts); sin ella, la nota trae este mensaje. */
@@ -534,6 +536,7 @@ function bodyLine(body: unknown): string {
 }
 
 const SUMMARY_MAX = 600;
+const VARIOS_MAX = 1200;
 /** [NOTA-REF] `ref`: la referencia de la nota (newNoteRef), que va en su ultima linea. */
 export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): string {
     const c = p.captured ?? {};
@@ -541,7 +544,10 @@ export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): st
     const ambiguos = listLines(c.rut_ambiguos);
     const otras = listLines(c.comunas_otras);
     const cambios = listLines(c.cambios, changeLine);
-    const varios = oneLine(c.cantidad_varios);
+    // [VARIOS] Un pedido largo de varios items va entero (antes se cortaba en 300 y se perdian items).
+    const varios = oneLine(c.cantidad_varios, VARIOS_MAX);
+    // [METROS] "Cantidad: 500 m" cuando el cliente pidio metros.
+    const cantidad = oneLine(c.cantidad);
     const head = [
           '== Lead WhatsApp eLIGHTS ==',
           'Telefono: ' + (oneLine(p.phone) ?? '-'),
@@ -553,7 +559,7 @@ export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): st
           'Producto: ' + (oneLine(c.producto) ?? '-'),
           'Tipo de luz: ' + (oneLine(c.tipo_de_luz) ?? '-'),
           // [CANTIDAD] Con varias cantidades en un mensaje, el texto del cliente para revisar.
-          'Cantidad: ' + (oneLine(c.cantidad) ?? (varios ? 'varios items, revisar: ' + varios : '-')),
+          'Cantidad: ' + (cantidad ? cantidad + (c.cantidad_unidad === 'm' ? ' m' : '') : varios ? 'varios items, revisar: ' + varios : '-'),
           'Proyecto/uso: ' + (oneLine(lead.proyecto) ?? '-'),
           'Comuna/ciudad: ' + (oneLine(lead.comuna) ?? '-'),
           // [COMUNA] Otras comunas que el cliente dio como lugar (la de la factura, una segunda obra).
@@ -585,7 +591,7 @@ function buildWaCustomFields(
     wantsHuman: boolean | undefined,
     summary: string,
     body: string,
-    resolvedLeadType: string,
+    resolvedLeadType: string | undefined,
   ): Record<string, string> {
     const waCustomFields: Record<string, string> = {};
     const lead = resolveLead(captured ?? {});
@@ -621,14 +627,24 @@ function buildWaCustomFields(
  * mensaje del numero sigue escribiendo en ese negocio, para que Pipedrive reciba los valores en orden.
  */
 export function buildWhatsAppUpdate(params: WhatsAppLeadParams & { existingDealId: number }): PendingWhatsAppWrite {
-    const resolvedLeadType = params.leadType ?? detectLeadType(params.body, params.captured);
     const noteRef = newNoteRef();
     return {
           dealId: params.existingDealId,
-          fields: buildWaCustomFields(params.captured, params.captureStatus, params.wantsHuman, params.summary, params.body, resolvedLeadType),
+          fields: buildWaCustomFields(params.captured, params.captureStatus, params.wantsHuman, params.summary, params.body, updateLeadType(params)),
           note: buildNote(params, noteRef),
           noteRef,
     };
+}
+
+/**
+ * [REGISTRO] (revision 12-11) El tipo que se escribe en un negocio que ya existe: solo B2B (un RUT de empresa tardio
+ * lo sube). Una pregunta o un dato tardio sin palabras de empresa ("Cuanto cuesta cada una de las campanas?") no lo
+ * vuelve B2C: el tipo del registro no se recalcula desde el mensaje nuevo.
+ */
+// (revision 13-11) Con el tipo del flujo no se vuelve a detectar desde el mensaje: "¿Cual es el precio con despacho?"
+// de una persona ya no sube el negocio a B2B.
+function updateLeadType(params: WhatsAppLeadParams): 'B2B' | undefined {
+    return (params.leadType ?? params.flowLeadType ?? detectLeadType(params.body, params.captured)) === 'B2B' ? 'B2B' : undefined;
 }
 
 export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<WhatsAppDealResult> {
@@ -651,7 +667,8 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
   const resolvedLeadType = params.leadType ?? detectLeadType(params.body, captured);
     const resolvedPriority: 'Alta' | 'Normal' = wantsHuman ? 'Alta' : (params.priorityTier ?? 'Normal');
 
-  const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body, resolvedLeadType);
+  const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body,
+    params.existingDealId ? updateLeadType(params) : resolvedLeadType);
     // [NOTA-REF] La referencia se crea aqui, una vez, y viaja con la nota si queda pendiente.
     const noteRef = newNoteRef();
     const noteContent = buildNote(params, noteRef);
@@ -717,7 +734,8 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
 }
 
 function detectLeadType(body: string, captured?: CapturedFields): 'B2B' | 'B2C' | 'Unknown' {
-    const B2B_RE = /empresa|constructora|obra|factura|licitaci[o\u00f3]n|proveedor|s\.a\.|spa|ltda|ingenier\u00eda|arquitectura|instalador/i;
+    // (revision 13-11) Palabras enteras al comienzo: "despacho" ya no es "spa".
+    const B2B_RE = /(?<![a-z\u00e0-\u00fc])(?:empresa|constructora|obra|factura|licitaci[o\u00f3]n|proveedor|s\.a\.|spa(?![a-z\u00e0-\u00fc])|ltda|ingenier\u00eda|arquitectura|instalador)/i;
     const text = body + ' ' + (fmt(captured?.nombre_o_empresa) ?? '');
     if (B2B_RE.test(text)) return 'B2B';
     // [RUT-VALIDO] Un RUT valido de empresa, organismo o comunidad (no de persona) es B2B.

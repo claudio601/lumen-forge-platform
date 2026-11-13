@@ -36,7 +36,9 @@ describe('§10: comuna en el primer mensaje', () => {
     const r = step('Ya compré, ¿cuál es la dirección de retiro?', claude);
     expect(r.captured.comuna_o_ciudad).toBeUndefined();
     expect(r.captured.comunas_otras).toBeUndefined();
-    expect(r.reply).not.toMatch(/Quinta Normal|direcci[oó]n de (la )?bodega/i);
+    // [PREGUNTA] (fase 2) Solo la ubicación aprobada (comuna de la bodega, 11-11-2026), nunca la dirección exacta.
+    expect(r.reply.replace(flow.MSG_LOCATION, '')).not.toMatch(/Quinta Normal|direcci[oó]n de (la )?bodega/i);
+    expect(r.reply).not.toMatch(/\b(?:calle|avenida|av\.|pasaje|n[°º])\s*\S*\s*\d|\d{3,}/i);
   });
 
   it.each<[string, Claude]>([

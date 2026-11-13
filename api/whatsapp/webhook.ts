@@ -476,6 +476,8 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           captured: flowResult.captured,
                           captureStatus: flowResult.captureStatus,
                           wantsHuman: flowResult.wantsHuman,
+                          // [REGISTRO] (revision 13-11) En un negocio que ya existe, el tipo del flujo, no el del mensaje.
+                          flowLeadType: getFlowState(phone).leadType,
                           // [TRANSCRIPCION] Hasta este mensaje, con la respuesta que lo acompana (y la marca del
                           // aviso de privacidad si la lleva): lo que llegue mientras tanto va a la nota siguiente.
                           transcript: transcriptForNote(phone, { ...noteOpts, reply: botReplyText(flowResult.reply, noticeDue) }),
@@ -791,7 +793,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             },
       }));
 
-    const signals = evaluateLeadSignals(body);
+    // [VARIOS-IMAGEN] El flujo sabe si el texto acompana una imagen: cada imagen con su cantidad es otro item.
+    // [SIN-REPETIR] La ultima respuesta que recibio el cliente: el flujo no la repite igual.
+    const lastReply = getHistory(phone).filter((turn) => turn.role === 'assistant').pop()?.content;
+    const signals = { ...evaluateLeadSignals(body), hasMedia: numMedia > 0, lastReply };
       const history = getHistory(phone);
 
     // claudeParsed con tipo explícito alineado a lo que espera processFlowStep
