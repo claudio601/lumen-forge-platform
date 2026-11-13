@@ -5,7 +5,7 @@
 // encuentra los productos de «encuentra» (una búsqueda o varias). Va en un solo sentido: buscar
 // «proyector» no trae los «foco». Lo que el cliente escribió también se busca tal cual: «foco»
 // trae los focos y los proyectores, primero los que dicen «foco». Con «categoria», lo que llega
-// por sinónimo se limita a esa categoría: «plafón» trae los paneles LED, no los «panel solar».
+// por sinónimo se limita a esa categoría: «plafón» trae los paneles LED sobrepuestos, no los «panel solar».
 //
 // Reglas para editar:
 // - Tildes y mayúsculas no importan: «galpón» y «galpon» son lo mismo.
@@ -31,7 +31,11 @@ export const SEARCH_SYNONYMS: readonly SearchSynonym[] = [
   { busca: ['galpon', 'bodega', 'nave industrial', 'high bay', 'highbay'], encuentra: 'campana' },
   { busca: ['antiexplosivo', 'ex', 'atex', 'zona clasificada'], encuentra: 'antiexplosiva' },
   { busca: ['cancha', 'multicancha', 'deportivo', 'recinto deportivo'], encuentra: 'proyector de estadio' },
-  { busca: ['plafon', 'cielo falso'], encuentra: 'panel', categoria: 'paneles-led' },
+  // «Plafón» es el panel sobrepuesto; «cielo falso», cualquier panel (regla del Project, 07-10-2026)
+  { busca: ['plafon'], encuentra: 'panel sobrepuesto', categoria: 'paneles-led' },
+  { busca: ['cielo falso'], encuentra: 'panel', categoria: 'paneles-led' },
+  // «30x30»: el panel cuadrado sobrepuesto de 24 W, de 29,6 cm (aprendizajes del 07-10-2026)
+  { busca: ['30x30'], encuentra: 'panel cuadrado sobrepuesto 24W', categoria: 'paneles-led' },
   { busca: ['fluorescente'], encuentra: 'tubo' },
   { busca: ['manguera', 'huincha'], encuentra: 'cinta' },
   { busca: ['transformador', 'driver'], encuentra: 'fuente de poder' },
@@ -42,6 +46,14 @@ export const SEARCH_SYNONYMS: readonly SearchSynonym[] = [
   { busca: ['empotrado'], encuentra: 'embutido' },
   { busca: ['detector'], encuentra: 'sensor' },
   { busca: ['presencia'], encuentra: 'movimiento' },
+  // Nombres que usan los clientes (Project «Cotizador eLIGHTS.cl», auditoría del 13-11-2026)
+  { busca: ['skyfly', 'sky fly'], encuentra: 'flyhawk' },
+  // El «tubo PC» es el de aluminio con policarbonato, no el de vidrio
+  { busca: ['tubo pc', 'tubo policarbonato'], encuentra: 'tubo opal aluminio' },
+  // «Antares» es nuestra línea de ampolletas bola E27 y dicroica GU10 (no las AR111)
+  { busca: ['antares'], encuentra: ['ampolleta bola', 'ampolleta gu10'] },
+  // Los antivandálicos son IK08: el «antivandálico IK10» es el proyector de estadio modular
+  { busca: ['antivandalico ik10'], encuentra: 'proyector de estadio modular' },
 ];
 
 /**

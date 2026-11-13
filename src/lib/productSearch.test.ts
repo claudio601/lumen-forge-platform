@@ -247,6 +247,62 @@ describe('sinónimos agregados en la revisión', () => {
     }
   });
 
+  it('«plafón» trae solo paneles sobrepuestos; «cielo falso», todos los paneles (13-11-2026)', () => {
+    const plafon = search('plafón');
+    expect(plafon.length).toBeGreaterThan(0);
+    for (const p of plafon) expect(p.name, p.name).toMatch(/sobrepuesto/i);
+    expect(search('cielo falso').some(p => /embutido/i.test(p.name))).toBe(true);
+  });
+
+  it('nombres que usan los clientes llevan al producto (auditoría de las skills, 13-11-2026)', () => {
+    // «Skyfly» es el FLYHAWK
+    for (const q of ['skyfly', 'Sky Fly']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of r) expect(p.name, q).toMatch(/flyhawk/i);
+    }
+    // «Tubo PC» es el de aluminio con policarbonato: nunca el de vidrio
+    for (const q of ['tubo pc', 'tubos PC', 'tubo policarbonato']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of r) {
+        expect(p.name, q).toMatch(/aluminio/i);
+        expect(p.name, q).not.toMatch(/vidrio/i);
+      }
+    }
+    // «Antares»: las ampolletas bola E27 y las dicroicas GU10, sin las AR111
+    const antares = search('antares');
+    expect(antares.some(p => /bola/i.test(p.name))).toBe(true);
+    expect(antares.some(p => /gu10/i.test(p.name))).toBe(true);
+    for (const p of antares) {
+      expect(p.name).toMatch(/ampolleta/i);
+      expect(p.name).not.toMatch(/ar111/i);
+    }
+    // «30x30» (también «30 x 30» y con «panel»): el panel cuadrado sobrepuesto de 24 W
+    for (const q of ['30x30', '30 x 30', 'panel 30x30']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of r) expect(p.name, q).toMatch(/cuadrado sobrepuesto 24w/i);
+    }
+  });
+
+  it('«antivandálico IK10» trae el proyector de estadio modular, no los antivandálicos IK08 (13-11-2026)', () => {
+    for (const q of ['antivandálico IK10', 'proyector antivandalico ik 10', 'antivandalicos IK10']) {
+      const r = search(q);
+      expect(r.length, q).toBeGreaterThan(0);
+      for (const p of r) expect(p.name, q).toMatch(/estadio modular/i);
+    }
+    // «antivandálico» solo sigue trayendo los antivandálicos, e «IK10» solo no se vuelve un sinónimo
+    expect(search('antivandálico').every(p => /antivand/i.test(norm(p.name)))).toBe(true);
+    for (const p of search('ik10')) expect(haystack(p), p.name).toMatch(/ik10/);
+  });
+
+  it('un foco GU10 no lleva a los proyectores (sinónimo «foco» → «proyector»)', () => {
+    const r = search('foco gu10');
+    expect(r.length).toBeGreaterThan(0);
+    for (const p of r) expect(p.name).toMatch(/gu10/i);
+  });
+
   it('«detector» y «detector de movimiento» traen lo que dice «sensor», primero lo que es un sensor (10-11-2026)', () => {
     for (const [q, base] of [['detector', 'sensor'], ['detector de movimiento', 'sensor de movimiento']]) {
       const r = search(q);
@@ -421,10 +477,11 @@ describe('reglas de la búsqueda', () => {
 describe('diccionario de sinónimos (search-synonyms.ts)', () => {
   const keys = SEARCH_SYNONYMS.flatMap(s => s.busca.map(norm));
 
-  it('entre 20 y 40 palabras, sin repetir', () => {
-    // La auditoría pedía de 20 a 30; la revisión agregó «highbay», «tri proof», «cartel» y «regulable»
+  it('entre 20 y 50 palabras, sin repetir', () => {
+    // La auditoría pedía de 20 a 30; la revisión agregó «highbay», «tri proof», «cartel» y «regulable»,
+    // y la auditoría de las skills (13-11-2026), los nombres que usan los clientes («skyfly», «antares»…)
     expect(keys.length).toBeGreaterThanOrEqual(20);
-    expect(keys.length).toBeLessThanOrEqual(40);
+    expect(keys.length).toBeLessThanOrEqual(50);
     expect(new Set(keys).size).toBe(keys.length);
   });
 

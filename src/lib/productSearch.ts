@@ -16,7 +16,7 @@
 //   no está en el catálogo ni es un sinónimo, y con la misma primera letra. Así «salida» no trae
 //   «Luz Cálida», «estanca» no trae «estaca» y «puente» no trae «fuente».
 // - Sinónimos de obra en un solo sentido (search-synonyms.ts): «reflector» → «proyector». Una
-//   fila puede limitarse a una categoría: «plafón» → los paneles, sin los «panel solar».
+//   fila puede limitarse a una categoría: «plafón» → los paneles sobrepuestos, sin los «panel solar».
 // - Orden: lo que llega con una letra de diferencia va al final. Antes, lo que coincide por SKU
 //   (el SKU completo antes que el que solo empieza igual), después por nombre y después el resto;
 //   a igualdad, lo escrito tal cual antes que por sinónimo, la potencia pedida («100w», «100»)
