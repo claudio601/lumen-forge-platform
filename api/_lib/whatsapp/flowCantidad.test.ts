@@ -106,7 +106,8 @@ describe('la prueba del dueño del 16-10: razón social, RUT y correo en un mens
   for (const [who, claude] of claudes) {
     it(`Claude ${who}: cantidad 30, proyecto oficina y cierra registrando`, () => {
       const first = step(FIRST, FIRST_CLAUDE);
-      expect(first.reply).toBe(flow.MSG3_B2B);
+      // La oficina no identifica a la empresa; la razon social llega en DATA.
+      expect(first.reply).toBe(flow.MSG3_B2C);
       const r = step(DATA, claude);
       expect(r.captured).toMatchObject({ cantidad: '30', proyecto_o_uso: 'oficina', rut: '77.123.456-9', rut_valido: true });
       expect(r.captured.cambios).toBeUndefined();

@@ -143,10 +143,10 @@ describe('[B2B] empresa con tilde, y la bodega de la tienda no es empresa', () =
     expect(end.shouldCreateDeal).toBe(true);
   });
 
-  it.each(['¿Hacen despacho a la obra en Lampa?', '¿Despachan a nuestra bodega en Lampa?'])('"%s" sigue siendo empresa (es del cliente)', (body) => {
+  it.each(['¿Hacen despacho a la obra en Lampa?', '¿Despachan a nuestra bodega en Lampa?'])('"%s" no identifica al comprador como empresa', (body) => {
     FIVE();
     step(body);
-    expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
   });
 });
 

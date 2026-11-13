@@ -173,6 +173,12 @@ function prepareSiteQuote(
   delete body.jumpsellerEventType;
 
   const errors: string[] = [];
+  // El sitio exige correo aunque llegue un telefono; las otras fuentes conservan su contrato.
+  // validateQuotePayload comprueba despues el formato del correo presente.
+  const customer = body.customer as Record<string, unknown> | undefined;
+  if (typeof customer?.email !== 'string' || !customer.email.trim()) {
+    errors.push('customer.email is required for nuevo_elights');
+  }
   if (typeof body.quoteReference !== 'string' || !SITE_QUOTE_REFERENCE.test(body.quoteReference)) {
     errors.push('quoteReference must match NE-xxxxxxx');
   }

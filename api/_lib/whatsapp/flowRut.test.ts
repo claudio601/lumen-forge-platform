@@ -51,6 +51,52 @@ describe('T12: RUT válido', () => {
   });
 });
 
+describe('el lugar de instalación no identifica al comprador como empresa', () => {
+  it.each([
+    ['para mi oficina', 'oficina'],
+    ['para mi bodega', 'bodega'],
+    ['para una obra en mi casa', 'casa'],
+    ['para mi local', 'local'],
+    ['para un local comercial', 'local comercial'],
+    ['para un proyecto comercial', 'proyecto comercial'],
+  ])('%s: pide contacto sin RUT y cierra como persona', (uso, proyecto) => {
+    const r = flow.processFlowStep(
+      PHONE,
+      `Necesito 10 ampolletas LED luz cálida ${uso} en Maipú`,
+      { producto: 'ampolletas LED', tipo_de_luz: 'cálida', cantidad: '10', proyecto_o_uso: proyecto, comuna_o_ciudad: 'Maipú' },
+      NO_SIGNALS,
+    );
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
+    expect(r.reply).toBe(flow.MSG3_B2C);
+    const end = flow.processFlowStep(PHONE, 'Soy Ana Prueba, ana.prueba@example.com', { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' }, NO_SIGNALS);
+    expect(end.reply).toBe(flow.MSG4);
+    expect(end.shouldCreateDeal).toBe(true);
+    expect(end.captured.rut).toBeUndefined();
+  });
+
+  it.each([
+    ['Somos Comercial Prueba SpA', {}],
+    ['Somos Comercial Prueba Ltda', {}],
+    ['Razón social: Comercial Prueba', {}],
+    ['Es para mi empresa', {}],
+    ['Giro: comercio de luminarias', {}],
+    ['RUT 77.123.456-9', {}],
+    ['Somos Comercial Prueba', { empresa: 'Comercial Prueba' }],
+  ])('%s: conserva el recorrido de empresa', (identidad, datos) => {
+    const r = flow.processFlowStep(
+      PHONE,
+      `Necesito 10 ampolletas LED luz cálida para mi oficina en Maipú. ${identidad}`,
+      { producto: 'ampolletas LED', tipo_de_luz: 'cálida', cantidad: '10', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú', ...datos },
+      NO_SIGNALS,
+    );
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
+    expect(r.reply).toBe(identidad.startsWith('RUT') ? 'Para registrar tu solicitud necesito tu correo de contacto.' : flow.MSG3_B2B);
+    const end = flow.processFlowStep(PHONE, 'RUT 77.123.456-9, ' + CORREO, { correo: CORREO }, NO_SIGNALS);
+    expect(end.reply).toBe(flow.MSG4_B2B);
+    expect(end.shouldCreateDeal).toBe(true);
+  });
+});
+
 describe('T13: RUT que no calza', () => {
   it('se pide de nuevo una vez, sin crear el negocio; corregido, cierra con el válido', () => {
     const first = flow.processFlowStep(PHONE, b2b('77.123.456-8'), B2B_CLAUDE, NO_SIGNALS);
