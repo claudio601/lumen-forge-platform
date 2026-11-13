@@ -185,7 +185,10 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
   web). Se pide el uso y la clase del recinto y se asesora. Decir qué versiones tienen el
   certificado no es recomendar una: va igual, en su oración. Una cancha o un galpón techado sin muros sigue siendo alumbrado
   exterior (art. 3 a): se escribe "exteriores, incluidos los techados sin muros", nunca "al
-  aire libre", y la luz fría queda para "interiores cerrados, con muros".
+  aire libre", y la luz fría queda para "interiores cerrados, con muros". Vale para toda la ficha de
+  una cancha, pista o estadio, también usos y beneficios ("Canchas de pádel y tenis
+  exteriores"); ferias, eventos y terrazas pueden seguir "al aire libre" (la guarda es
+  `outdoorWordingIssues`).
 - En canchas, estadios y recintos deportivos no se recomienda en general la luz fría ni la
   neutra ("se usa", "lo usual", "la más usada", "suele preferirse"): el tope depende de la clase
   del recinto. Va condicionado, con otras palabras en cada ficha: "La temperatura de color
