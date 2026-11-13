@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '1a0aab747d52';
+export const SNAPSHOT_HASH = '4a4c305e188a';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -193,7 +193,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "4450187": {"url":"https://images.jumpseller.com/store/elights-cl/4450187/proyector_01.jpg?1653223526","format":"jpeg","bytes":74939,"width":800,"height":800},
   "4537309": {"url":"https://images.jumpseller.com/store/elights-cl/4537309/01-fuente-de-poder-exterior-150w.png?1625761468","format":"png","bytes":144139,"width":900,"height":900},
   "4608256": {"url":"https://images.jumpseller.com/store/elights-cl/4608256/panel-led-600x600-mm-40w-embutido-o-suspendido-regulable.jpg?1640613811","format":"jpeg","bytes":9831,"width":600,"height":600},
-  "4615634": {"url":"https://images.jumpseller.com/store/elights-cl/4615634/01-estaca-led-solar.png?1583786236","format":"png","bytes":127312,"width":900,"height":900},
   "4622926": {"url":"https://images.jumpseller.com/store/elights-cl/4622926/APLIQUE-MURO-EXTERIOR-LED-3W-IP65-NEGRO-.png?1666723418","format":"png","bytes":345419,"width":900,"height":900},
   "4730253": {"url":"https://images.jumpseller.com/store/elights-cl/4730253/120x15_MARCO_PARA_SOBREPONER_PANEL_LED_CIELO_AMERICANO.png?1629468583","format":"png","bytes":39903,"width":792,"height":612},
   "10796623": {"url":"https://images.jumpseller.com/store/elights-cl/10796623/Island_1.png?1629132141","format":"png","bytes":138744,"width":600,"height":600},
