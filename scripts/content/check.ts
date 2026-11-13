@@ -7,7 +7,8 @@
 //     certificadas, sin el D.S. N°43, sin luz azul en canchas y sin el «% de luz azul» junto a
 //     la norma: src/data/catalog/ds1.ts), sin luz fría o neutra recomendada en general para canchas
 //     (sportsColorIssues) y, en los proyectores de estadio, sin invitar a elegir la óptica
-//     (stadiumOpticIssues),
+//     (stadiumOpticIssues), y «exteriores» en vez de «al aire libre» en recintos deportivos
+//     (outdoorWordingIssues),
 //   - que no invente datos: cada cifra con su unidad (W, lm, K, V, h, años, mm, °, %, A…)
 //     tiene que estar en los datos de Jumpseller del producto con esa misma unidad (o en
 //     una fila cuya etiqueta la implica, como "Garantía" o "Alto (mm)"); lo mismo cada
@@ -215,6 +216,24 @@ export function sportsColorIssues(c: ProductContent): string[] {
 }
 
 /**
+ * Un recinto deportivo techado sin muros sigue siendo alumbrado exterior (D.S. N°1/2022, art. 3 a):
+ * en canchas, pistas y estadios va «exteriores» (incluidos los techados sin muros), nunca «al aire
+ * libre», que deja fuera a los techados (GUIDE.md). En los proyectores de estadio, también «recintos
+ * al aire libre». Ferias, eventos, terrazas y quinchos no cuentan.
+ */
+const SPORTS_VENUE =
+  /\b(?:multi)?canchas?\b|\bestadios?\b|(?:recintos?|complejos?)\s+deportivos?|\bpistas?\s+(?:atl[eé]ticas?|de\s+atletismo)|\bhip[oó]dromos?\b|\bmedialunas?\b|\bp[aá]del\b|\btenis\b/i;
+
+/** «Al aire libre» para un recinto deportivo. */
+export function outdoorWordingIssues(c: ProductContent, jumpsellerId?: number): string[] {
+  const sports = Boolean(ds1Line(jumpsellerId)?.sports);
+  return contentBlocks(c)
+    .flatMap(sentences)
+    .filter(s => /\bal\s+aire\s+libre\b/i.test(s) && (SPORTS_VENUE.test(s) || (sports && /\brecintos?\b/i.test(s))))
+    .map(s => `escribe «al aire libre» para un recinto deportivo (va «exteriores»: los techados sin muros también son alumbrado exterior): "${s.slice(0, 90)}…"`);
+}
+
+/**
  * Proyectores de estadio (las líneas de estadio de ds1.ts): la ficha no saca el tema de la óptica ni
  * invita a elegirla. Nada de preguntas sobre la apertura, consejos de qué haz usar según la altura
  * o el montaje, ni pedir la apertura al cotizar: se responde si el cliente pregunta (regla del
@@ -345,7 +364,7 @@ export function checkRules(c: ProductContent, jumpsellerId?: number): string[] {
   // D.S. N°1/2022: el certificado solo en las líneas certificadas, y ahí solo en sus versiones
   // certificadas (src/data/catalog/ds1.ts)
   problems.push(...ds1ContentIssues(c, jumpsellerId));
-  problems.push(...sportsColorIssues(c), ...stadiumOpticIssues(c, jumpsellerId));
+  problems.push(...sportsColorIssues(c), ...stadiumOpticIssues(c, jumpsellerId), ...outdoorWordingIssues(c, jumpsellerId));
   return problems;
 }
 

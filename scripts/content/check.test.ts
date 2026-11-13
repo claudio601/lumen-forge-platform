@@ -238,6 +238,21 @@ describe('verificación del contenido SEO', () => {
     expect(checkRules(pideApertura).some(p => p.startsWith('proyector de estadio'))).toBe(false);
   });
 
+  it('recintos deportivos: «exteriores», nunca «al aire libre» (los techados sin muros también son alumbrado exterior)', () => {
+    const aireLibre = (text: string, id?: number) =>
+      checkRules({ ...good, description: text }, id).some(p => p.startsWith('escribe «al aire libre» para un recinto deportivo'));
+    for (const text of ['Canchas de pádel y tenis al aire libre.', 'Multicanchas techadas o al aire libre.', 'Pistas de atletismo al aire libre.', 'Hipódromos y pistas atléticas al aire libre.']) {
+      expect(aireLibre(text), text).toBe(true);
+    }
+    for (const text of ['Canchas de pádel y tenis exteriores.', 'Ferias y eventos al aire libre.', 'Terrazas y quinchos al aire libre.']) {
+      expect(aireLibre(text), text).toBe(false);
+    }
+    // en un proyector de estadio, «recintos al aire libre» también es un recinto deportivo
+    const [estadio] = DS1_CERTIFIED_LINES.estadioModular.ids;
+    expect(aireLibre('Sirve en recintos al aire libre de zonas con heladas.', estadio)).toBe(true);
+    expect(aireLibre('Sirve en recintos al aire libre de zonas con heladas.', product.jumpseller_id)).toBe(false);
+  });
+
   it('rechaza WhatsApp: lo atiende un asistente automático, la asesoría es por correo', () => {
     for (const text of ['Te asesoramos por WhatsApp.', 'Escríbenos al Whatsapp o a ventas@elights.cl.', 'Consulta por whats app.']) {
       expect(rules(text).some(p => p.startsWith('menciona WhatsApp')), text).toBe(true);

@@ -13,7 +13,7 @@
   "useCases": [
     "Canchas de baby fútbol y fútbol 7",
     "Gimnasios polideportivos municipales",
-    "Multicanchas techadas o al aire libre",
+    "Multicanchas exteriores, también las techadas sin muros",
     "Patios de maniobra y zonas de carga",
     "Explanadas y plazas cívicas",
     "Recintos deportivos de colegios y universidades"
@@ -25,7 +25,7 @@
     },
     {
       "question": "¿Funciona con frío intenso?",
-      "answer": "Su rango de operación va de -20 °C a 50 °C, así que sirve en recintos al aire libre de zonas con heladas y también en lugares calurosos. Además, su grado IP66 lo protege del polvo y de la lluvia con viento."
+      "answer": "Su rango de operación va de -20 °C a 50 °C, así que sirve en recintos exteriores de zonas con heladas y también en lugares calurosos. Además, su grado IP66 lo protege del polvo y de la lluvia con viento."
     },
     {
       "question": "¿Con qué tensión funciona?",
