@@ -27,7 +27,7 @@ const NoResults = ({ query, onSearch }: { query: string; onSearch: (q: string) =
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5">
         <h2 id="no-results-title" className="text-base md:text-lg font-semibold mb-2">¿No lo encuentras? Te lo buscamos</h2>
         <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-          Cuéntanos qué necesitas y lo buscamos por ti.
+          Si es un producto de iluminación, cuéntanos qué necesitas y lo buscamos por ti.
         </p>
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
           <Button asChild size="sm" className={buttonClass}>
