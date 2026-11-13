@@ -64,7 +64,10 @@ general** (220V de la red chilena, 200 °C de la clase T3, 24V): se escribe sin 
   (Nunca "mismo día", "24/48 horas" ni "inmediato".)
 - La compra es por pedido o cotización: el equipo comercial responde con la cotización
   formal. Atiende a empresas, instaladores eléctricos, constructoras, arquitectos,
-  municipios y licitaciones. Se emite factura.
+  municipios y licitaciones. Se emite boleta (personas) o factura (empresas): se escribe
+  "boleta o factura" ("Emitimos boleta o factura por cada compra"); "factura" sola, solo si
+  dice que es para la empresa ("factura a nombre de tu empresa"). Nunca "toda compra se
+  factura" (regla del 13-11-2026; las personas no dan RUT).
 - Asesoría técnica por correo en ventas@elights.cl. Sin mencionar WhatsApp: lo atiende un
   asistente automático que solo toma solicitudes (no asesora ni es una persona).
 - Servicio de estudio lumínico DIALux (sin decir que es gratis) e instalación en la Región

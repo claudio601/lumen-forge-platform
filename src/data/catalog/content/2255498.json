@@ -34,8 +34,8 @@
       "answer": "Sí, mientras la potencia sumada de todos los tramos quede bajo los 100W de la fuente, con margen. Lo recomendable es llevar un cable desde la fuente a cada tramo (conexión en paralelo), respetando la polaridad, en vez de encadenarlos uno tras otro: así todos reciben la misma tensión, el último no pierde brillo y el inicio de la cinta no carga con la corriente de todo el conjunto."
     },
     {
-      "question": "¿Emiten factura y despachan a regiones?",
-      "answer": "Sí. Al confirmar la compra se emite factura. Despachamos a todo Chile en hasta 2 días hábiles; a regiones, la fuente viaja por operador logístico y el tiempo de traslado, que se suma a ese plazo, aparece en la cotización."
+      "question": "¿Emiten boleta o factura y despachan a regiones?",
+      "answer": "Sí. Al confirmar la compra se emite boleta o factura. Despachamos a todo Chile en hasta 2 días hábiles; a regiones, la fuente viaja por operador logístico y el tiempo de traslado, que se suma a ese plazo, aparece en la cotización."
     }
   ]
 }

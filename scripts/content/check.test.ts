@@ -139,6 +139,28 @@ describe('verificación del contenido SEO', () => {
     expect(problems).toContain('trae URLs: "https://"');
   });
 
+  it('boleta para personas, factura para empresas (regla del 13-11-2026)', () => {
+    const facturaEnTodo = (p: string) => p.startsWith('promete factura en toda compra');
+    for (const text of [
+      'Emitimos factura por cada compra.',
+      'La compra se factura y se despacha en hasta 2 días hábiles.',
+      'Las compras se facturan.',
+      'Facturamos cada compra.',
+      'Te enviamos la cotización formal con factura electrónica.',
+    ]) {
+      expect(rules(text).some(facturaEnTodo), text).toBe(true);
+    }
+    for (const text of [
+      'Emitimos boleta o factura por cada compra.',
+      'La compra se respalda con boleta o factura.',
+      'El equipo comercial emite factura para empresas.',
+      'Emitimos la factura a nombre de tu empresa.',
+      'Plantas manufactureras y bodegas.',
+    ]) {
+      expect(rules(text).some(facturaEnTodo), text).toBe(false);
+    }
+  });
+
   it('rechaza WhatsApp: lo atiende un asistente automático, la asesoría es por correo', () => {
     for (const text of ['Te asesoramos por WhatsApp.', 'Escríbenos al Whatsapp o a ventas@elights.cl.', 'Consulta por whats app.']) {
       expect(rules(text).some(p => p.startsWith('menciona WhatsApp')), text).toBe(true);
@@ -214,7 +236,7 @@ describe('verificación del contenido SEO', () => {
       // destino puntual con "se hace en" o "es en"
       'El despacho a cualquier región se hace en hasta 2 días hábiles.',
       'El despacho, a cualquier punto de Chile, se hace en hasta 2 días hábiles.',
-      'La compra se factura y el despacho a cualquier región de Chile es en hasta 2 días hábiles.',
+      'La compra se respalda con boleta o factura y el despacho a cualquier región de Chile es en hasta 2 días hábiles.',
       'Una vez confirmada la compra, el despacho es en hasta 2 días hábiles a cualquier región.',
       'Coordinamos un despacho de hasta 2 días hábiles a cualquier punto del país.',
       // enviar a un destino en el plazo
@@ -231,7 +253,7 @@ describe('verificación del contenido SEO', () => {
     for (const text of [
       'El pedido se despacha en hasta 2 días hábiles, y a regiones se suma el tiempo de viaje del transportista, que se informa en la cotización.',
       'Despachamos a todo Chile en hasta 2 días hábiles; a regiones, el pedido sale con el transportista y el tiempo de viaje te lo informamos en la cotización.',
-      'Recibirás la cotización formal con factura, y el pedido se despacha a todo Chile en hasta 2 días hábiles.',
+      'Recibirás la cotización formal con boleta o factura, y el pedido se despacha a todo Chile en hasta 2 días hábiles.',
       'Te llega la cotización formal y despachamos en hasta 2 días hábiles desde que se confirma el pago.',
       'Si va a regiones, en hasta 2 días hábiles lo entregamos al transportista, y el viaje hasta tu ciudad te lo informamos en la cotización.',
       'El plazo de entrega al transportista es de hasta 2 días hábiles.',
@@ -543,13 +565,13 @@ describe('verificación del contenido SEO', () => {
   it('rechaza el plazo de despacho encadenado con dos o más punto y coma', () => {
     const CHAINED = 'encadena el plazo de despacho con dos o más ";"';
     for (const text of [
-      'Con esos datos te enviamos una cotización formal; la compra se factura y despachamos en hasta 2 días hábiles; a regiones, en ese plazo los kits pasan al transportista, y el viaje que se suma figura en la cotización.',
-      'Al cotizar, indica la cantidad; emitimos factura; despachamos en hasta 2 días hábiles.',
+      'Con esos datos te enviamos una cotización formal; la compra se respalda con boleta o factura y despachamos en hasta 2 días hábiles; a regiones, en ese plazo los kits pasan al transportista, y el viaje que se suma figura en la cotización.',
+      'Al cotizar, indica la cantidad; emitimos boleta o factura; despachamos en hasta 2 días hábiles.',
     ]) {
       expect(rules(text), text).toContainEqual(expect.stringContaining(CHAINED));
     }
     for (const text of [
-      'Con esos datos te enviamos una cotización formal; la compra se factura y despachamos en hasta 2 días hábiles. Si los kits van a regiones, en ese plazo pasan al transportista, y el viaje que se suma figura en la cotización.',
+      'Con esos datos te enviamos una cotización formal; la compra se respalda con boleta o factura y despachamos en hasta 2 días hábiles. Si los kits van a regiones, en ese plazo pasan al transportista, y el viaje que se suma figura en la cotización.',
       // dos ";" en una oración sin el plazo de despacho no se marcan
       'Tiene IP65; cuerpo de aluminio; y driver Mean Well.',
     ]) {
