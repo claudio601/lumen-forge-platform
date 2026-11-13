@@ -161,6 +161,83 @@ describe('verificación del contenido SEO', () => {
     }
   });
 
+  it('canchas: la temperatura de color depende de la clase del recinto, sin luz fría o neutra en general (auditoría C05, 13-11-2026)', () => {
+    const general = (text: string) => checkRules({ ...good, description: text }).some(p => p.startsWith('recomienda luz fría o neutra para canchas'));
+    for (const text of [
+      'Sobre la cancha, la luz fría es la más usada por su blanco intenso.',
+      'En patios logísticos y canchas se usa sobre todo la luz fría, porque su blanco intenso favorece la percepción de detalle.',
+      'En canchas y gimnasios se suele elegir luz neutra (4000K), que ilumina con claridad sin resultar dura a la vista.',
+      'En recintos deportivos se usa con frecuencia la luz fría (5000K) o la neutra (4000K).',
+      'La neutra suele preferirse en recintos deportivos y patios porque ilumina con claridad.',
+      'En recintos deportivos y patios de trabajo lo usual es optar por la versión de 6500K.',
+      // una cancha con malla sigue siendo exterior, y un complejo deportivo es un recinto deportivo
+      'En canchas cerradas con malla se suele usar luz fría.',
+      'En complejos deportivos se prefiere la luz neutra de 4000K.',
+    ]) {
+      expect(general(text), text).toBe(true);
+    }
+    for (const text of [
+      'La temperatura de color depende de la clase del recinto; confírmala antes de elegir.',
+      'En una cancha, el tono de luz lo fija la clase del recinto: confírmala antes de elegir la versión.',
+      'Para alumbrado deportivo, la versión cálida de 2700K, la neutra de 4000K y la fría de 5000K cuentan con certificado D.S. N°1/2022.',
+      'La fría de 6000K no lo tiene y queda para interiores cerrados, con muros.',
+      'En canchas exteriores conviene la cálida de 2700K.',
+      'En patios logísticos se usa sobre todo la luz fría.',
+      'Se ofrece en luz fría de 5000K y en cálida de 2200K, para canchas y plazas.',
+      'Para canchas no conviene elegir la versión fría de 5000K sin revisar antes el proyecto.',
+    ]) {
+      expect(general(text), text).toBe(false);
+    }
+  });
+
+  it('proyectores de estadio: la óptica va solo como dato, sin preguntas ni consejos para elegirla (regla del dueño de agosto de 2026, auditoría A32)', () => {
+    const [modular] = DS1_CERTIFIED_LINES.estadioModular.ids;
+    const [estadio] = DS1_CERTIFIED_LINES.estadio.ids;
+    const optica = (c: ProductContent, id: number | undefined = modular) =>
+      checkRules(c, id).some(p => p.startsWith('proyector de estadio: la óptica no se ofrece'));
+    const desc = (text: string) => ({ ...good, description: text });
+    const faq = (question: string) => ({
+      ...good,
+      faq: [...good.faq, { question, answer: 'Según su ficha, tiene un haz de 60°; para otra necesidad, escríbenos a ventas@elights.cl y lo revisamos.' }],
+    });
+    for (const text of [
+      'Envíanos la cantidad, la apertura y la temperatura de color.',
+      'En tu solicitud, especifica cantidad, apertura y color.',
+      'La apertura conviene definirla según la altura del cielo: a mayor altura, más cerrado suele ser el haz.',
+      'Las aperturas de 30°, 60° y 90° x 60° que indica la ficha permiten ajustar la cobertura.',
+      'La de 90° abre el haz sobre un área más ancha y cercana, algo útil cuando el equipo queda cerca.',
+      'La óptica de 60° concentra el flujo en un cono medio, adecuado para iluminar desde cerchas.',
+      'Óptica a elección: 60° para proyectar a distancia o 90° para cubrir un área cercana.',
+      'En una cancha suelen combinarse distintas aperturas.',
+      'Puedes escoger la apertura según la altura de tus postes.',
+      'Haz de 60° para proyectar la luz desde postes perimetrales.',
+      'Un estudio lumínico DIALux define cuántos proyectores instalar, en qué torres y con qué apertura.',
+    ]) {
+      expect(optica(desc(text)), text).toBe(true);
+    }
+    expect(optica(faq('¿Qué apertura de haz conviene elegir?'))).toBe(true);
+    expect(optica(faq('¿Este modelo tiene otras aperturas de haz?'))).toBe(true);
+    for (const text of [
+      'La ficha indica aperturas de 30°, 60° y 90° x 60°.',
+      'Tiene óptica de 60° y se ofrece en luz fría de 6000K.',
+      'Ofrece 150.000 lm, abre su haz a 60° y combina LED Bridgelux con un driver Mean Well.',
+      'La visera recorta la luz que se escapa por encima o hacia los lados del haz.',
+      'Un estudio lumínico DIALux define cuántos proyectores instalar, dónde y con qué orientación.',
+      // «haz» como imperativo de «hacer»
+      'Haz tu cotización formal para iluminar el recinto deportivo.',
+      // «elig» de «elegir» no es «eLIGHTS»
+      'eLIGHTS cotiza este proyector con un haz de 60° según su ficha técnica.',
+    ]) {
+      expect(optica(desc(text)), text).toBe(false);
+    }
+    expect(optica(faq('¿De qué material son las lentes protectoras?'))).toBe(false);
+    // Solo en los proyectores de estadio (las dos líneas de estadio de ds1.ts)
+    const pideApertura = desc('Envíanos la cantidad, la apertura y la temperatura de color.');
+    expect(optica(pideApertura, estadio)).toBe(true);
+    expect(optica(pideApertura, product.jumpseller_id)).toBe(false);
+    expect(checkRules(pideApertura).some(p => p.startsWith('proyector de estadio'))).toBe(false);
+  });
+
   it('rechaza WhatsApp: lo atiende un asistente automático, la asesoría es por correo', () => {
     for (const text of ['Te asesoramos por WhatsApp.', 'Escríbenos al Whatsapp o a ventas@elights.cl.', 'Consulta por whats app.']) {
       expect(rules(text).some(p => p.startsWith('menciona WhatsApp')), text).toBe(true);

@@ -5,7 +5,9 @@
 //     nunca como plazo de llegada, sin flota propia, sin promesas como "gratis" o "mismo día";
 //     D.S. N°1/2022 certificado solo en las líneas certificadas y en sus versiones
 //     certificadas, sin el D.S. N°43, sin luz azul en canchas y sin el «% de luz azul» junto a
-//     la norma: src/data/catalog/ds1.ts),
+//     la norma: src/data/catalog/ds1.ts), sin luz fría o neutra recomendada en general para canchas
+//     (sportsColorIssues) y, en los proyectores de estadio, sin invitar a elegir la óptica
+//     (stadiumOpticIssues),
 //   - que no invente datos: cada cifra con su unidad (W, lm, K, V, h, años, mm, °, %, A…)
 //     tiene que estar en los datos de Jumpseller del producto con esa misma unidad (o en
 //     una fila cuya etiqueta la implica, como "Garantía" o "Alto (mm)"); lo mismo cada
@@ -17,7 +19,7 @@
 // sincronización los revisa a diario y avisa en su informe sin bloquear precios.
 
 import type { ProductContent } from '../../src/data/catalog/types';
-import { ds1ContentIssues, ds1VariantIssues } from '../../src/data/catalog/ds1';
+import { contentBlocks, ds1ContentIssues, ds1Line, ds1VariantIssues, sentences } from '../../src/data/catalog/ds1';
 import { findRuleBreaking } from '../jumpseller/descriptions';
 import { factsText, type ProductFacts } from './facts';
 
@@ -189,6 +191,62 @@ const FORBIDDEN: [RegExp, string][] = [
   [/^#{1,6}\s/m, 'usa títulos markdown con # (la ficha usa **Subtítulo**)'],
 ];
 
+/**
+ * Canchas: el tope de temperatura de color lo fija la clase del recinto (D.S. N°1/2022, art. 7), así
+ * que ninguna ficha recomienda en general la luz fría o neutra para una cancha («se usa», «lo
+ * usual», «la más usada»…). Se permite con la condición a la vista: en interiores cerrados, con
+ * muros, o «según la clase del recinto» (auditoría C05, 13-11-2026).
+ */
+const SPORTS_FIELD = /\b(?:multi)?canchas?\b|\bestadios?\b|(?:recintos?|complejos?)\s+deportivos?|instalaciones\s+deportivas|\bpolideportiv\w*|alumbrado\s+deportivo/i;
+const COOL_LIGHT = /\b(?:fr[ií]as?|neutras?)\b|\b[4-9]\d00\s?K\b/i;
+const USUAL_CHOICE =
+  /\bse\s+(?:usa|suele|prefiere|elige|escoge|recomienda)\b|\bsuele\s+(?:preferirse|elegirse|usarse)\b|\blo\s+(?:usual|habitual|normal)\b|\bm[aá]s\s+usad[oa]s?\b|\bconvien\w*|\brecomend\w*|\bideal\w*/i;
+// «cerrada» sola no basta: una cancha con malla sigue siendo exterior (va «interiores» o «con muros»).
+const CLASS_CONDITION = /\binteriores?\b|\bcon\s+muros\b|\bclase\s+del\s+recinto\b|\bno\s+lo\s+tiene\b/i;
+/** «No conviene la fría para canchas» no recomienda la luz fría. */
+const NEGATED_CHOICE = /\b(?:no|nunca)\s+(?:se\s+)?(?:conviene|recomienda\w*|usa|suele|prefiere|elige)\b/i;
+
+/** Oraciones que recomiendan sin condición la luz fría o neutra para canchas o recintos deportivos. */
+export function sportsColorIssues(c: ProductContent): string[] {
+  return contentBlocks(c)
+    .flatMap(sentences)
+    .filter(s => SPORTS_FIELD.test(s) && COOL_LIGHT.test(s) && USUAL_CHOICE.test(s) && !CLASS_CONDITION.test(s) && !NEGATED_CHOICE.test(s))
+    .map(s => `recomienda luz fría o neutra para canchas sin la condición de la clase del recinto (va «depende de la clase del recinto»): "${s.slice(0, 90)}…"`);
+}
+
+/**
+ * Proyectores de estadio (las líneas de estadio de ds1.ts): la ficha no saca el tema de la óptica ni
+ * invita a elegirla. Nada de preguntas sobre la apertura, consejos de qué haz usar según la altura
+ * o el montaje, ni pedir la apertura al cotizar: se responde si el cliente pregunta (regla del
+ * dueño, 19 y 21-08-2026; auditoría A32, 13-11-2026). El ángulo sí va como dato de la ficha («la
+ * ficha indica aperturas de 30°, 60° y 90° x 60°», «haz de 60°»). La visera no cuenta.
+ */
+// \b no sirve antes de una letra con tilde («óptica», «útil»): ahí va (?<![a-záéíóúñ]).
+// «haz» también es el imperativo de «hacer» («Haz tu cotización»): solo con artículo o con su ángulo.
+const OPTIC = /\baperturas?\b|(?<![a-záéíóúñ])[oó]pticas?\b|(?<=\b(?:el|un|del|su|al|cada|ese|este)\s+)haz\b|\bhaz\s+(?:de\s+)?\d|\bhaces\b|\blentes?\s+(?:de\s+)?\d/i;
+const OPTIC_CHOICE = new RegExp(
+  [
+    String.raw`\beleg\w*|\belig(?!hts)\w*|\belecci[oó]n\b|\bescog\w*|\bescoj\w*|\bseleccion\w*|\bconvien\w*|\bconveng\w*|\brecomend\w*|\bopci[oó]n\b|\badecuad[oa]s?\b`,
+    String.raw`\bseg[uú]n\s+(?:la|el|las|los)\s+(?:altura|distancia|montaje|medidas?)\b|\bcombin\w*\s+(?:(?:distint[oa]s|varios|varias)\s+)?(?:haces|aperturas|[oó]pticas)\b|\bcombinarse\b|\bapunt\w*|\bajust\w*|\bdefin\w*`,
+    String.raw`\bpara\s+(?:proyectar|cubrir|iluminar|dirigir|combinar)\b|(?<![a-záéíóúñ])[uú]til\b|\botras?\s+(?:aperturas?|[oó]pticas?|alternativas?)\b|\bdistint[oa]s?\s+(?:aperturas?|[oó]pticas?)\b`,
+    String.raw`\b(?:la|el|un|uno)\s+de\s+\d+\s?°|\bcon\s+qu[eé]\s+(?:apertura|[oó]ptica)\b`,
+    String.raw`\b(?:env[ií]a(?:nos)?|indica|indícanos|detalla|especifica)\s+(?:la\s+|el\s+)?(?:cantidad|n[uú]mero)\b[^.]*(?:\bapertura|(?<![a-záéíóúñ])[oó]ptica)\b`,
+  ].join('|'),
+  'i',
+);
+const NOT_OPTIC_ADVICE = /\bvisera\b|\bse\s+escapa\b|\bencandil\w*/i;
+
+/** Preguntas, consejos o pedidos de elegir óptica en la ficha de un proyector de estadio. */
+export function stadiumOpticIssues(c: ProductContent, jumpsellerId?: number): string[] {
+  if (!ds1Line(jumpsellerId)?.sports) return [];
+  const questions = c.faq.filter(f => OPTIC.test(f.question)).map(f => `pregunta por la óptica: "${f.question}"`);
+  const advice = contentBlocks(c)
+    .flatMap(sentences)
+    .filter(s => !s.startsWith('¿') && OPTIC.test(s) && OPTIC_CHOICE.test(s) && !NOT_OPTIC_ADVICE.test(s))
+    .map(s => `aconseja o pide elegir la óptica: "${s.slice(0, 90)}…"`);
+  return [...questions, ...advice].map(p => `proyector de estadio: la óptica no se ofrece ni se aconseja, solo va como dato (${p})`);
+}
+
 /** Valor de una cifra escrita en Chile: "22.500" → 22500 (punto de miles); "0,95" → 0.95. */
 const value = (token: string) => Number(/^\d{1,3}(?:\.\d{3})+$/.test(token) ? token.replace(/\./g, '') : token.replace(',', '.'));
 
@@ -287,6 +345,7 @@ export function checkRules(c: ProductContent, jumpsellerId?: number): string[] {
   // D.S. N°1/2022: el certificado solo en las líneas certificadas, y ahí solo en sus versiones
   // certificadas (src/data/catalog/ds1.ts)
   problems.push(...ds1ContentIssues(c, jumpsellerId));
+  problems.push(...sportsColorIssues(c), ...stadiumOpticIssues(c, jumpsellerId));
   return problems;
 }
 

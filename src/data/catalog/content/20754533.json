@@ -7,7 +7,7 @@
     "180 chips LED SMD 2835 que rinden 90 lm/W",
     "IP66 e IK08 para exterior expuesto a lluvia, polvo e impactos",
     "Perfil plano de 2,6 cm de profundidad pese a su potencia",
-    "Luz fría para la cancha o de tono más cálido para áreas de estar",
+    "Versión fría o de tono más cálido; en la cancha, cuál corresponde depende de la clase del recinto",
     "Certificado SEC, con 1 año de garantía y 40.000 horas de vida útil declarada"
   ],
   "useCases": [
@@ -26,7 +26,7 @@
     },
     {
       "question": "¿Qué tono de luz conviene para una plaza con área deportiva?",
-      "answer": "Depende de qué se ilumina. Sobre la cancha, la luz fría es la más usada por su blanco intenso. En los sectores de estar, juegos o paseo, la versión de tono más cálido resulta más grata para quienes recorren la plaza. Se pueden cotizar ambas en una misma solicitud, indicando cuántas unidades van en cada sector."
+      "answer": "Depende de qué se ilumina. Para la superficie de juego no hay un tono fijo: la temperatura de color que admite una cancha depende de la clase del recinto, un dato que conviene revisar con el proyecto antes de cotizar. En los sectores de estar, juegos o paseo, la versión de tono más cálido resulta más grata para quienes recorren la plaza. Se pueden cotizar las dos versiones en una misma solicitud, indicando cuántas unidades van en cada sector."
     },
     {
       "question": "¿Se puede montar en el muro de una sede o un camarín junto a la cancha?",

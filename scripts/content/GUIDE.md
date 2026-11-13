@@ -186,6 +186,20 @@ Para preguntar por un producto o una versión: `isDs1Certified(id)`,
   certificado no es recomendar una: va igual, en su oración. Una cancha o un galpón techado sin muros sigue siendo alumbrado
   exterior (art. 3 a): se escribe "exteriores, incluidos los techados sin muros", nunca "al
   aire libre", y la luz fría queda para "interiores cerrados, con muros".
+- En canchas, estadios y recintos deportivos no se recomienda en general la luz fría ni la
+  neutra ("se usa", "lo usual", "la más usada", "suele preferirse"): el tope depende de la clase
+  del recinto. Va condicionado, con otras palabras en cada ficha: "La temperatura de color
+  depende de la clase del recinto; confírmala antes de elegir". Sin topes en Kelvin ni
+  certificados nuevos (auditoría C05, 13-11-2026; la guarda es `sportsColorIssues` en
+  `check.ts`).
+- Proyectores de estadio (modulares y no modulares): la ficha no saca el tema de la óptica ni
+  invita a elegirla (regla del dueño, 19 y 21-08-2026). Sin preguntas sobre la apertura, sin
+  consejos de qué haz usar según la altura, la distancia o el montaje, sin "combinar haces" ni
+  "óptica a elección", y sin pedir la apertura al cotizar (se pide cantidad y temperatura de
+  color). El estudio DIALux define el número de equipos, su ubicación y su orientación. El
+  ángulo va solo como dato, una vez y neutro: "La ficha indica aperturas de 30°, 60° y
+  90° x 60°", "tiene un haz de 60°". Si el cliente pregunta, se le responde por correo (la guarda
+  es `stadiumOpticIssues`, auditoría A32).
 - Fechas verificadas: alumbrado exterior nuevo, desde el 19 de octubre de 2026 en todo Chile;
   en las Áreas de Protección Especial, desde el 19 de octubre de 2024. "Nuevo" es el de
   proyectos adjudicados o iniciados desde esa fecha (art. 3 z y aa); lo anterior cumple al
