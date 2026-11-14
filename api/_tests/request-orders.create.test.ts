@@ -38,6 +38,7 @@ import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { priceIndex } from '../_lib/catalog/price-index.generated.js';
+import { rutCheckDigit } from '../_lib/rut';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -629,5 +630,66 @@ describe('POST /api/request-orders/create: privacidad y términos', () => {
     for (const secret of [commune, 'juan.perez', CONSENT_HEADING, 'consent_json', 'privacy', 'marketing', 'Novedades']) {
       expect(text).not.toContain(secret);
     }
+  });
+});
+
+// --- Avisos «Para revisar» (decisiones del dueño, 13-11-2026) ---
+// Al comienzo de la nota y en el correo, después de su primera línea. Nunca rechazan.
+describe('POST /api/request-orders/create: avisos «Para revisar»', () => {
+  const VALID_RUT = `44.444.444-${rutCheckDigit('44444444')}`;
+  const WRONG_RUT = `44.444.444-${rutCheckDigit('44444444') === '1' ? '2' : '1'}`;
+  const empresa = { ...base, customerType: 'empresa', companyName: 'COMERCIAL PRUEBA SPA' };
+  const lastNote = () => (vi.mocked(pipedrivePost).mock.calls.at(-1) as unknown as [string, { content: string }])[1].content;
+  const mail = () => JSON.parse((vi.mocked(fetch).mock.calls.at(-1) as unknown as [string, { body: string }])[1].body) as Record<string, string>;
+  const logged = () =>
+    [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat())
+      .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+      .join('\n');
+
+  beforeEach(() => {
+    vi.mocked(createDeal).mockClear();
+    vi.mocked(pipedrivePost).mockClear();
+    process.env.PIPEDRIVE_PIPELINE_ID = '1';
+    process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID = '2';
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ status: 'ok' }) })));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('RUT de empresa con dígito verificador que no calza: 201, aviso al comienzo de la nota y en el correo; el RUT no va al log', async () => {
+    const res = await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    expect(lastNote().startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\nSolicitud de pedido RC-abc12')).toBe(true);
+    expect(lastNote()).toContain(`RUT: ${WRONG_RUT}`);
+    const lines = mail().items_lista.split('\n');
+    expect(lines[0]).toMatch(/^Solicitud de pedido RC-abc12/);
+    expect(lines.slice(1, 4)).toEqual(['', 'Para revisar:', '- RUT por revisar: dígito verificador no calza']);
+    expect(mail().rut).toBe(WRONG_RUT);
+    expect(logged()).not.toContain(WRONG_RUT);
+  });
+
+  it('RUT que no tiene forma de RUT: el motivo es el formato', async () => {
+    await call({ ...empresa, rut: 'RUT-PRUEBA', items: [ar111] });
+    expect(lastNote()).toContain('- RUT por revisar: no tiene formato de RUT (12.345.678-9)');
+  });
+
+  it.each([
+    ['empresa con RUT que calza', { ...empresa, rut: VALID_RUT }],
+    ['empresa sin RUT (opcional)', empresa],
+    ['persona (el RUT no se lee)', { ...base, rut: WRONG_RUT }],
+  ])('%s: sin avisos, la nota y el correo quedan como antes', async (_name, body) => {
+    await call({ ...body, items: [ar111] });
+    expect(lastNote().startsWith('Solicitud de pedido RC-abc12')).toBe(true);
+    expect(lastNote()).not.toContain('Para revisar');
+    expect(mail().items_lista).not.toContain('Para revisar');
+  });
+
+  it('un reenvío (skipped_duplicate) también lleva el aviso al comienzo', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'skipped_duplicate' } as never);
+    await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
+    expect(lastNote().startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\nReenvío de la solicitud RC-abc12')).toBe(true);
   });
 });

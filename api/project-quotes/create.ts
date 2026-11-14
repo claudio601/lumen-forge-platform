@@ -46,6 +46,9 @@
 //          referencias); el barrido diario (api/cron/blob-sweep.ts) borra lo que quede.
 //      Los adjuntos no entran en la referencia PY- ni en el log (solo cuántos son).
 //
+// Avisos «Para revisar» (api/_lib/forms/review.ts): al comienzo de la nota y en el correo,
+// después de su primera línea. Hoy, un RUT de empresa que no calza. Nunca rechazan.
+//
 // El correo y la nota terminan con la constancia "PRIVACIDAD Y AUTORIZACIONES" y el origen
 // de la visita (clave `attribution`, api/_lib/forms/attribution.ts). El origen es
 // informativo: un origen raro se descarta, nunca da 400, y no entra en la referencia ni en
@@ -82,6 +85,7 @@ import {
 } from '../_lib/forms/projectQuote.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
+import { afterFirstLine, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
 import { parseAttachmentRefs } from '../_lib/attachments/rules.js';
 import {
   attachmentListLines,
@@ -323,6 +327,11 @@ export function buildProjectQuoteRef(q: ProjectQuote, now: number = Date.now()):
   return 'PY-' + djb2(key);
 }
 
+/** Los avisos que salen de los datos del formulario (RUT de empresa), para «Para revisar». */
+export function projectQuoteReview(q: ProjectQuote): (string | null)[] {
+  return [rutReviewItem(q.rutEmpresa)];
+}
+
 /**
  * Empresa (B2B): la que declaró el cliente o, en un cuerpo del formulario anterior (sin
  * selector), si dejó razón social o RUT de empresa.
@@ -373,7 +382,8 @@ export function buildProjectQuoteEmail(
     nombre: q.nombre,
     email: q.email,
     telefono: q.telefono,
-    cuerpo: [
+    // Los avisos «Para revisar» van después de la primera línea (la que lleva la referencia)
+    cuerpo: afterFirstLine([
       `Cotizador de proyecto ${ref} (${SITE_URL}/cotizador)`,
       ...(q.customerType ? buyerLines(q) : []),
       ...projectLines(q),
@@ -381,7 +391,7 @@ export function buildProjectQuoteEmail(
       ...(archivos.length ? ['', ...archivos] : []),
       ...(consent.length ? ['', ...consent] : []),
       ...(origen.length ? ['', ...origen] : []),
-    ].join('\n'),
+    ], reviewSection(projectQuoteReview(q))).join('\n'),
     total: '-',
     razonSocial: q.razonSocial,
     rutEmpresa: q.rutEmpresa,
@@ -420,6 +430,8 @@ export function buildProjectQuoteNote(
 ): string {
   const fecha = chileDateTime(now);
   return escapeHtml([
+    // Los avisos al comienzo, para verlos primero (también en un reenvío)
+    ...reviewSection(projectQuoteReview(q)),
     ...(resend
       ? [`Reenvío del mismo formulario (${fecha}): misma referencia ${ref}, no se creó un negocio nuevo.`, '']
       : []),
