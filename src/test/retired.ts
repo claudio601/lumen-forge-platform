@@ -1,5 +1,6 @@
 // src/test/retired.ts
 // Frases retiradas del sitio (PR 11, 2026-10): afirmaciones sin respaldo que no pueden volver.
+// Al final, las que reemplazaron las decisiones del dueño del 2026-11-13.
 // Lista compartida (plan del blog, §5.6): la usan src/config/contentTruth.test.ts (el código y el
 // HTML de las páginas) y src/data/guides/guides.test.ts (el contenido de las guías).
 
@@ -10,7 +11,7 @@ export interface Retired {
   sourceOnly?: true;
 }
 
-/** Frases retiradas. Todas están en origin/main b110116 (antes de la PR 11). */
+/** Frases retiradas. Todas están en origin/main b110116 (antes de la PR 11), salvo las del 2026-11-13, al final. */
 export const RETIRED: readonly Retired[] = [
   { re: /\+8 años/i, why: 'años en el mercado sin confirmar' },
   { re: /100\+/, why: 'cantidad de proyectos sin confirmar' },
@@ -47,6 +48,13 @@ export const RETIRED: readonly Retired[] = [
   { re: /experiencia en (?:recintos|todo tipo)|nuestro ingeniero/i, why: 'experiencia o equipo sin respaldo' },
   { re: /aproximadamente 20|~20 p/i, why: 'extensión del informe DIALux sin confirmar' },
   { re: /cotizador inteligente/i, why: 'el formulario es simple' },
+  // Decisiones del dueño del 2026-11-13
+  {
+    re: /desde la recepci[oó]n de (?:todos )?los antecedentes/i,
+    why: 'el plazo del informe DIALux corre desde los antecedentes completos y el pago acreditado (9A)',
+  },
+  // En el HTML: «comprobante a<!-- --> <a href="mailto:ventas@…»
+  { re: /comprobante (?:de pago |de (?:la )?transferencia )?a\b[^.]{0,40}ventas@/i, why: 'los comprobantes de pago van a pagos@elights.cl (8A)' },
 ];
 
 export function retiredIn(text: string, onlyRendered = false): string[] {

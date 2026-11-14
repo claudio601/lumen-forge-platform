@@ -26,7 +26,7 @@ import {
 import { useId, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
-import { contactEmail, docsRequestMailto, waProductUrl } from '@/config/business';
+import { contactEmail, docsRequestMailto, panelRegionShippingNotice, waProductUrl } from '@/config/business';
 import { absoluteUrl } from '@/config/site';
 import QuantityStepper from '@/components/forms/QuantityStepper';
 import DialuxStudyBox from '@/components/catalog/DialuxStudyBox';
@@ -170,6 +170,9 @@ const ProductDetail = () => {
     const ogImage = productOgImage(product.images?.[0], productImageFacts[product.jumpseller_id], product.name);
     // Fichas técnicas en PDF: la editorial (BESTLED) o las adjuntas en Jumpseller, como en elights.cl
     const datasheets = productDatasheetLinks(product.datasheetUrl, productDatasheets[product.jumpseller_id]);
+    // Paneles de formato grande: a regiones solo desde su caja master (regla del dueño, 2026-11-13;
+    // PANEL_MASTER_BOX en business.ts). Depende solo del producto: igual en el servidor y el navegador.
+    const panelNotice = panelRegionShippingNotice(product.jumpseller_id);
     const seoTitle = product.metaTitle || `${product.name} | eLIGHTS.cl`;
     const seoDescription =
       product.metaDescription ||
@@ -460,7 +463,13 @@ const ProductDetail = () => {
                                               <span className="text-xs text-muted-foreground">Despacho en hasta 2 días hábiles</span>
                                               <span className="text-xs text-muted-foreground">{warrantyNote(specGroups)}</span>
                                   </div>
-                        
+                          {panelNotice && (
+                                  <p className="-mt-2 mb-4 text-xs text-muted-foreground" data-panel-shipping="">
+                                    {panelNotice}{' '}
+                                    <Link to="/despacho" className="underline underline-offset-2 hover:text-primary">Ver despacho</Link>
+                                  </p>
+                                )}
+
                                   <div className="flex items-baseline gap-2 mb-2">
                                     {showFromPrice && (
                                               <span className="text-sm font-medium text-muted-foreground">desde</span>

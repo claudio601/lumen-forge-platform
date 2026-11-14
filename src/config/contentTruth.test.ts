@@ -316,6 +316,37 @@ describe('textos sin respaldo: el HTML de las páginas', () => {
     expect(text).not.toMatch(/indicalaa|\b(?:segun|modelacion|Cuantame|planificacion|Posicion|Visualizacion|tecnicos|instalacion)\b/);
   });
 
+  // Decisión del dueño 9A (2026-11-13): las 48 horas corren desde los antecedentes completos y el
+  // pago acreditado, con una revisión incluida; el orden es cotización → pago → simulación.
+  it('/estudio-luminico: 48 horas desde los antecedentes completos y el pago acreditado, con una revisión', async () => {
+    const { root } = await page('/estudio-luminico');
+    const text = (root.textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).not.toMatch(/recepci[oó]n de todos los antecedentes/i);
+    const faq = [...root.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent === 'Preguntas frecuentes')!;
+    expect(faq.textContent).toContain(
+      '¿Cuánto demora el informe?El informe se entrega en 48 horas desde que tenemos todos los antecedentes del proyecto (planos o medidas, altura de montaje, normativa objetivo) y el pago del estudio acreditado. El orden es: te enviamos la cotización del estudio, la pagas y hacemos la simulación. El estudio incluye una revisión.',
+    );
+    expect(text).toContain('El informe se entrega en 48 horas desde que tenemos todos los antecedentes y el pago del estudio acreditado. Incluye una revisión.');
+    expect(text).toContain('Con antecedentes completos y pago acreditado');
+    expect(text).toContain('Entrega en 48 horas desde los antecedentes completos y el pago acreditado'); // bajo el botón del formulario
+    // «Cómo funciona»: cotización y pago antes de la simulación
+    const steps = [...root.querySelectorAll('section')].find(s => s.querySelector('h2')?.textContent === 'Cómo funciona')!;
+    const titles = [...steps.querySelectorAll('h3')].map(h => h.textContent);
+    expect(titles).toEqual(['Solicita tu estudio', 'Cotización y pago', 'Simulación DIALux', 'Informe final PDF']);
+    expect(steps.textContent).toContain('Si la aceptas, pagas el estudio.');
+    expect(steps.textContent).toContain('Con los antecedentes completos y el pago acreditado, modelamos el recinto');
+    expect(steps.textContent).toContain('Incluye una revisión.');
+    // Toda mención de las 48 horas lleva desde cuándo corren
+    for (const m of text.matchAll(/48 horas[^.]*/g)) expect(m[0], m[0]).toMatch(/antecedentes[^.]*pago/);
+  });
+
+  it('inicio: la caja del estudio DIALux con el plazo desde los antecedentes completos y el pago acreditado', async () => {
+    const { root } = await page('/');
+    const text = (root.textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('Entrega en 48 horas desde los antecedentes completos y el pago acreditado.');
+    expect(text).not.toMatch(/recepci[oó]n de todos los antecedentes/i);
+  });
+
   it('encabezado: sin el enlace "Mi cuenta"', async () => {
     const { root } = await page('/');
     expect(root.querySelector('header [title="Mi cuenta"]')).toBeNull();

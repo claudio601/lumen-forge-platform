@@ -10,6 +10,8 @@ import proyector100 from '@/data/catalog/content/2252962.json';
 import { products } from '@/data/products';
 import { productDatasheets } from '@/data/catalog/datasheets.generated';
 import { productDatasheetLinks } from '@/lib/datasheets';
+import { PANEL_MASTER_BOX, panelRegionShippingNotice } from '@/config/business';
+import { isSyncBot } from '@/test/syncBot';
 
 const BESTLED = 'alumbrado-publico-bestled-150w-ip66-ik08';
 
@@ -87,6 +89,57 @@ describe('ProductDetail: botón de ficha técnica en todas las fichas', () => {
       expect(shortcut.textContent?.trim()).toBe(expected.length ? 'Fichas técnicas (PDF)' : 'Pedir ficha técnica');
       expect(shortcut.getAttribute('href')).toBe('#ficha-tecnica');
     }
+  });
+});
+
+// Paneles de formato grande (regla del dueño A22, decisión 2A, 2026-11-13): a regiones solo desde su
+// caja master (el slim 60x60, desde 4 unidades); con menos, retiro en bodega. Junto al despacho.
+describe('ProductDetail: paneles de formato grande a regiones', () => {
+  const PANELS: Record<number, string> = {
+    3702364: 'Despacho a regiones: desde 6 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    4426526: 'Despacho a regiones: desde 6 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    4190659: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    2347772: 'Despacho a regiones: desde 6 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    2348936: 'Despacho a regiones: desde 6 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    2347854: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    2348922: 'Despacho a regiones: desde una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    2347849: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    21766686: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    4608256: 'Despacho a regiones: desde 4 unidades. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+    2501112: 'Despacho a regiones: desde 4 unidades. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
+  };
+
+  it('los 11 paneles de la regla, cada uno con su aviso', () => {
+    expect(Object.keys(PANEL_MASTER_BOX).map(Number).sort()).toEqual(Object.keys(PANELS).map(Number).sort());
+    for (const id of Object.keys(PANELS).map(Number)) expect(panelRegionShippingNotice(id)).toBe(PANELS[id]);
+  });
+
+  // Datos del día: si Jumpseller despublica uno, el robot no se bloquea (src/test/syncBot.ts)
+  it.skipIf(isSyncBot)('los 11 están publicados en Paneles LED', () => {
+    for (const id of Object.keys(PANELS).map(Number)) {
+      expect(products.find(p => p.jumpseller_id === id)?.category, String(id)).toBe('paneles-led');
+    }
+  });
+
+  const published = Object.entries(PANELS).filter(([id]) => products.some(p => p.jumpseller_id === Number(id)));
+  it.each(published)('%s: el aviso junto al despacho, con enlace a /despacho', (id, notice) => {
+    const p = products.find(x => x.jumpseller_id === Number(id))!;
+    renderPdp(p.id);
+    const el = document.querySelector('[data-panel-shipping]')!;
+    expect(el.textContent).toBe(`${notice} Ver despacho`);
+    expect(el.querySelector('a')?.getAttribute('href')).toBe('/despacho');
+    // Va justo después de la fila de «Despacho en hasta 2 días hábiles»
+    expect(el.previousElementSibling?.textContent).toContain('Despacho en hasta 2 días hábiles');
+    // Sin promesa de despacho sin costo ni redondeo a cajas
+    expect(el.textContent).not.toMatch(/sin costo|gratis|m[uú]ltiplos|por caja\b/i);
+  });
+
+  it('los paneles chicos (redondos y cuadrados) y los demás productos no llevan el aviso', () => {
+    const small = products.filter(p => p.category === 'paneles-led' && /PANEL LED (?:REDONDO|CUADRADO)/i.test(p.name));
+    expect(small.length).toBeGreaterThan(0);
+    for (const p of small) expect(panelRegionShippingNotice(p.jumpseller_id), p.name).toBeNull();
+    renderPdp(small[0].id);
+    expect(document.querySelector('[data-panel-shipping]')).toBeNull();
   });
 });
 

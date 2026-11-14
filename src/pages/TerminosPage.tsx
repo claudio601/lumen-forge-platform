@@ -12,6 +12,11 @@
 // Versión 1.3 (PR 13x): §1, respondemos por correo (regla del dueño: no llamar ni seguir por
 // WhatsApp); §16, los problemas con la compra se piden por correo, porque en el WhatsApp
 // atiende el asistente automático, que no los reconoce (Política de privacidad §4).
+// Versión 1.11 (decisiones del dueño, 2026-11-13): §4, el precio publicado es para pago por
+// transferencia y con el link de pago de Flow se suma la comisión de Flow, que informa la
+// cotización (5A; el porcentaje no se publica; §3.3 la nombra entre lo que trae la cotización);
+// §3.3 y §4, fuera del despacho sin costo, por pagar o retiro en bodega, y el flete en la
+// cotización solo si lo exigen las bases de una licitación o el proyecto (4A).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -60,8 +65,10 @@ const TerminosPage = () => (
       </li>
       <li>
         <strong>Cotización y link de pago.</strong> Te respondemos con una cotización que indica los productos, las cantidades, el
-        precio unitario y el total con IVA, el costo del despacho por separado (o si va sin costo o por pagar), el plazo, las
-        condiciones especiales (por ejemplo, productos sin derecho a retracto) y un link de pago.
+        precio unitario y el total con IVA, si el despacho va sin costo o por pagar o si retiras en bodega (el flete va por
+        separado solo cuando las bases de una licitación o el proyecto lo exigen), el plazo, las condiciones especiales (por
+        ejemplo, productos sin derecho a retracto) y un link de pago. También indica la comisión de Flow, que se suma si pagas
+        con el link de pago de Flow.
       </li>
       <li>
         <strong>Revisión.</strong> Si ves un error en la cotización, avísanos antes de pagar y te mandamos una corregida.
@@ -90,13 +97,15 @@ const TerminosPage = () => (
         precios sin IVA, rotulados así; el total que pagas siempre incluye IVA.
       </li>
       <li>
-        El costo del despacho no está incluido en el precio de los productos. Va por separado en la cotización, o la cotización
-        indica que va sin costo (compras sobre {clp(FREE_SHIPPING_THRESHOLD_CLP)} con IVA, con entrega en la{' '}
-        {FREE_SHIPPING_AREA.name}) o por pagar. Las comunas que no entran y las demás condiciones están en{' '}
-        <Link to="/despacho">Despacho</Link>.
+        El costo del despacho no está incluido en el precio de los productos. La cotización indica si va sin costo (compras
+        sobre {clp(FREE_SHIPPING_THRESHOLD_CLP)} con IVA, con entrega en la {FREE_SHIPPING_AREA.name}), por pagar o con retiro en
+        bodega. El flete va por separado en la cotización solo cuando las bases de una licitación o el proyecto lo exigen. Las
+        comunas que no entran y las demás condiciones están en <Link to="/despacho">Despacho</Link>.
       </li>
       <li>
         Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente.
+        Los precios publicados son para pago por transferencia bancaria. Si pagas con el link de pago de Flow, se suma la
+        comisión de Flow, que te informamos en la cotización antes de que pagues.
       </li>
       <li>Si publicamos una promoción, junto a ella indicaremos sus condiciones y su vigencia.</li>
     </ul>

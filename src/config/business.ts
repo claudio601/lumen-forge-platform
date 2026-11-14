@@ -16,6 +16,16 @@ export const whatsappDisplayNumber = '+56 9 9127 3128';
 /** Email comercial principal (ventas, cotizaciones) */
 export const contactEmail = 'ventas@elights.cl';
 
+/**
+ * Correo para los comprobantes de pago, con el número de cotización (decisión del dueño 8A,
+ * 2026-11-13). Solo para comprobantes: ventas@ (contactEmail) sigue siendo el correo de ventas
+ * para todo lo demás. Lo usa /medios-de-pago.
+ */
+export const paymentsEmail = 'pagos@elights.cl';
+
+/** Enlace al correo de comprobantes, con el asunto ya escrito. */
+export const paymentsMailto = `mailto:${paymentsEmail}?subject=${encodeURIComponent('Comprobante de pago')}`;
+
 /** Email de contacto para instalaciones */
 export const contactEmailInstalacion = 'contacto@elights.cl';
 
@@ -113,6 +123,75 @@ export const REGION_CARRIERS = 'Starken, Cruz del Sur, ECOEx, Varmontt, Samex, P
  * está acreditado: NUNCA publicarla, ni en el sitio ni en el repo (es público).
  */
 export const PICKUP_PLACE = 'nuestra bodega en Quinta Normal';
+
+// ── Paneles de formato grande a regiones (regla del dueño A22, aprobada el 2026-11-13, 2A) ──
+// «Los paneles de formato grande (60x60, 120x60, 120x30, 120x15, backlight y slim) no se
+// despachan por courier si el pedido es menor que su caja master: se rompen. En ese caso va solo
+// retiro en bodega, o se ofrece la caja completa. Cajas master: backlight 120x60 y 120x30 = 6;
+// slim 120x30, 60x60 y 120x15 = 10. Excepción: el slim 60x60 se despacha desde 4 unidades. Los
+// paneles redondos y cuadrados chicos (PLRE, PLRS, PLCE) sí se despachan en cualquier cantidad.
+// Con una caja o más se cotiza lo pedido, sin redondear a cajas.»
+// Cada fila, con su fuente: la regla del dueño y el «Packaging por mayor» de Jumpseller (revisado
+// el 2026-11-13 con `npm run content -- export`). Donde la regla no nombra el formato, o el nombre
+// de Jumpseller no dice si es slim o backlight (2347854, 2347849, 21766686), manda el packaging de
+// Jumpseller; sin packaging, box: null (la ficha dice «desde una caja completa», sin número). Lo lee
+// la ficha (ProductDetail, panelRegionShippingNotice). /despacho no nombra cajas: solo la regla y el
+// «desde N» del slim 60x60 (SLIM_60X60_MIN_UNITS, el mismo de estas filas; legal.test lo fija).
+// No cambia formularios ni cantidades: el pedido se cotiza igual.
+
+/** El slim 60x60 va a regiones desde estas unidades (regla del dueño A22). Lo leen PANEL_MASTER_BOX y /despacho. */
+export const SLIM_60X60_MIN_UNITS = 4;
+
+export interface PanelMasterBox {
+  /** Unidades de la caja master; null si no hay dato confiable. */
+  box: number | null;
+  /** Desde cuántas unidades se despacha a regiones cuando es menos que la caja (slim 60x60: 4). */
+  minUnits?: number;
+}
+
+/** Paneles de formato grande, por jumpseller_id. */
+export const PANEL_MASTER_BOX: Readonly<Record<number, PanelMasterBox>> = {
+  // Backlight 120x60 96W: regla del dueño (6); Jumpseller, «6 piezas x caja».
+  3702364: { box: 6 },
+  // Backlight 120x30 48W: regla del dueño (6); Jumpseller, «6 piezas x caja».
+  4426526: { box: 6 },
+  // Backlight 60x60 48W: la regla no nombra el backlight 60x60; Jumpseller, «10 piezas x caja».
+  4190659: { box: 10 },
+  // 120x60 80W marco blanco: la regla solo nombra el backlight 120x60; Jumpseller, «6 unidades por caja».
+  2347772: { box: 6 },
+  // 120x60 80W marco blanco regulable: ídem; Jumpseller, «6 unidades por caja».
+  2348936: { box: 6 },
+  // 120x30 40W: regla del dueño (slim 120x30, 10); Jumpseller, «10 unidades por cajas».
+  2347854: { box: 10 },
+  // 120x30 40W marco blanco regulable: Jumpseller no trae su «Packaging por mayor», y no es igual al
+  // 2347854: otro LED (SMD2835; el 2347854, SMD5730) y otro flujo (3200 lm; el 2347854, 4400 lm).
+  // Sin número hasta que el dueño confirme la caja o agregue el packaging en Jumpseller.
+  2348922: { box: null },
+  // 120x15 36W: regla del dueño (slim 120x15, 10); Jumpseller, «10 unidades por caja».
+  2347849: { box: 10 },
+  // 120x15 36W luz cálida: regla del dueño (slim 120x15, 10); Jumpseller, «10 unidades por caja».
+  21766686: { box: 10 },
+  // Slim 60x60 40W: regla del dueño (10, y se despacha desde 4); Jumpseller, «10 unidades por cajas».
+  4608256: { box: 10, minUnits: SLIM_60X60_MIN_UNITS },
+  // Slim 60x60 40W dimerizable: también es slim 60x60 (regla del dueño, desde 4); Jumpseller, «10 unidades por cajas».
+  2501112: { box: 10, minUnits: SLIM_60X60_MIN_UNITS },
+};
+
+/**
+ * Aviso de la ficha de un panel de formato grande (junto a «Despacho en hasta 2 días hábiles»),
+ * o null si el producto no está en PANEL_MASTER_BOX. «Desde N unidades» y no «por caja»: con una
+ * caja o más se cotiza lo pedido, sin redondear a cajas.
+ */
+export function panelRegionShippingNotice(jumpsellerId: number): string | null {
+  const panel = PANEL_MASTER_BOX[jumpsellerId];
+  if (!panel) return null;
+  const from = panel.minUnits
+    ? `desde ${panel.minUnits} unidades`
+    : panel.box
+      ? `desde ${panel.box} unidades, una caja completa`
+      : 'desde una caja completa';
+  return `Despacho a regiones: ${from}. Con menos unidades, retiro en ${PICKUP_PLACE}.`;
+}
 
 /** Días hábiles que vale una cotización desde su fecha (términos y condiciones, §5). */
 export const quoteValidityBusinessDays = 10;

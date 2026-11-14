@@ -49,7 +49,7 @@ El error más frecuente al generar contenido para esta marca es omitir el `.cl` 
 | Visita del electricista al domicilio | Visita Técnica | Precio: pendiente de confirmar (PR 11, 2026-10). No publicar precio ni "descontable" |
 | Instalación LED completa | Instalación Completa | Subservicio de Instalación Profesional |
 | Paneles solares | Paneles Solares (Net Billing) | Subservicio de Instalación Profesional |
-| Simulación fotométrica | Estudio Lumínico DIALux | Servicio B2B: el informe se entrega en 48 horas desde la recepción de todos los antecedentes (confirmado 2026-10-03). El estudio se cotiza: no prometer "gratis" ni "descontable". Luminarias eLIGHTS.cl, criterios FIFA aplicables |
+| Simulación fotométrica | Estudio Lumínico DIALux | Servicio B2B: el informe se entrega en 48 horas desde que están todos los antecedentes y el pago del estudio acreditado, con una revisión incluida (confirmado 2026-10-03; inicio del plazo y revisión, dueño 2026-11-13). Orden: cotización → pago → simulación. El estudio se cotiza: no prometer "gratis" ni "descontable". Luminarias eLIGHTS.cl, criterios FIFA aplicables |
 
 ## Correcciones de negocio obligatorias
 

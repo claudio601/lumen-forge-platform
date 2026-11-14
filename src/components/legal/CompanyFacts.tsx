@@ -5,12 +5,18 @@
 
 import type { ReactNode } from 'react';
 import { LEGAL_COMUNA, LEGAL_NAME, LEGAL_REPRESENTATIVE, LEGAL_RUT } from '@/config/site';
-import { businessClosedDays, businessHoursLong, contactEmail, waBase, whatsappDisplayNumber, whatsappNumber } from '@/config/business';
+import { businessClosedDays, businessHoursLong, contactEmail, paymentsEmail, paymentsMailto, waBase, whatsappDisplayNumber, whatsappNumber } from '@/config/business';
 
 /** Correo de ventas; con subject, el asunto ya escrito (p. ej. "Datos personales"). */
 export const EmailLink = ({ subject }: { subject?: string }) => (
   <a href={`mailto:${contactEmail}${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`}>{contactEmail}</a>
 );
+
+/**
+ * Correo de los comprobantes de pago (decisión del dueño 8A, 2026-11-13), con el asunto ya
+ * escrito. Solo para comprobantes: lo demás va a ventas@ (EmailLink).
+ */
+export const PaymentsEmailLink = () => <a href={paymentsMailto}>{paymentsEmail}</a>;
 
 /** WhatsApp de ventas en otra pestaña; por defecto muestra el número. */
 export const WhatsAppLink = ({ children }: { children?: ReactNode }) => (
