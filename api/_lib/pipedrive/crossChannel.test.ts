@@ -46,8 +46,12 @@ describe('dealChannel', () => {
     ['Jumpseller (JS-)', { cf_ref: 'JS-12753' }, null],
     ['Tipo de Servicio WhatsApp (texto)', { cf_tipo: String(TIPO_SERVICIO.WHATSAPP) }, 'whatsapp'],
     ['Tipo de Servicio cotización web (número)', { cf_tipo: TIPO_SERVICIO.COTIZACION_WEB }, 'web'],
-    ['Tipo de Servicio instalación', { cf_tipo: TIPO_SERVICIO.INSTALACION }, null],
-    ['Tipo de Servicio estudio lumínico', { cf_tipo: TIPO_SERVICIO.ESTUDIO_LUMINICO }, null],
+    // Formularios del sitio (13-11-2026): una instalación o un estudio pedidos por la web cuentan como web
+    ['Tipo de Servicio instalación', { cf_tipo: TIPO_SERVICIO.INSTALACION }, 'web'],
+    ['Tipo de Servicio estudio lumínico', { cf_tipo: TIPO_SERVICIO.ESTUDIO_LUMINICO }, 'web'],
+    ['estudio lumínico (referencia ESTL- y su Tipo de Servicio)', { cf_ref: 'ESTL-abc12', cf_tipo: TIPO_SERVICIO.ESTUDIO_LUMINICO }, 'web'],
+    ['referencia INST-', { cf_ref: 'INST-abc12' }, 'web'],
+    ['Tipo de Servicio Jumpseller', { cf_tipo: TIPO_SERVICIO.JUMPSELLER }, null],
     ['solo el título del bot', { title: 'WhatsApp Lead — Ana' }, 'whatsapp'],
     ['solo el título de un pedido', { title: 'Solicitud RC-abc12 - Ana' }, 'web'],
     ['sin nada que lo diga', {}, null],
@@ -100,6 +104,16 @@ describe('findCrossChannelDuplicates', () => {
     ]));
     const items = await findCrossChannelDuplicates({ personId: 11, channel: 'whatsapp', now: NOW });
     expect(items.map((i) => i.match(/#(\d+) \(web,/)?.[1])).toEqual(['602', '603', '604']);
+  });
+
+  it('WhatsApp: también avisa de una instalación o un estudio lumínico pedidos por la web (no de Jumpseller)', async () => {
+    vi.mocked(pipedriveGet).mockResolvedValue(ok([
+      deal(701, { cf_tipo: TIPO_SERVICIO.INSTALACION, title: 'Instalacion Bodega — Ana — Maipú', add_time: v1(1) }),
+      deal(702, { cf_ref: 'ESTL-abc12', cf_tipo: TIPO_SERVICIO.ESTUDIO_LUMINICO, add_time: v1(2) }),
+      deal(703, { cf_ref: 'JS-12753', cf_tipo: TIPO_SERVICIO.JUMPSELLER, add_time: v1(1) }),
+    ]));
+    const items = await findCrossChannelDuplicates({ personId: 11, channel: 'whatsapp', now: NOW });
+    expect(items.map((i) => i.match(/#(\d+) \(web,/)?.[1])).toEqual(['701', '702']);
   });
 
   it.each([

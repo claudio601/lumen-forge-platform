@@ -13,10 +13,13 @@
 // crea igual y no hay aviso (fail-open); el log solo lleva el motivo, nunca datos del cliente.
 //
 // El canal de un negocio sale de su referencia (campo PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE:
-// WA- es WhatsApp; NE-, RC- y PY- son los formularios), del Tipo de Servicio
-// (PIPEDRIVE_FIELD_TIPO_SERVICIO: 92 WhatsApp, 89 cotización web) o, en un negocio sin esos
-// campos, de su título («WhatsApp Lead — …», «Solicitud RC-…»). Instalación (90), estudio
-// lumínico (91) y Jumpseller (93) no son de ninguno de los dos canales.
+// WA- es WhatsApp; NE-, RC-, PY-, ESTL- e INST- son los formularios), del Tipo de Servicio
+// (PIPEDRIVE_FIELD_TIPO_SERVICIO: 92 WhatsApp; 89 cotización web, 90 instalación y 91 estudio
+// lumínico, todos formularios del sitio) o, en un negocio sin esos campos, de su título
+// («WhatsApp Lead — …», «Solicitud RC-…»). Jumpseller (93) no es de ninguno de los dos canales.
+// Instalación y estudio lumínico solo cuentan como negocios que ya existen: el bot avisa si la
+// persona pidió uno por la web, pero un negocio nuevo de esos formularios no se revisa
+// (newDealChannel; se crean por su propio camino, sin createDeal).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { pipedriveGet } from './client.js';
@@ -34,7 +37,9 @@ const PAGE_LIMIT = 50;
 const MAX_ITEMS = 3;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const WEB_REFERENCE = /^(?:NE|RC|PY)-[0-9a-z]+$/i;
+const WEB_REFERENCE = /^(?:NE|RC|PY|ESTL|INST)-[0-9a-z]+$/i;
+/** Tipo de Servicio de los formularios del sitio: cotización web, instalación y estudio lumínico. */
+const WEB_TIPOS: readonly string[] = [TIPO_SERVICIO.COTIZACION_WEB, TIPO_SERVICIO.INSTALACION, TIPO_SERVICIO.ESTUDIO_LUMINICO].map(String);
 const WEB_REFERENCE_IN_TITLE = /\b(?:NE|RC|PY)-[0-9a-z]{4,}\b/i;
 
 const CHANNEL_LABEL: Record<Channel, string> = { web: 'web', whatsapp: 'WhatsApp' };
@@ -66,7 +71,7 @@ export function dealChannel(deal: PipedriveDeal): Channel | null {
   const tipoKey = process.env.PIPEDRIVE_FIELD_TIPO_SERVICIO;
   const tipo = tipoKey ? optionId(deal[tipoKey]) : '';
   if (tipo === String(TIPO_SERVICIO.WHATSAPP)) return 'whatsapp';
-  if (tipo === String(TIPO_SERVICIO.COTIZACION_WEB)) return 'web';
+  if (WEB_TIPOS.includes(tipo)) return 'web';
   if (tipo) return null;
 
   const title = typeof deal.title === 'string' ? deal.title : '';
