@@ -1086,8 +1086,8 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
 
 it('textos legales 1.11: fecha provisional y versión anterior publicada', () => {
   expect(LEGAL_VERSION).toBe('1.11');
-  expect(LEGAL_UPDATED).toBe('2026-11-13');
-  expect(LEGAL_UPDATED_LABEL).toBe('13 de noviembre de 2026');
+  expect(LEGAL_UPDATED).toBe('2026-11-14');
+  expect(LEGAL_UPDATED_LABEL).toBe('14 de noviembre de 2026');
   expect(LEGAL_ARCHIVE).toContain('1.10');
   expect(LEGAL_RUT).toBe('76.947.784-5');
 });

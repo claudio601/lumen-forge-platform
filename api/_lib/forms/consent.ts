@@ -38,7 +38,7 @@ export const LEGAL_VERSION: string = '1.11';
 // es para pago por transferencia y con el link de pago de Flow se suma su comisión, que informa la
 // cotización; fuera del despacho sin costo, por pagar o retiro en bodega, y el flete en la
 // cotización solo si lo exigen las bases de una licitación o el proyecto. La Política y Cambios no
-// cambian. Fecha provisional: Claude la ajusta al día de fusión.
+// cambian. Se publicó el 14-11-2026.
 // La 1.10 (la conversación del asistente en Upstash y el RUT de la empresa) se publicó el
 // 28-10-2026 (PR #121 y #127).
 // La 1.9 (la lista de transportistas del dueño en la Política §5, desde REGION_CARRIERS) rige desde
@@ -46,8 +46,8 @@ export const LEGAL_VERSION: string = '1.11';
 // §7) se publicó el 25-10-2026 (PR #118); la 1.7 («Recordar mis datos en este dispositivo»: la
 // Política §2, §3, §7 y §10), el mismo día (PR #112); la 1.6 (adjuntos del cotizador), el 23-10-2026 (PR #105); la
 // 1.5, el 22-10-2026 (PR #103); la 1.4, el 21-10-2026 (PR #90 y #102).
-export const LEGAL_UPDATED: string = '2026-11-13';
-export const LEGAL_UPDATED_LABEL: string = '13 de noviembre de 2026';
+export const LEGAL_UPDATED: string = '2026-11-14';
+export const LEGAL_UPDATED_LABEL: string = '14 de noviembre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
 export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10'];
