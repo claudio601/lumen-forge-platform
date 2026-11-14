@@ -74,7 +74,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { saveFlowState, getFlowState, MSG_MEDIA, MSG_MEDIA_NOTICE } from '../_lib/whatsapp/flowEngine.js';
+import { saveFlowState, getFlowState, MSG_MEDIA, MSG_MEDIA_NOTICE, MSG_VOICE } from '../_lib/whatsapp/flowEngine.js';
 import { restoreHistory } from '../_lib/whatsapp/conversation.js';
 import { claimMessage, completeMessage, conversationKey, messageKey } from '../_lib/whatsapp/stateStore.js';
 import { getTranscript } from '../_lib/whatsapp/transcript.js';
@@ -356,6 +356,20 @@ describe('[ARCHIVOS] los archivos en la nota', () => {
       { who: 'Cliente', text: '[El cliente envió 1 imagen]' }, { who: 'Cliente', text: '[El cliente envió 1 imagen] ' + FIRST },
     ]);
     expect(entries.filter((e) => e.text.includes(MSG_MEDIA_NOTICE))).toHaveLength(1);
+  });
+
+  it('una nota de voz dentro de la ráfaga queda anotada con su respuesta', async () => {
+    const phone = nextPhone();
+    expect(await send(phone, '', {}, { NumMedia: '1', MediaContentType0: 'image/jpeg' })).toBe(MSG_MEDIA);
+    expect(await send(phone, '', {}, { NumMedia: '1', MediaContentType0: 'audio/ogg' })).toBe(MSG_VOICE);
+    sim.claude.length = 0;
+    await send(phone, FIRST, FIRST_CLAUDE);
+    await send(phone, CONTACT, CONTACT_CLAUDE);
+    expect(sim.notes).toHaveLength(1);
+    expect(entriesOf(sim.notes[0].content).slice(0, 4)).toEqual([
+      { who: 'Cliente', text: '[El cliente envió 1 imagen]' }, { who: 'Bot', text: MSG_MEDIA + MARK },
+      { who: 'Cliente', text: '[El cliente envió 1 audio]' }, { who: 'Bot', text: MSG_VOICE },
+    ]);
   });
 
   it('archivos con texto: la respuesta anotada lleva el aviso delante y la solicitud se registra con el texto', async () => {

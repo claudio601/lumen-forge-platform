@@ -769,10 +769,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (numMedia > 0 && body.trim().length < 3) {
           console.log(LOG_PREFIX + ' Media from ' + redact(phone, 'phone') + ' [' + messageSid + ']');
-          // [ARCHIVOS] Imagenes o archivos sin texto: el aviso de que no pasan a la solicitud (con la pregunta de la
-          // etapa 1, MSG_MEDIA, que [CANTIDAD] queda anotada para el mensaje siguiente), o nada si la rafaga ya lo tuvo.
-          // Si todavia falta el aviso de privacidad (la primera respuesta lo lleva siempre), va con el de los archivos.
-          const mediaReply = recordMediaReply(phone);
+          // [ARCHIVOS] Adjuntos sin texto, segun su tipo: imagenes o archivos, el aviso de que no pasan a la solicitud
+          // (una vez por rafaga; nada si la rafaga ya lo tuvo); audios o videos, que no los podemos escuchar ni ver
+          // (siempre). Los dos con la invitacion a seguir por escrito (en la etapa 1, MSG_MEDIA_ASK, que [CANTIDAD]
+          // queda anotada para el mensaje siguiente). Si todavia falta el aviso de privacidad (la primera respuesta lo
+          // lleva siempre), va con el de los archivos.
+          const mediaReply = recordMediaReply(phone, mediaTypes);
           stepDone(phone, seq);
           stampFlow(phone, seq);
           await respond(mediaReply || (noticeDue ? MSG_MEDIA_NOTICE : ''));

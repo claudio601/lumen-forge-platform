@@ -135,12 +135,33 @@ export const MSG_HUMAN = 'Perfecto, ya deriv\u00e9 tu solicitud a nuestro equipo
 // [ARCHIVOS] Dueno (13-11-2026, decision 1A): las imagenes y los archivos que llegan por WhatsApp no pasan a la
 // solicitud (la nota solo anota "[El cliente envio 1 imagen]"). El aviso lo dice y pide mandarlos por correo a
 // ventas@, sin decir que se recibieron ni que alguien los revisara por aqui. Sale una vez por rafaga (MEDIA_BURST_MS):
-// solo (o con la pregunta de la etapa 1, MSG_MEDIA) si el archivo no trae texto, y delante de la respuesta del paso
-// si lo trae (el texto sigue el flujo como siempre).
+// con una invitacion a seguir por escrito si el archivo no trae texto (recordMediaReply; en la etapa 1, MSG_MEDIA), y
+// delante de la respuesta del paso si lo trae (el texto sigue el flujo como siempre).
 export const MSG_MEDIA_NOTICE = 'Por WhatsApp no podemos recibir im\u00e1genes ni archivos para tu solicitud. Por favor, env\u00edalos por correo a ventas@elights.cl.';
-export const MSG_MEDIA = MSG_MEDIA_NOTICE + '\n\nCu\u00e9ntanos por escrito qu\u00e9 producto necesitas, para qu\u00e9 proyecto y qu\u00e9 cantidad aproximada.';
+/** [ARCHIVOS] La pregunta de la etapa 1 despues de un aviso (producto, proyecto y cantidad aproximada, sin lista). */
+export const MSG_MEDIA_ASK = 'Cu\u00e9ntanos por escrito qu\u00e9 producto necesitas, para qu\u00e9 proyecto y qu\u00e9 cantidad aproximada.';
+export const MSG_MEDIA = MSG_MEDIA_NOTICE + '\n\n' + MSG_MEDIA_ASK;
+// [ARCHIVOS] Un audio (una nota de voz) o un video sin texto suele ser la respuesta del cliente dicha en voz alta: no
+// llega al flujo. Se le pide escribirla, siempre (tambien dentro de la rafaga de archivos), y no se le pide mandarla
+// por correo. TEXTOS NUEVOS (revision del 13-11-2026): MSG_VOICE_NOTICE, MSG_MEDIA_PENDING y MSG_VOICE_WRITE esperan
+// el OK del dueno.
+export const MSG_VOICE_NOTICE = 'Por WhatsApp no podemos escuchar audios ni ver videos.';
+export const MSG_VOICE = MSG_VOICE_NOTICE + '\n\n' + MSG_MEDIA_ASK;
+/** [ARCHIVOS] Despues del aviso, fuera de la etapa 1, con una pregunta del bot pendiente: seguir por escrito. */
+export const MSG_MEDIA_PENDING = 'Cu\u00e9ntanos tu respuesta por escrito y seguimos con tu solicitud.';
+/** [ARCHIVOS] Un audio o un video sin pregunta pendiente (conversacion cerrada con su solicitud): escribir el mensaje. */
+export const MSG_VOICE_WRITE = 'Cu\u00e9ntanos por escrito lo que necesitas.';
 /** [ARCHIVOS] Un mensaje con archivos que llega antes de esto desde el anterior es de la misma rafaga. */
 export const MEDIA_BURST_MS = 2 * 60_000;
+
+/** [ARCHIVOS] Que trae un mensaje con adjuntos, segun sus MediaContentType: imagenes o archivos, y audios o videos. */
+export interface MediaKinds { files: boolean; voice: boolean }
+
+/** [ARCHIVOS] Sin tipos (o con uno vacio o desconocido) cuenta como archivo, como en la nota (transcript.ts). */
+export function mediaKinds(types: readonly string[] = []): MediaKinds {
+  const voice = types.filter((type) => /^\s*(?:audio|video)\//i.test(type)).length;
+  return { files: types.length === 0 || voice < types.length, voice: voice > 0 };
+}
 
 /** [ARCHIVOS] La respuesta con el aviso de los archivos delante (una respuesta vacia: solo el aviso). */
 export function withMediaNotice(reply: string): string {
@@ -1935,24 +1956,42 @@ function explainOwnEmail(result: FlowResult, body: string): FlowResult {
 }
 
 /**
- * [ARCHIVOS] La respuesta de webhook.ts a imagenes o archivos sin texto, que no pasan por el flujo:
- * - en la etapa 1, MSG_MEDIA: el aviso y la pregunta por producto, proyecto y cantidad aproximada (sin lista), que
+ * [ARCHIVOS] La respuesta de webhook.ts a adjuntos sin texto, que no pasan por el flujo (`types`: sus
+ * MediaContentType). El aviso:
+ * - imagenes o archivos: MSG_MEDIA_NOTICE (mandarlos por correo a ventas@), una vez por rafaga (MEDIA_BURST_MS);
+ * - solo audios o videos (una nota de voz): MSG_VOICE_NOTICE, siempre, tambien dentro de la rafaga, porque traen lo
+ *   que el cliente quiso decir. No abren ni alargan la rafaga de los archivos.
+ * Despues del aviso, siempre una invitacion a seguir por escrito:
+ * - en la etapa 1, MSG_MEDIA_ASK: la pregunta por producto, proyecto y cantidad aproximada (sin lista), que
  *   [CANTIDAD] queda anotada para el mensaje siguiente;
- * - mas adelante (o en la instalacion), solo el aviso: la pregunta anterior del bot sigue pendiente y anotada (no se
- *   repregunta lo que el cliente ya dijo);
- * - dentro de la rafaga (MEDIA_BURST_MS), '' (sin mensaje): ya tuvo el aviso y nada cambia.
+ * - mas adelante (o en la instalacion), con una pregunta del bot pendiente, MSG_MEDIA_PENDING: esa pregunta sigue
+ *   pendiente y anotada (no se repregunta lo que el cliente ya dijo);
+ * - sin pregunta pendiente (cerrada con su solicitud), nada despues del aviso de archivos y MSG_VOICE_WRITE despues
+ *   del de audios.
+ * Archivos dentro de la rafaga, sin audio: '' (sin mensaje): ya tuvo el aviso y nada cambia.
  */
-export function recordMediaReply(phone: string, now = Date.now()): string {
+export function recordMediaReply(phone: string, types: readonly string[] = [], now = Date.now()): string {
   const state = getFlowState(phone);
-  const next: FlowState = { ...state, lastMediaAt: now };
-  const burst = inMediaBurst(state, now);
-  if (burst || state.stage !== 'stage1' || state.isInstallFlow) {
-    saveFlowState(phone, next);
-    return burst ? '' : MSG_MEDIA_NOTICE;
+  const { files, voice } = mediaKinds(types);
+  const notice = files && !inMediaBurst(state, now) ? MSG_MEDIA_NOTICE : voice ? MSG_VOICE_NOTICE : '';
+  const next: FlowState = files ? { ...state, lastMediaAt: now } : { ...state };
+  if (notice && state.stage === 'stage1' && !state.isInstallFlow) {
+    const asks = [...missingStage1(state.captured).filter((m) => m !== 'tipo de luz preferida'), ...(state.captured.proyecto_o_uso ? [] : ['espacio o proyecto de uso'])];
+    saveFlowState(phone, { ...next, rutAskedLast: false, lastQuestion: askedIn(asks, 0) });
+    return notice + '\n\n' + MSG_MEDIA_ASK;
   }
-  const asks = [...missingStage1(state.captured).filter((m) => m !== 'tipo de luz preferida'), ...(state.captured.proyecto_o_uso ? [] : ['espacio o proyecto de uso'])];
-  saveFlowState(phone, { ...next, rutAskedLast: false, lastQuestion: askedIn(asks, 0) });
-  return MSG_MEDIA;
+  saveFlowState(phone, next);
+  if (!notice) return '';
+  const follow = awaitsAnswer(state) ? MSG_MEDIA_PENDING : notice === MSG_VOICE_NOTICE ? MSG_VOICE_WRITE : '';
+  return follow ? notice + '\n\n' + follow : notice;
+}
+
+/**
+ * [ARCHIVOS] El bot espera la respuesta a una pregunta suya: en las etapas 1 a 3 y en la instalacion siempre (cada
+ * respuesta pregunta algo), y en la conversacion cerrada solo si todavia falta el correo (el cierre lo pide).
+ */
+function awaitsAnswer(state: FlowState): boolean {
+  return state.stage !== 'closed' || !flowEmail(state);
 }
 
 /** [CANTIDAD] webhook.ts respondio sin el flujo (el paso fallo): esa respuesta no pregunto nada. */

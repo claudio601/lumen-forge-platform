@@ -33,7 +33,7 @@ const REPLY = 'Hola! Soy el asistente de prueba.';
 /** Respuestas fijas del flujo (flowEngine.ts) que pueden ser la primera de un número. */
 const FLOW_MESSAGES = [
   'MSG1', 'MSG2', 'MSG3', 'MSG3_B2B', 'MSG3_B2C', 'MSG4', 'MSG4_B2B', 'MSG4_INSTALL',
-  'MSG_HUMAN', 'MSG_MEDIA', 'MSG_EXECUTIVE', 'MSG_NEED_EMAIL', 'MSG_NEED_EMAIL_AND_CONTEXT',
+  'MSG_HUMAN', 'MSG_MEDIA', 'MSG_VOICE', 'MSG_EXECUTIVE', 'MSG_NEED_EMAIL', 'MSG_NEED_EMAIL_AND_CONTEXT',
 ] as const;
 
 /** Tope del mensaje con el aviso: margen amplio bajo el límite de 1.600 de Twilio. */

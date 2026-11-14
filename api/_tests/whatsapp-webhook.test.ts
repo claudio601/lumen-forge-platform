@@ -20,7 +20,7 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { getHistory } from '../_lib/whatsapp/conversation.js';
-import { MSG1, MSG2, MSG4, MSG_DEAL_FAILED, MSG_MEDIA, MSG_MEDIA_NOTICE, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { MSG1, MSG2, MSG4, MSG_DEAL_FAILED, MSG_MEDIA, MSG_MEDIA_NOTICE, MSG_MEDIA_PENDING, MSG_VOICE, MSG_VOICE_NOTICE, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 import { buildSilentTwiML, buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { PRIVACY_NOTICE, PRIVACY_POLICY_URL } from '../_lib/whatsapp/privacyNotice.js';
 
@@ -514,5 +514,66 @@ describe('[ARCHIVOS] imágenes y archivos: el aviso por correo a ventas@ y el te
     vi.mocked(askClaude).mockResolvedValueOnce({ ...claudeOk(), parsed } as Awaited<ReturnType<typeof askClaude>>);
     const res = await sendMessage(phone, 'Necesito focos LED como estos', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
     expect(res.body).toBe(withNotice(MSG_MEDIA_NOTICE + '\n\n' + MSG_DEAL_FAILED));
+  });
+
+  it('una foto en la etapa 2: el aviso y que siga por escrito; el texto siguiente sigue el flujo', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk(FOCOS_CLAUDE));
+    expect((await sendMessage(phone, FOCOS)).body).toBe(withNotice(MSG2));
+    const photo = await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(photo.body).toBe(buildTwiML(MSG_MEDIA_NOTICE + '\n\n' + MSG_MEDIA_PENDING));
+    expect(getFlowState(phone).stage).toBe('stage2');
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Lampa' }));
+    await sendMessage(phone, 'Es para una bodega en Lampa');
+    expect(getFlowState(phone)).toMatchObject({ stage: 'stage3', captured: { ...FOCOS_CLAUDE, proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Lampa' } });
+  });
+});
+
+// [ARCHIVOS] Revisión del 13-11-2026: una nota de voz (o un video) sin texto suele ser la respuesta del cliente. El bot
+// no la escucha: se lo dice y le pide escribirla, también dentro de la ráfaga de una foto, sin pedir mandarla por correo.
+describe('[ARCHIVOS] audios y videos sin texto: que lo escriba', () => {
+  const FOCOS = 'Necesito 20 focos LED luz fría';
+  const FOCOS_CLAUDE = { producto: 'focos LED', tipo_de_luz: 'fria', cantidad: '20' };
+  const AUDIO = { NumMedia: '1', MediaContentType0: 'audio/ogg' };
+
+  it('nota de voz al empezar: que no la escuchamos y la pregunta de la etapa 1, con el aviso de privacidad; no pasa por Claude', async () => {
+    const phone = nextPhone();
+    const res = await sendMessage(phone, '', AUDIO);
+    expect(res.body).toBe(withNotice(MSG_VOICE));
+    // El aviso de privacidad lleva su correo de contacto; la respuesta al audio no pide mandarlo por correo.
+    expect(MSG_VOICE).not.toMatch(/correo|ventas@/);
+    expect(askClaude).not.toHaveBeenCalled();
+  });
+
+  it('nota de voz en la etapa 2: que no la escuchamos y que siga por escrito; la pregunta sigue pendiente', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk(FOCOS_CLAUDE));
+    expect((await sendMessage(phone, FOCOS)).body).toBe(withNotice(MSG2));
+    const asked = getFlowState(phone).lastQuestion;
+    const voice = await sendMessage(phone, '', AUDIO);
+    expect(voice.body).toBe(buildTwiML(MSG_VOICE_NOTICE + '\n\n' + MSG_MEDIA_PENDING));
+    expect(askClaude).toHaveBeenCalledTimes(1);
+    expect(getFlowState(phone)).toMatchObject({ stage: 'stage2', lastQuestion: asked });
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Lampa' }));
+    await sendMessage(phone, 'Es para una bodega en Lampa');
+    expect(getFlowState(phone).stage).toBe('stage3');
+  });
+
+  it('nota de voz dentro de la ráfaga de una foto: igual responde (no es TwiML vacío)', async () => {
+    const phone = nextPhone();
+    expect((await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' })).body).toBe(withNotice(MSG_MEDIA));
+    const voice = await sendMessage(phone, '', AUDIO);
+    expect(voice.statusCode).toBe(200);
+    expect(voice.body).toBe(buildTwiML(MSG_VOICE));
+    expect(voice.body).not.toBe(buildSilentTwiML());
+    // La foto siguiente sigue dentro de la ráfaga: sin mensaje.
+    expect((await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/png' })).body).toBe(buildSilentTwiML());
+  });
+
+  it('un video sin texto en la etapa 2 tampoco queda sin respuesta', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk(FOCOS_CLAUDE));
+    await sendMessage(phone, FOCOS);
+    expect((await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'video/mp4' })).body).toBe(buildTwiML(MSG_VOICE_NOTICE + '\n\n' + MSG_MEDIA_PENDING));
   });
 });
