@@ -1,7 +1,7 @@
 // /cotizador: «Recordar mis datos en este dispositivo» (especificación del 23-10-2026, §5).
 // Guarda nombre, correo, teléfono, el tipo de cliente (selector persona o empresa desde el
 // 13-11-2026) y, si se envió como empresa, la empresa como bloque (razón social, giro, dirección
-// y el RUT solo si es válido: este formulario no revisa el dígito verificador). La ciudad es del
+// y el RUT, que el formulario revisa antes de enviar, como /solicitar-pedido). La ciudad es del
 // proyecto: no se guarda.
 // Datos inventados (correos example.com y el RUT de prueba de los tests de /cotizacion).
 
@@ -151,16 +151,22 @@ describe('/cotizador: recordar mis datos', () => {
     expectNothingElseStored([COMENTARIO, 'Tomé', 'Bodega', '1200', '3 meses']);
   });
 
-  it('un RUT con un dígito verificador que no calza no se guarda (este formulario no lo revisa)', async () => {
+  it('un RUT con un dígito verificador que no calza: no se envía ni se guarda hasta corregirlo', async () => {
     vi.stubGlobal('fetch', OK());
     await renderPage();
     fillContact({ rut: '44.444.444-5' });
     fillProject();
     fireEvent.click(rememberBox());
     submit();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(field(/RUT Empresa/)).toHaveAttribute('aria-invalid', 'true');
+    expect(storedContact()).toBeNull();
+    // Corregido, se envía y se guarda con su formato
+    type(/RUT Empresa/, '444444444');
+    submit();
     await confirmed();
-    expect(bodies()[0].rutEmpresa).toBe('44.444.444-5'); // viaja como se escribió
-    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'empresa', empresa: COMPANY.empresa, giro: COMPANY.giro, direccion: COMPANY.direccion });
+    expect(bodies()[0].rutEmpresa).toBe(TEST_RUT);
+    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
   });
 
   it('como empresa y sin razón social: no borra la empresa guardada (mismo correo)', async () => {

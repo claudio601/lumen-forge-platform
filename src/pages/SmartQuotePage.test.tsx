@@ -153,6 +153,91 @@ describe('SmartQuotePage (/cotizador)', () => {
     for (const key of ['rutEmpresa', 'razonSocial', 'giro']) expect(sentBodies()[0]).not.toHaveProperty(key);
   });
 
+  // El RUT de empresa sigue la regla de /solicitar-pedido (opcional; escrito, con su dígito verificador)
+  describe('RUT de empresa: la regla de /solicitar-pedido', () => {
+    const rutField = () => screen.getByLabelText(/RUT Empresa/) as HTMLInputElement;
+    const rutAsEmpresa = (value: string) => {
+      type(/Tipo de cliente/, 'empresa');
+      type(/RUT Empresa/, value);
+    };
+
+    it('el rótulo dice «(opcional)» y al salir del campo toma el formato 12.345.678-9, sin aviso', () => {
+      renderPage();
+      rutAsEmpresa('444444444');
+      expect(screen.getByText('(opcional)').closest('label')).toHaveTextContent('RUT Empresa (opcional)');
+      fireEvent.blur(rutField());
+      expect(rutField()).toHaveValue('44.444.444-4');
+      expect(rutField()).not.toHaveAttribute('aria-invalid');
+      expect(screen.queryByText(/Revisa el RUT/)).toBeNull();
+    });
+
+    it('un dígito verificador que no calza: aviso debajo del campo al salir; al corregirlo, el aviso se va', () => {
+      renderPage();
+      rutAsEmpresa('44.444.444-5');
+      fireEvent.blur(rutField());
+      expect(rutField()).toHaveAttribute('aria-invalid', 'true');
+      const message = screen.getByText('Revisa el RUT: el dígito verificador no corresponde.');
+      expect(rutField()).toHaveAttribute('aria-describedby', message.id);
+      type(/RUT Empresa/, '44.444.444-4');
+      expect(rutField()).not.toHaveAttribute('aria-invalid');
+      expect(screen.queryByText(/Revisa el RUT/)).toBeNull();
+    });
+
+    it('sin forma de RUT: el aviso de formato', () => {
+      renderPage();
+      rutAsEmpresa('12345');
+      fireEvent.blur(rutField());
+      expect(screen.getByText('Revisa el RUT: escríbelo completo, con su dígito verificador (ej.: 12.345.678-9).')).toBeInTheDocument();
+    });
+
+    it('al enviar con un RUT mal escrito: no se envía, el foco va al RUT y el aviso queda junto al botón', async () => {
+      vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-rut1', dealId: 1 })));
+      renderPage();
+      fillForm();
+      rutAsEmpresa('44.444.444-5');
+      fireEvent.click(submitButton());
+      expect(fetch).not.toHaveBeenCalled();
+      expect(rutField()).toHaveFocus();
+      expect(rutField()).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByRole('alert')).toHaveTextContent('Revisa el RUT: el dígito verificador no corresponde.');
+      expect(toast.error).toHaveBeenCalledWith('Revisa el RUT: el dígito verificador no corresponde.');
+      // Corregido, se envía con formato
+      type(/RUT Empresa/, '444444444');
+      fireEvent.click(submitButton());
+      expect(await screen.findByText('PY-rut1')).toBeInTheDocument();
+      expect(sentBodies()[0]).toMatchObject({ customerType: 'empresa', rutEmpresa: '44.444.444-4' });
+    });
+
+    it('sin salir del campo, el RUT viaja con formato', async () => {
+      vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-rut2', dealId: 2 })));
+      renderPage();
+      fillForm();
+      rutAsEmpresa('44444444-4');
+      fireEvent.click(submitButton());
+      expect(await screen.findByText('PY-rut2')).toBeInTheDocument();
+      expect(sentBodies()[0].rutEmpresa).toBe('44.444.444-4');
+    });
+
+    it('vacío está bien (es opcional) y una persona nunca recibe el aviso del RUT', async () => {
+      vi.stubGlobal('fetch', reply(201, JSON.stringify({ success: true, reference: 'PY-rut3', dealId: 3 })));
+      renderPage();
+      fillForm();
+      rutAsEmpresa('44.444.444-5');
+      fireEvent.blur(rutField());
+      expect(rutField()).toHaveAttribute('aria-invalid', 'true');
+      // A persona: el campo y su aviso se van y el envío no se detiene por el RUT
+      type(/Tipo de cliente/, 'persona');
+      expect(screen.queryByText(/Revisa el RUT/)).toBeNull();
+      type(/Tipo de cliente/, 'empresa');
+      type(/RUT Empresa/, '');
+      fireEvent.blur(rutField());
+      expect(rutField()).not.toHaveAttribute('aria-invalid');
+      fireEvent.click(submitButton());
+      expect(await screen.findByText('PY-rut3')).toBeInTheDocument();
+      expect(sentBodies()[0]).not.toHaveProperty('rutEmpresa');
+    });
+  });
+
   it.each([
     ['502', reply(502, '{"success":false}'), 502, /No pudimos enviar tu solicitud\. Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
     ['504 con HTML', reply(504, '<!DOCTYPE html><html>An error occurred</html>'), 504, /Inténtalo de nuevo o escríbenos a ventas@elights\.cl\./],
