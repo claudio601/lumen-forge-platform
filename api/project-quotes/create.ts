@@ -47,7 +47,9 @@
 //      Los adjuntos no entran en la referencia PY- ni en el log (solo cuántos son).
 //
 // Avisos «Para revisar» (api/_lib/forms/review.ts): al comienzo de la nota y en el correo,
-// después de su primera línea. Hoy, un RUT de empresa que no calza. Nunca rechazan.
+// después de su primera línea: un RUT de empresa que no calza. En la nota de un negocio nuevo,
+// también los posibles duplicados con WhatsApp que devuelve createDeal
+// (api/_lib/pipedrive/crossChannel.ts; el correo sale antes). Nunca rechazan.
 //
 // El correo y la nota terminan con la constancia "PRIVACIDAD Y AUTORIZACIONES" y el origen
 // de la visita (clave `attribution`, api/_lib/forms/attribution.ts). El origen es
@@ -415,7 +417,7 @@ const chileDateTime = (date: Date) =>
  * Nota del deal con todos los datos, la constancia de privacidad y el origen; un reenvío del
  * mismo formulario lo dice al comienzo. `now`: el instante de la solicitud (el mismo de la
  * constancia). `archivos`: la sección ARCHIVOS (attachmentListLines), después de los
- * comentarios.
+ * comentarios. `possibleDuplicates`: los avisos de createDeal, primeros en «Para revisar».
  */
 export function buildProjectQuoteNote(
   q: ProjectQuote,
@@ -426,12 +428,13 @@ export function buildProjectQuoteNote(
     origen = [],
     consent = [],
     archivos = [],
-  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[]; archivos?: string[] } = {}
+    possibleDuplicates = [],
+  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[]; archivos?: string[]; possibleDuplicates?: string[] } = {}
 ): string {
   const fecha = chileDateTime(now);
   return escapeHtml([
     // Los avisos al comienzo, para verlos primero (también en un reenvío)
-    ...reviewSection(projectQuoteReview(q)),
+    ...reviewSection([...possibleDuplicates, ...projectQuoteReview(q)]),
     ...(resend
       ? [`Reenvío del mismo formulario (${fecha}): misma referencia ${ref}, no se creó un negocio nuevo.`, '']
       : []),
@@ -655,7 +658,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // createDeal no guarda notas: el detalle va aparte, también en un reenvío.
     await addNote(
       dealId,
-      buildProjectQuoteNote(quote, reference, { resend: status !== 'created', now: at, origen, consent: consent.section, archivos }),
+      buildProjectQuoteNote(quote, reference, {
+        resend: status !== 'created', now: at, origen, consent: consent.section, archivos,
+        possibleDuplicates: result.possibleDuplicates,
+      }),
       ref
     );
 

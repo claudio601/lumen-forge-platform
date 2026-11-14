@@ -412,6 +412,15 @@ describe('POST /api/project-quotes/create', () => {
     expect(gasBodies()[0].items_lista).not.toContain('Para revisar');
   });
 
+  it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo no lo lleva', async () => {
+    vi.mocked(createDeal).mockResolvedValue({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] });
+    await call({ ...full, customerType: 'empresa', rutEmpresa: `44.444.444-${rutCheckDigit('44444444') === '1' ? '2' : '1'}` });
+    expect(notes()[0].content.startsWith(
+      'Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n- RUT por revisar: dígito verificador no calza\n\n=== COTIZADOR DE PROYECTO'
+    )).toBe(true);
+    expect(gasBodies()[0].items_lista).not.toContain('Posible duplicado');
+  });
+
   it('SALES_EMAIL cambia el destinatario del correo', async () => {
     vi.stubEnv('SALES_EMAIL', 'otra-casilla@example.com');
     await call(base);

@@ -18,7 +18,9 @@
 //      referencia RC- (sin negocio nuevo) también deja su nota "Reenvío de la solicitud
 //      ...", con la constancia del envío nuevo.
 //   2b. Avisos «Para revisar» (api/_lib/forms/review.ts) al comienzo de la nota y en el
-//      correo, después de su primera línea: un RUT de empresa que no calza. Nunca rechazan.
+//      correo, después de su primera línea: un RUT de empresa que no calza. En la nota de un
+//      negocio nuevo, también los posibles duplicados con WhatsApp que devuelve createDeal
+//      (api/_lib/pipedrive/crossChannel.ts). Nunca rechazan.
 //   3. Enviar email GAS -> FIRE-AND-FORGET, con la misma constancia. Log warn si falla
 //      (sin datos del cliente). La constancia solo queda en la nota y en este correo, los
 //      dos después de crear el negocio: si fallan los dos, queda un aviso en el log.
@@ -376,9 +378,10 @@ export default async function handler(
   };
 
   // ── Paso 1c: Avisos «Para revisar» (nota y correo; nunca rechazan ni van al log) ──
-  const review = reviewSection([
+  const reviewItems = [
     rutReviewItem(payload.customerType === 'empresa' ? payload.rut : undefined),
-  ]);
+  ];
+  const review = reviewSection(reviewItems);
 
   // ── Paso 2: Crear deal en Pipedrive (BLOQUEANTE) ───────────────
   let dealId: number;
@@ -443,8 +446,10 @@ export default async function handler(
       const noteFailed = `${LOG} Nota con la constancia no creada | ref: ${requestReference} | dealId: ${dealId}`;
       try {
         const resend = dealResult.status === 'skipped_duplicate';
+        // Un negocio nuevo puede traer posibles duplicados con WhatsApp: van primero
+        const noteReview = reviewSection([...(dealResult.possibleDuplicates ?? []), ...reviewItems]);
         const note = await pipedrivePost('/notes', {
-          content: buildNotes(payload, origen, consent.section, { resend, review }),
+          content: buildNotes(payload, origen, consent.section, { resend, review: noteReview }),
           deal_id: dealId,
         });
         if (!note?.success) console.warn(noteFailed);

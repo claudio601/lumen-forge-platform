@@ -878,4 +878,16 @@ describe('POST /api/quotes/create: avisos «Para revisar»', () => {
     expect(note.content).not.toContain('Para revisar');
     expect(gasBodies()[0].items_lista).not.toContain('Para revisar');
   });
+
+  it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo (que sale antes) no lo lleva', async () => {
+    const result = crmResult(77, 'created');
+    vi.mocked(processQuoteToCrm).mockResolvedValue({ ...result, deal: { ...result.deal, possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } } as never);
+    await call(withRut(WRONG_RUT));
+    await mailsSettled();
+    const [note] = notes();
+    expect(note.content.startsWith(
+      'Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n- RUT por revisar: dígito verificador no calza\n\nCotización web NE-abc123'
+    )).toBe(true);
+    expect(gasBodies()[0].items_lista).not.toContain('Posible duplicado');
+  });
 });

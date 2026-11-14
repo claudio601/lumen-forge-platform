@@ -30,7 +30,9 @@
 //      "ORIGEN DE LA VISITA" al final de la nota y del correo. Informativo: un origen raro
 //      se descarta, nunca da 400, y no entra en la referencia ni en el log.
 //  10b. Avisos «Para revisar» (api/_lib/forms/review.ts), al comienzo de la nota y en el
-//      correo después de su primera línea: un RUT de empresa que no calza. Nunca rechazan.
+//      correo después de su primera línea: un RUT de empresa que no calza. En la nota de un
+//      negocio nuevo, también los posibles duplicados con WhatsApp que devuelve createDeal
+//      (api/_lib/pipedrive/crossChannel.ts; el correo sale antes). Nunca rechazan.
 //  12. Privacidad (clave `consent`, api/_lib/forms/consent.ts): toda cotización del sitio,
 //      con o sin API key, exige la casilla obligatoria: sin ella, 400 con code
 //      'consent_required' antes del correo y de Pipedrive. La constancia "PRIVACIDAD Y
@@ -382,10 +384,10 @@ const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '
  * Nota del deal: los avisos «Para revisar» al comienzo, el tipo de cliente, datos de
  * facturación, productos, total, comentarios, constancia y origen.
  */
-function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: boolean): string {
+function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: boolean, possibleDuplicates: string[] = []): string {
   const ref = payload.quoteReference;
   return escapeHtml([
-    ...reviewSection(site.review),
+    ...reviewSection([...possibleDuplicates, ...site.review]),
     duplicate
       ? `Reenvío de la cotización ${ref} (misma referencia; no se creó un negocio nuevo)`
       : `Cotización web ${ref} (precios CON IVA desde Jumpseller)`,
@@ -608,7 +610,7 @@ export default async function handler(
   const dealId = result.deal?.dealId;
   const status = result.deal?.status;
   if (site && dealId && (status === 'created' || status === 'skipped_duplicate')) {
-    await addSiteQuoteNote(dealId, buildSiteQuoteNote(payload, site, status === 'skipped_duplicate'), ref);
+    await addSiteQuoteNote(dealId, buildSiteQuoteNote(payload, site, status === 'skipped_duplicate', result.deal.possibleDuplicates), ref);
   }
 
   console.log(

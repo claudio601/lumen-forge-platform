@@ -692,4 +692,21 @@ describe('POST /api/request-orders/create: avisos «Para revisar»', () => {
     await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
     expect(lastNote().startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\nReenvío de la solicitud RC-abc12')).toBe(true);
   });
+
+  it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo no lo lleva', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } as never);
+    await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
+    expect(lastNote().startsWith(
+      'Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n- RUT por revisar: dígito verificador no calza\n\nSolicitud de pedido RC-abc12'
+    )).toBe(true);
+    expect(mail().items_lista).not.toContain('Posible duplicado');
+    expect(mail().items_lista).toContain('- RUT por revisar: dígito verificador no calza');
+  });
+
+  it('posible duplicado sin otros avisos: la nota igual empieza con «Para revisar»', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } as never);
+    await call({ ...base, items: [ar111] });
+    expect(lastNote().startsWith('Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n\nSolicitud de pedido RC-abc12')).toBe(true);
+    expect(mail().items_lista).not.toContain('Para revisar');
+  });
 });
