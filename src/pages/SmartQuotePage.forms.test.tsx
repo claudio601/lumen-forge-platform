@@ -1,7 +1,8 @@
 // /cotizador: «Recordar mis datos en este dispositivo» (especificación del 23-10-2026, §5).
-// Guarda nombre, correo, teléfono y la empresa como bloque (razón social, giro, dirección y el
-// RUT solo si es válido: este formulario no revisa el dígito verificador). Con razón social el
-// tipo pasa a 'empresa'; sin ella, nunca a 'persona'. La ciudad es del proyecto: no se guarda.
+// Guarda nombre, correo, teléfono, el tipo de cliente (selector persona o empresa desde el
+// 13-11-2026) y, si se envió como empresa, la empresa como bloque (razón social, giro, dirección
+// y el RUT, que el formulario revisa antes de enviar, como /solicitar-pedido). La ciudad es del
+// proyecto: no se guarda.
 // Datos inventados (correos example.com y el RUT de prueba de los tests de /cotizacion).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -56,8 +57,9 @@ function fillContact({ company = true, rut = COMPANY.rut } = {}) {
   type(/Email/, CONTACT.email);
   type(/Teléfono/, CONTACT.telefono);
   if (company) {
+    type(/Tipo de cliente/, 'empresa');
     type(/RUT Empresa/, rut);
-    type(/Razon Social/, COMPANY.empresa);
+    type(/Razón Social/, COMPANY.empresa);
     type(/Giro/, COMPANY.giro);
     type(/^Dirección$/, COMPANY.direccion);
   }
@@ -102,7 +104,7 @@ describe('/cotizador: recordar mis datos', () => {
     expect(field(/Email/).value).toBe(CONTACT.email);
     expect(field(/Teléfono/).value).toBe(CONTACT.telefono);
     expect(field(/RUT Empresa/).value).toBe(TEST_RUT);
-    expect(field(/Razon Social/).value).toBe(COMPANY.empresa);
+    expect(field(/Razón Social/).value).toBe(COMPANY.empresa);
     expect(field(/Giro/).value).toBe(COMPANY.giro);
     expect(field(/^Dirección$/).value).toBe(COMPANY.direccion);
     expect(field(/Ciudad/).value).toBe('');
@@ -112,7 +114,7 @@ describe('/cotizador: recordar mis datos', () => {
   it('una razón social guardada más larga que el tope de este formulario (150) no se completa aquí', async () => {
     seedSaved({ ...CONTACT, tipoCliente: 'empresa', empresa: 'E'.repeat(180), giro: 'Prueba' });
     await renderPage();
-    expect(field(/Razon Social/).value).toBe('');
+    expect(field(/Razón Social/).value).toBe('');
     expect(field(/Giro/).value).toBe('Prueba');
   });
 
@@ -122,7 +124,7 @@ describe('/cotizador: recordar mis datos', () => {
     fireEvent.click(rememberBox());
     expect(storedContact()).toBeNull();
     expect(rememberStatus()).toHaveTextContent(REMEMBER_TEXTS.cleared);
-    expect(field(/Razon Social/).value).toBe(COMPANY.empresa);
+    expect(field(/Razón Social/).value).toBe(COMPANY.empresa);
     expect(field(/RUT Empresa/).value).toBe(TEST_RUT);
     expectFreshBox();
   });
@@ -149,24 +151,30 @@ describe('/cotizador: recordar mis datos', () => {
     expectNothingElseStored([COMENTARIO, 'Tomé', 'Bodega', '1200', '3 meses']);
   });
 
-  it('un RUT con un dígito verificador que no calza no se guarda (este formulario no lo revisa)', async () => {
+  it('un RUT con un dígito verificador que no calza: no se envía ni se guarda hasta corregirlo', async () => {
     vi.stubGlobal('fetch', OK());
     await renderPage();
     fillContact({ rut: '44.444.444-5' });
     fillProject();
     fireEvent.click(rememberBox());
     submit();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(field(/RUT Empresa/)).toHaveAttribute('aria-invalid', 'true');
+    expect(storedContact()).toBeNull();
+    // Corregido, se envía y se guarda con su formato
+    type(/RUT Empresa/, '444444444');
+    submit();
     await confirmed();
-    expect(bodies()[0].rutEmpresa).toBe('44.444.444-5'); // viaja como se escribió
-    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'empresa', empresa: COMPANY.empresa, giro: COMPANY.giro, direccion: COMPANY.direccion });
+    expect(bodies()[0].rutEmpresa).toBe(TEST_RUT);
+    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
   });
 
-  it('sin razón social: no pasa el tipo a persona ni borra la empresa guardada (mismo correo)', async () => {
+  it('como empresa y sin razón social: no borra la empresa guardada (mismo correo)', async () => {
     vi.stubGlobal('fetch', OK());
     const saved = { ...CONTACT, tipoCliente: 'empresa' as const, ...COMPANY };
     seedSaved(saved);
     await renderPage();
-    type(/Razon Social/, '');
+    type(/Razón Social/, '');
     type(/Giro/, '');
     fillProject();
     submit();
@@ -230,5 +238,34 @@ describe('/cotizador: recordar mis datos', () => {
     const [without, withSaved] = bodies();
     expect(withSaved).toEqual(without);
     expect(JSON.stringify(withSaved)).not.toMatch(/recordarDatos|elights_contact|remember/i);
+  });
+
+  it('lo guardado como empresa elige «Empresa» al hidratar; como persona, no muestra los datos de empresa', async () => {
+    seedSaved({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
+    const first = render(page());
+    await waitFor(() => expect(field(/Nombre y Apellido/)).toBeEnabled());
+    await waitFor(() => expect(field(/Tipo de cliente/).value).toBe('empresa'));
+    first.unmount();
+    seedSaved({ ...CONTACT, tipoCliente: 'persona', ...COMPANY });
+    await renderPage();
+    expect(field(/Tipo de cliente/).value).toBe('persona');
+    expect(screen.queryByLabelText(/RUT Empresa/)).toBeNull();
+    expect(screen.queryByLabelText(/Razón Social/)).toBeNull();
+    expect(screen.queryByLabelText(/^Giro/)).toBeNull();
+    expect(field(/^Dirección$/).value).toBe(COMPANY.direccion);
+  });
+
+  it('un envío como persona guarda el tipo persona y no la empresa escrita antes de cambiar el tipo', async () => {
+    vi.stubGlobal('fetch', OK());
+    await renderPage();
+    fillContact();
+    type(/Tipo de cliente/, 'persona');
+    fillProject();
+    fireEvent.click(rememberBox());
+    submit();
+    await confirmed();
+    expect(bodies()[0]).toMatchObject({ customerType: 'persona' });
+    for (const key of ['rutEmpresa', 'razonSocial', 'giro']) expect(bodies()[0]).not.toHaveProperty(key);
+    expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'persona' });
   });
 });

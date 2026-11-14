@@ -29,6 +29,12 @@
 //  11. Origen de la visita (clave `attribution`, api/_lib/forms/attribution.ts): sección
 //      "ORIGEN DE LA VISITA" al final de la nota y del correo. Informativo: un origen raro
 //      se descarta, nunca da 400, y no entra en la referencia ni en el log.
+//  10b. Avisos «Para revisar» (api/_lib/forms/review.ts), al comienzo de la nota y en el
+//      correo después de su primera línea: un RUT de empresa que no calza y una cantidad del
+//      comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts) y una persona
+//      con un total CON IVA sobre 135 UF (api/_lib/boleta.ts). En la nota de un
+//      negocio nuevo, también los posibles duplicados con WhatsApp que devuelve createDeal
+//      (api/_lib/pipedrive/crossChannel.ts; el correo sale antes). Nunca rechazan.
 //  12. Privacidad (clave `consent`, api/_lib/forms/consent.ts): toda cotización del sitio,
 //      con o sin API key, exige la casilla obligatoria: sin ella, 400 con code
 //      'consent_required' antes del correo y de Pipedrive. La constancia "PRIVACIDAD Y
@@ -53,6 +59,8 @@ import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { formatOrigenSection, parseAttribution } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
+import { afterFirstLine, boletaReviewItem, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
+import { quantityReviewItem } from '../_lib/forms/quantityMentions.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
@@ -118,6 +126,8 @@ interface SiteQuote {
   origen: string[];
   /** Constancia "PRIVACIDAD Y AUTORIZACIONES" (resolveConsent) para la nota y el correo. */
   consent: string[];
+  /** Avisos que se conocen antes de Pipedrive (RUT…), para el bloque «Para revisar». */
+  review: string[];
 }
 
 /** Una línea: sin saltos de línea ni espacios repetidos. */
@@ -229,7 +239,10 @@ function prepareSiteQuote(
 
   const type = customerType === 'empresa' || customerType === 'persona' ? customerType : undefined;
   const origen = formatOrigenSection(parseAttribution(attribution));
-  return { site: { customerType: type, net, billing, detail: [], compact: [], pending: 0, origen, consent }, errors };
+  return {
+    site: { customerType: type, net, billing, detail: [], compact: [], pending: 0, origen, consent, review: [rutReviewItem(billing?.rut)].filter((i): i is string => Boolean(i)) },
+    errors,
+  };
 }
 
 /**
@@ -292,6 +305,14 @@ function repriceSiteQuote(body: Record<string, unknown>, site: SiteQuote): strin
   });
   if (total > 0) body.quoteAmountClp = total;
   else delete body.quoteAmountClp;
+  const quantityItem = quantityReviewItem(
+    body.notes,
+    (body.products as Array<{ quantity: number }>).map((p) => p.quantity),
+  );
+  if (quantityItem) site.review.push(quantityItem);
+  // Persona sobre 135 UF: con el total del catálogo (los productos sin precio quedan fuera)
+  const boletaItem = boletaReviewItem(site.customerType, total);
+  if (boletaItem) site.review.push(boletaItem);
   return [];
 }
 
@@ -334,10 +355,11 @@ function fitEmailBody(head: string[], site: SiteQuote, tail: string[]): string {
 function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
   const notes = typeof payload.notes === 'string' ? payload.notes.trim() : '';
   const longNotes = notes.length > EMAIL_COMMENT_FIELD;
-  const head = [
+  // Los avisos «Para revisar» van después de la primera línea (la que lleva la referencia)
+  const head = afterFirstLine([
     `Cotización web ${payload.quoteReference} (buscar la referencia en Pipedrive)`,
     `Tipo de cliente: ${customerTypeLabel(site.customerType)}`,
-  ];
+  ], reviewSection(site.review));
   const tail = [
     ...(longNotes ? ['', 'Comentarios del cliente (completos):', notes] : []),
     ...(site.consent.length ? ['', ...site.consent] : []),
@@ -369,10 +391,14 @@ function buildSalesEmail(payload: QuotePayload, site: SiteQuote): SalesEmail {
 /** La nota de Pipedrive es HTML: el texto del cliente no puede agregar etiquetas ni enlaces. */
 const escapeHtml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Nota del deal: tipo de cliente, datos de facturación, productos, total, comentarios, constancia y origen. */
-function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: boolean): string {
+/**
+ * Nota del deal: los avisos «Para revisar» al comienzo, el tipo de cliente, datos de
+ * facturación, productos, total, comentarios, constancia y origen.
+ */
+function buildSiteQuoteNote(payload: QuotePayload, site: SiteQuote, duplicate: boolean, possibleDuplicates: string[] = []): string {
   const ref = payload.quoteReference;
   return escapeHtml([
+    ...reviewSection([...possibleDuplicates, ...site.review]),
     duplicate
       ? `Reenvío de la cotización ${ref} (misma referencia; no se creó un negocio nuevo)`
       : `Cotización web ${ref} (precios CON IVA desde Jumpseller)`,
@@ -595,7 +621,7 @@ export default async function handler(
   const dealId = result.deal?.dealId;
   const status = result.deal?.status;
   if (site && dealId && (status === 'created' || status === 'skipped_duplicate')) {
-    await addSiteQuoteNote(dealId, buildSiteQuoteNote(payload, site, status === 'skipped_duplicate'), ref);
+    await addSiteQuoteNote(dealId, buildSiteQuoteNote(payload, site, status === 'skipped_duplicate', result.deal.possibleDuplicates), ref);
   }
 
   console.log(

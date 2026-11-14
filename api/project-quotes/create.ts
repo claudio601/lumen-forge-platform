@@ -15,7 +15,12 @@
 //       Un solo new Date() por solicitud: la hora de la constancia, la «Fecha» de la nota
 //       y la ventana de la referencia salen del mismo instante del servidor.
 //   3. Validar payload (400). Se arma un objeto limpio solo con las claves conocidas:
-//      cualquier precio o monto que mande el navegador se descarta.
+//      cualquier precio o monto que mande el navegador se descarta. Persona o empresa
+//      (`customerType`, decisión del dueño del 13-11-2026, igual que /cotizacion y
+//      /solicitar-pedido): una persona recibe boleta y su RUT, razón social y giro se
+//      descartan; una empresa, como antes (los tres opcionales). Otro valor da 400. Sin
+//      customerType (una pestaña con el JS de antes del deploy) se acepta como antes: es
+//      empresa si dejó razón social o RUT.
 //   4. Referencia PY- única: la misma en el correo, la nota y el deal
 //   5. Correo a ventas vía GAS ANTES de Pipedrive (waitUntil, no bloquea)
 //   6. Pipedrive: persona, organización (si hay razón social), deal (valor 0, Tipo de
@@ -40,6 +45,11 @@
 //        - 400 y 502: los archivos quedan en Blob (el cliente reenvía las mismas
 //          referencias); el barrido diario (api/cron/blob-sweep.ts) borra lo que quede.
 //      Los adjuntos no entran en la referencia PY- ni en el log (solo cuántos son).
+//
+// Avisos «Para revisar» (api/_lib/forms/review.ts): al comienzo de la nota y en el correo,
+// después de su primera línea: un RUT de empresa que no calza. En la nota de un negocio nuevo,
+// también los posibles duplicados con WhatsApp que devuelve createDeal
+// (api/_lib/pipedrive/crossChannel.ts; el correo sale antes). Nunca rechazan.
 //
 // El correo y la nota terminan con la constancia "PRIVACIDAD Y AUTORIZACIONES" y el origen
 // de la visita (clave `attribution`, api/_lib/forms/attribution.ts). El origen es
@@ -77,6 +87,7 @@ import {
 } from '../_lib/forms/projectQuote.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
+import { afterFirstLine, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
 import { parseAttachmentRefs } from '../_lib/attachments/rules.js';
 import {
   attachmentListLines,
@@ -93,7 +104,11 @@ const ALLOWED_METHODS = ['POST'];
 
 // ── Payload limpio ────────────────────────────────────────────────────────────
 
+export type CustomerType = 'persona' | 'empresa';
+
 export interface ProjectQuote {
+  /** Lo que declaró el cliente; undefined en un cuerpo del formulario anterior (sin selector). */
+  customerType?: CustomerType;
   nombre: string;
   email: string;
   telefono: string;
@@ -250,21 +265,33 @@ export function validateProjectQuote(body: unknown): ProjectQuoteValidation {
     else errors.push('altura must be a number from 0 to ' + MAX_ALTURA);
   }
 
+  let customerType: CustomerType | undefined;
+  if (!isBlank(p.customerType)) {
+    if (p.customerType === 'persona' || p.customerType === 'empresa') customerType = p.customerType;
+    else errors.push("customerType must be 'persona' or 'empresa'");
+  }
+  // Una persona recibe boleta: su RUT, razón social y giro no se leen (ni se validan)
+  const company = customerType === 'persona'
+    ? {}
+    : {
+        rutEmpresa: readText(p, 'rutEmpresa', errors),
+        razonSocial: readText(p, 'razonSocial', errors),
+        giro: readText(p, 'giro', errors),
+      };
+
   const optional = {
     aplicacion: readText(p, 'aplicacion', errors),
     nivelIluminacion: readOption(p, 'nivelIluminacion', ILLUMINATION_LEVELS, errors),
     ciudad: readText(p, 'ciudad', errors),
     plazo: readText(p, 'plazo', errors),
     comentarios: readText(p, 'comentarios', errors, { multiline: true }),
-    rutEmpresa: readText(p, 'rutEmpresa', errors),
-    razonSocial: readText(p, 'razonSocial', errors),
-    giro: readText(p, 'giro', errors),
+    ...company,
     direccion: readText(p, 'direccion', errors),
   };
 
   if (errors.length) return { valid: false, errors, quote: null };
 
-  const quote: ProjectQuote = { nombre, email, telefono, tipoProyecto, m2 };
+  const quote: ProjectQuote = { ...(customerType ? { customerType } : {}), nombre, email, telefono, tipoProyecto, m2 };
   if (altura !== undefined) quote.altura = altura;
   for (const [key, value] of Object.entries(optional)) {
     if (value !== undefined) Object.assign(quote, { [key]: value });
@@ -296,12 +323,33 @@ export function buildProjectQuoteRef(q: ProjectQuote, now: number = Date.now()):
     q.comentarios ?? '',
     (q.razonSocial ?? '').toLowerCase(),
     Math.floor(now / 3_600_000),
+    // Al final y solo si se declaró: un cuerpo del formulario anterior da la misma referencia que antes
+    ...(q.customerType ? [q.customerType] : []),
   ].join('|');
   return 'PY-' + djb2(key);
 }
 
-/** Empresa (B2B) si dejó razón social o RUT de empresa. */
-const isCompany = (q: ProjectQuote) => Boolean(q.razonSocial || q.rutEmpresa);
+/** Los avisos que salen de los datos del formulario (RUT de empresa), para «Para revisar». */
+export function projectQuoteReview(q: ProjectQuote): (string | null)[] {
+  return [rutReviewItem(q.rutEmpresa)];
+}
+
+/**
+ * Empresa (B2B): la que declaró el cliente o, en un cuerpo del formulario anterior (sin
+ * selector), si dejó razón social o RUT de empresa.
+ */
+const isCompany = (q: ProjectQuote) => (q.customerType ? q.customerType === 'empresa' : Boolean(q.razonSocial || q.rutEmpresa));
+
+/**
+ * Tipo de comprador para la nota y el correo, con el documento (como /solicitar-pedido). Sin
+ * selector (formulario anterior) se infiere de los datos de empresa, como antes.
+ */
+function buyerLines(q: ProjectQuote): string[] {
+  if (!q.customerType) return [`Tipo de cliente: ${isCompany(q) ? 'Empresa (B2B)' : 'Persona (B2C)'}`];
+  return q.customerType === 'empresa'
+    ? ['Tipo de cliente: Empresa', 'Documento: Factura']
+    : ['Tipo de cliente: Persona natural', 'Documento: Boleta'];
+}
 
 function projectLines(q: ProjectQuote): string[] {
   return [
@@ -336,14 +384,16 @@ export function buildProjectQuoteEmail(
     nombre: q.nombre,
     email: q.email,
     telefono: q.telefono,
-    cuerpo: [
+    // Los avisos «Para revisar» van después de la primera línea (la que lleva la referencia)
+    cuerpo: afterFirstLine([
       `Cotizador de proyecto ${ref} (${SITE_URL}/cotizador)`,
+      ...(q.customerType ? buyerLines(q) : []),
       ...projectLines(q),
       ...(longComment ? ['', 'Comentarios del cliente (completos):', comentarios] : []),
       ...(archivos.length ? ['', ...archivos] : []),
       ...(consent.length ? ['', ...consent] : []),
       ...(origen.length ? ['', ...origen] : []),
-    ].join('\n'),
+    ], reviewSection(projectQuoteReview(q))).join('\n'),
     total: '-',
     razonSocial: q.razonSocial,
     rutEmpresa: q.rutEmpresa,
@@ -367,7 +417,7 @@ const chileDateTime = (date: Date) =>
  * Nota del deal con todos los datos, la constancia de privacidad y el origen; un reenvío del
  * mismo formulario lo dice al comienzo. `now`: el instante de la solicitud (el mismo de la
  * constancia). `archivos`: la sección ARCHIVOS (attachmentListLines), después de los
- * comentarios.
+ * comentarios. `possibleDuplicates`: los avisos de createDeal, primeros en «Para revisar».
  */
 export function buildProjectQuoteNote(
   q: ProjectQuote,
@@ -378,10 +428,13 @@ export function buildProjectQuoteNote(
     origen = [],
     consent = [],
     archivos = [],
-  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[]; archivos?: string[] } = {}
+    possibleDuplicates = [],
+  }: { resend?: boolean; now?: Date; origen?: string[]; consent?: string[]; archivos?: string[]; possibleDuplicates?: string[] } = {}
 ): string {
   const fecha = chileDateTime(now);
   return escapeHtml([
+    // Los avisos al comienzo, para verlos primero (también en un reenvío)
+    ...reviewSection([...possibleDuplicates, ...projectQuoteReview(q)]),
     ...(resend
       ? [`Reenvío del mismo formulario (${fecha}): misma referencia ${ref}, no se creó un negocio nuevo.`, '']
       : []),
@@ -396,10 +449,15 @@ export function buildProjectQuoteNote(
     `Nombre: ${q.nombre}`,
     `Email: ${q.email}`,
     `Teléfono: ${q.telefono}`,
-    `Tipo de cliente: ${isCompany(q) ? 'Empresa (B2B)' : 'Persona (B2C)'}`,
-    `Razón social: ${q.razonSocial ?? NOT_GIVEN}`,
-    `RUT empresa: ${q.rutEmpresa ?? NOT_GIVEN}`,
-    `Giro: ${q.giro ?? NOT_GIVEN}`,
+    ...buyerLines(q),
+    // Una persona recibe boleta: sin razón social, RUT ni giro
+    ...(q.customerType === 'persona'
+      ? []
+      : [
+          `Razón social: ${q.razonSocial ?? NOT_GIVEN}`,
+          `RUT empresa: ${q.rutEmpresa ?? NOT_GIVEN}`,
+          `Giro: ${q.giro ?? NOT_GIVEN}`,
+        ]),
     `Dirección: ${q.direccion ?? NOT_GIVEN}`,
     '',
     '--- COMENTARIOS ---',
@@ -600,7 +658,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // createDeal no guarda notas: el detalle va aparte, también en un reenvío.
     await addNote(
       dealId,
-      buildProjectQuoteNote(quote, reference, { resend: status !== 'created', now: at, origen, consent: consent.section, archivos }),
+      buildProjectQuoteNote(quote, reference, {
+        resend: status !== 'created', now: at, origen, consent: consent.section, archivos,
+        possibleDuplicates: result.possibleDuplicates,
+      }),
       ref
     );
 

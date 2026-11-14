@@ -15,12 +15,20 @@
 //      (save the created deal for 10 minutes to bridge search indexing lag)
 //   3. Search/Redis failure: create anyway; warn and annotate uncertain searches
 //      (dedupOpenWithinDays: only an open deal that moved in the last N days counts)
+//   4. Cross-channel check (web forms vs WhatsApp bot, owner decision 2026-11-13; see
+//      crossChannel.ts): after creating, the person's open deals from the other channel created
+//      in the last 7 days. Web deals return the warnings (`possibleDuplicates`) so the endpoint
+//      puts them at the top of its note under «Para revisar»; a WhatsApp deal gets its own short
+//      note in the background (the bot builds its note elsewhere). Never merges or blocks.
 //
 // /deals/search items are not full deals and carry no pipeline_id: every lookup checks the
 // pipeline (and status) on the full deal from GET /deals/{id}.
 import { redact } from '../logging/redact.js';
 import { randomUUID } from 'node:crypto';
+import { waitUntil } from '@vercel/functions';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
+import { findCrossChannelDuplicates, newDealChannel, pipedriveTime } from './crossChannel.js';
+import { reviewSection } from '../forms/review.js';
 import { getOptionId } from './fieldOptions.js';
 import {
     checkIdempotencyForCreate,
@@ -138,12 +146,7 @@ async function findDealsByTitle(
         fieldEmptyOr(d, process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE, searchTerm));
 }
 
-// Pipedrive v1 dates come as 'YYYY-MM-DD HH:MM:SS' in UTC (v2: ISO 8601). NaN if unreadable.
-function pipedriveTime(value: unknown): number {
-    if (typeof value !== 'string') return NaN;
-    const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? `${value.replace(' ', 'T')}Z` : value;
-    return Date.parse(iso);
-}
+// Pipedrive v1 dates ('YYYY-MM-DD HH:MM:SS' in UTC): pipedriveTime lives in crossChannel.ts.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEAL_SEARCH_PAGE_SIZE = 10;
@@ -502,7 +505,25 @@ export async function createDeal(params: CreateDealParams): Promise<CreateDealRe
   if (dedup.status === 'found') return { dealId: dedup.dealId, status: 'skipped_duplicate' };
   if (dedup.uncertain) await addDealNote(dedup.dealId, POSSIBLE_DUPLICATE_NOTE);
   console.log(`${LOG_PREFIX} Created deal: ${dedup.dealId} (${redact(params.quoteReference)})`);
-  return { dealId: dedup.dealId, status: 'created' };
+  const possibleDuplicates = await crossChannelCheck(params, dedup.dealId);
+  return { dealId: dedup.dealId, status: 'created', ...(possibleDuplicates.length ? { possibleDuplicates } : {}) };
+}
+
+/**
+ * Posibles duplicados con el otro canal (crossChannel.ts) para un negocio recién creado. Un
+ * formulario web recibe los avisos y los pone en su nota; un negocio de WhatsApp recibe una
+ * nota corta propia, en segundo plano (waitUntil): el bot arma su nota en otro lado y no espera
+ * esta consulta (Twilio da 15 s por mensaje). Nunca lanza.
+ */
+async function crossChannelCheck(params: CreateDealParams, dealId: number): Promise<string[]> {
+    const channel = newDealChannel(params);
+    if (!channel) return [];
+    const lookup = findCrossChannelDuplicates({ personId: params.personId, channel, newDealId: dealId });
+    if (channel === 'web') return lookup;
+    waitUntil(lookup.then(async (items) => {
+        if (items.length) await addDealNote(dealId, reviewSection(items).join('\n').trimEnd());
+    }).catch(() => {}));
+    return [];
 }
 
 export type QuoteReferenceDedupResult =

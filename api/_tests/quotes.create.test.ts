@@ -22,6 +22,8 @@ import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { priceIndex } from '../_lib/catalog/price-index.generated.js';
+import { BOLETA_ID_THRESHOLD_CLP } from '../_lib/boleta.js';
+import { rutCheckDigit } from '../_lib/rut';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -36,6 +38,12 @@ import {
 const AR111 = priceIndex['3305420'].price;
 const TOTAL = 3 * AR111;
 const clp = (n: number) => new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(n);
+
+/**
+ * El marcador de RUT de las pruebas no tiene forma de RUT: la nota empieza con el aviso
+ * «Para revisar» (api/_lib/forms/review.ts, 13-11-2026).
+ */
+const RUT_REVIEW = 'Para revisar:\n- RUT por revisar: no tiene formato de RUT (12.345.678-9)\n\n';
 
 let ipSeq = 0;
 function call(body: unknown, headers: Record<string, string> = {}) {
@@ -214,7 +222,7 @@ describe('POST /api/quotes/create', () => {
 
     const [note] = notes();
     expect(note.deal_id).toBe(77);
-    expect(note.content.startsWith('Cotización web NE-abc123')).toBe(true);
+    expect(note.content.startsWith(RUT_REVIEW + 'Cotización web NE-abc123')).toBe(true);
     for (const text of ['Tipo de cliente: Empresa', 'Razón social: ' + RAZON_SOCIAL, 'RUT: RUT-PRUEBA', 'Giro: Prueba',
       'Dirección: Prueba 123, Santiago', 'Jumpseller 3305420', `TOTAL CON IVA: ${TOTAL} CLP`, 'precios netos',
       'Comentarios del cliente: ' + COMENTARIO]) {
@@ -299,7 +307,7 @@ describe('POST /api/quotes/create', () => {
     const sent = notes();
     expect(sent).toHaveLength(1);
     expect(sent[0].deal_id).toBe(55);
-    expect(sent[0].content.startsWith('Reenvío de la cotización NE-abc123')).toBe(true);
+    expect(sent[0].content.startsWith(RUT_REVIEW + 'Reenvío de la cotización NE-abc123')).toBe(true);
     for (const text of ['RUT: RUT-PRUEBA', 'Giro: Prueba', 'Dirección: Prueba 123, Santiago', 'Comentarios del cliente: ' + COMENTARIO]) {
       expect(sent[0].content).toContain(text);
     }
@@ -634,7 +642,7 @@ describe('POST /api/quotes/create: origen de la visita', () => {
     vi.mocked(processQuoteToCrm).mockResolvedValue(crmResult(55, 'skipped_duplicate') as never);
     await call({ ...empresa(), attribution: ATTRIBUTION });
     const [note] = notes();
-    expect(note.content.startsWith('Reenvío de la cotización NE-abc123')).toBe(true);
+    expect(note.content.startsWith(RUT_REVIEW + 'Reenvío de la cotización NE-abc123')).toBe(true);
     expect(note.content.endsWith(ORIGEN_GADS)).toBe(true);
   });
 
@@ -825,3 +833,108 @@ describe('/api/quotes/create: la nota dice qué variante es', () => {
   });
 });
 
+
+// --- Avisos «Para revisar» (decisiones del dueño, 13-11-2026) ---
+// Al comienzo de la nota y en el correo, después de su primera línea. Nunca rechazan.
+describe('POST /api/quotes/create: avisos «Para revisar»', () => {
+  const VALID_RUT = `44.444.444-${rutCheckDigit('44444444')}`;
+  const WRONG_RUT = `44.444.444-${rutCheckDigit('44444444') === '1' ? '2' : '1'}`;
+  const withRut = (rut: string) => ({ ...empresa(), company: { ...company, rut } });
+
+  beforeEach(() => {
+    vi.mocked(processQuoteToCrm).mockReset().mockResolvedValue(crmResult(77, 'created') as never);
+    vi.mocked(buildSuccessResponse).mockReset().mockImplementation(((r: ReturnType<typeof crmResult>) =>
+      ({ success: true, personId: 11, organizationId: null, dealId: r.deal.dealId, dealStatus: r.deal.status })) as never);
+    vi.mocked(pipedrivePost).mockReset().mockResolvedValue({ success: true, data: { id: 1 } } as never);
+    vi.mocked(waitUntil).mockClear();
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('RUT de empresa con dígito verificador que no calza: 201, aviso al comienzo de la nota y en el correo; el RUT no va al log', async () => {
+    const res = await call(withRut(WRONG_RUT));
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const [note] = notes();
+    expect(note.content.startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\nCotización web NE-abc123')).toBe(true);
+    expect(note.content).toContain(`RUT: ${WRONG_RUT}`);
+    const [mail] = gasBodies();
+    const lines = mail.items_lista.split('\n');
+    expect(lines[0]).toBe('Cotización web NE-abc123 (buscar la referencia en Pipedrive)');
+    expect(lines.slice(1, 4)).toEqual(['', 'Para revisar:', '- RUT por revisar: dígito verificador no calza']);
+    expect(logged()).not.toContain(WRONG_RUT);
+  });
+
+  it.each([
+    ['empresa con RUT que calza', () => withRut(VALID_RUT)],
+    ['persona', () => persona()],
+  ])('%s: sin avisos, la nota y el correo quedan como antes', async (_name, body) => {
+    await call(body());
+    await mailsSettled();
+    const [note] = notes();
+    expect(note.content.startsWith('Cotización web NE-abc123')).toBe(true);
+    expect(note.content).not.toContain('Para revisar');
+    expect(gasBodies()[0].items_lista).not.toContain('Para revisar');
+  });
+
+  it('el comentario menciona otra cantidad: «Revisar cantidad» en la nota y en el correo', async () => {
+    const body = persona();
+    const chosen = body.products[0].quantity;
+    const res = await call({ ...body, notes: `necesito ${chosen + 7} unidades` });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const item = `Revisar cantidad: el comentario menciona ${chosen + 7}; se eligió ${chosen}`;
+    expect(notes()[0].content.startsWith(`Para revisar:\n- ${item}\n\nCotización web NE-abc123`)).toBe(true);
+    expect(gasBodies()[0].items_lista.split('\n').slice(1, 4)).toEqual(['', 'Para revisar:', `- ${item}`]);
+  });
+
+  it('el comentario menciona la cantidad elegida o solo medidas: sin aviso', async () => {
+    const body = persona();
+    await call({ ...body, notes: `son ${body.products[0].quantity}, panel 60x60 x 40W` });
+    await mailsSettled();
+    expect(notes()[0].content).not.toContain('Para revisar');
+  });
+
+  it('persona con un total CON IVA sobre 135 UF (del catálogo): aviso en la nota y en el correo', async () => {
+    const body = persona();
+    const quantity = Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111) + 1;
+    const res = await call({ ...body, notes: undefined, products: [{ ...body.products[0], quantity }] });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const item = '- Persona sobre 135 UF: pedir RUT y nombre por correo para la boleta';
+    expect(crmPayload().quoteAmountClp).toBe(AR111 * quantity);
+    expect(notes()[0].content.startsWith(`Para revisar:\n${item}\n\nCotización web NE-abc123`)).toBe(true);
+    expect(gasBodies()[0].items_lista.split('\n').slice(1, 4)).toEqual(['', 'Para revisar:', item]);
+  });
+
+  it.each([
+    ['persona en el umbral, aunque el navegador mande un precio enorme', () => {
+      const body = persona();
+      return { ...body, products: [{ ...body.products[0], quantity: Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111), unitPriceClp: BOLETA_ID_THRESHOLD_CLP }] };
+    }],
+    ['empresa sobre 135 UF', () => {
+      const body = withRut(VALID_RUT);
+      return { ...body, products: [{ ...body.products[0], quantity: Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111) + 1 }] };
+    }],
+  ])('%s: sin aviso de boleta', async (_name, body) => {
+    await call(body());
+    await mailsSettled();
+    expect(notes()[0].content).not.toContain('135 UF');
+    expect(gasBodies()[0].items_lista).not.toContain('135 UF');
+  });
+
+  it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo (que sale antes) no lo lleva', async () => {
+    const result = crmResult(77, 'created');
+    vi.mocked(processQuoteToCrm).mockResolvedValue({ ...result, deal: { ...result.deal, possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } } as never);
+    await call(withRut(WRONG_RUT));
+    await mailsSettled();
+    const [note] = notes();
+    expect(note.content.startsWith(
+      'Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n- RUT por revisar: dígito verificador no calza\n\nCotización web NE-abc123'
+    )).toBe(true);
+    expect(gasBodies()[0].items_lista).not.toContain('Posible duplicado');
+  });
+});

@@ -38,6 +38,8 @@ import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { priceIndex } from '../_lib/catalog/price-index.generated.js';
+import { BOLETA_ID_THRESHOLD_CLP } from '../_lib/boleta.js';
+import { rutCheckDigit } from '../_lib/rut';
 import {
   CONSENT_ERROR_CODE,
   CONSENT_HEADING,
@@ -629,5 +631,137 @@ describe('POST /api/request-orders/create: privacidad y términos', () => {
     for (const secret of [commune, 'juan.perez', CONSENT_HEADING, 'consent_json', 'privacy', 'marketing', 'Novedades']) {
       expect(text).not.toContain(secret);
     }
+  });
+});
+
+// --- Avisos «Para revisar» (decisiones del dueño, 13-11-2026) ---
+// Al comienzo de la nota y en el correo, después de su primera línea. Nunca rechazan.
+describe('POST /api/request-orders/create: avisos «Para revisar»', () => {
+  const VALID_RUT = `44.444.444-${rutCheckDigit('44444444')}`;
+  const WRONG_RUT = `44.444.444-${rutCheckDigit('44444444') === '1' ? '2' : '1'}`;
+  const empresa = { ...base, customerType: 'empresa', companyName: 'COMERCIAL PRUEBA SPA' };
+  const lastNote = () => (vi.mocked(pipedrivePost).mock.calls.at(-1) as unknown as [string, { content: string }])[1].content;
+  const mail = () => JSON.parse((vi.mocked(fetch).mock.calls.at(-1) as unknown as [string, { body: string }])[1].body) as Record<string, string>;
+  const logged = () =>
+    [console.log, console.warn, console.error]
+      .flatMap((fn) => vi.mocked(fn).mock.calls.flat())
+      .map((a) => (typeof a === 'string' ? a : JSON.stringify(a)))
+      .join('\n');
+
+  beforeEach(() => {
+    vi.mocked(createDeal).mockClear();
+    vi.mocked(pipedrivePost).mockClear();
+    process.env.PIPEDRIVE_PIPELINE_ID = '1';
+    process.env.PIPEDRIVE_STAGE_NEW_LEAD_ID = '2';
+    vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ status: 'ok' }) })));
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+  it('RUT de empresa con dígito verificador que no calza: 201, aviso al comienzo de la nota y en el correo; el RUT no va al log', async () => {
+    const res = await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    expect(lastNote().startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\nSolicitud de pedido RC-abc12')).toBe(true);
+    expect(lastNote()).toContain(`RUT: ${WRONG_RUT}`);
+    const lines = mail().items_lista.split('\n');
+    expect(lines[0]).toMatch(/^Solicitud de pedido RC-abc12/);
+    expect(lines.slice(1, 4)).toEqual(['', 'Para revisar:', '- RUT por revisar: dígito verificador no calza']);
+    expect(mail().rut).toBe(WRONG_RUT);
+    expect(logged()).not.toContain(WRONG_RUT);
+  });
+
+  it('RUT que no tiene forma de RUT: el motivo es el formato', async () => {
+    await call({ ...empresa, rut: 'RUT-PRUEBA', items: [ar111] });
+    expect(lastNote()).toContain('- RUT por revisar: no tiene formato de RUT (12.345.678-9)');
+  });
+
+  it.each([
+    ['empresa con RUT que calza', { ...empresa, rut: VALID_RUT }],
+    ['empresa sin RUT (opcional)', empresa],
+    ['persona (el RUT no se lee)', { ...base, rut: WRONG_RUT }],
+  ])('%s: sin avisos, la nota y el correo quedan como antes', async (_name, body) => {
+    await call({ ...body, items: [ar111] });
+    expect(lastNote().startsWith('Solicitud de pedido RC-abc12')).toBe(true);
+    expect(lastNote()).not.toContain('Para revisar');
+    expect(mail().items_lista).not.toContain('Para revisar');
+  });
+
+  it('un reenvío (skipped_duplicate) también lleva el aviso al comienzo', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'skipped_duplicate' } as never);
+    await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
+    expect(lastNote().startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\nReenvío de la solicitud RC-abc12')).toBe(true);
+  });
+
+  it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo no lo lleva', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } as never);
+    await call({ ...empresa, rut: WRONG_RUT, items: [ar111] });
+    expect(lastNote().startsWith(
+      'Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n- RUT por revisar: dígito verificador no calza\n\nSolicitud de pedido RC-abc12'
+    )).toBe(true);
+    expect(mail().items_lista).not.toContain('Posible duplicado');
+    expect(mail().items_lista).toContain('- RUT por revisar: dígito verificador no calza');
+  });
+
+  it('el comentario menciona otra cantidad: «Revisar cantidad» en la nota y en el correo; nunca rechaza', async () => {
+    const res = await call({ ...base, notes: 'Hola, necesito 5 de estas', items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    expect(lastNote().startsWith(
+      `Para revisar:\n- Revisar cantidad: el comentario menciona 5; se eligió ${ar111.quantity}\n\nSolicitud de pedido RC-abc12`
+    )).toBe(true);
+    expect(mail().items_lista.split('\n').slice(1, 4)).toEqual([
+      '', 'Para revisar:', `- Revisar cantidad: el comentario menciona 5; se eligió ${ar111.quantity}`,
+    ]);
+    // El pedido se cotiza con lo elegido: el monto sigue siendo el del catálogo por esa cantidad
+    expect(vi.mocked(createDeal).mock.calls[0][0].quoteAmountClp).toBe(AR111 * ar111.quantity);
+  });
+
+  it('el RUT va antes que la cantidad', async () => {
+    await call({ ...empresa, rut: WRONG_RUT, notes: 'son 10 unidades', items: [ar111] });
+    expect(lastNote().startsWith(
+      'Para revisar:\n- RUT por revisar: dígito verificador no calza\n- Revisar cantidad: el comentario menciona 10;'
+    )).toBe(true);
+  });
+
+  it.each([
+    ['la misma cantidad', `necesito ${ar111.quantity}`],
+    ['medidas, potencias y temperaturas', 'panel 60x60 de 40W 4000K IP65, fono +56 9 1234 5678'],
+  ])('comentario con %s: sin aviso', async (_name, notes) => {
+    await call({ ...base, notes, items: [ar111] });
+    expect(lastNote()).not.toContain('Para revisar');
+    expect(mail().items_lista).not.toContain('Revisar cantidad');
+  });
+
+  // Persona sobre 135 UF (21A): con el total del catálogo, nunca con el precio del navegador
+  const overUf = Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111) + 1;
+  const BOLETA = '- Persona sobre 135 UF: pedir RUT y nombre por correo para la boleta';
+
+  it('persona con un total CON IVA sobre 135 UF: aviso en la nota y en el correo', async () => {
+    const res = await call({ ...base, items: [{ ...ar111, quantity: overUf }] });
+    expect(res.statusCode).toBe(201);
+    expect(lastNote().startsWith(`Para revisar:\n${BOLETA}\n\nSolicitud de pedido RC-abc12`)).toBe(true);
+    expect(mail().items_lista.split('\n').slice(1, 4)).toEqual(['', 'Para revisar:', BOLETA]);
+  });
+
+  it('el precio del navegador no cuenta: una persona con precio inflado y total real bajo no avisa', async () => {
+    await call({ ...base, subtotal: BOLETA_ID_THRESHOLD_CLP * 2, items: [{ ...ar111, unitPrice: BOLETA_ID_THRESHOLD_CLP, lineTotal: BOLETA_ID_THRESHOLD_CLP * 2 }] });
+    expect(lastNote()).not.toContain('135 UF');
+  });
+
+  it.each([
+    ['persona con el total justo en el umbral o bajo él', base, Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111)],
+    ['empresa sobre 135 UF (lleva factura)', empresa, overUf],
+  ])('%s: sin aviso', async (_name, body, quantity) => {
+    await call({ ...body, items: [{ ...ar111, quantity }] });
+    expect(lastNote()).not.toContain('135 UF');
+    expect(mail().items_lista).not.toContain('135 UF');
+  });
+
+  it('posible duplicado sin otros avisos: la nota igual empieza con «Para revisar»', async () => {
+    vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } as never);
+    await call({ ...base, items: [ar111] });
+    expect(lastNote().startsWith('Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n\nSolicitud de pedido RC-abc12')).toBe(true);
+    expect(mail().items_lista).not.toContain('Para revisar');
   });
 });

@@ -17,6 +17,12 @@
 //      visita (no bloqueante): createDeal no guarda las notas. Un reenvío con la misma
 //      referencia RC- (sin negocio nuevo) también deja su nota "Reenvío de la solicitud
 //      ...", con la constancia del envío nuevo.
+//   2b. Avisos «Para revisar» (api/_lib/forms/review.ts) al comienzo de la nota y en el
+//      correo, después de su primera línea: un RUT de empresa que no calza y una cantidad
+//      del comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts) y una
+//      persona con un total CON IVA sobre 135 UF (api/_lib/boleta.ts). En la
+//      nota de un negocio nuevo, también los posibles duplicados con WhatsApp que devuelve
+//      createDeal (api/_lib/pipedrive/crossChannel.ts). Nunca rechazan.
 //   3. Enviar email GAS -> FIRE-AND-FORGET, con la misma constancia. Log warn si falla
 //      (sin datos del cliente). La constancia solo queda en la nota y en este correo, los
 //      dos después de crear el negocio: si fallan los dos, queda un aviso en el log.
@@ -40,6 +46,8 @@ import { netOf, priceItems } from '../_lib/catalog/pricing.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
+import { afterFirstLine, boletaReviewItem, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
+import { quantityReviewItem } from '../_lib/forms/quantityMentions.js';
 
 const LOG = '[RequestOrder]';
 const ALLOWED_METHODS = ['POST'];
@@ -196,19 +204,21 @@ export function itemsJsonLine(items: unknown): string {
 }
 
 /**
- * Nota del deal. `consent`: la constancia "PRIVACIDAD Y AUTORIZACIONES"
- * (api/_lib/forms/consent.ts), después de los textos del cliente. `origen`: la sección
- * "ORIGEN DE LA VISITA" (api/_lib/forms/attribution.ts). Las dos van antes de
- * requested_items_json, que sigue siendo la última línea (se lee a máquina; ver itemsJsonLine).
- * `resend`: la misma referencia llegó de nuevo y no se creó un negocio nuevo.
+ * Nota del deal. `review`: el bloque «Para revisar» (api/_lib/forms/review.ts), al comienzo.
+ * `consent`: la constancia "PRIVACIDAD Y AUTORIZACIONES" (api/_lib/forms/consent.ts), después
+ * de los textos del cliente. `origen`: la sección "ORIGEN DE LA VISITA"
+ * (api/_lib/forms/attribution.ts). Las dos van antes de requested_items_json, que sigue siendo
+ * la última línea (se lee a máquina; ver itemsJsonLine). `resend`: la misma referencia llegó de
+ * nuevo y no se creó un negocio nuevo.
  */
 function buildNotes(
   p: RequestOrderPayload,
   origen: string[] = [],
   consent: string[] = [],
-  { resend = false } = {}
+  { resend = false, review = [] as string[] } = {}
 ): string {
   const lines: string[] = [
+    ...review,
     resend
       ? `Reenvío de la solicitud ${p.requestReference} (misma referencia; no se creó un negocio nuevo)`
       : `Solicitud de pedido ${p.requestReference}`,
@@ -370,6 +380,14 @@ export default async function handler(
     subtotal: pricing.subtotal,
   };
 
+  // ── Paso 1c: Avisos «Para revisar» (nota y correo; nunca rechazan ni van al log) ──
+  const reviewItems = [
+    rutReviewItem(payload.customerType === 'empresa' ? payload.rut : undefined),
+    quantityReviewItem(payload.notes, payload.items.map((i) => i.quantity)),
+    boletaReviewItem(payload.customerType, payload.subtotal), // total del catálogo, no del navegador
+  ];
+  const review = reviewSection(reviewItems);
+
   // ── Paso 2: Crear deal en Pipedrive (BLOQUEANTE) ───────────────
   let dealId: number;
   try {
@@ -415,7 +433,7 @@ export default async function handler(
       leadType,
       priorityTier,
       quoteReference: requestReference,
-      notes: buildNotes(payload, origen, consent.section),
+      notes: buildNotes(payload, origen, consent.section, { review }),
       tipoServicio: TIPO_SERVICIO.COTIZACION_WEB,
     });
 
@@ -433,8 +451,10 @@ export default async function handler(
       const noteFailed = `${LOG} Nota con la constancia no creada | ref: ${requestReference} | dealId: ${dealId}`;
       try {
         const resend = dealResult.status === 'skipped_duplicate';
+        // Un negocio nuevo puede traer posibles duplicados con WhatsApp: van primero
+        const noteReview = reviewSection([...(dealResult.possibleDuplicates ?? []), ...reviewItems]);
         const note = await pipedrivePost('/notes', {
-          content: buildNotes(payload, origen, consent.section, { resend }),
+          content: buildNotes(payload, origen, consent.section, { resend, review: noteReview }),
           deal_id: dealId,
         });
         if (!note?.success) console.warn(noteFailed);
@@ -457,7 +477,7 @@ export default async function handler(
   // ── Paso 3: Enviar email GAS (extended via waitUntil para sobrevivir el shutdown del contenedor serverless) ─────────────────
   console.log(`${LOG} GAS relay iniciado`);
   waitUntil(
-    sendGasEmail(payload, requestReference, dealId, origen, consent.section, at)
+    sendGasEmail(payload, requestReference, dealId, origen, consent.section, at, review)
       .then(() => {
         console.log(`${LOG} GAS relay OK`);
       })
@@ -485,7 +505,8 @@ async function sendGasEmail(
   dealId: number,
   origen: string[],
   consent: string[],
-  at: Date
+  at: Date,
+  review: string[] = []
 ): Promise<void> {
   // Sin el correo del cliente: los logs nunca llevan datos personales
   console.log(`${LOG} GAS email starting | ref: ${ref}`);
@@ -499,8 +520,9 @@ async function sendGasEmail(
   });
   // La plantilla del correo (Apps Script, compartida con Cotización) solo muestra algunos
   // campos: la referencia, el negocio de Pipedrive, la comuna y las notas van en la lista.
-  // La constancia va después de los textos del cliente y antes del origen.
-  const itemsText = [
+  // La constancia va después de los textos del cliente y antes del origen. Los avisos «Para
+  // revisar», después de la primera línea (la que identifica la solicitud).
+  const itemsText = afterFirstLine([
     `Solicitud de pedido ${ref} \u2014 negocio Pipedrive #${dealId}`,
     `Comuna: ${payload.commune}, ${payload.region}`,
     ...(payload.notes ? [`Notas del cliente: ${payload.notes}`] : []),
@@ -509,7 +531,7 @@ async function sendGasEmail(
     ...(consent.length ? ['', ...consent] : []),
     '',
     ...origen,
-  ].join('\n');
+  ], review).join('\n');
 
   const ventas = process.env.SALES_EMAIL ?? 'ventas@elights.cl';
 

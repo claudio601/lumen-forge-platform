@@ -196,6 +196,14 @@ export function panelRegionShippingNotice(jumpsellerId: number): string | null {
 /** Días hábiles que vale una cotización desde su fecha (términos y condiciones, §5). */
 export const quoteValidityBusinessDays = 10;
 
+// ── Boleta a personas sobre 135 UF (dueño, 2026-11-13) ──────
+// Una persona recibe boleta sin RUT; si su total CON IVA supera 135 UF, el vendedor le pide
+// RUT y nombre por correo (aviso «Para revisar» en la nota y el correo; el formulario no
+// cambia). Los valores viven en api/_lib/boleta.ts (el servidor no importa de src/):
+// BOLETA_ID_THRESHOLD_UF = 135, UF_VALUE_CLP y UF_VALUE_DATE (la UF usada) y
+// BOLETA_ID_THRESHOLD_CLP (135 UF en pesos con esa UF).
+export { BOLETA_ID_THRESHOLD_UF, BOLETA_ID_THRESHOLD_CLP, UF_VALUE_CLP, UF_VALUE_DATE } from '../../api/_lib/boleta';
+
 // ── Helpers de URL ───────────────────────────────────────────
 
 /** URL base de WhatsApp sin mensaje */

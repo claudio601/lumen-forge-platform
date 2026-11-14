@@ -11,6 +11,13 @@
 // «Recordar mis datos» (especificación del 23-10-2026): la casilla va al final de «Datos de
 // contacto»; al hidratar se completan los campos vacíos con lo guardado y un envío confirmado
 // con la casilla marcada guarda lo enviado (useRememberContact). El cuerpo no cambia.
+// Persona o empresa (decisión del dueño, 13-11-2026): el mismo selector «Tipo de cliente» de
+// /cotizacion y /solicitar-pedido, en persona al entrar (también en el HTML del prerender).
+// Una persona recibe boleta: no ve ni envía RUT, razón social ni giro. Una empresa, como antes
+// (los tres opcionales). Lo guardado puede traer el tipo: se aplica al hidratar.
+// El RUT de empresa sigue la regla de /solicitar-pedido: «(opcional)» en el rótulo, formato
+// 12.345.678-9 al salir del campo y antes de enviar y, si está escrito, su dígito verificador
+// (rutMessage): el aviso va debajo del campo (FieldError) y no se envía hasta corregirlo o borrarlo.
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Zap, AlertCircle } from 'lucide-react';
@@ -24,6 +31,10 @@ import RequestConfirmation from '@/components/forms/RequestConfirmation';
 import FileAttachments from '@/components/forms/FileAttachments';
 import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
 import { uploadPending, type AttachmentItem, type UploadProblem } from '@/components/forms/attachments';
+import FieldError from '@/components/forms/FieldError';
+import { useFieldErrors } from '@/hooks/useFieldErrors';
+import { rutMessage } from '@/lib/formValidation';
+import { formatRut } from '@/lib/rut';
 import { CONSENT_ERRORS, CONSENT_ERROR_CODE } from '../../api/_lib/forms/consent';
 // Las listas, los topes y la lectura de los m² son los mismos del servidor (api/project-quotes/create.ts)
 import {
@@ -108,6 +119,69 @@ const PROJECT_STEPS = [
   'Si la aceptas, pagas con el link de pago: la compra se hace solo cuando pagas.',
 ] as const;
 
+type CustomerType = 'persona' | 'empresa';
+
+interface SmartQuoteForm {
+  tipoProyecto: string;
+  m2: string;
+  altura: string;
+  aplicacion: string;
+  nivelIluminacion: string;
+  ciudad: string;
+  plazo: string;
+  comentarios: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  customerType: CustomerType;
+  rutEmpresa: string;
+  razonSocial: string;
+  giro: string;
+  direccion: string;
+}
+
+/** Valor inicial: persona, igual en el prerender y en el primer render del navegador. */
+const INITIAL_FORM: SmartQuoteForm = {
+  tipoProyecto: '',
+  m2: '',
+  altura: '',
+  aplicacion: '',
+  nivelIluminacion: '',
+  ciudad: '',
+  plazo: '',
+  comentarios: '',
+  nombre: '',
+  email: '',
+  telefono: '',
+  customerType: 'persona',
+  rutEmpresa: '',
+  razonSocial: '',
+  giro: '',
+  direccion: '',
+};
+
+const CONTACT_FIELDS = [
+  { name: 'nombre', label: 'Nombre y Apellido', type: 'text', maxLength: 120, autoComplete: 'name' },
+  { name: 'email', label: 'Email', type: 'email', maxLength: 254, autoComplete: 'email' },
+  { name: 'telefono', label: 'Teléfono', type: 'tel', maxLength: 30, autoComplete: 'tel' },
+] as const;
+
+// Solo para empresa (los mismos rótulos de /cotizacion); opcionales, como antes del selector
+const COMPANY_FIELDS = [
+  { name: 'rutEmpresa', label: 'RUT Empresa', maxLength: 20, autoComplete: 'off' },
+  { name: 'razonSocial', label: 'Razón Social', maxLength: 150, autoComplete: 'organization' },
+  { name: 'giro', label: 'Giro', maxLength: 150, autoComplete: 'off' },
+] as const;
+
+/** El campo con su aviso debajo (useFieldErrors, como en /solicitar-pedido); el resto usa el aviso junto al botón. */
+type FieldWithError = 'rutEmpresa';
+const FIELDS_WITH_ERROR: readonly FieldWithError[] = ['rutEmpresa'];
+
+/** RUT de empresa: opcional (vacío está bien); escrito, con su dígito verificador. Una persona no lo envía. */
+function validateField(_name: FieldWithError, v: SmartQuoteForm): string | null {
+  return v.customerType === 'empresa' ? rutMessage(v.rutEmpresa, { required: false, emptyMessage: '' }) : null;
+}
+
 const SEO_TITLE = 'Cotizar Iluminación LED | eLIGHTS Chile';
 const SEO_DESCRIPTION = 'Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales.';
 
@@ -131,81 +205,80 @@ const SmartQuotePage = () => {
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
-  const [form, setForm] = useState({
-    tipoProyecto: '',
-    m2: '',
-    altura: '',
-    aplicacion: '',
-    nivelIluminacion: '',
-    ciudad: '',
-    plazo: '',
-    comentarios: '',
-    nombre: '',
-    email: '',
-    telefono: '',
-    rutEmpresa: '',
-    razonSocial: '',
-    giro: '',
-    direccion: '',
-  });
+  const [form, setForm] = useState<SmartQuoteForm>(INITIAL_FORM);
+  const fe = useFieldErrors<FieldWithError, SmartQuoteForm>('sq-', validateField, FIELDS_WITH_ERROR);
 
   useEffect(() => {
     setHydrated(true);
     // Lo guardado se lee recién ahora: el HTML del prerender y el primer render no cambian
     const saved = remember.prefill();
     if (saved) {
+      // Con INITIAL_FORM: el tipo se completa solo si sigue en persona (su valor inicial)
       setForm(prev => fillEmpty(prev, {
-        nombre: saved.nombre, email: saved.email, telefono: saved.telefono,
+        nombre: saved.nombre, email: saved.email, telefono: saved.telefono, customerType: saved.tipoCliente,
         razonSocial: saved.empresa, giro: saved.giro, direccion: saved.direccion, rutEmpresa: saved.rut,
-      }));
+      }, INITIAL_FORM));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [name]: value }) as SmartQuoteForm);
+    // Un RUT con aviso se vuelve a revisar al escribir; al pasar a persona, el aviso se va
+    if (name === 'rutEmpresa' || name === 'customerType') fe.onChange('rutEmpresa', { ...form, [name]: value } as SmartQuoteForm);
     if (name === 'email') remember.onEmailChange(value);
   };
 
+  /** Al salir del RUT: formato 12.345.678-9 y su dígito verificador, como en /solicitar-pedido. */
+  const handleRutBlur = () => {
+    const next = { ...form, rutEmpresa: formatRut(form.rutEmpresa) };
+    if (next.rutEmpresa !== form.rutEmpresa) setForm(next);
+    fe.onBlur('rutEmpresa', next);
+  };
+
   /** Las mismas reglas que el servidor; null si el formulario está bien. */
-  const validateForm = (): string | null => {
-    if (!form.tipoProyecto || !form.m2.trim() || !form.nombre.trim() || !form.email.trim() || !form.telefono.trim()) {
+  const validateForm = (v: SmartQuoteForm): string | null => {
+    if (!v.tipoProyecto || !v.m2.trim() || !v.nombre.trim() || !v.email.trim() || !v.telefono.trim()) {
       return 'Completa todos los campos requeridos.';
     }
     // "12.000" son 12000: el punto separa miles. Lo ambiguo ("12,5", "1,200") se pide de nuevo.
-    const m2 = parseM2(form.m2);
+    const m2 = parseM2(v.m2);
     if (Number.isNaN(m2)) return M2_FORMAT_MESSAGE;
     if (!(m2 > 0 && m2 <= MAX_M2)) return 'Indica los m2 aproximados con un número mayor que 0.';
-    if (form.altura.trim()) {
-      const altura = Number(form.altura);
+    if (v.altura.trim()) {
+      const altura = Number(v.altura);
       if (!(altura >= 0 && altura <= MAX_ALTURA)) return 'La altura debe estar entre 0 y ' + MAX_ALTURA + ' m.';
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Ingresa un email válido.';
-    const phoneDigits = form.telefono.replace(/\D/g, '').length;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) return 'Ingresa un email válido.';
+    const phoneDigits = v.telefono.replace(/\D/g, '').length;
     if (phoneDigits < 8 || phoneDigits > 12) return 'El teléfono debe tener entre 8 y 12 dígitos.';
-    if (form.comentarios.trim().length > MAX_COMENTARIOS) {
+    if (v.comentarios.trim().length > MAX_COMENTARIOS) {
       return 'Los comentarios admiten hasta ' + MAX_COMENTARIOS + ' caracteres.';
     }
     return null;
   };
 
-  const buildPayload = () => ({
-    tipoProyecto: form.tipoProyecto,
-    m2: parseM2(form.m2),
-    altura: form.altura.trim() ? Number(form.altura) : undefined,
-    aplicacion: optional(form.aplicacion),
-    nivelIluminacion: optional(form.nivelIluminacion),
-    ciudad: optional(form.ciudad),
-    plazo: optional(form.plazo),
-    comentarios: optional(form.comentarios),
-    nombre: form.nombre.trim(),
-    email: form.email.trim(),
-    telefono: form.telefono.trim(),
-    rutEmpresa: optional(form.rutEmpresa),
-    razonSocial: optional(form.razonSocial),
-    giro: optional(form.giro),
-    direccion: optional(form.direccion),
+  const isEmpresa = form.customerType === 'empresa';
+
+  const buildPayload = (v: SmartQuoteForm) => ({
+    tipoProyecto: v.tipoProyecto,
+    m2: parseM2(v.m2),
+    altura: v.altura.trim() ? Number(v.altura) : undefined,
+    aplicacion: optional(v.aplicacion),
+    nivelIluminacion: optional(v.nivelIluminacion),
+    ciudad: optional(v.ciudad),
+    plazo: optional(v.plazo),
+    comentarios: optional(v.comentarios),
+    nombre: v.nombre.trim(),
+    email: v.email.trim(),
+    telefono: v.telefono.trim(),
+    customerType: v.customerType,
+    // Una persona no envía datos de empresa (aunque los haya escrito antes de cambiar el tipo)
+    ...(v.customerType === 'empresa'
+      ? { rutEmpresa: optional(v.rutEmpresa), razonSocial: optional(v.razonSocial), giro: optional(v.giro) }
+      : {}),
+    direccion: optional(v.direccion),
     website,
     attribution: getAttribution(),
     consent: consent.payload(),
@@ -219,10 +292,20 @@ const SmartQuotePage = () => {
   /** Envía con estos archivos: los de la lista o, desde un aviso de la subida, menos alguno. */
   const send = async (files: AttachmentItem[]) => {
     if (sending) return;
-    const invalid = validateForm();
+    // El RUT se envía con formato aunque no se haya salido del campo
+    const values = form.customerType === 'empresa' && form.rutEmpresa ? { ...form, rutEmpresa: formatRut(form.rutEmpresa) } : form;
+    if (values.rutEmpresa !== form.rutEmpresa) setForm(values);
+    const invalid = validateForm(values);
     if (invalid) {
       setErrorMsg(invalid);
       toast.error(invalid);
+      return;
+    }
+    // El RUT de empresa escrito y mal: su aviso debajo del campo y el foco en él (como en /solicitar-pedido)
+    if (!fe.checkAll(values.customerType === 'empresa' ? FIELDS_WITH_ERROR : [], values)) {
+      const rutError = validateField('rutEmpresa', values) ?? '';
+      setErrorMsg(rutError);
+      toast.error(rutError);
       return;
     }
     // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
@@ -248,7 +331,7 @@ const SmartQuotePage = () => {
         archivos = upload.items.map((item) => ({ pathname: item.pathname as string, nombre: item.file.name }));
       }
       setProgress(null);
-      const payload = buildPayload();
+      const payload = buildPayload(values);
       const { reference: ref, crmFailed } = await submitProjectQuote({
         ...payload,
         ...(archivos.length ? { archivos } : {}),
@@ -258,7 +341,7 @@ const SmartQuotePage = () => {
       if (ref) trackLead('cotizador', { project_type: form.tipoProyecto });
       // Con la misma condición y la casilla marcada, se guarda lo enviado (no el formulario)
       remember.afterSubmit(Boolean(ref), {
-        nombre: payload.nombre, email: payload.email, telefono: payload.telefono,
+        nombre: payload.nombre, email: payload.email, telefono: payload.telefono, tipoCliente: payload.customerType,
         empresa: payload.razonSocial, giro: payload.giro, direccion: payload.direccion, rut: payload.rutEmpresa,
       });
       toast.success('Propuesta solicitada', { description: responseTimePromise });
@@ -434,31 +517,59 @@ const SmartQuotePage = () => {
             <div className="border rounded-xl p-6 space-y-4">
               <h2 className="font-bold">Datos de contacto</h2>
               <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  { name: 'nombre', label: 'Nombre y Apellido', required: true, maxLength: 120, autoComplete: 'name' },
-                  { name: 'email', label: 'Email', type: 'email', required: true, maxLength: 254, autoComplete: 'email' },
-                  { name: 'telefono', label: 'Teléfono', type: 'tel', required: true, maxLength: 30, autoComplete: 'tel' },
-                  { name: 'rutEmpresa', label: 'RUT Empresa', maxLength: 20, autoComplete: 'off' },
-                  { name: 'razonSocial', label: 'Razon Social', maxLength: 150, autoComplete: 'organization' },
-                  { name: 'giro', label: 'Giro', maxLength: 150, autoComplete: 'off' },
-                ].map(field => (
+                {CONTACT_FIELDS.map(field => (
                   <div key={field.name}>
                     <label htmlFor={'sq-' + field.name} className="text-sm font-medium mb-1 block">
-                      {field.label} {field.required && <span className="text-destructive">*</span>}
+                      {field.label} <span className="text-destructive">*</span>
                     </label>
                     <input
                       id={'sq-' + field.name}
                       name={field.name}
-                      type={field.type || 'text'}
-                      value={form[field.name as keyof typeof form]}
+                      type={field.type}
+                      value={form[field.name]}
                       onChange={handleChange}
                       maxLength={field.maxLength}
                       autoComplete={field.autoComplete}
                       className={inputClass}
-                      required={field.required}
+                      required
                     />
                   </div>
                 ))}
+                {/* Persona o empresa: el mismo selector de /cotizacion y /solicitar-pedido */}
+                <div>
+                  <label htmlFor="sq-customerType" className="text-sm font-medium mb-1 block">
+                    Tipo de cliente <span className="text-destructive">*</span>
+                  </label>
+                  <select id="sq-customerType" name="customerType" value={form.customerType} onChange={handleChange} className={inputClass}>
+                    <option value="persona">Persona natural</option>
+                    <option value="empresa">Empresa</option>
+                  </select>
+                </div>
+                {isEmpresa && COMPANY_FIELDS.map(field => {
+                  // El RUT, como en /solicitar-pedido: «(opcional)», formato al salir y su aviso debajo
+                  const isRut = field.name === 'rutEmpresa';
+                  return (
+                    <div key={field.name}>
+                      <label htmlFor={'sq-' + field.name} className="text-sm font-medium mb-1 block">
+                        {field.label}
+                        {isRut && <>{' '}<span className="text-xs font-normal text-muted-foreground">(opcional)</span></>}
+                      </label>
+                      <input
+                        {...(isRut ? fe.fieldProps('rutEmpresa') : { id: 'sq-' + field.name })}
+                        name={field.name}
+                        type="text"
+                        value={form[field.name]}
+                        onChange={handleChange}
+                        onBlur={isRut ? handleRutBlur : undefined}
+                        maxLength={field.maxLength}
+                        autoComplete={field.autoComplete}
+                        placeholder={isRut ? 'Ej.: 12.345.678-9' : undefined}
+                        className={inputClass}
+                      />
+                      {isRut && <FieldError id={fe.errorId('rutEmpresa')} message={fe.errors.rutEmpresa} />}
+                    </div>
+                  );
+                })}
                 <div className="sm:col-span-2">
                   <label htmlFor="sq-direccion" className="text-sm font-medium mb-1 block">Dirección</label>
                   <input id="sq-direccion" name="direccion" value={form.direccion} onChange={handleChange} maxLength={200} autoComplete="street-address" className={inputClass} />

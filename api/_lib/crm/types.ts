@@ -136,6 +136,12 @@ export interface CreateDealResult {
   /** Pipedrive deal ID, or null for skipped/blocked statuses. */
   dealId: number | null;
   status: DealResultStatus;
+  /**
+   * Solo en un negocio nuevo de un formulario web: los avisos «Posible duplicado: revisar el
+   * negocio #… (WhatsApp, fecha)» (api/_lib/pipedrive/crossChannel.ts), para el bloque «Para
+   * revisar» de su nota. Sin avisos, la clave no viene.
+   */
+  possibleDuplicates?: string[];
 }
 
 export interface CreateActivityResult {

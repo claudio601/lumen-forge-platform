@@ -405,7 +405,7 @@ describe('«Recordar mis datos» en la hidratación (especificación del 23-10-2
   /** Página, data-elights-form y lo que debe quedar en cada campo (name → valor) después de hidratar. */
   const FORMS: [string, string, [string, string][]][] = [
     ['/cotizador', 'cotizador', [
-      ['nombre', SAVED.nombre!], ['email', SAVED.email!], ['telefono', SAVED.telefono!], ['rutEmpresa', SAVED.rut!],
+      ['nombre', SAVED.nombre!], ['email', SAVED.email!], ['telefono', SAVED.telefono!], ['customerType', 'empresa'], ['rutEmpresa', SAVED.rut!],
       ['razonSocial', SAVED.empresa!], ['giro', SAVED.giro!], ['direccion', SAVED.direccion!], ['ciudad', ''],
     ]],
     ['/estudio-luminico', 'estudio-luminico', [

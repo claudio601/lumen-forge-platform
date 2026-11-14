@@ -35,6 +35,7 @@ import { pipedrivePost, pipedriveUploadFile } from '../_lib/pipedrive/client.js'
 import { waitUntil } from '@vercel/functions';
 import { BlobNotFoundError, del, get, head } from '@vercel/blob';
 import { pendingKey } from '../_lib/attachments/quota';
+import { rutCheckDigit } from '../_lib/rut';
 import { UPSTASH_URL, createFakeRedis, fakeFetch, type FakeRedis } from './fakeUpstash';
 import {
   CONSENT_ERROR_CODE,
@@ -45,6 +46,12 @@ import {
   formatLegacyConsentSection,
   lastConsentRecord,
 } from '../_lib/forms/consent';
+
+/**
+ * El marcador de RUT de las pruebas no tiene forma de RUT: la nota empieza con el aviso
+ * «Para revisar» (api/_lib/forms/review.ts, 13-11-2026).
+ */
+const RUT_REVIEW = 'Para revisar:\n- RUT por revisar: no tiene formato de RUT (12.345.678-9)\n\n';
 
 let ipSeq = 0;
 function call(body: unknown, opts: { method?: string; ip?: string; origin?: string } = {}) {
@@ -188,7 +195,7 @@ describe('POST /api/project-quotes/create', () => {
     const reference = refOf(res);
     const [note] = notes();
     expect(note.deal_id).toBe(999);
-    expect(note.content.startsWith('=== COTIZADOR DE PROYECTO')).toBe(true);
+    expect(note.content.startsWith(RUT_REVIEW + '=== COTIZADOR DE PROYECTO')).toBe(true);
     for (const text of [
       'Referencia: ' + reference,
       '--- PROYECTO ---',
@@ -240,7 +247,7 @@ describe('POST /api/project-quotes/create', () => {
     expect(res.body).toEqual({ success: true, reference: refOf(res), dealId: 555 });
     const [note] = notes();
     expect(note.deal_id).toBe(555);
-    expect(note.content.startsWith('Reenvío del mismo formulario')).toBe(true);
+    expect(note.content.startsWith(RUT_REVIEW + 'Reenvío del mismo formulario')).toBe(true);
     expect(note.content).toContain('misma referencia ' + refOf(res));
     expect(note.content).toContain('=== COTIZADOR DE PROYECTO');
   });
@@ -321,6 +328,97 @@ describe('POST /api/project-quotes/create', () => {
     for (const text of ['Altura (m): 8', 'Aplicación: PRUEBA aplicación general', 'Nivel de iluminación: Estandar', 'Ciudad / Región: Santiago', 'Plazo: PRUEBA 3 meses']) {
       expect(mail.items_lista).toContain(text);
     }
+  });
+
+  // Persona o empresa (decisión del dueño, 13-11-2026): el selector de /cotizacion y /solicitar-pedido
+  it('persona declarada: B2C, boleta y sin RUT, razón social ni giro (aunque lleguen), en la nota y en el correo', async () => {
+    const res = await call({ ...full, customerType: 'persona', giro: 'x'.repeat(500) });
+    expect(res.statusCode).toBe(201);
+    expect(findOrCreateOrganization).not.toHaveBeenCalled();
+    expect(dealArgs()).toMatchObject({ leadType: 'B2C' });
+    expect(dealArgs().orgId).toBeUndefined();
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).toMatchObject({ customerType: 'B2C' });
+    const [note] = notes();
+    expect(note.content).toContain('Tipo de cliente: Persona natural\nDocumento: Boleta');
+    expect(note.content).toContain('Dirección: PRUEBA dirección 123');
+    for (const text of ['PRUEBA EMPRESA', RUT, 'PRUEBA giro', 'Razón social:', 'RUT empresa:', 'Giro:']) expect(note.content).not.toContain(text);
+    const [mail] = gasBodies();
+    for (const key of ['razon_social', 'rut_empresa', 'giro']) expect(mail).not.toHaveProperty(key);
+    expect(mail.items_lista.split('\n').slice(0, 3)).toEqual([
+      expect.stringMatching(/^Cotizador de proyecto PY-/), 'Tipo de cliente: Persona natural', 'Documento: Boleta',
+    ]);
+  });
+
+  it('empresa declarada: B2B y factura, con sus datos como antes (opcionales)', async () => {
+    const res = await call({ ...full, customerType: 'empresa' });
+    expect(res.statusCode).toBe(201);
+    expect(findOrCreateOrganization).toHaveBeenCalledWith({ name: 'PRUEBA EMPRESA' });
+    expect(dealArgs()).toMatchObject({ orgId: 22, leadType: 'B2B' });
+    const [note] = notes();
+    for (const text of ['Tipo de cliente: Empresa\nDocumento: Factura', 'Razón social: PRUEBA EMPRESA', 'RUT empresa: ' + RUT, 'Giro: PRUEBA giro']) {
+      expect(note.content).toContain(text);
+    }
+    // Sin datos de empresa también es empresa (lo declaró); los datos van como «(no indicado)»
+    vi.mocked(createDeal).mockClear();
+    await call({ ...base, customerType: 'empresa' });
+    expect(dealArgs()).toMatchObject({ leadType: 'B2B' });
+    expect(notes()[1].content).toContain('Razón social: (no indicado)');
+  });
+
+  it.each(['otro', 'Empresa', 1])('customerType %s: 400 sin correo ni Pipedrive', async (customerType) => {
+    const res = await call({ ...base, customerType });
+    expect(res.statusCode).toBe(400);
+    expect((res.body as { details: { errors: string[] } }).details.errors).toContain("customerType must be 'persona' or 'empresa'");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+  });
+
+  it('un cuerpo sin customerType (formulario anterior) conserva su referencia y la regla de antes', async () => {
+    const legacy = validateProjectQuote(full).quote!;
+    expect(legacy.customerType).toBeUndefined();
+    const persona = validateProjectQuote({ ...full, customerType: 'persona' }).quote!;
+    expect(persona).not.toHaveProperty('razonSocial');
+    expect(persona).not.toHaveProperty('rutEmpresa');
+    expect(persona).not.toHaveProperty('giro');
+    expect(persona.direccion).toBe('PRUEBA dirección 123');
+    const res = await call(full);
+    expect(notes()[0].content).toContain('Tipo de cliente: Empresa (B2B)');
+    expect(notes()[0].content).not.toContain('Documento:');
+    expect(refOf(res)).toMatch(/^PY-/);
+  });
+
+  // Avisos «Para revisar» (13-11-2026): al comienzo de la nota y en el correo, después de su primera línea
+  it('RUT de empresa con dígito verificador que no calza: 201, aviso en la nota y el correo; el RUT no va al log', async () => {
+    const wrong = `44.444.444-${rutCheckDigit('44444444') === '1' ? '2' : '1'}`;
+    const res = await call({ ...full, customerType: 'empresa', rutEmpresa: wrong });
+    expect(res.statusCode).toBe(201);
+    const [note] = notes();
+    expect(note.content.startsWith('Para revisar:\n- RUT por revisar: dígito verificador no calza\n\n=== COTIZADOR DE PROYECTO')).toBe(true);
+    const lines = gasBodies()[0].items_lista.split('\n');
+    expect(lines[0]).toBe(`Cotizador de proyecto ${refOf(res)} (${SITE_URL}/cotizador)`);
+    expect(lines.slice(1, 4)).toEqual(['', 'Para revisar:', '- RUT por revisar: dígito verificador no calza']);
+    expect(gasBodies()[0].rut_empresa).toBe(wrong);
+    expect(logged()).not.toContain(wrong);
+  });
+
+  it.each([
+    ['RUT que calza', { customerType: 'empresa', rutEmpresa: `44.444.444-${rutCheckDigit('44444444')}` }],
+    ['empresa sin RUT', { customerType: 'empresa', rutEmpresa: undefined }],
+    ['persona con un RUT que no calza (no se lee)', { customerType: 'persona', rutEmpresa: '44.444.444-0' }],
+  ])('%s: sin avisos', async (_name, extra) => {
+    await call({ ...full, ...extra });
+    expect(notes()[0].content.startsWith('=== COTIZADOR DE PROYECTO')).toBe(true);
+    expect(notes()[0].content).not.toContain('Para revisar');
+    expect(gasBodies()[0].items_lista).not.toContain('Para revisar');
+  });
+
+  it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo no lo lleva', async () => {
+    vi.mocked(createDeal).mockResolvedValue({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] });
+    await call({ ...full, customerType: 'empresa', rutEmpresa: `44.444.444-${rutCheckDigit('44444444') === '1' ? '2' : '1'}` });
+    expect(notes()[0].content.startsWith(
+      'Para revisar:\n- Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)\n- RUT por revisar: dígito verificador no calza\n\n=== COTIZADOR DE PROYECTO'
+    )).toBe(true);
+    expect(gasBodies()[0].items_lista).not.toContain('Posible duplicado');
   });
 
   it('SALES_EMAIL cambia el destinatario del correo', async () => {
@@ -657,7 +755,7 @@ describe('POST /api/project-quotes/create: origen de la visita', () => {
     vi.mocked(createDeal).mockResolvedValue({ dealId: 555, status: 'skipped_duplicate' });
     await call({ ...full, attribution: ATTRIBUTION });
     const [note] = notes();
-    expect(note.content.startsWith('Reenvío del mismo formulario')).toBe(true);
+    expect(note.content.startsWith(RUT_REVIEW + 'Reenvío del mismo formulario')).toBe(true);
     expect(note.content).toContain('\n\n' + CONSENT_HEADING + '\n');
     expect(note.content.endsWith(ORIGEN_GADS)).toBe(true);
     expect(lastConsentRecord(note.content)).toMatchObject({ form: 'cotizador', privacy: true, src: 'web' });
@@ -756,7 +854,7 @@ describe('POST /api/project-quotes/create: privacidad', () => {
     expect(res.statusCode).toBe(200);
     const [note] = notes();
     expect(note.deal_id).toBe(555);
-    expect(note.content.startsWith('Reenvío del mismo formulario')).toBe(true);
+    expect(note.content.startsWith(RUT_REVIEW + 'Reenvío del mismo formulario')).toBe(true);
     expect(note.content).toContain('source: cotizador | landingPath: /cotizador\n\n' + expectedSection(true) + '\n\n' + ORIGEN_GADS);
     expect(lastConsentRecord(note.content)).toMatchObject({ form: 'cotizador', marketing: true, src: 'web', at: AT });
   });

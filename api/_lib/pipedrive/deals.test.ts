@@ -936,3 +936,84 @@ describe('createDeal — quoteReference dedup with the real search result', () =
     ).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Posibles duplicados entre la web y WhatsApp (decisión del dueño, 13-11-2026)
+// ---------------------------------------------------------------------------
+
+describe('createDeal — posibles duplicados con el otro canal (crossChannel.ts)', () => {
+  const v1 = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 19).replace('T', ' ');
+  const WEB: CreateDealParams = {
+    personId: 11, pipelineId: 2, stageId: 10, title: 'Solicitud RC-abc12 - Prueba', quoteAmountClp: 1000,
+    sourceSystem: 'nuevo_elights', leadType: 'B2C', priorityTier: 'Normal', quoteReference: 'RC-abc12', tipoServicio: 89,
+  };
+  const WA: CreateDealParams = {
+    ...WEB, title: 'WhatsApp Lead — Prueba', quoteAmountClp: 0, sourceSystem: 'whatsapp',
+    quoteReference: 'WA-56900000000', dedupOpenWithinDays: 7, tipoServicio: 92,
+  };
+  let personDeals: unknown;
+  let spies: Array<{ mockRestore: () => void }> = [];
+  const personCalls = () => (pipedriveGet as ReturnType<typeof vi.fn>).mock.calls.filter((c) => String(c[0]).startsWith('/persons/'));
+  const notePosts = () => (pipedrivePost as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === '/notes').map((c) => c[1].content as string);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.PIPEDRIVE_FIELD_JUMPSELLER_ORDER_ID;
+    process.env.PIPEDRIVE_DEAL_FIELD_QUOTE_REFERENCE = 'cf_quote_ref';
+    personDeals = { success: true, data: [] };
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/deals/search') return Promise.resolve({ success: true, data: { items: [] } });
+      if (path === '/persons/11/deals') return typeof personDeals === 'function' ? (personDeals as () => unknown)() : Promise.resolve(personDeals);
+      return Promise.resolve({ success: false, data: null });
+    });
+    (pipedrivePost as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true, data: { id: 999 } });
+    spies = [vi.spyOn(console, 'log').mockImplementation(() => {}), vi.spyOn(console, 'warn').mockImplementation(() => {})];
+  });
+  // Solo los espías de consola: vi.restoreAllMocks borraría también los mocks de redis de arriba.
+  afterEach(() => { spies.forEach((spy) => spy.mockRestore()); });
+
+  it('web: un negocio de WhatsApp abierto de la misma persona (≤ 7 días) vuelve en possibleDuplicates; no agrega notas', async () => {
+    personDeals = { success: true, data: [
+      { id: 999, status: 'open', title: WEB.title, add_time: v1(0), cf_quote_ref: 'RC-abc12' },
+      { id: 501, status: 'open', title: 'WhatsApp Lead — Prueba', add_time: v1(2), cf_quote_ref: 'WA-56900000000' },
+    ] };
+    const result = await createDeal(WEB);
+    expect(result).toEqual({ dealId: 999, status: 'created', possibleDuplicates: [expect.stringMatching(/^Posible duplicado: revisar el negocio #501 \(WhatsApp, \d{2}-\d{2}-\d{4}\)$/)] });
+    expect(personCalls()).toHaveLength(1);
+    expect(notePosts()).toEqual([]);
+  });
+
+  it('WhatsApp: el aviso va en una nota propia «Para revisar», en segundo plano; el resultado no cambia', async () => {
+    personDeals = { success: true, data: [{ id: 601, status: 'open', title: 'Proyecto PY-x1 - Bodega', add_time: v1(1), cf_quote_ref: 'PY-x1' }] };
+    const result = await createDeal(WA);
+    expect(result).toEqual({ dealId: 999, status: 'created' });
+    await vi.waitFor(() => expect(notePosts()).toHaveLength(1));
+    expect(notePosts()[0]).toMatch(/^Para revisar:\n- Posible duplicado: revisar el negocio #601 \(web, \d{2}-\d{2}-\d{4}\)$/);
+  });
+
+  it('sin negocios del otro canal, o si la consulta falla: se crea igual y sin avisos (fail-open)', async () => {
+    expect(await createDeal(WEB)).toEqual({ dealId: 999, status: 'created' });
+    personDeals = { success: false, data: null, error: 'HTTP 500' };
+    expect(await createDeal(WEB)).toEqual({ dealId: 999, status: 'created' });
+    personDeals = () => Promise.reject(new Error('caída'));
+    expect(await createDeal(WEB)).toEqual({ dealId: 999, status: 'created' });
+    await createDeal(WA);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(notePosts()).toEqual([]);
+  });
+
+  it('un reenvío (misma referencia) no consulta; instalación, estudio y Jumpseller tampoco', async () => {
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/deals/search') return Promise.resolve({ success: true, data: { items: [{ item: { id: 31 } }] } });
+      if (path === '/deals/31') return Promise.resolve({ success: true, data: { id: 31, status: 'open', pipeline_id: 2, update_time: v1(0), cf_quote_ref: 'RC-abc12' } });
+      return Promise.resolve({ success: true, data: [] });
+    });
+    expect(await createDeal(WEB)).toEqual({ dealId: 31, status: 'skipped_duplicate' });
+    expect(personCalls()).toHaveLength(0);
+    (pipedriveGet as ReturnType<typeof vi.fn>).mockImplementation((path: string) =>
+      Promise.resolve(path === '/deals/search' ? { success: true, data: { items: [] } } : { success: true, data: [] }));
+    await createDeal({ ...WEB, tipoServicio: 90 });
+    await createDeal({ ...WEB, tipoServicio: undefined });
+    expect(personCalls()).toHaveLength(0);
+  });
+});
