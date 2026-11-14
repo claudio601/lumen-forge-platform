@@ -75,6 +75,9 @@ export interface FlowState {
   lastQuestion?: LastQuestion | null;
   // [CASO-1] Etapa (2 o 3) en que ya se repitio la pregunta por un numero suelto: se repite una vez.
   menuRepeatedIn?: FlowStage;
+  // [ARCHIVOS] Date.now() del ultimo mensaje con imagenes o archivos. Si el siguiente llega antes de MEDIA_BURST_MS,
+  // es de la misma rafaga y ya tuvo el aviso MSG_MEDIA_NOTICE (no se repite). Sin la propiedad: no hubo archivos.
+  lastMediaAt?: number;
 }
 
 export type AskedField = 'producto' | 'tipo_de_luz' | 'cantidad' | 'proyecto_o_uso' | 'comuna_o_ciudad' | 'nombre' | 'rut' | 'correo';
@@ -129,7 +132,37 @@ export function installClosingMsg(captured: CapturedFields): string {
 // canal (lo atiende solo el asistente). [CIERRE-HONESTO] Sale una sola vez, al cerrar con
 // correo, y webhook.ts la cambia por MSG_DEAL_FAILED si Pipedrive no confirma el negocio.
 export const MSG_HUMAN = 'Perfecto, ya deriv\u00e9 tu solicitud a nuestro equipo de ventas. Te va a atender Claudio Quero directamente por correo.';
-export const MSG_MEDIA = 'Recibimos tu imagen/archivo, gracias. Por ahora atendemos mejor por texto: cuentanos que producto necesitas, para que proyecto y que cantidad aproximada, y te ayudamos de inmediato.';
+// [ARCHIVOS] Dueno (13-11-2026, decision 1A): las imagenes y los archivos que llegan por WhatsApp no pasan a la
+// solicitud (la nota solo anota "[El cliente envio 1 imagen]"). El aviso lo dice y pide mandarlos por correo a
+// ventas@, sin decir que se recibieron ni que alguien los revisara por aqui. Sale una vez por rafaga (MEDIA_BURST_MS):
+// solo (o con la pregunta de la etapa 1, MSG_MEDIA) si el archivo no trae texto, y delante de la respuesta del paso
+// si lo trae (el texto sigue el flujo como siempre).
+export const MSG_MEDIA_NOTICE = 'Por WhatsApp no podemos recibir im\u00e1genes ni archivos para tu solicitud. Por favor, env\u00edalos por correo a ventas@elights.cl.';
+export const MSG_MEDIA = MSG_MEDIA_NOTICE + '\n\nCu\u00e9ntanos por escrito qu\u00e9 producto necesitas, para qu\u00e9 proyecto y qu\u00e9 cantidad aproximada.';
+/** [ARCHIVOS] Un mensaje con archivos que llega antes de esto desde el anterior es de la misma rafaga. */
+export const MEDIA_BURST_MS = 2 * 60_000;
+
+/** [ARCHIVOS] La respuesta con el aviso de los archivos delante (una respuesta vacia: solo el aviso). */
+export function withMediaNotice(reply: string): string {
+  return reply ? MSG_MEDIA_NOTICE + '\n\n' + reply : MSG_MEDIA_NOTICE;
+}
+
+/** [ARCHIVOS] La respuesta empieza con el aviso de los archivos. */
+export function hasMediaNotice(reply: string): boolean {
+  return reply === MSG_MEDIA_NOTICE || reply.startsWith(MSG_MEDIA_NOTICE + '\n\n');
+}
+
+/** [ARCHIVOS] La respuesta sin el aviso de los archivos delante: lo que respondio el paso. */
+function withoutMediaNotice(reply: string | undefined): string | undefined {
+  return reply?.startsWith(MSG_MEDIA_NOTICE + '\n\n') ? reply.slice(MSG_MEDIA_NOTICE.length + 2) : reply;
+}
+
+/** [ARCHIVOS] El mensaje con archivos anterior llego hace menos de MEDIA_BURST_MS: esta rafaga ya tuvo el aviso. */
+function inMediaBurst(state: FlowState | undefined, now: number): boolean {
+  const at = state?.lastMediaAt;
+  // Con el reloj de otra instancia un poco adelantado, la diferencia puede ser negativa: tambien es la misma rafaga.
+  return typeof at === 'number' && Number.isFinite(at) && Math.abs(now - at) < MEDIA_BURST_MS;
+}
 export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambien puedo ayudarte a dejar tu solicitud lista para cotizacion por ac\u00e1.';
 
 // [FIX-EMAIL-GATE] Mensaje para pedir correo antes de derivar
@@ -1848,11 +1881,16 @@ export function processFlowStep(
     }
   }
   // [SIN-REPETIR] (dueno, 12-11) Tampoco se repite el texto A en la conversacion cerrada sin negocio ni correo (T-X1b):
-  // la segunda vez va MSG_EMAIL_SHORT.
-  result = notRepeated(result, lastReply);
+  // la segunda vez va MSG_EMAIL_SHORT. [ARCHIVOS] Se compara con lo que respondio el paso anterior, sin el aviso.
+  result = notRepeated(result, withoutMediaNotice(lastReply));
+  // [ARCHIVOS] El texto que acompana imagenes o archivos sigue el flujo como siempre; la respuesta lleva delante el
+  // aviso de que no pasan a la solicitud, una vez por rafaga (se decide con el estado que leyo este mensaje).
+  const now = Date.now();
+  const mediaNotice = Boolean(signals.hasMedia) && !inMediaBurst(before, now);
   // [RUT-VALIDO] Se anota si esta respuesta pide el RUT: vale solo para el mensaje siguiente.
   // [CANTIDAD] Tambien que pregunta hizo (sin pregunta, ninguna: un numero suelto no es cantidad).
-  if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply), lastQuestion: question ?? null });
+  if (state) saveFlowState(phone, { ...state, rutAskedLast: asksForRut(result.reply), lastQuestion: question ?? null, ...(signals.hasMedia ? { lastMediaAt: now } : {}) });
+  if (mediaNotice) result = { ...result, reply: withMediaNotice(result.reply) };
   return result;
 }
 
@@ -1897,13 +1935,24 @@ function explainOwnEmail(result: FlowResult, body: string): FlowResult {
 }
 
 /**
- * [CANTIDAD] webhook.ts responde MSG_MEDIA sin pasar por el flujo: su pregunta (producto, proyecto
- * y cantidad aproximada, sin lista) queda anotada igual, para el mensaje siguiente.
+ * [ARCHIVOS] La respuesta de webhook.ts a imagenes o archivos sin texto, que no pasan por el flujo:
+ * - en la etapa 1, MSG_MEDIA: el aviso y la pregunta por producto, proyecto y cantidad aproximada (sin lista), que
+ *   [CANTIDAD] queda anotada para el mensaje siguiente;
+ * - mas adelante (o en la instalacion), solo el aviso: la pregunta anterior del bot sigue pendiente y anotada (no se
+ *   repregunta lo que el cliente ya dijo);
+ * - dentro de la rafaga (MEDIA_BURST_MS), '' (sin mensaje): ya tuvo el aviso y nada cambia.
  */
-export function recordMediaReply(phone: string): void {
+export function recordMediaReply(phone: string, now = Date.now()): string {
   const state = getFlowState(phone);
+  const next: FlowState = { ...state, lastMediaAt: now };
+  const burst = inMediaBurst(state, now);
+  if (burst || state.stage !== 'stage1' || state.isInstallFlow) {
+    saveFlowState(phone, next);
+    return burst ? '' : MSG_MEDIA_NOTICE;
+  }
   const asks = [...missingStage1(state.captured).filter((m) => m !== 'tipo de luz preferida'), ...(state.captured.proyecto_o_uso ? [] : ['espacio o proyecto de uso'])];
-  saveFlowState(phone, { ...state, rutAskedLast: false, lastQuestion: askedIn(asks, 0) });
+  saveFlowState(phone, { ...next, rutAskedLast: false, lastQuestion: askedIn(asks, 0) });
+  return MSG_MEDIA;
 }
 
 /** [CANTIDAD] webhook.ts respondio sin el flujo (el paso fallo): esa respuesta no pregunto nada. */

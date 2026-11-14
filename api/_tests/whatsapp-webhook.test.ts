@@ -20,8 +20,8 @@ import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import { ensureWhatsAppDeal } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { getHistory } from '../_lib/whatsapp/conversation.js';
-import { MSG1, MSG2, MSG4, MSG_DEAL_FAILED, MSG_MEDIA, getFlowState } from '../_lib/whatsapp/flowEngine.js';
-import { buildTwiML } from '../_lib/whatsapp/twilio.js';
+import { MSG1, MSG2, MSG4, MSG_DEAL_FAILED, MSG_MEDIA, MSG_MEDIA_NOTICE, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { buildSilentTwiML, buildTwiML } from '../_lib/whatsapp/twilio.js';
 import { PRIVACY_NOTICE, PRIVACY_POLICY_URL } from '../_lib/whatsapp/privacyNotice.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
@@ -437,5 +437,82 @@ describe('deduplicación: un cierre que se junta con el negocio abierto del mism
 
     expect(notifyTeam).toHaveBeenCalledTimes(1);
     expect(vi.mocked(notifyTeam).mock.calls[0][0]).toMatchObject({ dealId: 101, existingDeal: false });
+  });
+});
+
+// [ARCHIVOS] Decisión del dueño (13-11-2026, 1A): las imágenes y los archivos que llegan por WhatsApp no pasan a la
+// solicitud. El aviso lo dice y pide mandarlos por correo a ventas@; el texto que los acompaña sigue el flujo.
+describe('[ARCHIVOS] imágenes y archivos: el aviso por correo a ventas@ y el texto sigue el flujo', () => {
+  const FOCOS = 'Necesito 20 focos LED luz fría';
+  const FOCOS_CLAUDE = { producto: 'focos LED', tipo_de_luz: 'fria', cantidad: '20' };
+  const IMAGES = { MediaContentType0: 'image/jpeg', MediaContentType1: 'image/png', MediaContentType2: 'application/pdf' };
+  const count = (text: string | undefined, part: string) => (text ?? '').split(part).length - 1;
+
+  it('archivo solo: el aviso con la pregunta de la etapa 1; no promete que se recibió ni pasa por Claude', async () => {
+    const phone = nextPhone();
+    const res = await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(res.body).toBe(withNotice(MSG_MEDIA));
+    expect(res.body).toContain(MSG_MEDIA_NOTICE);
+    expect(res.body).not.toMatch(/Recibimos|recibid|gracias/i);
+    expect(askClaude).not.toHaveBeenCalled();
+  });
+
+  it('archivos con texto (varios en un mensaje): un solo aviso delante de la respuesta del paso, y el flujo avanza', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk(FOCOS_CLAUDE));
+    const res = await sendMessage(phone, FOCOS, { NumMedia: '3', ...IMAGES });
+    expect(res.body).toBe(withNotice(MSG_MEDIA_NOTICE + '\n\n' + MSG2));
+    expect(count(res.body, MSG_MEDIA_NOTICE)).toBe(1);
+    expect(askClaude).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(askClaude).mock.calls[0][1]).toBe(FOCOS);
+    expect(getFlowState(phone)).toMatchObject({ stage: 'stage2', captured: FOCOS_CLAUDE });
+    // El historial guarda lo que recibió el cliente; el paso siguiente, sin archivos, va sin aviso.
+    expect(getHistory(phone).at(-1)?.content).toBe(MSG_MEDIA_NOTICE + '\n\n' + MSG2);
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Lampa' }));
+    const next = await sendMessage(phone, 'Es para una bodega en Lampa');
+    expect(next.body).not.toContain(MSG_MEDIA_NOTICE);
+    expect(getFlowState(phone).stage).toBe('stage3');
+  });
+
+  it('una ráfaga: el aviso sale una vez; otro archivo sin texto no envía mensaje y el texto siguiente sigue el flujo', async () => {
+    const phone = nextPhone();
+    expect((await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' })).body).toBe(withNotice(MSG_MEDIA));
+    const second = await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(second.statusCode).toBe(200);
+    expect(second.body).toBe(buildSilentTwiML());
+    expect(second.body).not.toContain('<Message>');
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk(FOCOS_CLAUDE));
+    const third = await sendMessage(phone, FOCOS, { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(third.body).toBe(buildTwiML(MSG2));
+    expect(getFlowState(phone)).toMatchObject({ stage: 'stage2', captured: FOCOS_CLAUDE });
+  });
+
+  it('pasada la ráfaga, otro archivo vuelve a recibir el aviso', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-13T15:00:00Z'));
+    const phone = nextPhone();
+    await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    vi.setSystemTime(new Date('2026-11-13T15:05:00Z'));
+    expect((await sendMessage(phone, '', { NumMedia: '1', MediaContentType0: 'image/jpeg' })).body).toBe(buildTwiML(MSG_MEDIA));
+  });
+
+  it('si el registro falla, el texto B lleva el aviso delante', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({
+      producto: 'ampolletas LED', tipo_de_luz: 'calida', cantidad: '10', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú',
+      nombre: 'Persona Prueba', correo: 'prueba-13w@example.com', qualifiesForDeal: true,
+    }));
+    vi.mocked(ensureWhatsAppDeal).mockResolvedValueOnce({ action: 'skipped' });
+    const res = await sendMessage(phone, 'Necesito 10 ampolletas LED luz cálida para mi casa en Maipú. Soy Persona Prueba, prueba-13w@example.com', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(res.body).toBe(withNotice(MSG_MEDIA_NOTICE + '\n\n' + MSG_DEAL_FAILED));
+  });
+
+  it('si falla el paso del flujo, el texto B lleva el aviso delante', async () => {
+    const phone = nextPhone();
+    const parsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'x' };
+    Object.defineProperty(parsed, 'producto', { enumerable: true, get() { throw new Error('falla simulada'); } });
+    vi.mocked(askClaude).mockResolvedValueOnce({ ...claudeOk(), parsed } as Awaited<ReturnType<typeof askClaude>>);
+    const res = await sendMessage(phone, 'Necesito focos LED como estos', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(res.body).toBe(withNotice(MSG_MEDIA_NOTICE + '\n\n' + MSG_DEAL_FAILED));
   });
 });

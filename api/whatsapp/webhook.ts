@@ -10,7 +10,7 @@
 import { waitUntil } from '@vercel/functions';
 import { redact } from '../_lib/logging/redact.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { validateTwilioSignature, parseTwilioBody, buildTwiML } from '../_lib/whatsapp/twilio.js';
+import { validateTwilioSignature, parseTwilioBody, buildTwiML, buildSilentTwiML } from '../_lib/whatsapp/twilio.js';
 import { getHistory, addTurn } from '../_lib/whatsapp/conversation.js';
 import { askClaude } from '../_lib/whatsapp/claudeAgent.js';
 import type { ClaudeResult } from '../_lib/whatsapp/claudeAgent.js';
@@ -18,7 +18,7 @@ import { evaluateLeadSignals } from '../_lib/whatsapp/leadCapture.js';
 import { buildWhatsAppUpdate, ensureWhatsAppDeal, notePart, noteSearchAt, retryWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import type { PendingWhatsAppWrite } from '../_lib/whatsapp/pipedriveLead.js';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
-import { processFlowStep, getFlowState, recordDealOutcome, recordMediaReply, recordNoQuestion, MSG_MEDIA, MSG_DEAL_FAILED, MSG_DEAL_PENDING } from '../_lib/whatsapp/flowEngine.js';
+import { processFlowStep, getFlowState, hasMediaNotice, recordDealOutcome, recordMediaReply, recordNoQuestion, withMediaNotice, MSG_MEDIA_NOTICE, MSG_DEAL_FAILED, MSG_DEAL_PENDING } from '../_lib/whatsapp/flowEngine.js';
 import type { FlowResult } from '../_lib/whatsapp/flowEngine.js';
 import { appendPrivacyNotice, privacyNoticeShown, withPrivacyNotice } from '../_lib/whatsapp/privacyNotice.js';
 import type { FlowState } from '../_lib/whatsapp/flowEngine.js';
@@ -319,7 +319,8 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
           recordNoQuestion(phone);
           const stateNow = getFlowState(phone);
           flowResult = {
-                  reply: MSG_DEAL_FAILED,
+                  // [ARCHIVOS] Con imagenes o archivos, tambien el aviso de que no pasan a la solicitud.
+                  reply: signals.hasMedia ? withMediaNotice(MSG_DEAL_FAILED) : MSG_DEAL_FAILED,
                   shouldCreateDeal: false,
                   shouldNotify: false,
                   captureStatus: stateNow.captureStatus,
@@ -596,6 +597,9 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                   }
           }
     }
+  // [ARCHIVOS] El texto que reemplaza la respuesta del paso (registro fallido o pendiente) conserva delante el aviso
+  // de que las imagenes y los archivos no pasan a la solicitud.
+  if (reply !== flowResult.reply && hasMediaNotice(flowResult.reply)) reply = withMediaNotice(reply);
 
   // [TRANSCRIPCION] La nota (o su reintento pendiente) ya lleva la conversacion hasta esta respuesta:
   // se borra solo eso, no lo que otro pedido del mismo numero registro mientras Pipedrive respondia.
@@ -744,12 +748,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     async function respond(reply: string, noted = false): Promise<void> {
           res.setHeader('Content-Type', 'text/xml');
           // Si otro mensaje del numero lo mostro mientras tanto, este lo lleva igual (lado seguro).
-          let sent = withPrivacyNotice(phone, reply, startedAt);
-          if (noticeDue && sent === reply) sent = appendPrivacyNotice(reply);
+          // [ARCHIVOS] Una respuesta vacia (otro archivo sin texto de la misma rafaga, que ya tuvo el aviso) no envia
+          // mensaje: TwiML sin <Message>, sin aviso de privacidad y sin linea del bot en la transcripcion.
+          let sent = reply && withPrivacyNotice(phone, reply, startedAt);
+          if (reply && noticeDue && sent === reply) sent = appendPrivacyNotice(reply);
           // [TRANSCRIPCION] La respuesta del bot; el aviso de privacidad, solo como marca. La que ya fue
           // a la nota no se repite.
-          if (!noted) recordTranscript(phone, 'bot', botReplyText(reply, sent !== reply), { replyTo: seq });
-          const xml = buildTwiML(sent);
+          if (!noted && sent) recordTranscript(phone, 'bot', botReplyText(reply, sent !== reply), { replyTo: seq });
+          const xml = sent ? buildTwiML(sent) : buildSilentTwiML();
           // [CONCURRENCIA] R2: con Upstash arriba, el mensaje queda en el estado compartido o aparte en Upstash
           // ('held', lo mezcla la lectura siguiente) antes de dar el MessageSid por respondido. 'memory': Upstash
           // no respondio; el bot responde igual (decision 9) y lo guarda en el proximo guardado de esta instancia.
@@ -763,11 +769,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (numMedia > 0 && body.trim().length < 3) {
           console.log(LOG_PREFIX + ' Media from ' + redact(phone, 'phone') + ' [' + messageSid + ']');
-          // [CANTIDAD] MSG_MEDIA pregunta producto, proyecto y cantidad: queda anotado para el mensaje siguiente.
-          recordMediaReply(phone);
+          // [ARCHIVOS] Imagenes o archivos sin texto: el aviso de que no pasan a la solicitud (con la pregunta de la
+          // etapa 1, MSG_MEDIA, que [CANTIDAD] queda anotada para el mensaje siguiente), o nada si la rafaga ya lo tuvo.
+          // Si todavia falta el aviso de privacidad (la primera respuesta lo lleva siempre), va con el de los archivos.
+          const mediaReply = recordMediaReply(phone);
           stepDone(phone, seq);
           stampFlow(phone, seq);
-          await respond(MSG_MEDIA);
+          await respond(mediaReply || (noticeDue ? MSG_MEDIA_NOTICE : ''));
           return;
     }
 
