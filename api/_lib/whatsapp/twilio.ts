@@ -50,3 +50,8 @@ export function buildTwiML(message: string): string {
       .replace(/>/g, '&gt;');
     return `<?xml version="1.0" encoding="UTF-8"?>\n<Response><Message>${escaped}</Message></Response>`;
 }
+
+/** [ARCHIVOS] Respuesta TwiML sin mensaje: Twilio da el mensaje por atendido y no envia nada al cliente. */
+export function buildSilentTwiML(): string {
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>';
+}

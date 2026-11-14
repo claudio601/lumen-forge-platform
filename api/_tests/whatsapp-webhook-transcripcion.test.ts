@@ -74,7 +74,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { saveFlowState, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { saveFlowState, getFlowState, MSG_MEDIA, MSG_MEDIA_NOTICE, MSG_VOICE } from '../_lib/whatsapp/flowEngine.js';
 import { restoreHistory } from '../_lib/whatsapp/conversation.js';
 import { claimMessage, completeMessage, conversationKey, messageKey } from '../_lib/whatsapp/stateStore.js';
 import { getTranscript } from '../_lib/whatsapp/transcript.js';
@@ -335,6 +335,52 @@ describe('B1: la transcripción en la nota', () => {
     const first = transcriptOf(sim.notes[0].content)[0];
     expect(first).toContain('[...cortado]');
     expect(first.length).toBeLessThan(1100);
+  });
+});
+
+// [ARCHIVOS] Decisión del dueño (13-11-2026, 1A): los archivos no pasan a la solicitud. La nota anota que llegaron
+// y el aviso que recibió el cliente; un archivo sin texto de la misma ráfaga queda anotado y sin respuesta.
+describe('[ARCHIVOS] los archivos en la nota', () => {
+  it('la nota anota cada archivo, el aviso una vez y, en la misma ráfaga, el archivo sin respuesta', async () => {
+    const phone = nextPhone();
+    expect(await send(phone, '', {}, { NumMedia: '1', MediaContentType0: 'image/jpeg' })).toBe(MSG_MEDIA);
+    expect(await send(phone, '', {}, { NumMedia: '1', MediaContentType0: 'image/png' })).toBe('');
+    sim.claude.length = 0; // los archivos sin texto no pasan por Claude
+    const order = await send(phone, FIRST, FIRST_CLAUDE, { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(order).not.toContain(MSG_MEDIA_NOTICE);
+    await send(phone, CONTACT, CONTACT_CLAUDE);
+    expect(sim.notes).toHaveLength(1);
+    const entries = entriesOf(sim.notes[0].content);
+    expect(entries.slice(0, 4)).toEqual([
+      { who: 'Cliente', text: '[El cliente envió 1 imagen]' }, { who: 'Bot', text: MSG_MEDIA + MARK },
+      { who: 'Cliente', text: '[El cliente envió 1 imagen]' }, { who: 'Cliente', text: '[El cliente envió 1 imagen] ' + FIRST },
+    ]);
+    expect(entries.filter((e) => e.text.includes(MSG_MEDIA_NOTICE))).toHaveLength(1);
+  });
+
+  it('una nota de voz dentro de la ráfaga queda anotada con su respuesta', async () => {
+    const phone = nextPhone();
+    expect(await send(phone, '', {}, { NumMedia: '1', MediaContentType0: 'image/jpeg' })).toBe(MSG_MEDIA);
+    expect(await send(phone, '', {}, { NumMedia: '1', MediaContentType0: 'audio/ogg' })).toBe(MSG_VOICE);
+    sim.claude.length = 0;
+    await send(phone, FIRST, FIRST_CLAUDE);
+    await send(phone, CONTACT, CONTACT_CLAUDE);
+    expect(sim.notes).toHaveLength(1);
+    expect(entriesOf(sim.notes[0].content).slice(0, 4)).toEqual([
+      { who: 'Cliente', text: '[El cliente envió 1 imagen]' }, { who: 'Bot', text: MSG_MEDIA + MARK },
+      { who: 'Cliente', text: '[El cliente envió 1 audio]' }, { who: 'Bot', text: MSG_VOICE },
+    ]);
+  });
+
+  it('archivos con texto: la respuesta anotada lleva el aviso delante y la solicitud se registra con el texto', async () => {
+    const phone = nextPhone();
+    const reply = await send(phone, FULL_B2C, FULL_B2C_CLAUDE, { NumMedia: '2', MediaContentType0: 'image/jpeg', MediaContentType1: 'application/pdf' });
+    expect(reply.startsWith(MSG_MEDIA_NOTICE + '\n\n')).toBe(true);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(1);
+    const entries = entriesOf(sim.notes[0].content);
+    expect(entries[0]).toEqual({ who: 'Cliente', text: '[El cliente envió 1 imagen y 1 archivo] ' + FULL_B2C });
+    expect(entries[1]).toEqual({ who: NOTE_REPLY, text: reply + MARK });
   });
 });
 
