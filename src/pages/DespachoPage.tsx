@@ -4,11 +4,17 @@
 //   monto (estrictamente) y la entrega es en FREE_SHIPPING_AREA (Provincia de Santiago). La
 //   página nombra las 20 comunas de la Región Metropolitana que no entran: las del dueño, con
 //   sus palabras, y las 7 que su lista no nombra (freeShippingExcludedList), para que la lista
-//   no parezca completa sin serlo. Con el monto o menos, o fuera de esa zona, el costo va en la
-//   cotización o el despacho va por pagar.
+//   no parezca completa sin serlo.
+// - Fuera de esa cobertura (con el monto o menos, o fuera de la zona), la regla es por pagar (con
+//   el transportista) o retiro en bodega; el flete va incluido en la cotización solo cuando las
+//   bases de una licitación o el proyecto lo exigen (decisión del dueño 4A, 2026-11-13).
 // - REGION_CARRIERS: a regiones, por pagar; el tiempo de viaje se informa en la cotización.
+// - PANEL_MASTER_BOX: los paneles de formato grande van a regiones solo desde su caja master (el
+//   slim 60x60, desde 4 unidades); con menos, retiro en bodega o la caja completa. Los paneles
+//   chicos, redondos y cuadrados, en cualquier cantidad (regla del dueño A22, decisión 2A,
+//   2026-11-13). Cuántas unidades trae cada caja lo dice la ficha de cada panel.
 // - PICKUP_PLACE: retiro en la bodega de Quinta Normal. La dirección exacta se da solo con el
-//   pago acreditado: nunca se publica.
+//   pago acreditado: nunca se publica (la página la nombra una sola vez, en «Retiro en bodega»).
 // El único plazo publicado es "hasta 2 días hábiles": check-prerender bloquea cualquier otro
 // (scripts/jumpseller/descriptions.ts). Montos con clp(), sin Intl (hidratación).
 
@@ -32,9 +38,9 @@ const FreeShipping = () => (
       </li>
     </ul>
     <p>
-      En compras de {threshold} o menos con IVA, o con entrega fuera de esta zona, el costo del despacho te lo informamos en la
-      cotización, antes de que pagues, o la cotización indica que va por pagar. Si va por pagar, pagas el flete directamente al
-      transportista cuando recibes.
+      En compras de {threshold} o menos con IVA, o con entrega fuera de esta zona, el despacho va por pagar: pagas el flete
+      directamente al transportista cuando recibes. Si prefieres, retiras tu pedido en la bodega, sin pagar despacho. Solo
+      cuando las bases de una licitación o el proyecto lo exigen, incluimos el flete en la cotización.
     </p>
     <p>Si no sabes si tu comuna está en la {area}, te lo confirmamos en la cotización.</p>
     <p>
@@ -69,15 +75,24 @@ const DespachoPage = () => (
         El tiempo de viaje hasta tu ciudad depende del transportista y del destino. Te lo informamos en la cotización, antes de que
         pagues.
       </li>
+      <li>
+        <strong>Paneles de formato grande</strong> (60x60, 120x60, 120x30 y 120x15, backlight y slim): a regiones los
+        despachamos solo desde una caja completa, porque fuera de su caja se pueden romper en el viaje. El panel slim de 60x60
+        se despacha desde 4 unidades. Con menos unidades, retiras tu pedido en la bodega o te cotizamos la caja completa. Desde
+        una caja, cotizamos la cantidad que pidas, sin redondear a cajas. La ficha de cada panel indica desde cuántas unidades
+        va a regiones.
+      </li>
+      <li>Los paneles chicos, redondos y cuadrados, se despachan en cualquier cantidad.</li>
     </ul>
 
     <h2>Costo del despacho</h2>
     <p>
-      El costo del despacho no está incluido en el precio de los productos. Antes de que pagues, la cotización lo muestra por
-      separado, o indica que va sin costo o por pagar. El link de pago cobra el total de la cotización.
+      El costo del despacho no está incluido en el precio de los productos. Antes de que pagues, la cotización indica si tu
+      despacho va sin costo o por pagar, o si retiras en bodega. El link de pago cobra el total de la cotización.
     </p>
     <p>
-      Para pedidos grandes o de proyecto (por ejemplo, entregas en obra o en varias partes), acordamos las condiciones en la
+      Solo cuando las bases de una licitación o el proyecto lo exigen, la cotización incluye el flete, por separado. Para
+      pedidos grandes o de proyecto (por ejemplo, entregas en obra o en varias partes), acordamos las condiciones en la
       cotización.
     </p>
 

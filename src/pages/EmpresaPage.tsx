@@ -49,7 +49,9 @@ const EmpresaPage = () => (
     </p>
     <p>
       Los precios del sitio incluyen IVA. Si compras para una empresa, puedes ver los precios netos (sin IVA) con el selector
-      "B2C / B2B" de la parte superior; la cotización y el link de pago siempre muestran el total con IVA.
+      "B2C / B2B" de la parte superior; la cotización y el link de pago siempre muestran el total con IVA. Los precios
+      publicados son para pago por transferencia: con el link de pago de Flow se suma la comisión de Flow, que te informamos
+      en la cotización.
     </p>
 
     <h2>Servicios</h2>

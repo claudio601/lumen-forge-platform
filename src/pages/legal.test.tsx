@@ -3,7 +3,7 @@
 // Se dibujan como en el prerender (entry-server, sin sesión) y se revisan: un solo h1, la
 // regla de contenido de check-prerender (sin stock ni plazos de despacho distintos de "hasta 2
 // días hábiles"), los datos de la empresa desde site.ts, lo que la ley pide que digan y los
-// defaults del dueño (sin orden de compra, sin representante). Despacho sin costo y retiro en
+// defaults del dueño (sin representante; la orden de compra, desde el 2026-11-13). Despacho sin costo y retiro en
 // bodega: confirmados por el dueño el 2026-10-14 (PR 12b), desde src/config/business.ts. La
 // lista de comunas que no entran está completa (las 20 de la RM fuera de la Provincia de
 // Santiago, src/test/freeShipping.ts) y los transportistas son los mismos en todas las páginas.
@@ -34,6 +34,9 @@ import {
   FREE_SHIPPING_AREA,
   FREE_SHIPPING_THRESHOLD_CLP,
   freeShippingExcludedList,
+  PANEL_MASTER_BOX,
+  paymentsEmail,
+  paymentsMailto,
   PICKUP_PLACE,
   quoteValidityBusinessDays,
   REGION_CARRIERS,
@@ -172,7 +175,9 @@ describe('páginas legales y de compra: todas', () => {
         const href = a.getAttribute('href') ?? '';
         if (href.startsWith('/legal/')) archives.push(href);
         else if (href.startsWith('/')) expect(internalRoutes.has(href), `${path}: enlace a ${href}`).toBe(true);
-        else expect(href, `${path}: enlace a ${href}`).toMatch(/^(?:mailto:ventas@elights\.cl(?:\?subject=Datos%20personales)?|tel:\+56991273128|https:\/\/wa\.me\/56991273128|https:\/\/www\.sernac\.cl)$/);
+        else expect(href, `${path}: enlace a ${href}`).toMatch(/^(?:mailto:ventas@elights\.cl(?:\?subject=Datos%20personales)?|tel:\+56991273128|https:\/\/wa\.me\/56991273128|https:\/\/www\.sernac\.cl)$|^mailto:pagos@elights\.cl\?subject=Comprobante%20de%20pago$/);
+        // pagos@ solo para el comprobante, en /medios-de-pago (decisión del dueño 8A, 2026-11-13)
+        if (href.startsWith('mailto:pagos@')) expect(path).toBe('/medios-de-pago');
       }
       expect(archives, `${path}: enlaces a los archivos de versión`).toEqual(archiveHrefs(path));
       const nav = main.querySelector('nav[aria-label="Más información"]')!;
@@ -268,6 +273,8 @@ describe('páginas legales y de compra: contenido', () => {
       expect(text).toContain(s);
     }
     expect(text).toContain('Despacho en hasta 2 días hábiles');
+    // El precio publicado es para transferencia; con Flow se suma su comisión (decisión del dueño 5A, 2026-11-13)
+    expect(text).toContain('Los precios publicados son para pago por transferencia: con el link de pago de Flow se suma la comisión de Flow, que te informamos en la cotización.');
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
     expect(text).not.toMatch(/proveedores@|Postulaci[oó]n|Trabaja con nosotros/i);
     expect(main.querySelector(`a[href="${waBase}"]`)?.getAttribute('target')).toBe('_blank');
@@ -307,11 +314,19 @@ describe('páginas legales y de compra: contenido', () => {
     // §3.5: cuándo queda hecha la compra también con crédito acordado
     expect(section(main, '3.').text).toContain('Si acordamos pago con crédito (ver Medios de pago), queda hecha cuando aceptas por escrito la cotización con esas condiciones de pago.');
     // §3 y §4: el despacho puede ir sin costo (monto y zona desde business.ts, PR 12b)
-    expect(section(main, '3.').text).toContain('el costo del despacho por separado (o si va sin costo o por pagar)');
+    expect(section(main, '3.').text).toContain(
+      'si el despacho va sin costo o por pagar o si retiras en bodega (el flete va por separado solo cuando las bases de una licitación o el proyecto lo exigen)',
+    );
     const precios = section(main, '4.');
     expect(precios.text).toContain(
-      `la cotización indica que va sin costo (compras sobre ${THRESHOLD} con IVA, con entrega en la ${FREE_SHIPPING_AREA.name}) o por pagar. Las comunas que no entran y las demás condiciones están en Despacho.`,
+      `La cotización indica si va sin costo (compras sobre ${THRESHOLD} con IVA, con entrega en la ${FREE_SHIPPING_AREA.name}), por pagar o con retiro en bodega. El flete va por separado en la cotización solo cuando las bases de una licitación o el proyecto lo exigen. Las comunas que no entran y las demás condiciones están en Despacho.`,
     );
+    // §4 (versión 1.11, decisión del dueño 5A, 2026-11-13): el precio publicado es para transferencia;
+    // con Flow se suma su comisión, que informa la cotización, sin publicar el porcentaje
+    expect(precios.text).toContain(
+      'Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente. Los precios publicados son para pago por transferencia bancaria. Si pagas con el link de pago de Flow, se suma la comisión de Flow, que te informamos en la cotización antes de que pagues.',
+    );
+    expect(text).not.toMatch(/\d\s?%/);
     expect(precios.els.some(el => el.querySelector('a[href="/despacho"]'))).toBe(true);
     // §9: en regiones, los 2 días hábiles son hasta la entrega al transportista; retiro en bodega sin dirección
     const despacho = section(main, '9.').text;
@@ -414,9 +429,23 @@ describe('páginas legales y de compra: contenido', () => {
     expect(regiones).toContain(`El despacho a regiones va por pagar, vía ${REGION_CARRIERS}.`);
     expect(text).not.toMatch(/retiro en tienda/i);
     // la cotización detalla el despacho; el link de Flow cobra un solo monto (dueño, 2026-10-25)
-    expect(section(main, 'Costo del despacho').text).toContain(
-      'la cotización lo muestra por separado, o indica que va sin costo o por pagar. El link de pago cobra el total de la cotización.',
+    // Fuera del despacho sin costo, por pagar o retiro; el flete en la cotización solo si lo exigen
+    // las bases de una licitación o el proyecto (decisión del dueño 4A, 2026-11-13)
+    const costo = section(main, 'Costo del despacho').text;
+    expect(costo).toContain(
+      'la cotización indica si tu despacho va sin costo o por pagar, o si retiras en bodega. El link de pago cobra el total de la cotización.',
     );
+    expect(costo).toContain('Solo cuando las bases de una licitación o el proyecto lo exigen, la cotización incluye el flete, por separado.');
+    expect(costo).not.toContain('lo muestra por separado');
+    // Paneles de formato grande a regiones (regla del dueño A22, decisión 2A, 2026-11-13)
+    expect(regiones).toContain(
+      'Paneles de formato grande (60x60, 120x60, 120x30 y 120x15, backlight y slim): a regiones los despachamos solo desde una caja completa',
+    );
+    expect(regiones).toContain('El panel slim de 60x60 se despacha desde 4 unidades.');
+    expect(regiones).toContain('Con menos unidades, retiras tu pedido en la bodega o te cotizamos la caja completa.');
+    expect(regiones).toContain('Desde una caja, cotizamos la cantidad que pidas, sin redondear a cajas.');
+    expect(regiones).toContain('Los paneles chicos, redondos y cuadrados, se despachan en cualquier cantidad.');
+    expect(Object.values(PANEL_MASTER_BOX).filter(p => p.minUnits).map(p => p.minUnits)).toEqual([4, 4]); // los dos slim 60x60
     // Seguimiento solo por correo (dueño, 2026-10-16): el WhatsApp lo atiende un asistente que no
     // responde consultas de pedidos.
     const seguimiento = section(main, 'Seguimiento').text;
@@ -438,9 +467,12 @@ describe('páginas legales y de compra: contenido', () => {
       `No entran las comunas de otras provincias de la Región Metropolitana: ${OWNER_EXCLUDED}; Calera de Tango, San José de Maipo, Isla de Maipo, El Monte, Curacaví, María Pinto y San Pedro.`,
     );
     expect(freeShippingExcludedList.startsWith(OWNER_EXCLUDED)).toBe(true);
-    // El monto exacto o menos (la condición es "mayor a"), o fuera de la zona: el costo va en la cotización o por pagar
-    expect(zona).toContain(`En compras de ${THRESHOLD} o menos con IVA, o con entrega fuera de esta zona, el costo del despacho te lo informamos en la cotización`);
-    expect(zona).toContain('o la cotización indica que va por pagar');
+    // El monto exacto o menos (la condición es "mayor a"), o fuera de la zona: por pagar o retiro; el
+    // flete en la cotización solo si lo exigen las bases o el proyecto (decisión del dueño 4A, 2026-11-13)
+    expect(zona).toContain(
+      `En compras de ${THRESHOLD} o menos con IVA, o con entrega fuera de esta zona, el despacho va por pagar: pagas el flete directamente al transportista cuando recibes. Si prefieres, retiras tu pedido en la bodega, sin pagar despacho. Solo cuando las bases de una licitación o el proyecto lo exigen, incluimos el flete en la cotización.`,
+    );
+    expect(zona).not.toContain('te lo informamos en la cotización, antes de que pagues');
     expect(zona).toContain('Si no sabes si tu comuna está en la Provincia de Santiago, te lo confirmamos en la cotización.');
     expect(zona).toContain('condición permanente de venta, no una promoción');
     expect(amountsIn(text)).toEqual([THRESHOLD, THRESHOLD]); // escrito desde la constante, con clp()
@@ -477,8 +509,8 @@ describe('páginas legales y de compra: contenido', () => {
     expect([0, 999, 1000, 250000, 249999.6, 1234567].map(clp)).toEqual(['$0', '$999', '$1.000', '$250.000', '$250.000', '$1.234.567']);
   });
 
-  it('/medios-de-pago: link de pago de Flow con los medios activos, transferencia, crédito caso a caso; sin orden de compra', async () => {
-    const { text } = await page('/medios-de-pago');
+  it('/medios-de-pago: link de pago de Flow con los medios activos, transferencia, crédito caso a caso y orden de compra', async () => {
+    const { main, text } = await page('/medios-de-pago');
     // Los medios activos en la cuenta Flow (panel revisado el 2026-10-25)
     for (const s of ['Link de pago de Flow', 'flow.cl', 'tarjeta de crédito o débito, por Webpay', 'Onepay', 'MACH', 'Servipag', 'Banca.me', `cuenta de ${LEGAL_NAME}`, 'cheque a 30 o 60 días', 'vale vista', 'boleta electrónica', 'factura electrónica', 'incluyen IVA']) {
       expect(text, s).toContain(s);
@@ -486,7 +518,21 @@ describe('páginas legales y de compra: contenido', () => {
     // desde ahí corre el despacho
     expect(text).toContain('Si pagas en efectivo con el cupón de Servipag, cuando lo pagas en la sucursal.');
     expect(text).toContain('Crédito acordado: cuando recibimos el cheque o el vale vista.');
-    expect(text).not.toMatch(/orden de compra|Mercado Público/i);
+    // Empresas e instituciones con orden de compra (decisión del dueño 6A, 2026-11-13); Mercado Público, sin confirmar
+    expect(text).toContain('Empresas e instituciones: compra con orden de compra, según las condiciones acordadas.');
+    expect(text).not.toMatch(/Mercado Público/i);
+    // Precio publicado para transferencia; con Flow, su comisión en la cotización, sin el porcentaje (5A)
+    expect(text).toContain(
+      'Los precios publicados son para pago por transferencia bancaria. Si pagas con el link de pago de Flow, se suma la comisión de Flow, que te informamos en la cotización antes de que pagues.',
+    );
+    expect(text).not.toMatch(/\d\s?%/);
+    // El comprobante va a pagos@ con el número de cotización; ventas@ sigue para todo lo demás (8A)
+    expect(paymentsEmail).toBe('pagos@elights.cl');
+    expect(contactEmail).toBe('ventas@elights.cl');
+    expect(text).toContain(`Si nos mandas el comprobante a ${paymentsEmail} con el número de tu cotización, lo revisamos más rápido.`);
+    const receipt = [...main.querySelectorAll('li')].find(li => li.textContent?.includes('comprobante'))!;
+    expect([...receipt.querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual([paymentsMailto]);
+    expect(paymentsMailto).toBe('mailto:pagos@elights.cl?subject=Comprobante%20de%20pago');
     // el link no es de Jumpseller y Mercado Pago ya no se usa (dueño, 2026-10-25)
     expect(text).not.toMatch(/Jumpseller|Mercado Pago/i);
     // no están activos en la cuenta Flow
@@ -1024,10 +1070,10 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
 });
 
 
-it('política 1.10: fecha provisional y versión anterior publicada', () => {
-  expect(LEGAL_VERSION).toBe('1.10');
-  expect(LEGAL_UPDATED).toBe('2026-10-28');
-  expect(LEGAL_UPDATED_LABEL).toBe('28 de octubre de 2026');
-  expect(LEGAL_ARCHIVE).toContain('1.9');
+it('textos legales 1.11: fecha provisional y versión anterior publicada', () => {
+  expect(LEGAL_VERSION).toBe('1.11');
+  expect(LEGAL_UPDATED).toBe('2026-11-13');
+  expect(LEGAL_UPDATED_LABEL).toBe('13 de noviembre de 2026');
+  expect(LEGAL_ARCHIVE).toContain('1.10');
   expect(LEGAL_RUT).toBe('76.947.784-5');
 });

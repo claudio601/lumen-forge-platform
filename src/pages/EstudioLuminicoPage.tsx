@@ -1,4 +1,8 @@
 // src/pages/EstudioLuminicoPage.tsx
+// Plazo del informe (decisión del dueño 9A, 2026-11-13): 48 horas desde que tenemos los
+// antecedentes completos y el pago del estudio acreditado, con una revisión incluida. Orden:
+// cotización → pago → simulación. Las frases que la regla de despacho marca deben seguir siendo
+// «entrega en 48 horas» (scripts/known-phrases.ts: plazo del informe, no de despacho).
 import {
   FileText, Zap, BarChart3, MapPin, Clock, ChevronDown,
   Building2, Truck, Shield, Lightbulb, Globe, GraduationCap,
@@ -95,18 +99,18 @@ const PROCESO = [
   },
   {
     num: '2',
-    title: 'Cotización del estudio',
-    desc: 'Te enviamos la cotización del estudio junto con la propuesta de luminarias eLIGHTS recomendadas.',
+    title: 'Cotización y pago',
+    desc: 'Te enviamos la cotización del estudio junto con la propuesta de luminarias eLIGHTS recomendadas. Si la aceptas, pagas el estudio.',
   },
   {
     num: '3',
     title: 'Simulación DIALux',
-    desc: 'Modelamos el recinto con archivos .IES reales de las luminarias propuestas.',
+    desc: 'Con los antecedentes completos y el pago acreditado, modelamos el recinto con archivos .IES reales de las luminarias propuestas.',
   },
   {
     num: '4',
     title: 'Informe final PDF',
-    desc: 'Recibes el informe completo con renders, tablas, isolíneas y verificación normativa.',
+    desc: 'Recibes el informe completo con renders, tablas, isolíneas y verificación normativa. Incluye una revisión.',
   },
 ];
 
@@ -153,8 +157,8 @@ const FAQ = [
     a: 'Sí. El estudio siempre incluye la propuesta de luminarias eLIGHTS que se usaron en la simulación, con ficha técnica y cotización.',
   },
   {
-    q: '¿Cuánto demora la entrega?',
-    a: 'El informe se entrega en 48 horas desde la recepción de todos los antecedentes del proyecto (planos o medidas, altura de montaje, normativa objetivo).',
+    q: '¿Cuánto demora el informe?',
+    a: 'El informe se entrega en 48 horas desde que tenemos todos los antecedentes del proyecto (planos o medidas, altura de montaje, normativa objetivo) y el pago del estudio acreditado. El orden es: te enviamos la cotización del estudio, la pagas y hacemos la simulación. El estudio incluye una revisión.',
   },
   {
     q: '¿En qué formato se entrega el informe?',
@@ -237,7 +241,7 @@ const EstudioLuminicoPage = () => {
 
   return (
     <div className="bg-[#FAFAF7]">
-    <Seo title="Estudio Lumínico DIALux en Chile | Simulación y Cálculo de Iluminación | eLIGHTS" description="Solicita un estudio lumínico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe técnico con simulación 3D, verificación normativa y propuesta de luminarias LED. Entrega en 48 horas desde la recepción de todos los antecedentes." path="/estudio-luminico" />
+    <Seo title="Estudio Lumínico DIALux en Chile | Simulación y Cálculo de Iluminación | eLIGHTS" description="Solicita un estudio lumínico profesional en DIALux para canchas, bodegas, estacionamientos, industria y vialidad. Informe técnico con simulación 3D, verificación normativa y propuesta de luminarias LED. Entrega en 48 horas desde los antecedentes completos y el pago acreditado." path="/estudio-luminico" />
 
 
       {/* ── 1. HERO ─────────────────────────────────────────────────────────── */}
@@ -316,7 +320,7 @@ const EstudioLuminicoPage = () => {
           <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
             {[
               { value: 'DIALux', label: 'Software profesional de modelación' },
-              { value: '48h', label: 'Con antecedentes completos' },
+              { value: '48h', label: 'Con antecedentes completos y pago acreditado' },
               { value: 'PDF', label: 'Informe con renders y tablas' },
             ].map(({ value, label }) => (
               <div
@@ -526,7 +530,8 @@ const EstudioLuminicoPage = () => {
           >
             <Clock className="h-4 w-4 inline mr-2" />
             El informe se entrega en{' '}
-            <strong>48 horas desde la recepción de todos los antecedentes</strong>.
+            <strong>48 horas desde que tenemos todos los antecedentes y el pago del estudio acreditado</strong>. Incluye una
+            revisión.
           </div>
         </div>
       </section>

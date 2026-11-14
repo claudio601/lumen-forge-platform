@@ -12,7 +12,8 @@ export const KNOWN_PHRASES: { routes: string[]; phrase: RegExp; reason: string }
   {
     routes: ['/', '/estudio-luminico'],
     phrase: /^entrega en 48 horas$/i,
-    reason: 'plazo del informe del estudio DIALux, no de despacho; confirmado por el dueño el 2026-10-03',
+    reason:
+      'plazo del informe del estudio DIALux, no de despacho; confirmado por el dueño el 2026-10-03 y, desde el 2026-11-13, contado desde los antecedentes completos y el pago acreditado',
   },
   {
     routes: ['/politica-de-privacidad'],

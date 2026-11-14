@@ -5,11 +5,15 @@
 // (tarjetas de crédito y débito), Onepay y otras billeteras, MACH, Servipag (bancos y efectivo) y
 // Banca.me (cuotas sin tarjeta). No están activas las cuotas sin interés ni la transferencia por
 // Khipu o ETpay. Si cambian en Flow, cambia esta página. Además: transferencia y crédito caso a
-// caso para clientes frecuentes. La orden de compra y Mercado Público no se publican: sin confirmar.
+// caso para clientes frecuentes. Decisiones del dueño del 2026-11-13: los precios publicados son
+// para pago por transferencia y con Flow se suma su comisión, que informa la cotización (5A; el
+// porcentaje no se publica); empresas e instituciones compran con orden de compra, según las
+// condiciones acordadas (6A); los comprobantes van a pagos@elights.cl con el número de cotización
+// (8A; ventas@ sigue para todo lo demás). Mercado Público no se publica: sin confirmar.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
-import { EmailLink } from '@/components/legal/CompanyFacts';
+import { PaymentsEmailLink } from '@/components/legal/CompanyFacts';
 import { LEGAL_NAME } from '@/config/site';
 
 const MediosPagoPage = () => (
@@ -21,7 +25,10 @@ const MediosPagoPage = () => (
       En eLIGHTS no hay cobros automáticos. Pagas solo después de recibir nuestra cotización con el link de pago, cuando ya
       confirmamos la disponibilidad de tus productos.
     </p>
-    <p>Los precios están en pesos chilenos e incluyen IVA.</p>
+    <p>
+      Los precios están en pesos chilenos e incluyen IVA. Los precios publicados son para pago por transferencia bancaria. Si
+      pagas con el link de pago de Flow, se suma la comisión de Flow, que te informamos en la cotización antes de que pagues.
+    </p>
 
     <h2>Cómo puedes pagar</h2>
     <ol>
@@ -46,6 +53,9 @@ const MediosPagoPage = () => (
         <strong>Crédito para clientes frecuentes.</strong> Si ya nos has comprado más de una vez, podemos acordar caso a caso el
         pago con cheque a 30 o 60 días o con vale vista.
       </li>
+      <li>
+        <strong>Empresas e instituciones:</strong> compra con orden de compra, según las condiciones acordadas.
+      </li>
     </ol>
 
     <h2>Seguridad de tu pago</h2>
@@ -62,7 +72,7 @@ const MediosPagoPage = () => (
       </li>
       <li>
         <strong>Transferencia:</strong> cuando el dinero se acredita en nuestra cuenta. Si nos mandas el comprobante a{' '}
-        <EmailLink />, lo revisamos más rápido.
+        <PaymentsEmailLink /> con el número de tu cotización, lo revisamos más rápido.
       </li>
       <li>
         <strong>Crédito acordado:</strong> cuando recibimos el cheque o el vale vista.

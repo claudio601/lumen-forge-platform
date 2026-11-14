@@ -8,7 +8,7 @@
  *
  * El hub /asesoria (informe UX, sección 5.4) todavía no existe. Mientras tanto lleva al
  * Estudio Lumínico DIALux: es la asesoría técnica que ya existe (con su formulario, un plazo
- * de 48 horas desde que están los antecedentes y una FAQ para empresas), es la tarjeta central
+ * de 48 horas desde los antecedentes completos y el pago acreditado, y una FAQ para empresas), es la tarjeta central
  * del futuro hub y hoy no está en el menú ni en el pie, aunque 120 fichas lo mencionan. El
  * cotizador (/cotizador) y la instalación (/instalacion) ya tienen su propio enlace.
  *

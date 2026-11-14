@@ -34,7 +34,7 @@ const EstudioLuminicoTeaser = () => (
           <p className="text-muted-foreground mb-6">
             Simulación profesional de iluminación para estadios, bodegas, estacionamientos
             e industria. Informe técnico con verificación normativa. Entrega en 48 horas
-            desde la recepción de todos los antecedentes.
+            desde los antecedentes completos y el pago acreditado.
           </p>
           <div className="grid grid-cols-2 gap-3 mb-6">
             {features.map(({ emoji, text }) => (

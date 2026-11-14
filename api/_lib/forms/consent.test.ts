@@ -95,6 +95,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   '1.9': CONSENT_TEXTS_SINCE_1_2,
   // 1.10: conversación en Upstash y RUT de la empresa; las casillas siguen iguales.
   '1.10': CONSENT_TEXTS_SINCE_1_2,
+  // 1.11 (decisiones del dueño, 2026-11-13): los Términos §3.3 y §4 (precio publicado para pago por
+  // transferencia, comisión de Flow, despacho por pagar o retiro); las casillas no cambian.
+  '1.11': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({
