@@ -3,8 +3,9 @@
 // lugar en el correo (después de la primera línea).
 
 import { describe, expect, it } from 'vitest';
-import { REVIEW_HEADING, afterFirstLine, reviewSection, rutReviewItem } from './review';
+import { REVIEW_HEADING, afterFirstLine, boletaReviewItem, reviewSection, rutReviewItem } from './review';
 import { rutCheckDigit } from '../rut';
+import { BOLETA_ID_THRESHOLD_CLP } from '../boleta';
 
 /** RUT de prueba con su dígito verificador, y el mismo con otro dígito. */
 const BODY = '44444444';
@@ -41,5 +42,16 @@ describe('afterFirstLine', () => {
   it('pone el bloque después de la primera línea, con una línea en blanco antes', () => {
     expect(afterFirstLine(['Ref', 'resto'], ['Para revisar:', '- x', ''])).toEqual(['Ref', '', 'Para revisar:', '- x', '', 'resto']);
     expect(afterFirstLine(['Ref', 'resto'], [])).toEqual(['Ref', 'resto']);
+  });
+});
+
+describe('boletaReviewItem', () => {
+  it('persona sobre 135 UF: el aviso con el texto del dueño; si no, nada', () => {
+    expect(boletaReviewItem('persona', BOLETA_ID_THRESHOLD_CLP + 1)).toBe(
+      'Persona sobre 135 UF: pedir RUT y nombre por correo para la boleta',
+    );
+    expect(boletaReviewItem('persona', BOLETA_ID_THRESHOLD_CLP)).toBeNull();
+    expect(boletaReviewItem('empresa', BOLETA_ID_THRESHOLD_CLP + 1)).toBeNull();
+    expect(boletaReviewItem(undefined, BOLETA_ID_THRESHOLD_CLP + 1)).toBeNull();
   });
 });

@@ -19,7 +19,8 @@
 //      ...", con la constancia del envío nuevo.
 //   2b. Avisos «Para revisar» (api/_lib/forms/review.ts) al comienzo de la nota y en el
 //      correo, después de su primera línea: un RUT de empresa que no calza y una cantidad
-//      del comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts). En la
+//      del comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts) y una
+//      persona con un total CON IVA sobre 135 UF (api/_lib/boleta.ts). En la
 //      nota de un negocio nuevo, también los posibles duplicados con WhatsApp que devuelve
 //      createDeal (api/_lib/pipedrive/crossChannel.ts). Nunca rechazan.
 //   3. Enviar email GAS -> FIRE-AND-FORGET, con la misma constancia. Log warn si falla
@@ -45,7 +46,7 @@ import { netOf, priceItems } from '../_lib/catalog/pricing.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
-import { afterFirstLine, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
+import { afterFirstLine, boletaReviewItem, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
 import { quantityReviewItem } from '../_lib/forms/quantityMentions.js';
 
 const LOG = '[RequestOrder]';
@@ -383,6 +384,7 @@ export default async function handler(
   const reviewItems = [
     rutReviewItem(payload.customerType === 'empresa' ? payload.rut : undefined),
     quantityReviewItem(payload.notes, payload.items.map((i) => i.quantity)),
+    boletaReviewItem(payload.customerType, payload.subtotal), // total del catálogo, no del navegador
   ];
   const review = reviewSection(reviewItems);
 

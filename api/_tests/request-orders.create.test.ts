@@ -38,6 +38,7 @@ import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { priceIndex } from '../_lib/catalog/price-index.generated.js';
+import { BOLETA_ID_THRESHOLD_CLP } from '../_lib/boleta.js';
 import { rutCheckDigit } from '../_lib/rut';
 import {
   CONSENT_ERROR_CODE,
@@ -730,6 +731,31 @@ describe('POST /api/request-orders/create: avisos «Para revisar»', () => {
     await call({ ...base, notes, items: [ar111] });
     expect(lastNote()).not.toContain('Para revisar');
     expect(mail().items_lista).not.toContain('Revisar cantidad');
+  });
+
+  // Persona sobre 135 UF (21A): con el total del catálogo, nunca con el precio del navegador
+  const overUf = Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111) + 1;
+  const BOLETA = '- Persona sobre 135 UF: pedir RUT y nombre por correo para la boleta';
+
+  it('persona con un total CON IVA sobre 135 UF: aviso en la nota y en el correo', async () => {
+    const res = await call({ ...base, items: [{ ...ar111, quantity: overUf }] });
+    expect(res.statusCode).toBe(201);
+    expect(lastNote().startsWith(`Para revisar:\n${BOLETA}\n\nSolicitud de pedido RC-abc12`)).toBe(true);
+    expect(mail().items_lista.split('\n').slice(1, 4)).toEqual(['', 'Para revisar:', BOLETA]);
+  });
+
+  it('el precio del navegador no cuenta: una persona con precio inflado y total real bajo no avisa', async () => {
+    await call({ ...base, subtotal: BOLETA_ID_THRESHOLD_CLP * 2, items: [{ ...ar111, unitPrice: BOLETA_ID_THRESHOLD_CLP, lineTotal: BOLETA_ID_THRESHOLD_CLP * 2 }] });
+    expect(lastNote()).not.toContain('135 UF');
+  });
+
+  it.each([
+    ['persona con el total justo en el umbral o bajo él', base, Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111)],
+    ['empresa sobre 135 UF (lleva factura)', empresa, overUf],
+  ])('%s: sin aviso', async (_name, body, quantity) => {
+    await call({ ...body, items: [{ ...ar111, quantity }] });
+    expect(lastNote()).not.toContain('135 UF');
+    expect(mail().items_lista).not.toContain('135 UF');
   });
 
   it('posible duplicado sin otros avisos: la nota igual empieza con «Para revisar»', async () => {

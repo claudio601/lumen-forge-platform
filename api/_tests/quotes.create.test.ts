@@ -22,6 +22,7 @@ import { processQuoteToCrm, buildSuccessResponse } from '../_lib/crm/dedupe.js';
 import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { waitUntil } from '@vercel/functions';
 import { priceIndex } from '../_lib/catalog/price-index.generated.js';
+import { BOLETA_ID_THRESHOLD_CLP } from '../_lib/boleta.js';
 import { rutCheckDigit } from '../_lib/rut';
 import {
   CONSENT_ERROR_CODE,
@@ -895,6 +896,34 @@ describe('POST /api/quotes/create: avisos «Para revisar»', () => {
     await call({ ...body, notes: `son ${body.products[0].quantity}, panel 60x60 x 40W` });
     await mailsSettled();
     expect(notes()[0].content).not.toContain('Para revisar');
+  });
+
+  it('persona con un total CON IVA sobre 135 UF (del catálogo): aviso en la nota y en el correo', async () => {
+    const body = persona();
+    const quantity = Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111) + 1;
+    const res = await call({ ...body, notes: undefined, products: [{ ...body.products[0], quantity }] });
+    expect(res.statusCode).toBe(201);
+    await mailsSettled();
+    const item = '- Persona sobre 135 UF: pedir RUT y nombre por correo para la boleta';
+    expect(crmPayload().quoteAmountClp).toBe(AR111 * quantity);
+    expect(notes()[0].content.startsWith(`Para revisar:\n${item}\n\nCotización web NE-abc123`)).toBe(true);
+    expect(gasBodies()[0].items_lista.split('\n').slice(1, 4)).toEqual(['', 'Para revisar:', item]);
+  });
+
+  it.each([
+    ['persona en el umbral, aunque el navegador mande un precio enorme', () => {
+      const body = persona();
+      return { ...body, products: [{ ...body.products[0], quantity: Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111), unitPriceClp: BOLETA_ID_THRESHOLD_CLP }] };
+    }],
+    ['empresa sobre 135 UF', () => {
+      const body = withRut(VALID_RUT);
+      return { ...body, products: [{ ...body.products[0], quantity: Math.floor(BOLETA_ID_THRESHOLD_CLP / AR111) + 1 }] };
+    }],
+  ])('%s: sin aviso de boleta', async (_name, body) => {
+    await call(body());
+    await mailsSettled();
+    expect(notes()[0].content).not.toContain('135 UF');
+    expect(gasBodies()[0].items_lista).not.toContain('135 UF');
   });
 
   it('posible duplicado con WhatsApp (createDeal lo informa): primero en la nota, antes del RUT; el correo (que sale antes) no lo lleva', async () => {

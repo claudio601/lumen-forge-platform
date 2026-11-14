@@ -31,7 +31,8 @@
 //      se descarta, nunca da 400, y no entra en la referencia ni en el log.
 //  10b. Avisos «Para revisar» (api/_lib/forms/review.ts), al comienzo de la nota y en el
 //      correo después de su primera línea: un RUT de empresa que no calza y una cantidad del
-//      comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts). En la nota de un
+//      comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts) y una persona
+//      con un total CON IVA sobre 135 UF (api/_lib/boleta.ts). En la nota de un
 //      negocio nuevo, también los posibles duplicados con WhatsApp que devuelve createDeal
 //      (api/_lib/pipedrive/crossChannel.ts; el correo sale antes). Nunca rechazan.
 //  12. Privacidad (clave `consent`, api/_lib/forms/consent.ts): toda cotización del sitio,
@@ -58,7 +59,7 @@ import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { formatOrigenSection, parseAttribution } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
-import { afterFirstLine, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
+import { afterFirstLine, boletaReviewItem, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
 import { quantityReviewItem } from '../_lib/forms/quantityMentions.js';
 
 // --- Constants ---
@@ -309,6 +310,9 @@ function repriceSiteQuote(body: Record<string, unknown>, site: SiteQuote): strin
     (body.products as Array<{ quantity: number }>).map((p) => p.quantity),
   );
   if (quantityItem) site.review.push(quantityItem);
+  // Persona sobre 135 UF: con el total del catálogo (los productos sin precio quedan fuera)
+  const boletaItem = boletaReviewItem(site.customerType, total);
+  if (boletaItem) site.review.push(boletaItem);
   return [];
 }
 
