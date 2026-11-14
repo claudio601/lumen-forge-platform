@@ -10,6 +10,8 @@
 //   - viene después de un verbo de pedido: «necesito 3», «son 12», «cantidad: 5», «en total 8»,
 //     y termina ahí (fin, puntuación, «de», «para», «y»…);
 //   - o va en un «x N» suelto: «panel 60x60 x 4» (el x de una medida, «60x60», no cuenta).
+// Tras un verbo o una «x», solo de 1 a 999: «cotizar 2027», «necesito 1990» o «son 4990» son
+// un año o un precio. Con una palabra de conteo sí vale: «2000 unidades».
 // Nunca cuenta lo que está pegado a letras, puntos, comas, barras, guiones o «$» (modelos
 // como AR111, RUT, precios, fechas 15/12, horas), lo que sigue con una unidad (40W, 4000K,
 // 220V, 3 metros, 15 mil, 2 UF), un «IP 65» o «IK 08», un «modelo 200», una fecha «15 de
@@ -98,6 +100,8 @@ export function mentionedQuantities(comment: unknown): number[] {
       if (NOT_A_QUANTITY_BEFORE.test(before)) continue;
       // Tras una palabra de conteo no hay unidad que mirar; tras un verbo o una «x», sí
       if (pattern !== PATTERNS[0] && NOT_A_QUANTITY_AFTER.test(after)) continue;
+      // Sin palabra de conteo, un número de 4 cifras es un año o un precio («cotizar 2027», «son 4990»)
+      if (pattern !== PATTERNS[0] && value >= 1000) continue;
       // «60 x 60»: la x une dos números (una medida). Tras una medida o una potencia sí vale:
       // «60x60 x 4», «40W x 4».
       if (pattern === PATTERNS[2] && /(?:^|[^\p{L}\d.,x×*])\d+\s*$/u.test(text.slice(0, match.index))) continue;

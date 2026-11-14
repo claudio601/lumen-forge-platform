@@ -30,6 +30,9 @@ describe('mentionedQuantities: lo que sí cuenta', () => {
     ['NECESITO 3 PANELES', [3]],
     ['Necesito 3 paneles. Son 3 en total', [3]],
     ['4 lámparas', [4]],
+    ['necesito 2000 unidades', [2000]],
+    ['Cotizar 1500 focos', [1500]],
+    ['necesito 999', [999]],
   ])('«%s» → %j', (comment, expected) => {
     expect(mentionedQuantities(comment)).toEqual(expected);
   });
@@ -75,6 +78,13 @@ describe('mentionedQuantities: lo que nunca cuenta', () => {
     ['cero', 'necesito 0'],
     ['sin número', 'quiero cotizar paneles'],
     ['palabra que contiene un número', 'adosado'],
+    ['año tras un verbo', 'cotizar 2027'],
+    ['año tras «queremos comprar»', 'queremos comprar 2026'],
+    ['año tras «son»', 'son 2026'],
+    ['año pasado', 'necesito 1990'],
+    ['precio sin $ ni punto', 'son 4990'],
+    ['número de 4 cifras tras «x»', 'panel x 1500'],
+    ['año tras «x»', 'x 2026'],
   ])('%s: «%s»', (_name, comment) => {
     expect(mentionedQuantities(comment)).toEqual([]);
   });
