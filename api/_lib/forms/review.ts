@@ -8,6 +8,8 @@
 //   - RUT por revisar: el RUT de empresa no tiene forma de RUT o su dígito verificador
 //     (módulo 11, api/_lib/rut.ts) no calza. El servidor no rechaza por el RUT a propósito
 //     (perder un lead es peor).
+//   - Revisar cantidad: el comentario menciona una cantidad distinta de las elegidas
+//     (api/_lib/forms/quantityMentions.ts; /solicitar-pedido y /cotizacion).
 //   - Posible duplicado: la misma persona tiene un negocio abierto del otro canal (web o
 //     WhatsApp) creado en los últimos 7 días (api/_lib/pipedrive/crossChannel.ts). Solo en la
 //     nota y antes de los demás: el correo de /cotizacion y /cotizador sale antes de Pipedrive.

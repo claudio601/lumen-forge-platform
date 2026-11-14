@@ -18,9 +18,10 @@
 //      referencia RC- (sin negocio nuevo) también deja su nota "Reenvío de la solicitud
 //      ...", con la constancia del envío nuevo.
 //   2b. Avisos «Para revisar» (api/_lib/forms/review.ts) al comienzo de la nota y en el
-//      correo, después de su primera línea: un RUT de empresa que no calza. En la nota de un
-//      negocio nuevo, también los posibles duplicados con WhatsApp que devuelve createDeal
-//      (api/_lib/pipedrive/crossChannel.ts). Nunca rechazan.
+//      correo, después de su primera línea: un RUT de empresa que no calza y una cantidad
+//      del comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts). En la
+//      nota de un negocio nuevo, también los posibles duplicados con WhatsApp que devuelve
+//      createDeal (api/_lib/pipedrive/crossChannel.ts). Nunca rechazan.
 //   3. Enviar email GAS -> FIRE-AND-FORGET, con la misma constancia. Log warn si falla
 //      (sin datos del cliente). La constancia solo queda en la nota y en este correo, los
 //      dos después de crear el negocio: si fallan los dos, queda un aviso en el log.
@@ -45,6 +46,7 @@ import { pipedrivePost } from '../_lib/pipedrive/client.js';
 import { origenFromBody } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 import { afterFirstLine, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
+import { quantityReviewItem } from '../_lib/forms/quantityMentions.js';
 
 const LOG = '[RequestOrder]';
 const ALLOWED_METHODS = ['POST'];
@@ -380,6 +382,7 @@ export default async function handler(
   // ── Paso 1c: Avisos «Para revisar» (nota y correo; nunca rechazan ni van al log) ──
   const reviewItems = [
     rutReviewItem(payload.customerType === 'empresa' ? payload.rut : undefined),
+    quantityReviewItem(payload.notes, payload.items.map((i) => i.quantity)),
   ];
   const review = reviewSection(reviewItems);
 

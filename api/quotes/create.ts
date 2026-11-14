@@ -30,7 +30,8 @@
 //      "ORIGEN DE LA VISITA" al final de la nota y del correo. Informativo: un origen raro
 //      se descarta, nunca da 400, y no entra en la referencia ni en el log.
 //  10b. Avisos «Para revisar» (api/_lib/forms/review.ts), al comienzo de la nota y en el
-//      correo después de su primera línea: un RUT de empresa que no calza. En la nota de un
+//      correo después de su primera línea: un RUT de empresa que no calza y una cantidad del
+//      comentario distinta de las elegidas (api/_lib/forms/quantityMentions.ts). En la nota de un
 //      negocio nuevo, también los posibles duplicados con WhatsApp que devuelve createDeal
 //      (api/_lib/pipedrive/crossChannel.ts; el correo sale antes). Nunca rechazan.
 //  12. Privacidad (clave `consent`, api/_lib/forms/consent.ts): toda cotización del sitio,
@@ -58,6 +59,7 @@ import { notifySales, type SalesEmail } from '../_lib/notify/salesEmail.js';
 import { formatOrigenSection, parseAttribution } from '../_lib/forms/attribution.js';
 import { CONSENT_ERROR_CODE, resolveConsent } from '../_lib/forms/consent.js';
 import { afterFirstLine, reviewSection, rutReviewItem } from '../_lib/forms/review.js';
+import { quantityReviewItem } from '../_lib/forms/quantityMentions.js';
 
 // --- Constants ---
 const LOG_PREFIX = '[api/quotes/create]';
@@ -302,6 +304,11 @@ function repriceSiteQuote(body: Record<string, unknown>, site: SiteQuote): strin
   });
   if (total > 0) body.quoteAmountClp = total;
   else delete body.quoteAmountClp;
+  const quantityItem = quantityReviewItem(
+    body.notes,
+    (body.products as Array<{ quantity: number }>).map((p) => p.quantity),
+  );
+  if (quantityItem) site.review.push(quantityItem);
   return [];
 }
 

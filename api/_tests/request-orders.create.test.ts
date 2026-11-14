@@ -703,6 +703,35 @@ describe('POST /api/request-orders/create: avisos «Para revisar»', () => {
     expect(mail().items_lista).toContain('- RUT por revisar: dígito verificador no calza');
   });
 
+  it('el comentario menciona otra cantidad: «Revisar cantidad» en la nota y en el correo; nunca rechaza', async () => {
+    const res = await call({ ...base, notes: 'Hola, necesito 5 de estas', items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    expect(lastNote().startsWith(
+      `Para revisar:\n- Revisar cantidad: el comentario menciona 5; se eligió ${ar111.quantity}\n\nSolicitud de pedido RC-abc12`
+    )).toBe(true);
+    expect(mail().items_lista.split('\n').slice(1, 4)).toEqual([
+      '', 'Para revisar:', `- Revisar cantidad: el comentario menciona 5; se eligió ${ar111.quantity}`,
+    ]);
+    // El pedido se cotiza con lo elegido: el monto sigue siendo el del catálogo por esa cantidad
+    expect(vi.mocked(createDeal).mock.calls[0][0].quoteAmountClp).toBe(AR111 * ar111.quantity);
+  });
+
+  it('el RUT va antes que la cantidad', async () => {
+    await call({ ...empresa, rut: WRONG_RUT, notes: 'son 10 unidades', items: [ar111] });
+    expect(lastNote().startsWith(
+      'Para revisar:\n- RUT por revisar: dígito verificador no calza\n- Revisar cantidad: el comentario menciona 10;'
+    )).toBe(true);
+  });
+
+  it.each([
+    ['la misma cantidad', `necesito ${ar111.quantity}`],
+    ['medidas, potencias y temperaturas', 'panel 60x60 de 40W 4000K IP65, fono +56 9 1234 5678'],
+  ])('comentario con %s: sin aviso', async (_name, notes) => {
+    await call({ ...base, notes, items: [ar111] });
+    expect(lastNote()).not.toContain('Para revisar');
+    expect(mail().items_lista).not.toContain('Revisar cantidad');
+  });
+
   it('posible duplicado sin otros avisos: la nota igual empieza con «Para revisar»', async () => {
     vi.mocked(createDeal).mockResolvedValueOnce({ dealId: 999, status: 'created', possibleDuplicates: ['Posible duplicado: revisar el negocio #501 (WhatsApp, 12-11-2026)'] } as never);
     await call({ ...base, items: [ar111] });
