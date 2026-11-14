@@ -132,10 +132,15 @@ export const PICKUP_PLACE = 'nuestra bodega en Quinta Normal';
 // paneles redondos y cuadrados chicos (PLRE, PLRS, PLCE) sí se despachan en cualquier cantidad.
 // Con una caja o más se cotiza lo pedido, sin redondear a cajas.»
 // Cada fila, con su fuente: la regla del dueño y el «Packaging por mayor» de Jumpseller (revisado
-// el 2026-11-13 con `npm run content -- export`). Donde la regla no nombra el formato, manda el
-// packaging de Jumpseller; sin dato en ninguno de los dos, box: null (la ficha dice «desde una caja
-// completa», sin número). Lo leen la ficha (ProductDetail, panelRegionShippingNotice) y /despacho.
+// el 2026-11-13 con `npm run content -- export`). Donde la regla no nombra el formato, o el nombre
+// de Jumpseller no dice si es slim o backlight (2347854, 2347849, 21766686), manda el packaging de
+// Jumpseller; sin packaging, box: null (la ficha dice «desde una caja completa», sin número). Lo lee
+// la ficha (ProductDetail, panelRegionShippingNotice). /despacho no nombra cajas: solo la regla y el
+// «desde N» del slim 60x60 (SLIM_60X60_MIN_UNITS, el mismo de estas filas; legal.test lo fija).
 // No cambia formularios ni cantidades: el pedido se cotiza igual.
+
+/** El slim 60x60 va a regiones desde estas unidades (regla del dueño A22). Lo leen PANEL_MASTER_BOX y /despacho. */
+export const SLIM_60X60_MIN_UNITS = 4;
 
 export interface PanelMasterBox {
   /** Unidades de la caja master; null si no hay dato confiable. */
@@ -158,17 +163,18 @@ export const PANEL_MASTER_BOX: Readonly<Record<number, PanelMasterBox>> = {
   2348936: { box: 6 },
   // 120x30 40W: regla del dueño (slim 120x30, 10); Jumpseller, «10 unidades por cajas».
   2347854: { box: 10 },
-  // 120x30 40W marco blanco regulable: Jumpseller no trae su packaging y su nombre no dice si es
-  // slim o backlight. Sin número hasta que el dueño lo confirme.
+  // 120x30 40W marco blanco regulable: Jumpseller no trae su «Packaging por mayor», y no es igual al
+  // 2347854: otro LED (SMD2835; el 2347854, SMD5730) y otro flujo (3200 lm; el 2347854, 4400 lm).
+  // Sin número hasta que el dueño confirme la caja o agregue el packaging en Jumpseller.
   2348922: { box: null },
   // 120x15 36W: regla del dueño (slim 120x15, 10); Jumpseller, «10 unidades por caja».
   2347849: { box: 10 },
   // 120x15 36W luz cálida: regla del dueño (slim 120x15, 10); Jumpseller, «10 unidades por caja».
   21766686: { box: 10 },
   // Slim 60x60 40W: regla del dueño (10, y se despacha desde 4); Jumpseller, «10 unidades por cajas».
-  4608256: { box: 10, minUnits: 4 },
+  4608256: { box: 10, minUnits: SLIM_60X60_MIN_UNITS },
   // Slim 60x60 40W dimerizable: también es slim 60x60 (regla del dueño, desde 4); Jumpseller, «10 unidades por cajas».
-  2501112: { box: 10, minUnits: 4 },
+  2501112: { box: 10, minUnits: SLIM_60X60_MIN_UNITS },
 };
 
 /**

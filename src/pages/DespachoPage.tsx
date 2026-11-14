@@ -9,10 +9,11 @@
 //   el transportista) o retiro en bodega; el flete va incluido en la cotización solo cuando las
 //   bases de una licitación o el proyecto lo exigen (decisión del dueño 4A, 2026-11-13).
 // - REGION_CARRIERS: a regiones, por pagar; el tiempo de viaje se informa en la cotización.
-// - PANEL_MASTER_BOX: los paneles de formato grande van a regiones solo desde su caja master (el
-//   slim 60x60, desde 4 unidades); con menos, retiro en bodega o la caja completa. Los paneles
-//   chicos, redondos y cuadrados, en cualquier cantidad (regla del dueño A22, decisión 2A,
-//   2026-11-13). Cuántas unidades trae cada caja lo dice la ficha de cada panel.
+// - Paneles de formato grande (regla del dueño A22, decisión 2A, 2026-11-13): van a regiones solo
+//   desde su caja master; el slim 60x60, desde SLIM_60X60_MIN_UNITS; con menos, retiro en bodega o
+//   la caja completa. Los paneles chicos, redondos y cuadrados, en cualquier cantidad. La página no
+//   promete un número por panel: lo muestra la ficha (PANEL_MASTER_BOX), y la del 120x30 regulable
+//   (2348922) dice «desde una caja completa», sin número, porque Jumpseller no trae su caja.
 // - PICKUP_PLACE: retiro en la bodega de Quinta Normal. La dirección exacta se da solo con el
 //   pago acreditado: nunca se publica (la página la nombra una sola vez, en «Retiro en bodega»).
 // El único plazo publicado es "hasta 2 días hábiles": check-prerender bloquea cualquier otro
@@ -21,7 +22,15 @@
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
 import { EmailLink } from '@/components/legal/CompanyFacts';
-import { clp, FREE_SHIPPING_AREA, FREE_SHIPPING_THRESHOLD_CLP, freeShippingExcludedList, PICKUP_PLACE, REGION_CARRIERS } from '@/config/business';
+import {
+  clp,
+  FREE_SHIPPING_AREA,
+  FREE_SHIPPING_THRESHOLD_CLP,
+  freeShippingExcludedList,
+  PICKUP_PLACE,
+  REGION_CARRIERS,
+  SLIM_60X60_MIN_UNITS,
+} from '@/config/business';
 
 const threshold = clp(FREE_SHIPPING_THRESHOLD_CLP);
 const area = FREE_SHIPPING_AREA.name;
@@ -78,9 +87,9 @@ const DespachoPage = () => (
       <li>
         <strong>Paneles de formato grande</strong> (60x60, 120x60, 120x30 y 120x15, backlight y slim): a regiones los
         despachamos solo desde una caja completa, porque fuera de su caja se pueden romper en el viaje. El panel slim de 60x60
-        se despacha desde 4 unidades. Con menos unidades, retiras tu pedido en la bodega o te cotizamos la caja completa. Desde
-        una caja, cotizamos la cantidad que pidas, sin redondear a cajas. La ficha de cada panel indica desde cuántas unidades
-        va a regiones.
+        se despacha desde {SLIM_60X60_MIN_UNITS} unidades. Con menos unidades, retiras tu pedido en la bodega o te cotizamos la
+        caja completa. Desde una caja, cotizamos la cantidad que pidas, sin redondear a cajas. La ficha de cada uno de estos
+        paneles indica cómo se despacha a regiones.
       </li>
       <li>Los paneles chicos, redondos y cuadrados, se despachan en cualquier cantidad.</li>
     </ul>

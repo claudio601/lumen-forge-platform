@@ -40,6 +40,7 @@ import {
   PICKUP_PLACE,
   quoteValidityBusinessDays,
   REGION_CARRIERS,
+  SLIM_60X60_MIN_UNITS,
   waBase,
 } from '@/config/business';
 import { NOINDEX_ROUTES, STATIC_ROUTES } from '@/lib/seo/routes';
@@ -317,6 +318,10 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '3.').text).toContain(
       'si el despacho va sin costo o por pagar o si retiras en bodega (el flete va por separado solo cuando las bases de una licitación o el proyecto lo exigen)',
     );
+    // §3.3 (versión 1.11, 5A): lo que trae la cotización incluye la comisión de Flow que §4 promete informar
+    expect(section(main, '3.').text).toContain(
+      'productos sin derecho a retracto) y un link de pago. También indica la comisión de Flow, que se suma si pagas con el link de pago de Flow.',
+    );
     const precios = section(main, '4.');
     expect(precios.text).toContain(
       `La cotización indica si va sin costo (compras sobre ${THRESHOLD} con IVA, con entrega en la ${FREE_SHIPPING_AREA.name}), por pagar o con retiro en bodega. El flete va por separado en la cotización solo cuando las bases de una licitación o el proyecto lo exigen. Las comunas que no entran y las demás condiciones están en Despacho.`,
@@ -445,7 +450,16 @@ describe('páginas legales y de compra: contenido', () => {
     expect(regiones).toContain('Con menos unidades, retiras tu pedido en la bodega o te cotizamos la caja completa.');
     expect(regiones).toContain('Desde una caja, cotizamos la cantidad que pidas, sin redondear a cajas.');
     expect(regiones).toContain('Los paneles chicos, redondos y cuadrados, se despachan en cualquier cantidad.');
-    expect(Object.values(PANEL_MASTER_BOX).filter(p => p.minUnits).map(p => p.minUnits)).toEqual([4, 4]); // los dos slim 60x60
+    // /despacho no promete un número por panel: la ficha del 120x30 regulable (2348922) no lo tiene
+    expect(regiones).toContain('La ficha de cada uno de estos paneles indica cómo se despacha a regiones.');
+    expect(regiones).not.toContain('desde cuántas unidades');
+    expect(PANEL_MASTER_BOX[2348922].box).toBeNull();
+    // el «4» de la página y el de las fichas son la misma constante (regla del dueño A22)
+    expect(SLIM_60X60_MIN_UNITS).toBe(4);
+    expect(Object.values(PANEL_MASTER_BOX).filter(p => p.minUnits).map(p => p.minUnits)).toEqual([
+      SLIM_60X60_MIN_UNITS,
+      SLIM_60X60_MIN_UNITS,
+    ]); // los dos slim 60x60
     // Seguimiento solo por correo (dueño, 2026-10-16): el WhatsApp lo atiende un asistente que no
     // responde consultas de pedidos.
     const seguimiento = section(main, 'Seguimiento').text;
