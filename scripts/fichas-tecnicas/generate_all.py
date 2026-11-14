@@ -16,7 +16,12 @@ from parse_ies import parse_ies_file as parse_ies
 from gen_ficha_pdf import generar_ficha_pdf
 from render_polar import render_polar_from_ies
 
-IES_DIR     = os.path.join(ROOT, 'docs', 'fotometrias', 'bestled')
+# Los .IES no van en el repo publico (decision del dueno, 13-11-2026): se entregan
+# solo con una cotizacion. Viven en una carpeta privada fuera del repo.
+IES_DIR     = os.environ.get(
+    'FOTOMETRIAS_BESTLED_DIR',
+    os.path.expanduser('~/proyectos/elights-fotometrias-privadas/bestled'),
+)
 POLAR_DIR   = os.path.join(ROOT, 'docs', 'fotometrias', 'bestled', 'polar')
 JSON_DIR    = os.path.join(ROOT, 'docs', 'fichas-tecnicas', 'json')
 PDF_DIR     = os.path.join(ROOT, 'docs', 'fichas-tecnicas', 'pdf')
@@ -152,6 +157,10 @@ def main():
 
     # Encontrar archivos IES
     ies_files = {}
+    if not os.path.isdir(IES_DIR):
+        print(f'ERROR: no existe la carpeta de fotometrias {IES_DIR} '
+              '(definela con FOTOMETRIAS_BESTLED_DIR; los .IES no estan en el repo)')
+        sys.exit(1)
     for fname in sorted(os.listdir(IES_DIR)):
         if not fname.endswith('.IES') and not fname.endswith('.ies'): continue
         for w in [40, 60, 90, 120, 150, 200, 250]:
