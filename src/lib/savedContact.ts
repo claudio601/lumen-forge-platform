@@ -116,10 +116,11 @@ const FORM_RULES: Readonly<Record<ContactForm, FormRules>> = {
     company: 'selector',
   },
   cotizador: {
-    // Los maxLength de SmartQuotePage (los mismos de api/project-quotes/create.ts)
-    reads: { nombre: 120, email: 254, telefono: 30, empresa: 150, giro: 150, direccion: 200, rut: 20 },
-    writes: ['nombre', 'email', 'telefono', 'empresa', 'giro', 'direccion', 'rut'],
-    company: 'optional',
+    // Los maxLength de SmartQuotePage (los mismos de api/project-quotes/create.ts). Con el
+    // selector persona o empresa desde el 13-11-2026 (antes, empresa opcional sin selector).
+    reads: { nombre: 120, email: 254, telefono: 30, tipoCliente: true, empresa: 150, giro: 150, direccion: 200, rut: 20 },
+    writes: ['nombre', 'email', 'telefono', 'tipoCliente', 'empresa', 'giro', 'direccion', 'rut'],
+    company: 'selector',
   },
   'estudio-luminico': {
     // ESTUDIO_MAX_LENGTHS

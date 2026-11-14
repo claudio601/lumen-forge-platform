@@ -159,7 +159,7 @@ describe('savedContact: mezcla de un envío confirmado con lo guardado', () => {
   });
 
   it('con el mismo correo (aunque cambien las mayúsculas), un campo vacío no borra lo guardado', () => {
-    expect(mergeSavedContact('cotizador', empresa, { ...ANA, email: 'PRUEBA-ANA@example.com ', telefono: '', nombre: 'PRUEBA Ana B.' })).toEqual({
+    expect(mergeSavedContact('cotizador', empresa, { ...ANA, email: 'PRUEBA-ANA@example.com ', telefono: '', nombre: 'PRUEBA Ana B.', tipoCliente: 'empresa' })).toEqual({
       ...empresa,
       email: 'PRUEBA-ANA@example.com',
       nombre: 'PRUEBA Ana B.',
@@ -184,17 +184,19 @@ describe('savedContact: mezcla de un envío confirmado con lo guardado', () => {
     });
   });
 
-  it('/cotizador con razón social pasa el tipo a empresa; sin ella no lo pasa a persona ni guarda giro ni RUT sueltos', () => {
+  it('/cotizador tiene selector (13-11-2026): la empresa se guarda solo si se envió como empresa', () => {
     const persona = { ...ANA, tipoCliente: 'persona' as const };
-    expect(mergeSavedContact('cotizador', persona, { ...ANA, empresa: 'PRUEBA Ana SpA', giro: 'Prueba', rut: RUT })).toEqual({
+    expect(mergeSavedContact('cotizador', persona, { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', giro: 'Prueba', rut: RUT })).toEqual({
       ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', giro: 'Prueba', rut: RUT,
     });
-    expect(mergeSavedContact('cotizador', persona, { ...ANA, giro: 'Prueba', rut: RUT, direccion: 'Prueba 123' })).toEqual(persona);
+    // Como persona: el tipo pasa a persona y no se guarda la empresa (la guardada queda)
+    expect(mergeSavedContact('cotizador', null, { ...ANA, tipoCliente: 'persona', empresa: 'PRUEBA Ana SpA', rut: RUT })).toEqual(persona);
+    expect(mergeSavedContact('cotizador', empresa, { ...ANA, tipoCliente: 'persona' })).toEqual({ ...empresa, tipoCliente: 'persona' });
     expect(mergeSavedContact('cotizador', null, ANA)).toEqual(ANA);
   });
 
   it('/cotizador no guarda un RUT inválido (no revisa el dígito verificador)', () => {
-    expect(mergeSavedContact('cotizador', null, { ...ANA, empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toEqual({
+    expect(mergeSavedContact('cotizador', null, { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toEqual({
       ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA',
     });
   });
@@ -202,7 +204,7 @@ describe('savedContact: mezcla de un envío confirmado con lo guardado', () => {
   it('con el mismo correo, un valor enviado que no se puede guardar tampoco deja el anterior', () => {
     const sinRut = { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', giro: 'Prueba', direccion: 'Prueba 123' };
     // /cotizador no revisa el dígito verificador: el RUT nuevo e inválido borra el guardado
-    expect(mergeSavedContact('cotizador', empresa, { ...ANA, empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toStrictEqual(sinRut);
+    expect(mergeSavedContact('cotizador', empresa, { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toStrictEqual(sinRut);
     expect(mergeSavedContact('cotizacion', empresa, { ...ANA, tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA', rut: '44.444.444-5' })).toStrictEqual(sinRut);
     // Un nombre más largo que el tope general (/cotizacion no tiene maxLength en el nombre)
     expect(mergeSavedContact('cotizacion', empresa, { ...ANA, nombre: 'x'.repeat(121), tipoCliente: 'empresa', empresa: 'PRUEBA Ana SpA' })).toStrictEqual({
@@ -212,7 +214,7 @@ describe('savedContact: mezcla de un envío confirmado con lo guardado', () => {
     expect(mergeSavedContact('cotizacion', empresa, { ...ANA, tipoCliente: 'empresa', empresa: 'x'.repeat(201) })).toStrictEqual({ ...ANA, tipoCliente: 'empresa' });
     // Sin la empresa en el envío (como persona, o sin razón social), el bloque guardado no se toca
     expect(mergeSavedContact('cotizacion', empresa, { ...ANA, tipoCliente: 'persona', rut: '44.444.444-5' })).toStrictEqual({ ...empresa, tipoCliente: 'persona' });
-    expect(mergeSavedContact('cotizador', empresa, { ...ANA, rut: '44.444.444-5' })).toStrictEqual(empresa);
+    expect(mergeSavedContact('cotizador', empresa, { ...ANA, tipoCliente: 'persona', rut: '44.444.444-5' })).toStrictEqual({ ...empresa, tipoCliente: 'persona' });
   });
 
   it('con selector, la empresa se guarda solo si se envió como empresa; como persona, la guardada queda', () => {
@@ -254,7 +256,7 @@ describe('savedContact: lo que completa cada formulario', () => {
   it('cada formulario lee solo sus claves (tabla de §3)', () => {
     expect(Object.keys(prefillFor('cotizacion', all))).toEqual(['nombre', 'email', 'telefono', 'tipoCliente', 'empresa', 'giro', 'direccion', 'rut']);
     expect(Object.keys(prefillFor('solicitar-pedido', all))).toEqual(['nombre', 'email', 'telefono', 'tipoCliente', 'empresa', 'rut', 'comuna', 'region']);
-    expect(Object.keys(prefillFor('cotizador', all))).toEqual(['nombre', 'email', 'telefono', 'empresa', 'giro', 'direccion', 'rut']);
+    expect(Object.keys(prefillFor('cotizador', all))).toEqual(['nombre', 'email', 'telefono', 'tipoCliente', 'empresa', 'giro', 'direccion', 'rut']);
     expect(Object.keys(prefillFor('estudio-luminico', all))).toEqual(['nombre', 'email', 'telefono', 'empresa']);
     expect(Object.keys(prefillFor('instalacion', all))).toEqual(['nombre', 'email', 'telefono', 'comuna']);
   });

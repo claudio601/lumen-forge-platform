@@ -15,7 +15,12 @@
 //       Un solo new Date() por solicitud: la hora de la constancia, la «Fecha» de la nota
 //       y la ventana de la referencia salen del mismo instante del servidor.
 //   3. Validar payload (400). Se arma un objeto limpio solo con las claves conocidas:
-//      cualquier precio o monto que mande el navegador se descarta.
+//      cualquier precio o monto que mande el navegador se descarta. Persona o empresa
+//      (`customerType`, decisión del dueño del 13-11-2026, igual que /cotizacion y
+//      /solicitar-pedido): una persona recibe boleta y su RUT, razón social y giro se
+//      descartan; una empresa, como antes (los tres opcionales). Otro valor da 400. Sin
+//      customerType (una pestaña con el JS de antes del deploy) se acepta como antes: es
+//      empresa si dejó razón social o RUT.
 //   4. Referencia PY- única: la misma en el correo, la nota y el deal
 //   5. Correo a ventas vía GAS ANTES de Pipedrive (waitUntil, no bloquea)
 //   6. Pipedrive: persona, organización (si hay razón social), deal (valor 0, Tipo de
@@ -93,7 +98,11 @@ const ALLOWED_METHODS = ['POST'];
 
 // ── Payload limpio ────────────────────────────────────────────────────────────
 
+export type CustomerType = 'persona' | 'empresa';
+
 export interface ProjectQuote {
+  /** Lo que declaró el cliente; undefined en un cuerpo del formulario anterior (sin selector). */
+  customerType?: CustomerType;
   nombre: string;
   email: string;
   telefono: string;
@@ -250,21 +259,33 @@ export function validateProjectQuote(body: unknown): ProjectQuoteValidation {
     else errors.push('altura must be a number from 0 to ' + MAX_ALTURA);
   }
 
+  let customerType: CustomerType | undefined;
+  if (!isBlank(p.customerType)) {
+    if (p.customerType === 'persona' || p.customerType === 'empresa') customerType = p.customerType;
+    else errors.push("customerType must be 'persona' or 'empresa'");
+  }
+  // Una persona recibe boleta: su RUT, razón social y giro no se leen (ni se validan)
+  const company = customerType === 'persona'
+    ? {}
+    : {
+        rutEmpresa: readText(p, 'rutEmpresa', errors),
+        razonSocial: readText(p, 'razonSocial', errors),
+        giro: readText(p, 'giro', errors),
+      };
+
   const optional = {
     aplicacion: readText(p, 'aplicacion', errors),
     nivelIluminacion: readOption(p, 'nivelIluminacion', ILLUMINATION_LEVELS, errors),
     ciudad: readText(p, 'ciudad', errors),
     plazo: readText(p, 'plazo', errors),
     comentarios: readText(p, 'comentarios', errors, { multiline: true }),
-    rutEmpresa: readText(p, 'rutEmpresa', errors),
-    razonSocial: readText(p, 'razonSocial', errors),
-    giro: readText(p, 'giro', errors),
+    ...company,
     direccion: readText(p, 'direccion', errors),
   };
 
   if (errors.length) return { valid: false, errors, quote: null };
 
-  const quote: ProjectQuote = { nombre, email, telefono, tipoProyecto, m2 };
+  const quote: ProjectQuote = { ...(customerType ? { customerType } : {}), nombre, email, telefono, tipoProyecto, m2 };
   if (altura !== undefined) quote.altura = altura;
   for (const [key, value] of Object.entries(optional)) {
     if (value !== undefined) Object.assign(quote, { [key]: value });
@@ -296,12 +317,28 @@ export function buildProjectQuoteRef(q: ProjectQuote, now: number = Date.now()):
     q.comentarios ?? '',
     (q.razonSocial ?? '').toLowerCase(),
     Math.floor(now / 3_600_000),
+    // Al final y solo si se declaró: un cuerpo del formulario anterior da la misma referencia que antes
+    ...(q.customerType ? [q.customerType] : []),
   ].join('|');
   return 'PY-' + djb2(key);
 }
 
-/** Empresa (B2B) si dejó razón social o RUT de empresa. */
-const isCompany = (q: ProjectQuote) => Boolean(q.razonSocial || q.rutEmpresa);
+/**
+ * Empresa (B2B): la que declaró el cliente o, en un cuerpo del formulario anterior (sin
+ * selector), si dejó razón social o RUT de empresa.
+ */
+const isCompany = (q: ProjectQuote) => (q.customerType ? q.customerType === 'empresa' : Boolean(q.razonSocial || q.rutEmpresa));
+
+/**
+ * Tipo de comprador para la nota y el correo, con el documento (como /solicitar-pedido). Sin
+ * selector (formulario anterior) se infiere de los datos de empresa, como antes.
+ */
+function buyerLines(q: ProjectQuote): string[] {
+  if (!q.customerType) return [`Tipo de cliente: ${isCompany(q) ? 'Empresa (B2B)' : 'Persona (B2C)'}`];
+  return q.customerType === 'empresa'
+    ? ['Tipo de cliente: Empresa', 'Documento: Factura']
+    : ['Tipo de cliente: Persona natural', 'Documento: Boleta'];
+}
 
 function projectLines(q: ProjectQuote): string[] {
   return [
@@ -338,6 +375,7 @@ export function buildProjectQuoteEmail(
     telefono: q.telefono,
     cuerpo: [
       `Cotizador de proyecto ${ref} (${SITE_URL}/cotizador)`,
+      ...(q.customerType ? buyerLines(q) : []),
       ...projectLines(q),
       ...(longComment ? ['', 'Comentarios del cliente (completos):', comentarios] : []),
       ...(archivos.length ? ['', ...archivos] : []),
@@ -396,10 +434,15 @@ export function buildProjectQuoteNote(
     `Nombre: ${q.nombre}`,
     `Email: ${q.email}`,
     `Teléfono: ${q.telefono}`,
-    `Tipo de cliente: ${isCompany(q) ? 'Empresa (B2B)' : 'Persona (B2C)'}`,
-    `Razón social: ${q.razonSocial ?? NOT_GIVEN}`,
-    `RUT empresa: ${q.rutEmpresa ?? NOT_GIVEN}`,
-    `Giro: ${q.giro ?? NOT_GIVEN}`,
+    ...buyerLines(q),
+    // Una persona recibe boleta: sin razón social, RUT ni giro
+    ...(q.customerType === 'persona'
+      ? []
+      : [
+          `Razón social: ${q.razonSocial ?? NOT_GIVEN}`,
+          `RUT empresa: ${q.rutEmpresa ?? NOT_GIVEN}`,
+          `Giro: ${q.giro ?? NOT_GIVEN}`,
+        ]),
     `Dirección: ${q.direccion ?? NOT_GIVEN}`,
     '',
     '--- COMENTARIOS ---',

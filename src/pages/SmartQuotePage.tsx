@@ -11,6 +11,10 @@
 // «Recordar mis datos» (especificación del 23-10-2026): la casilla va al final de «Datos de
 // contacto»; al hidratar se completan los campos vacíos con lo guardado y un envío confirmado
 // con la casilla marcada guarda lo enviado (useRememberContact). El cuerpo no cambia.
+// Persona o empresa (decisión del dueño, 13-11-2026): el mismo selector «Tipo de cliente» de
+// /cotizacion y /solicitar-pedido, en persona al entrar (también en el HTML del prerender).
+// Una persona recibe boleta: no ve ni envía RUT, razón social ni giro. Una empresa, como antes
+// (los tres opcionales). Lo guardado puede traer el tipo: se aplica al hidratar.
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Send, Zap, AlertCircle } from 'lucide-react';
@@ -108,6 +112,60 @@ const PROJECT_STEPS = [
   'Si la aceptas, pagas con el link de pago: la compra se hace solo cuando pagas.',
 ] as const;
 
+type CustomerType = 'persona' | 'empresa';
+
+interface SmartQuoteForm {
+  tipoProyecto: string;
+  m2: string;
+  altura: string;
+  aplicacion: string;
+  nivelIluminacion: string;
+  ciudad: string;
+  plazo: string;
+  comentarios: string;
+  nombre: string;
+  email: string;
+  telefono: string;
+  customerType: CustomerType;
+  rutEmpresa: string;
+  razonSocial: string;
+  giro: string;
+  direccion: string;
+}
+
+/** Valor inicial: persona, igual en el prerender y en el primer render del navegador. */
+const INITIAL_FORM: SmartQuoteForm = {
+  tipoProyecto: '',
+  m2: '',
+  altura: '',
+  aplicacion: '',
+  nivelIluminacion: '',
+  ciudad: '',
+  plazo: '',
+  comentarios: '',
+  nombre: '',
+  email: '',
+  telefono: '',
+  customerType: 'persona',
+  rutEmpresa: '',
+  razonSocial: '',
+  giro: '',
+  direccion: '',
+};
+
+const CONTACT_FIELDS = [
+  { name: 'nombre', label: 'Nombre y Apellido', type: 'text', maxLength: 120, autoComplete: 'name' },
+  { name: 'email', label: 'Email', type: 'email', maxLength: 254, autoComplete: 'email' },
+  { name: 'telefono', label: 'Teléfono', type: 'tel', maxLength: 30, autoComplete: 'tel' },
+] as const;
+
+// Solo para empresa (los mismos rótulos de /cotizacion); opcionales, como antes del selector
+const COMPANY_FIELDS = [
+  { name: 'rutEmpresa', label: 'RUT Empresa', maxLength: 20, autoComplete: 'off' },
+  { name: 'razonSocial', label: 'Razón Social', maxLength: 150, autoComplete: 'organization' },
+  { name: 'giro', label: 'Giro', maxLength: 150, autoComplete: 'off' },
+] as const;
+
 const SEO_TITLE = 'Cotizar Iluminación LED | eLIGHTS Chile';
 const SEO_DESCRIPTION = 'Solicita una cotización de iluminación LED profesional. Productos técnicos para proyectos comerciales, industriales y residenciales.';
 
@@ -131,40 +189,25 @@ const SmartQuotePage = () => {
   // false en el HTML estático (prerender) y en el primer render del navegador; true cuando
   // React ya tomó el formulario. Mientras sea false, todo queda deshabilitado.
   const [hydrated, setHydrated] = useState(false);
-  const [form, setForm] = useState({
-    tipoProyecto: '',
-    m2: '',
-    altura: '',
-    aplicacion: '',
-    nivelIluminacion: '',
-    ciudad: '',
-    plazo: '',
-    comentarios: '',
-    nombre: '',
-    email: '',
-    telefono: '',
-    rutEmpresa: '',
-    razonSocial: '',
-    giro: '',
-    direccion: '',
-  });
+  const [form, setForm] = useState<SmartQuoteForm>(INITIAL_FORM);
 
   useEffect(() => {
     setHydrated(true);
     // Lo guardado se lee recién ahora: el HTML del prerender y el primer render no cambian
     const saved = remember.prefill();
     if (saved) {
+      // Con INITIAL_FORM: el tipo se completa solo si sigue en persona (su valor inicial)
       setForm(prev => fillEmpty(prev, {
-        nombre: saved.nombre, email: saved.email, telefono: saved.telefono,
+        nombre: saved.nombre, email: saved.email, telefono: saved.telefono, customerType: saved.tipoCliente,
         razonSocial: saved.empresa, giro: saved.giro, direccion: saved.direccion, rutEmpresa: saved.rut,
-      }));
+      }, INITIAL_FORM));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [name]: value }) as SmartQuoteForm);
     if (name === 'email') remember.onEmailChange(value);
   };
 
@@ -190,6 +233,8 @@ const SmartQuotePage = () => {
     return null;
   };
 
+  const isEmpresa = form.customerType === 'empresa';
+
   const buildPayload = () => ({
     tipoProyecto: form.tipoProyecto,
     m2: parseM2(form.m2),
@@ -202,9 +247,11 @@ const SmartQuotePage = () => {
     nombre: form.nombre.trim(),
     email: form.email.trim(),
     telefono: form.telefono.trim(),
-    rutEmpresa: optional(form.rutEmpresa),
-    razonSocial: optional(form.razonSocial),
-    giro: optional(form.giro),
+    customerType: form.customerType,
+    // Una persona no envía datos de empresa (aunque los haya escrito antes de cambiar el tipo)
+    ...(isEmpresa
+      ? { rutEmpresa: optional(form.rutEmpresa), razonSocial: optional(form.razonSocial), giro: optional(form.giro) }
+      : {}),
     direccion: optional(form.direccion),
     website,
     attribution: getAttribution(),
@@ -258,7 +305,7 @@ const SmartQuotePage = () => {
       if (ref) trackLead('cotizador', { project_type: form.tipoProyecto });
       // Con la misma condición y la casilla marcada, se guarda lo enviado (no el formulario)
       remember.afterSubmit(Boolean(ref), {
-        nombre: payload.nombre, email: payload.email, telefono: payload.telefono,
+        nombre: payload.nombre, email: payload.email, telefono: payload.telefono, tipoCliente: payload.customerType,
         empresa: payload.razonSocial, giro: payload.giro, direccion: payload.direccion, rut: payload.rutEmpresa,
       });
       toast.success('Propuesta solicitada', { description: responseTimePromise });
@@ -434,28 +481,47 @@ const SmartQuotePage = () => {
             <div className="border rounded-xl p-6 space-y-4">
               <h2 className="font-bold">Datos de contacto</h2>
               <div className="grid sm:grid-cols-2 gap-4">
-                {[
-                  { name: 'nombre', label: 'Nombre y Apellido', required: true, maxLength: 120, autoComplete: 'name' },
-                  { name: 'email', label: 'Email', type: 'email', required: true, maxLength: 254, autoComplete: 'email' },
-                  { name: 'telefono', label: 'Teléfono', type: 'tel', required: true, maxLength: 30, autoComplete: 'tel' },
-                  { name: 'rutEmpresa', label: 'RUT Empresa', maxLength: 20, autoComplete: 'off' },
-                  { name: 'razonSocial', label: 'Razon Social', maxLength: 150, autoComplete: 'organization' },
-                  { name: 'giro', label: 'Giro', maxLength: 150, autoComplete: 'off' },
-                ].map(field => (
+                {CONTACT_FIELDS.map(field => (
                   <div key={field.name}>
                     <label htmlFor={'sq-' + field.name} className="text-sm font-medium mb-1 block">
-                      {field.label} {field.required && <span className="text-destructive">*</span>}
+                      {field.label} <span className="text-destructive">*</span>
                     </label>
                     <input
                       id={'sq-' + field.name}
                       name={field.name}
-                      type={field.type || 'text'}
-                      value={form[field.name as keyof typeof form]}
+                      type={field.type}
+                      value={form[field.name]}
                       onChange={handleChange}
                       maxLength={field.maxLength}
                       autoComplete={field.autoComplete}
                       className={inputClass}
-                      required={field.required}
+                      required
+                    />
+                  </div>
+                ))}
+                {/* Persona o empresa: el mismo selector de /cotizacion y /solicitar-pedido */}
+                <div>
+                  <label htmlFor="sq-customerType" className="text-sm font-medium mb-1 block">
+                    Tipo de cliente <span className="text-destructive">*</span>
+                  </label>
+                  <select id="sq-customerType" name="customerType" value={form.customerType} onChange={handleChange} className={inputClass}>
+                    <option value="persona">Persona natural</option>
+                    <option value="empresa">Empresa</option>
+                  </select>
+                </div>
+                {isEmpresa && COMPANY_FIELDS.map(field => (
+                  <div key={field.name}>
+                    <label htmlFor={'sq-' + field.name} className="text-sm font-medium mb-1 block">{field.label}</label>
+                    <input
+                      id={'sq-' + field.name}
+                      name={field.name}
+                      type="text"
+                      value={form[field.name]}
+                      onChange={handleChange}
+                      maxLength={field.maxLength}
+                      autoComplete={field.autoComplete}
+                      placeholder={field.name === 'rutEmpresa' ? 'Ej.: 12.345.678-9' : undefined}
+                      className={inputClass}
                     />
                   </div>
                 ))}

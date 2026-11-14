@@ -323,6 +323,63 @@ describe('POST /api/project-quotes/create', () => {
     }
   });
 
+  // Persona o empresa (decisión del dueño, 13-11-2026): el selector de /cotizacion y /solicitar-pedido
+  it('persona declarada: B2C, boleta y sin RUT, razón social ni giro (aunque lleguen), en la nota y en el correo', async () => {
+    const res = await call({ ...full, customerType: 'persona', giro: 'x'.repeat(500) });
+    expect(res.statusCode).toBe(201);
+    expect(findOrCreateOrganization).not.toHaveBeenCalled();
+    expect(dealArgs()).toMatchObject({ leadType: 'B2C' });
+    expect(dealArgs().orgId).toBeUndefined();
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).toMatchObject({ customerType: 'B2C' });
+    const [note] = notes();
+    expect(note.content).toContain('Tipo de cliente: Persona natural\nDocumento: Boleta');
+    expect(note.content).toContain('Dirección: PRUEBA dirección 123');
+    for (const text of ['PRUEBA EMPRESA', RUT, 'PRUEBA giro', 'Razón social:', 'RUT empresa:', 'Giro:']) expect(note.content).not.toContain(text);
+    const [mail] = gasBodies();
+    for (const key of ['razon_social', 'rut_empresa', 'giro']) expect(mail).not.toHaveProperty(key);
+    expect(mail.items_lista.split('\n').slice(0, 3)).toEqual([
+      expect.stringMatching(/^Cotizador de proyecto PY-/), 'Tipo de cliente: Persona natural', 'Documento: Boleta',
+    ]);
+  });
+
+  it('empresa declarada: B2B y factura, con sus datos como antes (opcionales)', async () => {
+    const res = await call({ ...full, customerType: 'empresa' });
+    expect(res.statusCode).toBe(201);
+    expect(findOrCreateOrganization).toHaveBeenCalledWith({ name: 'PRUEBA EMPRESA' });
+    expect(dealArgs()).toMatchObject({ orgId: 22, leadType: 'B2B' });
+    const [note] = notes();
+    for (const text of ['Tipo de cliente: Empresa\nDocumento: Factura', 'Razón social: PRUEBA EMPRESA', 'RUT empresa: ' + RUT, 'Giro: PRUEBA giro']) {
+      expect(note.content).toContain(text);
+    }
+    // Sin datos de empresa también es empresa (lo declaró); los datos van como «(no indicado)»
+    vi.mocked(createDeal).mockClear();
+    await call({ ...base, customerType: 'empresa' });
+    expect(dealArgs()).toMatchObject({ leadType: 'B2B' });
+    expect(notes()[1].content).toContain('Razón social: (no indicado)');
+  });
+
+  it.each(['otro', 'Empresa', 1])('customerType %s: 400 sin correo ni Pipedrive', async (customerType) => {
+    const res = await call({ ...base, customerType });
+    expect(res.statusCode).toBe(400);
+    expect((res.body as { details: { errors: string[] } }).details.errors).toContain("customerType must be 'persona' or 'empresa'");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(createDeal).not.toHaveBeenCalled();
+  });
+
+  it('un cuerpo sin customerType (formulario anterior) conserva su referencia y la regla de antes', async () => {
+    const legacy = validateProjectQuote(full).quote!;
+    expect(legacy.customerType).toBeUndefined();
+    const persona = validateProjectQuote({ ...full, customerType: 'persona' }).quote!;
+    expect(persona).not.toHaveProperty('razonSocial');
+    expect(persona).not.toHaveProperty('rutEmpresa');
+    expect(persona).not.toHaveProperty('giro');
+    expect(persona.direccion).toBe('PRUEBA dirección 123');
+    const res = await call(full);
+    expect(notes()[0].content).toContain('Tipo de cliente: Empresa (B2B)');
+    expect(notes()[0].content).not.toContain('Documento:');
+    expect(refOf(res)).toMatch(/^PY-/);
+  });
+
   it('SALES_EMAIL cambia el destinatario del correo', async () => {
     vi.stubEnv('SALES_EMAIL', 'otra-casilla@example.com');
     await call(base);
