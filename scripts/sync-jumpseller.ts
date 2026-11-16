@@ -58,6 +58,8 @@ import {
 } from '../src/data/catalog/categories.config';
 import { baseOverrides } from '../src/data/catalog/overlay/overrides';
 import { renderContentReport, reviewContent } from './content/report';
+import { comparePanelBoxes, renderPanelBoxesReport } from './jumpseller/panel-boxes';
+import { PANEL_MASTER_BOX } from '../src/config/business';
 
 export const MAX_DROP = 0.15;
 const REPORT_DIR = 'reports/jumpseller-sync';
@@ -434,6 +436,10 @@ export async function runSync(opts: SyncOptions): Promise<number> {
   const sheetsReport = renderDatasheetsReport(next, sheets, previousDatasheets, new Map(next.map(p => [p.jumpseller_id, p.name])));
   const sheetsSummary = summarizeDatasheets(next, sheets, previousDatasheets);
   if (contentReview.mismatched.length) log(`Contenido SEO a corregir: ${contentReview.mismatched.map(m => m.id).join(', ')}`);
+  // Cajas master de los paneles grandes frente al «Packaging por mayor» (solo informa, no bloquea)
+  const panelBoxMismatches = comparePanelBoxes(PANEL_MASTER_BOX, siteDescriptions, new Set(next.map(p => p.jumpseller_id)));
+  const panelBoxesReport = renderPanelBoxesReport(panelBoxMismatches, new Map(next.map(p => [p.jumpseller_id, p.name])));
+  if (panelBoxMismatches.length) log(`Cajas master de paneles a revisar: ${panelBoxMismatches.map(m => m.id).join(', ')}`);
   const summary = {
     snapshotHash: hash,
     baseline: baselineLabel,
@@ -458,6 +464,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     contentWritten: contentReview.written,
     contentMismatched: contentReview.mismatched,
     contentOrphans: contentReview.orphans,
+    panelBoxMismatches,
     duplicateSkus,
     ogImages: {
       own: ogSummary.own,
@@ -479,7 +486,7 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     wrote: args.write,
   };
   mkdirSync(join(root, REPORT_DIR), { recursive: true });
-  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${ogReport}\n\n${sheetsReport}\n\n${contentReport}\n`, 'utf8');
+  writeFileSync(join(root, REPORT_DIR, 'diff.md'), `${markdown}\n\n${descriptionsReport}\n\n${ogReport}\n\n${sheetsReport}\n\n${contentReport}\n\n${panelBoxesReport}\n`, 'utf8');
   writeFileSync(join(root, REPORT_DIR, 'summary.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
 
   // 8. Escribir (solo con --write)

@@ -169,6 +169,25 @@ describe('/cotizador: recordar mis datos', () => {
     expect(storedContact()?.data).toEqual({ ...CONTACT, tipoCliente: 'empresa', ...COMPANY });
   });
 
+  it('el aviso del RUT junto al botón se va al corregirlo o al pasar a «Persona natural» (FormErrorAlert)', async () => {
+    vi.stubGlobal('fetch', OK());
+    await renderPage();
+    fillContact({ rut: '44.444.444-5' });
+    fillProject();
+    const alerts = () => screen.queryAllByRole('alert').map((el) => el.textContent ?? '').join(' | ');
+    submit();
+    expect(alerts()).toMatch(/RUT/);
+    type(/RUT Empresa/, '444444444');
+    expect(alerts()).not.toMatch(/RUT/);
+    type(/RUT Empresa/, '44.444.444-5');
+    submit();
+    expect(alerts()).toMatch(/RUT/);
+    fireEvent.change(field(/Tipo de cliente/), { target: { value: 'persona' } });
+    expect(screen.queryByLabelText(/RUT Empresa/)).toBeNull();
+    expect(alerts()).not.toMatch(/RUT/);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('como empresa y sin razón social: no borra la empresa guardada (mismo correo)', async () => {
     vi.stubGlobal('fetch', OK());
     const saved = { ...CONTACT, tipoCliente: 'empresa' as const, ...COMPANY };

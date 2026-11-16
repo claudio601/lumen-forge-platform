@@ -516,6 +516,26 @@ describe('[ARCHIVOS] imágenes y archivos: el aviso por correo a ventas@ y el te
     expect(res.body).toBe(withNotice(MSG_MEDIA_NOTICE + '\n\n' + MSG_DEAL_FAILED));
   });
 
+  it('foto con un texto corto con dígitos («10»): el texto sigue el flujo y la cantidad queda capturada', async () => {
+    const phone = nextPhone();
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ producto: 'campanas LED' }));
+    await sendMessage(phone, 'Necesito campanas LED');
+    vi.mocked(askClaude).mockResolvedValueOnce(claudeOk({ cantidad: '10' }));
+    const res = await sendMessage(phone, '10', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(askClaude).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(askClaude).mock.calls[1][1]).toBe('10');
+    expect(getFlowState(phone).captured).toMatchObject({ producto: 'campanas LED', cantidad: '10' });
+    expect(count(res.body, MSG_MEDIA_NOTICE)).toBe(1);
+    expect(res.body).not.toContain(MSG_MEDIA_PENDING);
+  });
+
+  it('foto con un texto corto sin dígitos («ok»): como un archivo sin texto, no pasa por Claude', async () => {
+    const phone = nextPhone();
+    const res = await sendMessage(phone, 'ok', { NumMedia: '1', MediaContentType0: 'image/jpeg' });
+    expect(res.body).toBe(withNotice(MSG_MEDIA));
+    expect(askClaude).not.toHaveBeenCalled();
+  });
+
   it('una foto en la etapa 2: el aviso y que siga por escrito; el texto siguiente sigue el flujo', async () => {
     const phone = nextPhone();
     vi.mocked(askClaude).mockResolvedValueOnce(claudeOk(FOCOS_CLAUDE));

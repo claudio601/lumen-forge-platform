@@ -15,7 +15,11 @@
 // Nunca cuenta lo que está pegado a letras, puntos, comas, barras, guiones o «$» (modelos
 // como AR111, RUT, precios, fechas 15/12, horas), lo que sigue con una unidad (40W, 4000K,
 // 220V, 3 metros, 15 mil, 2 UF), un «IP 65» o «IK 08», un «modelo 200», una fecha «15 de
-// diciembre», un teléfono (+56 9 1234 5678) ni el tamaño de un envase («cajas de 10»).
+// diciembre», un teléfono (+56 9 1234 5678) ni el tamaño de un envase («cajas de 10»,
+// «10 unidades por caja», «6 piezas x caja», como lo escribe el catálogo).
+// Tampoco cuenta un conteo que se reparte («2 luminarias por poste», «4 tubos por equipo»)
+// o que describe el producto («equipo de 2 tubos», «canoa doble para 2 tubos», «kit solar
+// con 2 paneles»): la cantidad pedida es la del equipo, no la de sus partes.
 // Una mención que coincide con alguna cantidad elegida, o con su total, no avisa.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -67,6 +71,25 @@ const NOT_A_QUANTITY_BEFORE = new RegExp(
   'u',
 );
 
+/** Dónde se reparte un conteo: «por caja», «x poste», «por cada equipo», «/sala» (sin tildes). */
+const PER_WHAT =
+  '(?:cajas?|caja master|master|bultos?|paquetes?|packs?|embalajes?|postes?|brazos?|torres?|equipos?|artefactos?|' +
+  'luminarias?|canoas?|regletas?|kits?|sets?|juegos?|rollos?|modulos?|salas?|salon(?:es)?|pisos?|oficinas?|' +
+  'ambientes?|recintos?|locales|local|pasillos?|habitacion(?:es)?|dormitorios?|banos?|cocinas?|lados?|canchas?|' +
+  'naves?|galpon(?:es)?|bodegas?|metros?|mts?|lineas?|filas?|hileras?)(?![\\p{L}\\d])';
+/** «10 unidades por caja», «2 luminarias por poste», «2 tubos c/u»: tras la palabra de conteo. */
+const SHARED_AFTER = new RegExp(
+  `^\\s*${COUNT_NOUN}\\s*(?:(?:(?:por|x|×|/)\\s*(?:cada\\s+)?|cada\\s+)${PER_WHAT}|c/u(?![\\p{L}\\d])|cada uno(?![\\p{L}]))`,
+  'u',
+);
+/** «equipo de 2 tubos», «canoa doble para 2 tubos», «kit solar con 2 paneles»: el número describe el producto. */
+const DESCRIBES_PRODUCT_BEFORE = new RegExp(
+  '(?<![\\p{L}\\d])(?:equipos?|artefactos?|canoas?|regletas?|kits?|focos?|luminarias?|campanas?|plafon(?:es)?|' +
+    'lamparas?|postes?|brazos?|soportes?|proyectores?|reflectores?|torres?|tableros?)' +
+    '(?:\\s+\\p{L}+){0,2}\\s+(?:de|para|con)\\s+$',
+  'u',
+);
+
 const PATTERNS = [
   new RegExp(`${NUMBER}\\s*${COUNT_NOUN}`, 'gu'),
   new RegExp(`(?<![\\p{L}\\d])${ORDER_VERB}\\s*:?\\s*${FILLER}${NUMBER}${ORDER_END}`, 'gu'),
@@ -96,8 +119,10 @@ export function mentionedQuantities(comment: unknown): number[] {
       // Dónde está el número dentro del texto (el patrón puede empezar en el verbo o en «x»)
       const offset = (match.index ?? 0) + match[0].lastIndexOf(raw);
       const before = text.slice(Math.max(0, offset - 30), offset);
-      const after = text.slice(offset + raw.length, offset + raw.length + 30);
+      const after = text.slice(offset + raw.length, offset + raw.length + 40);
       if (NOT_A_QUANTITY_BEFORE.test(before)) continue;
+      // Un conteo que se reparte o que describe el producto, no lo que se pide
+      if (pattern === PATTERNS[0] && (SHARED_AFTER.test(after) || DESCRIBES_PRODUCT_BEFORE.test(before))) continue;
       // Tras una palabra de conteo no hay unidad que mirar; tras un verbo o una «x», sí
       if (pattern !== PATTERNS[0] && NOT_A_QUANTITY_AFTER.test(after)) continue;
       // Sin palabra de conteo, un número de 4 cifras es un año o un precio («cotizar 2027», «son 4990»)

@@ -767,7 +767,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
           res.status(200).send(xml);
     }
 
-    if (numMedia > 0 && body.trim().length < 3) {
+    // [ARCHIVOS] Un texto corto con digitos junto al archivo (p. ej. «10», la cantidad) es la respuesta del cliente:
+    // sigue el flujo como cualquier texto que acompana un archivo (decision 1A). Sin digitos («ok», un emoji), no.
+    if (numMedia > 0 && body.trim().length < 3 && !/\d/.test(body)) {
           console.log(LOG_PREFIX + ' Media from ' + redact(phone, 'phone') + ' [' + messageSid + ']');
           // [ARCHIVOS] Adjuntos sin texto, segun su tipo: imagenes o archivos, el aviso de que no pasan a la solicitud
           // (una vez por rafaga; nada si la rafaga ya lo tuvo); audios o videos, que no los podemos escuchar ni ver
