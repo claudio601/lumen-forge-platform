@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '1a0aab747d52';
+export const SNAPSHOT_HASH = '4a4c305e188a';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -2472,21 +2472,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       "8853491": {
         "sku": "PL6040BF",
         "price": 20690
-      }
-    }
-  },
-  "4615634": {
-    "name": "ESTACA LED SOLAR 4W JARDÍN IP65",
-    "sku": "",
-    "price": 11090,
-    "variants": {
-      "95315655": {
-        "sku": "ELC5J",
-        "price": 11090
-      },
-      "118625443": {
-        "sku": "",
-        "price": 11090
       }
     }
   },

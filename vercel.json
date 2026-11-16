@@ -2465,17 +2465,17 @@
     },
     {
       "source": "/estaca-led-cob-2w-jardin-ip65-1{/}?",
-      "destination": "/producto/estaca-led-cob-2w-jardin-ip65",
+      "destination": "/catalogo/iluminacion-exterior",
       "statusCode": 301
     },
     {
       "source": "/estaca-led-cob-2w-jardin-ip65{/}?",
-      "destination": "/producto/estaca-led-cob-2w-jardin-ip65",
+      "destination": "/catalogo/iluminacion-exterior",
       "statusCode": 301
     },
     {
       "source": "/estaca-led-cob-5w-jardin-ip65-1{/}?",
-      "destination": "/producto/estaca-led-cob-2w-jardin-ip65",
+      "destination": "/catalogo/iluminacion-exterior",
       "statusCode": 301
     },
     {
