@@ -111,18 +111,26 @@ describe('la prueba del dueño del 16-10: razón social, RUT y correo en un mens
       const r = step(DATA, claude);
       expect(r.captured).toMatchObject({ cantidad: '30', proyecto_o_uso: 'oficina', rut: '77.123.456-9', rut_valido: true });
       expect(r.captured.cambios).toBeUndefined();
-      expect(r.reply).toBe(flow.MSG4_B2B);
+      expect(r.reply).toBe(flow.MSG4);
       expect(r.shouldCreateDeal).toBe(true);
     });
   }
 
-  it('T13: el RUT que no calza se pide de nuevo y no toca la cantidad', () => {
+  it('T13: el RUT de la empresa que no calza se pide de nuevo y no toca la cantidad', () => {
     step(FIRST, FIRST_CLAUDE);
-    const r = step('RUT 77.123.456-8', { cantidad: '77123456' });
+    const r = step('Comercial Prueba SpA, RUT 77.123.456-8', { empresa: 'Comercial Prueba SpA', cantidad: '77123456' });
     expect(r.reply).toBe(flow.MSG_RUT_INVALID);
     expect(r.captured.cantidad).toBe('30');
     const again = step('771234569', { cantidad: '771234569' });
     expect(again.captured).toMatchObject({ cantidad: '30', rut: '77.123.456-9', rut_valido: true });
+  });
+
+  it('T13 persona: el RUT que no calza no se pide de nuevo, queda guardado y no toca la cantidad', () => {
+    step(FIRST, FIRST_CLAUDE);
+    const r = step('RUT 77.123.456-8', { cantidad: '77123456' });
+    expect(r.reply).not.toBe(flow.MSG_RUT_INVALID);
+    expect(r.reply).not.toMatch(/RUT/);
+    expect(r.captured).toMatchObject({ cantidad: '30', rut: '77.123.456-8', rut_valido: false });
   });
 });
 
@@ -187,7 +195,7 @@ describe('CASO-1 y respuestas agrupadas', () => {
     const r = step('20', {});
     expect(r.captured.cantidad).toBe('20');
     expect(r.reply).toMatch(/tipo de luz preferida/);
-    expect(r.reply).toMatch(/comuna o ciudad de instalacion/);
+    expect(r.reply).toMatch(/comuna o ciudad de instalación/);
   });
 
   it('después del saludo (lista de 3), "2" pide aclarar', () => {

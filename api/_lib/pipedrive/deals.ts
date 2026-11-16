@@ -345,8 +345,10 @@ export async function updateDeal(dealId: number, updates: DealUpdateFields): Pro
     if (updates.value !== undefined) body.value = updates.value;
     if (updates.title !== undefined) body.title = updates.title;
     if (updates.status !== undefined) body.status = updates.status;
+    // Un campo en null se manda para vaciarlo en Pipedrive (la cantidad de WhatsApp que paso a varios items,
+    // pipedriveLead.ts); undefined y '' no se mandan, para no pisar el valor guardado.
     for (const [key, value] of Object.entries(updates)) {
-          if (!['stageId', 'value', 'title', 'status'].includes(key) && value !== undefined && value !== null && value !== '') {
+          if (!['stageId', 'value', 'title', 'status'].includes(key) && value !== undefined && value !== '') {
                   body[key] = value;
           }
     }

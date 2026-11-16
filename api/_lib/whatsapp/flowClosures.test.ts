@@ -159,7 +159,7 @@ describe('conversación cerrada', () => {
     for (let i = 0; i < 3 && !r.closedFlow; i++) r = flow.processFlowStep(PHONE, 'mmm', {}, NO_SIGNALS);
     expect(r.reply).toBe(flow.MSG4_INSTALL_NO_EMAIL);
     const late = flow.processFlowStep(PHONE, 'ana.prueba@example.com', {}, NO_SIGNALS);
-    expect(late).toMatchObject({ reply: flow.MSG4_INSTALL, shouldCreateDeal: true });
+    expect(late).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
     expect(late.captured.install_correo).toBe('ana.prueba@example.com');
   });
 });
@@ -230,7 +230,7 @@ describe('instalación después del flujo de productos', () => {
     expect(r.captured).toMatchObject({ install_correo: 'luis.prueba@example.com', install_nombre: 'Luis Prueba' });
     expect(r.reply).not.toMatch(/correo|nombre/i);
     const close = flow.processFlowStep(PHONE, 'Maipú', { comuna_o_ciudad: 'Maipú' }, NO_SIGNALS);
-    expect(close).toMatchObject({ reply: flow.MSG4_INSTALL, shouldCreateDeal: true });
+    expect(close).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
   });
 });
 

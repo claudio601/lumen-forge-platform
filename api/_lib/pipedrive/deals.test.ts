@@ -40,7 +40,7 @@ import {
   readMapping,
   writeMapping,
 } from '../idempotency/redis.js';
-import { createDeal } from './deals.js';
+import { createDeal, updateDeal } from './deals.js';
 import type { CreateDealParams } from './deals.js';
 
 // ---------------------------------------------------------------------------
@@ -1015,5 +1015,26 @@ describe('createDeal — posibles duplicados con el otro canal (crossChannel.ts)
     await createDeal({ ...WEB, tipoServicio: 90 });
     await createDeal({ ...WEB, tipoServicio: undefined });
     expect(personCalls()).toHaveLength(0);
+  });
+});
+
+// FASE 3A, punto 6 (16-11): un campo en null se manda (vacía el campo en Pipedrive, la Cantidad de WhatsApp que pasó a
+// varios ítems); undefined y '' no se mandan, para no pisar lo guardado.
+describe('updateDeal — campos vacíos', () => {
+  beforeEach(() => {
+    vi.mocked(pipedrivePut).mockReset();
+    vi.mocked(pipedrivePut).mockResolvedValue({ success: true, data: { id: 9001 } } as Awaited<ReturnType<typeof pipedrivePut>>);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  it('manda el null y omite undefined y el texto vacío', async () => {
+    await updateDeal(9001, { cf_cantidad: null, cf_proyecto: undefined, cf_resumen: '', cf_correo: 'ana.prueba@example.com', stageId: 3 });
+    expect(pipedrivePut).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(pipedrivePut).mock.calls[0]).toEqual(['/deals/9001', { stage_id: 3, cf_cantidad: null, cf_correo: 'ana.prueba@example.com' }]);
+  });
+
+  it('sin nada que mandar no llama a Pipedrive', async () => {
+    await updateDeal(9001, { cf_proyecto: undefined, cf_resumen: '' });
+    expect(pipedrivePut).not.toHaveBeenCalled();
   });
 });

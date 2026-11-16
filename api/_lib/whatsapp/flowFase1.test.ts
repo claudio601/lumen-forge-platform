@@ -84,7 +84,8 @@ describe('[B2B] una persona que pregunta por el despacho sigue siendo persona', 
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
     expect(r.reply).not.toMatch(/RUT/);
     const end = step('ana.prueba@example.com', { correo: 'ana.prueba@example.com' });
-    expect(end.reply).not.toBe(flow.MSG4_B2B);
+    expect(end.reply).not.toMatch(/RUT/);
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
   });
 
   it.each(['Somos Comercial Prueba SpA', 'necesito factura', 'Somos una constructora'])('"%s" sigue siendo B2B', (body) => {
@@ -233,7 +234,7 @@ describe('[SIN-VISITA] comprar productos no es pedir una instalación', () => {
   it('el cierre de instalación registrado y la pregunta por lo que sigue no prometen visita', () => {
     step('Quiero instalar focos en mi casa');
     const r = step('Soy Ana Prueba, ana.prueba@example.com, casa en Maipú', { nombre: 'Ana Prueba' });
-    expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: true, reply: flow.MSG4_INSTALL });
+    expect(r).toMatchObject({ closedFlow: true, shouldCreateDeal: true, reply: flow.MSG4 });
     flow.recordDealOutcome(PHONE, true, undefined, 4242);
     expect(step('¿Y ahora qué hago?').reply).toBe(flow.MSG_WAIT);
   });

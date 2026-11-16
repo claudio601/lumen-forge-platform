@@ -33,7 +33,7 @@ export interface WhatsAppLeadParams {
     captureStatus?: CaptureStatus;
     wantsHuman?: boolean;
     leadType?: 'B2B' | 'B2C' | 'Unknown';
-    /** [REGISTRO] (revision 13-11) El tipo que lleva el flujo: en un negocio que ya existe manda sobre el mensaje. */
+    /** [REGISTRO] El tipo que lleva el flujo: manda sobre el mensaje en un negocio que ya existe (revision 13-11) y en uno nuevo (16-11). */
     flowLeadType?: 'B2B' | 'B2C' | 'Unknown';
     priorityTier?: 'Alta' | 'Normal';
     existingDealId?: number;
@@ -54,7 +54,8 @@ export interface WhatsAppDealResult {
 export interface PendingWhatsAppWrite {
     dealId: number;
     personId?: number;
-    fields?: Record<string, string>;
+    /** [CANTIDAD] null vacia el campo en Pipedrive (solo la cantidad, buildWaCustomFields); sin la clave, no se toca. */
+    fields?: Record<string, string | null>;
     note?: string;
     /**
      * [NOTA-REF] La referencia fija de la nota, que tambien es su ultima linea (buildNote): antes de repetir
@@ -585,6 +586,15 @@ export function buildNote(p: WhatsAppLeadParams, ref: string = newNoteRef()): st
     return escapeNoteHtml(head + fitTranscript(fmt(p.transcript) ?? bodyLine(p.body), NOTE_MAX_BYTES - noteBytes(head) - noteBytes(tail)) + tail);
 }
 
+/**
+ * [CANTIDAD] El campo de la cantidad: el numero si lo hay; null (vaciar) si el pedido paso a varios items sin numero,
+ * para que no quede el numero anterior ("10" y despues "son 12 focos y 5 paneles"); undefined (no tocar) si no se
+ * sabe nada. La unidad no va: el campo lleva solo el numero y la nota dice "500 m" o los varios items.
+ */
+function quantityField(captured: CapturedFields | undefined): string | null | undefined {
+    return fmt(captured?.cantidad) ?? (fmt(captured?.cantidad_varios) ? null : undefined);
+}
+
 function buildWaCustomFields(
     captured: CapturedFields | undefined,
     captureStatus: CaptureStatus | undefined,
@@ -592,14 +602,14 @@ function buildWaCustomFields(
     summary: string,
     body: string,
     resolvedLeadType: string | undefined,
-  ): Record<string, string> {
-    const waCustomFields: Record<string, string> = {};
+  ): Record<string, string | null> {
+    const waCustomFields: Record<string, string | null> = {};
     const lead = resolveLead(captured ?? {});
 
-  const waFieldMap: Array<[string, string | undefined]> = [
+  const waFieldMap: Array<[string, string | null | undefined]> = [
         ['PIPEDRIVE_DEAL_FIELD_WA_PRODUCT', fmt(captured?.producto)],
         ['PIPEDRIVE_DEAL_FIELD_WA_LIGHT_TYPE', fmt(captured?.tipo_de_luz)],
-        ['PIPEDRIVE_DEAL_FIELD_WA_QUANTITY', fmt(captured?.cantidad)],
+        ['PIPEDRIVE_DEAL_FIELD_WA_QUANTITY', quantityField(captured)],
         ['PIPEDRIVE_DEAL_FIELD_WA_PROJECT_USE', lead.proyecto],
         ['PIPEDRIVE_DEAL_FIELD_WA_LOCATION', lead.comuna],
         ['PIPEDRIVE_DEAL_FIELD_WA_WANTS_HUMAN', wantsHuman ? 'yes' : 'no'],
@@ -611,11 +621,13 @@ function buildWaCustomFields(
         ['PIPEDRIVE_DEAL_FIELD_WA_CONTACT_EMAIL', lead.correo],
       ];
 
+  // Un valor vacio no se manda (no pisa lo anterior); solo el null de la cantidad vacia el campo. Sin la variable de
+  // entorno del campo, nada.
   for (const [envKey, val] of waFieldMap) {
         const fieldKey = waField(envKey);
-        if (fieldKey && val !== undefined && val !== null && val !== '') {
-                waCustomFields[fieldKey] = val;
-        }
+        if (!fieldKey) continue;
+        if (val === null) waCustomFields[fieldKey] = null;
+        else if (val !== undefined && val !== '') waCustomFields[fieldKey] = val;
   }
 
   return waCustomFields;
@@ -664,7 +676,9 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
   // raro ya no deja una persona sin negocio. El correo y el nombre de instalacion llegan a la persona.
   const quoteReference = 'WA-' + phone.replace(/\D/g, '');
 
-  const resolvedLeadType = params.leadType ?? detectLeadType(params.body, captured);
+  // [REGISTRO] El tipo del flujo (persona o empresa, el que decide boleta o factura), como en un negocio que ya existe;
+  // las palabras del ultimo mensaje (detectLeadType) solo si el flujo no lo sabe.
+  const resolvedLeadType = params.leadType ?? knownLeadType(params.flowLeadType) ?? detectLeadType(params.body, captured);
     const resolvedPriority: 'Alta' | 'Normal' = wantsHuman ? 'Alta' : (params.priorityTier ?? 'Normal');
 
   const waCustomFields = buildWaCustomFields(captured, captureStatus, wantsHuman, summary, params.body,
@@ -731,6 +745,11 @@ export async function ensureWhatsAppDeal(params: WhatsAppLeadParams): Promise<Wh
 
   console.log(LOG_PREFIX + ' Deal ' + dealId + ' (' + dealAction + ') for ' + redact(phone, 'phone'));
     return { dealId, personId, action: dealAction, ...(pendingWrite ? { pendingWrite } : {}) };
+}
+
+/** [REGISTRO] El tipo del flujo si lo sabe (B2B o B2C); 'Unknown' o sin tipo, undefined. */
+function knownLeadType(type: WhatsAppLeadParams['flowLeadType']): 'B2B' | 'B2C' | undefined {
+    return type === 'B2B' || type === 'B2C' ? type : undefined;
 }
 
 function detectLeadType(body: string, captured?: CapturedFields): 'B2B' | 'B2C' | 'Unknown' {

@@ -143,7 +143,8 @@ describe('PR 2: cambios y varias cantidades en la nota', () => {
     await ensureWhatsAppDeal({ ...base, captured: { producto: 'paneles', cantidad_varios: 'Necesito 30 paneles de 18W y 20 de 24W', correo: 'pedro.prueba@example.com' } });
     expect(noteContent()).toContain('Cantidad: varios items, revisar: Necesito 30 paneles de 18W y 20 de 24W');
     expect(noteContent()).not.toContain('Cambios:');
-    expect(vi.mocked(updateDeal).mock.calls[0][1]).not.toHaveProperty('cf_wa_cantidad');
+    // [CANTIDAD-VARIOS] null vacía en Pipedrive el número que hubiera quedado de antes (no se omite).
+    expect(vi.mocked(updateDeal).mock.calls[0][1]).toHaveProperty('cf_wa_cantidad', null);
   });
 });
 
@@ -1235,5 +1236,78 @@ describe('tipo de cliente en un negocio que ya existe', () => {
   it('el negocio nuevo sigue llevando su tipo, también B2C', async () => {
     await ensureWhatsAppDeal({ ...params, body: 'Necesito 20 campanas LED 150W para mi casa en Maipú' });
     expect(vi.mocked(createDeal).mock.calls[0][0]).toMatchObject({ leadType: 'B2C' });
+  });
+});
+
+// FASE 3A, punto 5 (16-11): el negocio nuevo lleva el tipo del flujo (persona o empresa, el que decide boleta o
+// factura); las palabras del último mensaje (detectLeadType, que todavía cuenta «obra» o «instalador») solo si el
+// flujo no lo sabe.
+describe('FASE 3A punto 5: tipo del negocio nuevo', () => {
+  const base: WhatsAppLeadParams = {
+    phone: PHONE,
+    name: 'Perfil Prueba',
+    summary: 'Pide focos LED.',
+    body: 'Es para la obra de ampliación de mi casa: ana.prueba@example.com',
+    captured: { producto: 'focos LED', cantidad: '12', proyecto_o_uso: 'casa', correo: 'ana.prueba@example.com' },
+    captureStatus: 'complete',
+  };
+  const dealType = () => (vi.mocked(createDeal).mock.calls[0][0] as { leadType?: string }).leadType;
+  beforeEach(() => { vi.stubEnv('PIPEDRIVE_DEAL_FIELD_WA_LEAD_TYPE', 'cf_wa_tipo'); });
+
+  it('persona (B2C en el flujo) cuyo último mensaje dice «obra»: B2C, en el negocio, el campo y la persona', async () => {
+    await ensureWhatsAppDeal({ ...base, flowLeadType: 'B2C' });
+    expect(dealType()).toBe('B2C');
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0].customerType).toBe('B2C');
+    expect(vi.mocked(updateDeal).mock.calls[0][1]).toHaveProperty('cf_wa_tipo', 'B2C');
+  });
+
+  it('empresa (B2B en el flujo) cuyo último mensaje es solo el correo: B2B', async () => {
+    await ensureWhatsAppDeal({ ...base, body: 'compras@comercial-prueba.example.com', captured: { producto: 'paneles LED', correo: 'compras@comercial-prueba.example.com' }, flowLeadType: 'B2B' });
+    expect(dealType()).toBe('B2B');
+  });
+
+  it.each([['Unknown' as const], [undefined]])('el flujo no lo sabe (%s): las palabras del mensaje, como antes', async (flowLeadType) => {
+    await ensureWhatsAppDeal({ ...base, flowLeadType });
+    expect(dealType()).toBe('B2B');
+  });
+
+  it('el leadType explícito sigue mandando sobre el del flujo', async () => {
+    await ensureWhatsAppDeal({ ...base, leadType: 'B2B', flowLeadType: 'B2C' });
+    expect(dealType()).toBe('B2B');
+  });
+});
+
+// FASE 3A, punto 6 (16-11): el campo Cantidad. Varios ítems sin número: null (vacía el número anterior); un número: el
+// número; sin dato: no se manda. Sin la variable de entorno del campo, nada (hoy el campo no existe en Pipedrive).
+describe('FASE 3A punto 6: campo Cantidad', () => {
+  const base: WhatsAppLeadParams = { phone: PHONE, name: 'Perfil Prueba', summary: 'Pide paneles.', body: 'gracias', captureStatus: 'partial' };
+  const VARIOS = 'Necesito 30 paneles de 18W y 20 de 24W';
+  const fields = (captured: WhatsAppLeadParams['captured']) => buildWhatsAppUpdate({ ...base, captured, existingDealId: 9001 }).fields ?? {};
+
+  it('un número: el número', () => {
+    expect(fields({ producto: 'paneles', cantidad: '12' })).toHaveProperty('cf_wa_cantidad', '12');
+  });
+
+  it('varios ítems sin número: null, también en el negocio que ya existe (vacía el "10" de antes)', () => {
+    expect(fields({ producto: 'paneles', cantidad_varios: VARIOS })).toHaveProperty('cf_wa_cantidad', null);
+  });
+
+  it('sin dato de cantidad: no se manda', () => {
+    expect(fields({ producto: 'paneles' })).not.toHaveProperty('cf_wa_cantidad');
+    expect(fields(undefined)).not.toHaveProperty('cf_wa_cantidad');
+  });
+
+  it('los otros campos vacíos siguen sin mandarse (no pisan lo guardado)', () => {
+    const f = fields({ producto: 'paneles', cantidad_varios: VARIOS, proyecto_o_uso: '' });
+    expect(f).not.toHaveProperty('cf_wa_proyecto');
+    expect(Object.entries(f).filter(([, v]) => v === null).map(([k]) => k)).toEqual(['cf_wa_cantidad']);
+  });
+
+  it('sin la variable de entorno del campo, nada (ni el null)', async () => {
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_WA_QUANTITY', '');
+    expect(fields({ producto: 'paneles', cantidad_varios: VARIOS })).not.toHaveProperty('cf_wa_cantidad');
+    expect(Object.values(fields({ producto: 'paneles', cantidad_varios: VARIOS }))).not.toContain(null);
+    await ensureWhatsAppDeal({ ...base, captured: { producto: 'paneles', cantidad_varios: VARIOS, correo: 'pedro.prueba@example.com' } });
+    for (const [, payload] of vi.mocked(updateDeal).mock.calls) expect(Object.values(payload as object)).not.toContain(null);
   });
 });

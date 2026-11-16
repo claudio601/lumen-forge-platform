@@ -203,7 +203,8 @@ it.each([...PAST_RUT, ...RANGES, ...OWN_RUT.map((body) => [body, '76.123.456-0']
   for (const asked of [false, true]) expect(inspectRut(body, { asked }).found).toMatchObject({ rut, valido: true });
 });
 it.each([...PAST_RUT, ...RANGES, ...OWN_RUT.map((body) => [body, '76.123.456-0'])])('tras la repregunta conserva el RUT válido de main: %s', (body, rut) => {
-  step('Necesito 12 focos LED luz cálida para una bodega en Maipú', { ...FIELDS, proyecto_o_uso: 'bodega' });
+  // La repregunta del RUT que no calza es solo para empresas (dueño, 13-11): la bodega es de una empresa.
+  step('Necesito 12 focos LED luz cálida para la bodega de Comercial Prueba SpA en Maipú', { ...FIELDS, proyecto_o_uso: 'bodega', empresa: 'Comercial Prueba SpA' });
   expect(step('RUT 77.123.456-8').reply).toBe(flow.MSG_RUT_INVALID);
   expect(step(body).captured).toMatchObject({ rut, rut_valido: true });
 });

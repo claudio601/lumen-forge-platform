@@ -27,7 +27,7 @@ import { PRIVACY_NOTICE, PRIVACY_POLICY_URL } from '../_lib/whatsapp/privacyNoti
 type Handler = (req: unknown, res: unknown) => Promise<void>;
 const webhook = handler as unknown as Handler;
 
-const EMPTY_BODY_REPLY = 'Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?';
+const EMPTY_BODY_REPLY = '¡Hola! No recibimos tu mensaje. ¿Puedes escribirlo de nuevo?';
 const withNotice = (reply: string) => buildTwiML(reply + '\n\n' + PRIVACY_NOTICE);
 
 let phoneSeq = 0;
