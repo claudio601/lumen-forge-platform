@@ -188,6 +188,23 @@ describe('/cotizador: recordar mis datos', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it('con el aviso del RUT a la vista, un error nuevo del formulario aparece junto al botón', async () => {
+    vi.stubGlobal('fetch', OK());
+    await renderPage();
+    fillContact({ rut: '44.444.444-5' });
+    fillProject();
+    submit();
+    const button = () => screen.getByRole('button', { name: /Solicitar propuesta/ });
+    const alertBeforeButton = () => button().previousElementSibling;
+    expect(alertBeforeButton()?.textContent).toMatch(/RUT/);
+    type(/Teléfono/, '1234');
+    submit();
+    expect(alertBeforeButton()?.getAttribute('role')).toBe('alert');
+    expect(alertBeforeButton()?.textContent).not.toMatch(/RUT/);
+    expect(alertBeforeButton()?.textContent).toMatch(/teléfono/i);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('como empresa y sin razón social: no borra la empresa guardada (mismo correo)', async () => {
     vi.stubGlobal('fetch', OK());
     const saved = { ...CONTACT, tipoCliente: 'empresa' as const, ...COMPANY };

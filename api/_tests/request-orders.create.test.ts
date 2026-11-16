@@ -169,6 +169,16 @@ describe('POST /api/request-orders/create', () => {
     expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).toMatchObject({ phone: '+56912345678' });
   });
 
+  it.each([
+    ['+56 2 2345 6789 anexo 123'],
+    ['+56 9 1234 5678 / +56 9 8765 4321'],
+  ])('«%s» no es un solo número: la persona lleva el texto tal cual (sin juntar dígitos)', async (phone) => {
+    vi.mocked(findOrCreatePerson).mockClear();
+    const res = await call({ ...base, phone, items: [ar111] });
+    expect(res.statusCode).toBe(201);
+    expect(vi.mocked(findOrCreatePerson).mock.calls[0][0]).toMatchObject({ phone });
+  });
+
   it('un producto sin SKU (JS-<id>) se acepta', async () => {
     const item = { jumpsellerId: 3921249, sku: 'JS-3921249', name: 'Lineal', quantity: 1, unitPrice: 1, currency: 'CLP', lineTotal: 1, url: '/x', attributes: {} };
     const res = await call({ ...base, items: [item] });

@@ -40,6 +40,12 @@ describe('mentionedQuantities: lo que sí cuenta', () => {
     ['10 focos por favor', [10]],
     ['20 tubos para el pasillo', [20]],
     ['necesito 4 paneles x 2', [4, 2]],
+    // «<producto> de N unidades» y «<producto> para N postes» son lo pedido, no partes del producto
+    ['Necesito reflectores LED de 40 unidades para cancha', [40]],
+    ['Solicito precio de focos LED de 100 unidades', [100]],
+    ['Necesito luminarias para 30 postes', [30]],
+    ['luminarias solares para 12 postes de la calle', [12]],
+    ['campanas led de 15 piezas', [15]],
   ])('«%s» → %j', (comment, expected) => {
     expect(mentionedQuantities(comment)).toEqual(expected);
   });

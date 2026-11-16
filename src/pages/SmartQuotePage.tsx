@@ -582,7 +582,8 @@ const SmartQuotePage = () => {
             {/* Dentro del fieldset: antes de hidratar, las casillas también quedan deshabilitadas */}
             {consent.fields}
             {/* Error junto al botón, donde el visitante está mirando */}
-            <FormErrorAlert summary={fe.summary} message={errorMsg} className="" />
+            {/* El error del formulario (validateForm) gana sobre el resumen de campos: el aviso viejo del RUT no lo tapa */}
+            <FormErrorAlert summary={errorMsg ? [] : fe.summary} message={errorMsg} className="" />
             <Button type="submit" size="lg" disabled={!hydrated || sending} className="w-full gradient-primary text-primary-foreground h-14 text-base font-bold gap-2">
               {sending ? (
                 <>

@@ -89,6 +89,8 @@ const DESCRIBES_PRODUCT_BEFORE = new RegExp(
     '(?:\\s+\\p{L}+){0,2}\\s+(?:de|para|con)\\s+$',
   'u',
 );
+/** Tras el número, una palabra de conteo genérica: «focos de 100 unidades», «luminarias para 30 postes» son lo pedido. */
+const GENERIC_COUNT_AFTER = /^\s*(?:unidades|unidad|unids?\.?|unds?\.?|uds?\.?|u\.|un\.|piezas?|pzas?\.?|postes?)(?![\p{L}\d])/u;
 
 const PATTERNS = [
   new RegExp(`${NUMBER}\\s*${COUNT_NOUN}`, 'gu'),
@@ -122,7 +124,11 @@ export function mentionedQuantities(comment: unknown): number[] {
       const after = text.slice(offset + raw.length, offset + raw.length + 40);
       if (NOT_A_QUANTITY_BEFORE.test(before)) continue;
       // Un conteo que se reparte o que describe el producto, no lo que se pide
-      if (pattern === PATTERNS[0] && (SHARED_AFTER.test(after) || DESCRIBES_PRODUCT_BEFORE.test(before))) continue;
+      // (lo que describe el producto, solo si cuenta sus partes: «2 tubos», no «100 unidades» ni «30 postes»)
+      if (
+        pattern === PATTERNS[0] &&
+        (SHARED_AFTER.test(after) || (DESCRIBES_PRODUCT_BEFORE.test(before) && !GENERIC_COUNT_AFTER.test(after)))
+      ) continue;
       // Tras una palabra de conteo no hay unidad que mirar; tras un verbo o una «x», sí
       if (pattern !== PATTERNS[0] && NOT_A_QUANTITY_AFTER.test(after)) continue;
       // Sin palabra de conteo, un número de 4 cifras es un año o un precio («cotizar 2027», «son 4990»)
