@@ -2,10 +2,10 @@
 // Cantidad de productos publicados por categoría del sitio.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '1a0aab747d52';
+export const SNAPSHOT_HASH = '4a4c305e188a';
 
 /** Productos publicados (un producto en 2 categorías cuenta una vez). */
-export const PUBLISHED_PRODUCT_COUNT = 325;
+export const PUBLISHED_PRODUCT_COUNT = 324;
 
 export const CATEGORY_PRODUCT_COUNTS: Readonly<Record<string, number>> = {
   "alumbrado-publico": 19,
@@ -16,7 +16,7 @@ export const CATEGORY_PRODUCT_COUNTS: Readonly<Record<string, number>> = {
   "focos-a-riel": 10,
   "fuentes-de-poder": 14,
   "iluminacion-antiexplosiva": 15,
-  "iluminacion-exterior": 53,
+  "iluminacion-exterior": 52,
   "lineales-led": 14,
   "paneles-led": 76,
   "poste": 4,
