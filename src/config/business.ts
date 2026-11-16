@@ -149,7 +149,10 @@ export interface PanelMasterBox {
   minUnits?: number;
 }
 
-/** Paneles de formato grande, por jumpseller_id. */
+/**
+ * Paneles de formato grande, por jumpseller_id. Las cajas son las del «Packaging por mayor» de
+ * Jumpseller (o la regla del dueño); la sincronización avisa si dejan de coincidir.
+ */
 export const PANEL_MASTER_BOX: Readonly<Record<number, PanelMasterBox>> = {
   // Backlight 120x60 96W: regla del dueño (6); Jumpseller, «6 piezas x caja».
   3702364: { box: 6 },
@@ -165,7 +168,8 @@ export const PANEL_MASTER_BOX: Readonly<Record<number, PanelMasterBox>> = {
   2347854: { box: 10 },
   // 120x30 40W marco blanco regulable: Jumpseller no trae su «Packaging por mayor», y no es igual al
   // 2347854: otro LED (SMD2835; el 2347854, SMD5730) y otro flujo (3200 lm; el 2347854, 4400 lm).
-  // Sin número hasta que el dueño confirme la caja o agregue el packaging en Jumpseller.
+  // Sin número hasta que el dueño confirme la caja. Si agrega el packaging en Jumpseller, el aviso no
+  // cambia solo: el informe de la PR del robot lo lista (scripts/jumpseller/panel-boxes.ts) y se escribe aquí.
   2348922: { box: null },
   // 120x15 36W: regla del dueño (slim 120x15, 10); Jumpseller, «10 unidades por caja».
   2347849: { box: 10 },

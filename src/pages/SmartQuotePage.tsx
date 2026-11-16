@@ -20,7 +20,7 @@
 // (rutMessage): el aviso va debajo del campo (FieldError) y no se envía hasta corregirlo o borrarlo.
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Zap, AlertCircle } from 'lucide-react';
+import { Send, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { sendEvent, trackLead } from '@/lib/analytics';
 import { getAttribution } from '@/lib/attribution';
@@ -32,6 +32,7 @@ import FileAttachments from '@/components/forms/FileAttachments';
 import { fillEmpty, useRememberContact } from '@/components/forms/RememberContact';
 import { uploadPending, type AttachmentItem, type UploadProblem } from '@/components/forms/attachments';
 import FieldError from '@/components/forms/FieldError';
+import FormErrorAlert from '@/components/forms/FormErrorAlert';
 import { useFieldErrors } from '@/hooks/useFieldErrors';
 import { rutMessage } from '@/lib/formValidation';
 import { formatRut } from '@/lib/rut';
@@ -111,7 +112,7 @@ function submitErrorMessage(httpStatus: number, code?: string): string {
 /** Texto opcional recortado; vacío no viaja en el JSON. */
 const optional = (value: string) => value.trim() || undefined;
 
-const inputClass = 'w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30';
+const inputClass = 'w-full border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 aria-[invalid=true]:border-red-500';
 
 const PROJECT_STEPS = [
   'Revisamos los datos de tu proyecto.',
@@ -301,11 +302,11 @@ const SmartQuotePage = () => {
       toast.error(invalid);
       return;
     }
-    // El RUT de empresa escrito y mal: su aviso debajo del campo y el foco en él (como en /solicitar-pedido)
+    // El RUT de empresa escrito y mal: su aviso debajo del campo y el foco en él (como en /solicitar-pedido).
+    // El aviso junto al botón lo lee de fe.summary (FormErrorAlert): se va al corregirlo o al pasar a persona.
     if (!fe.checkAll(values.customerType === 'empresa' ? FIELDS_WITH_ERROR : [], values)) {
-      const rutError = validateField('rutEmpresa', values) ?? '';
-      setErrorMsg(rutError);
-      toast.error(rutError);
+      setErrorMsg('');
+      toast.error(validateField('rutEmpresa', values) ?? '');
       return;
     }
     // La casilla se revisa al final: su error aparece junto a ella solo cuando el resto está bien
@@ -581,12 +582,8 @@ const SmartQuotePage = () => {
             {/* Dentro del fieldset: antes de hidratar, las casillas también quedan deshabilitadas */}
             {consent.fields}
             {/* Error junto al botón, donde el visitante está mirando */}
-            {errorMsg && (
-              <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
+            {/* El error del formulario (validateForm) gana sobre el resumen de campos: el aviso viejo del RUT no lo tapa */}
+            <FormErrorAlert summary={errorMsg ? [] : fe.summary} message={errorMsg} className="" />
             <Button type="submit" size="lg" disabled={!hydrated || sending} className="w-full gradient-primary text-primary-foreground h-14 text-base font-bold gap-2">
               {sending ? (
                 <>

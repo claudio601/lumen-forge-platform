@@ -39,6 +39,7 @@ import { findOrCreateOrganization } from '../_lib/pipedrive/organizations.js';
 import { createDeal } from '../_lib/pipedrive/deals.js';
 import { initFieldOptions } from '../_lib/pipedrive/fieldOptions.js';
 import { computeLeadScore } from '../_lib/crm/scoring.js';
+import { normalizePhone } from '../_lib/crm/validation.js';
 import { TIPO_SERVICIO } from '../_lib/crm/tipo-servicio.js';
 import type { QuotePayload, SourceSystem } from '../_lib/crm/types.js';
 import { checkRateLimit, getClientIp, isAllowedOrigin, isHoneypotTriggered } from '../_lib/auth.js';
@@ -398,11 +399,17 @@ export default async function handler(
     const quotePayload = toQuotePayload(payload);
     const { score, leadType, priorityTier } = computeLeadScore(quotePayload);
 
+    // Teléfono normalizado (+569XXXXXXXX) como en /cotizacion, /cotizador y el bot: la búsqueda exacta
+    // encuentra a la misma persona en los tres canales y el aviso "Posible duplicado" ve sus negocios.
+    // Si no queda un solo número (un anexo, dos teléfonos), va el texto tal cual, como antes.
+    const normalizedPhone = normalizePhone(payload.phone);
+    const personPhone = /^\+?\d{8,12}$/.test(normalizedPhone) ? normalizedPhone : payload.phone.trim();
+
     // Crear persona
     const personResult = await findOrCreatePerson({
       name: payload.fullName,
       email: payload.email,
-      phone: payload.phone,
+      phone: personPhone,
       // Persona o empresa del formulario, igual que el negocio
       customerType: leadType,
       commune: payload.commune,

@@ -33,6 +33,19 @@ describe('mentionedQuantities: lo que sí cuenta', () => {
     ['necesito 2000 unidades', [2000]],
     ['Cotizar 1500 focos', [1500]],
     ['necesito 999', [999]],
+    // Tras quitar el envase o el reparto, lo que sí se pide sigue contando
+    ['Necesito 2 equipos de 2 tubos', [2]],
+    ['20 luminarias, 2 por poste', [20]],
+    ['2 luminarias por poste, 10 postes', [10]],
+    ['10 focos por favor', [10]],
+    ['20 tubos para el pasillo', [20]],
+    ['necesito 4 paneles x 2', [4, 2]],
+    // «<producto> de N unidades» y «<producto> para N postes» son lo pedido, no partes del producto
+    ['Necesito reflectores LED de 40 unidades para cancha', [40]],
+    ['Solicito precio de focos LED de 100 unidades', [100]],
+    ['Necesito luminarias para 30 postes', [30]],
+    ['luminarias solares para 12 postes de la calle', [12]],
+    ['campanas led de 15 piezas', [15]],
   ])('«%s» → %j', (comment, expected) => {
     expect(mentionedQuantities(comment)).toEqual(expected);
   });
@@ -85,6 +98,20 @@ describe('mentionedQuantities: lo que nunca cuenta', () => {
     ['precio sin $ ni punto', 'son 4990'],
     ['número de 4 cifras tras «x»', 'panel x 1500'],
     ['año tras «x»', 'x 2026'],
+    // Revisión del 16-11-2026: envases como los escribe el catálogo y conteos que se reparten o describen el producto
+    ['envase del catálogo', 'Packaging por mayor: 10 unidades por caja'],
+    ['envase con x', '6 piezas x caja'],
+    ['envase con barra', '12 unidades/caja'],
+    ['envase con caja master', '20 unidades por caja master'],
+    ['reparto por poste', '2 luminarias por poste'],
+    ['reparto por cada', '3 focos por cada sala'],
+    ['reparto con cada', '4 tubos cada equipo'],
+    ['reparto por equipo', '4 tubos por equipo'],
+    ['cada uno', 'equipos con 2 tubos c/u'],
+    ['equipo de', 'equipo de 2 tubos'],
+    ['canoa para', 'canoa doble para 2 tubos'],
+    ['kit con', 'kit solar con 2 paneles'],
+    ['regleta para', 'regleta para 2 tubos de 120 cm'],
   ])('%s: «%s»', (_name, comment) => {
     expect(mentionedQuantities(comment)).toEqual([]);
   });
@@ -104,6 +131,14 @@ describe('mentionedQuantities: lo que nunca cuenta', () => {
 });
 
 describe('quantityReviewItem', () => {
+  it.each([
+    ['10 unidades por caja', [20]],
+    ['6 piezas x caja', [12]],
+    ['canoa doble para 2 tubos', [10, 20]],
+  ])('«%s» con %j: no avisa (envase o conteo que describe el producto)', (comment, chosen) => {
+    expect(quantityReviewItem(comment, chosen)).toBeNull();
+  });
+
   it('el comentario menciona otra cantidad que la elegida', () => {
     expect(quantityReviewItem('necesito 3', [1])).toBe('Revisar cantidad: el comentario menciona 3; se eligió 1');
   });
