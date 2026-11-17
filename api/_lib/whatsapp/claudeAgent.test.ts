@@ -6,9 +6,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Cada salida: un texto (un bloque, stop_reason end_turn) o varios bloques con su stop_reason.
-const queue = vi.hoisted(() => [] as Array<string | { blocks: string[]; stop_reason?: string }>);
+// [MODELO] thinking: antepone un bloque thinking vacío, como Haiku 5.5 con pensamiento.
+const queue = vi.hoisted(() => [] as Array<string | { blocks: string[]; stop_reason?: string; thinking?: boolean }>);
 const systems = vi.hoisted(() => [] as string[]);
 const sent = vi.hoisted(() => [] as Array<Array<{ role: string; content: unknown }>>);
+const requests = vi.hoisted(() => [] as Array<Record<string, unknown>>);
 
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class FakeAnthropic {
@@ -16,9 +18,11 @@ vi.mock('@anthropic-ai/sdk', () => ({
       create: async (args: { system: string; messages: Array<{ role: string; content: unknown }> }) => {
         systems.push(args.system);
         sent.push(args.messages);
+        requests.push(args as unknown as Record<string, unknown>);
         const next = queue.shift() ?? '{}';
         if (typeof next === 'string') return { content: [{ type: 'text', text: next }], stop_reason: 'end_turn' };
-        return { content: next.blocks.map((text) => ({ type: 'text', text })), stop_reason: next.stop_reason ?? 'end_turn' };
+        const thinking = next.thinking ? [{ type: 'thinking', thinking: '', signature: 'firma-ficticia' }] : [];
+        return { content: [...thinking, ...next.blocks.map((text) => ({ type: 'text', text }))], stop_reason: next.stop_reason ?? 'end_turn' };
       },
     };
   },
@@ -28,7 +32,9 @@ import { askClaude, extractJsonObject, textField } from './claudeAgent';
 
 beforeEach(() => {
   queue.length = 0;
+  requests.length = 0;
   vi.stubEnv('ANTHROPIC_API_KEY', 'clave-ficticia-solo-pruebas');
+  vi.stubEnv('ANTHROPIC_MODEL', undefined);
 });
 
 describe('textField', () => {
@@ -300,5 +306,64 @@ describe('fase 1: el mensaje y el prompt', () => {
     expect(system).toContain('nunca los deduzcas del nombre del producto ni del nombre del perfil');
     expect(system).toContain('tipo_de_luz: solo el color de luz que el cliente nombra');
     expect(system).toContain('nunca LED, interior, exterior ni el uso');
+  });
+});
+
+// [MODELO] Claude Haiku 5.5 (17-11-2026): modelo por defecto, sin pensamiento y con esfuerzo bajo; sin parámetros
+// de muestreo ni prellenado (Haiku 5.5 responde 400); un bloque thinking se salta y un rechazo no tumba el webhook.
+describe('[MODELO] Haiku 5.5', () => {
+  const MESSAGE = 'Necesito 12 focos LED para una bodega, mi correo es rosa.prueba@example.com';
+  const JSON_TEXT = JSON.stringify({ producto: 'focos LED', cantidad: '12', wantsHuman: false, qualifiesForDeal: true, summary: 'El cliente pide focos LED.' });
+
+  it('por defecto: claude-haiku-5-5, sin pensamiento, esfuerzo bajo y 1024 tokens; sin temperature, top_p, top_k ni prellenado', async () => {
+    queue.push(JSON_TEXT);
+    await askClaude([{ role: 'user', content: 'Hola' }, { role: 'assistant', content: 'Hola, cuéntanos.' }], MESSAGE, 'Perfil Prueba');
+    const req = requests.at(-1)!;
+    expect(req).toMatchObject({ model: 'claude-haiku-5-5', max_tokens: 1024, thinking: { type: 'disabled' }, output_config: { effort: 'low' } });
+    for (const key of ['temperature', 'top_p', 'top_k']) expect(req).not.toHaveProperty(key);
+    expect((req.messages as Array<{ role: string }>).at(-1)!.role).toBe('user');
+  });
+
+  it('ANTHROPIC_MODEL=claude-haiku-4-5: el pedido de antes (400 tokens, sin thinking ni output_config)', async () => {
+    vi.stubEnv('ANTHROPIC_MODEL', 'claude-haiku-4-5');
+    queue.push(JSON_TEXT);
+    await askClaude([], MESSAGE, 'Perfil Prueba');
+    const req = requests.at(-1)!;
+    expect(req).toMatchObject({ model: 'claude-haiku-4-5', max_tokens: 400 });
+    expect(req).not.toHaveProperty('thinking');
+    expect(req).not.toHaveProperty('output_config');
+  });
+
+  it('ANTHROPIC_MODEL con otro modelo actual: ese modelo con el pedido nuevo', async () => {
+    vi.stubEnv('ANTHROPIC_MODEL', 'claude-sonnet-5-5');
+    queue.push(JSON_TEXT);
+    await askClaude([], MESSAGE, 'Perfil Prueba');
+    expect(requests.at(-1)).toMatchObject({ model: 'claude-sonnet-5-5', max_tokens: 1024, thinking: { type: 'disabled' } });
+  });
+
+  it('un bloque thinking antes del texto se salta: se usa el JSON', async () => {
+    queue.push({ blocks: [JSON_TEXT], thinking: true });
+    const result = await askClaude([], MESSAGE, 'Perfil Prueba');
+    expect(result.parsed).toMatchObject({ producto: 'focos LED', cantidad: '12', qualifiesForDeal: true });
+    expect(result.diagnostics?.usedDefaults).toBe(false);
+  });
+
+  it('stop_reason refusal sin texto: valores por defecto con motivo rechazo, sin lanzar', async () => {
+    queue.push({ blocks: [], stop_reason: 'refusal' });
+    const result = await askClaude([], MESSAGE, 'Perfil Prueba');
+    expect(result.parsed).toEqual({ wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + MESSAGE + '"' });
+    expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason: 'rechazo', stopReason: 'refusal', length: 0 });
+  });
+
+  it('stop_reason refusal con algo de texto: tampoco se usa', async () => {
+    queue.push({ blocks: [JSON_TEXT], stop_reason: 'refusal' });
+    const result = await askClaude([], MESSAGE, 'Perfil Prueba');
+    expect(result.parsed.producto).toBeUndefined();
+    expect(result.diagnostics?.reason).toBe('rechazo');
+  });
+
+  it('sin texto y sin rechazo: lanza como antes (el webhook sigue con las reglas)', async () => {
+    queue.push({ blocks: [], thinking: true, stop_reason: 'end_turn' });
+    await expect(askClaude([], MESSAGE, 'Perfil Prueba')).rejects.toThrow('No text block');
   });
 });

@@ -369,7 +369,7 @@ const MODULES: Record<string, Record<string, unknown>> = {
 
 /** Constantes de texto exportadas por los demás módulos que no llegan al cliente (módulo → nombre → motivo). */
 const INTERNAL_EXPORTS: Record<string, Record<string, string>> = {
-  claudeAgent: { PROFILE_NOTE: 'instrucción para Claude, que solo extrae datos' },
+  claudeAgent: { PROFILE_NOTE: 'instrucción para Claude, que solo extrae datos', DEFAULT_MODEL: 'nombre del modelo de la API, nunca va al cliente' },
   pipedriveLead: { NOTE_REF_LABEL: 'nota de Pipedrive: la referencia fija', NOTE_SEARCH_SORT: 'parámetro de la API de Pipedrive' },
   privacyNotice: { PRIVACY_POLICY_URL: 'la URL, que va dentro de PRIVACY_NOTICE' },
   stateStore: { SAVE_IF_REV_SCRIPT: 'script de Upstash (Redis)' },
