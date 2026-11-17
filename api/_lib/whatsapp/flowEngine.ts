@@ -2968,6 +2968,12 @@ function summaryAnswer(phone: string, state: FlowState, body: string, claudePars
     }
     return { ...closed(MSG_SUMMARY_FIX), question: SUMMARY_FIX_QUESTION };
   }
+  // (ronda 8) Un rechazo con una pregunta no pide el dato (la pregunta sigue closedFollowUp), pero el rechazo queda textual
+  // en la nota del negocio ("Hay un error en la comuna. Hacen factura?"). La pregunta sola ("Y si es otra comuna?"), no.
+  if (report && /[?\u00bf]/.test(body)) {
+    const plain = body.slice(0, MAX_FACTS).split(/(?<=[?!\n])|(?=\u00bf)/).filter((part) => !/[?\u00bf]/.test(part)).join(' . ');
+    if (plain.trim() && rejectedFields(plain, state.captured).fields.length) report.dropped = true;
+  }
   // (ronda 6, B) El dato rechazado por su nombre sin el nuevo ("La comuna no", "Todo bien salvo la luz", "Si, pero otra
   // comuna"), sin otro dato: como "<dato> esta mal". Despues de "Que dato corrijo?", MSG4 y la linea textual en la nota.
   if (!hasMedia && !EMAIL_RE.test(body) && !inspectRut(body, { asked: false }).found && rejectsFieldWithoutData(body, state.captured, claudeParsed)) {

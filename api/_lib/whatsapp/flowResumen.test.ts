@@ -1665,6 +1665,23 @@ describe('(ronda 8) el rechazo con una pregunta, el error sin decir cuál y los 
   });
 
   it.each([
+    'Hay un error en la comuna. ¿Hacen factura?', 'Hay un error en la cantidad, ¿pueden llamarme?', 'Hay un error en la comuna, ¿me llaman?',
+    'Hay un error en la cantidad. ¿Me pueden llamar?',
+  ])('«%s» no pide el dato, pero el rechazo queda textual en el mismo negocio', (body) => {
+    closeWithSummary();
+    const before = flow.getFlowState(PHONE).captured;
+    const r = step(body);
+    expect(r.reply).not.toBe(flow.MSG_SUMMARY_FIX);
+    expectNoted(r, body, before);
+  });
+
+  it('la pregunta hipotética sola («¿Y si es otra comuna?») no deja línea', () => {
+    closeWithSummary();
+    const r = step('¿Y si es otra comuna?');
+    expect(r.shouldCreateDeal).toBe(false);
+  });
+
+  it.each([
     'Hay un error', 'Me equivoqué', 'Hay un dato malo', 'Algo está mal', 'Un dato está mal', 'Hay un error en el resumen',
     'Hay un error en el número', 'Hay un error en las unidades', 'El número no es ese',
   ])('«%s» pide el dato («¿Qué dato corrijo?») sin escribir', (body) => {
