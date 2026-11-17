@@ -795,4 +795,52 @@ describe('[REGISTRO] el negocio nuevo lleva el tipo del flujo', () => {
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2B');
   });
+
+  // (revisión 16-11) El flujo de instalación fijaba B2C: con el tipo del flujo en el negocio nuevo, una constructora que
+  // pedía instalación quedaba como persona (boleta). Ahora la instalación usa las señales de empresa del flujo.
+  it('una constructora que pide instalación en un mensaje: negocio y persona B2B', async () => {
+    const phone = nextPhone();
+    const r = await send(phone, 'Somos Constructora Prueba SpA, necesitamos instalación de luminarias LED en una obra en Maipú. Contacto Juan Prueba, juan.prueba@example.com',
+      { empresa: 'Constructora Prueba SpA', nombre: 'Juan Prueba', correo: 'juan.prueba@example.com', comuna_o_ciudad: 'Maipú', proyecto_o_uso: 'obra' });
+    expect(r.reply).toBe(MSG4);
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2B' });
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.deals[0].leadType).toBe('B2B');
+    expect(sim.persons[0].customerType).toBe('B2B');
+  });
+
+  it('una empresa (factura) que después pide la instalación: sigue B2B', async () => {
+    const phone = nextPhone();
+    await send(phone, 'Necesito 20 campanas LED 150W para la bodega de Comercial Prueba SpA en Quilicura, necesito factura',
+      { producto: 'campanas LED 150W', cantidad: '20', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', empresa: 'Comercial Prueba SpA' });
+    expect(getFlowState(phone).leadType).toBe('B2B');
+    await send(phone, 'También necesitamos la instalación de las campanas');
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2B' });
+    const r = await send(phone, 'Juan Prueba, juan.prueba@example.com, Quilicura, bodega', { nombre: 'Juan Prueba', correo: 'juan.prueba@example.com', comuna_o_ciudad: 'Quilicura' });
+    expect(r.reply).toBe(MSG4);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.deals[0].leadType).toBe('B2B');
+    expect(sim.persons[0].customerType).toBe('B2B');
+  });
+
+  it('la empresa aparece a mitad de la instalación («factura para Constructora…»): B2B', async () => {
+    const phone = nextPhone();
+    await send(phone, 'Necesito instalar 30 campanas LED');
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2C' });
+    const r = await send(phone, 'Pedro Prueba, pedro.prueba@example.com, Quilicura, bodega, necesito factura para Constructora Prueba SpA',
+      { nombre: 'Pedro Prueba', correo: 'pedro.prueba@example.com' });
+    expect(r.reply).toBe(MSG4);
+    expect(sim.deals[0].leadType).toBe('B2B');
+    expect(sim.persons[0].customerType).toBe('B2B');
+  });
+
+  it('una persona que pide instalación para su casa: negocio y persona B2C (como antes)', async () => {
+    const phone = nextPhone();
+    const r = await send(phone, 'Necesito instalar 10 focos LED en mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com',
+      { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com', comuna_o_ciudad: 'Maipú', proyecto_o_uso: 'casa' });
+    expect(r.reply).toBe(MSG4);
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2C' });
+    expect(sim.deals[0].leadType).toBe('B2C');
+    expect(sim.persons[0].customerType).toBe('B2C');
+  });
 });

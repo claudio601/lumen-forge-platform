@@ -1,6 +1,6 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
-import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
+import { inspectRut, isBusinessRut, removeRuts, rutRange } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
@@ -754,6 +754,20 @@ function buildInstallCaptureMsg(captured: CapturedFields): string {
   }
   const items = missingRequired.map((x, i) => (i + 1) + ') ' + capitalize(x)).join('\n');
   return 'Gracias. Para completar tu solicitud de instalaci\u00f3n, necesito que me indiques:\n' + items;
+}
+
+/**
+ * [REGISTRO] (revision 16-11) El tipo en el flujo de instalacion. Pedir una instalacion no es senal de empresa (queda
+ * persona, B2C, como antes), pero tampoco la borra: la conversacion que ya era de empresa sigue B2B, y las senales de
+ * mergeProductFields (palabras de empresa, la empresa que lee Claude, un RUT valido de empresa) la vuelven B2B. Antes
+ * se fijaba B2C y, desde que el negocio nuevo de Pipedrive toma el tipo del flujo, una constructora que pedia una
+ * instalacion quedaba como persona (boleta en vez de factura).
+ */
+function installLeadType(state: FlowState, body: string, claudeParsed: ClaudeFields, captured: CapturedFields): LeadType {
+  if (state.leadType === 'B2B') return 'B2B';
+  const businessRut = isBusinessRut({ valido: captured.rut_valido === true, tipo: captured.rut_tipo });
+  const company = B2B_SIGNAL_RE.test(b2bText(body)) || businessRut || Boolean(claudeParsed.empresa && claudeParsed.empresa.length > 0);
+  return company ? 'B2B' : 'B2C';
 }
 
 // [INSTALL-FLOW] Registra campos de instalacion desde el mensaje del usuario
@@ -1648,11 +1662,19 @@ function mergeProductFields(
     else if (leadType === 'Unknown' && body.trim().length > 10) { leadType = 'B2C'; }
   }
   // [RUT-PERSONA] Dueno (13-11-2026): a una persona se le emite boleta sin RUT y el bot nunca se lo pide. Un RUT cuyo
-  // digito verificador no calza se pide de nuevo (una vez) solo a una empresa (B2B); el que una persona (B2C o sin
-  // tipo) da por su cuenta queda guardado como invalido y la nota lo marca para revisarlo (pipedriveLead.ts, rutLine).
-  // Si la conversacion pasa despues a empresa con ese RUT guardado, se pide entonces, como a cualquier empresa.
-  const invalidRut = rutFound ? !rutFound.valido : merged.rut !== undefined && merged.rut_valido === false;
-  return { merged, leadType, rutToConfirm: invalidRut && leadType === 'B2B' && !state.rutRetryAsked, menuPick: quantity.menuPick };
+  // digito verificador no calza se pide de nuevo (una vez), como antes, si llega en este mensaje y es de una empresa: la
+  // conversacion es de empresa (B2B) o el numero es de 50.000.000 o mas (rutRange: empresa, organismo o comunidad,
+  // aunque el mensaje no traiga otras palabras de empresa). El de una persona (B2C o sin tipo, con numero de persona)
+  // queda guardado como invalido y la nota lo marca para revisarlo (pipedriveLead.ts, rutLine).
+  // (revision 16-11) Un RUT malo guardado en un mensaje anterior (por ejemplo, el del ejecutivo, que no lo pide) no se
+  // pide en un mensaje sin RUT, como en main. Solo en el mensaje en que la conversacion pasa de persona a empresa, y si
+  // ese mensaje no puede registrar la solicitud (sin correo): la repregunta nunca atrasa un registro.
+  const invalidHere = Boolean(rutFound && !rutFound.valido);
+  const companyRut = leadType === 'B2B' || Boolean(rutFound && rutRange(rutFound.rut) !== 'persona');
+  const becameCompany = !invalidHere && state.leadType !== 'B2B' && leadType === 'B2B'
+    && merged.rut !== undefined && merged.rut_valido === false && !canRegister(merged);
+  const rutToConfirm = !state.rutRetryAsked && ((invalidHere && companyRut) || becameCompany);
+  return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick };
 }
 
 /**
@@ -1663,8 +1685,9 @@ function mergeProductFields(
  */
 function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): FlowResult {
   const hadEmail = Boolean(flowEmail(state));
-  const late = state.isInstallFlow
-    ? { merged: mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)), leadType: state.leadType }
+  const installMerged = state.isInstallFlow ? mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)) : undefined;
+  const late = installMerged
+    ? { merged: installMerged, leadType: installLeadType(state, body, claudeParsed, installMerged) }
     : mergeProductFields(state, body, claudeParsed);
   const captureStatus = state.isInstallFlow ? computeInstallCaptureStatus(late.merged) : computeCaptureStatus(late.merged, late.leadType);
   const next: FlowState = { ...state, captured: late.merged, captureStatus, leadType: late.leadType };
@@ -2119,14 +2142,15 @@ function flowStep(
   if (isInstallIntent && !isAlreadyInstallFlow) {
     const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
+    const leadType = installLeadType(state, body, claudeParsed, updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
-      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType: 'B2C' });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType });
       console.log('[flowEngine] install_capture completo en primer mensaje');
       return { reply: MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
-    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: 1, isInstallFlow: true, leadType: 'B2C' });
+    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: 1, isInstallFlow: true, leadType });
     console.log('[flowEngine] install_capture iniciado, missing: ' + missingRequired.join(', '));
     return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }
@@ -2134,21 +2158,22 @@ function flowStep(
   if (state.stage === 'install_capture') {
     const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
+    const leadType = installLeadType(state, body, claudeParsed, updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
-      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType });
       console.log('[flowEngine] install_capture completo \u2014 derivando');
       return { reply: MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const repreg = state.repreguntasInstall + 1;
     if (repreg > 3) {
       const captureStatus: CaptureStatus = updatedCaptured.install_correo ? 'partial' : 'incomplete';
-      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true, leadType });
       console.log('[flowEngine] install_capture timeout \u2014 cerrando con status=' + captureStatus);
       return { reply: installClosingMsg(updatedCaptured), shouldCreateDeal: updatedCaptured.install_correo ? true : false, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
-    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: repreg, isInstallFlow: true });
+    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: repreg, isInstallFlow: true, leadType });
     console.log('[flowEngine] install_capture en curso, missing: ' + missingRequired.join(', '));
     return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }

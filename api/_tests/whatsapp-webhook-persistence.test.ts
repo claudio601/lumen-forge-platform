@@ -50,9 +50,11 @@ const COMPLETE = {
 // [CANTIDAD] PR 2: la cantidad de Claude vale solo si el texto del cliente la dice.
 // [COMUNA] PR 3: la comuna tambien (de la lista oficial y con su frase de ubicacion).
 const WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 77.123.456-8';
-// [RUT-PERSONA] Dueño (13-11): el RUT que no calza se pide de nuevo solo a una empresa. Las pruebas de la
-// repregunta guardada usan una empresa; la de persona (sin repregunta) está en R121-04.
+// [RUT-PERSONA] Dueño (13-11): el RUT que no calza se pide de nuevo solo a una empresa (conversación de empresa o
+// RUT de 50.000.000 o más, como el 77.x de WRONG_RUT_ORDER). Las pruebas de la repregunta guardada usan una empresa; la
+// de persona (RUT de persona, sin repregunta) está en R121-04.
 const COMPANY = { ...COMPLETE, empresa: 'Comercial Prueba SpA' };
+const PERSON_WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 15.432.876-0';
 let redis: ReturnType<typeof createFakeRedis>;
 let seq: number;
 let webhook: typeof import('../whatsapp/webhook.js')['default'];
@@ -244,15 +246,22 @@ describe('R121-04: estado compartido y respaldo', () => {
 
   it('[RUT-PERSONA] una persona con un RUT que no calza no recibe la repregunta: se registra y la nota lo marca', async () => {
     sim.parsed = COMPLETE;
-    const reply = await send(WRONG_RUT_ORDER);
+    const reply = await send(PERSON_WRONG_RUT_ORDER);
     expect(reply).not.toContain('no calza');
     expect(reply).not.toMatch(/RUT/);
-    expect(reply).toContain('registrad');
+    expect(reply).toContain('Claudio Quero te responderá por correo');
     const state = await snapshot();
-    expect(state.flow.captured).toMatchObject({ rut: '77.123.456-8', rut_valido: false });
+    expect(state.flow.captured).toMatchObject({ rut: '15.432.876-0', rut_valido: false });
     expect(state.flow.rutRetryAsked).toBeUndefined();
     expect(sim.created).toBe(1);
-    expect(sim.notes.map((n) => n.content).join('\n')).toMatch(/RUT: 77\.123\.456-8 \(INVALIDO/);
+    expect(sim.notes.map((n) => n.content).join('\n')).toMatch(/RUT: 15\.432\.876-0 \(INVALIDO/);
+  });
+
+  it('[RUT-PERSONA] sin palabras de empresa, un RUT de empresa (77.x) que no calza sí recibe la repregunta', async () => {
+    sim.parsed = COMPLETE;
+    expect(await send(WRONG_RUT_ORDER)).toContain('no calza');
+    expect(sim.created).toBe(0);
+    expect((await snapshot()).flow.rutRetryAsked).toBe(true);
   });
 
   it.each(['anterior', 'ausente', 'sin fecha'])('con candado recuperado guarda el respaldo local más nuevo frente a Redis %s', async mode => {

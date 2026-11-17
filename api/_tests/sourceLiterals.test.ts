@@ -49,4 +49,30 @@ describe('sourceLiterals', () => {
     expect(res.literals.map((l) => [l.text, l.skipped, l.line])).toEqual([['uno ', true, 2], ['dos', true, 3], ['tres', false, 4]]);
     expect(res.constants).toEqual([{ name: 'A', source: "A: string =\n  'uno ' +\n  'dos';" }]);
   });
+
+  // (revisión 16-11) Sin ";" la declaración cubierta seguía hasta el próximo ";" y omitía los literales de las funciones
+  // siguientes (un texto nuevo al cliente pasaba la guarda).
+  it('una constante cubierta sin ";" termina donde empieza la declaración siguiente', () => {
+    const code = [
+      "export const A = 'uno ' +",
+      "  'dos'",
+      "export function f(): string { return 'texto nuevo'; }",
+      "const B = 'tres'",
+      "import { c } from './m'",
+      "const D = 'cuatro';",
+    ].join('\n');
+    const res = sourceLiterals(code, new Set(['A', 'B']));
+    expect(res.literals.map((l) => [l.text, l.skipped])).toEqual([['uno ', true], ['dos', true], ['texto nuevo', false], ['tres', true], ['./m', true], ['cuatro', false]]);
+    expect(res.constants).toEqual([{ name: 'A', source: "A = 'uno ' +\n  'dos'" }, { name: 'B', source: "B = 'tres'" }]);
+  });
+
+  it('una palabra de declaración dentro de una expresión no corta la sentencia', () => {
+    const res = sourceLiterals("export const A = 'uno ' +\n  // const en un comentario\n  'dos';\nconst b = 'tres';", new Set(['A']));
+    expect(res.literals.map((l) => [l.text, l.skipped])).toEqual([['uno ', true], ['dos', true], ['tres', false]]);
+  });
+
+  it('index: dónde empieza cada literal en el código', () => {
+    const code = "x.push('uno'); const t = `a ${b} c`;";
+    expect(sourceLiterals(code).literals.map((l) => [l.text, code.slice(l.index, l.index + 1)])).toEqual([['uno', "'"], ['a ', '`'], [' c', '}']]);
+  });
 });

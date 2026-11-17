@@ -125,12 +125,19 @@ describe('la prueba del dueño del 16-10: razón social, RUT y correo en un mens
     expect(again.captured).toMatchObject({ cantidad: '30', rut: '77.123.456-9', rut_valido: true });
   });
 
-  it('T13 persona: el RUT que no calza no se pide de nuevo, queda guardado y no toca la cantidad', () => {
+  it('T13 persona: el RUT de persona que no calza no se pide de nuevo, queda guardado y no toca la cantidad', () => {
     step(FIRST, FIRST_CLAUDE);
-    const r = step('RUT 77.123.456-8', { cantidad: '77123456' });
+    const r = step('RUT 15.432.876-0', { cantidad: '15432876' });
     expect(r.reply).not.toBe(flow.MSG_RUT_INVALID);
     expect(r.reply).not.toMatch(/RUT/);
-    expect(r.captured).toMatchObject({ cantidad: '30', rut: '77.123.456-8', rut_valido: false });
+    expect(r.captured).toMatchObject({ cantidad: '30', rut: '15.432.876-0', rut_valido: false });
+  });
+
+  it('T13 sin palabras de empresa, con un RUT de empresa (77.x) que no calza: se pide de nuevo y no toca la cantidad', () => {
+    step(FIRST, FIRST_CLAUDE);
+    const r = step('RUT 77.123.456-8', { cantidad: '77123456' });
+    expect(r.reply).toBe(flow.MSG_RUT_INVALID);
+    expect(r.captured.cantidad).toBe('30');
   });
 });
 

@@ -4,8 +4,10 @@
 //   con el texto, y los valores guardados (tipo_de_luz "calida", "fria") no.
 // - Punto 2: un solo cierre registrado (MSG4) para productos (persona o empresa) e instalación.
 // - Punto 3: una segunda pregunta por el despacho recibe otra vez MSG_WAIT_DELIVERY, no el recordatorio del registro.
-// - Punto 4: una persona (B2C o sin tipo) que da un RUT con el dígito verificador malo no recibe MSG_RUT_INVALID; queda
-//   guardado como inválido y la nota lo marca. Las empresas siguen igual.
+// - Punto 4: una persona (B2C o sin tipo, con un RUT de persona: menos de 50.000.000) que da un RUT con el dígito
+//   verificador malo no recibe MSG_RUT_INVALID; queda guardado como inválido y la nota lo marca. Las empresas siguen
+//   igual (revisión 16-11): la conversación de empresa, o un RUT de 50.000.000 o más, recibe la repregunta una vez, y
+//   solo en el mensaje que trae el RUT (como en main).
 // Los textos exactos de cada mensaje los congela ownerApprovedTexts.test.ts. Solo datos inventados.
 
 import { afterEach, describe, expect, it } from 'vitest';
@@ -70,6 +72,17 @@ describe('punto 1: tildes y signos de apertura', () => {
     step('Necesito 10 paneles 60x60 para mi casa en Maipú', { producto: 'paneles 60x60', cantidad: '10', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú' });
     const r = step('no sé');
     expect(r.reply).toBe('Para registrar tu solicitud necesito:\n- tipo de luz preferida\n- nombre\n- correo de contacto\n\n¿Me los puedes indicar?');
+  });
+
+  // (revisión 16-11) Las etiquetas de una palabra también llegan al cliente: la guarda las congela en FRAGMENTS.
+  it('la etiqueta «producto» se muestra en la lista como «1) Producto»', () => {
+    const r = step('Hola, necesito 10 unidades para mi casa', { cantidad: '10', proyecto_o_uso: 'casa' });
+    expect(r.reply).toBe('Entendido, para la casa podemos orientarte bien. Para recomendarte las opciones adecuadas, necesito:\n1) Producto\n2) Tipo de luz preferida\n\n¿Me los puedes indicar?');
+  });
+
+  it('la etiqueta «correo» de la instalación: «Casi listo. Solo me falta tu correo para registrar la solicitud.»', () => {
+    const r = step('Quiero instalar focos en mi casa en Maipú, soy Ana Prueba', { nombre: 'Ana Prueba', comuna_o_ciudad: 'Maipú', proyecto_o_uso: 'casa' });
+    expect(r.reply).toBe('Casi listo. Solo me falta tu correo para registrar la solicitud.');
   });
 
   it('la instalación: «solicitud de instalación» con tilde en las dos preguntas', () => {
@@ -167,32 +180,34 @@ describe('punto 3: el despacho preguntado dos veces', () => {
 });
 
 describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () => {
+  // Un RUT de persona (menos de 50.000.000) con el dígito verificador malo: el válido es 15.432.876-9.
+  const PERSON_RUT = '15.432.876-0';
   it('persona (B2C) en el primer mensaje: no recibe MSG_RUT_INVALID, cierra y la nota marca el RUT', () => {
-    const r = step(ORDER + ', RUT 77.123.456-8, ' + EMAIL, FIELDS);
+    const r = step(ORDER + ', RUT ' + PERSON_RUT + ', ' + EMAIL, FIELDS);
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
     expect(r.reply).toBe(flow.MSG4);
-    expect(r.captured).toMatchObject({ rut: '77.123.456-8', rut_valido: false });
+    expect(r.captured).toMatchObject({ rut: PERSON_RUT, rut_valido: false });
     expect(flow.getFlowState(PHONE).rutRetryAsked).toBeUndefined();
     expect(flow.getFlowState(PHONE).rutAskedLast).toBe(false);
     const note = buildNote({ phone: PHONE, name: 'Perfil Prueba', summary: 'Pide focos.', body: 'x', captured: r.captured, captureStatus: r.captureStatus });
-    expect(note).toContain('RUT: 77.123.456-8 (INVALIDO: no calza el digito verificador)');
+    expect(note).toContain('RUT: ' + PERSON_RUT + ' (INVALIDO: no calza el digito verificador)');
   });
 
   it('persona (B2C) a mitad de la conversación: sigue con lo que falta, sin pedir el RUT', () => {
     step(ORDER, FIELDS);
-    const r = step('RUT 77.123.456-8');
+    const r = step('RUT ' + PERSON_RUT);
     expect(r.reply).not.toBe(flow.MSG_RUT_INVALID);
     expect(r.reply).not.toMatch(/RUT/);
-    expect(r.captured).toMatchObject({ rut: '77.123.456-8', rut_valido: false });
+    expect(r.captured).toMatchObject({ rut: PERSON_RUT, rut_valido: false });
   });
 
   it('sin tipo (Unknown): tampoco recibe MSG_RUT_INVALID', () => {
     step('Hola');
     expect(flow.getFlowState(PHONE).leadType).toBe('Unknown');
-    const r = step('77123456-8');
+    const r = step('15432876-0');
     expect(flow.getFlowState(PHONE).leadType).toBe('Unknown');
     expect(r.reply).not.toBe(flow.MSG_RUT_INVALID);
-    expect(r.captured).toMatchObject({ rut: '77.123.456-8', rut_valido: false });
+    expect(r.captured).toMatchObject({ rut: PERSON_RUT, rut_valido: false });
   });
 
   it('empresa (B2B): se le pide de nuevo una vez, como antes', () => {
@@ -202,11 +217,74 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
     expect(step('RUT 77.123.456-0').reply).not.toBe(flow.MSG_RUT_INVALID);
   });
 
-  it('persona que después resulta ser empresa, con el RUT malo guardado: se le pide una vez', () => {
-    step(ORDER + ', RUT 77.123.456-8', FIELDS);
+  it('una empresa que da un RUT de persona que no calza: también se le pide de nuevo', () => {
+    step('Necesito 12 focos LED luz cálida para la bodega de Comercial Prueba SpA en Maipú', { ...FIELDS, proyecto_o_uso: 'bodega', empresa: 'Comercial Prueba SpA' });
+    expect(step('RUT ' + PERSON_RUT).reply).toBe(flow.MSG_RUT_INVALID);
+  });
+
+  // (revisión 16-11) Un RUT de 50.000.000 o más es de empresa, organismo o comunidad aunque el mensaje no traiga otras
+  // palabras de empresa (el flujo marca B2C a cualquier mensaje largo sin ellas): se pide de nuevo, como en main.
+  it('RUT de empresa (76.x) que no calza, sin palabras de empresa: se pide de nuevo y no se registra todavía', () => {
+    step('Hola, necesito 20 campanas LED 150W luz fria para un galpon en Pudahuel',
+      { producto: 'campanas LED 150W', tipo_de_luz: 'fria', cantidad: '20', proyecto_o_uso: 'galpon', comuna_o_ciudad: 'Pudahuel' });
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
+    const r = step('RUT 76.123.456-3, Maria Prueba, maria@example.com', { nombre: 'Maria Prueba', correo: 'maria@example.com' });
+    expect(r).toMatchObject({ reply: flow.MSG_RUT_INVALID, shouldCreateDeal: false });
+    const fixed = step('perdón, es 76.123.456-0');
+    expect(fixed.captured).toMatchObject({ rut: '76.123.456-0', rut_valido: true, rut_tipo: 'empresa' });
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
+    expect(fixed).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+  });
+
+  it('RUT de empresa (77.x) que no calza, todo en un mensaje y sin palabras de empresa: se pide de nuevo', () => {
+    const r = step('Necesito 12 focos LED luz cálida para la bodega en Maipú, RUT 77.123.456-8, ' + EMAIL,
+      { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'calida', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Maipú', correo: EMAIL });
+    expect(r).toMatchObject({ reply: flow.MSG_RUT_INVALID, shouldCreateDeal: false });
+    expect(r.captured).toMatchObject({ rut: '77.123.456-8', rut_valido: false });
+  });
+
+  it('el RUT de empresa que vuelve a no calzar queda guardado y el flujo sigue (una sola repregunta)', () => {
+    step('Hola, necesito 20 campanas LED 150W luz fria para un galpon en Pudahuel',
+      { producto: 'campanas LED 150W', tipo_de_luz: 'fria', cantidad: '20', proyecto_o_uso: 'galpon', comuna_o_ciudad: 'Pudahuel' });
+    expect(step('RUT 76.123.456-3, Maria Prueba, maria@example.com', { nombre: 'Maria Prueba', correo: 'maria@example.com' }).reply).toBe(flow.MSG_RUT_INVALID);
+    const again = step('76.123.456-4');
+    expect(again).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(again.captured).toMatchObject({ rut: '76.123.456-4', rut_valido: false });
+  });
+
+  // (revisión 16-11) Un RUT malo guardado en un mensaje anterior que no lo pide (el del ejecutivo o el de «hablar con un
+  // vendedor») no se pide en un mensaje sin RUT: como en main, el mensaje con el correo registra la solicitud y el que
+  // pregunta el precio recibe su respuesta.
+  it('empresa: RUT malo en el mensaje del ejecutivo y después todo con el correo: registra (sin repregunta)', () => {
+    expect(step('Claudio me dijo que les escribiera. Somos Constructora Prueba SpA, RUT 76.123.456-3', { empresa: 'Constructora Prueba SpA' }).reply).toBe(flow.MSG_EXECUTIVE);
+    const r = step('necesitamos 50 campanas LED 200W luz fria para una bodega en Quilicura, compras10@example.com',
+      { producto: 'campanas LED 200W', tipo_de_luz: 'fria', cantidad: '50', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', correo: 'compras10@example.com' });
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+    expect(r.captured).toMatchObject({ rut: '76.123.456-3', rut_valido: false });
+  });
+
+  it('empresa: pide un vendedor con un RUT malo y después pregunta el precio: recibe la respuesta del precio', () => {
+    step('Somos Constructora Prueba SpA, necesitamos 50 campanas LED 200W luz fria para una bodega en Quilicura',
+      { producto: 'campanas LED 200W', tipo_de_luz: 'fria', cantidad: '50', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', empresa: 'Constructora Prueba SpA' });
+    const human = flow.processFlowStep(PHONE, 'quiero hablar con un vendedor, rut 76.123.456-3', {}, { wantsHuman: true, qualifiesForDeal: false, lastReply });
+    lastReply = human.reply;
+    expect(human.reply).toBe(flow.MSG_NEED_EMAIL);
+    expect(step('¿cuanto cuestan las campanas?').reply).toBe(flow.MSG_Q_PRICE);
+  });
+
+  it('persona que después resulta ser empresa, con el RUT malo guardado y sin correo: se le pide una vez', () => {
+    step(ORDER + ', RUT ' + PERSON_RUT, FIELDS);
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
     expect(step('Es para mi empresa, Comercial Prueba SpA', { empresa: 'Comercial Prueba SpA' }).reply).toBe(flow.MSG_RUT_INVALID);
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
     expect(step(EMAIL, { correo: EMAIL }).reply).toBe(flow.MSG4);
+  });
+
+  it('persona que pasa a empresa en el mensaje que trae el correo: registra, sin repregunta (no atrasa el registro)', () => {
+    step(ORDER + ', RUT ' + PERSON_RUT, FIELDS);
+    const r = step('Es para mi empresa, Comercial Prueba SpA: ' + EMAIL, { empresa: 'Comercial Prueba SpA', correo: EMAIL });
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(r.captured).toMatchObject({ rut: PERSON_RUT, rut_valido: false });
   });
 });

@@ -3,6 +3,9 @@
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeRedis, fakeFetch, UPSTASH_URL } from './fakeUpstash.js';
+// FASE 3A (revisión 16-11): el cierre registrado (MSG4) se reconoce por su trozo propio. «quedó registrada» también está
+// en el recordatorio corto (MSG_REGISTERED_SHORT) y dejaría pasar ese texto en lugar del cierre.
+const REGISTERED_CLOSING = 'Claudio Quero te responderá por correo';
 
 const sim = vi.hoisted(() => ({
   claude: new Map<string, Record<string, unknown>>(),
@@ -280,7 +283,7 @@ describe('A: ventanas del primer envio', () => {
     const first = send(await instance(), FULL, 'SMa5');
     await vi.advanceTimersByTimeAsync(12_600);
     await first.done;
-    expect(first.res.body).toContain('quedó registrada');
+    expect(first.res.body).toContain(REGISTERED_CLOSING);
     await drain();
     await vi.advanceTimersByTimeAsync(10_000);
     const next = send(await instance(), 'gracias', 'SMa5b');
@@ -351,7 +354,7 @@ describe('A: ventanas del primer envio', () => {
     await crash(await instance(), FULL, 'SMz1');
     sim.dealDelay = 0; later(44_001);
     const res = await post(await instance(), FULL, 'SMz1');
-    expect(res.body).toContain('quedó registrada');
+    expect(res.body).toContain(REGISTERED_CLOSING);
     expect(sim.notes).toHaveLength(1);
     expect(sim.posts).toBe(2); expect(sim.searches).toBe(1);
     expect(await queued()).toEqual([]);
@@ -463,7 +466,7 @@ describe('controles compatibles con main', () => {
     const hook = await instance();
     const start = Date.now();
     const res = await post(hook, FULL, 'SMg1');
-    expect(res.body).toContain('quedó registrada');
+    expect(res.body).toContain(REGISTERED_CLOSING);
     expect(Date.now() - start).toBeLessThan(30_000);
     await post(hook, 'gracias', 'SMg1b');
     expect(sim.posts).toBe(1); expect(sim.searches).toBe(0);
@@ -475,7 +478,7 @@ describe('controles compatibles con main', () => {
     // No se pueden entregar las diez para hacer espacio antes del registro.
     sim.outcomes = Array(5).fill('timeout');
     const res = await post(hook, FULL, 'SMg2');
-    expect(res.body).toContain('quedó registrada');
+    expect(res.body).toContain(REGISTERED_CLOSING);
     expect(sim.notes.filter((x) => x.deal_id === 9001)).toHaveLength(1);
   });
   it('G4: otro sid con dato nuevo crea su nota de correccion', async () => {

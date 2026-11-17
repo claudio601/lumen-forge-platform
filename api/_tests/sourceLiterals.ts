@@ -2,7 +2,8 @@
 // Lee los literales de texto ('…', "…" y los trozos de `…`) de un archivo .ts, sin el compilador de TypeScript:
 // cargarlo en la suite (unos 400 ms de CPU) hacía fallar las pruebas de tiempo de summary.test.ts. Lo usa la guarda
 // de los textos del bot (api/_lib/whatsapp/ownerApprovedTexts.test.ts).
-// Alcance: el estilo de este repo (comentarios, expresiones regulares, plantillas con ${…}, sentencias con ";"). Deja
+// Alcance: el estilo de este repo (comentarios, expresiones regulares, plantillas con ${…}, sentencias con ";"; sin ";"
+// la sentencia termina donde empieza la siguiente declaración del mismo nivel: export, import, const, function…). Deja
 // marcados como omitidos los literales dentro de console.*(…), RegExp(…) y Error(…), los de import/export y los de la
 // declaración de una constante de `covered` (esas se revisan enteras aparte). No es una prueba ni una función: vive
 // en api/_tests/ para que Vercel no lo despliegue.
@@ -13,19 +14,27 @@ export interface SourceLiteral {
   /** Tal como está en el código, con las comillas. */
   raw: string;
   line: number;
+  /** Dónde empieza en el código (la comilla de apertura, o la } que reanuda una plantilla). */
+  index: number;
   /** Dentro de console.*, RegExp, Error, import/export o la declaración de una constante de `covered`. */
   skipped: boolean;
 }
 
 export interface SourceConstant {
   name: string;
-  /** El código de la declaración, desde el nombre hasta el ";". */
+  /** El código de la declaración, desde el nombre hasta el ";" (o hasta la declaración siguiente, si no lo lleva). */
   source: string;
 }
 
 const SKIPPED_CALLEES = new Set(['RegExp', 'Error']);
 /** Después de estas palabras, una "/" empieza una expresión regular (no es una división). */
 const REGEX_AFTER_WORDS = new Set(['return', 'typeof', 'case', 'do', 'else', 'in', 'of', 'new', 'delete', 'void', 'throw', 'instanceof', 'yield', 'await']);
+/**
+ * (revisión 16-11) Palabras que empiezan otra declaración: una sentencia abierta (import/export … from, o la
+ * declaración de una constante cubierta) sin ";" termina ahí, en su mismo nivel. Antes seguía hasta el próximo ";" y
+ * dejaba omitidos los literales de las funciones que venían después.
+ */
+const STATEMENT_WORDS = new Set(['export', 'import', 'const', 'let', 'var', 'function', 'class', 'interface', 'enum', 'declare']);
 
 function decode(body: string): string {
   return body.replace(/\\(u\{([0-9a-fA-F]+)\}|u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2})|\r\n|[\s\S])/g, (_m, esc: string, cp?: string, u4?: string, x2?: string) => {
@@ -62,13 +71,20 @@ export function sourceLiterals(code: string, covered: ReadonlySet<string> = new 
   let i = 0;
 
   const skipping = () => statement !== undefined || stack.some((f) => f.skip);
+  /** Cierra la sentencia abierta en `end` (su ";" o el comienzo de la declaración siguiente). */
+  const closeStatement = (end: number) => {
+    if (statement?.name) constants.push({ name: statement.name, source: code.slice(statement.start, end).trimEnd() });
+    statement = undefined;
+  };
+  // Leido con una funcion: TypeScript no ve que push() lo cambia y lo daria siempre por 'none'.
+  const lastKindNow = (): typeof lastKind => lastKind;
   const push = (token: string, kind: typeof lastKind) => {
     tokens.push(token);
     if (tokens.length > 4) tokens.shift();
     lastKind = kind;
   };
   const addLiteral = (start: number, end: number, body: string, startLine: number) => {
-    literals.push({ text: decode(body), raw: code.slice(start, end), line: startLine, skipped: skipping() });
+    literals.push({ text: decode(body), raw: code.slice(start, end), line: startLine, index: start, skipped: skipping() });
   };
   /** Lee el texto de una plantilla desde i (después de ` o de }) hasta ` o ${. */
   const readTemplateChunk = () => {
@@ -146,6 +162,12 @@ export function sourceLiterals(code: string, covered: ReadonlySet<string> = new 
     const word = /^[A-Za-z_$][\w$]*/.exec(code.slice(i, i + 80));
     if (word) {
       const w = word[0];
+      // Sin ";": la sentencia abierta termina si su expresión ya puede terminar (después de un valor, una palabra o un
+      // cierre) y empieza otra declaración en su mismo nivel.
+      const prev = tokens[tokens.length - 1];
+      const kind = lastKindNow();
+      const ended = kind === 'value' || kind === 'word' || (kind === 'punct' && (prev === ')' || prev === ']' || prev === '}'));
+      if (statement && stack.length === statement.depth && ended && STATEMENT_WORDS.has(w)) closeStatement(i);
       i += w.length;
       if (w === 'import' && stack.length === 0 && !statement) statement = { depth: 0, start: i };
       push(w, 'word');
@@ -177,10 +199,7 @@ export function sourceLiterals(code: string, covered: ReadonlySet<string> = new 
       const declared = t.includes('const') || t.includes('let');
       if (name && covered.has(name) && declared) statement = { depth: stack.length, start: code.lastIndexOf(name, i), name };
     }
-    if (c === ';' && statement && stack.length === statement.depth) {
-      if (statement.name) constants.push({ name: statement.name, source: code.slice(statement.start, i + 1) });
-      statement = undefined;
-    }
+    if (c === ';' && statement && stack.length === statement.depth) closeStatement(i + 1);
     push(c, 'punct');
     i++;
   }
