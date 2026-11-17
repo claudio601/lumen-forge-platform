@@ -281,6 +281,7 @@ const INTERNAL: Record<FileKey, Record<string, string>> = {
     ' m': 'nota de Pipedrive: la unidad de la cantidad en metros (cantidad_varios, cambios)',
     'Correo: antes ': 'nota de Pipedrive: el cambio de correo después del cierre (cambios)',
     'Respuesta del cliente al resumen, sin aplicar (revisar): ': 'nota de Pipedrive (ronda 4, red de seguridad): la respuesta al resumen que no se aplicó entera, textual para el vendedor (cambios); nunca va al cliente',
+    'en vez de': 'summaryLeftover (ronda 7, B1): "en lugar de" se lee como "en vez de" para que "lugar" no cuente como nombre de campo; se compara, nunca va al cliente',
     'tipo de luz': 'REJECT_FIELD_NAMES (ronda 6, B): nombre de un dato que el cliente rechaza en su respuesta al resumen; se compara, nunca va al cliente',
     'temperatura de color': 'REJECT_FIELD_NAMES (ronda 6, B): nombre de un dato que el cliente rechaza en su respuesta al resumen; se compara, nunca va al cliente',
     'B2B': 'tipo de lead (interno)',

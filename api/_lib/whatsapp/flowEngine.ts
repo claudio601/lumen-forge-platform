@@ -2422,6 +2422,27 @@ function rejectedFields(text: string, captured: CapturedFields): { fields: Array
       ' (?:salvo|excepto|menos|excepcion de|aparte de) (?:por )?' + f + REJECT_END,
       // "Otro color", "Es otra comuna", "Si, pero otra comuna"; "Mi cunado vive en otra comuna" no.
       ...(fieldName ? ['(?:^| [,.;:!?]| si| pero| es| son| y| no| sea| seria) otr[oa]s? ' + word + REJECT_END] : []),
+      // (ronda 7, B2) Las otras formas de rechazo, error o cambio con el nombre del campo: "La comuna, no", "No es esa la
+      // comuna", "No era esa la comuna", "No es en esa comuna", "No es asi la cantidad", "Es otra la comuna", "La comuna es
+      // distinta", "Hay que cambiar la comuna", "Corrige la comuna", "Me equivoque en la comuna", "Hay un error en la cantidad".
+      ' ' + f + ' , (?:no|tampoco)' + REJECT_END,
+      ' (?:no|tampoco) (?:es|son|era|eran) (?:esa|ese|esas|esos|esta|este|estas|estos|asi) ' + REJECT_ARTICLE + word + REJECT_END,
+      ' (?:no|tampoco) (?:es|son|era|eran|va|van|iba|queda|quedaba) (?:en|a|al|para|de|del) ' + REJECT_ARTICLE + word + REJECT_END,
+      ' (?:es|son|era|eran) otr[oa]s? (?:la|el|los|las) ' + word + REJECT_END,
+      ' ' + f + ' (?:es|son|era|eran|esta|estan) (?:distint[ao]s?|diferentes?|equivocad[ao]s?|errone[ao]s?)' + REJECT_END,
+      ' (?:hay que |tengo que |tienes que |hay q )?(?:cambi(?:a|ar|en|e|ame|ale|alo|ala)|corregir|corrige|corrijan?|modific(?:a|ar|ar|alo|ala)) ' + REJECT_ARTICLE + word + REJECT_END,
+      ' (?:me )?(?:equivoque|equivoco|confundi|confundo) (?:en|con) ' + REJECT_ARTICLE + word + REJECT_END,
+      ' (?:hay )?(?:un )?(?:error|problema) (?:en|con) ' + REJECT_ARTICLE + word + REJECT_END,
+      ...(fieldName ? [
+        // "Es en otra comuna", "Va a otra comuna", "Es para otra comuna", "Queda en otra comuna", "Es en otro lugar".
+        '(?:^| [,.;:!?]| si| pero| y| no) (?:es|son|va|van|queda|quedan|sea|seria|era) (?:en|a|al|para|de) (?:otr[oa]s?|un[ao]? (?:distint[ao]|diferente)) ' + word + REJECT_END,
+        // "Diferente comuna", "Distinta comuna", "Es una comuna distinta".
+        '(?:^| [,.;:!?]| si| pero| y| no| es| son| sea| seria) (?:una |un )?(?:distint[ao]s?|diferentes?) ' + word + REJECT_END,
+        ' (?:es|son|sea|seria) (?:una|un|otr[oa]) ' + word + ' (?:distint[ao]|diferente)' + REJECT_END,
+      ] : [
+        // "Son otros paneles" (sin numero ni palabra de suma): no son esos.
+        '^ (?:no )?(?:son|eran) otr[oa]s? ' + word + REJECT_END,
+      ]),
     ];
     let hit = false;
     for (const src of patterns) {
@@ -2437,11 +2458,25 @@ function rejectedFields(text: string, captured: CapturedFields): { fields: Array
  * [RESUMEN] (ronda 6, B) El mensaje rechaza un dato del resumen por su nombre y no trae ningun dato nuevo: es lo mismo que
  * "<dato> esta mal" (MSG_SUMMARY_FIX). El valor registrado del dato rechazado no es un dato nuevo ("La luz no es la neutra").
  */
-function rejectsFieldWithoutData(body: string, captured: CapturedFields): boolean {
-  const { fields, rest } = rejectedFields(body, captured);
+// (ronda 7, A) Lo que no es contenido en el resto de un rechazo: la negacion, la excepcion, el cambio y el error, y el
+// relleno chileno ("po"). Los nombres de campo tampoco ("La comuna no, el color").
+const REJECT_REST_RE = /^(?:ni|tampoco|hay|q|tengo|tienes|distint[ao]s?|diferentes?|incorrect[ao]s?|equivocad[ao]s?|errone[ao]s?|menos|excepcion|aparte|problema|po|pos|poh|oiga|oye|mira|igual|cierto|nop|nope|noo+|sii+)$/;
+function rejectsFieldWithoutData(body: string, captured: CapturedFields, claudeParsed: ClaudeFields): boolean {
+  // Una pregunta con signo ("Y si es otra comuna?", "Seria otro color?") no rechaza: sigue closedFollowUp. "Hay un error
+  // en la cantidad" sin signo si.
+  const statement = body.slice(0, MAX_FACTS).split(/(?<=[?!\n])|(?=\u00bf)/).filter((part) => !/[?\u00bf]/.test(part)).join(' . ');
+  if (!statement.trim()) return false;
+  const { fields, rest } = rejectedFields(statement, captured);
   if (!fields.length) return false;
-  const old = new Set(fields.flatMap((x) => REJECT_GROUP_FIELDS[x.group]).flatMap((field) => leftoverTokens(String(captured[field] ?? ''))));
-  return questionData(rest).filter((t) => !old.has(t)).length === 0;
+  const groupFields = fields.flatMap((x) => REJECT_GROUP_FIELDS[x.group]);
+  // (ronda 7, A) Claude trae para el campo rechazado un valor distinto del registrado: el mensaje trae el dato.
+  const parsed = claudeParsed as Record<string, unknown>;
+  if (groupFields.some((field) => typeof parsed[field] === 'string' && (parsed[field] as string).trim() !== ''
+    && comparable(parsed[field] as string) !== comparable(String(captured[field] ?? '')))) return false;
+  const old = new Set(groupFields.flatMap((field) => leftoverTokens(String(captured[field] ?? ''))));
+  // (ronda 7, A) Cualquier palabra con contenido en el resto ("Otro color: blanco", "La comuna no, es Stgo centro", "La
+  // cantidad no, el doble") es un dato: sigue lateChange y la red de seguridad.
+  return leftoverTokens(rest).filter((t) => !fillerToken(t) && !REJECT_REST_RE.test(t) && !FIELD_NAME_RE.test(t) && !old.has(t)).length === 0;
 }
 /**
  * [RESUMEN] (ronda 4, B4) Lo nuevo de "Y en vez de X" ("Necesito 20 focos LED en vez de paneles"), "en vez de X, Y" ("en
@@ -2514,8 +2549,8 @@ const LEFTOVER_FILLER_RES = [
   /^(?:no|si|sip|ya|ok|okay|okey|oki|vale|dale|listo|claro|bueno|buena|buenas|buenos|hola|gracias|muchas|mil|favor|porfa|porfis|porfavor|plis|perdon|disculpa|disculpas)$/,
   /^(?:disculpe|equivoque|confundi|error|quise|queria|decir|dije|olvide|falto|corrijo|correccion|corrige|cambio|cambia|cambiar|cambiamos|es|son|era|eran|sea|sean)$/,
   /^(?:seria|serian|sera|seran|fue|esta|estan|queda|quedan|va|van|iria|irian|en|a|al|para|de|del|el|la|lo|los|las|le|les|un|una|unos|unas|y|e|o|u|que|con|por|pero)$/,
-  /^(?:sino|mas|mejor|me|mi|mis|te|tu|nos|se|su|sus|desde|pedido|despacho|entrega|envio|cantidad|color|luz|tipo|producto|productos|uso|proyecto|comuna|ciudad|direccion)$/,
-  /^(?:lugar|obra|item|items|total|necesito|necesitamos|necesitaria|quiero|queremos|quisiera|prefiero|preferimos|pon|ponle|ponga|agrega|agregar|agregale|ah|ahora)$/,
+  /^(?:sino|mas|mejor|me|mi|mis|te|tu|nos|se|su|sus|desde|pedido|despacho|entrega|envio)$/,
+  /^(?:obra|item|items|total|necesito|necesitamos|necesitaria|quiero|queremos|quisiera|prefiero|preferimos|pon|ponle|ponga|agrega|agregar|agregale|ah|ahora)$/,
   /^(?:entonces|tambien|ademas|todo|todos|todas|bien|mal|correcto|correcta|exacto|perfecto|acuerdo|genial|excelente|super|cotizar|cotiza|cotizame|cotizacion|presupuesto)$/,
   /^(?:eso|esto|este|estos|estas|ese|esa|asi|solo|solamente|real|realidad|final|finalmente|vez|led|leds|dias|tardes|noches|saludo|saludos|quedo|atento|atenta|atentos)$/,
   /^(?:espero|aviso|cada|aprox|aproximadamente|como|salvo|excepto|aunque|ninguno|ninguna|nada|consulta|pregunta|duda|dice|dijo|dicen|creo|pienso|parece)$/,
@@ -2523,7 +2558,18 @@ const LEFTOVER_FILLER_RES = [
   // Las palabras de correccion conjugadas ("Modifico:", "Actualizo:", "Cambialo a", "Corrige").
   /^(?:cambi|corrij|corrig|correc|modific|actualiz|equivoc|confund|disculp)[a-z]*$/,
 ];
-const fillerToken = (token: string) => LEFTOVER_FILLER_RES.some((re) => re.test(token));
+// (ronda 7, B1) Los nombres de campo, aparte: en summaryLeftover son relleno solo si ese campo se aplico en el mensaje.
+const FIELD_NAME_FIELDS: Array<[RegExp, Array<keyof CapturedFields>]> = [
+  [/^(?:cantidad|cantidades)$/, ['cantidad', 'cantidad_varios']],
+  [/^(?:color|colores|colour|luz|temperatura)$/, ['tipo_de_luz']],
+  [/^tipo$/, ['tipo_de_luz', 'producto']],
+  [/^(?:producto|productos)$/, ['producto', 'cantidad', 'cantidad_varios']],
+  [/^(?:uso|proyecto)$/, ['proyecto_o_uso']],
+  [/^(?:comuna|ciudad|direccion|lugar|destino)$/, ['comuna_o_ciudad']],
+];
+const FIELD_NAME_RE = /^(?:cantidad|cantidades|color|colores|colour|luz|temperatura|tipo|producto|productos|uso|proyecto|comuna|ciudad|direccion|lugar)$/;
+const baseFillerToken = (token: string) => LEFTOVER_FILLER_RES.some((re) => re.test(token));
+const fillerToken = (token: string) => baseFillerToken(token) || FIELD_NAME_RE.test(token);
 // (ronda 6, A) Las palabras que suman y el reparto por algo ("20 por oficina"; "por favor" no).
 const LEFTOVER_ADD_WORD_RE = /^(?:mas|otr[oa]s?|adicional(?:es)?|extras?|agreg[a-z]*|suma(?:le|me|r|n)?|sumen?|ademas|tambien)$/;
 const LEFTOVER_PER_RE = /\d\s+por\s+(?!favor(?![a-z]))(?:cada\s+)?[a-z]/;
@@ -2567,12 +2613,18 @@ function summaryParts(text: string): { statement: string; questions: string[] } 
   return { statement: parts.filter((part) => !asks(part)).join('. '), questions: parts.filter(asks) };
 }
 const LEFTOVER_FIELDS = ['producto', 'cantidad', 'cantidad_varios', 'tipo_de_luz', 'proyecto_o_uso', 'comuna_o_ciudad'] as const;
+// (ronda 7, B3) "otra/otro" delante del nombre de un campo cambia ese campo ("Otra cantidad: 35"): no es una suma.
+// "En lugar de" no nombra el lugar de la entrega.
+const INSTEAD_PLACE_RE = /(?<![\p{L}])en\s+lugar\s+de(?![\p{L}])/giu;
+const OTHER_FIELD_RE = /(?<![\p{L}])otr[oa]s?\s+((?:tipo\s+de\s+luz|temperatura|colou?r(?:es)?|luz|cantidad(?:es)?|comuna|ciudad|direcci[o\u00f3]n|lugar|destino|uso|proyecto)(?![\p{L}]))/giu;
 // La cortesia con una negacion ("Si, no hay problema", "Ok, sin drama", "no te preocupes") no es un dato.
 const COURTESY_DENIAL_RE = /(?<![\p{L}])(?:(?:no\s+hay|sin|ning[u\u00fa]n)\s+(?:problemas?|drama|rollo|apuro)|no\s+(?:te|se)\s+preocupe[ns]?)(?![\p{L}])/giu;
 function summaryLeftover(body: string, before: CapturedFields, after: CapturedFields, claudeParsed: ClaudeFields): string {
   // (ronda 6, D) Una posible cancelacion queda para el vendedor.
   if (SUMMARY_CANCEL_RE.test(summaryAnswerText(body))) return 'cancelacion';
-  const { statement, questions } = summaryParts(factsText(body, claudeParsed).replace(COURTESY_DENIAL_RE, ' ').replace(NOTHING_MORE_RE, ' '));
+  // (ronda 7, B3) "Otra cantidad: 35", "Otra comuna: Renca": cambia ese campo, no suma.
+  const { statement, questions } = summaryParts(factsText(body, claudeParsed).replace(COURTESY_DENIAL_RE, ' ').replace(NOTHING_MORE_RE, ' ')
+    .replace(OTHER_FIELD_RE, '$1').replace(INSTEAD_PLACE_RE, 'en vez de'));
   // Lo que el mensaje niega o descarta ("Son 20, no 30", "en vez de 5 paneles") no es un dato por aplicar.
   const said = maskNegated(insteadSplit(statement) ?? statement);
   const saidTokens = leftoverTokens(said);
@@ -2606,7 +2658,13 @@ function summaryLeftover(body: string, before: CapturedFields, after: CapturedFi
       if (name && leftoverTokens(name).every((t) => consumed.has(t))) for (const t of words) consumed.add(t);
     }
   }
-  const left = (tokens: string[]) => tokens.filter((t) => (!fillerToken(t) || (adds && LEFTOVER_ADD_WORD_RE.test(t))) && !consumed.has(t) && !consumed.has(stem(t)));
+  // (ronda 7, B1) El nombre de un campo es relleno solo si ese campo se aplico en este mensaje: cambio, o el mensaje dice
+  // su valor registrado sin negarlo ("Si, la luz neutra"). Si no ("Corrige la comuna"), queda en el residuo.
+  const appliedField = (field: keyof CapturedFields) => !same(field) || (typeof after[field] === 'string' && Boolean(after[field])
+    && !negatesValue(said, after[field]) && leftoverTokens(String(after[field])).some((t) => saidTokens.includes(t)));
+  const fieldNameApplied = (t: string) => FIELD_NAME_FIELDS.some(([re, fields]) => re.test(t) && fields.some(appliedField));
+  const filler = (t: string) => baseFillerToken(t) || (FIELD_NAME_RE.test(t) && fieldNameApplied(t));
+  const left = (tokens: string[]) => tokens.filter((t) => (!filler(t) || (adds && LEFTOVER_ADD_WORD_RE.test(t))) && !consumed.has(t) && !consumed.has(stem(t)));
   // Lo negado que no es un dato del pedido ("No es en Pudahuel" con Maipu registrada) tambien queda para el vendedor.
   const kept = new Set(saidTokens);
   const negated = leftoverTokens(statement).filter((t) => !kept.has(t));
@@ -2616,7 +2674,7 @@ function summaryLeftover(body: string, before: CapturedFields, after: CapturedFi
   if (residue.length) return residue.join(' ');
   // Nada cambio y el mensaje niega un dato registrado sin dar el nuevo ("No es en Maipu", "No son paneles", "No es luz
   // neutra"): queda para el vendedor.
-  const denied = negated.filter((t) => !fillerToken(t) && (consumed.has(t) || consumed.has(stem(t))));
+  const denied = negated.filter((t) => !filler(t) && (consumed.has(t) || consumed.has(stem(t))));
   if (!changed && denied.length) return ['no', ...denied].join(' ');
   // Nada cambio y el mensaje rechaza el resumen con otras palabras ("No, 12 focos y 5 paneles"): queda para el vendedor.
   const words = leftoverTokens(statement);
@@ -2909,7 +2967,7 @@ function summaryAnswer(phone: string, state: FlowState, body: string, claudePars
   }
   // (ronda 6, B) El dato rechazado por su nombre sin el nuevo ("La comuna no", "Todo bien salvo la luz", "Si, pero otra
   // comuna"), sin otro dato: como "<dato> esta mal". Despues de "Que dato corrijo?", MSG4 y la linea textual en la nota.
-  if (!hasMedia && !EMAIL_RE.test(body) && !inspectRut(body, { asked: false }).found && rejectsFieldWithoutData(body, state.captured)) {
+  if (!hasMedia && !EMAIL_RE.test(body) && !inspectRut(body, { asked: false }).found && rejectsFieldWithoutData(body, state.captured, claudeParsed)) {
     if (lastQuestionOf(state)?.summaryFix) {
       if (report) report.dropped = true;
       return closed(MSG4);

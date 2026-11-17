@@ -1556,3 +1556,87 @@ describe('(ronda 6) sumas con el mismo número, el dato rechazado sin el nuevo y
       });
   });
 });
+
+describe('(ronda 7) el rechazo con un dato que no se reconoce y los rechazos generales por el nombre del campo', () => {
+  const PANELES_REST = 'luz neutra, para oficina y en Maipú';
+  describe('A: «sin dato» solo si el resto queda vacío y Claude no trae otro valor', () => {
+    it.each([
+      'Otro color: blanco', 'La luz no, blanca', 'Otro color, amarilla', 'El color no, luz día', 'La luz no, la más blanca',
+      'El color no, la quiero dimerizable', 'La comuna no, Til-Til', 'Salvo la comuna, que es Til Til', 'Otro lugar: la región de Los Lagos',
+      'Otro uso, iluminación de fachada', 'La cantidad no, un par', 'La cantidad no, el doble',
+    ])('«%s» no pide el dato: queda textual en el mismo negocio', (body) => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step(body);
+      expect(r.reply).toBe(flow.MSG_REGISTERED_SHORT);
+      expectNoted(r, body, before);
+    });
+
+    it('lo que se reconoce se aplica: «La comuna no, es Stgo centro» corrige a Santiago con el resumen', () => {
+      closeWithSummary();
+      const r = step('La comuna no, es Stgo centro');
+      expect(r).toMatchObject({ reply: summaryOf('20 paneles LED 60x60', 'luz neutra, para oficina y en Santiago'), shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Santiago']);
+    });
+
+    it('con el valor nuevo de Claude para el campo rechazado no pide el dato', () => {
+      closeWithSummary();
+      const r = step('La comuna no', { comuna_o_ciudad: 'Renca' });
+      expect(r.reply).not.toBe(flow.MSG_SUMMARY_FIX);
+      expect(r).toMatchObject({ shouldCreateDeal: true, rutUpdate: true });
+    });
+
+    it('sin resto ni valor de Claude sigue pidiendo el dato (ronda 6)', () => {
+      closeWithSummary();
+      expect(step('La comuna no', { comuna_o_ciudad: 'Maipú' }).reply).toBe(flow.MSG_SUMMARY_FIX);
+    });
+  });
+
+  describe('B: los rechazos generales por el nombre del campo', () => {
+    it.each([
+      'Es en otra comuna', 'Va a otra comuna', 'Es para otra comuna', 'Queda en otra comuna', 'No es esa la comuna', 'No es esa la cantidad',
+      'No es ese el color', 'No es esa la luz', 'No era esa la comuna', 'Es otra la comuna', 'No es en esa comuna', 'Es en otro lugar',
+      'No es así la cantidad', 'Son otros paneles', 'Cambia la comuna', 'Cambiar la comuna', 'Corrige la comuna', 'Me equivoqué en la comuna',
+      'Error en la comuna', 'Hay un error en la cantidad', 'La comuna, no', 'La comuna es distinta', 'Diferente comuna', 'Hay que cambiar la comuna',
+    ])('«%s» pide el dato («¿Qué dato corrijo?») sin escribir; el segundo, MSG4 con la línea', (body) => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      expect(step(body)).toMatchObject({ reply: flow.MSG_SUMMARY_FIX, shouldCreateDeal: false });
+      expect(flow.getFlowState(PHONE).captured).toEqual(before);
+      const again = step(body);
+      expect(again.reply).toBe(flow.MSG4);
+      expectNoted(again, body, before);
+    });
+
+    it.each(['¿Y si es otra comuna?', '¿Sería otro color?'])('la pregunta hipotética «%s» no pide el dato', (body) => {
+      closeWithSummary();
+      const r = step(body);
+      expect(r.reply).not.toBe(flow.MSG_SUMMARY_FIX);
+      expect(r.shouldCreateDeal).toBe(false);
+    });
+
+    it.each<[string, string, string]>([
+      ['Otra cantidad: 35', '35 paneles LED 60x60', PANELES_REST],
+      ['Otra comuna: Renca', '20 paneles LED 60x60', 'luz neutra, para oficina y en Renca'],
+    ])('«%s» cambia ese campo (no suma): resumen corregido, sin línea', (body, items, rest) => {
+      closeWithSummary();
+      const r = step(body);
+      expect(r.reply).toBe(summaryOf(items, rest));
+      expect(r.captured.cambios ?? []).not.toContainEqual(expect.stringContaining('sin aplicar'));
+    });
+
+    it('el nombre de un campo que no se aplicó queda en el residuo; el aplicado no', () => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step('La comuna no la sé');
+      expectNoted(r, 'La comuna no la sé', before);
+    });
+
+    it('«Sí, la luz neutra» (el valor registrado) no deja línea', () => {
+      closeWithSummary();
+      const r = step('Sí, la luz neutra');
+      expect(r.reply).toBe(flow.MSG4);
+      expect(r.captured.cambios ?? []).not.toContainEqual(expect.stringContaining('sin aplicar'));
+    });
+  });
+});
