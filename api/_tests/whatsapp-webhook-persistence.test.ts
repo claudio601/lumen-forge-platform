@@ -55,6 +55,9 @@ const WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 77.12
 // de persona (RUT de persona, sin repregunta) está en R121-04.
 const COMPANY = { ...COMPLETE, empresa: 'Comercial Prueba SpA' };
 const PERSON_WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 15.432.876-0';
+// (fase 3B, dueño 16-11) El cierre que registra muestra el resumen (sin el RUT, el nombre ni el correo); MSG4 llega con
+// el «sí».
+const FOCOS_SUMMARY = 'Te resumo: 10 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?';
 let redis: ReturnType<typeof createFakeRedis>;
 let seq: number;
 let webhook: typeof import('../whatsapp/webhook.js')['default'];
@@ -239,7 +242,9 @@ describe('R121-04: estado compartido y respaldo', () => {
     sim.parsed = COMPANY;
     expect(await send(WRONG_RUT_ORDER)).toContain('no calza');
     sim.parsed = {};
-    expect(await send('771234569')).toContain('registrad');
+    expect(await send('771234569')).toContain(FOCOS_SUMMARY);
+    expect(sim.created).toBe(1);
+    expect(await send('Sí')).toContain('registrad');
     expect(sim.created).toBe(1);
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Upstash no disponible'));
   });
@@ -249,7 +254,8 @@ describe('R121-04: estado compartido y respaldo', () => {
     const reply = await send(PERSON_WRONG_RUT_ORDER);
     expect(reply).not.toContain('no calza');
     expect(reply).not.toMatch(/RUT/);
-    expect(reply).toContain('Claudio Quero te responderá por correo');
+    expect(reply).toContain(FOCOS_SUMMARY);
+    expect(reply).not.toContain('15.432.876');
     const state = await snapshot();
     expect(state.flow.captured).toMatchObject({ rut: '15.432.876-0', rut_valido: false });
     expect(state.flow.rutRetryAsked).toBeUndefined();
@@ -602,7 +608,11 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
 
   it('una solicitud nueva sin «rut» sigue empezando desde cero', async () => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED para una casa en Maipu');
+    expect(await send('Necesito 10 focos LED para una casa en Maipu')).toContain(FOCOS_SUMMARY);
+    // (fase 3B) Con el resumen a la vista, "cambiar a paneles" lo corrige (whatsapp-webhook-resumen.test.ts); confirmado,
+    // es otra solicitud, como antes.
+    sim.parsed = {};
+    expect(await send('Sí')).toContain('registrad');
     sim.parsed = { producto: 'paneles LED' };
     await send('Necesito cambiar a paneles LED');
     const state = (await snapshot()).flow;

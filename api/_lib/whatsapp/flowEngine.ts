@@ -2,7 +2,7 @@
 // shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
 import { inspectRut, isBusinessRut, removeRuts, rutRange } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
-import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
+import { itemPairs, itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
 import { findComunaMentions, findComunas, mentionsCompany, officialComuna } from './comunas.js';
 import type { ComunaMention } from './comunas.js';
@@ -78,6 +78,10 @@ export interface FlowState {
   // [ARCHIVOS] Date.now() del ultimo mensaje con imagenes o archivos. Si el siguiente llega antes de MEDIA_BURST_MS,
   // es de la misma rafaga y ya tuvo el aviso MSG_MEDIA_NOTICE (no se repite). Sin la propiedad: no hubo archivos.
   lastMediaAt?: number;
+  // [RESUMEN] Fase 3B (dueno, 16-11-2026): Date.now() del ultimo resumen ("Te resumo: ... \u00bfEst\u00e1 bien?") y cuantos
+  // se mostraron en la conversacion: el del registro y, a lo mas, uno corregido. Cambian juntos (stateStore, FIELD_GROUPS).
+  summaryAt?: number;
+  summaryShown?: number;
 }
 
 export type AskedField = 'producto' | 'tipo_de_luz' | 'cantidad' | 'proyecto_o_uso' | 'comuna_o_ciudad' | 'nombre' | 'rut' | 'correo';
@@ -85,6 +89,10 @@ export interface LastQuestion {
   asks: AskedField[];
   /** Items de su lista numerada "1) 2) 3)" (0 si no tenia). */
   listLength: number;
+  /** [RESUMEN] La respuesta fue el resumen (o MSG_SUMMARY_FIX): el mensaje siguiente lo confirma o lo corrige. */
+  summary?: true;
+  /** [RESUMEN] La respuesta fue MSG_SUMMARY_FIX: un segundo "no" recibe el cierre (MSG4). */
+  summaryFix?: true;
 }
 
 export interface FlowResult {
@@ -99,6 +107,9 @@ export interface FlowResult {
   // negocio ya registrado: si Pipedrive no lo confirma, el negocio sigue registrado (webhook.ts no
   // lo marca como fallido).
   rutUpdate?: boolean;
+  // [RESUMEN] El dato que corrige o suma al contestar el resumen va al mismo negocio (nota y campos) sin otro aviso a
+  // ventas: ya tuvo el del registro, que fue en el turno del resumen.
+  quietUpdate?: boolean;
 }
 
 /** [CANTIDAD] Paso del flujo con la pregunta que hace su respuesta (processFlowStep la guarda). */
@@ -120,6 +131,9 @@ export const MSG3_B2C = 'Perfecto. Para registrar tu solicitud y derivarla a un 
 // [SIN-VISITA] Especificacion 5: el bot nunca ofrece visitas (negocio 195: "coordinar la visita" a quien solo
 // compraba focos). webhook.ts lo cambia por MSG_DEAL_FAILED o MSG_DEAL_PENDING si Pipedrive no confirma el negocio.
 export const MSG4 = 'Tu solicitud qued\u00f3 registrada. Claudio Quero te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
+// [RESUMEN] Fase 3B (dueno, 16-11-2026, decision 2): la respuesta a un "no" solo, despues del resumen. Un segundo "no"
+// recibe MSG4.
+export const MSG_SUMMARY_FIX = '\u00bfQu\u00e9 dato corrijo? Escr\u00edbeme el correcto.';
 // [BOT-SOLO-CORREO] Cierre de instalacion sin correo (tras las repreguntas): no se crea el
 // negocio, asi que no se promete contacto; se pide el correo o escribir a ventas@.
 export const MSG4_INSTALL_NO_EMAIL = 'Gracias. Para cotizar tu instalaci\u00f3n necesitamos tu correo de contacto: escr\u00edbelo por aqu\u00ed o env\u00edanos tu solicitud a ventas@elights.cl.';
@@ -854,6 +868,88 @@ function registeredClosing(): string {
   return MSG4;
 }
 
+// [RESUMEN] Fase 3B (dueno, 16-11-2026, decision 1): el resumen antes del cierre, en el formato aprobado el 11-11
+// ("Te resumo: [productos y cantidades], [color de luz], [uso] y [comuna]. Esta bien?"), con "luz", "para" y "en". Cada
+// parte va solo si el dato esta y nunca el correo, el nombre ni el RUT. Sin producto, con varios items que no se leen
+// en pares limpios (menos de 2) o con mas de MAX_SUMMARY caracteres, no hay resumen: el cierre va directo (MSG4).
+// Decision 3: el negocio se crea en el mismo turno del resumen; MSG4 llega con el "si" del cliente.
+const MAX_SUMMARY = 500;
+const SUMMARY_QUESTION: LastQuestion = { asks: [], listLength: 0, summary: true };
+const SUMMARY_FIX_QUESTION: LastQuestion = { asks: [], listLength: 0, summary: true, summaryFix: true };
+/** [RESUMEN] El dato tal como quedo, en una linea y sin el punto o la coma del final. */
+function summaryValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  return value.replace(/\s+/g, ' ').trim().replace(/[\s.,;:]+$/, '') || undefined;
+}
+/** [RESUMEN] "a", "a y b", "a, b y c". */
+function joinList(parts: string[]): string {
+  return parts.length < 2 ? parts.join('') : parts.slice(0, -1).join(', ') + ' y ' + parts[parts.length - 1];
+}
+/** [RESUMEN] "<cantidad> <producto>" o, en metros, "<cantidad> m de <producto>". */
+function summaryItem(cantidad: string, metros: boolean, producto: string): string {
+  return cantidad + (metros ? ' m de ' : ' ') + producto;
+}
+/**
+ * [RESUMEN] Los productos y cantidades. Varios items: los pares "cantidad + producto" del texto del cliente (itemPairs);
+ * el primero puede ser el item que ya estaba cuando el cliente sumo otro (mergeQuantity: "<producto>: <cantidad> / ...").
+ * Con una correccion dentro del texto ("12 focos / Corrijo: 15 focos") no se sabe cual vale: sin resumen.
+ */
+function summaryItems(captured: CapturedFields): string | undefined {
+  const producto = summaryValue(captured.producto);
+  if (captured.cantidad_varios && !captured.cantidad) {
+    let text = captured.cantidad_varios;
+    if (CORRECTION_RE.test(text) || LATE_CORRECTION_RE.test(text)) return undefined;
+    const pairs: string[] = [];
+    const own = producto ? captured.producto + ': ' : undefined;
+    const prefix = own && text.startsWith(own) ? /^(\d{1,5})( m)? \/ /.exec(text.slice(own.length)) : null;
+    if (own && prefix && producto) {
+      pairs.push(summaryItem(prefix[1], Boolean(prefix[2]), producto));
+      text = text.slice(own.length + prefix[0].length);
+    }
+    const rest = itemPairs(text);
+    if (!rest.length) return undefined;
+    for (const pair of rest) if (!pairs.some((p) => comparable(p) === comparable(pair))) pairs.push(pair);
+    return pairs.length >= 2 ? joinList(pairs) : undefined;
+  }
+  if (!producto) return undefined;
+  return captured.cantidad ? summaryItem(captured.cantidad, captured.cantidad_unidad === 'm', producto) : producto;
+}
+/** [RESUMEN] El resumen de lo capturado, o nada si no se puede armar (ver arriba). */
+export function summaryMsg(captured: CapturedFields): string | undefined {
+  const items = summaryItems(captured);
+  if (!items) return undefined;
+  // Los productos, una coma y los otros datos en lista ("luz neutra, para oficina y en Maipu"); con uno solo, la coma:
+  // "5 paneles LED, luz fria" (no "5 paneles LED y luz fria", que se lee como otro item).
+  const parts: string[] = [];
+  // [TILDES] El color con su tilde (luzShown); otro valor ("blanca", "4000K") tal cual, sin "luz luz".
+  const luz = summaryValue(captured.tipo_de_luz);
+  if (luz) parts.push(luzShown(/^luz\b/i.test(luz) ? luz : 'luz ' + luz));
+  // El uso tal cual (sin articleFor), sin "para para".
+  const uso = summaryValue(captured.proyecto_o_uso);
+  if (uso) parts.push(/^para\s/i.test(uso) ? uso : 'para ' + uso);
+  // La comuna de la entrega, nunca las otras mencionadas.
+  const comuna = summaryValue(captured.comuna_o_ciudad);
+  if (comuna) parts.push('en ' + comuna);
+  const text = 'Te resumo: ' + items + (parts.length ? ', ' + joinList(parts) : '') + '. \u00bfEst\u00e1 bien?';
+  if (text.length > MAX_SUMMARY) return undefined;
+  // Nunca el correo, el nombre ni el RUT, aunque el cliente los haya escrito dentro de otro dato.
+  const shown = comparable(text);
+  const privateData = [captured.correo, captured.rut, captured.nombre_o_empresa].filter((v): v is string => typeof v === 'string' && v.trim().length > 2);
+  const inSummary = (v: string) => new RegExp('(?<![a-z0-9])' + comparable(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![a-z0-9])').test(shown);
+  if (text.includes('@') || privateData.some(inSummary)) return undefined;
+  return text;
+}
+/**
+ * [RESUMEN] El cierre de una solicitud de productos: con correo y sin el ejecutivo (MSG_HUMAN), el resumen si se puede
+ * armar (y queda anotado en el estado `saved`, ya guardado como cerrado); si no, el cierre de siempre.
+ */
+function productClosing(phone: string, saved: FlowState, registers: boolean, wantsHuman: boolean): { reply: string; question?: LastQuestion } {
+  const summary = registers && !wantsHuman && !saved.isInstallFlow ? summaryMsg(saved.captured) : undefined;
+  if (!summary) return { reply: productClosingMsg(registers, wantsHuman) };
+  saveFlowState(phone, { ...saved, summaryAt: Date.now(), summaryShown: 1 });
+  return { reply: summary, question: SUMMARY_QUESTION };
+}
+
 /**
  * [CIERRE-HONESTO] Respuesta a un mensaje en una conversacion ya cerrada, segun lo que respondio
  * Pipedrive y nada mas: "quedo registrada" si confirmo el negocio, el texto B si fallo, y sin
@@ -1545,11 +1641,14 @@ function mergeComuna(
 // [CANTIDAD] La cantidad sale de readQuantity (quantity.ts), nunca del primer numero del mensaje.
 // [RUT-VALIDO] rutToConfirm: llego un RUT que no calza y todavia no se pidio de nuevo.
 // [CASO-1] menuPick: el mensaje es solo el numero de un item de la lista que el bot acaba de mostrar.
+// [RESUMEN] summaryReply: el mensaje contesta el resumen; una comuna sola ("Pudahuel") la corrige, como la respuesta
+// a la pregunta por la comuna.
 function mergeProductFields(
   state: FlowState,
   body: string,
   claudeParsed: ClaudeFields,
   hasMedia = false,
+  summaryReply = false,
 ): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number } {
   const merged: CapturedFields = { ...state.captured };
   // [CANTIDAD] Un estado guardado antes de este cambio puede traer un dato que no es texto (un
@@ -1584,9 +1683,14 @@ function mergeProductFields(
   };
   const quantity = readQuantity(maskNegated(withoutIndirectQuestions(facts)), options);
   const stated = assertive === facts ? quantity : readQuantity(assertive, { ...options, menuLength: 0 });
+  // [RESUMEN] Al contestar el resumen, otro producto con su cantidad y sin corregir ("Necesito 5 focos LED para el
+  // patio" despues de "20 paneles LED") se suma como otro item: no reemplaza el producto ni su cantidad.
+  const named = summaryReply && !adding && merged.producto ? namedProducts(assertive, claudeParsed) : [];
+  const summaryAdds = named.length > 0 && !sameProduct(named, merged.producto as string)
+    && (stated.value !== undefined || stated.several) && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive);
   // Con varios items ("20 paneles y 30 focos") la regla ve uno solo: no cambia el producto.
   const claudeProd = claudeText(claudeParsed.producto);
-  const prodChange = backed(claudeProd, quantity.several ? undefined : rule(PRODUCTO_RE), base);
+  const prodChange = summaryAdds ? undefined : backed(claudeProd, quantity.several ? undefined : rule(PRODUCTO_RE), base);
   // "Corrijo: paneles LED, no regulables": quitar del producto lo que el cliente niega tambien es un cambio.
   const negated = droppedStems(facts, affirmed);
   const dropsNegated = Boolean(prodChange && merged.producto
@@ -1620,7 +1724,7 @@ function mergeProductFields(
   const mediaItem = hasMedia && Boolean(merged.cantidad || merged.cantidad_varios)
     && (stated.value !== undefined || quantity.value !== undefined) && !CORRECTION_RE.test(assertive)
     && !THIS_ONE_RE.test(comparable(assertive));
-  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem);
+  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem || summaryAdds);
   // [RESPALDO] El uso sale de lo que el cliente dice, no del nombre del producto ("PROYECTOR LED DE ESTADIO",
   // "Estaca LED COB 5W para jardin") ni de lo que Claude deduce (negocios 119, 197 y 206).
   // (revision 12-11) De un nombre generico ("focos LED para jardin") sale solo la familia: "para jardin" es el uso que
@@ -1632,7 +1736,7 @@ function mergeProductFields(
   const ownProject = (text: string) => extractProyecto(withoutStorePlaces(noProduct(text)));
   keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(noProduct(base)), PROYECTO_RE), base));
   mergeComuna(merged, 'comuna_o_ciudad', claudeParsed.comuna_o_ciudad, {
-    answering: Boolean(question?.asks.includes('comuna_o_ciudad')), company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
+    answering: Boolean(question?.asks.includes('comuna_o_ciudad')) || summaryReply, company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
   });
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
@@ -1685,8 +1789,10 @@ function mergeProductFields(
  * capturado (por ejemplo, el nombre y despues el correo) y, con correo, se registra la solicitud.
  * Si el correo ya estaba, un intento anterior no dejo resultado (se corto, o no termino dentro de
  * la espera de webhook.ts): se reintenta y se responde el cierre normal, nunca otro "ya derive".
+ * [RESUMEN] El primer registro de productos (llega el correo) responde el resumen, como el cierre de las etapas; el
+ * reintento (ya habia correo: el resumen pudo salir, y un "si" mientras se registra) responde MSG4.
  */
-function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): FlowResult {
+function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): StepResult {
   const hadEmail = Boolean(flowEmail(state));
   const installMerged = state.isInstallFlow ? mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)) : undefined;
   const late = installMerged
@@ -1698,9 +1804,11 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
   const registers = Boolean(flowEmail(next));
   if (registers) console.log('[flowEngine] conversacion cerrada con correo y sin negocio \u2014 registrando' + (hadEmail ? ' (reintento)' : ''));
   let reply = closedReply(next);
+  let question: LastQuestion | undefined;
   if (registers) {
     if (hadEmail) reply = registeredClosing();
-    else reply = next.isInstallFlow ? installClosingMsg(late.merged) : productClosingMsg(true, next.wantsHuman);
+    else if (next.isInstallFlow) reply = installClosingMsg(late.merged);
+    else ({ reply, question } = productClosing(phone, next, true, next.wantsHuman));
   }
   // [PREGUNTA] Se contesta lo que pregunta antes de pedir el correo o de cerrar (caso de las estacas: "Sabes cuando
   // demora el despacho" recibia otra vez la peticion del correo). Sin correo, el precio o la consulta tecnica piden
@@ -1710,7 +1818,7 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
   const asksEmail = !registers && !state.deal && !install ? questionAsksEmail(kinds) : undefined;
   if (asksEmail) reply = withAnswers(questionAnswers(kinds, false, install), asksEmail);
   else reply = withAnswers(questionAnswers(kinds, registers, install), reply);
-  return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true };
+  return { reply, shouldCreateDeal: registers, shouldNotify: false, captureStatus, captured: late.merged, wantsHuman: next.wantsHuman, closedFlow: true, ...(question ? { question } : {}) };
 }
 
 /**
@@ -1739,41 +1847,56 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
   return { reply: registeredClosing(), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
+/** [REINICIO] Los productos que nombra el texto: los de la regla, los items y el de Claude si esta en el texto. */
+function namedProducts(facts: string, claudeParsed: ClaudeFields): string[] {
+  const claudeProd = claudeText(claudeParsed.producto);
+  return [extractProducto(facts), ...itemsIn(facts), claudeProd && inMessage(claudeProd, facts) ? claudeProd : undefined]
+    .filter((p): p is string => Boolean(p) && productWords(p as string).length > 0);
+}
+/**
+ * [REINICIO] El mismo producto: comparten una palabra del modelo que no es solo la familia ni una medida ("ufo"), sin
+ * otra medida ("campanas UFO 200W" no es la "UFO 100W"; "reflectores 40W" no es el "panel 60x60 40W"), o todas sus
+ * palabras ya estaban ("focos LED" otra vez).
+ */
+function sameProduct(named: string[], producto: string): boolean {
+  const own = productWords(producto);
+  return named.some((p) => {
+    const words = productWords(p);
+    if (words.every((w) => own.includes(w))) return true;
+    return words.some((w) => own.includes(w) && !GENERIC_PRODUCT_STEMS.has(w) && !/\d/.test(w))
+      && words.every((w) => !/\d/.test(w) || own.includes(w));
+  });
+}
+
 /**
  * [REINICIO] El mensaje despues del cierre abre otro pedido: lo que antes era un pedido nuevo (looksLikeNewRequest),
  * salvo pedir un vendedor sin nombrar un producto con el negocio registrado, no nombrar producto ni cantidad ("quiero
  * ese articulo, como lo compro?") o nombrar el mismo producto ya capturado ("campana Ufo 100W ... 5700k" es la
  * "Luminaria UFO 100W" de antes, con otro color).
+ * [RESUMEN] summaryReply: el mensaje contesta el resumen. Otro producto, otra cantidad u otra comuna lo corrigen o se
+ * suman (lateChange): solo abre otro pedido el que nombra otra cotizacion u otro proyecto (la regla de la ronda 3, "Quiero
+ * agregar 10 paneles LED a la nueva cotizacion") o uno demasiado largo.
  */
-function opensNewRequest(body: string, state: FlowState, claudeParsed: ClaudeFields): boolean {
+function opensNewRequest(body: string, state: FlowState, claudeParsed: ClaudeFields, summaryReply = false): boolean {
   if (!looksLikeNewRequest(body)) return false;
   // Nombrar una cotizacion ("la nueva cotizacion para Quilicura") u otro proyecto ("mi nuevo proyecto") sigue la regla
   // anterior (PR 142, ronda 3), y un mensaje demasiado largo para leerlo entero tambien; "ya me cotizaron" habla de
   // la que ya existe.
   const plain = body.replace(/(?:https?:\/\/|www\.)\S*/gi, ' ').replace(EMAIL_RE_ALL, ' ');
   if (body.length > MAX_FACTS || QUOTE_WORD_RE.test(plain) || OTHER_ORDER_RE.test(plain)) return true;
+  // [RESUMEN] Al contestar el resumen, lo demas corrige o suma (lateChange).
+  if (summaryReply) return false;
   const captured = state.captured;
   const facts = maskNegated(factsText(body, claudeParsed));
-  const claudeProd = claudeText(claudeParsed.producto);
-  const named = [extractProducto(facts), ...itemsIn(facts), claudeProd && inMessage(claudeProd, facts) ? claudeProd : undefined]
-    .filter((p): p is string => Boolean(p) && productWords(p as string).length > 0);
+  const named = namedProducts(facts, claudeParsed);
   const quantity = readQuantity(facts);
   // Sin negocio registrado, pedir un vendedor empieza otra conversacion como antes: alli lo atiende el atajo del
   // ejecutivo (wantsHuman), que registra con el correo siguiente.
   if (!named.length && (WANTS_HUMAN_RE.test(body) || EXECUTIVE_RE.test(body))) return state.deal !== 'registered';
   if (!named.length && quantity.value === undefined && !quantity.several) return false;
   if (!captured.producto || !named.length) return true;
-  // El mismo producto: comparten una palabra del modelo que no es solo la familia ni una medida ("ufo"), sin otra
-  // medida ("campanas UFO 200W" no es la "UFO 100W"; "reflectores 40W" no es el "panel 60x60 40W"), o todas sus
-  // palabras ya estaban ("focos LED" otra vez).
+  if (!sameProduct(named, captured.producto)) return true;
   const own = productWords(captured.producto);
-  const same = named.some((p) => {
-    const words = productWords(p);
-    if (words.every((w) => own.includes(w))) return true;
-    return words.some((w) => own.includes(w) && !GENERIC_PRODUCT_STEMS.has(w) && !/\d/.test(w))
-      && words.every((w) => !/\d/.test(w) || own.includes(w));
-  });
-  if (!same) return true;
   // (revision 13-11) Otra medida en cualquiera de los nombres es otro producto, aunque la familia ("campanas") coincida:
   // "10 campanas UFO 200W" despues de "10 campanas UFO 100W".
   if (named.some((p) => productWords(p).some((w) => /\d/.test(w) && !own.includes(w)))) return true;
@@ -1816,6 +1939,9 @@ function mentionsValue(part: string, value: unknown): boolean {
 }
 
 const OTHER_ORDER_RE = /(?<![a-z\u00e0-\u00fc])(?:nuev|otr)[oa]s?\s+(?:proyecto|obra|pedido|solicitud|requerimiento|compra)/i;
+// [RESUMEN] El uso dicho como uso, y el lugar que no es el del pedido ("mi otra casa", "el otro local").
+const SUMMARY_USE_RE = /(?<![a-z\u00e0-\u00fc])para\s+\S/i;
+const OTHER_PLACE_RE = /(?<![a-z\u00e0-\u00fc])otr[oa]s?\s+(?:casas?|locale?s?|oficinas?|bodegas?|obras?|sucursal(?:es)?|propiedad(?:es)?|direcci[o\u00f3]n|lugar(?:es)?|parcelas?|departamentos?|deptos?|galpon(?:es)?|tiendas?|sedes?|plantas?)(?![a-z\u00e0-\u00fc])/i;
 const QUOTE_WORD_RE = /cotizaci[o\u00f3]n|presupuesto|cotizar(?![a-z\u00e0-\u00fc])/i;
 const QTY_FIELDS = ['cantidad', 'cantidad_varios', 'cantidad_unidad'] as const;
 const LATE_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'cantidad_varios', 'cantidad_unidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'comunas_otras'] as const;
@@ -1824,15 +1950,32 @@ const LATE_FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'cantidad_varios', '
  * cantidad, la comuna) va al mismo negocio, como el RUT y el correo tardios (rutUpdate: nota y campos). Antes el
  * mensaje reiniciaba la conversacion, volvia a pedir la cantidad y perdia la comuna (negocios 144, 145 y 186).
  * Solo cuenta lo que este mensaje dice: un dato que Claude repite del historial no se escribe.
+ * [RESUMEN] summaryReply: el mensaje contesta el resumen. Un dato que afirma distinto del capturado lo corrige aunque no
+ * traiga palabra de correccion ("Esta bien, pero mejor 25 paneles", "Pudahuel"), y otro item se suma como varios items
+ * ("Tambien necesito 10 focos LED"), en el mismo negocio. La respuesta es el resumen corregido (el segundo y ultimo de
+ * la conversacion) o, si ya se mostro o no se puede armar, MSG4.
  */
-function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean): FlowResult | undefined {
+function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, summaryReply = false): StepResult | undefined {
   // Preguntar por el despacho ("¿Hacen envio a Rancagua?") no cambia la comuna ni otro dato. (revision 13-11) Corregirlo
   // si: "Corrijo: el despacho es a Quilicura".
   if (state.isInstallFlow || (asksAboutDelivery(body) && !CORRECTION_RE.test(body.slice(0, MAX_FACTS)))) return undefined;
   const question = /[?\u00bf]/.test(body);
-  const { merged, leadType } = mergeProductFields(state, body, claudeParsed, hasMedia);
+  const { merged, leadType } = mergeProductFields(state, body, claudeParsed, hasMedia, summaryReply);
   const facts = factsText(body, claudeParsed);
   const captured: CapturedFields = { ...state.captured };
+  const corrects = (value: unknown) => summaryReply || correctsCaptured(body, state.captured, value);
+  // [RESUMEN] Al contestar el resumen, un dato afirmado distinto del capturado lo corrige sin palabra de correccion. El
+  // uso, solo dicho como uso ("para bodega": "son 3 dormitorios y el living" lo describe); la comuna, salvo la de otro
+  // lugar ("mi otra casa esta en Pirque"); las otras comunas mencionadas ("saludos desde Puente Alto"), solo junto con
+  // la comuna corregida. Con otro item ("Necesito 5 focos LED para el patio"), su uso no cambia el del pedido.
+  const addsItem = merged.cantidad_varios !== undefined && merged.cantidad_varios !== state.captured.cantidad_varios;
+  const relaxed = (field: typeof LATE_FIELDS[number]): boolean => {
+    if (!summaryReply) return false;
+    if (field === 'proyecto_o_uso') return SUMMARY_USE_RE.test(facts) && !addsItem;
+    if (field === 'comuna_o_ciudad') return !OTHER_PLACE_RE.test(facts);
+    if (field === 'comunas_otras') return captured.comuna_o_ciudad !== state.captured.comuna_o_ciudad;
+    return true;
+  };
   const filled = (field: typeof LATE_FIELDS[number]): boolean => {
     if (field === 'comunas_otras') return Boolean(state.captured.comuna_o_ciudad);
     return state.captured[field] !== undefined && state.captured[field] !== '';
@@ -1843,7 +1986,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   // "12 focos y 5 paneles" ya no deja el numero y los varios items a la vez.
   const sameQty = QTY_FIELDS.every((field) => JSON.stringify(state.captured[field] ?? null) === JSON.stringify(merged[field] ?? null));
   const hadQty = Boolean(state.captured.cantidad || state.captured.cantidad_varios);
-  if (!sameQty && (!hadQty || correctsCaptured(body, state.captured, merged.cantidad ?? merged.cantidad_varios))) {
+  if (!sameQty && (!hadQty || corrects(merged.cantidad ?? merged.cantidad_varios))) {
     for (const field of QTY_FIELDS) {
       if (merged[field] === undefined) delete captured[field];
       else (captured as Record<string, unknown>)[field] = merged[field];
@@ -1862,7 +2005,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
     // El color o el uso que se llena con lo que Claude recuerda (sin decirlo en este mensaje) no cuenta.
     if ((field === 'tipo_de_luz' || field === 'proyecto_o_uso' || field === 'producto') && typeof value === 'string' && !sharesWord(value, facts) && !textLuz(facts)) continue;
     // (revision 12-11) Un dato ya registrado cambia solo con una correccion (correctsCaptured); uno vacio se completa.
-    if (filled(field) && !correctsCaptured(body, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value)) continue;
+    if (filled(field) && !relaxed(field) && !correctsCaptured(body, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value)) continue;
     (captured as Record<string, unknown>)[field] = value;
     applied.add(field === 'comunas_otras' ? 'comuna_o_ciudad' : field);
     changed = true;
@@ -1877,7 +2020,49 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   const next: FlowState = { ...state, captured, captureStatus, leadType };
   saveFlowState(phone, next);
   console.log('[flowEngine] dato nuevo despues del cierre \u2014 se suma al negocio registrado');
-  return { reply: closedFollowUp(next, body), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+  const result = { shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+  if (!summaryReply) return { ...result, reply: closedFollowUp(next, body) };
+  // [RESUMEN] La pregunta que trae el mensaje (el despacho, el precio) se contesta antes, como en closedFollowUp.
+  const kinds = questionKinds(body);
+  if (asksAboutDelivery(body)) kinds.add('despacho');
+  const answers = questionAnswers(kinds, true, false);
+  const again = (state.summaryShown ?? 1) < 2 ? summaryMsg(captured) : undefined;
+  if (!again) return { ...result, quietUpdate: true, reply: withAnswers(answers, MSG4) };
+  saveFlowState(phone, { ...next, summaryAt: Date.now(), summaryShown: 2 });
+  return { ...result, quietUpdate: true, reply: withAnswers(answers, again), question: SUMMARY_QUESTION };
+}
+
+// [RESUMEN] Fase 3B (dueno, 16-11-2026): la respuesta al resumen, el mensaje entero sin mayusculas, tildes ni signos.
+// "Si" es una de estas (con "gracias" o no); "no" solo, una de las otras. Lo demas (un dato, una pregunta) sigue el
+// flujo de la conversacion cerrada.
+const SUMMARY_YES_RE = /^(?:(?:si|ok|okay|correcto|esta bien|perfecto|dale|de acuerdo|todo bien|\u{1F44D})(?: |$)){1,3}(?:gracias)?$|^gracias (?:(?:si|ok|okay|correcto|esta bien|perfecto|dale|de acuerdo|todo bien|\u{1F44D})(?: |$)){1,3}$/u;
+const SUMMARY_NO_RE = /^(?:no|no esta bien|esta mal|no es asi|incorrecto)$/;
+/** [RESUMEN] El mensaje sin tildes, mayusculas, signos ni el tono de piel del pulgar, con un espacio entre palabras. */
+function summaryAnswerText(body: string): string {
+  return normalizedText(body).toLowerCase().replace(/[\u{1F3FB}-\u{1F3FF}]|\uFE0F/gu, '')
+    .replace(/\u{1F44D}/gu, ' \u{1F44D} ').replace(/[^\p{L}\p{N}\u{1F44D}]+/gu, ' ').trim();
+}
+/**
+ * [RESUMEN] El mensaje que llega despues del resumen (o de MSG_SUMMARY_FIX), con el negocio registrado:
+ * - "si" (SUMMARY_YES_RE): MSG4, sin escribir en Pipedrive;
+ * - "no" solo: MSG_SUMMARY_FIX y el resumen sigue pendiente un mensaje mas; el segundo "no", MSG4;
+ * - el correo o el RUT: lateEmail o lateRut, como siempre;
+ * - un dato que corrige o suma: lateChange en modo resumen (mismo negocio, nota con los cambios, sin tarea nueva).
+ * Lo demas (una pregunta, "gracias"): nada, y sigue closedFollowUp.
+ */
+function summaryAnswer(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, correctingEmail: boolean): StepResult | undefined {
+  const answer = summaryAnswerText(body);
+  const closed = (reply: string): StepResult => ({
+    reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: state.captured, wantsHuman: state.wantsHuman, closedFlow: true,
+  });
+  if (SUMMARY_YES_RE.test(answer)) return closed(MSG4);
+  if (SUMMARY_NO_RE.test(answer)) {
+    if (lastQuestionOf(state)?.summaryFix) return closed(MSG4);
+    return { ...closed(MSG_SUMMARY_FIX), question: SUMMARY_FIX_QUESTION };
+  }
+  const lateRutResult = lateRut(phone, state, body);
+  return lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
+    ?? lateChange(phone, state, body, claudeParsed, hasMedia, true);
 }
 
 /**
@@ -2027,7 +2212,8 @@ export function recordMediaReply(phone: string, types: readonly string[] = [], n
  * respuesta pregunta algo), y en la conversacion cerrada solo si todavia falta el correo (el cierre lo pide).
  */
 function awaitsAnswer(state: FlowState): boolean {
-  return state.stage !== 'closed' || !flowEmail(state);
+  // [RESUMEN] Tambien el resumen (o MSG_SUMMARY_FIX): el cliente lo confirma o lo corrige por escrito.
+  return state.stage !== 'closed' || !flowEmail(state) || Boolean(state.lastQuestion?.summary);
 }
 
 /** [CANTIDAD] webhook.ts respondio sin el flujo (el paso fallo): esa respuesta no pregunto nada. */
@@ -2077,10 +2263,13 @@ function flowStep(
     // [TRANSCRIPCION] Un pedido nuevo explicito gana a las correcciones; las correcciones, a un pedido nuevo que
     // solo lo parece ("Necesito corregir mi correo: X" dice "necesito").
     const explicit = explicitNewRequest(body);
+    // [RESUMEN] El mensaje siguiente al resumen (o a MSG_SUMMARY_FIX) lo confirma o lo corrige: otro producto u otra
+    // cantidad se suman al mismo negocio y no abren otra conversacion. Un pedido nuevo explicito y la instalacion si.
+    const summaryPending = state.deal === 'registered' && !state.isInstallFlow && Boolean(lastQuestionOf(state)?.summary);
     // [REINICIO] Solo otro pedido abre otra conversacion: pedir un vendedor (negocio 144), cambiar el color del mismo
     // producto (145) o preguntar como comprar lo cotizado (186) siguen en la misma.
     const newRequest = explicit
-      || (!correctingRut && !correctingEmail && ((opensNewRequest(body, state, claudeParsed) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
+      || (!correctingRut && !correctingEmail && ((opensNewRequest(body, state, claudeParsed, summaryPending) && !asksAboutExistingQuote(body, state.captured, claudeParsed)) || installRequested(maskNegated(body))));
     // [CIERRE-HONESTO] Sin negocio, un mensaje con correo se suma a lo capturado y registra la
     // solicitud aunque diga "necesito" o "quiero" (antes eso reiniciaba y perdia lo capturado).
     // [TRANSCRIPCION] Salvo un pedido nuevo explicito ("Otro pedido: ... Mi correo es X"): empieza otra conversacion
@@ -2089,6 +2278,10 @@ function flowStep(
     // reintenta aparte.
     if (!state.deal && !explicit && (!newRequest || messageEmail(body, claudeParsed))) {
       return continueClosedWithoutDeal(phone, state, body, claudeParsed);
+    }
+    if (!newRequest && summaryPending) {
+      const answered = summaryAnswer(phone, state, body, claudeParsed, Boolean(signals.hasMedia), correctingEmail);
+      if (answered) return answered;
     }
     if (!newRequest) {
       // [TRANSCRIPCION] El RUT y el correo tardios van al mismo negocio; si llegan juntos, el correo
@@ -2274,9 +2467,10 @@ function flowStep(
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'incomplete';
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
         const canCreateDeal = canRegister(merged);
-        saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
+        const closed1: FlowState = { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType };
+        saveFlowState(phone, closed1);
         console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
-        return { reply: productClosingMsg(canCreateDeal, wantsHuman), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { ...productClosing(phone, closed1, canCreateDeal, wantsHuman), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg1 >= 1 && missingCritical.length < 2) { currentStage = 'stage2'; continue; }
       repreg1 += 1;
@@ -2294,9 +2488,10 @@ function flowStep(
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
         // [FIX-EMAIL-GATE] Solo crear deal si hay correo
         const canCreateDeal = canRegister(merged);
-        saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
+        const closed2: FlowState = { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType };
+        saveFlowState(phone, closed2);
         console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
-        return { reply: productClosingMsg(canCreateDeal, wantsHuman), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { ...productClosing(phone, closed2, canCreateDeal, wantsHuman), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg2 += 1;
       saveFlowState(phone, { ...state, stage: 'stage2', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
@@ -2309,16 +2504,18 @@ function flowStep(
       const missing = missingStage3(merged, currentLeadType);
       if (missing.length === 0) {
         const cs = computeCaptureStatus(merged, currentLeadType);
-        saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: cs, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        return { reply: productClosingMsg(true, wantsHuman), shouldCreateDeal: true, shouldNotify: false, captureStatus: cs, captured: merged, wantsHuman, closedFlow: true };
+        const complete: FlowState = { ...state, stage: 'closed', captured: merged, captureStatus: cs, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType };
+        saveFlowState(phone, complete);
+        return { ...productClosing(phone, complete, true, wantsHuman), shouldCreateDeal: true, shouldNotify: false, captureStatus: cs, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg3 >= 1) {
         const cs = computeCaptureStatus(merged, currentLeadType);
         const finalStatus: CaptureStatus = cs === 'complete' ? 'complete' : 'partial';
-        saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
+        const closed3: FlowState = { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType };
+        saveFlowState(phone, closed3);
         console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
         const canCreate3 = canRegister(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
-        return { reply: productClosingMsg(canCreate3, wantsHuman), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { ...productClosing(phone, closed3, canCreate3, wantsHuman), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       // [CASO-1] Si la etapa 2 no pregunto nada (ya estaba completa), lo que falto de la etapa 1 se
       // pregunta aqui, una vez.

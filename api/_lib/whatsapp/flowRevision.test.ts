@@ -25,11 +25,20 @@ const step = (body: string, claude: Claude = {}, hasMedia = false) => {
 afterEach(() => { flow.clearFlowState(PHONE); lastReply = undefined; });
 
 const ANA = { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' };
-/** Cierra con el negocio registrado (id 4242), como lo deja el webhook. */
+/**
+ * Cierra con el negocio registrado (id 4242), como lo deja el webhook. [RESUMEN] Fase 3B: si el cierre registra, es el
+ * resumen y el cliente lo confirma con un «sí» (MSG4, sin escribir en Pipedrive): lo que sigue es la conversación
+ * cerrada de siempre. La respuesta al resumen está en flowResumen.test.ts.
+ */
 function closeRegistered(body: string, claude: Claude, registered = true) {
-  step(body, claude);
+  const closing = step(body, claude);
   expect(flow.getFlowState(PHONE).stage).toBe('closed');
   flow.recordDealOutcome(PHONE, registered, undefined, registered ? 4242 : undefined);
+  const summary = flow.summaryMsg(flow.getFlowState(PHONE).captured);
+  if (registered && closing.shouldCreateDeal && summary) {
+    expect(closing.reply).toBe(summary);
+    expect(step('Sí')).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false, closedFlow: true });
+  }
 }
 const FOCOS = 'Necesito 20 focos LED luz cálida para mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com';
 const FOCOS_CLAUDE: Claude = { producto: 'focos LED', cantidad: '20', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', ...ANA };

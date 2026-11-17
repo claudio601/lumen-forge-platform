@@ -111,7 +111,8 @@ describe('la prueba del dueño del 16-10: razón social, RUT y correo en un mens
       const r = step(DATA, claude);
       expect(r.captured).toMatchObject({ cantidad: '30', proyecto_o_uso: 'oficina', rut: '77.123.456-9', rut_valido: true });
       expect(r.captured.cambios).toBeUndefined();
-      expect(r.reply).toBe(flow.MSG4);
+      // (fase 3B) El cierre que registra muestra el resumen, sin la razon social, el RUT ni el correo.
+      expect(r.reply).toBe('Te resumo: 30 paneles 60x60, luz neutra, para oficina y en Providencia. ¿Está bien?');
       expect(r.shouldCreateDeal).toBe(true);
     });
   }

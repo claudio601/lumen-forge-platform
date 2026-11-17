@@ -598,6 +598,12 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                   }
           }
     }
+  // [RESUMEN] Fase 3B: el texto B o el registro pendiente reemplazan la respuesta del paso (por ejemplo, el resumen):
+  // el cliente no vio esa pregunta, y el mensaje siguiente no la contesta. Solo en esta conversacion, si sigue activa.
+  if (reply !== flowResult.reply && getFlowState(phone).firstMessageAt === conversationId) {
+          recordNoQuestion(phone);
+          stampFlow(phone, transcriptSeq);
+  }
   // [ARCHIVOS] El texto que reemplaza la respuesta del paso (registro fallido o pendiente) conserva delante el aviso
   // de que las imagenes y los archivos no pasan a la solicitud.
   if (reply !== flowResult.reply && hasMediaNotice(flowResult.reply)) reply = withMediaNotice(reply);
@@ -864,7 +870,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       // 'found': el cierre se junto con el negocio abierto del mismo numero (ventana de 7 dias). Avisa
       // igual que un negocio nuevo: ventas recibe una tarea por cierre, como antes de la deduplicacion.
       // [REGISTRO] Lo nuevo de un mensaje que llego mientras otro registraba (followUp) no avisa otra vez.
-      const shouldNotify = (!followUp && (dealResult.action === 'created' || dealResult.action === 'found')) || wantsHuman;
+      // [RESUMEN] Tampoco la correccion del resumen (quietUpdate): el aviso salio con el registro.
+      const shouldNotify = (!followUp && !flowResult.quietUpdate && (dealResult.action === 'created' || dealResult.action === 'found')) || wantsHuman;
 
     if (shouldNotify) {
           try {

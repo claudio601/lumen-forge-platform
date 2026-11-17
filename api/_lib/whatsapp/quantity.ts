@@ -278,6 +278,44 @@ export function itemsIn(text: string): string[] {
   return [...plain(text).matchAll(ITEM_RE)].map((m) => m[0]).filter((item) => !/^(?:unidad|leds?$)/.test(item));
 }
 
+// [RESUMEN] Fase 3B (dueno, 16-11-2026): los items de un pedido de varios productos para el resumen antes del cierre
+// (flowEngine.ts, summaryMsg). Cada item es un numero seguido de un producto de UNIT_NOUNS (o de "unidades de" o
+// "metros de" y un producto) y hasta PAIR_EXTRA_WORDS palabras mas, tal como lo escribio el cliente. Termina en un
+// salto de linea, " - ", "/", ",", ";", ":", un punto, " y ", "para", "luz", "en" o en el numero del item siguiente.
+// Solo lee el texto del cliente: no arma texto.
+const PAIR_EXTRA_WORDS = 4;
+const PAIR_CUT_RE = /\n|\s-\s|[/,;:!?()]|\.(?!\d)|(?<![\p{L}\p{N}])(?:y|para|luz|en)(?![\p{L}\p{N}])/giu;
+const PAIR_NUMBER_RE = /^(?:\d{1,3}(?:\.\d{3})+|\d{1,5})$/;
+const PAIR_NOUN_RE = new RegExp('^(?:(?:unidades|unidad|unids?|unds?|uds?|metros?|mtrs?|mts?|m)\\s+(?:de\\s+)?)?(' + UNIT_NOUNS + ')(?![a-z0-9])');
+// Un numero de una medida ("de 50 W", "220 V") no es la cantidad de otro item.
+const PAIR_SPEC_RE = /^(?:w|watts?|v|volts?|k|kelvin|mm|cm|m2|lm|lumenes|%)$/;
+const PAIR_TAIL_RE = /^(?:de|del|con|el|la|los|las|un|una|a|al|que|por|sin|o|e|mas)$/;
+/**
+ * [RESUMEN] Los items de `text` ("12 focos LED y 5 paneles LED para bodega" -> ["12 focos LED", "5 paneles LED"]),
+ * sin repetir. Si un numero que puede ser una cantidad queda sin producto ("12 / 5 UND", "12 focos y 5 de los otros"),
+ * ninguno: el resumen dejaria fuera un item.
+ */
+export function itemPairs(text: string): string[] {
+  const out: string[] = [];
+  for (const segment of text.slice(0, MAX_TEXT).split(PAIR_CUT_RE)) {
+    const words = (segment ?? '').trim().split(/\s+/).filter(Boolean);
+    for (let i = 0; i < words.length; i++) {
+      if (!PAIR_NUMBER_RE.test(words[i]) || PAIR_SPEC_RE.test(plain(words[i + 1] ?? ''))) continue;
+      const noun = PAIR_NOUN_RE.exec(plain(words.slice(i + 1, i + 5).join(' ')));
+      if (!noun || /^(?:unidad(?:es)?|leds?)$/.test(noun[1])) return [];
+      const nounEnd = i + 1 + noun[0].split(/\s+/).length;
+      let end = nounEnd;
+      while (end < nounEnd + PAIR_EXTRA_WORDS && end < words.length
+        && !(PAIR_NUMBER_RE.test(words[end]) && !PAIR_SPEC_RE.test(plain(words[end + 1] ?? '')))) end++;
+      while (end > nounEnd && PAIR_TAIL_RE.test(plain(words[end - 1]))) end--;
+      const pair = words.slice(i, end).join(' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+      if (pair && !out.some((o) => plain(o) === plain(pair))) out.push(pair);
+      i = end - 1;
+    }
+  }
+  return out;
+}
+
 /** [NO-PISAR] El texto trae un numero que puede ser una cantidad ("ademas 20 perfiles de aluminio"). */
 export function mentionsQuantity(text: string): boolean {
   return candidates(withoutNonQuantities(text)).length > 0;

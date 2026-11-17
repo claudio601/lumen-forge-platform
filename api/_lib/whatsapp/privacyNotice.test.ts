@@ -82,6 +82,17 @@ describe('texto del aviso', () => {
     expect(appendPrivacyNotice('x'.repeat(350)).length).toBeLessThanOrEqual(MAX_COMBINED);
   });
 
+  it('(fase 3B) el resumen más largo (500 caracteres) y «¿Qué dato corrijo?» caben con el aviso', () => {
+    // El resumen puede ser la primera respuesta de un número (un pedido completo en un mensaje).
+    const base = { cantidad: '20', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú' };
+    const fixed = flow.summaryMsg({ ...base, producto: 'paneles' })!.length - 'paneles'.length;
+    const longest = flow.summaryMsg({ ...base, producto: 'p'.repeat(500 - fixed) });
+    expect(longest).toHaveLength(500);
+    expect(flow.summaryMsg({ ...base, producto: 'p'.repeat(501 - fixed) })).toBeUndefined();
+    expect(appendPrivacyNotice(longest!).length).toBeLessThanOrEqual(MAX_COMBINED);
+    expect(appendPrivacyNotice(flow.MSG_SUMMARY_FIX).length).toBeLessThanOrEqual(MAX_COMBINED);
+  });
+
   it('enlaza la política vigente del sitio, sola en su línea y sin parámetros', () => {
     expect(PRIVACY_POLICY_URL).toBe(site.SITE_URL + CONSENT_TEXT_LINKS.privacidad.path);
     expect(PRIVACY_POLICY_URL).toBe(API_SITE_URL + '/politica-de-privacidad');

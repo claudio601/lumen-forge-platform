@@ -29,6 +29,8 @@ const webhook = handler as unknown as Handler;
 
 const EMPTY_BODY_REPLY = '¡Hola! No recibimos tu mensaje. ¿Puedes escribirlo de nuevo?';
 const withNotice = (reply: string) => buildTwiML(reply + '\n\n' + PRIVACY_NOTICE);
+// (fase 3B) El cierre que registra muestra el resumen de lo capturado; MSG4 llega con el «sí».
+const AMPOLLETAS_SUMMARY = 'Te resumo: 10 ampolletas LED, luz cálida, para casa y en Maipú. ¿Está bien?';
 
 let phoneSeq = 0;
 /** Un número de prueba nuevo en cada llamada: el estado del bot vive en memoria del módulo. */
@@ -217,7 +219,7 @@ describe('el aviso no se filtra a otros datos', () => {
       }),
     );
     const res = await sendMessage(phone, body);
-    expect(res.body).toBe(withNotice(MSG4));
+    expect(res.body).toBe(withNotice(AMPOLLETAS_SUMMARY));
 
     expect(ensureWhatsAppDeal).toHaveBeenCalledTimes(1);
     const dealArgs = vi.mocked(ensureWhatsAppDeal).mock.calls[0][0];
@@ -231,6 +233,8 @@ describe('el aviso no se filtra a otros datos', () => {
     expect(JSON.stringify(notifyArgs)).not.toContain('Privacidad:');
     expect(JSON.stringify(notifyArgs)).not.toContain(PRIVACY_POLICY_URL);
 
+    // (fase 3B) El «sí» confirma el resumen (MSG4, sin el aviso: ya se mostró).
+    expect((await sendMessage(phone, 'Sí')).body).toBe(buildTwiML(MSG4));
     // Un flujo cerrado que se reinicia por un nuevo requerimiento no es un contacto nuevo.
     const again = await sendMessage(phone, 'Necesito 5 focos LED para el patio');
     expect(log.mock.calls.some(c => String(c[0]).includes('[flowEngine] nuevo requerimiento'))).toBe(true);
@@ -376,7 +380,7 @@ describe('plazo de Twilio (15 s): una respuesta tardía no da el aviso por mostr
     });
     const slow = await sendMessage(phone, body);
     expect(ensureWhatsAppDeal).toHaveBeenCalledTimes(1);
-    expect(slow.body).toBe(withNotice(MSG4));
+    expect(slow.body).toBe(withNotice(AMPOLLETAS_SUMMARY));
 
     const next = await sendMessage(phone, 'Gracias');
     expect(next.body).toContain('Privacidad:');
@@ -412,7 +416,7 @@ describe('deduplicación: un cierre que se junta con el negocio abierto del mism
     vi.mocked(ensureWhatsAppDeal).mockResolvedValueOnce({ action: 'found', dealId: 303, personId: 202 });
 
     const res = await sendMessage(phone, 'Necesito 10 ampolletas LED luz cálida para mi casa en Maipú. Soy Persona Prueba, prueba-13w@example.com');
-    expect(res.body).toBe(withNotice(MSG4));
+    expect(res.body).toBe(withNotice(AMPOLLETAS_SUMMARY));
 
     expect(notifyTeam).toHaveBeenCalledTimes(1);
     expect(vi.mocked(notifyTeam).mock.calls[0][0]).toMatchObject({ dealId: 303, personId: 202, existingDeal: true });

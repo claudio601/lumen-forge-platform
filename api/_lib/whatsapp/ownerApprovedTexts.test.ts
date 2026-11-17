@@ -73,6 +73,7 @@ const APPROVALS = [
   'dueño 26-10 (#121)',
   'dueño 31-10 (#140)',
   'dueño 12-11 (#176)',
+  'dueño 16-11',
   '#173 (12-11), plan del 11-11 visto por el dueño, sin OK literal anotado',
   'plan del bot, PR #139 (31-10), fusionada con el OK del dueño',
   'legales, dueño 16-10 (#84)',
@@ -85,6 +86,8 @@ const HEREDADO: Approval = 'heredado de main antes del 11-11';
 const PENDIENTE: Approval = 'pendiente OK del dueño (16-11)';
 const MEDIA_185: Approval = 'pendiente OK del dueño (16-11): #185, reescritura del MSG_MEDIA anterior, sin OK literal anotado';
 const PR_173: Approval = '#173 (12-11), plan del 11-11 visto por el dueño, sin OK literal anotado';
+// Fase 3B: el resumen antes del cierre (decisiones del dueño del 16-11-2026, codex-claude/2026-11-16-bot-fase3/).
+const RESUMEN: Approval = 'dueño 16-11';
 
 const MEDIA_ASK = 'Cuéntanos por escrito qué producto necesitas, para qué proyecto y qué cantidad aproximada.';
 const MEDIA_NOTICE = 'Por WhatsApp no podemos recibir imágenes ni archivos para tu solicitud. Por favor, envíalos por correo a ventas@elights.cl.';
@@ -104,6 +107,8 @@ const CONSTANTS: Record<string, Approved> = {
   MSG3_B2B: { text: 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) El RUT de la empresa\n2) Tu correo de contacto', source: HEREDADO },
   MSG3_B2C: { text: 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre\n2) Tu correo de contacto', source: HEREDADO },
   MSG4: { text: 'Tu solicitud quedó registrada. Claudio Quero te responderá por correo el mismo día hábil.', source: 'dueño 11-11 tabla' },
+  // Decisión 2 del 16-11: la respuesta a un «no» solo después del resumen.
+  MSG_SUMMARY_FIX: { text: '¿Qué dato corrijo? Escríbeme el correcto.', source: RESUMEN },
   MSG4_INSTALL_NO_EMAIL: {
     text: 'Gracias. Para cotizar tu instalación necesitamos tu correo de contacto: escríbelo por aquí o envíanos tu solicitud a ventas@elights.cl.',
     source: 'dueño 16-10, solo correo (#85)',
@@ -231,6 +236,16 @@ const FRAGMENTS: Record<FileKey, Approved[]> = {
     { text: ' para continuar.', source: HEREDADO },
     { text: ' Para recomendarte las opciones adecuadas, necesito:\n', source: HEREDADO },
     { text: '\n\n¿Me los puedes indicar?', source: ORTO },
+    // summaryMsg (decisión 1 del 16-11): «Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está
+    // bien?». Las partes (productos y cantidades, «luz …», «para …», «en …») van con «, » y « y » antes de la última; la
+    // cantidad en metros, «500 m de cinta LED». El color usa 'luz ' y las tildes de arriba. flowResumen.test.ts fija los
+    // cuatro ejemplos aprobados.
+    { text: 'Te resumo: ', source: RESUMEN },
+    { text: '. ¿Está bien?', source: RESUMEN },
+    { text: 'para ', source: RESUMEN },
+    { text: 'en ', source: RESUMEN },
+    { text: ' y ', source: RESUMEN },
+    { text: ' m de ', source: RESUMEN },
     // buildRepregunta2.
     { text: 'Casi listo. Solo me falta saber: ', source: HEREDADO },
     { text: '. ¿Me lo puedes indicar?', source: ORTO },
@@ -367,7 +382,10 @@ const IMPORTS: Record<string, Record<string, string>> = {
     inspectRut: 'lee el RUT del mensaje (dato)', isBusinessRut: 'tipo del RUT (dato)', removeRuts: 'saca el RUT antes de leer la cantidad',
     rutRange: 'tipo del RUT por su número (dato)',
   },
-  quantity: { itemsIn: 'lee los ítems del mensaje (dato)', mentionsQuantity: 'lee la cantidad (dato)', readQuantity: 'lee la cantidad (dato)' },
+  quantity: {
+    itemsIn: 'lee los ítems del mensaje (dato)', mentionsQuantity: 'lee la cantidad (dato)', readQuantity: 'lee la cantidad (dato)',
+    itemPairs: 'lee los ítems «cantidad + producto» del texto del cliente para el resumen (trozos de su texto, sin texto del bot)',
+  },
   comunas: {
     findComunaMentions: 'lee la comuna (dato)', findComunas: 'lee la comuna (dato)', mentionsCompany: 'señal de empresa (dato)',
     officialComuna: 'nombre oficial de la comuna (el dato del cliente)',

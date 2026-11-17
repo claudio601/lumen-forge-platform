@@ -21,11 +21,15 @@ const step = (body: string, claude: Claude = {}) => flow.processFlowStep(PHONE, 
 const FIRST = 'Necesito 12 focos LED luz cálida para mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com';
 const FIRST_CLAUDE: Claude = { producto: 'focos LED', tipo_de_luz: 'calida', cantidad: '12', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' };
 
-/** Pedido completo, cerrado y registrado en Pipedrive con DEAL_ID. */
+/**
+ * Pedido completo, cerrado y registrado en Pipedrive con DEAL_ID. [RESUMEN] Fase 3B: el cierre es el resumen (el
+ * negocio se crea en ese turno) y el "sí" del cliente recibe MSG4, sin escribir en Pipedrive.
+ */
 function registered() {
   const r = step(FIRST, FIRST_CLAUDE);
-  expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+  expect(r).toMatchObject({ reply: 'Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?', shouldCreateDeal: true, closedFlow: true });
   flow.recordDealOutcome(PHONE, true, undefined, DEAL_ID);
+  expect(step('Sí')).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false, closedFlow: true });
   expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', deal: 'registered', dealId: DEAL_ID });
 }
 
@@ -294,7 +298,7 @@ describe('ronda 3 de Codex: negación larga (R9) y pedido nuevo sin resultado de
 
   it('el caso de Codex: con la conversación cerrada, con correo y sin resultado de Pipedrive, el pedido nuevo abre otra conversación', () => {
     const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
-    expect(step(FIRST, FIRST_CLAUDE)).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+    expect(step(FIRST, FIRST_CLAUDE)).toMatchObject({ reply: 'Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?', shouldCreateDeal: true, closedFlow: true });
     // Sin recordDealOutcome: el registro no dejó resultado.
     expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', firstMessageAt: 1_000 });
     expect(flow.getFlowState(PHONE).deal).toBeUndefined();

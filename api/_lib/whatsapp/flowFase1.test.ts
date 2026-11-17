@@ -189,9 +189,13 @@ describe('[COMUNA] abreviaturas y "Santiago" como ciudad', () => {
 const CLOSE_FIELDS = { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' };
 /** Cierra con el negocio registrado (id 4242), como lo deja el webhook. */
 function closeRegistered(body = 'Necesito 12 focos LED luz cálida para mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com', claude: Claude = CLOSE_FIELDS) {
-  step(body, claude);
+  const closing = step(body, claude);
   expect(flow.getFlowState(PHONE).stage).toBe('closed');
+  // (fase 3B) El cierre que registra muestra el resumen; el "sí" lo confirma y deja la conversacion cerrada sin
+  // pregunta pendiente, como antes.
+  expect(closing.reply).toBe(flow.summaryMsg(closing.captured));
   flow.recordDealOutcome(PHONE, true, undefined, 4242);
+  expect(step('Sí').reply).toBe(flow.MSG4);
 }
 
 describe('[SIN-VISITA] comprar productos no es pedir una instalación', () => {

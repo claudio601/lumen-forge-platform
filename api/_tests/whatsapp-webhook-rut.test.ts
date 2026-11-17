@@ -62,6 +62,9 @@ const webhook = handler as unknown as Handler;
 
 const REGISTRADA = /qued[oó] registrad[oa]/i;
 const TECNICO = /problema t[eé]cnico/i;
+// (fase 3B, dueño 16-11) El cierre que registra muestra el resumen (sin el RUT, el nombre ni el correo); MSG4 («quedó
+// registrada») llega con el «sí».
+const B2B_SUMMARY = 'Te resumo: 30 paneles LED 60x60, luz fría, para oficina y en Providencia. ¿Está bien?';
 const CORREO = 'compras@comercial-prueba.example.com';
 const B2B_CLAUDE = {
   producto: 'paneles LED 60x60', tipo_de_luz: 'fría', cantidad: '30', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Providencia',
@@ -132,7 +135,7 @@ describe('la prueba del dueño: RUT con el dígito cambiado', () => {
     expect(await send(phone, b2b('77.123.456-8'), B2B_CLAUDE)).toBe(MSG_RUT_INVALID);
     expect(sim.deals).toHaveLength(0);
 
-    expect(await send(phone, 'perdón, es 77.123.456-9')).toMatch(REGISTRADA);
+    expect(await send(phone, 'perdón, es 77.123.456-9')).toBe(B2B_SUMMARY);
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2B');
     expect(sim.notes).toHaveLength(1);
@@ -144,14 +147,17 @@ describe('la prueba del dueño: RUT con el dígito cambiado', () => {
     }
     expect(logged).toContain('…' + phone.slice(-4));
     expect(logged).toContain('SMrut' + seq);
-
+    // El «sí» al resumen: MSG4, sin otra nota ni negocio.
+    expect(await send(phone, 'Sí')).toMatch(REGISTRADA);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(1);
   });
 });
 
 describe('el RUT corregido llega después del cierre', () => {
   async function closeWithInvalidRut(phone: string) {
     expect(await send(phone, b2b('77.123.456-8'), B2B_CLAUDE)).toBe(MSG_RUT_INVALID);
-    expect(await send(phone, 'déjame revisarlo y te lo mando')).toMatch(REGISTRADA);
+    expect(await send(phone, 'déjame revisarlo y te lo mando')).toBe(B2B_SUMMARY);
     expect(sim.deals).toHaveLength(1);
     expect(sim.notes[0].content).toContain('RUT: 77.123.456-8 (INVALIDO: no calza el digito verificador)');
   }
@@ -208,7 +214,7 @@ describe('el RUT corregido llega después del cierre', () => {
 
   it('consultar la nueva cotización conserva el cierre sin otro negocio, nota ni aviso', async () => {
     const phone = nextPhone();
-    expect(await send(phone, b2b('77.123.456-9'), B2B_CLAUDE)).toMatch(REGISTRADA);
+    expect(await send(phone, b2b('77.123.456-9'), B2B_CLAUDE)).toBe(B2B_SUMMARY);
     vi.mocked(notifyTeam).mockClear();
 
     expect(await send(phone, '¿Me confirman la nueva cotización?')).toMatch(REGISTRADA);
@@ -238,7 +244,7 @@ describe('un rango de presupuesto no es un RUT', () => {
       { producto: 'ampolletas LED', tipo_de_luz: 'cálida', cantidad: '10', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com', qualifiesForDeal: true },
     );
     expect(r).not.toBe(MSG_RUT_INVALID);
-    expect(r).toMatch(REGISTRADA);
+    expect(r).toBe('Te resumo: 10 ampolletas LED, luz cálida, para casa y en Maipú. ¿Está bien?');
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2C');
     expect(sim.notes[0].content).toContain('RUT: -');
