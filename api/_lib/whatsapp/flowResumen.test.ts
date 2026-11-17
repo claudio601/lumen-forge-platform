@@ -1395,3 +1395,164 @@ describe('(ronda 5) la respuesta al resumen: todo lo que no se aplica entero que
     });
   });
 });
+
+describe('(ronda 6) sumas con el mismo número, el dato rechazado sin el nuevo y las bajas', () => {
+  const QUILICURA = 'Necesito 12 focos LED y 5 paneles LED para una bodega en Quilicura. ' + CONTACT;
+  const QUILICURA_CLAUDE = { producto: 'focos LED y paneles LED', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', ...CONTACT_CLAUDE };
+  const CINTA = 'Necesito 500 metros de cinta LED 220V luz fría, despacho a Lampa. ' + CONTACT;
+  const CINTA_CLAUDE = { producto: 'cinta LED 220V', cantidad: '500', tipo_de_luz: 'fría', comuna_o_ciudad: 'Lampa', ...CONTACT_CLAUDE };
+  const TUBOS = 'Necesito 30 tubos LED. ' + CONTACT;
+  const TUBOS_CLAUDE = { producto: 'tubos LED', cantidad: '30', ...CONTACT_CLAUDE };
+  const CONTEXTS: Record<string, () => void> = {
+    paneles: closeWithSummary,
+    segundo: () => {
+      closeWithSummary();
+      expect(step('No, son 30', { cantidad: '30' }).reply).toBe(summaryOf('30 paneles LED 60x60', 'luz neutra, para oficina y en Maipú'));
+    },
+    corrijo: () => {
+      closeWithSummary();
+      expect(step('No').reply).toBe(flow.MSG_SUMMARY_FIX);
+    },
+    items: () => {
+      step(QUILICURA, QUILICURA_CLAUDE);
+      expect(step('no sé').reply).toBe(EXAMPLE_2);
+      flow.recordDealOutcome(PHONE, true, undefined, 4242);
+    },
+    cinta: () => {
+      step(CINTA, CINTA_CLAUDE);
+      expect(step('no sé').reply).toBe(EXAMPLE_3);
+      flow.recordDealOutcome(PHONE, true, undefined, 4242);
+    },
+    tubos: () => {
+      step(TUBOS, TUBOS_CLAUDE);
+      step('no sé');
+      expect(step('no sé').reply).toBe(EXAMPLE_4);
+      flow.recordDealOutcome(PHONE, true, undefined, 4242);
+    },
+  };
+
+  describe('A: la suma con el número que ya estaba queda textual en el mismo negocio (F7 no se suma)', () => {
+    it.each<[string, string, string]>([
+      ['paneles', '20 más', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Y 20 más', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Sí, y 20 más', flow.MSG4],
+      ['paneles', 'Otros 20', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Necesito otros 20', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Necesito 20 más', flow.MSG_REGISTERED_SHORT],
+      ['paneles', '20 más por favor', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Agrega 20', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Agrega 20 más', flow.MSG_REGISTERED_SHORT],
+      ['paneles', 'Además otros 20', flow.MSG_REGISTERED_SHORT],
+      ['paneles', '20 por oficina', flow.MSG_REGISTERED_SHORT],
+      ['segundo', '30 más', flow.MSG_REGISTERED_SHORT],
+      ['corrijo', 'Otros 20', flow.MSG_REGISTERED_SHORT],
+      ['items', '5 más', flow.MSG_REGISTERED_SHORT],
+      ['items', 'Otros 5', flow.MSG_REGISTERED_SHORT],
+      ['items', '12 más', flow.MSG_REGISTERED_SHORT],
+      ['cinta', '500 metros más', flow.MSG_REGISTERED_SHORT],
+      ['cinta', 'Otros 500', flow.MSG_REGISTERED_SHORT],
+      ['tubos', '30 más', flow.MSG_REGISTERED_SHORT],
+    ])('%s: «%s» responde lo de siempre y deja la línea, sin cambiar datos', (ctx, body, reply) => {
+      CONTEXTS[ctx]();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step(body);
+      expect(r.reply).toBe(reply);
+      expectNoted(r, body, before);
+    });
+
+    it('con otro número sigue igual (F7), y otro producto se suma como item, sin la línea', () => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step('Si, y 10 más');
+      expect(r.reply).toBe(flow.MSG4);
+      expectNoted(r, 'Si, y 10 más', before);
+      flow.clearFlowState(PHONE);
+      closeWithSummary();
+      const added = step('Agrega 5 tubos LED');
+      expect(added.reply).toBe(summaryOf('20 paneles LED 60x60 y 5 tubos LED', 'luz neutra, para oficina y en Maipú'));
+      expect(added.captured.cambios ?? []).not.toContainEqual(expect.stringContaining('sin aplicar'));
+    });
+
+    it('«20 por favor» y «Sí, nada más» no suman: sin línea', () => {
+      closeWithSummary();
+      expect(step('20 por favor')).toMatchObject({ reply: flow.MSG_REGISTERED_SHORT, shouldCreateDeal: false });
+      flow.clearFlowState(PHONE);
+      closeWithSummary();
+      expect(step('Sí, nada más')).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false });
+    });
+  });
+
+  describe('B: el dato rechazado por su nombre, sin el nuevo, pide el dato como «<dato> está mal»', () => {
+    it.each<[string, string]>([
+      ['paneles', 'La comuna no'], ['paneles', 'La luz no'], ['paneles', 'No es esa comuna'], ['paneles', 'Esa no es la comuna'],
+      ['paneles', 'La comuna es otra'], ['paneles', 'Es otra comuna'], ['paneles', 'Otra cantidad'], ['paneles', 'Otro tipo de luz'],
+      ['paneles', 'Otro color'], ['paneles', 'Otro producto'], ['paneles', 'La cantidad no es esa'], ['paneles', 'El uso no'],
+      ['items', 'Los paneles no'], ['items', 'Los focos no'], ['paneles', 'Todo bien salvo la comuna'],
+      ['paneles', 'Todo bien excepto la cantidad'], ['paneles', 'Todo bien salvo la luz'], ['paneles', 'Sí, salvo la luz'],
+      ['items', 'Todo bien salvo los paneles'], ['paneles', 'Está bien pero el color no'], ['paneles', 'Sí, pero la comuna no'],
+      ['paneles', 'Sí, pero otra comuna'], ['paneles', 'Sí, pero otro color'], ['segundo', 'La comuna no'],
+    ])('%s: «%s»: «¿Qué dato corrijo?», sin escribir; un segundo rechazo sin dato, MSG4 y la línea', (ctx, body) => {
+      CONTEXTS[ctx]();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step(body);
+      expect(r).toMatchObject({ reply: flow.MSG_SUMMARY_FIX, shouldCreateDeal: false });
+      expect(flow.getFlowState(PHONE).captured).toEqual(before);
+      expect(flow.getFlowState(PHONE).lastQuestion).toMatchObject({ summary: true, summaryFix: true });
+      const again = step(body);
+      expect(again.reply).toBe(flow.MSG4);
+      expectNoted(again, body, before);
+    });
+
+    it('después de «¿Qué dato corrijo?», el dato nuevo corrige con el resumen; con el dato en el mismo mensaje, también', () => {
+      closeWithSummary();
+      expect(step('La comuna no').reply).toBe(flow.MSG_SUMMARY_FIX);
+      expect(step('Renca').reply).toBe(summaryOf('20 paneles LED 60x60', 'luz neutra, para oficina y en Renca'));
+      for (const body of ['La comuna no es Maipú, es Renca', 'No es esa comuna, es Renca', 'Otra comuna: Renca', 'Todo bien salvo la comuna, es Renca']) {
+        flow.clearFlowState(PHONE);
+        closeWithSummary();
+        const r = step(body);
+        expect(r.reply).toBe(summaryOf('20 paneles LED 60x60', 'luz neutra, para oficina y en Renca'));
+        expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Renca']);
+      }
+    });
+
+    it('«Mi cuñado vive en otra comuna» no rechaza la comuna: la línea, como siempre', () => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step('Mi cuñado vive en otra comuna');
+      expect(r.reply).toBe(flow.MSG_REGISTERED_SHORT);
+      expectNoted(r, 'Mi cuñado vive en otra comuna', before);
+    });
+  });
+
+  describe('C: el rechazo de un dato con otro dato que sí se aplica es aplicación parcial', () => {
+    it.each<[string, string]>([
+      ['La comuna no, y luz fría', 'Tipo de luz: antes neutra, ahora fria'],
+      ['Luz fría, la comuna no', 'Tipo de luz: antes neutra, ahora fria'],
+      ['Todo bien salvo la comuna, es para un colegio', 'Proyecto/uso: antes oficina, ahora colegio'],
+    ])('«%s»: MSG4, «Cambios:» con lo aplicado y la línea, nunca un resumen con la comuna rechazada', (body, line) => {
+      closeWithSummary();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, quietUpdate: true, captured: { comuna_o_ciudad: 'Maipú' } });
+      expect(r.captured.cambios).toEqual([line, unapplied(body)]);
+      expect(flow.getFlowState(PHONE)).toMatchObject({ dealId: 4242, summaryShown: 1, lastQuestion: null });
+    });
+  });
+
+  describe('D: bajas', () => {
+    it.each(['nop', 'No po', 'nope', 'NOP'])('«%s» es un «no» solo', (body) => {
+      closeWithSummary();
+      expect(step(body)).toMatchObject({ reply: flow.MSG_SUMMARY_FIX, shouldCreateDeal: false });
+      expect(step(body)).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false });
+    });
+
+    it.each(['No, gracias', 'No gracias', 'Ya no', 'Mejor no', 'No lo necesito', 'Ya no quiero', 'Creo que no', 'Ninguno'])(
+      '«%s» (posible cancelación): la respuesta de siempre y la línea para el vendedor', (body) => {
+        closeWithSummary();
+        const before = flow.getFlowState(PHONE).captured;
+        const r = step(body);
+        expect(r.reply).toBe(flow.MSG_REGISTERED_SHORT);
+        expectNoted(r, body, before);
+      });
+  });
+});

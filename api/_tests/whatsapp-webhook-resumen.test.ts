@@ -599,3 +599,54 @@ describe('(ronda 5) la línea textual y un solo aviso por el webhook', () => {
     expect(sim.notified).toBe(1);
   });
 });
+
+describe('(ronda 6) la suma con el mismo número y el dato rechazado sin el nuevo, por el webhook', () => {
+  const PANELS = 'Necesito 20 paneles LED 60x60 luz neutra para una oficina en Maipú';
+  const PANELS_CLAUDE = { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú' };
+  const PANELS_SUMMARY = 'Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está bien?';
+
+  it.each<[string, Record<string, unknown>, string]>([
+    ['Otros 20', {}, MSG_REGISTERED_SHORT],
+    ['Sí, y 20 más', { cantidad: '40' }, MSG4],
+    ['No, gracias', {}, MSG_REGISTERED_SHORT],
+  ])('«%s»: la respuesta de siempre y la línea en el negocio 9001, sin cambiar campos ni avisar', async (body, parsed, reply) => {
+    const hook = await instance();
+    expect(await closeWithSummary(hook, PANELS, PANELS_CLAUDE)).toBe(PANELS_SUMMARY);
+    const notes = sim.notes.length;
+    claude(body, parsed);
+    expect(await post(hook, body)).toBe(reply);
+    expectUnappliedNote(notes, body);
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject(PANELS_CLAUDE);
+  });
+
+  it('«La comuna no»: «¿Qué dato corrijo?» sin escribir; «Renca»: el resumen corregido en el negocio 9001', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    const notes = sim.notes.length;
+    const updates = sim.updates.length;
+    claude('La comuna no', {});
+    expect(await post(hook, 'La comuna no')).toBe(MSG_SUMMARY_FIX);
+    expect(sim.notes).toHaveLength(notes);
+    expect(sim.updates).toHaveLength(updates);
+    claude('Renca', { comuna_o_ciudad: 'Renca' });
+    expect(await post(hook, 'Renca')).toBe('Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Renca. ¿Está bien?');
+    expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+    expect(unescape(sim.notes.at(-1)!.content)).toContain('Comuna/ciudad: antes Maipú, ahora Renca');
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notified).toBe(1);
+  });
+
+  it('«La comuna no, y luz fría»: MSG4 y una nota con «Cambios:» y la línea en el negocio 9001, sin avisar', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    claude('La comuna no, y luz fría', { tipo_de_luz: 'fría' });
+    expect(await post(hook, 'La comuna no, y luz fría')).toBe(MSG4);
+    const note = unescape(sim.notes.at(-1)!.content);
+    expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+    expect(note).toContain('Tipo de luz: antes neutra, ahora fria');
+    expect(note).toContain(UNAPPLIED + '"La comuna no, y luz fría"');
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notified).toBe(1);
+  });
+});
