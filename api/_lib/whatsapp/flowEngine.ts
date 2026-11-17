@@ -2373,7 +2373,7 @@ function summaryData(body: string): string {
 }
 // [RESUMEN] (ronda 4, C) "No esta bien la cantidad", "la cantidad esta mal", "La comuna esta mal", "la cantidad": dice que
 // dato esta mal sin dar el correcto, como el "no" solo (sobre summaryAnswerText).
-const SUMMARY_FIELD_WORDS = '(?:(?:la|el|los|las) )?(?:cantidad(?:es)?|productos?|colou?r|luz|tipo de luz|uso|proyecto|comuna|direccion|ciudad|lugar)';
+const SUMMARY_FIELD_WORDS = '(?:(?:la|el|los|las) )?(?:cantidad(?:es)?|metros|unidades|numero|productos?|colou?r|luz|tipo de luz|uso|proyecto|comuna|direccion|ciudad|lugar)';
 const SUMMARY_WRONG_WORDS = '(?:esta mal|estan mal|no esta bien|no estan bien|esta incorrect[ao]|es incorrect[ao]|no es correct[ao]|no corresponde|mal|incorrect[ao])';
 const SUMMARY_FIELD_NO_RE = new RegExp('^(?:no )?(?:' + SUMMARY_WRONG_WORDS + ' )?' + SUMMARY_FIELD_WORDS + '(?: ' + SUMMARY_WRONG_WORDS + ')?$');
 /**
@@ -2396,7 +2396,7 @@ const REJECT_FIELD_NAMES: Array<[string, RejectedGroup]> = [
   ['tipo de luz', 'tipo_de_luz'], ['temperatura de color', 'tipo_de_luz'], ['temperatura', 'tipo_de_luz'], ['colores', 'tipo_de_luz'],
   ['color', 'tipo_de_luz'], ['colour', 'tipo_de_luz'], ['luz', 'tipo_de_luz'], ['comuna', 'comuna_o_ciudad'], ['ciudad', 'comuna_o_ciudad'],
   ['lugar', 'comuna_o_ciudad'], ['direccion', 'comuna_o_ciudad'], ['destino', 'comuna_o_ciudad'], ['cantidades', 'cantidad'],
-  ['cantidad', 'cantidad'], ['uso', 'proyecto_o_uso'], ['proyecto', 'proyecto_o_uso'], ['productos', 'producto'], ['producto', 'producto'],
+  ['cantidad', 'cantidad'], ['metros', 'cantidad'], ['unidades', 'cantidad'], ['numero', 'cantidad'], ['uso', 'proyecto_o_uso'], ['proyecto', 'proyecto_o_uso'], ['productos', 'producto'], ['producto', 'producto'],
 ];
 const REJECT_ARTICLE = '(?:(?:la|el|los|las|esa|ese|esos|esas|esta|este|estos|estas|mi|su|tu) )?';
 const REJECT_END = '(?= [,.;:!?]| y | pero | e | o |$)';
@@ -2463,9 +2463,10 @@ function rejectedFields(text: string, captured: CapturedFields): { fields: Array
 const REJECT_REST_RE = /^(?:ni|tampoco|hay|q|tengo|tienes|distint[ao]s?|diferentes?|incorrect[ao]s?|equivocad[ao]s?|errone[ao]s?|menos|excepcion|aparte|problema|po|pos|poh|oiga|oye|mira|igual|cierto|nop|nope|noo+|sii+)$/;
 function rejectsFieldWithoutData(body: string, captured: CapturedFields, claudeParsed: ClaudeFields): boolean {
   // Una pregunta con signo ("Y si es otra comuna?", "Seria otro color?") no rechaza: sigue closedFollowUp. "Hay un error
-  // en la cantidad" sin signo si.
-  const statement = body.slice(0, MAX_FACTS).split(/(?<=[?!\n])|(?=\u00bf)/).filter((part) => !/[?\u00bf]/.test(part)).join(' . ');
-  if (!statement.trim()) return false;
+  // en la cantidad" sin signo si. (ronda 8) Tampoco un rechazo con una pregunta en el mismo mensaje ("Cambia la comuna.
+  // Tienen ficha tecnica?", "La cantidad no, cuanto cuesta cada uno"): la pregunta sigue closedFollowUp, como en main.
+  const statement = body.slice(0, MAX_FACTS);
+  if (!statement.trim() || /[?\u00bf]/.test(statement) || questionKinds(statement).size > 0) return false;
   const { fields, rest } = rejectedFields(statement, captured);
   if (!fields.length) return false;
   const groupFields = fields.flatMap((x) => REJECT_GROUP_FIELDS[x.group]);
@@ -2931,7 +2932,8 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
 // flujo de la conversacion cerrada.
 const SUMMARY_YES_RE = /^(?:(?:si|ok|okay|correcto|esta bien|perfecto|dale|de acuerdo|todo bien|\u{1F44D})(?: |$)){1,3}(?:gracias)?$|^gracias (?:(?:si|ok|okay|correcto|esta bien|perfecto|dale|de acuerdo|todo bien|\u{1F44D})(?: |$)){1,3}$/u;
 // (ronda 6, D) Tambien "nop", "nope" y "no po".
-const SUMMARY_NO_RE = /^(?:no|nop|nope|no po|no esta bien|esta mal|no es asi|incorrecto)$/;
+// (ronda 8) Tambien el error sin decir cual ("Hay un error", "Me equivoque", "Hay un dato malo", "Algo esta mal").
+const SUMMARY_NO_RE = /^(?:no|nop|nope|no po|no esta bien|esta mal|no es asi|incorrecto|(?:hay|tiene) (?:un )?(?:error|errores)(?: en (?:el resumen|los datos|algo|algun dato))?|me equivoque(?: en algo)?|(?:hay )?(?:un|algun) dato (?:malo|mal|erroneo|incorrecto)|(?:un dato|algo) (?:esta )?mal)$/;
 // [RESUMEN] (ronda 6, D) Una posible cancelacion ("No, gracias", "Ya no", "Mejor no", "No lo necesito", "Ninguno"): la
 // respuesta no cambia, pero queda textual en la nota del negocio para el vendedor (summaryLeftover).
 const SUMMARY_CANCEL_RE = /^(?:no (?:muchas )?gracias|ya no|mejor no|(?:ya )?no (?:lo|los|la|las) (?:necesito|necesitamos|quiero|queremos)|(?:ya )?no (?:quiero|queremos|me interesa|nos interesa)|creo que no|ningun[oa]|mejor nada|ya no (?:lo|los|la|las) (?:necesito|quiero))(?: gracias)?$/;
@@ -2949,6 +2951,7 @@ function summaryAnswerText(body: string): string {
  * - un "si" con un comentario sin datos ni preguntas: MSG4.
  * Lo demas (una pregunta, "gracias"): nada, y sigue closedFollowUp.
  */
+const LINEAR_METERS_RE = /(?<![\p{L}])(?:metros?|mts?\.?|m)\s+lineales?(?![\p{L}])/giu;
 function summaryAnswer(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, correctingEmail: boolean, report?: SummaryReport): StepResult | undefined {
   const answer = summaryAnswerText(body);
   const closed = (reply: string): StepResult => ({
@@ -2978,7 +2981,8 @@ function summaryAnswer(phone: string, state: FlowState, body: string, claudePars
   // (ronda 4, B2 y C) El dato sin la aceptacion delante ("Si, 30") ni la cortesia ("25, gracias"): summaryData.
   const late = lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
     // (ronda 5, C2) Los numeros en palabras que son una clausula por si solos ("treinta", "Que sean treinta y en Pudahuel").
-    ?? lateChange(phone, state, summaryData(spelledQuantities(body)), claudeParsed, hasMedia, true, true, report);
+    // (ronda 8) "300 metros lineales" es la cantidad en metros, no otro item.
+    ?? lateChange(phone, state, summaryData(spelledQuantities(body.replace(LINEAR_METERS_RE, 'metros'))), claudeParsed, hasMedia, true, true, report);
   if (late) return late;
   // (revision 16-11) Un "si" con un comentario que no cambia nada ("Si, quiero cotizar eso", "Si, en 2 semanas mas") y
   // sin pregunta tambien confirma: MSG4.

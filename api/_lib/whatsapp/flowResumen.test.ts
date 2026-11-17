@@ -1640,3 +1640,51 @@ describe('(ronda 7) el rechazo con un dato que no se reconoce y los rechazos gen
     });
   });
 });
+
+describe('(ronda 8) el rechazo con una pregunta, el error sin decir cuál y los metros lineales', () => {
+  const CINTA = 'Necesito 500 metros de cinta LED 220V luz fría, despacho a Lampa. ' + CONTACT;
+  const CINTA_CLAUDE = { producto: 'cinta LED 220V', cantidad: '500', tipo_de_luz: 'fría', comuna_o_ciudad: 'Lampa', ...CONTACT_CLAUDE };
+  const closeCinta = () => {
+    step(CINTA, CINTA_CLAUDE);
+    expect(step('no sé').reply).toBe(EXAMPLE_3);
+    flow.recordDealOutcome(PHONE, true, undefined, 4242);
+  };
+
+  it.each<[string, string]>([
+    ['Cambia la comuna. ¿Tienen ficha técnica?', flow.MSG_Q_TECH_HAS_EMAIL],
+    ['La comuna no. ¿Tienen ficha técnica?', flow.MSG_Q_TECH_HAS_EMAIL],
+    ['No es esa la cantidad. ¿Me mandan la ficha?', flow.MSG_Q_TECH_HAS_EMAIL],
+    ['La cantidad no, ¿cuánto cuesta cada uno?', flow.MSG_Q_PRICE_HAS_EMAIL],
+    ['¿Cuánto vale? La comuna no es esa', flow.MSG_Q_PRICE_HAS_EMAIL],
+    ['La comuna no. ¿Cuánto sale el despacho?', flow.MSG_WAIT_DELIVERY],
+  ])('«%s» responde la pregunta, como en main, y no pide el dato', (body, reply) => {
+    closeWithSummary();
+    const r = step(body);
+    expect(r.reply).not.toBe(flow.MSG_SUMMARY_FIX);
+    expect(r.reply).toBe(reply);
+  });
+
+  it.each([
+    'Hay un error', 'Me equivoqué', 'Hay un dato malo', 'Algo está mal', 'Un dato está mal', 'Hay un error en el resumen',
+    'Hay un error en el número', 'Hay un error en las unidades', 'El número no es ese',
+  ])('«%s» pide el dato («¿Qué dato corrijo?») sin escribir', (body) => {
+    closeWithSummary();
+    const before = flow.getFlowState(PHONE).captured;
+    expect(step(body)).toMatchObject({ reply: flow.MSG_SUMMARY_FIX, shouldCreateDeal: false });
+    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+  });
+
+  it.each(['Hay un error en los metros', 'Error en los metros', 'Los metros no'])('en la cinta, «%s» pide el dato', (body) => {
+    closeCinta();
+    expect(step(body)).toMatchObject({ reply: flow.MSG_SUMMARY_FIX, shouldCreateDeal: false });
+  });
+
+  it.each(['300 metros lineales', '300 m lineales', 'No, 300 metros lineales', 'Son 300 metros lineales'])(
+    'en la cinta, «%s» corrige los metros (nunca otro item)', (body) => {
+      closeCinta();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: summaryOf('300 m de cinta LED 220V', 'luz fría y en Lampa'), shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured.cambios).toContainEqual('Cantidad: antes 500 m, ahora 300 m');
+      expect(flow.getFlowState(PHONE).captured.cantidad_varios).toBeUndefined();
+    });
+});
