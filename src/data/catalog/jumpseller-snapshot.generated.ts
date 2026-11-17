@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '4a4c305e188a';
+export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -8873,58 +8873,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       }
     ],
     "variants": []
-  },
-  {
-    "jumpseller_id": 4371411,
-    "name": "PANEL LED CONCENTRICO OPAL 40W IP33",
-    "permalink": "panel-led-concentrico-opal-40w-ip33",
-    "sku": "",
-    "price": 23590,
-    "brand": "JIE",
-    "featured": false,
-    "categories": [
-      "paneles-led"
-    ],
-    "images": [
-      {
-        "id": 7460714,
-        "url": "https://images.jumpseller.com/store/elights-cl/4371411/2019-Hot-sale-new-design-cob-recessed.jpg?1579635520",
-        "position": 1
-      },
-      {
-        "id": 7460715,
-        "url": "https://images.jumpseller.com/store/elights-cl/4371411/2019-Hot-sale-new-design-cob-recessed__1_.jpg?1579635521",
-        "position": 6
-      },
-      {
-        "id": 7460716,
-        "url": "https://images.jumpseller.com/store/elights-cl/4371411/2019-Hot-sale-new-design-cob-recessed__2_.jpg?1579635521",
-        "position": 7
-      },
-      {
-        "id": 7460717,
-        "url": "https://images.jumpseller.com/store/elights-cl/4371411/2019-Hot-sale-new-design-cob-recessed__3_.jpg?1579635521",
-        "position": 8
-      },
-      {
-        "id": 7460718,
-        "url": "https://images.jumpseller.com/store/elights-cl/4371411/2019-Hot-sale-new-design-cob-recessed__4_.jpg?1579635521",
-        "position": 9
-      }
-    ],
-    "variants": [
-      {
-        "id": 7500839,
-        "sku": "DLRCO40N",
-        "price": 23590,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Natural - 4000K"
-          }
-        ]
-      }
-    ]
   },
   {
     "jumpseller_id": 4426526,

@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '4a4c305e188a';
+export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -2408,17 +2408,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "FU400I",
     "price": 37400,
     "variants": {}
-  },
-  "4371411": {
-    "name": "PANEL LED CONCENTRICO OPAL 40W IP33",
-    "sku": "",
-    "price": 23590,
-    "variants": {
-      "7500839": {
-        "sku": "DLRCO40N",
-        "price": 23590
-      }
-    }
   },
   "4426526": {
     "name": "PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO",

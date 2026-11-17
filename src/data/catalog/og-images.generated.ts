@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '4a4c305e188a';
+export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -188,7 +188,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "4190659": {"url":"https://images.jumpseller.com/store/elights-cl/4190659/01-backlight-60x60-panel-led-elights.cl.jpg?1665502780","format":"jpeg","bytes":70344,"width":960,"height":960},
   "4361806": {"url":"https://images.jumpseller.com/store/elights-cl/4361806/12_Niquel_Poroso_Perfil.png?1622476525","format":"png","bytes":181691,"width":600,"height":600},
   "4370201": {"url":"https://images.jumpseller.com/store/elights-cl/4370201/fuente-de-poder-400w-elights.cl.png?1579624790","format":"png","bytes":192190,"width":882,"height":564},
-  "4371411": {"url":"https://images.jumpseller.com/store/elights-cl/4371411/2019-Hot-sale-new-design-cob-recessed.jpg?1579635520","format":"jpeg","bytes":123226,"width":800,"height":800},
   "4426526": {"url":"https://images.jumpseller.com/store/elights-cl/4426526/PANEL_LED_BACKLIGHT_120X30_CM._48W_PARA_CIELO_AMERICANO_02_eLIGHTS.cl.png?1664567514","format":"png","bytes":173078,"width":600,"height":600},
   "4450187": {"url":"https://images.jumpseller.com/store/elights-cl/4450187/proyector_01.jpg?1653223526","format":"jpeg","bytes":74939,"width":800,"height":800},
   "4537309": {"url":"https://images.jumpseller.com/store/elights-cl/4537309/01-fuente-de-poder-exterior-150w.png?1625761468","format":"png","bytes":144139,"width":900,"height":900},

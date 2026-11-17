@@ -2320,7 +2320,7 @@
     },
     {
       "source": "/downlight-led-retraido-concentrico-opal-40w-ip20{/}?",
-      "destination": "/producto/panel-led-concentrico-opal-40w-ip33",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
@@ -2335,12 +2335,12 @@
     },
     {
       "source": "/downlight-led-retraido-concentrico-opal-40w-ip33-3{/}?",
-      "destination": "/producto/panel-led-concentrico-opal-40w-ip33",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
       "source": "/downlight-led-retraido-concentrico-opal-40w-ip33{/}?",
-      "destination": "/producto/panel-led-concentrico-opal-40w-ip33",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
@@ -4860,7 +4860,7 @@
     },
     {
       "source": "/panel-led-concentrico-opal-40w-ip33{/}?",
-      "destination": "/producto/panel-led-concentrico-opal-40w-ip33",
+      "destination": "/catalogo/paneles-led",
       "statusCode": 301
     },
     {
