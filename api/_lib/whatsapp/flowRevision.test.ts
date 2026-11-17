@@ -139,8 +139,8 @@ describe('[B2B] empresa con tilde, y la bodega de la tienda no es empresa', () =
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
     const end = step('Soy Ana Prueba, ana.prueba@example.com', ANA);
     for (const reply of [...replies, end.reply]) expect(reply).not.toMatch(/RUT/);
-    expect(end.reply).not.toBe(flow.MSG4_B2B);
     expect(end.shouldCreateDeal).toBe(true);
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
   });
 
   it.each(['¿Hacen despacho a la obra en Lampa?', '¿Despachan a nuestra bodega en Lampa?'])('"%s" no identifica al comprador como empresa', (body) => {

@@ -223,6 +223,15 @@ export function removeRuts(text: string, ruts: readonly string[]): string {
   ), text);
 }
 
+/**
+ * [RUT-PERSONA] (revision 16-11) El tipo segun el numero (rutTipo), aunque el digito verificador no calce: un RUT de
+ * 50.000.000 o mas no es de una persona. Solo decide si un RUT que no calza se pide de nuevo (flowEngine.ts); no vuelve
+ * empresa al lead (eso, solo un RUT valido: isBusinessRut).
+ */
+export function rutRange(rut: string): RutTipo {
+  return rutTipo(Number(rut.split('-')[0].replace(/\D/g, '')));
+}
+
 /** Solo un RUT valido de empresa (no de persona) convierte el lead en B2B. */
 export function isBusinessRut(found: Pick<RutFound, 'valido' | 'tipo'> | undefined): boolean {
   return Boolean(found?.valido && found.tipo && found.tipo !== 'persona');

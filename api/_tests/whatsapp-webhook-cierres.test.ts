@@ -7,7 +7,7 @@
 //
 // Reglas que se prueban (diagnóstico del 16-10, plan PR 1 y especificación §5 y §10):
 // - "ya derivé" (MSG_HUMAN) sale una sola vez y solo con negocio; nunca se ofrece una llamada.
-// - "quedó registrada" (MSG4, MSG4_B2B, MSG4_INSTALL) solo si Pipedrive devolvió el negocio.
+// - "quedó registrada" (MSG4, el cierre de productos e instalación) solo si Pipedrive devolvió el negocio.
 // - Antes de cerrar se pide el correo; sin correo el cierre es el texto A, sin negocio.
 // - Un correo que llega después del cierre crea un solo negocio.
 // - Si Pipedrive falla, el texto B; si el paso del flujo falla, el cliente recibe respuesta.
@@ -78,7 +78,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 import handler from '../whatsapp/webhook';
 import { notifyTeam } from '../_lib/whatsapp/notify.js';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG4, MSG4_INSTALL, MSG4_INSTALL_NO_EMAIL, MSG_ALREADY_WROTE, MSG_EMAIL_SHORT, MSG_REGISTERED_SHORT, getFlowState } from '../_lib/whatsapp/flowEngine.js';
+import { MSG4, MSG4_INSTALL_NO_EMAIL, MSG_ALREADY_WROTE, MSG_EMAIL_SHORT, MSG_REGISTERED_SHORT, getFlowState } from '../_lib/whatsapp/flowEngine.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
 const webhook = handler as unknown as Handler;
@@ -431,7 +431,10 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     expect(note).not.toContain('[object Object]');
     // [RESUMEN] PR 3: el resumen va en su sección.
     expect(note).toMatch(/^-- RESUMEN DEL BOT \(interpretación, no dato\) --\n.+/m);
-    for (const value of Object.values(sim.updates[0].fields)) expect(typeof value).toBe('string');
+    // [CANTIDAD-VARIOS] Con varios ítems, Cantidad va en null (vacía el campo); los demás campos son texto.
+    const { cf_wa_cantidad: quantity, ...rest } = sim.updates[0].fields as Record<string, unknown>;
+    expect(quantity).toBeNull();
+    for (const value of Object.values(rest)) expect(typeof value).toBe('string');
   });
 
   it('si Pipedrive rechaza los campos del negocio, la nota se escribe igual', async () => {
@@ -645,7 +648,7 @@ describe('instalación con el correo dado antes en el flujo de productos', () =>
       ['ok', {}],
     ]);
     expect(turns[1].reply).not.toMatch(/correo/i);
-    expect(turns[4].reply).toBe(MSG4_INSTALL);
+    expect(turns[4].reply).toBe(MSG4);
     expect(turns[4].deals).toBe(1);
     for (const t of turns) expect(t.reply).not.toMatch(TECNICO);
     expect(sim.deals).toHaveLength(1);
@@ -762,5 +765,82 @@ describe('Pipedrive caído', () => {
     const r = await send(phone, B2B, B2B_CLAUDE);
     expect(r.reply).toMatch(REGISTRADA);
     expect(sim.deals).toHaveLength(1);
+  });
+});
+
+// FASE 3A, punto 5 (16-11): por el webhook real, el negocio nuevo lleva el tipo del flujo y no el de las palabras del
+// último mensaje ("obra" todavía cuenta como empresa en detectLeadType).
+describe('[REGISTRO] el negocio nuevo lleva el tipo del flujo', () => {
+  const ORDER = 'Necesito 20 paneles LED 60x60 luz neutra para mi casa en Ñuñoa. Soy Pedro Prueba';
+  const ORDER_CLAUDE = { producto: 'paneles 60x60', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Ñuñoa', nombre: 'Pedro Prueba' };
+
+  it('una persona cuyo último mensaje dice «obra»: negocio y persona B2C', async () => {
+    const phone = nextPhone();
+    expect((await send(phone, ORDER, ORDER_CLAUDE)).reply).not.toMatch(REGISTRADA);
+    expect(getFlowState(phone).leadType).toBe('B2C');
+    const r = await send(phone, 'Es para la obra de ampliación de mi casa: pedro.prueba@example.com', { correo: 'pedro.prueba@example.com' });
+    expect(r.reply).toBe(MSG4);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.deals[0].leadType).toBe('B2C');
+    expect(sim.persons[0].customerType).toBe('B2C');
+  });
+
+  it('una empresa sin RUT cuyo último mensaje es solo el correo: negocio B2B', async () => {
+    const phone = nextPhone();
+    await send(phone, 'Necesito 20 paneles LED 60x60 luz neutra para la oficina de Comercial Prueba SpA en Ñuñoa',
+      { ...ORDER_CLAUDE, proyecto_o_uso: 'oficina', nombre: undefined, empresa: 'Comercial Prueba SpA' });
+    expect(getFlowState(phone).leadType).toBe('B2B');
+    const r = await send(phone, 'compras@comercial-prueba.example.com', { correo: 'compras@comercial-prueba.example.com' });
+    expect(r.reply).toBe(MSG4);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.deals[0].leadType).toBe('B2B');
+  });
+
+  // (revisión 16-11) El flujo de instalación fijaba B2C: con el tipo del flujo en el negocio nuevo, una constructora que
+  // pedía instalación quedaba como persona (boleta). Ahora la instalación usa las señales de empresa del flujo.
+  it('una constructora que pide instalación en un mensaje: negocio y persona B2B', async () => {
+    const phone = nextPhone();
+    const r = await send(phone, 'Somos Constructora Prueba SpA, necesitamos instalación de luminarias LED en una obra en Maipú. Contacto Juan Prueba, juan.prueba@example.com',
+      { empresa: 'Constructora Prueba SpA', nombre: 'Juan Prueba', correo: 'juan.prueba@example.com', comuna_o_ciudad: 'Maipú', proyecto_o_uso: 'obra' });
+    expect(r.reply).toBe(MSG4);
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2B' });
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.deals[0].leadType).toBe('B2B');
+    expect(sim.persons[0].customerType).toBe('B2B');
+  });
+
+  it('una empresa (factura) que después pide la instalación: sigue B2B', async () => {
+    const phone = nextPhone();
+    await send(phone, 'Necesito 20 campanas LED 150W para la bodega de Comercial Prueba SpA en Quilicura, necesito factura',
+      { producto: 'campanas LED 150W', cantidad: '20', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', empresa: 'Comercial Prueba SpA' });
+    expect(getFlowState(phone).leadType).toBe('B2B');
+    await send(phone, 'También necesitamos la instalación de las campanas');
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2B' });
+    const r = await send(phone, 'Juan Prueba, juan.prueba@example.com, Quilicura, bodega', { nombre: 'Juan Prueba', correo: 'juan.prueba@example.com', comuna_o_ciudad: 'Quilicura' });
+    expect(r.reply).toBe(MSG4);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.deals[0].leadType).toBe('B2B');
+    expect(sim.persons[0].customerType).toBe('B2B');
+  });
+
+  it('la empresa aparece a mitad de la instalación («factura para Constructora…»): B2B', async () => {
+    const phone = nextPhone();
+    await send(phone, 'Necesito instalar 30 campanas LED');
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2C' });
+    const r = await send(phone, 'Pedro Prueba, pedro.prueba@example.com, Quilicura, bodega, necesito factura para Constructora Prueba SpA',
+      { nombre: 'Pedro Prueba', correo: 'pedro.prueba@example.com' });
+    expect(r.reply).toBe(MSG4);
+    expect(sim.deals[0].leadType).toBe('B2B');
+    expect(sim.persons[0].customerType).toBe('B2B');
+  });
+
+  it('una persona que pide instalación para su casa: negocio y persona B2C (como antes)', async () => {
+    const phone = nextPhone();
+    const r = await send(phone, 'Necesito instalar 10 focos LED en mi casa en Maipú. Soy Ana Prueba, ana.prueba@example.com',
+      { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com', comuna_o_ciudad: 'Maipú', proyecto_o_uso: 'casa' });
+    expect(r.reply).toBe(MSG4);
+    expect(getFlowState(phone)).toMatchObject({ isInstallFlow: true, leadType: 'B2C' });
+    expect(sim.deals[0].leadType).toBe('B2C');
+    expect(sim.persons[0].customerType).toBe('B2C');
   });
 });

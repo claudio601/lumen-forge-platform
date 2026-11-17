@@ -225,7 +225,6 @@ describe('caso de las estacas, de punta a punta por el flujo', () => {
       expect(replies[TURNS.findIndex((t) => t[0] === DESPACHO)]).toContain(flow.MSG_WAIT_DELIVERY);
       for (const reply of replies) {
         expect(reply).not.toMatch(/RUT/);
-        expect(reply).not.toBe(flow.MSG4_B2B);
         expect(reply).not.toMatch(/visita|en stock|sin stock/i);
       }
       expect(last!.shouldCreateDeal).toBe(true);

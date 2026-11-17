@@ -420,7 +420,7 @@ describe('errores heredados: consultas y correcciones de la cotización registra
   ])('"%s" agrega el RUT al mismo negocio', (body) => {
     registered();
     const r = step(body);
-    expect(r).toMatchObject({ reply: flow.MSG4_B2B, closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
+    expect(r).toMatchObject({ reply: flow.MSG4, closedFlow: true, shouldCreateDeal: true, rutUpdate: true });
     expect(r.captured).toMatchObject({ rut: '76.123.456-0', rut_valido: true, rut_tipo: 'empresa', producto: 'focos LED', cantidad: '12' });
     expect(flow.getFlowState(PHONE)).toMatchObject({ stage: 'closed', deal: 'registered', dealId: DEAL_ID });
   });

@@ -88,7 +88,7 @@ describe('después del cierre con el negocio registrado', () => {
     const b = step('cuantos tempo demora respuesta?');
     expect(a.reply).toBe(flow.MSG_WAIT);
     expect(b.reply).toBe(flow.MSG_WAIT);
-    expect(b.reply).not.toBe(flow.MSG4_B2B);
+    expect(b.reply).not.toBe(flow.MSG4);
   });
 
   it('sin el negocio confirmado no promete plazo: texto B si Pipedrive falló', () => {

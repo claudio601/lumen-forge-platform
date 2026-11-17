@@ -1,6 +1,6 @@
 // api/_lib/whatsapp/flowEngine.ts
 // shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
-import { inspectRut, isBusinessRut, removeRuts } from './rutCapture.js';
+import { inspectRut, isBusinessRut, removeRuts, rutRange } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
 import { itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
@@ -105,27 +105,28 @@ export interface FlowResult {
 type StepResult = FlowResult & { question?: LastQuestion };
 
 // [COPY-v3] Mensaje inicial
-export const MSG1 = 'Hola! Soy el asistente de eLIGHTS.cl \u{1F44B}\n\nEstoy ayudando a gestionar las solicitudes de iluminacion para responder mas rapido y dejar todo listo para cotizacion.\n\nCuentame:\n1) Que producto buscas\n2) Que tipo de luz prefieres\n3) Cuantas unidades necesitas aprox.';
-export const MSG2 = 'Excelente. Para recomendarte las mejores opciones, necesito saber un poco mas:\n1) Para que espacio o proyecto es la instalacion?\n2) En que comuna o ciudad seria?';
+// [TILDES] Propuesta aprobada por el dueno (11-11-2026), fila "Tildes": "Corregir la ortografia en todos los mensajes
+// sin cambiar lo que dicen". Solo tildes y los signos de apertura; las palabras no cambian. Todo texto fijo al
+// cliente esta en ownerApprovedTexts.test.ts.
+export const MSG1 = '\u00a1Hola! Soy el asistente de eLIGHTS.cl \u{1F44B}\n\nEstoy ayudando a gestionar las solicitudes de iluminaci\u00f3n para responder m\u00e1s r\u00e1pido y dejar todo listo para cotizaci\u00f3n.\n\nCu\u00e9ntame:\n1) Qu\u00e9 producto buscas\n2) Qu\u00e9 tipo de luz prefieres\n3) Cu\u00e1ntas unidades necesitas aprox.';
+export const MSG2 = 'Excelente. Para recomendarte las mejores opciones, necesito saber un poco m\u00e1s:\n1) \u00bfPara qu\u00e9 espacio o proyecto es la instalaci\u00f3n?\n2) \u00bfEn qu\u00e9 comuna o ciudad ser\u00eda?';
 export const MSG3 = 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre y empresa (si aplica)\n2) Tu correo de contacto';
 export const MSG3_B2B = 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) El RUT de la empresa\n2) Tu correo de contacto';
 export const MSG3_B2C = 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre\n2) Tu correo de contacto';
 
-// [COPY-v2] Cierre mejorado
-export const MSG4 = 'Listo! Tu solicitud quedo registrada en eLIGHTS.cl y ya la derivamos para cotizacion.\n\nUn ejecutivo revisara tu requerimiento y te contactara por correo con los detalles.';
-export const MSG4_B2B = 'Listo! Tu requerimiento comercial quedo registrado en eLIGHTS.cl y ya lo derivamos a nuestro equipo de ventas.\n\nUn ejecutivo revisara tu proyecto y te enviara la cotizacion por correo.';
-
-// [INSTALL-FLOW] Mensaje de cierre para flujo de instalacion
+// [CIERRE] El cierre con la solicitud registrada, aprobado por el dueno (2026-11-11, "Cierre con la solicitud
+// registrada"): uno solo para productos (persona o empresa) e instalacion. Antes productos cerraba con dos textos sin
+// tildes ("Un ejecutivo revisara...", uno para personas y otro para empresas) y solo la instalacion usaba este.
 // [SIN-VISITA] Especificacion 5: el bot nunca ofrece visitas (negocio 195: "coordinar la visita" a quien solo
-// compraba focos). Es el cierre aprobado por el dueno (2026-11-11, "Cierre con la solicitud registrada").
-export const MSG4_INSTALL = 'Tu solicitud qued\u00f3 registrada. Claudio Quero te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
+// compraba focos). webhook.ts lo cambia por MSG_DEAL_FAILED o MSG_DEAL_PENDING si Pipedrive no confirma el negocio.
+export const MSG4 = 'Tu solicitud qued\u00f3 registrada. Claudio Quero te responder\u00e1 por correo el mismo d\u00eda h\u00e1bil.';
 // [BOT-SOLO-CORREO] Cierre de instalacion sin correo (tras las repreguntas): no se crea el
 // negocio, asi que no se promete contacto; se pide el correo o escribir a ventas@.
 export const MSG4_INSTALL_NO_EMAIL = 'Gracias. Para cotizar tu instalaci\u00f3n necesitamos tu correo de contacto: escr\u00edbelo por aqu\u00ed o env\u00edanos tu solicitud a ventas@elights.cl.';
 
 /** Cierre del flujo de instalacion: solo promete el correo si lo tenemos. */
 export function installClosingMsg(captured: CapturedFields): string {
-  return captured.install_correo ? MSG4_INSTALL : MSG4_INSTALL_NO_EMAIL;
+  return captured.install_correo ? MSG4 : MSG4_INSTALL_NO_EMAIL;
 }
 
 // [BOT-SOLO-CORREO] Dueno (2026-10-16): la atencion de una persona es por correo, nunca por este
@@ -184,7 +185,7 @@ function inMediaBurst(state: FlowState | undefined, now: number): boolean {
   // Con el reloj de otra instancia un poco adelantado, la diferencia puede ser negativa: tambien es la misma rafaga.
   return typeof at === 'number' && Number.isFinite(at) && Math.abs(now - at) < MEDIA_BURST_MS;
 }
-export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambien puedo ayudarte a dejar tu solicitud lista para cotizacion por ac\u00e1.';
+export const MSG_EXECUTIVE = 'Perfecto \u{1F44D} Si prefieres hablar directamente con un ejecutivo, puedes escribirle por correo:\n\u{1F4E9} claudio@elights.cl\n\u{1F4E9} constanza@elights.cl\n\nDe todas formas, si quieres, tambi\u00e9n puedo ayudarte a dejar tu solicitud lista para cotizaci\u00f3n por ac\u00e1.';
 
 // [FIX-EMAIL-GATE] Mensaje para pedir correo antes de derivar
 // [CIERRE-HONESTO] Texto A, aprobado por el dueno (2026-10-16). Se usa cuando pidio un ejecutivo
@@ -230,7 +231,7 @@ export const MSG_RUT_INVALID = 'El RUT que me enviaste no calza con su d\u00edgi
 export function menuClarifyMsg(pick: number): string {
   return '\u00bfMe confirmas a qu\u00e9 te refieres con \u00ab' + pick + '\u00bb? Cu\u00e9ntame qu\u00e9 producto buscas, cu\u00e1ntas unidades y el color de luz.';
 }
-export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfque producto o proyecto necesitas iluminar, y cual es tu correo de contacto?';
+export const MSG_NEED_EMAIL_AND_CONTEXT = 'Con gusto te ayudo. Para registrar tu solicitud necesito dos cosas: \u00bfqu\u00e9 producto o proyecto necesitas iluminar, y cu\u00e1l es tu correo de contacto?';
 // [INSTALL-FLOW] Deteccion de intencion de instalacion/servicio (installRequested): activa el flujo de captura de
 // lead para instalacion antes de cualquier derivacion.
 // [INSTALL-FLOW] "Soy instalador" describe a quien escribe (compra para instalar), no pide una
@@ -746,13 +747,27 @@ function buildInstallCaptureMsg(captured: CapturedFields): string {
   if (missingRequired.length === 0) return '';
   const hasNone = !captured.install_nombre && !captured.install_correo && !captured.install_comuna && !captured.install_tipo_proyecto;
   if (hasNone) {
-    return 'Perfecto. Para derivar tu solicitud de instalacion y poder cotizarte, necesito estos datos: nombre completo, correo, comuna y tipo de proyecto.';
+    return 'Perfecto. Para derivar tu solicitud de instalaci\u00f3n y poder cotizarte, necesito estos datos: nombre completo, correo, comuna y tipo de proyecto.';
   }
   if (missingRequired.length === 1) {
     return 'Casi listo. Solo me falta tu ' + missingRequired[0] + ' para registrar la solicitud.';
   }
   const items = missingRequired.map((x, i) => (i + 1) + ') ' + capitalize(x)).join('\n');
-  return 'Gracias. Para completar tu solicitud de instalacion, necesito que me indiques:\n' + items;
+  return 'Gracias. Para completar tu solicitud de instalaci\u00f3n, necesito que me indiques:\n' + items;
+}
+
+/**
+ * [REGISTRO] (revision 16-11) El tipo en el flujo de instalacion. Pedir una instalacion no es senal de empresa (queda
+ * persona, B2C, como antes), pero tampoco la borra: la conversacion que ya era de empresa sigue B2B, y las senales de
+ * mergeProductFields (palabras de empresa, la empresa que lee Claude, un RUT valido de empresa) la vuelven B2B. Antes
+ * se fijaba B2C y, desde que el negocio nuevo de Pipedrive toma el tipo del flujo, una constructora que pedia una
+ * instalacion quedaba como persona (boleta en vez de factura).
+ */
+function installLeadType(state: FlowState, body: string, claudeParsed: ClaudeFields, captured: CapturedFields): LeadType {
+  if (state.leadType === 'B2B') return 'B2B';
+  const businessRut = isBusinessRut({ valido: captured.rut_valido === true, tipo: captured.rut_tipo });
+  const company = B2B_SIGNAL_RE.test(b2bText(body)) || businessRut || Boolean(claudeParsed.empresa && claudeParsed.empresa.length > 0);
+  return company ? 'B2B' : 'B2C';
 }
 
 // [INSTALL-FLOW] Registra campos de instalacion desde el mensaje del usuario
@@ -822,18 +837,21 @@ function canRegister(captured: CapturedFields): boolean {
 
 /**
  * [CIERRE-HONESTO] Cierre del flujo de productos. Sin correo pide el correo (texto A) y no promete
- * nada. Con correo, el texto de "registrada" (o "ya derive", si pidio ejecutivo); webhook.ts lo
+ * nada. Con correo, el cierre aprobado MSG4 (o "ya derive", si pidio ejecutivo); webhook.ts lo
  * cambia por MSG_DEAL_FAILED si Pipedrive no confirma el negocio.
  */
-function productClosingMsg(registers: boolean, wantsHuman: boolean, leadType: LeadType): string {
+function productClosingMsg(registers: boolean, wantsHuman: boolean): string {
   if (!registers) return MSG_NEED_EMAIL;
   if (wantsHuman) return MSG_HUMAN;
-  return leadType === 'B2B' ? MSG4_B2B : MSG4;
+  return registeredClosing();
 }
 
-/** [CIERRE-HONESTO] El cierre de una solicitud registrada, sin "ya derive" (sale una sola vez). */
-function registeredClosing(state: Pick<FlowState, 'isInstallFlow' | 'leadType'>): string {
-  return state.isInstallFlow ? MSG4_INSTALL : state.leadType === 'B2B' ? MSG4_B2B : MSG4;
+/**
+ * [CIERRE-HONESTO] El cierre de una solicitud registrada, sin "ya derive" (sale una sola vez). [CIERRE] El mismo
+ * texto aprobado para productos e instalacion, para una persona o una empresa.
+ */
+function registeredClosing(): string {
+  return MSG4;
 }
 
 /**
@@ -842,7 +860,7 @@ function registeredClosing(state: Pick<FlowState, 'isInstallFlow' | 'leadType'>)
  * intento (no hay correo) se pide el correo.
  */
 function closedReply(state: FlowState): string {
-  if (state.deal === 'registered') return registeredClosing(state);
+  if (state.deal === 'registered') return registeredClosing();
   if (state.deal === 'failed') return MSG_DEAL_FAILED;
   return state.isInstallFlow ? MSG4_INSTALL_NO_EMAIL : MSG_NEED_EMAIL;
 }
@@ -1643,7 +1661,23 @@ function mergeProductFields(
     if (isB2BSignal) { leadType = 'B2B'; }
     else if (leadType === 'Unknown' && body.trim().length > 10) { leadType = 'B2C'; }
   }
-  return { merged, leadType, rutToConfirm: Boolean(rutFound && !rutFound.valido && !state.rutRetryAsked), menuPick: quantity.menuPick };
+  // [RUT-PERSONA] Dueno (13-11-2026): a una persona se le emite boleta sin RUT y el bot nunca se lo pide. Un RUT cuyo
+  // digito verificador no calza se pide de nuevo (una vez), como antes, si llega en este mensaje y es de una empresa: la
+  // conversacion es de empresa (B2B) o el numero es de 50.000.000 o mas (rutRange: empresa, organismo o comunidad,
+  // aunque el mensaje no traiga otras palabras de empresa). El de una persona (B2C o sin tipo, con numero de persona)
+  // queda guardado como invalido y la nota lo marca para revisarlo (pipedriveLead.ts, rutLine).
+  // (revision 16-11) Un RUT malo guardado en un mensaje anterior (por ejemplo, el del ejecutivo, que no lo pide) no se
+  // pide en un mensaje sin RUT, como en main. Solo en el mensaje en que la conversacion pasa de persona a empresa, y si
+  // ese mensaje no puede registrar la solicitud (sin correo) ni pregunta el precio: la repregunta nunca atrasa un
+  // registro ni reemplaza la respuesta a una pregunta.
+  const invalidHere = Boolean(rutFound && !rutFound.valido);
+  const companyRut = leadType === 'B2B' || Boolean(rutFound && rutRange(rutFound.rut) !== 'persona');
+  const becameCompany = !invalidHere && state.leadType !== 'B2B' && leadType === 'B2B'
+    && merged.rut !== undefined && merged.rut_valido === false && !canRegister(merged)
+    // Un mensaje que pregunta el precio o algo tecnico recibe esa respuesta (pide el correo), como en main.
+    && !questionAsksEmail(questionKinds(body));
+  const rutToConfirm = !state.rutRetryAsked && ((invalidHere && companyRut) || becameCompany);
+  return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick };
 }
 
 /**
@@ -1654,8 +1688,9 @@ function mergeProductFields(
  */
 function continueClosedWithoutDeal(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields): FlowResult {
   const hadEmail = Boolean(flowEmail(state));
-  const late = state.isInstallFlow
-    ? { merged: mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)), leadType: state.leadType }
+  const installMerged = state.isInstallFlow ? mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state)) : undefined;
+  const late = installMerged
+    ? { merged: installMerged, leadType: installLeadType(state, body, claudeParsed, installMerged) }
     : mergeProductFields(state, body, claudeParsed);
   const captureStatus = state.isInstallFlow ? computeInstallCaptureStatus(late.merged) : computeCaptureStatus(late.merged, late.leadType);
   const next: FlowState = { ...state, captured: late.merged, captureStatus, leadType: late.leadType };
@@ -1664,8 +1699,8 @@ function continueClosedWithoutDeal(phone: string, state: FlowState, body: string
   if (registers) console.log('[flowEngine] conversacion cerrada con correo y sin negocio \u2014 registrando' + (hadEmail ? ' (reintento)' : ''));
   let reply = closedReply(next);
   if (registers) {
-    if (hadEmail) reply = registeredClosing(next);
-    else reply = next.isInstallFlow ? installClosingMsg(late.merged) : productClosingMsg(true, next.wantsHuman, next.leadType);
+    if (hadEmail) reply = registeredClosing();
+    else reply = next.isInstallFlow ? installClosingMsg(late.merged) : productClosingMsg(true, next.wantsHuman);
   }
   // [PREGUNTA] Se contesta lo que pregunta antes de pedir el correo o de cerrar (caso de las estacas: "Sabes cuando
   // demora el despacho" recibia otra vez la peticion del correo). Sin correo, el precio o la consulta tecnica piden
@@ -1690,7 +1725,7 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
   if (inspected.ambiguous) {
     const captured = { ...state.captured, rut_ambiguos: inspected.ambiguous };
     saveFlowState(phone, { ...state, captured });
-    return { reply: registeredClosing(state), shouldCreateDeal: true, shouldNotify: false, captureStatus: state.captureStatus, captured, wantsHuman: state.wantsHuman, closedFlow: true, rutUpdate: true };
+    return { reply: registeredClosing(), shouldCreateDeal: true, shouldNotify: false, captureStatus: state.captureStatus, captured, wantsHuman: state.wantsHuman, closedFlow: true, rutUpdate: true };
   }
   const found = acceptedRut(state.captured, inspected.found);
   if (!found?.valido) return undefined;
@@ -1701,7 +1736,7 @@ function lateRut(phone: string, state: FlowState, body: string): FlowResult | un
   const next: FlowState = { ...state, captured, captureStatus, leadType };
   saveFlowState(phone, next);
   console.log('[flowEngine] RUT valido despues del cierre \u2014 se suma al negocio registrado');
-  return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+  return { reply: registeredClosing(), shouldCreateDeal: true, shouldNotify: false, captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
 /**
@@ -1867,7 +1902,7 @@ function lateEmail(phone: string, state: FlowState, body: string, correcting: bo
   const next: FlowState = { ...state, captured };
   saveFlowState(phone, next);
   console.log('[flowEngine] correo nuevo despues del cierre - se suma al negocio registrado');
-  return { reply: registeredClosing(next), shouldCreateDeal: true, shouldNotify: false, captureStatus: next.captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
+  return { reply: registeredClosing(), shouldCreateDeal: true, shouldNotify: false, captureStatus: next.captureStatus, captured, wantsHuman: next.wantsHuman, closedFlow: true, rutUpdate: true };
 }
 
 /** Lo que webhook.ts sabe del mensaje. hasMedia: trae una imagen o un archivo (con su texto). */
@@ -1931,7 +1966,8 @@ const ALTERNATE_REPLY: Record<string, string> = {
   [MSG_Q_PRICE_HAS_EMAIL]: MSG_Q_TECH_HAS_EMAIL,
   [MSG_Q_TECH_HAS_EMAIL]: MSG_REGISTERED_SHORT,
   [MSG_WAIT]: MSG_REGISTERED_SHORT,
-  [MSG_WAIT_DELIVERY]: MSG_REGISTERED_SHORT,
+  // [DESPACHO] MSG_WAIT_DELIVERY no tiene otro texto aprobado que hable del despacho: una segunda pregunta por el
+  // despacho recibe otra vez la respuesta del despacho (antes, el recordatorio del registro, que no la contesta).
   [MSG_REGISTERED_SHORT]: MSG_WAIT,
 };
 function notRepeated(result: FlowResult, lastReply: string | undefined): FlowResult {
@@ -2109,14 +2145,15 @@ function flowStep(
   if (isInstallIntent && !isAlreadyInstallFlow) {
     const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
+    const leadType = installLeadType(state, body, claudeParsed, updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
-      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType: 'B2C' });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType });
       console.log('[flowEngine] install_capture completo en primer mensaje');
-      return { reply: MSG4_INSTALL, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
+      return { reply: MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
-    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: 1, isInstallFlow: true, leadType: 'B2C' });
+    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: 1, isInstallFlow: true, leadType });
     console.log('[flowEngine] install_capture iniciado, missing: ' + missingRequired.join(', '));
     return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }
@@ -2124,21 +2161,22 @@ function flowStep(
   if (state.stage === 'install_capture') {
     const updatedCaptured = mergeInstallFields(state.captured, body, claudeParsed, answersComuna(state));
     const { missingRequired } = getMissingInstallFields(updatedCaptured);
+    const leadType = installLeadType(state, body, claudeParsed, updatedCaptured);
     if (missingRequired.length === 0) {
       const captureStatus = computeInstallCaptureStatus(updatedCaptured);
-      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, isInstallFlow: true, leadType });
       console.log('[flowEngine] install_capture completo \u2014 derivando');
-      return { reply: MSG4_INSTALL, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
+      return { reply: MSG4, shouldCreateDeal: true, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const repreg = state.repreguntasInstall + 1;
     if (repreg > 3) {
       const captureStatus: CaptureStatus = updatedCaptured.install_correo ? 'partial' : 'incomplete';
-      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true });
+      saveFlowState(phone, { ...state, stage: 'closed', captured: updatedCaptured, captureStatus, repreguntasInstall: repreg, isInstallFlow: true, leadType });
       console.log('[flowEngine] install_capture timeout \u2014 cerrando con status=' + captureStatus);
       return { reply: installClosingMsg(updatedCaptured), shouldCreateDeal: updatedCaptured.install_correo ? true : false, shouldNotify: false, captureStatus, captured: updatedCaptured, wantsHuman: false, closedFlow: true };
     }
     const reply = buildInstallCaptureMsg(updatedCaptured);
-    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: repreg, isInstallFlow: true });
+    saveFlowState(phone, { ...state, stage: 'install_capture', captured: updatedCaptured, repreguntasInstall: repreg, isInstallFlow: true, leadType });
     console.log('[flowEngine] install_capture en curso, missing: ' + missingRequired.join(', '));
     return { reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: 'incomplete', captured: updatedCaptured, wantsHuman: false, closedFlow: false };
   }
@@ -2238,7 +2276,7 @@ function flowStep(
         const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
         console.log('[flowEngine] closePartial stage1, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
-        return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(canCreateDeal, wantsHuman), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg1 >= 1 && missingCritical.length < 2) { currentStage = 'stage2'; continue; }
       repreg1 += 1;
@@ -2258,7 +2296,7 @@ function flowStep(
         const canCreateDeal = canRegister(merged);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
         console.log('[flowEngine] closePartial stage2, canCreateDeal=' + canCreateDeal + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
-        return { reply: productClosingMsg(canCreateDeal, wantsHuman, currentLeadType), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(canCreateDeal, wantsHuman), shouldCreateDeal: canCreateDeal, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       repreg2 += 1;
       saveFlowState(phone, { ...state, stage: 'stage2', captured: merged, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
@@ -2272,7 +2310,7 @@ function flowStep(
       if (missing.length === 0) {
         const cs = computeCaptureStatus(merged, currentLeadType);
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: cs, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
-        return { reply: productClosingMsg(true, wantsHuman, currentLeadType), shouldCreateDeal: true, shouldNotify: false, captureStatus: cs, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(true, wantsHuman), shouldCreateDeal: true, shouldNotify: false, captureStatus: cs, captured: merged, wantsHuman, closedFlow: true };
       }
       if (repreg3 >= 1) {
         const cs = computeCaptureStatus(merged, currentLeadType);
@@ -2280,7 +2318,7 @@ function flowStep(
         saveFlowState(phone, { ...state, stage: 'closed', captured: merged, captureStatus: finalStatus, repreguntasStage1: repreg1, repreguntasStage2: repreg2, repreguntasStage3: repreg3, wantsHuman, leadType: currentLeadType });
         console.log('[flowEngine] closePartial stage3, status=' + finalStatus + ', correo=' + (merged.correo ? 's\u00ed' : 'no'));
         const canCreate3 = canRegister(merged);  // [FIX-EMAIL-GATE] solo crear si hay correo
-        return { reply: productClosingMsg(canCreate3, wantsHuman, currentLeadType), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
+        return { reply: productClosingMsg(canCreate3, wantsHuman), shouldCreateDeal: canCreate3, shouldNotify: false, captureStatus: finalStatus, captured: merged, wantsHuman, closedFlow: true };
       }
       // [CASO-1] Si la etapa 2 no pregunto nada (ya estaba completa), lo que falto de la etapa 1 se
       // pregunta aqui, una vez.
@@ -2297,13 +2335,16 @@ function flowStep(
   return { reply: MSG_NEED_EMAIL, shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: merged, wantsHuman, closedFlow: true };
 }
 
+// [TILDES] La etiqueta de la comuna se muestra al cliente (buildRepregunta1/2) y es la clave de ASKED_FIELD: va en
+// una sola constante para que las dos cambien juntas (si no, la respuesta con la comuna no se reconoceria).
+const COMUNA_LABEL = 'comuna o ciudad de instalaci\u00f3n';
 // [CANTIDAD] Que dato pide cada item de las preguntas (las etiquetas de missingStage1/2/3).
 const ASKED_FIELD: Record<string, AskedField> = {
   'producto': 'producto',
   'tipo de luz preferida': 'tipo_de_luz',
   'cantidad de unidades': 'cantidad',
   'espacio o proyecto de uso': 'proyecto_o_uso',
-  'comuna o ciudad de instalacion': 'comuna_o_ciudad',
+  [COMUNA_LABEL]: 'comuna_o_ciudad',
   'RUT de la empresa': 'rut',
   'correo de contacto': 'correo',
   'nombre': 'nombre',
@@ -2328,7 +2369,7 @@ function missingStage1(f: CapturedFields): string[] {
 function missingStage2(f: CapturedFields): string[] {
   const m: string[] = [];
   if (!f.proyecto_o_uso) m.push('espacio o proyecto de uso');
-  if (!f.comuna_o_ciudad) m.push('comuna o ciudad de instalacion');
+  if (!f.comuna_o_ciudad) m.push(COMUNA_LABEL);
   return m;
 }
 
@@ -2356,16 +2397,32 @@ function buildRepregunta1(missing: string[], captured: CapturedFields = {}): str
   const hints: string[] = [];
   if (captured.proyecto_o_uso) { const art = articleFor(captured.proyecto_o_uso); hints.push(art + ' ' + captured.proyecto_o_uso); }
   // [LUZ] Sin "luz luz" cuando el color ya trae la palabra ("luz cálida").
-  if (captured.tipo_de_luz) hints.push(/^luz\b/i.test(captured.tipo_de_luz) ? captured.tipo_de_luz : 'luz ' + captured.tipo_de_luz);
+  // [TILDES] El color se muestra con su tilde (luzShown); el valor guardado no cambia.
+  if (captured.tipo_de_luz) hints.push(luzShown(/^luz\b/i.test(captured.tipo_de_luz) ? captured.tipo_de_luz : 'luz ' + captured.tipo_de_luz));
   const intro = hints.length > 0 ? 'Entendido, para ' + hints.join(', ') + ' podemos orientarte bien.' : 'Gracias por tu mensaje, podemos ayudarte.';
   if (missing.length === 1) return intro + ' Solo necesito saber ' + missing[0] + ' para continuar.';
   const items = missing.map((x, i) => i + 1 + ') ' + capitalize(x));
-  return intro + ' Para recomendarte las opciones adecuadas, necesito:\n' + items.join('\n') + '\n\nMe los puedes indicar?';
+  return intro + ' Para recomendarte las opciones adecuadas, necesito:\n' + items.join('\n') + '\n\n\u00bfMe los puedes indicar?';
+}
+
+// [TILDES] normalizeLuz guarda "calida" y "fria" sin tilde (se usan para comparar y van asi a Pipedrive), y Claude puede
+// devolver "ambar": al mostrarlos al cliente llevan su tilde. Solo esas palabras enteras; otro color queda tal cual.
+const LUZ_TILDE: Record<string, string> = {
+  calida: 'c\u00e1lida', calidas: 'c\u00e1lidas', calido: 'c\u00e1lido', calidos: 'c\u00e1lidos',
+  fria: 'fr\u00eda', frias: 'fr\u00edas', frio: 'fr\u00edo', frios: 'fr\u00edos', ambar: '\u00e1mbar',
+};
+function luzShown(text: string): string {
+  return text.replace(/(?<![\p{L}\p{N}])(?:calid[ao]s?|fri[ao]s?|ambar)(?![\p{L}\p{N}])/giu, (word) => {
+    const accented = LUZ_TILDE[word.toLowerCase()];
+    if (word === word.toLowerCase()) return accented;
+    if (word === word.toUpperCase()) return accented.toUpperCase();
+    return word === capitalize(word.toLowerCase()) ? capitalize(accented) : word;
+  });
 }
 
 function buildRepregunta2(missing: string[]): string {
-  if (missing.length === 1) return 'Casi listo. Solo me falta saber: ' + missing[0] + '. Me lo puedes indicar?';
-  return 'Casi listo. Solo me falta saber:\n' + missing.map((x) => '- ' + x).join('\n') + '\n\nMe los puedes indicar?';
+  if (missing.length === 1) return 'Casi listo. Solo me falta saber: ' + missing[0] + '. \u00bfMe lo puedes indicar?';
+  return 'Casi listo. Solo me falta saber:\n' + missing.map((x) => '- ' + x).join('\n') + '\n\n\u00bfMe los puedes indicar?';
 }
 
 function buildRepregunta3(missing: string[], leadType: LeadType): string {
@@ -2376,7 +2433,7 @@ function buildRepregunta3(missing: string[], leadType: LeadType): string {
     if (campo === 'nombre') return 'Para registrar tu solicitud necesito tu nombre.';
     return 'Para registrar tu solicitud necesito tu ' + campo + '.';
   }
-  return 'Para registrar tu solicitud necesito:\n' + missing.map((x) => '- ' + x).join('\n') + '\n\nMe los puedes indicar?';
+  return 'Para registrar tu solicitud necesito:\n' + missing.map((x) => '- ' + x).join('\n') + '\n\n\u00bfMe los puedes indicar?';
 }
 
 function capitalize(s: string): string {

@@ -477,7 +477,8 @@ async function runFlowTurn(t: FlowTurnInput): Promise<{ flowResult: FlowResult; 
                           captured: flowResult.captured,
                           captureStatus: flowResult.captureStatus,
                           wantsHuman: flowResult.wantsHuman,
-                          // [REGISTRO] (revision 13-11) En un negocio que ya existe, el tipo del flujo, no el del mensaje.
+                          // [REGISTRO] El tipo del flujo, no el del mensaje: en un negocio que ya existe (revision 13-11) y en uno
+                          // nuevo (16-11; pipedriveLead.ts usa las palabras del mensaje solo si el flujo no lo sabe).
                           flowLeadType: getFlowState(phone).leadType,
                           // [TRANSCRIPCION] Hasta este mensaje, con la respuesta que lo acompana (y la marca del
                           // aviso de privacidad si la lleva): lo que llegue mientras tanto va a la nota siguiente.
@@ -785,7 +786,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (!body.trim()) {
           stepDone(phone, seq);
-          await respond('Hola! No recibimos tu mensaje. Puedes escribirlo de nuevo?');
+          await respond('\u00a1Hola! No recibimos tu mensaje. \u00bfPuedes escribirlo de nuevo?');
           return;
     }
 

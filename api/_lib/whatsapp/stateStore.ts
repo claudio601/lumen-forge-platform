@@ -965,7 +965,8 @@ async function enqueueFields(phone: string, write: PendingWhatsAppWrite, ver: nu
     .map((v) => v.item);
   const parts = [...older.map((i) => ({ ver: pendingVersion(i), fields: i.write.fields ?? {} })), { ver, fields: write.fields ?? {} }]
     .sort((a, b) => a.ver - b.ver);
-  const fields = Object.assign({}, ...parts.map((p) => p.fields)) as Record<string, string>;
+  // [CANTIDAD] Un null (vaciar la cantidad) del mensaje mas nuevo pisa el numero que esperaba en la cola.
+  const fields = Object.assign({}, ...parts.map((p) => p.fields)) as Record<string, string | null>;
   // Despues de las que reemplaza, tambien si llegan en el mismo milisegundo.
   const at = Math.max(Date.now(), ...older.map((i) => i.at + 1));
   const item: QueuedWrite = { id: entryId({ dealId: write.dealId }), at, ver: Math.max(...parts.map((p) => p.ver)), write: { ...write, fields } };

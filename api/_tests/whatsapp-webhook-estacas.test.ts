@@ -54,7 +54,7 @@ vi.mock('../_lib/whatsapp/notify.js', () => ({ notifyTeam: vi.fn(async () => {})
 
 import handler from '../whatsapp/webhook';
 import { PRIVACY_NOTICE } from '../_lib/whatsapp/privacyNotice.js';
-import { MSG4_B2B, MSG_NEED_EMAIL, MSG_WAIT_DELIVERY, getFlowState, MSG_EMAIL_SHORT, MSG_ALREADY_WROTE } from '../_lib/whatsapp/flowEngine.js';
+import { MSG_NEED_EMAIL, MSG_WAIT_DELIVERY, getFlowState, MSG_EMAIL_SHORT, MSG_ALREADY_WROTE } from '../_lib/whatsapp/flowEngine.js';
 
 type Handler = (req: unknown, res: unknown) => Promise<void>;
 const webhook = handler as unknown as Handler;
@@ -132,10 +132,7 @@ describe('caso de las estacas (12-11-2026), de punta a punta por el webhook', ()
     expect(replies.slice(3, 6)).toEqual([MSG_NEED_EMAIL, MSG_EMAIL_SHORT, MSG_ALREADY_WROTE]);
     for (let i = 1; i < replies.length; i++) expect(replies[i], 'respuesta ' + (i + 1)).not.toBe(replies[i - 1]);
     expect(replies[TURNS.findIndex(([body]) => body === DESPACHO)]).toContain(MSG_WAIT_DELIVERY);
-    for (const reply of replies) {
-      expect(reply).not.toMatch(/RUT/);
-      expect(reply).not.toBe(MSG4_B2B);
-    }
+    for (const reply of replies) expect(reply).not.toMatch(/RUT/);
 
     expect(sim.deals).toHaveLength(1);
     expect(sim.notes).toHaveLength(1);

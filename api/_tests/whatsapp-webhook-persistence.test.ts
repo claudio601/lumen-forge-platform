@@ -50,6 +50,11 @@ const COMPLETE = {
 // [CANTIDAD] PR 2: la cantidad de Claude vale solo si el texto del cliente la dice.
 // [COMUNA] PR 3: la comuna tambien (de la lista oficial y con su frase de ubicacion).
 const WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 77.123.456-8';
+// [RUT-PERSONA] Dueño (13-11): el RUT que no calza se pide de nuevo solo a una empresa (conversación de empresa o
+// RUT de 50.000.000 o más, como el 77.x de WRONG_RUT_ORDER). Las pruebas de la repregunta guardada usan una empresa; la
+// de persona (RUT de persona, sin repregunta) está en R121-04.
+const COMPANY = { ...COMPLETE, empresa: 'Comercial Prueba SpA' };
+const PERSON_WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 15.432.876-0';
 let redis: ReturnType<typeof createFakeRedis>;
 let seq: number;
 let webhook: typeof import('../whatsapp/webhook.js')['default'];
@@ -191,7 +196,7 @@ describe('R121-03: reintentos de Twilio', () => {
   });
 
   it('un reintento no consume la repregunta del RUT ni crea el negocio', async () => {
-    sim.parsed = COMPLETE;
+    sim.parsed = COMPANY;
     const xml = await send('RUT 77.123.456-8', 'SMinvalid');
     expect(await send('RUT 77.123.456-8', 'SMinvalid')).toBe(xml);
     expect(sim.created).toBe(0);
@@ -207,7 +212,7 @@ describe('R121-03: reintentos de Twilio', () => {
 
 describe('R121-04: estado compartido y respaldo', () => {
   it('recupera historial, campos, repregunta y privacidad despues de perder toda la memoria', async () => {
-    sim.parsed = COMPLETE;
+    sim.parsed = COMPANY;
     await send(WRONG_RUT_ORDER);
     const { conversationKey } = await import('../_lib/whatsapp/stateStore.js');
     const key = conversationKey(PHONE);
@@ -231,7 +236,7 @@ describe('R121-04: estado compartido y respaldo', () => {
 
   it('Upstash caido: responde, conserva memoria y registra el respaldo', async () => {
     redis.down = true;
-    sim.parsed = COMPLETE;
+    sim.parsed = COMPANY;
     expect(await send(WRONG_RUT_ORDER)).toContain('no calza');
     sim.parsed = {};
     expect(await send('771234569')).toContain('registrad');
@@ -239,11 +244,31 @@ describe('R121-04: estado compartido y respaldo', () => {
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Upstash no disponible'));
   });
 
+  it('[RUT-PERSONA] una persona con un RUT que no calza no recibe la repregunta: se registra y la nota lo marca', async () => {
+    sim.parsed = COMPLETE;
+    const reply = await send(PERSON_WRONG_RUT_ORDER);
+    expect(reply).not.toContain('no calza');
+    expect(reply).not.toMatch(/RUT/);
+    expect(reply).toContain('Claudio Quero te responderá por correo');
+    const state = await snapshot();
+    expect(state.flow.captured).toMatchObject({ rut: '15.432.876-0', rut_valido: false });
+    expect(state.flow.rutRetryAsked).toBeUndefined();
+    expect(sim.created).toBe(1);
+    expect(sim.notes.map((n) => n.content).join('\n')).toMatch(/RUT: 15\.432\.876-0 \(INVALIDO/);
+  });
+
+  it('[RUT-PERSONA] sin palabras de empresa, un RUT de empresa (77.x) que no calza sí recibe la repregunta', async () => {
+    sim.parsed = COMPLETE;
+    expect(await send(WRONG_RUT_ORDER)).toContain('no calza');
+    expect(sim.created).toBe(0);
+    expect((await snapshot()).flow.rutRetryAsked).toBe(true);
+  });
+
   it.each(['anterior', 'ausente', 'sin fecha'])('con candado recuperado guarda el respaldo local más nuevo frente a Redis %s', async mode => {
     vi.useFakeTimers({ toFake: ['Date'] });
     const { conversationKey, conversationLockKey } = await import('../_lib/whatsapp/stateStore.js');
     const { askClaude } = await import('../_lib/whatsapp/claudeAgent.js');
-    sim.parsed = COMPLETE;
+    sim.parsed = COMPANY;
     await send('Es en Maipu, RUT 77.123.456-8');
     const before = await snapshot();
     vi.setSystemTime(Date.now() + 1_000);
