@@ -13,7 +13,7 @@
 import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeRedis, fakeFetch, UPSTASH_URL } from './fakeUpstash.js';
-import { MSG4, MSG_DEAL_FAILED } from '../_lib/whatsapp/flowEngine.js';
+import { MSG4, MSG_DEAL_FAILED, MSG_REGISTERED_SHORT, MSG_SUMMARY_FIX, MSG_WAIT } from '../_lib/whatsapp/flowEngine.js';
 
 const sim = vi.hoisted(() => ({
   claude: new Map<string, { parsed: Record<string, unknown>; delayMs?: number }>(),
@@ -65,6 +65,16 @@ async function instance(): Promise<Handler> {
 }
 
 const unescape = (text: string) => text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+// Ronda 4: la respuesta al resumen que no se aplica entera queda textual en una nota del mismo negocio, sin cambiar los
+// campos del pedido (las actualizaciones que haya van al negocio 9001 y no traen la cantidad).
+const UNAPPLIED = 'Respuesta del cliente al resumen, sin aplicar (revisar): ';
+function expectUnappliedNote(notesBefore: number, body: string) {
+  expect(sim.notes).toHaveLength(notesBefore + 1);
+  expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+  expect(unescape(sim.notes.at(-1)!.content)).toContain(UNAPPLIED + '"' + body + '"');
+  expect(sim.deals).toHaveLength(1);
+  for (const update of sim.updates) expect(update.dealId).toBe(9001);
+}
 /** El texto que recibe el cliente (con el aviso de privacidad, si va). */
 async function post(handler: Handler, body: string, sid = 'SMres' + ++seq): Promise<string> {
   const params = { From: 'whatsapp:' + phone, Body: body, ProfileName: 'Perfil Prueba', MessageSid: sid, NumMedia: '0' };
@@ -98,9 +108,9 @@ const SUMMARY = 'Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿
 const REGISTRADA = /qued[oó] registrad[oa]/i;
 
 /** El pedido y el contacto: el segundo mensaje cierra con el resumen y registra el negocio 9001. */
-async function closeWithSummary(hook: Handler): Promise<string> {
-  claude(ORDER, ORDER_CLAUDE);
-  await post(hook, ORDER);
+async function closeWithSummary(hook: Handler, order = ORDER, orderClaude: Record<string, unknown> = ORDER_CLAUDE): Promise<string> {
+  claude(order, orderClaude);
+  await post(hook, order);
   claude(CONTACT, CONTACT_CLAUDE);
   return post(hook, CONTACT);
 }
@@ -325,7 +335,9 @@ describe('summaryAt y summaryShown van juntos en la mezcla de dos instancias (FI
 // Revisión de la fase 3B (16-11-2026, F1 del webhook): un comentario después del resumen (lo que puede pasar más
 // adelante, lo que se suma sin producto, lo que sigue a un «sí y») no es una corrección: antes escribía la nota y el
 // campo de la cantidad en el negocio.
-describe('(revisión 16-11) un comentario después del resumen no escribe en Pipedrive', () => {
+// Ronda 4 (17-11-2026): el comentario sigue sin cambiar campos, pero queda textual en una nota del mismo negocio (red
+// de seguridad), sin negocio nuevo ni aviso a ventas.
+describe('(revisión 16-11) un comentario después del resumen no cambia campos en Pipedrive', () => {
   it.each<[string, Record<string, unknown>]>([
     ['Dale, tengo 3 obras más', {}],
     ['Sí, y quizás después pida 10 más', { cantidad: '10' }],
@@ -334,16 +346,16 @@ describe('(revisión 16-11) un comentario después del resumen no escribe en Pip
     ['Sí, y los de la bodega son 10', { cantidad: '10', proyecto_o_uso: 'bodega' }],
     ['Si. Tambien tengo una bodega en Quilicura', { proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura' }],
     ['Sí, pero también podría ser luz fría', { tipo_de_luz: 'fría' }],
-  ])('«%s»: MSG4, sin nota ni cambio de campos en el negocio 9001', async (body, parsed) => {
+  ])('«%s»: MSG4, sin cambio de campos y con la nota textual en el negocio 9001', async (body, parsed) => {
     vi.stubEnv('PIPEDRIVE_DEAL_FIELD_WA_QUANTITY', 'campo_cantidad_prueba');
     const hook = await instance();
     expect(await closeWithSummary(hook)).toContain(SUMMARY);
     const notes = sim.notes.length;
-    const updates = sim.updates.length;
     claude(body, parsed);
     expect(await post(hook, body)).toBe(MSG4);
-    expect(sim.notes).toHaveLength(notes);
-    expect(sim.updates).toHaveLength(updates);
+    expectUnappliedNote(notes, body);
+    // La cantidad que se reescribe es la misma del pedido (12), nunca el número del comentario.
+    for (const update of sim.updates) expect(update.fields.campo_cantidad_prueba ?? '12').toBe('12');
     expect(sim.deals).toHaveLength(1);
     expect(sim.notified).toBe(1);
     const { flow } = await snapshot();
@@ -384,17 +396,16 @@ describe('(revisión 17-11) cambios de producto, listas nuevas y la red de segur
     expect((await snapshot()).flow.captured).toMatchObject({ producto: 'focos y paneles', cantidad_varios: '20 focos y 5 paneles' });
   });
 
-  it('después del segundo resumen, «Sí, mi casa está en Pirque»: MSG4, sin nota ni cambio de campos', async () => {
+  it('después del segundo resumen, «Sí, mi casa está en Pirque»: MSG4, sin cambio de campos y con la nota textual', async () => {
     const hook = await instance();
     await closeWithSummary(hook);
     claude('No, son 30', { cantidad: '30' });
     expect(await post(hook, 'No, son 30')).toBe('Te resumo: 30 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?');
     const notes = sim.notes.length;
-    const updates = sim.updates.length;
     claude('Sí, mi casa está en Pirque', { comuna_o_ciudad: 'Pirque' });
     expect(await post(hook, 'Sí, mi casa está en Pirque')).toBe(MSG4);
-    expect(sim.notes).toHaveLength(notes);
-    expect(sim.updates).toHaveLength(updates);
+    expectUnappliedNote(notes, 'Sí, mi casa está en Pirque');
+    expect(sim.notified).toBe(1);
     expect((await snapshot()).flow.captured).toMatchObject({ cantidad: '30', comuna_o_ciudad: 'Maipú' });
   });
 });
@@ -429,5 +440,68 @@ describe('(revisión 17-11, ronda 3) el dato pedido y la comuna con cortesía', 
     expect(sim.notes.map((n) => n.deal_id)).toEqual([9001, 9001]);
     expect(unescape(sim.notes[1].content)).toContain('Cambios: Comuna/ciudad: antes Maipú, ahora Pudahuel');
     expect(sim.notified).toBe(1);
+  });
+});
+
+// Cuarta ronda de la fase 3B (17-11-2026), por el webhook: la respuesta al resumen que el motor no aplica entera queda
+// textual en una nota del mismo negocio (sin negocio nuevo, sin otra tarea ni aviso a ventas); la corrección aplicada va
+// con «Cambios:»; un «sí» solo, un «no» solo y una pregunta no dejan nota.
+describe('(ronda 4) la red de seguridad del resumen por el webhook', () => {
+  const PANELS = 'Necesito 20 paneles LED 60x60 luz neutra para una oficina en Maipú';
+  const PANELS_CLAUDE = { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú' };
+  const PANELS_SUMMARY = 'Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está bien?';
+  const counts = () => ({ persons: sim.persons, deals: sim.deals.length, notes: sim.notes.length, notified: sim.notified });
+
+  it('«No es oficina, es bodega»: el resumen corregido y la nota con «Cambios:» en el negocio 9001, sin aviso', async () => {
+    const hook = await instance();
+    expect(await closeWithSummary(hook, PANELS, PANELS_CLAUDE)).toBe(PANELS_SUMMARY);
+    const notes = sim.notes.length;
+    claude('No es oficina, es bodega', {});
+    expect(await post(hook, 'No es oficina, es bodega')).toBe('Te resumo: 20 paneles LED 60x60, luz neutra, para bodega y en Maipú. ¿Está bien?');
+    expect(sim.notes).toHaveLength(notes + 1);
+    expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+    expect(unescape(sim.notes.at(-1)!.content)).toContain('Cambios: Proyecto/uso: antes oficina, ahora bodega');
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notified).toBe(1);
+  });
+
+  it('«25 por favor» después del segundo resumen: la respuesta corta y la nota textual en el negocio 9001', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    claude('No, son 30', { cantidad: '30' });
+    expect(await post(hook, 'No, son 30')).toBe('Te resumo: 30 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está bien?');
+    const notes = sim.notes.length;
+    claude('25 por favor', { cantidad: '25' });
+    expect(await post(hook, '25 por favor')).toBe(MSG_REGISTERED_SHORT);
+    expectUnappliedNote(notes, '25 por favor');
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject({ cantidad: '30', proyecto_o_uso: 'oficina' });
+  });
+
+  it.each<[string, Record<string, unknown>]>([
+    ['Si, y 10 más', { cantidad: '10' }],
+    ['Sí, pero que sean de 48W', {}],
+  ])('«%s»: MSG4 y la nota textual en el negocio 9001, sin sumar ni cambiar campos', async (body, parsed) => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    const notes = sim.notes.length;
+    claude(body, parsed);
+    expect(await post(hook, body)).toBe(MSG4);
+    expectUnappliedNote(notes, body);
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject(PANELS_CLAUDE);
+  });
+
+  it.each<[string, string]>([
+    ['Sí', MSG4],
+    ['no', MSG_SUMMARY_FIX],
+    ['¿Cuándo llega?', MSG_WAIT],
+  ])('«%s»: sin nota, negocio, actualización ni aviso', async (body, reply) => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    const before = { ...counts(), updates: sim.updates.length };
+    claude(body, {});
+    expect(await post(hook, body)).toBe(reply);
+    expect({ ...counts(), updates: sim.updates.length }).toEqual(before);
   });
 });

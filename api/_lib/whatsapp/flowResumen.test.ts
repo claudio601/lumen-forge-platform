@@ -38,6 +38,18 @@ const PANELES = 'Necesito 20 paneles LED 60x60 luz neutra para una oficina en Ma
 const PANELES_CLAUDE = { producto: 'paneles LED 60x60', cantidad: '20', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú', ...CONTACT_CLAUDE };
 const summaryOf = (items: string, rest: string) => 'Te resumo: ' + items + ', ' + rest + '. ¿Está bien?';
 
+// (ronda 4, A) La línea interna que deja en la nota la respuesta al resumen que no se aplicó entera.
+const unapplied = (body: string) => 'Respuesta del cliente al resumen, sin aplicar (revisar): "' + body + '"';
+/** (ronda 4, A) La respuesta no cambió ningún dato y quedó textual en la nota del mismo negocio, sin tarea ni aviso. */
+function expectNoted(r: ReturnType<typeof step>, body: string, before: Captured) {
+  expect(r).toMatchObject({ shouldCreateDeal: true, rutUpdate: true, quietUpdate: true, closedFlow: true });
+  const { cambios, ...data } = flow.getFlowState(PHONE).captured;
+  const { cambios: cambiosBefore, ...dataBefore } = before;
+  expect(data).toEqual(dataBefore);
+  expect(cambios).toEqual([...(cambiosBefore ?? []), unapplied(body)]);
+  expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+}
+
 /** El pedido de los paneles cerrado con su resumen y el negocio 4242 registrado. */
 function closeWithSummary() {
   const closing = step(PANELES, PANELES_CLAUDE);
@@ -259,13 +271,21 @@ describe('la respuesta al resumen', () => {
   it.each<[string, Claude]>([
     ['Gracias! mi otra casa está en Pirque', { comuna_o_ciudad: 'Pirque' }],
     ['Saludos desde Puente Alto', { comuna_o_ciudad: 'Puente Alto' }],
-    ['son 3 dormitorios y el living', { proyecto_o_uso: 'dormitorios y living' }],
   ])('un comentario («%s») no cambia los datos ni escribe en Pipedrive', (body, claude) => {
     closeWithSummary();
     const before = flow.getFlowState(PHONE).captured;
     const r = step(body, claude);
     expect(r.shouldCreateDeal).toBe(false);
     expect(flow.getFlowState(PHONE).captured).toEqual(before);
+  });
+
+  it('(ronda 4, A) un comentario con un número que no es un dato del pedido («son 3 dormitorios y el living») no cambia los datos y queda textual en la nota', () => {
+    closeWithSummary();
+    const before = flow.getFlowState(PHONE).captured;
+    const body = 'son 3 dormitorios y el living';
+    const r = step(body, { proyecto_o_uso: 'dormitorios y living' });
+    expect(r.reply).toBe(flow.MSG_REGISTERED_SHORT);
+    expectNoted(r, body, before);
   });
 
   it('una pregunta sigue la conversación cerrada: la respuesta de siempre, sin escribir en Pipedrive', () => {
@@ -447,13 +467,14 @@ describe('(revisión 16-11) la respuesta al resumen no escribe de más ni mezcla
     ['Sí, y los de la bodega son 10', { cantidad: '10', proyecto_o_uso: 'bodega' }],
     ['Si. Tambien tengo una bodega en Quilicura', { proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura' }],
     ['Sí, pero también podría ser luz cálida', { tipo_de_luz: 'cálida' }],
-  ])('F7: «%s» no cambia el pedido: MSG4, sin escribir en Pipedrive', (body, claude) => {
+  ])('F7: «%s» no cambia el pedido: MSG4, y (ronda 4, A) queda textual en la nota del mismo negocio', (body, claude) => {
     closeWithSummary();
+    const before = flow.getFlowState(PHONE).captured;
     const r = step(body, claude);
-    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false });
-    expect(r.rutUpdate).toBeUndefined();
+    expect(r.reply).toBe(flow.MSG4);
     unchanged();
     expect(flow.getFlowState(PHONE).captured.cantidad_varios).toBeUndefined();
+    expectNoted(r, body, before);
   });
 
   it.each<[string, Claude]>([
@@ -631,14 +652,12 @@ describe('(revisión 17-11) cambios de producto, listas nuevas, la red de seguri
     ['Pudahuel', { comuna_o_ciudad: 'Pudahuel' }],
     ['focos LED', { producto: 'focos LED' }],
     ['Son 30 paneles y 10 focos', { producto: 'paneles y focos' }],
-  ])('punto 4: después del segundo resumen, «%s» (sin palabra de corrección) no cambia nada ni escribe en Pipedrive', (body, claude) => {
+  ])('punto 4: después del segundo resumen, «%s» (sin palabra de corrección) no cambia ningún dato; (ronda 4, A) queda textual en la nota', (body, claude) => {
     closeWithSecondSummary();
     const before = flow.getFlowState(PHONE).captured;
     const r = step(body, claude);
-    expect(r.shouldCreateDeal).toBe(false);
-    expect(r.rutUpdate).toBeUndefined();
     expect(r.reply).not.toContain('Te resumo');
-    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+    expectNoted(r, body, before);
   });
 
   it.each<[string, Claude, Record<string, string>]>([
@@ -657,7 +676,9 @@ describe('(revisión 17-11) cambios de producto, listas nuevas, la red de seguri
     const r = step('Al final son 40. Mi bodega está en Pudahuel', { cantidad: '40', comuna_o_ciudad: 'Pudahuel' });
     expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true });
     expect(r.captured).toMatchObject({ cantidad: '40', comuna_o_ciudad: 'Maipú' });
-    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30', 'Cantidad: antes 30, ahora 40']);
+    // (ronda 4, A) La comuna que no se escribió queda textual en la nota.
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30', 'Cantidad: antes 30, ahora 40', unapplied('Al final son 40. Mi bodega está en Pudahuel')]);
+    expect(r.quietUpdate).toBe(true);
   });
 
   it.each(['c/u', 'urgentes', 'con garantía', 'certificados SEC', 'con certificación', 'según norma', 'DS1', 'D.S. N°1', 'homologados'])(
@@ -781,15 +802,309 @@ describe('(revisión 17-11, ronda 3) el dato pedido con «¿Qué dato corrijo?»
     expect(flow.getFlowState(PHONE).captured).toEqual(before);
   });
 
-  it('punto 2: después del segundo resumen (sin «¿Qué dato corrijo?») sigue la red de seguridad: «Pudahuel, gracias» no escribe; «Corrijo: Pudahuel, gracias» sí', () => {
+  it('punto 2: después del segundo resumen (sin «¿Qué dato corrijo?») sigue la red de seguridad: «Pudahuel, gracias» no cambia la comuna (queda textual en la nota); «Corrijo: Pudahuel, gracias» sí', () => {
     closeWithSecondSummary();
     const before = flow.getFlowState(PHONE).captured;
     const soft = step('Pudahuel, gracias', { comuna_o_ciudad: 'Pudahuel' });
-    expect(soft.shouldCreateDeal).toBe(false);
-    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+    expectNoted(soft, 'Pudahuel, gracias', before);
     flow.clearFlowState(PHONE);
     closeWithSecondSummary();
     const firm = step('Corrijo: Pudahuel, gracias', { comuna_o_ciudad: 'Pudahuel' });
     expect(firm).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, captured: { comuna_o_ciudad: 'Pudahuel' } });
+  });
+});
+
+// Cuarta ronda de la fase 3B (17-11-2026): la red de seguridad (A), la comuna corregida (B1), la aceptación con un dato
+// (B2), la unidad que se conserva (B3), «en vez de» (B4) y los arreglos menores (C1 a C5).
+describe('(ronda 4) la respuesta al resumen: red de seguridad, correcciones y arreglos menores', () => {
+  const QUILICURA = 'Necesito 12 focos LED y 5 paneles LED para una bodega en Quilicura. ' + CONTACT;
+  const QUILICURA_CLAUDE = { producto: 'focos LED y paneles LED', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', ...CONTACT_CLAUDE };
+  const CINTA = 'Necesito 500 metros de cinta LED 220V luz fría, despacho a Lampa. ' + CONTACT;
+  const CINTA_CLAUDE = { producto: 'cinta LED 220V', cantidad: '500', tipo_de_luz: 'fría', comuna_o_ciudad: 'Lampa', ...CONTACT_CLAUDE };
+  const PANELS = (rest: string) => summaryOf('20 paneles LED 60x60', rest);
+  /** El pedido de los paneles con el segundo resumen ya mostrado («No, son 30»). */
+  function closeWithSecondSummary() {
+    closeWithSummary();
+    expect(step('No, son 30', { cantidad: '30' }).reply).toBe(summaryOf('30 paneles LED 60x60', 'luz neutra, para oficina y en Maipú'));
+  }
+  /** El ejemplo 2 (focos y paneles, varios items) cerrado con su resumen (el color no se contesta). */
+  function closeExample2() {
+    step(QUILICURA, QUILICURA_CLAUDE);
+    expect(step('no sé').reply).toBe(EXAMPLE_2);
+    flow.recordDealOutcome(PHONE, true, undefined, 4242);
+  }
+  /** El ejemplo 3 (500 m de cinta) cerrado con su resumen (el uso no se contesta). */
+  function closeExample3() {
+    step(CINTA, CINTA_CLAUDE);
+    expect(step('no sé').reply).toBe(EXAMPLE_3);
+    flow.recordDealOutcome(PHONE, true, undefined, 4242);
+  }
+
+  describe('A: la respuesta que no se aplica entera queda textual en la nota del mismo negocio', () => {
+    it.each<[string, Claude]>([
+      ['Si, y 10 más', { cantidad: '10' }],
+      ['Sí, pero que sean de 48W', {}],
+      ['Si, pero que sean de 48W', {}],
+      ['son 3 dormitorios y el living', {}],
+    ])('«%s»: los datos no cambian y la nota lleva el texto', (body, claude) => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      expectNoted(step(body, claude), body, before);
+    });
+
+    it('«25 por favor» después del segundo resumen: la nota textual, la cantidad sigue en 30', () => {
+      closeWithSecondSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step('25 por favor', { cantidad: '25' });
+      expect(r.reply).toBe(flow.MSG_REGISTERED_SHORT);
+      expectNoted(r, '25 por favor', before);
+    });
+
+    it('«No es oficina, es bodega»: se aplica (el resumen corregido y «Cambios:»), sin la línea textual', () => {
+      closeWithSummary();
+      const r = step('No es oficina, es bodega');
+      expect(r).toMatchObject({ reply: PANELS('luz neutra, para bodega y en Maipú'), shouldCreateDeal: true, rutUpdate: true, quietUpdate: true });
+      expect(r.captured.cambios).toEqual(['Proyecto/uso: antes oficina, ahora bodega']);
+    });
+
+    it.each<[string, string]>([
+      ['Sí', flow.MSG4],
+      ['no', flow.MSG_SUMMARY_FIX],
+      ['¿Cuándo llega?', flow.MSG_WAIT],
+      ['Gracias! mi otra casa está en Pirque', flow.MSG_REGISTERED_SHORT],
+    ])('«%s»: sin nota ni escritura', (body, reply) => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step(body);
+      expect(r).toMatchObject({ reply, shouldCreateDeal: false });
+      expect(flow.getFlowState(PHONE).captured).toEqual(before);
+    });
+
+    it('«No» y luego «no»: MSG4 sin nota; «No» y luego «la cantidad»: MSG4 con la nota textual', () => {
+      closeWithSummary();
+      step('No');
+      expect(step('no')).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false });
+      flow.clearFlowState(PHONE);
+      closeWithSummary();
+      step('No');
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step('la cantidad');
+      expect(r.reply).toBe(flow.MSG4);
+      expectNoted(r, 'la cantidad', before);
+    });
+
+    it('el texto va recortado a unos 300 caracteres y sin saltos de línea dobles', () => {
+      closeWithSummary();
+      const body = 'Si, y 10 más.\n\n' + 'Les cuento que la obra es grande y tiene varias etapas. '.repeat(10);
+      const r = step(body, { cantidad: '10' });
+      const line = r.captured.cambios?.at(-1) ?? '';
+      expect(line.startsWith('Respuesta del cliente al resumen, sin aplicar (revisar): "Si, y 10 más. Les cuento')).toBe(true);
+      expect(line.length).toBeLessThanOrEqual(300);
+      expect(line).not.toMatch(/\n/);
+      expect(line.endsWith('..."')).toBe(true);
+      expect(r.captured).toMatchObject({ cantidad: '20' });
+    });
+  });
+
+  describe('B1: la comuna corregida con palabra de corrección o negando la capturada', () => {
+    const FIXES: Array<[string, string]> = [
+      ['Me equivoqué, es en Pudahuel', 'Pudahuel'],
+      ['Perdón, es en Pudahuel', 'Pudahuel'],
+      ['Es en Pudahuel, no en Maipú', 'Pudahuel'],
+      ['No es en Maipú, es en Pudahuel', 'Pudahuel'],
+      ['No, en Maipú no. En La Florida', 'La Florida'],
+      ['Maipú no, La Florida', 'La Florida'],
+      ['en vez de Maipú es Pudahuel', 'Pudahuel'],
+    ];
+    it.each(FIXES)('justo después del resumen, «%s»: el resumen corregido', (body, comuna) => {
+      closeWithSummary();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: PANELS('luz neutra, para oficina y en ' + comuna), shouldCreateDeal: true, rutUpdate: true, quietUpdate: true });
+      expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora ' + comuna]);
+      // La comuna negada no queda como otra comuna del pedido.
+      expect(r.captured.comunas_otras ?? '').not.toContain('Maipú');
+    });
+
+    it.each(FIXES)('después de «¿Qué dato corrijo?», «%s»: el resumen corregido', (body, comuna) => {
+      closeWithSummary();
+      step('No');
+      const r = step(body);
+      expect(r).toMatchObject({ reply: PANELS('luz neutra, para oficina y en ' + comuna), shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora ' + comuna]);
+    });
+
+    it.each(FIXES)('después del segundo resumen, «%s»: MSG4 y la comuna en el mismo negocio', (body, comuna) => {
+      closeWithSecondSummary();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, captured: { comuna_o_ciudad: comuna, cantidad: '30' } });
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30', 'Comuna/ciudad: antes Maipú, ahora ' + comuna]);
+    });
+
+    it('ejemplo 2: «Quilicura no, Renca» corrige la comuna', () => {
+      closeExample2();
+      const r = step('Quilicura no, Renca');
+      expect(r).toMatchObject({ reply: 'Te resumo: 12 focos LED y 5 paneles LED, para bodega y en Renca. ¿Está bien?', shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Quilicura, ahora Renca']);
+    });
+
+    it.each(['Mi cuñado vive en Pirque', 'mi otra casa está en Pirque', 'Saludos desde Pirque'])(
+      '«%s» sigue sin cambiar nada, después del primer y del segundo resumen', (body) => {
+        closeWithSummary();
+        let before = flow.getFlowState(PHONE).captured;
+        expect(step(body, { comuna_o_ciudad: 'Pirque' }).shouldCreateDeal).toBe(false);
+        expect(flow.getFlowState(PHONE).captured).toEqual(before);
+        flow.clearFlowState(PHONE);
+        closeWithSecondSummary();
+        before = flow.getFlowState(PHONE).captured;
+        expect(step(body, { comuna_o_ciudad: 'Pirque' }).shouldCreateDeal).toBe(false);
+        expect(flow.getFlowState(PHONE).captured).toEqual(before);
+      });
+  });
+
+  describe('B2: la aceptación con un dato después', () => {
+    it.each<[string, string]>([
+      ['Sí, pero 30', '30'],
+      ['si pero 30', '30'],
+      ['ok, 30', '30'],
+      ['Sí, 30', '30'],
+      ['Está bien, pero 25', '25'],
+      ['Sí. Que sean 30', '30'],
+    ])('«%s»: en un pedido de un item, el número es la cantidad', (body, qty) => {
+      closeWithSummary();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: summaryOf(qty + ' paneles LED 60x60', 'luz neutra, para oficina y en Maipú'), shouldCreateDeal: true, rutUpdate: true, quietUpdate: true });
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora ' + qty]);
+    });
+
+    it.each(['Si, y 10 más', 'Sí, y 5 más de repuesto'])('F7 «%s»: no se suma; queda textual en la nota', (body) => {
+      closeWithSummary();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step(body);
+      expect(r.reply).toBe(flow.MSG4);
+      expectNoted(r, body, before);
+    });
+  });
+
+  describe('B3: la cantidad corregida sin unidad conserva los metros', () => {
+    const CINTA_300 = 'Te resumo: 300 m de cinta LED 220V, luz fría y en Lampa. ¿Está bien?';
+    it.each(['No, 300', '300', 'Son 300', 'mejor 300', 'Corrijo: 300', 'Necesito 300', 'No, 300 metros'])('«%s»: 300 m', (body) => {
+      closeExample3();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: CINTA_300, shouldCreateDeal: true, rutUpdate: true, captured: { cantidad: '300', cantidad_unidad: 'm' } });
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 500 m, ahora 300 m']);
+    });
+
+    it('«300» después de «¿Qué dato corrijo?»: 300 m', () => {
+      closeExample3();
+      step('No');
+      const r = step('300');
+      expect(r).toMatchObject({ reply: CINTA_300, captured: { cantidad: '300', cantidad_unidad: 'm' } });
+      expect(r.captured.cambios).toEqual(['Cantidad: antes 500 m, ahora 300 m']);
+    });
+
+    it('«300 cinta LED» nunca sale en el resumen corregido', () => {
+      for (const body of ['No, 300', '300', 'Corrijo: 300']) {
+        flow.clearFlowState(PHONE);
+        closeExample3();
+        expect(step(body, { cantidad: '300' }).reply).not.toMatch(/\b300 cinta/);
+      }
+    });
+
+    it.each(['No, 300 unidades', 'No, 300 rollos', 'Corrijo: son 3 rollos'])(
+      'una unidad nueva explícita reemplaza los metros («%s»): sin «300 cinta LED», el cierre de siempre', (body) => {
+        closeExample3();
+        const r = step(body);
+        expect(r.captured.cantidad_unidad).toBeUndefined();
+        expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true });
+        expect(r.captured.cambios?.[0]).toMatch(/^Cantidad: antes 500 m, ahora \d+$/);
+      });
+
+    it('el resumen nunca dice «300 cinta LED»: el producto por metro en singular necesita los metros (o 1)', () => {
+      expect(flow.summaryMsg({ producto: 'cinta LED 220V', cantidad: '300' })).toBeUndefined();
+      expect(flow.summaryMsg({ producto: 'tira LED', cantidad: '3' })).toBeUndefined();
+      expect(flow.summaryMsg({ producto: 'cinta LED 220V', cantidad: '300', cantidad_unidad: 'm' })).toBe('Te resumo: 300 m de cinta LED 220V. ¿Está bien?');
+      expect(flow.summaryMsg({ producto: 'cintas LED', cantidad: '3' })).toBe('Te resumo: 3 cintas LED. ¿Está bien?');
+      expect(flow.summaryMsg({ producto: 'cinta LED', cantidad: '1' })).toBe('Te resumo: 1 cinta LED. ¿Está bien?');
+    });
+  });
+
+  describe('B4: «en vez de», «en lugar de» y «no X sino Y» aplican solo lo nuevo', () => {
+    it.each<[string, string, string[]]>([
+      ['Necesito 20 focos LED en vez de paneles', '20 focos LED', ['Producto: antes paneles LED 60x60, ahora focos LED']],
+      ['Necesito focos LED en lugar de paneles', '20 focos LED', ['Producto: antes paneles LED 60x60, ahora focos LED']],
+      ['No 20 paneles sino 20 focos LED', '20 focos LED', ['Producto: antes paneles LED 60x60, ahora focos LED']],
+      ['en vez de 20 paneles, 20 focos LED', '20 focos LED', ['Producto: antes paneles LED 60x60, ahora focos LED']],
+      ['Necesito 30 focos LED en vez de paneles', '30 focos LED', ['Producto: antes paneles LED 60x60, ahora focos LED', 'Cantidad: antes 20, ahora 30']],
+    ])('«%s»: %s', (body, items, cambios) => {
+      closeWithSummary();
+      const r = step(body);
+      expect(r).toMatchObject({ reply: summaryOf(items, 'luz neutra, para oficina y en Maipú'), shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured.cambios).toEqual(cambios);
+      expect(r.captured.cantidad_varios).toBeUndefined();
+    });
+
+    it('ejemplo 2: «En vez de 12 focos y 5 paneles, 15 focos y 8 paneles»: la lista nueva sola', () => {
+      closeExample2();
+      const r = step('En vez de 12 focos y 5 paneles, 15 focos y 8 paneles');
+      expect(r.reply).toBe('Te resumo: 15 focos y 8 paneles, para bodega y en Quilicura. ¿Está bien?');
+      expect(r.captured.cantidad_varios).toBe('15 focos y 8 paneles');
+    });
+  });
+
+  describe('C1 a C5: cortesía, el dato que está mal, «para cambiar», el resumen inseguro y el color de un item', () => {
+    it.each<[string, Record<string, string>, string]>([
+      ['25, gracias', { cantidad: '25' }, summaryOf('25 paneles LED 60x60', 'luz neutra, para oficina y en Maipú')],
+      ['25 👍', { cantidad: '25' }, summaryOf('25 paneles LED 60x60', 'luz neutra, para oficina y en Maipú')],
+      ['25 por favor', { cantidad: '25' }, summaryOf('25 paneles LED 60x60', 'luz neutra, para oficina y en Maipú')],
+      ['30 por favor', { cantidad: '30' }, summaryOf('30 paneles LED 60x60', 'luz neutra, para oficina y en Maipú')],
+      ['Perdón, la luz es cálida', { tipo_de_luz: 'calida' }, PANELS('luz cálida, para oficina y en Maipú')],
+    ])('C1 «%s»: el dato con cortesía, justo después del resumen y después de «¿Qué dato corrijo?»', (body, fields, reply) => {
+      closeWithSummary();
+      expect(step(body)).toMatchObject({ reply, shouldCreateDeal: true, rutUpdate: true, captured: fields });
+      flow.clearFlowState(PHONE);
+      closeWithSummary();
+      step('No');
+      expect(step(body)).toMatchObject({ reply, shouldCreateDeal: true, rutUpdate: true, captured: fields });
+    });
+
+    it.each(['No está bien la cantidad', 'la cantidad está mal', 'La comuna está mal', 'la cantidad'])('C2 «%s»: «¿Qué dato corrijo?»', (body) => {
+      closeWithSummary();
+      expect(step(body)).toMatchObject({ reply: flow.MSG_SUMMARY_FIX, shouldCreateDeal: false });
+      expect(flow.getFlowState(PHONE).lastQuestion).toMatchObject({ summary: true, summaryFix: true });
+    });
+
+    it('C3 «para cambiar los del patio» no es una corrección: el uso sigue siendo la oficina', () => {
+      closeWithSummary();
+      const r = step('Necesito 10 focos LED para cambiar los del patio');
+      expect(r.captured.proyecto_o_uso).toBe('oficina');
+      expect(r.captured.cambios ?? []).not.toContain('Proyecto/uso: antes oficina, ahora patio');
+    });
+
+    it.each([
+      'inaugurar el lunes', 'una oficina que abre el viernes 20', 'entregar a fin de mes', 'un local que abre en 2 días', 'entrega el 20/11',
+      'presupuesto de 500 lucas', 'menos de 300 mil pesos', 'precio con IVA', 'un 10% menos', 'el dcto de la web', 'la promo de noviembre',
+      'la promoción', 'la liquidación', 'garantizado', 'certificado DS43', 'sello ENEC', 'un regalo', '2 de cada uno',
+    ])('C4 el resumen no repite «%s»: no hay resumen (el cierre de siempre)', (uso) => {
+      expect(flow.summaryMsg({ producto: 'focos LED', cantidad: '12', proyecto_o_uso: uso })).toBeUndefined();
+    });
+
+    it('C4 el resumen normal sigue igual con medidas y potencias', () => {
+      expect(flow.summaryMsg({ producto: 'paneles LED 60x60', cantidad: '20', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú' })).toBe(EXAMPLE_1);
+      expect(flow.summaryMsg({ producto: 'focos LED 50W', cantidad: '8', proyecto_o_uso: 'bodega de 200 m2' })).toBe('Te resumo: 8 focos LED 50W y para bodega de 200 m2. ¿Está bien?');
+    });
+
+    it.each(['Los focos son cálidos', 'luz neutra para los paneles'])('C5 «%s» en un pedido de varios items: el color del pedido no cambia y queda en la nota', (body) => {
+      closeExample2();
+      const before = flow.getFlowState(PHONE).captured;
+      const r = step(body);
+      expect(r.reply).not.toContain('luz');
+      expectNoted(r, body, before);
+    });
+
+    it('C5 «Luz cálida» sin nombrar un item: el color de todo el pedido', () => {
+      closeExample2();
+      const r = step('Luz cálida');
+      expect(r).toMatchObject({ reply: 'Te resumo: 12 focos LED y 5 paneles LED, luz cálida, para bodega y en Quilicura. ¿Está bien?', shouldCreateDeal: true, rutUpdate: true });
+    });
   });
 });

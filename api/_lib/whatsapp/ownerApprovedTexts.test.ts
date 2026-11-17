@@ -280,6 +280,7 @@ const INTERNAL: Record<FileKey, Record<string, string>> = {
     'varios items (': 'nota de Pipedrive: la cantidad de varios ítems',
     ' m': 'nota de Pipedrive: la unidad de la cantidad en metros (cantidad_varios, cambios)',
     'Correo: antes ': 'nota de Pipedrive: el cambio de correo después del cierre (cambios)',
+    'Respuesta del cliente al resumen, sin aplicar (revisar): ': 'nota de Pipedrive (ronda 4, red de seguridad): la respuesta al resumen que no se aplicó entera, textual para el vendedor (cambios); nunca va al cliente',
     'B2B': 'tipo de lead (interno)',
     'B2C': 'tipo de lead (interno)',
     'Unknown': 'tipo de lead (interno)',
