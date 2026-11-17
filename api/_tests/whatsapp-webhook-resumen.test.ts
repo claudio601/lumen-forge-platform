@@ -321,3 +321,33 @@ describe('summaryAt y summaryShown van juntos en la mezcla de dos instancias (FI
     expect(flow.captured.comuna_o_ciudad).toBe('Colina');
   });
 });
+
+// Revisión de la fase 3B (16-11-2026, F1 del webhook): un comentario después del resumen (lo que puede pasar más
+// adelante, lo que se suma sin producto, lo que sigue a un «sí y») no es una corrección: antes escribía la nota y el
+// campo de la cantidad en el negocio.
+describe('(revisión 16-11) un comentario después del resumen no escribe en Pipedrive', () => {
+  it.each<[string, Record<string, unknown>]>([
+    ['Dale, tengo 3 obras más', {}],
+    ['Sí, y quizás después pida 10 más', { cantidad: '10' }],
+    ['Perfecto. Más adelante pediré 10 más', { cantidad: '10' }],
+    ['Sí, y a lo mejor 5 más el próximo mes', { cantidad: '5' }],
+    ['Sí, y los de la bodega son 10', { cantidad: '10', proyecto_o_uso: 'bodega' }],
+    ['Si. Tambien tengo una bodega en Quilicura', { proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura' }],
+    ['Sí, pero también podría ser luz fría', { tipo_de_luz: 'fría' }],
+  ])('«%s»: MSG4, sin nota ni cambio de campos en el negocio 9001', async (body, parsed) => {
+    vi.stubEnv('PIPEDRIVE_DEAL_FIELD_WA_QUANTITY', 'campo_cantidad_prueba');
+    const hook = await instance();
+    expect(await closeWithSummary(hook)).toContain(SUMMARY);
+    const notes = sim.notes.length;
+    const updates = sim.updates.length;
+    claude(body, parsed);
+    expect(await post(hook, body)).toBe(MSG4);
+    expect(sim.notes).toHaveLength(notes);
+    expect(sim.updates).toHaveLength(updates);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notified).toBe(1);
+    const { flow } = await snapshot();
+    expect(flow.captured).toMatchObject({ cantidad: '12', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú' });
+    expect(flow.captured.cantidad_varios).toBeUndefined();
+  });
+});

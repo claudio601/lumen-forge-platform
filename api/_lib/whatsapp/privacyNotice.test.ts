@@ -93,6 +93,27 @@ describe('texto del aviso', () => {
     expect(appendPrivacyNotice(flow.MSG_SUMMARY_FIX).length).toBeLessThanOrEqual(MAX_COMBINED);
   });
 
+  it('(revisión 16-11, T4) el primer mensaje con preguntas y una imagen: si el resumen no cabe con el aviso, va MSG4', () => {
+    const phone = '+56900000777';
+    const body = 'Hola, necesito luz neutra: 10 campanas UFO 200W IP65 industriales, 20 paneles LED 60x60 48W embutidos, '
+      + '30 tubos LED T8 18W 120cm, 15 reflectores LED 100W IP66 exterior, 8 focos LED embutidos 12W redondos, 12 apliques '
+      + 'LED muro 20W IP65, 6 proyectores LED 300W estadio IP66, 25 tubos LED T5 14W 120cm, 40 paneles LED 30x120 40W para '
+      + 'la bodega en Quilicura. ¿Dónde están ubicados? ¿Cuánto demora el despacho? ¿Tienen ficha técnica? Soy Ana Prueba, '
+      + 'ana.prueba@example.com';
+    try {
+      const r = flow.processFlowStep(phone, body, { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' },
+        { wantsHuman: false, qualifiesForDeal: false, hasMedia: true });
+      expect(r.shouldCreateDeal).toBe(true);
+      expect(r.reply.endsWith('\n\n' + flow.MSG4)).toBe(true);
+      expect(appendPrivacyNotice(r.reply).length).toBeLessThanOrEqual(MAX_COMBINED);
+      // El resumen que no salió no queda pendiente: el «sí» siguiente no es la respuesta a un resumen.
+      expect(flow.getFlowState(phone).lastQuestion).toBeNull();
+      expect(flow.getFlowState(phone).summaryShown).toBeUndefined();
+    } finally {
+      flow.clearFlowState(phone);
+    }
+  });
+
   it('enlaza la política vigente del sitio, sola en su línea y sin parámetros', () => {
     expect(PRIVACY_POLICY_URL).toBe(site.SITE_URL + CONSENT_TEXT_LINKS.privacidad.path);
     expect(PRIVACY_POLICY_URL).toBe(API_SITE_URL + '/politica-de-privacidad');

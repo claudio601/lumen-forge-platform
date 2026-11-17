@@ -382,6 +382,12 @@ export interface ComunaOptions {
   answering?: boolean;
   /** El mensaje trae RUT o razon social aunque el texto ya venga sin ellos (factsText). */
   company?: boolean;
+  /**
+   * [RESUMEN] (fase 3B, revision 16-11) Solo las que el texto presenta como la obra: con un ancla, una etiqueta, una
+   * correccion o como respuesta. Sin las menciones debiles ("vive en Pirque", "estoy en Santiago"), que en una
+   * respuesta al resumen no cambian la comuna capturada.
+   */
+  firmOnly?: boolean;
 }
 
 /** [COMUNA] Los nombres de findComunaMentions. */
@@ -520,7 +526,9 @@ export function findComunaMentions(source: string, opts: ComunaOptions = {}): Co
   const ranks = [...found.values()];
   const hasPlace = ranks.includes(RANK.place);
   const hasWeak = ranks.includes(RANK.weak);
-  return [...found].map(([name, stored]) => {
+  // [RESUMEN] firmOnly: solo la obra explicita (y la factura, que el que llama ya deja fuera).
+  const kept = opts.firmOnly ? [...found].filter(([, stored]) => stored === RANK.place || stored === RANK.billing) : [...found];
+  return kept.map(([name, stored]) => {
     let rank = stored;
     if (stored === RANK.lead) rank = hasPlace || hasWeak ? RANK.origin : RANK.place;
     else if (stored === RANK.weak) rank = hasPlace ? RANK.origin : RANK.place;

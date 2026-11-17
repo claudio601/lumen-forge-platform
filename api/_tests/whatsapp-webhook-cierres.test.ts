@@ -750,7 +750,8 @@ describe('dos mensajes seguidos mientras se crea el negocio (Pipedrive tarda)', 
     for (const t of rest) expect(t.reply).not.toMatch(REGISTRADA);
     expect(rest[rest.length - 1].reply).toBe(TEXT_A);
     const late = await send(phone, 'ana.prueba@example.com', { correo: 'ana.prueba@example.com' });
-    expect(late.reply).toBe('Te resumo: 5 paneles LED, luz fría. ¿Está bien?');
+    // (revisión 16-11, T3) Con dos partes, «y» antes de la última, como en el alcance de la fase 3B.
+    expect(late.reply).toBe('Te resumo: 5 paneles LED y luz fría. ¿Está bien?');
     expect(sim.deals).toHaveLength(2);
     await confirmSummary(phone);
   });

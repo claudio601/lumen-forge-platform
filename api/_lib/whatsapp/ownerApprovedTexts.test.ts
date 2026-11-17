@@ -237,8 +237,8 @@ const FRAGMENTS: Record<FileKey, Approved[]> = {
     { text: ' Para recomendarte las opciones adecuadas, necesito:\n', source: HEREDADO },
     { text: '\n\n¿Me los puedes indicar?', source: ORTO },
     // summaryMsg (decisión 1 del 16-11): «Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está
-    // bien?». Las partes (productos y cantidades, «luz …», «para …», «en …») van con «, » y « y » antes de la última; la
-    // cantidad en metros, «500 m de cinta LED». El color usa 'luz ' y las tildes de arriba. flowResumen.test.ts fija los
+    // bien?». Las partes (productos y cantidades, «luz …», «para …», «en …») van con «, » y « y » antes de la última,
+    // también con dos (revisión 16-11: «30 tubos LED y luz fría»); la cantidad en metros, «500 m de cinta LED». El color usa 'luz ' y las tildes de arriba. flowResumen.test.ts fija los
     // cuatro ejemplos aprobados.
     { text: 'Te resumo: ', source: RESUMEN },
     { text: '. ¿Está bien?', source: RESUMEN },
@@ -511,5 +511,26 @@ describe('textos del bot: los demás módulos no arman respuestas', () => {
     const used = new Set(imports.map(([module, name]) => module + '.' + name));
     const stale = Object.entries(IMPORTS).flatMap(([module, names]) => Object.keys(names).map((name) => module + '.' + name)).filter((key) => !used.has(key));
     expect(stale, 'entradas de IMPORTS que ya no se importan').toEqual([]);
+  });
+});
+
+// (revisión 16-11, T5) quantity.itemPairs pasa al resumen sin revisar su texto (IMPORTS lo da por dato): cada par que
+// devuelve tiene que ser un trozo del texto del cliente (con los espacios juntados). Un texto que agregue itemPairs
+// («aprox.», «unidades», una unidad traducida) hace fallar esta prueba.
+describe('textos del bot: itemPairs solo devuelve trozos del texto del cliente', () => {
+  const squeeze = (text: string) => text.replace(/\s+/g, ' ').trim();
+  it.each([
+    'Necesito 12 focos LED y 5 paneles LED para una bodega',
+    'También necesito 10 focos LED',
+    'Necesito 10 paneles LED a $5.000 c/u y 5 focos LED',
+    'necesito 12 focos  LED\ny 5 paneles LED 60x60, luz fría',
+    '20 campanas UFO 200W, 15 reflectores LED 100W IP66 y 8 focos embutidos',
+    'Necesito 1.000 focos LED y 500 metros de cinta LED 220V',
+    '30 tubos LED T8 18W 120cm / 25 tubos LED T5 14W',
+    'Necesito 10 unidades de paneles LED y 4 unds de focos',
+  ])('«%s»', (text) => {
+    const pairs = quantity.itemPairs(text);
+    expect(pairs.length).toBeGreaterThan(0);
+    for (const pair of pairs) expect(squeeze(text)).toContain(squeeze(pair));
   });
 });
