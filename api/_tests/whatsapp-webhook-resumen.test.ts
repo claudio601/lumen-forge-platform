@@ -398,3 +398,36 @@ describe('(revisión 17-11) cambios de producto, listas nuevas y la red de segur
     expect((await snapshot()).flow.captured).toMatchObject({ cantidad: '30', comuna_o_ciudad: 'Maipú' });
   });
 });
+
+// Tercera revisión de la fase 3B (17-11-2026, verificación de 83fbe2f), por el webhook: el dato que el cliente escribe
+// después de «¿Qué dato corrijo?» se anota también después del segundo resumen, y la comuna con cortesía corrige.
+describe('(revisión 17-11, ronda 3) el dato pedido y la comuna con cortesía', () => {
+  it('después del segundo resumen, «No» y «Pudahuel»: MSG4 y la nota con «Cambios:» en el negocio 9001, sin aviso', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook);
+    claude('No, son 30', { cantidad: '30' });
+    expect(await post(hook, 'No, son 30')).toBe('Te resumo: 30 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?');
+    expect(await post(hook, 'No')).toBe('¿Qué dato corrijo? Escríbeme el correcto.');
+    const notes = sim.notes.length;
+    claude('Pudahuel', { comuna_o_ciudad: 'Pudahuel' });
+    expect(await post(hook, 'Pudahuel')).toBe(MSG4);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes).toHaveLength(notes + 1);
+    expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+    expect(unescape(sim.notes.at(-1)!.content)).toContain('Comuna/ciudad: antes Maipú, ahora Pudahuel');
+    expect(sim.updates.at(-1)!.dealId).toBe(9001);
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject({ cantidad: '30', comuna_o_ciudad: 'Pudahuel' });
+  });
+
+  it('«Sí, pero en Pudahuel» justo después del resumen: el resumen corregido y la nota en el negocio 9001', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook);
+    claude('Sí, pero en Pudahuel', { comuna_o_ciudad: 'Pudahuel' });
+    expect(await post(hook, 'Sí, pero en Pudahuel')).toBe('Te resumo: 12 focos LED, luz cálida, para casa y en Pudahuel. ¿Está bien?');
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes.map((n) => n.deal_id)).toEqual([9001, 9001]);
+    expect(unescape(sim.notes[1].content)).toContain('Cambios: Comuna/ciudad: antes Maipú, ahora Pudahuel');
+    expect(sim.notified).toBe(1);
+  });
+});

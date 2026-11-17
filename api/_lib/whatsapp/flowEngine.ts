@@ -1811,9 +1811,12 @@ function mergeProductFields(
   // [RESUMEN] (revision 16-11) Al contestar el resumen, la comuna capturada cambia solo con una comuna sola ("Pudahuel",
   // "Es en Pudahuel": comunaReply) o presentada como la obra o la entrega ("el despacho es a Pudahuel"); "vive en Pirque"
   // o "estoy en Santiago" no (firmOnly).
+  // (revision 17-11, ronda 3) El mensaje que es solo la comuna (comunaReply, con su saludo o su cortesia) la presenta como
+  // la respuesta: cuenta aunque vaya con un "en" suelto ("Si, pero en Pudahuel", "La direccion es en Pudahuel").
+  const replyComuna = summaryReply && comunaReply(facts);
   mergeComuna(merged, 'comuna_o_ciudad', claudeParsed.comuna_o_ciudad, {
-    answering: Boolean(question?.asks.includes('comuna_o_ciudad')) || (summaryReply && comunaReply(facts)), company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
-    firmOnly: summaryReply,
+    answering: Boolean(question?.asks.includes('comuna_o_ciudad')) || replyComuna, company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
+    firmOnly: summaryReply && !replyComuna,
   });
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
@@ -2108,9 +2111,14 @@ const SUMMARY_IS_RE = /^\s*son\s/i;
 const SUMMARY_BETTER_RE = /(?<![a-z\u00e0-\u00fc])(?<!\blo\s+)mejor\s+(?:\d|son\b|que\s+sean|ser[i\u00ed]an)/i;
 // [RESUMEN] (revision 16-11) La respuesta que es solo una comuna: "Pudahuel", "en Pudahuel", "Es en Pudahuel", "No,
 // Pudahuel", "La comuna es Pudahuel". "Mi cunado vive en Pirque" o "estoy en Santiago" no contestan el resumen.
-const COMUNA_REPLY_LEAD_RE = /^\s*(?:(?:no|s[i\u00ed]|ok|okay|bueno|perd[o\u00f3]n|corrijo|correcci[o\u00f3]n|ahora)[\s,.:;!]+)*(?:(?:es|ser[i\u00ed]a|queda)\s+)?(?:(?:en|a|para)\s+)?(?:(?:la\s+)?(?:comuna|ciudad)\s*(?::\s*|\s+(?:es\s+|de\s+)?))?/i;
+// (revision 17-11, ronda 3) Tambien con un saludo, un "gracias" o un "pero" delante ("Hola, es en Pudahuel", "Si, pero
+// en Pudahuel"), con "y es" ("Si, y es en Pudahuel"; "Si, y Pudahuel" puede sumar otra y no cuenta), con "la direccion
+// es" ("La direccion es en Pudahuel") y con la cortesia o un emoji al final ("Pudahuel, gracias", "Pudahuel por favor").
+const COMUNA_REPLY_LEAD_RE = /^\s*(?:(?:no|s[i\u00ed]|ok|okay|bueno|perd[o\u00f3]n|corrijo|correcci[o\u00f3]n|ahora|hola|buen[oa]s(?:\s+(?:d[i\u00ed]as|tardes|noches))?|(?:muchas\s+)?gracias|pero)[\s,.:;!]+)*(?:la\s+direcci[o\u00f3]n\s*(?::\s*|\s+))?(?:(?:y\s+)?(?:es|ser[i\u00ed]a|queda)\s+)?(?:(?:en|a|para)\s+)?(?:(?:la\s+)?(?:comuna|ciudad)\s*(?::\s*|\s+(?:es\s+|de\s+)?))?/i;
+const COMUNA_REPLY_TAIL_RE = /(?:[\s,.;:!\u00a1]|(?<![\p{L}])(?:(?:muchas\s+)?gracias|por\s+favor|porfa(?:vor)?|porfis|saludos)(?![\p{L}])|\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}]|\uFE0F|\u200D)+$/iu;
 function comunaReply(facts: string): boolean {
-  return officialComuna(facts.replace(COMUNA_REPLY_LEAD_RE, '').replace(/[\s.!]+$/, '')) !== undefined;
+  if (facts.length > 160) return false;
+  return officialComuna(facts.replace(COMUNA_REPLY_LEAD_RE, '').replace(COMUNA_REPLY_TAIL_RE, '')) !== undefined;
 }
 // [RESUMEN] (revision 16-11) Un numero solo ("30", "No, 30") contesta el resumen con la cantidad.
 const BARE_NUMBER_RE = /^\s*(?:no\s*[,.]?\s*)?\d{1,3}(?:\.\d{3})*\s*[.!]*\s*$/i;
@@ -2169,6 +2177,9 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   const relaxed = (field: typeof LATE_FIELDS[number]): boolean => {
     if (!summaryReply) return false;
     if (field === 'comunas_otras') return captured.comuna_o_ciudad !== state.captured.comuna_o_ciudad;
+    // (revision 17-11, ronda 3) El mensaje que es solo la comuna corrige aunque empiece con "Si, y" ("Si, y es en
+    // Pudahuel"): no trae otro dato que se sume.
+    if (field === 'comuna_o_ciudad' && !hedge && !addsItem && comunaReply(facts)) return true;
     if (addsItem || !relaxable) return false;
     if (field === 'proyecto_o_uso') return SUMMARY_USE_RE.test(facts) || (summaryFix && shortUseReply(facts));
     if (field === 'comuna_o_ciudad') return !OTHER_PLACE_RE.test(facts);
@@ -2184,7 +2195,11 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   // producto, o una cantidad dentro de varios items. Uno sin palabra de correccion (relaxed) se escribe solo si el
   // resumen corregido se puede mostrar. (revision 17-11) Se anota cada dato que cambio sin ser firme (soft): si el
   // resumen corregido no sale (ya se mostro o no se puede armar), esos datos vuelven a lo registrado.
+  // (revision 17-11, ronda 3) La respuesta a "Que dato corrijo? Escribeme el correcto." (summaryFix) es el dato que el
+  // bot pidio: nunca es blanda, tambien despues del segundo resumen (decision 2 del dueno: "si despues escribe el dato,
+  // se corrige en el mismo negocio").
   const soft = new Set<string>();
+  const markSoft = (field: string) => { if (!summaryFix) soft.add(field); };
   // (revision 13-11) La cantidad, los varios items y los metros cambian juntos o no cambian: "Son 5 unidades" despues de
   // "12 focos y 5 paneles" ya no deja el numero y los varios items a la vez.
   const sameQty = QTY_FIELDS.every((field) => JSON.stringify(state.captured[field] ?? null) === JSON.stringify(merged[field] ?? null));
@@ -2217,7 +2232,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
       }
     }
     applied.add('cantidad');
-    if (!qtyFirm) soft.add('cantidad');
+    if (!qtyFirm) markSoft('cantidad');
     changed = true;
   }
   for (const field of LATE_FIELDS) {
@@ -2237,7 +2252,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
     const corrects = !filled(field) || correctsCaptured(data, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value)
       || (field === 'producto' && switchWords);
     if (!corrects && !relaxed(field)) continue;
-    if (!corrects) soft.add(field);
+    if (!corrects) markSoft(field);
     (captured as Record<string, unknown>)[field] = value;
     applied.add(field === 'comunas_otras' ? 'comuna_o_ciudad' : field);
     changed = true;

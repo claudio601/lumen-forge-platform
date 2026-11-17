@@ -684,3 +684,112 @@ describe('(revisión 17-11) cambios de producto, listas nuevas, la red de seguri
     expect(flow.getFlowState(PHONE).lastQuestion).toBeNull();
   });
 });
+
+// Tercera revisión de la fase 3B (17-11-2026, verificación de 83fbe2f): los dos puntos de severidad media, cada uno con
+// su caso literal; fallaban antes del arreglo.
+describe('(revisión 17-11, ronda 3) el dato pedido con «¿Qué dato corrijo?» y la comuna con cortesía', () => {
+  const PUDAHUEL = summaryOf('20 paneles LED 60x60', 'luz neutra, para oficina y en Pudahuel');
+  /** El pedido de los paneles con el segundo resumen ya mostrado («No, son 30»). */
+  function closeWithSecondSummary() {
+    closeWithSummary();
+    expect(step('No, son 30', { cantidad: '30' }).reply).toBe(summaryOf('30 paneles LED 60x60', 'luz neutra, para oficina y en Maipú'));
+    expect(flow.getFlowState(PHONE).summaryShown).toBe(2);
+  }
+
+  it.each<[string, Claude, Record<string, string>, string]>([
+    ['Pudahuel', { comuna_o_ciudad: 'Pudahuel' }, { comuna_o_ciudad: 'Pudahuel' }, 'Comuna/ciudad: antes Maipú, ahora Pudahuel'],
+    ['40', { cantidad: '40' }, { cantidad: '40' }, 'Cantidad: antes 30, ahora 40'],
+    ['luz fría', { tipo_de_luz: 'fría' }, { tipo_de_luz: 'fria' }, 'Tipo de luz: antes neutra, ahora fria'],
+    ['focos LED', { producto: 'focos LED' }, { producto: 'focos LED', cantidad: '30' }, 'Producto: antes paneles LED 60x60, ahora focos LED'],
+    ['es para un taller', { proyecto_o_uso: 'taller' }, { proyecto_o_uso: 'taller' }, 'Proyecto/uso: antes oficina, ahora taller'],
+  ])('punto 1: después del segundo resumen, «No» y luego «%s» corrige el mismo negocio con MSG4', (body, claude, fields, line) => {
+    closeWithSecondSummary();
+    expect(step('No').reply).toBe(flow.MSG_SUMMARY_FIX);
+    const r = step(body, claude);
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, closedFlow: true, captured: fields });
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30', line]);
+    expect(flow.getFlowState(PHONE)).toMatchObject({ dealId: 4242, deal: 'registered', summaryShown: 2, lastQuestion: null });
+    // Un «sí» después ya no contesta un resumen: el recordatorio corto, sin escribir otra vez.
+    expect(step('Sí')).toMatchObject({ reply: flow.MSG_REGISTERED_SHORT, shouldCreateDeal: false });
+  });
+
+  it('punto 1: con Claude repitiendo el historial, solo cambia el dato que el cliente escribe', () => {
+    closeWithSecondSummary();
+    step('No');
+    const r = step('Pudahuel', { ...PANELES_CLAUDE, cantidad: '30', comuna_o_ciudad: 'Pudahuel' });
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured).toMatchObject({ producto: 'paneles LED 60x60', cantidad: '30', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Pudahuel' });
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30', 'Comuna/ciudad: antes Maipú, ahora Pudahuel']);
+  });
+
+  it.each<[string, Claude]>([
+    ['Gracias! mi otra casa está en Pirque', { comuna_o_ciudad: 'Pirque' }],
+    ['Mi cuñado vive en Pirque', { comuna_o_ciudad: 'Pirque' }],
+    ['Saludos desde Puente Alto', { comuna_o_ciudad: 'Puente Alto' }],
+  ])('punto 1: después de «¿Qué dato corrijo?», un comentario («%s») sigue sin cambiar nada', (body, claude) => {
+    closeWithSecondSummary();
+    step('No');
+    const before = flow.getFlowState(PHONE).captured;
+    const r = step(body, claude);
+    expect(r.shouldCreateDeal).toBe(false);
+    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+  });
+
+  const COURTESY = [
+    'Pudahuel, gracias', 'Pudahuel por favor', 'Pudahuel 🙏', 'Pudahuel 👍', 'Pudahuel 👍🏽', 'Es en Pudahuel 😊',
+    'En Pudahuel, gracias', 'Hola, es en Pudahuel', 'La dirección es en Pudahuel', 'Sí, pero en Pudahuel',
+    'Sí, pero es en Pudahuel', 'Sí, y es en Pudahuel', 'Buenas tardes, la comuna es Pudahuel', 'Pudahuel, muchas gracias!!',
+  ];
+  it.each(COURTESY)('punto 2: justo después del resumen, «%s» corrige la comuna con el resumen corregido', (body) => {
+    closeWithSummary();
+    const r = step(body, { comuna_o_ciudad: 'Pudahuel' });
+    expect(r).toMatchObject({ reply: PUDAHUEL, shouldCreateDeal: true, rutUpdate: true, quietUpdate: true });
+    expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Pudahuel']);
+    expect(flow.getFlowState(PHONE)).toMatchObject({ dealId: 4242, summaryShown: 2, lastQuestion: { summary: true }, captured: { comuna_o_ciudad: 'Pudahuel' } });
+  });
+
+  it.each(COURTESY)('punto 2: después de «¿Qué dato corrijo?», «%s» corrige la comuna con el resumen corregido', (body) => {
+    closeWithSummary();
+    expect(step('No').reply).toBe(flow.MSG_SUMMARY_FIX);
+    const r = step(body, { comuna_o_ciudad: 'Pudahuel' });
+    expect(r).toMatchObject({ reply: PUDAHUEL, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured.cambios).toEqual(['Comuna/ciudad: antes Maipú, ahora Pudahuel']);
+  });
+
+  it.each(['Pudahuel, gracias', 'Hola, es en Pudahuel', 'Sí, pero en Pudahuel'])(
+    'punto 2: después del segundo resumen y «¿Qué dato corrijo?», «%s» se escribe con MSG4', (body) => {
+      closeWithSecondSummary();
+      step('No');
+      const r = step(body, { comuna_o_ciudad: 'Pudahuel' });
+      expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, captured: { comuna_o_ciudad: 'Pudahuel', cantidad: '30' } });
+    });
+
+  it.each<[string, Claude]>([
+    ['Sí, y Pudahuel', { comuna_o_ciudad: 'Pudahuel' }],
+    ['No es en Pudahuel', { comuna_o_ciudad: 'Pudahuel' }],
+    ['Sí, gracias, estoy en Pudahuel ahora', { comuna_o_ciudad: 'Pudahuel' }],
+    ['Estoy en Santiago', { comuna_o_ciudad: 'Santiago' }],
+    ['Mi cuñado vive en Pirque', { comuna_o_ciudad: 'Pirque' }],
+    ['Gracias! mi otra casa está en Pirque', { comuna_o_ciudad: 'Pirque' }],
+    ['Sí, en Pudahuel también', { comuna_o_ciudad: 'Pudahuel' }],
+  ])('punto 2: «%s» no es la comuna corregida: no cambia nada ni escribe en Pipedrive', (body, claude) => {
+    closeWithSummary();
+    const before = flow.getFlowState(PHONE).captured;
+    const r = step(body, claude);
+    expect(r.shouldCreateDeal).toBe(false);
+    expect(r.reply).not.toContain('Te resumo');
+    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+  });
+
+  it('punto 2: después del segundo resumen (sin «¿Qué dato corrijo?») sigue la red de seguridad: «Pudahuel, gracias» no escribe; «Corrijo: Pudahuel, gracias» sí', () => {
+    closeWithSecondSummary();
+    const before = flow.getFlowState(PHONE).captured;
+    const soft = step('Pudahuel, gracias', { comuna_o_ciudad: 'Pudahuel' });
+    expect(soft.shouldCreateDeal).toBe(false);
+    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+    flow.clearFlowState(PHONE);
+    closeWithSecondSummary();
+    const firm = step('Corrijo: Pudahuel, gracias', { comuna_o_ciudad: 'Pudahuel' });
+    expect(firm).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, captured: { comuna_o_ciudad: 'Pudahuel' } });
+  });
+});
