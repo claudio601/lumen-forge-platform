@@ -496,3 +496,191 @@ describe('(revisión 16-11) la respuesta al resumen no escribe de más ni mezcla
     expect(flow.summaryMsg({ ...base, proyecto_o_uso: 'iluminar una bodega con luz neutra' })).toBe('Te resumo: 20 paneles LED 60x60, para iluminar una bodega con luz neutra y en Quilicura. ¿Está bien?');
   });
 });
+
+// Segunda revisión de la fase 3B (17-11-2026, verificación de 9cf7025): cada punto con su caso literal; todos fallaban
+// con 9cf7025.
+describe('(revisión 17-11) cambios de producto, listas nuevas, la red de seguridad y lo que no se resume', () => {
+  const FOCOS_20 = summaryOf('20 focos LED', 'luz neutra, para oficina y en Maipú');
+  const PANELES_30 = summaryOf('30 paneles LED 60x60', 'luz neutra, para oficina y en Maipú');
+  /** El ejemplo 2 por el flujo (focos y paneles en varios items, luz fría) con el negocio 4242. */
+  function closeExample2() {
+    const closing = step('Necesito 12 focos LED y 5 paneles LED luz fría para una bodega en Quilicura. ' + CONTACT,
+      { producto: 'focos LED y paneles LED', tipo_de_luz: 'fría', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', ...CONTACT_CLAUDE });
+    expect(closing.reply).toBe('Te resumo: 12 focos LED y 5 paneles LED, luz fría, para bodega y en Quilicura. ¿Está bien?');
+    flow.recordDealOutcome(PHONE, true, undefined, 4242);
+  }
+  /** El pedido de los paneles con el segundo resumen ya mostrado («No, son 30»). */
+  function closeWithSecondSummary() {
+    closeWithSummary();
+    expect(step('No, son 30', { cantidad: '30' }).reply).toBe(PANELES_30);
+    expect(flow.getFlowState(PHONE).summaryShown).toBe(2);
+  }
+
+  it.each(['Cambio: necesito 20 focos LED', 'Lo cambio por 20 focos LED', 'Modifico: 20 focos LED', 'Actualizo: son 20 focos LED'])(
+    'punto 1: «%s» reemplaza el producto en el mismo negocio (no lo suma como otro item) y muestra el resumen corregido', (body) => {
+      closeWithSummary();
+      const r = step(body, { producto: 'focos LED', cantidad: '20' });
+      expect(r).toMatchObject({ reply: FOCOS_20, shouldCreateDeal: true, rutUpdate: true, quietUpdate: true });
+      expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '20' });
+      expect(r.captured.cantidad_varios).toBeUndefined();
+      expect(r.captured.cambios).toEqual(['Producto: antes paneles LED 60x60, ahora focos LED']);
+      expect(flow.getFlowState(PHONE)).toMatchObject({ dealId: 4242, summaryShown: 2, lastQuestion: { summary: true } });
+    });
+
+  it('punto 1: «Cambio: necesito 30 focos LED» reemplaza el producto y la cantidad', () => {
+    closeWithSummary();
+    const r = step('Cambio: necesito 30 focos LED', { producto: 'focos LED', cantidad: '30' });
+    expect(r).toMatchObject({ reply: summaryOf('30 focos LED', 'luz neutra, para oficina y en Maipú'), rutUpdate: true });
+    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '30' });
+    expect(r.captured.cantidad_varios).toBeUndefined();
+    expect(r.captured.cambios).toEqual(['Producto: antes paneles LED 60x60, ahora focos LED', 'Cantidad: antes 20, ahora 30']);
+  });
+
+  it.each(['Necesito 10 focos LED para cambiar los del patio', 'Necesito 10 focos LED con cambio de color'])(
+    'punto 1: «%s» no es una palabra de cambio: se suma como otro item, como antes', (body) => {
+      closeWithSummary();
+      const r = step(body, { producto: 'focos LED', cantidad: '10' });
+      expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured.producto).toBe('paneles LED 60x60');
+      expect(r.captured.cantidad_varios).toBe('paneles LED 60x60: 20 / ' + body);
+    });
+
+  it.each(['focos LED', 'Son focos LED'])('punto 2: después de «¿Qué dato corrijo?», «%s» reemplaza el producto en el mismo negocio', (body) => {
+    closeWithSummary();
+    expect(step('No').reply).toBe(flow.MSG_SUMMARY_FIX);
+    const r = step(body, { producto: 'focos LED' });
+    expect(r).toMatchObject({ reply: FOCOS_20, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '20' });
+    expect(r.captured.cambios).toEqual(['Producto: antes paneles LED 60x60, ahora focos LED']);
+    expect(flow.getFlowState(PHONE)).toMatchObject({ dealId: 4242, summaryShown: 2 });
+  });
+
+  it.each(['focos LED', 'Cambio a focos LED', 'Actualizo: mejor focos LED', 'Son 20 focos LED'])(
+    'punto 2: justo después del resumen, «%s» reemplaza el producto y muestra el resumen corregido', (body) => {
+      closeWithSummary();
+      const r = step(body, { producto: 'focos LED', ...(/\d/.test(body) ? { cantidad: '20' } : {}) });
+      expect(r).toMatchObject({ reply: FOCOS_20, shouldCreateDeal: true, rutUpdate: true });
+      expect(r.captured).toMatchObject({ producto: 'focos LED', cantidad: '20' });
+      expect(r.captured.cantidad_varios).toBeUndefined();
+    });
+
+  it('punto 2: un «sí» con la familia («Sí, los focos») confirma: MSG4 sin cambiar el producto', () => {
+    closeWithSummary();
+    const r = step('Sí, los focos', { producto: 'focos LED' });
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false });
+    expect(flow.getFlowState(PHONE).captured.producto).toBe('paneles LED 60x60');
+  });
+
+  it('punto 2: fuera del resumen sigue NO-PISAR: después del «sí», «focos LED» no cambia el producto', () => {
+    closeWithSummary();
+    expect(step('Sí').reply).toBe(flow.MSG4);
+    const r = step('focos LED', { producto: 'focos LED' });
+    expect(r.shouldCreateDeal).toBe(false);
+    expect(flow.getFlowState(PHONE).captured).toMatchObject({ producto: 'paneles LED 60x60', cantidad: '20' });
+  });
+
+  it('punto 3: «Son 30 paneles y 10 focos» (pedido de 20 paneles) reemplaza la cantidad por la lista nueva', () => {
+    closeWithSummary();
+    const r = step('Son 30 paneles y 10 focos', { producto: 'paneles y focos' });
+    expect(r).toMatchObject({ reply: summaryOf('30 paneles y 10 focos', 'luz neutra, para oficina y en Maipú'), shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured.cantidad).toBeUndefined();
+    expect(r.captured.cantidad_varios).toBe('30 paneles y 10 focos');
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora varios items (30 paneles y 10 focos)']);
+    expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+  });
+
+  it.each<[string[], string]>([
+    [['Son 15 focos y 8 paneles'], '15 focos y 8 paneles'],
+    [['No', '15 focos y 8 paneles'], '15 focos y 8 paneles'],
+    [['No, son 8 paneles y 15 focos'], '8 paneles y 15 focos'],
+    [['Mejor 15 focos y 8 paneles'], '15 focos y 8 paneles'],
+  ])('punto 3: con el ejemplo 2, %j reemplaza los items (no los suma ni los anexa)', (bodies, list) => {
+    closeExample2();
+    let r = step(bodies[0], bodies[0] === 'No' ? {} : { producto: 'focos y paneles' });
+    if (bodies.length > 1) {
+      expect(r.reply).toBe(flow.MSG_SUMMARY_FIX);
+      r = step(bodies[1], { producto: 'focos y paneles' });
+    }
+    expect(r).toMatchObject({ reply: 'Te resumo: ' + list + ', luz fría, para bodega y en Quilicura. ¿Está bien?', shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured.cantidad_varios).toBe(list);
+    expect(r.captured.cambios).toHaveLength(1);
+    expect(r.captured.cambios?.[0]).toMatch(new RegExp('^Cantidad: antes varios items \\(Necesito 12 focos LED y 5 paneles LED.*\\), ahora varios items \\(' + list + '\\)$'));
+    expect(flow.getFlowState(PHONE).dealId).toBe(4242);
+  });
+
+  it.each(['También necesito 10 focos LED y 5 tubos LED', 'Agrega 10 focos LED y 5 tubos LED', 'Súmale 10 focos LED y 5 tubos LED', 'Otros 10 focos LED y 5 tubos LED'])(
+    'punto 3: la adición explícita «%s» suma los items al pedido, como antes', (body) => {
+      closeWithSummary();
+      const r = step(body, { producto: 'focos LED y tubos LED' });
+      expect(r).toMatchObject({ reply: summaryOf('20 paneles LED 60x60, 10 focos LED y 5 tubos LED', 'luz neutra, para oficina y en Maipú'), rutUpdate: true });
+      expect(r.captured.producto).toBe('paneles LED 60x60');
+      expect(r.captured.cantidad_varios).toBe('paneles LED 60x60: 20 / ' + body);
+    });
+
+  it('punto 3: la misma lista otra vez («Sí, 12 focos y 5 paneles») confirma: MSG4 sin escribir', () => {
+    closeExample2();
+    const before = flow.getFlowState(PHONE).captured;
+    const r = step('Sí, 12 focos y 5 paneles', { producto: 'focos y paneles' });
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false });
+    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+  });
+
+  it.each<[string, Claude]>([
+    ['Sí, mi casa está en Pirque', { comuna_o_ciudad: 'Pirque' }],
+    ['Gracias. Por si acaso, la bodega queda en Pirque', { comuna_o_ciudad: 'Pirque' }],
+    ['Pudahuel', { comuna_o_ciudad: 'Pudahuel' }],
+    ['focos LED', { producto: 'focos LED' }],
+    ['Son 30 paneles y 10 focos', { producto: 'paneles y focos' }],
+  ])('punto 4: después del segundo resumen, «%s» (sin palabra de corrección) no cambia nada ni escribe en Pipedrive', (body, claude) => {
+    closeWithSecondSummary();
+    const before = flow.getFlowState(PHONE).captured;
+    const r = step(body, claude);
+    expect(r.shouldCreateDeal).toBe(false);
+    expect(r.rutUpdate).toBeUndefined();
+    expect(r.reply).not.toContain('Te resumo');
+    expect(flow.getFlowState(PHONE).captured).toEqual(before);
+  });
+
+  it.each<[string, Claude, Record<string, string>]>([
+    ['Está bien, pero mejor 25 paneles', { cantidad: '25' }, { cantidad: '25' }],
+    ['Cambio a focos LED', { producto: 'focos LED' }, { producto: 'focos LED', cantidad: '30' }],
+    ['Corrijo: Pudahuel', { comuna_o_ciudad: 'Pudahuel' }, { comuna_o_ciudad: 'Pudahuel' }],
+  ])('punto 4: después del segundo resumen, con palabra de corrección («%s») sí se escribe, con MSG4', (body, claude, fields) => {
+    closeWithSecondSummary();
+    const r = step(body, claude);
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true, captured: fields });
+    expect(flow.getFlowState(PHONE)).toMatchObject({ dealId: 4242, lastQuestion: null });
+  });
+
+  it('punto 4: sin el resumen a la vista se escriben solo los datos firmes: la cantidad con «al final», la comuna no', () => {
+    closeWithSecondSummary();
+    const r = step('Al final son 40. Mi bodega está en Pudahuel', { cantidad: '40', comuna_o_ciudad: 'Pudahuel' });
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true });
+    expect(r.captured).toMatchObject({ cantidad: '40', comuna_o_ciudad: 'Maipú' });
+    expect(r.captured.cambios).toEqual(['Cantidad: antes 20, ahora 30', 'Cantidad: antes 30, ahora 40']);
+  });
+
+  it.each(['c/u', 'urgentes', 'con garantía', 'certificados SEC', 'con certificación', 'según norma', 'DS1', 'D.S. N°1', 'homologados'])(
+    'punto 5: «%s» en el texto de varios items: sin resumen', (extra) => {
+      expect(flow.summaryMsg({ producto: 'paneles LED y focos LED', cantidad_varios: 'Necesito 10 paneles LED ' + extra + ' y 5 focos LED' })).toBeUndefined();
+    });
+
+  it('punto 5: lo que el corte de los pares deja fuera también cuenta («…, es urgente»)', () => {
+    expect(flow.summaryMsg({ producto: 'paneles LED y focos LED', cantidad_varios: 'Necesito 10 paneles LED y 5 focos LED, es urgente' })).toBeUndefined();
+    expect(flow.summaryMsg({ producto: 'paneles LED y focos LED', cantidad_varios: 'Necesito 10 paneles LED y 5 focos LED para la obra' }))
+      .toBe('Te resumo: 10 paneles LED y 5 focos LED. ¿Está bien?');
+  });
+
+  it.each(['urgentes', 'con garantía', 'certificados SEC', 'norma DS1'])('punto 5: en un solo producto, «%s» tampoco se resume', (extra) => {
+    expect(flow.summaryMsg({ producto: 'paneles LED ' + extra, cantidad: '10' })).toBeUndefined();
+  });
+
+  it('punto 5: por el flujo, «c/u» en el pedido de varios items recibe MSG4 como antes', () => {
+    step('Necesito 10 paneles LED c/u y 5 focos LED para una bodega en Quilicura. ' + CONTACT,
+      { producto: 'paneles LED y focos LED', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', ...CONTACT_CLAUDE });
+    const r = step('no sé');
+    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(flow.getFlowState(PHONE).summaryShown).toBeUndefined();
+    expect(flow.getFlowState(PHONE).lastQuestion).toBeNull();
+  });
+});

@@ -351,3 +351,50 @@ describe('(revisión 16-11) un comentario después del resumen no escribe en Pip
     expect(flow.captured.cantidad_varios).toBeUndefined();
   });
 });
+
+// Segunda revisión de la fase 3B (17-11-2026, verificación de 9cf7025), por el webhook: el cambio de producto y la lista
+// nueva van al mismo negocio (nota con «Cambios:», sin otro negocio ni aviso a ventas), y después del segundo resumen un
+// dato sin palabra de corrección no escribe en Pipedrive.
+describe('(revisión 17-11) cambios de producto, listas nuevas y la red de seguridad', () => {
+  it('«Cambio: necesito 12 paneles LED» reemplaza el producto en el negocio 9001, sin negocio nuevo ni aviso', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook);
+    claude('Cambio: necesito 12 paneles LED', { producto: 'paneles LED', cantidad: '12' });
+    expect(await post(hook, 'Cambio: necesito 12 paneles LED')).toBe('Te resumo: 12 paneles LED, luz cálida, para casa y en Maipú. ¿Está bien?');
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes.map((n) => n.deal_id)).toEqual([9001, 9001]);
+    expect(unescape(sim.notes[1].content)).toContain('Cambios: Producto: antes focos LED, ahora paneles LED');
+    expect(sim.notified).toBe(1);
+    const { flow } = await snapshot();
+    expect(flow.captured).toMatchObject({ producto: 'paneles LED', cantidad: '12' });
+    expect(flow.captured.cantidad_varios).toBeUndefined();
+  });
+
+  it('«Son 20 focos y 5 paneles» reemplaza la cantidad por la lista nueva en el negocio 9001', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook);
+    claude('Son 20 focos y 5 paneles', { producto: 'focos y paneles' });
+    expect(await post(hook, 'Son 20 focos y 5 paneles')).toBe('Te resumo: 20 focos y 5 paneles, luz cálida, para casa y en Maipú. ¿Está bien?');
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notes.map((n) => n.deal_id)).toEqual([9001, 9001]);
+    const note = unescape(sim.notes[1].content);
+    expect(note).toContain('Cantidad: varios items, revisar: 20 focos y 5 paneles');
+    expect(note).toContain('Cambios: Producto: antes focos LED, ahora focos y paneles; Cantidad: antes 12, ahora varios items (20 focos y 5 paneles)');
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject({ producto: 'focos y paneles', cantidad_varios: '20 focos y 5 paneles' });
+  });
+
+  it('después del segundo resumen, «Sí, mi casa está en Pirque»: MSG4, sin nota ni cambio de campos', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook);
+    claude('No, son 30', { cantidad: '30' });
+    expect(await post(hook, 'No, son 30')).toBe('Te resumo: 30 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?');
+    const notes = sim.notes.length;
+    const updates = sim.updates.length;
+    claude('Sí, mi casa está en Pirque', { comuna_o_ciudad: 'Pirque' });
+    expect(await post(hook, 'Sí, mi casa está en Pirque')).toBe(MSG4);
+    expect(sim.notes).toHaveLength(notes);
+    expect(sim.updates).toHaveLength(updates);
+    expect((await snapshot()).flow.captured).toMatchObject({ cantidad: '30', comuna_o_ciudad: 'Maipú' });
+  });
+});

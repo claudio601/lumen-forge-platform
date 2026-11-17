@@ -624,6 +624,17 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
 });
 
 describe('PR 3 (B1): la transcripción en el estado compartido', () => {
+  // (fase 3B, revisión 17-11) Cada pedido con su «sí»: el siguiente es otra solicitud con su negocio y su nota, como antes
+  // del resumen. Sin el «sí», el pedido siguiente contesta el resumen (el mismo negocio) y, tras el segundo resumen, otra
+  // cantidad sin palabra de corrección ya no se escribe (flowResumen.test.ts).
+  async function orderConfirmed(body: string) {
+    await send(body);
+    const parsed = sim.parsed;
+    sim.parsed = {};
+    expect(await send('Sí')).toContain('registrad');
+    sim.parsed = parsed;
+  }
+
   it('sobrevive a un reinicio: se restaura del estado guardado y la nota trae los mensajes anteriores', async () => {
     sim.parsed = { producto: 'focos LED', tipo_de_luz: 'calida', cantidad: '10', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipu' };
     await send('Necesito 10 focos LED luz calida para una casa en Maipu');
@@ -648,7 +659,7 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
   it('H2: cuatro notas rechazadas y Pipedrive se recupera: llegan las cuatro, en orden', async () => {
     sim.parsed = COMPLETE;
     sim.noteDown = true;
-    for (let i = 1; i <= 4; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    for (let i = 1; i <= 4; i++) await orderConfirmed('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
     const queued = await pendingQueue();
     expect(queued.map((w) => w.note!.match(/Cliente: Necesito (\d+) focos/)![1])).toEqual(['11', '12', '13', '14']);
     // El estado guardado ya no lleva las notas: solo el campo vacío, para la versión anterior.
@@ -665,7 +676,7 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
     expect(MAX_PENDING_WRITES).toBe(10);
     sim.parsed = COMPLETE;
     sim.noteDown = true;
-    for (let i = 1; i <= MAX_PENDING_WRITES + 1; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    for (let i = 1; i <= MAX_PENDING_WRITES + 1; i++) await orderConfirmed('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
     expect(await pendingQueue()).toHaveLength(MAX_PENDING_WRITES);
     expect(redis.data.get(pendingKey(PHONE))!.ttl).toBe(PENDING_WRITE_TTL_S);
     expect(pendingKey(PHONE)).not.toContain(PHONE.slice(1));
@@ -707,7 +718,7 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
     const { updateDeal } = await import('../_lib/pipedrive/deals.js');
     sim.parsed = COMPLETE;
     sim.noteDown = true;
-    for (let i = 1; i <= MAX_PENDING_WRITES; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    for (let i = 1; i <= MAX_PENDING_WRITES; i++) await orderConfirmed('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
     expect(await pendingQueue()).toHaveLength(MAX_PENDING_WRITES);
     // Pipedrive acepta las notas nuevas, pero sigue rechazando las de la cola y los campos del negocio.
     sim.noteDown = false;

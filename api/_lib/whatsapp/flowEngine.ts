@@ -903,7 +903,9 @@ function summaryItems(captured: CapturedFields): string | undefined {
   if (captured.cantidad && producto && namesSeveralProducts(producto)) return undefined;
   if (captured.cantidad_varios && !captured.cantidad) {
     let text = captured.cantidad_varios;
-    if (CORRECTION_RE.test(text) || LATE_CORRECTION_RE.test(text)) return undefined;
+    // (revision 17-11, T1) El texto entero, antes de cortar los pares: "10 paneles LED c/u" deja "10 paneles LED c" en el
+    // par, y lo que el corte deja fuera tampoco se resume.
+    if (CORRECTION_RE.test(text) || LATE_CORRECTION_RE.test(text) || SUMMARY_UNSAFE_RE.test(comparable(text))) return undefined;
     const pairs: string[] = [];
     const own = producto ? captured.producto + ': ' : undefined;
     const prefix = own && text.startsWith(own) ? /^(\d{1,5})( m)? \/ /.exec(text.slice(own.length)) : null;
@@ -926,7 +928,9 @@ function namesSeveralProducts(producto: string): boolean {
 // [RESUMEN] (revision 16-11) El resumen repite el texto del cliente: si trae un precio, el stock, un plazo, el despacho o
 // "gratis" (reglas del sitio: nunca precios ni stock, despacho solo "hasta 2 dias habiles", nunca "gratis"), no hay
 // resumen y va el cierre (MSG4). Se compara sin tildes ni mayusculas.
-const SUMMARY_UNSAFE_RE = /\$|(?<![a-z0-9])(?:precios?|valor(?:es)?|valen?|cuestan?|costos?|ofertas?|rebaj[a-z]*|descuentos?|barat[a-z]*|stock|disponib[a-z]*|gratis|gratuit[a-z]*|despach[a-z]*|envios?|entreg[a-z]*|manana|hoy|urgente|plazos?|c\/u)(?![a-z0-9])/;
+// (revision 17-11, T1) Tambien en plural ("urgentes") y lo que el bot no afirma: la garantia, un certificado o la
+// certificacion, la SEC, una norma, el D.S. N\u00b01 ("DS1", "D.S. 1") y la homologacion.
+const SUMMARY_UNSAFE_RE = /\$|(?<![a-z0-9])(?:precios?|valor(?:es)?|valen?|cuestan?|costos?|ofertas?|rebaj[a-z]*|descuentos?|barat[a-z]*|stock|disponib[a-z]*|gratis|gratuit[a-z]*|despach[a-z]*|envios?|entreg[a-z]*|manana|hoy|urgentes?|plazos?|c\/u|garantias?|certific[a-z]*|sec|normas?|normativ[a-z]*|homolog[a-z]*|d\.?\s?s\.?\s?(?:n\S{0,2}\s?)?1)(?![a-z0-9])/;
 /** [RESUMEN] (revision 16-11) `text` ya nombra el valor `value` como palabra (la comuna dentro del uso). */
 function namesValue(text: string, value: string): boolean {
   return new RegExp('(?<![a-z0-9])' + comparable(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![a-z0-9])').test(comparable(text));
@@ -1684,7 +1688,7 @@ function mergeProductFields(
   claudeParsed: ClaudeFields,
   hasMedia = false,
   summaryReply = false,
-): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number; addsProduct?: boolean; addedText?: string } {
+): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number; addsProduct?: boolean; addedText?: string; listReplace?: boolean; switchWords?: boolean } {
   const merged: CapturedFields = { ...state.captured };
   // [CANTIDAD] Un estado guardado antes de este cambio puede traer un dato que no es texto (un
   // objeto de Claude) o una cantidad que no es un entero ("No especificada"): se descarta y se pregunta.
@@ -1726,10 +1730,29 @@ function mergeProductFields(
   // confundi", "error mio" o "eran" (SUMMARY_SWITCH_RE), o negando el capturado ("Son 20 focos LED, no paneles").
   const negated = droppedStems(facts, affirmed);
   const negatesOwn = Boolean(merged.producto) && productWords(merged.producto as string).some((w) => negated.has(w));
-  const switches = summaryReply && (SUMMARY_SWITCH_RE.test(assertive) || negatesOwn);
+  // (revision 17-11) Tambien con las palabras de cambio de LATE_CORRECTION_RE ("Cambio: necesito 20 focos LED", "Lo
+  // cambio por", "Modifico:", "Actualizo: son"; SUMMARY_CHANGE_RE), que ademas hacen firme el cambio de producto
+  // (switchWords), y con un "Son ..." al inicio ("Son 20 focos LED"), que dice cual es el pedido.
+  const switchWords = summaryReply && (SUMMARY_SWITCH_RE.test(assertive) || SUMMARY_CHANGE_RE.test(assertive) || negatesOwn);
+  const switches = switchWords || (summaryReply && SUMMARY_IS_RE.test(assertive));
+  // [RESUMEN] (revision 17-11) La lista completa nueva ("Son 30 paneles y 10 focos", "No, son 8 paneles y 15 focos",
+  // "15 focos y 8 paneles"): con 2 pares limpios o mas (itemPairs) y sin sumar ("tambien", "ademas", "agrega", "sumale",
+  // "otros 10 focos", "10 focos mas"), reemplaza los items y su cantidad, no se suma al texto de varios items.
+  const explicitAdd = adding || SUMMARY_ADDITIVE_RE.test(assertive) || ADD_VERB_RE.test(comparable(assertive));
+  const listFound = summaryReply && !explicitAdd ? summaryList(assertive) : undefined;
+  // La misma lista otra vez ("Si, 12 focos y 5 paneles") confirma: no cambia la cantidad.
+  const sameList = Boolean(listFound && sameItems(itemPairs(listFound), capturedPairs(merged)));
+  const listText = sameList ? undefined : listFound;
   const named = summaryReply && !adding && merged.producto ? namedProducts(assertive, claudeParsed) : [];
-  const summaryAdds = named.length > 0 && !sameProduct(named, merged.producto as string)
+  const summaryAdds = !listText && named.length > 0 && !sameProduct(named, merged.producto as string)
     && (stated.value !== undefined || stated.several) && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive) && !switches;
+  // [RESUMEN] (revision 17-11) En un pedido de un item, otro producto afirmado sin su cantidad ("focos LED", "Son focos
+  // LED" despues de "20 paneles LED 60x60") lo reemplaza aunque sea un nombre generico: el cliente lo escribe al ver el
+  // resumen (decision 2 del dueno: "si despues escribe el dato, se corrige en el mismo negocio"). Un "si" con el nombre
+  // de la familia ("Si, los focos") confirma. Fuera del resumen sigue [NO-DEGRADAR].
+  const summarySwitch = summaryReply && !state.captured.cantidad_varios && !listText && !quantity.several && !summaryAdds
+    && named.length > 0 && !sameProduct(named, merged.producto as string)
+    && (switches || !SUMMARY_YES_LEAD_RE.test(summaryAnswerText(body)));
   // [RESUMEN] (revision 16-11) Lo que suma como otro item ("tambien necesito 10 focos LED", o el de summaryAdds) y si
   // nombra un producto: "Si, en 2 semanas mas" o "tengo 3 obras mas" suman sin producto y no son otro item.
   const addedText = summaryAdds ? assertive : adding ? [...assertive].map((c, i) => (base[i] === c ? ' ' : c)).join('') : '';
@@ -1747,7 +1770,7 @@ function mergeProductFields(
   // estaca, cambian el producto (sameFamily).
   const downgrade = Boolean(prodChange && merged.producto && genericProduct(prodChange) && !genericProduct(merged.producto)
     && sameFamily(prodChange, merged.producto)
-    && !dropsNegated && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive) && !switches);
+    && !dropsNegated && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive) && !(switches && !listText) && !summarySwitch);
   // [RESPALDO] El producto de Claude llena el dato vacio solo si alguna de sus palabras esta en el mensaje o en el
   // enlace de la ficha (negocio 206: "Sistemas de seguridad" salia del nombre del perfil).
   const claudeProdFill = claudeProd && sharesWord(claudeProd, facts + ' ' + linkWords(body)) ? claudeProd : undefined;
@@ -1772,7 +1795,8 @@ function mergeProductFields(
   const mediaItem = hasMedia && Boolean(merged.cantidad || merged.cantidad_varios)
     && (stated.value !== undefined || quantity.value !== undefined) && !CORRECTION_RE.test(assertive)
     && !THIS_ONE_RE.test(comparable(assertive));
-  mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem || summaryAdds);
+  if (listText) replaceVarios(merged, listText);
+  else if (!sameList) mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem || summaryAdds);
   // [RESPALDO] El uso sale de lo que el cliente dice, no del nombre del producto ("PROYECTOR LED DE ESTADIO",
   // "Estaca LED COB 5W para jardin") ni de lo que Claude deduce (negocios 119, 197 y 206).
   // (revision 12-11) De un nombre generico ("focos LED para jardin") sale solo la familia: "para jardin" es el uso que
@@ -1834,7 +1858,61 @@ function mergeProductFields(
     // Un mensaje que pregunta el precio o algo tecnico recibe esa respuesta (pide el correo), como en main.
     && !questionAsksEmail(questionKinds(body));
   const rutToConfirm = !state.rutRetryAsked && ((invalidHere && companyRut) || becameCompany);
-  return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick, ...(summaryReply ? { addsProduct, addedText } : {}) };
+  return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick, ...(summaryReply ? { addsProduct, addedText, listReplace: Boolean(listText), switchWords } : {}) };
+}
+/**
+ * [RESUMEN] (revision 17-11) La lista de items de la respuesta al resumen, desde su primer par ("No, son 8 paneles y 15
+ * focos" -> "8 paneles y 15 focos"), o nada si trae menos de 2 pares limpios. Sin la palabra de correccion del inicio, el
+ * resumen corregido puede leer la lista (summaryItems no resume un texto con una correccion dentro).
+ */
+function summaryList(text: string): string | undefined {
+  const flat = text.replace(/[^\S\n]+/g, ' ');
+  const pairs = itemPairs(flat);
+  if (pairs.length < 2) return undefined;
+  const at = flat.indexOf(pairs[0]);
+  if (at < 0) return undefined;
+  return flat.slice(at).replace(/\s+/g, ' ').trim().slice(0, MAX_VARIOS) || undefined;
+}
+/** [RESUMEN] (revision 17-11) Los items capturados en pares, como los lee el resumen (summaryItems). */
+function capturedPairs(captured: CapturedFields): string[] {
+  if (captured.cantidad && captured.producto) return [captured.cantidad + ' ' + captured.producto];
+  if (!captured.cantidad_varios) return [];
+  let text = captured.cantidad_varios;
+  const own = captured.producto ? captured.producto + ': ' : undefined;
+  const prefix = own && text.startsWith(own) ? /^(\d{1,5})( m)? \/ /.exec(text.slice(own.length)) : null;
+  const pairs: string[] = [];
+  if (own && prefix) {
+    pairs.push(prefix[1] + ' ' + captured.producto);
+    text = text.slice(own.length + prefix[0].length);
+  }
+  return [...pairs, ...itemPairs(text)];
+}
+/** [RESUMEN] (revision 17-11) Los mismos items: cada par con la misma cantidad y el mismo producto, dicho igual o con menos palabras. */
+function sameItems(a: string[], b: string[]): boolean {
+  if (!a.length || a.length !== b.length) return false;
+  const key = (pair: string) => {
+    const m = /^(\S+)\s+(.*)$/.exec(pair);
+    return m ? { n: m[1].replace(/\./g, ''), words: productWords(m[2]) } : undefined;
+  };
+  const left = b.map(key);
+  return a.every((pair) => {
+    const k = key(pair);
+    const i = left.findIndex((o) => o && k && o.n === k.n && (k.words.every((w) => o.words.includes(w)) || o.words.every((w) => k.words.includes(w))));
+    if (i < 0) return false;
+    left.splice(i, 1);
+    return true;
+  });
+}
+/** [RESUMEN] (revision 17-11) La lista nueva reemplaza la cantidad o los varios items, con su linea de cambio. */
+function replaceVarios(merged: CapturedFields, text: string): void {
+  if (!merged.cantidad && comparable(merged.cantidad_varios ?? '') === comparable(text)) return;
+  const before = merged.cantidad
+    ? merged.cantidad + (merged.cantidad_unidad === 'm' ? ' m' : '')
+    : merged.cantidad_varios ? 'varios items (' + merged.cantidad_varios.slice(0, 80) + ')' : undefined;
+  delete merged.cantidad;
+  delete merged.cantidad_unidad;
+  merged.cantidad_varios = text;
+  if (before) noteChange(merged, 'cantidad', before, 'varios items (' + text.slice(0, 160) + ')');
 }
 /** [RESUMEN] (revision 16-11) La respuesta corta que nombra un uso: hasta 4 palabras, sin numeros, color ni comuna. */
 function shortUseReply(facts: string): boolean {
@@ -2020,6 +2098,14 @@ const SUMMARY_YES_AND_RE = new RegExp('^(?:' + YES_WORDS + ' )+y ', 'u');
 // [RESUMEN] (revision 16-11) Otro producto en lugar del capturado, sin palabra de correccion de CORRECTION_RE: "en
 // realidad", "al final", "quise decir", "me confundi", "error mio", "eran 20 focos LED".
 const SUMMARY_SWITCH_RE = /(?<![a-z\u00e0-\u00fc])(?:definitiv[a-z]*|en\s+realidad|al\s+final|finalmente|quise\s+decir|quer[i\u00ed]a\s+decir|me\s+confund[a-z\u00e0-\u00fc]*|me\s+equivoqu[a-z\u00e0-\u00fc]*|error\s+m[i\u00ed]o|mi\s+error|eran?)(?![a-z\u00e0-\u00fc])/i;
+// [RESUMEN] (revision 17-11) Las otras palabras de cambio de LATE_CORRECTION_RE: "Cambio: ...", "Lo cambio por",
+// "Cambio a", "Modifico:", "Actualizo: son". No "para cambiar los del patio" ni "con cambio de color", que piden algo.
+const SUMMARY_CHANGE_RE = /(?<![a-z\u00e0-\u00fc])(?:actualiz[a-z]*|modific[a-z]*|(?<!\b(?:para|con)\s+)cambi[a-z]*(?![a-z\u00e0-\u00fc])(?!\s+de\s+(?:colou?r(?:es)?|temperatura|luz|tono|tonalidad)))(?![a-z\u00e0-\u00fc])/i;
+// [RESUMEN] (revision 17-11) "Son ..." al inicio dice cual es el pedido ("Son 20 focos LED"): no suma otro item.
+const SUMMARY_IS_RE = /^\s*son\s/i;
+// [RESUMEN] (revision 17-11) "pero mejor 25" corrige como "mejor 25" (CORRECTION_RE lo pide al inicio de una frase); "a
+// lo mejor 5 mas" no.
+const SUMMARY_BETTER_RE = /(?<![a-z\u00e0-\u00fc])(?<!\blo\s+)mejor\s+(?:\d|son\b|que\s+sean|ser[i\u00ed]an)/i;
 // [RESUMEN] (revision 16-11) La respuesta que es solo una comuna: "Pudahuel", "en Pudahuel", "Es en Pudahuel", "No,
 // Pudahuel", "La comuna es Pudahuel". "Mi cunado vive en Pirque" o "estoy en Santiago" no contestan el resumen.
 const COMUNA_REPLY_LEAD_RE = /^\s*(?:(?:no|s[i\u00ed]|ok|okay|bueno|perd[o\u00f3]n|corrijo|correcci[o\u00f3]n|ahora)[\s,.:;!]+)*(?:(?:es|ser[i\u00ed]a|queda)\s+)?(?:(?:en|a|para)\s+)?(?:(?:la\s+)?(?:comuna|ciudad)\s*(?::\s*|\s+(?:es\s+|de\s+)?))?/i;
@@ -2065,7 +2151,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
     if (!data.trim()) return undefined;
   }
   const question = /[?\u00bf]/.test(data);
-  const { merged, leadType, addsProduct = false, addedText = '' } = mergeProductFields(state, data, claudeParsed, hasMedia, summaryReply);
+  const { merged, leadType, addsProduct = false, addedText = '', listReplace = false, switchWords = false } = mergeProductFields(state, data, claudeParsed, hasMedia, summaryReply);
   const facts = factsText(data, claudeParsed);
   const captured: CapturedFields = { ...state.captured };
   // [RESUMEN] Al contestar el resumen, un dato afirmado distinto del capturado lo corrige sin palabra de correccion. El
@@ -2078,7 +2164,8 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   const hedge = SUMMARY_HEDGE_RE.test(facts);
   const relaxable = summaryReply && !hedge && !SUMMARY_ADDITIVE_RE.test(facts) && !SUMMARY_YES_AND_RE.test(summaryAnswerText(data));
   const summaryFix = summaryReply && Boolean(lastQuestionOf(state)?.summaryFix);
-  const addsItem = merged.cantidad_varios !== undefined && merged.cantidad_varios !== state.captured.cantidad_varios;
+  // (revision 17-11) La lista completa nueva (listReplace) reemplaza los items: no es otro item.
+  const addsItem = !listReplace && merged.cantidad_varios !== undefined && merged.cantidad_varios !== state.captured.cantidad_varios;
   const relaxed = (field: typeof LATE_FIELDS[number]): boolean => {
     if (!summaryReply) return false;
     if (field === 'comunas_otras') return captured.comuna_o_ciudad !== state.captured.comuna_o_ciudad;
@@ -2095,18 +2182,21 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   let changed = false;
   // [RESUMEN] (revision 16-11) Un cambio firme: con palabra de correccion, un dato que faltaba, otro item con su
   // producto, o una cantidad dentro de varios items. Uno sin palabra de correccion (relaxed) se escribe solo si el
-  // resumen corregido se puede mostrar.
-  let firm = false;
+  // resumen corregido se puede mostrar. (revision 17-11) Se anota cada dato que cambio sin ser firme (soft): si el
+  // resumen corregido no sale (ya se mostro o no se puede armar), esos datos vuelven a lo registrado.
+  const soft = new Set<string>();
   // (revision 13-11) La cantidad, los varios items y los metros cambian juntos o no cambian: "Son 5 unidades" despues de
   // "12 focos y 5 paneles" ya no deja el numero y los varios items a la vez.
   const sameQty = QTY_FIELDS.every((field) => JSON.stringify(state.captured[field] ?? null) === JSON.stringify(merged[field] ?? null));
   const hadQty = Boolean(state.captured.cantidad || state.captured.cantidad_varios);
-  let qtyOk = !hadQty || correctsCaptured(data, state.captured, merged.cantidad ?? merged.cantidad_varios);
-  if (qtyOk) firm = true;
+  // (revision 17-11) "Esta bien, pero mejor 25 paneles" tambien corrige (SUMMARY_BETTER_RE).
+  let qtyOk = !hadQty || correctsCaptured(data, state.captured, merged.cantidad ?? merged.cantidad_varios)
+    || (summaryReply && !hedge && SUMMARY_BETTER_RE.test(facts));
+  let qtyFirm = qtyOk;
   // [RESUMEN] (revision 16-11) Otro item cuenta si nombra su producto ("Tambien necesito 10 focos LED"): "Si, en 2
   // semanas mas" o "tengo 3 obras mas" no.
-  else if (summaryReply) qtyOk = addsItem ? addsProduct && !hedge : relaxable;
-  if (addsItem && addsProduct && qtyOk) firm = true;
+  if (!qtyOk && summaryReply) qtyOk = addsItem ? addsProduct && !hedge : relaxable;
+  if (addsItem && addsProduct && qtyOk) qtyFirm = true;
   // [RESUMEN] (revision 16-11) Una cantidad sola despues de varios items ("Son 8 paneles" despues de "12 focos LED y 5
   // paneles LED") es la de uno de ellos: se suma al texto de varios items para el vendedor y no hay resumen.
   const oneOfSeveral = summaryReply && Boolean(state.captured.cantidad_varios && !state.captured.cantidad)
@@ -2119,7 +2209,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
       for (const field of QTY_FIELDS) delete captured[field];
       captured.cantidad_varios = (before + ' / ' + text).slice(0, 2 * MAX_VARIOS);
       qtyLine = KEPT_LABEL.cantidad + ': antes ' + 'varios items (' + before.slice(0, 80) + ')' + ', ahora ' + 'varios items (' + captured.cantidad_varios.slice(0, 160) + ')';
-      firm = true;
+      qtyFirm = true;
     } else {
       for (const field of QTY_FIELDS) {
         if (merged[field] === undefined) delete captured[field];
@@ -2127,6 +2217,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
       }
     }
     applied.add('cantidad');
+    if (!qtyFirm) soft.add('cantidad');
     changed = true;
   }
   for (const field of LATE_FIELDS) {
@@ -2142,9 +2233,11 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
     // El color o el uso que se llena con lo que Claude recuerda (sin decirlo en este mensaje) no cuenta.
     if ((field === 'tipo_de_luz' || field === 'proyecto_o_uso' || field === 'producto') && typeof value === 'string' && !sharesWord(value, facts) && !textLuz(facts)) continue;
     // (revision 12-11) Un dato ya registrado cambia solo con una correccion (correctsCaptured); uno vacio se completa.
-    const corrects = !filled(field) || correctsCaptured(data, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value);
+    // (revision 17-11) El producto tambien con una palabra de cambio ("Cambio: ...", "Eran 20 focos LED", "no paneles").
+    const corrects = !filled(field) || correctsCaptured(data, state.captured, field === 'comunas_otras' ? merged.comuna_o_ciudad : value)
+      || (field === 'producto' && switchWords);
     if (!corrects && !relaxed(field)) continue;
-    if (corrects && field !== 'comunas_otras') firm = true;
+    if (!corrects) soft.add(field);
     (captured as Record<string, unknown>)[field] = value;
     applied.add(field === 'comunas_otras' ? 'comuna_o_ciudad' : field);
     changed = true;
@@ -2161,8 +2254,23 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   const noSummary = oneOfSeveral || itemOwnData;
   const again = summaryReply && !noSummary && (state.summaryShown ?? 1) < 2 ? summaryMsg(captured) : undefined;
   // [RESUMEN] (revision 16-11) Un cambio sin palabra de correccion que deja un resumen que no se puede armar no se
-  // escribe: sigue la respuesta al resumen sin cambios.
-  if (summaryReply && !firm && !again && (state.summaryShown ?? 1) < 2) return undefined;
+  // escribe: sigue la respuesta al resumen sin cambios. (revision 17-11) Tampoco despues del segundo resumen ("Si, mi casa
+  // esta en Pirque"): sin el resumen corregido a la vista, nada cambia en silencio. Se escriben solo los datos firmes.
+  if (summaryReply && !again && soft.size) {
+    const restore = (field: string) => {
+      for (const f of field === 'cantidad' ? QTY_FIELDS : [field] as Array<keyof CapturedFields>) {
+        if (state.captured[f] === undefined) delete captured[f];
+        else (captured as Record<string, unknown>)[f] = state.captured[f];
+      }
+    };
+    if (soft.has('comuna_o_ciudad')) soft.add('comunas_otras');
+    for (const field of soft) restore(field);
+    const comunaKept = !soft.has('comuna_o_ciudad') && JSON.stringify(captured.comuna_o_ciudad ?? null) !== JSON.stringify(state.captured.comuna_o_ciudad ?? null);
+    const otrasKept = !soft.has('comunas_otras') && JSON.stringify(captured.comunas_otras ?? null) !== JSON.stringify(state.captured.comunas_otras ?? null);
+    for (const field of soft) if (field !== 'comuna_o_ciudad' && field !== 'comunas_otras') applied.delete(field);
+    if (!comunaKept && !otrasKept) applied.delete('comuna_o_ciudad');
+    if (!applied.size) return undefined;
+  }
   // Solo las lineas de cambio de los datos que se aplicaron.
   const labels = [...applied].filter((field) => !(qtyLine && field === 'cantidad')).map((field) => KEPT_LABEL[field as KeptField]).filter(Boolean);
   const previous = state.captured.cambios ?? [];
