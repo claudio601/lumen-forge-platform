@@ -2,7 +2,7 @@
 // Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = '4a4c305e188a';
+export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2251313": ["https://images.jumpseller.com/store/elights-cl/2251313/attachments/15146e05ea68ef8f78a44b337b0a4525/FT_AMPOLLETA_LED_DICROICA_4-50W_GU10_eLIGHTS.cl.pdf?1669657872"],
@@ -184,7 +184,6 @@ export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "4156930": ["https://images.jumpseller.com/store/elights-cl/4156930/attachments/4e9a0cea2b73b39854b550826b88349c/BESTLED-150W-v3.3.pdf?1779721076"],
   "4190659": ["https://images.jumpseller.com/store/elights-cl/4190659/attachments/5cce5474682a5e58e0c7a5f97d400d4c/FT_PANEL_LED_BACKLIGHT_60X60_CM._48W_PARA_CIELO_AMERICANO-ELIGHTS.CL__1_.pdf?1743017551"],
   "4370201": ["https://images.jumpseller.com/store/elights-cl/4370201/attachments/2cacb71d0ddab749303c8cf988938caa/FT_FUENTE_DE_PODER_SWITCHING_400W_INTERIOR_PERFORADA_eLIGHTS.cl_1_.pdf?0"],
-  "4371411": ["https://images.jumpseller.com/store/elights-cl/4371411/attachments/1f0d4723c97d42ad3990aee47603e6f5/FT_PANEL_LED_CONCENTRICO_OPAL_40W_eLIGHTS__2___1_.pdf?1755106693"],
   "4426526": ["https://images.jumpseller.com/store/elights-cl/4426526/attachments/f39e65a22d225c2fdf1226f7efef06bf/FT_PANEL_LED_BACKLIGHT_120X30CM_48W_PARA_CIELO_AMERICANO-ELIGHTS.CL.pdf?1700163716"],
   "4450187": ["https://images.jumpseller.com/store/elights-cl/4450187/attachments/75dc9f6ad5c4dc790058b9a7b0284fd0/FT_Proyector_LED_de_Estadio_600W_IP66_IK09_eLIGHTS.cl_1.pdf?1653223526"],
   "4537309": ["https://images.jumpseller.com/store/elights-cl/4537309/attachments/8a33dd5fbb06c5bfbfe82b2d54aac8ce/FT_FUENTE_DE_PODER_SWITCHING_150W_EXTERIOR_eLIGHTS.cl_1_.pdf?0"],
