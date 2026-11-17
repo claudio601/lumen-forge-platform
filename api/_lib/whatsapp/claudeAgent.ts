@@ -26,9 +26,11 @@ export interface ClaudeParsed {
  * - varios_json: 4 o mas marcas ``` (mas de un bloque, no se elige);
  * - no_es_objeto: JSON valido que no es un objeto plano (null, una lista, un texto, un numero);
  * - json_invalido: el bloque, o el texto entero, no es JSON (con texto alrededor del objeto, por ejemplo);
- * - sin_json: sin bloque y sin ninguna llave.
+ * - sin_json: sin bloque y sin ninguna llave;
+ * - rechazo: stop_reason refusal (los filtros de seguridad de Haiku 5.5 declinaron el pedido; no hay respaldo
+ *   en el servidor para este modelo, asi que el paso queda de las reglas del flujo).
  */
-export type ClaudeFallbackReason = 'respuesta_incompleta' | 'sin_json' | 'json_invalido' | 'json_incompleto' | 'varios_json' | 'no_es_objeto';
+export type ClaudeFallbackReason = 'respuesta_incompleta' | 'rechazo' | 'sin_json' | 'json_invalido' | 'json_incompleto' | 'varios_json' | 'no_es_objeto';
 /** [RESPUESTA] Que quedo con su valor por defecto y por que. Solo datos tecnicos: nunca texto del cliente. */
 export interface ClaudeDiagnostics {
   /** Algun campo (o todos) quedo con su valor por defecto. */
@@ -40,6 +42,8 @@ export interface ClaudeDiagnostics {
   stopReason: string | null;
   /** Largo del texto que devolvio Claude (caracteres). */
   length: number;
+  /** [MODELO] Tokens del pedido, si la API los informa (para comparar modelos; no va al registro). */
+  tokens?: { input: number; output: number };
 }
 export interface ClaudeResult {
   reply: string;
@@ -107,7 +111,7 @@ function parseJson(source: string): { ok: true; value: unknown } | { ok: false }
     return { ok: false };
   }
 }
-type Extracted = { ok: true; value: Record<string, unknown> } | { ok: false; reason: Exclude<ClaudeFallbackReason, 'respuesta_incompleta'> };
+type Extracted = { ok: true; value: Record<string, unknown> } | { ok: false; reason: Exclude<ClaudeFallbackReason, 'respuesta_incompleta' | 'rechazo'> };
 /** Un objeto plano, o el motivo: `no_es_objeto` si es otro JSON, `json_invalido` si no es JSON. */
 function plainObject(source: string): Extracted {
   const parsed = parseJson(source);
@@ -164,6 +168,37 @@ export function readClaudeFields(raw: Record<string, unknown>, fallbackSummary: 
   else fields.summary = isMissing(summary) || typeof summary === 'string' ? 'falta' : 'tipo';
   return { parsed, fields };
 }
+/**
+ * [MODELO] Claude Haiku 5.5 desde el 17-11-2026 (antes claude-haiku-4-5; ANTHROPIC_MODEL lo cambia sin tocar
+ * el codigo). Haiku 5.5 piensa por defecto y lo que piensa cuenta en max_tokens: aqui va sin pensamiento y con
+ * esfuerzo bajo (solo extrae campos a JSON) y con 1024 tokens, porque su tokenizador cuenta ~30% mas que el de
+ * 4.5. Sin temperature, top_p ni top_k (Haiku 5.5 responde 400) y sin prellenado: el ultimo mensaje es siempre
+ * del cliente. Haiku 4.5 no acepta output_config: con ANTHROPIC_MODEL=claude-haiku-4-5 va el pedido de antes.
+ */
+export const DEFAULT_MODEL = 'claude-haiku-5-5';
+const LEGACY_MODEL_RE = /^claude-haiku-4-5/;
+/** [MODELO] Solo para comparar configuraciones fuera del webhook; el webhook usa los valores por defecto. */
+export interface AskOptions {
+  model?: string;
+  thinking?: 'disabled' | 'adaptive';
+  effort?: 'low' | 'medium' | 'high';
+  maxTokens?: number;
+}
+// El SDK 0.36 no tipa thinking ni output_config: se agregan al tipo y viajan tal cual en el cuerpo del pedido.
+type CreateParams = Anthropic.MessageCreateParamsNonStreaming & {
+  thinking?: { type: 'disabled' | 'adaptive' };
+  output_config?: { effort: 'low' | 'medium' | 'high' };
+};
+export function requestParams(model: string, messages: Anthropic.MessageParam[], opts: AskOptions = {}): CreateParams {
+  const base = { model, system: SYSTEM_PROMPT, messages };
+  if (LEGACY_MODEL_RE.test(model)) return { ...base, max_tokens: opts.maxTokens ?? 400 };
+  return {
+    ...base,
+    max_tokens: opts.maxTokens ?? 1024,
+    thinking: { type: opts.thinking ?? 'disabled' },
+    output_config: { effort: opts.effort ?? 'low' },
+  };
+}
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (!_client) {
@@ -177,6 +212,7 @@ export async function askClaude(
   history: ConversationTurn[],
   newMessage: string,
   profileName: string,
+  opts: AskOptions = {},
 ): Promise<ClaudeResult> {
   const client = getClient();
   const messages: Anthropic.MessageParam[] = [
@@ -188,20 +224,21 @@ export async function askClaude(
         : newMessage,
     },
   ];
-  const response = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL ?? 'claude-haiku-4-5',
-    max_tokens: 400,
-    system: SYSTEM_PROMPT,
-    messages,
-  });
-  // [RESPUESTA] Todos los bloques de texto, en orden (antes, solo el primero).
+  const params = requestParams(opts.model ?? process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL, messages, opts);
+  const response = await client.messages.create(params);
+  // [MODELO] El SDK 0.36 no conoce 'refusal' en su tipo: se lee como texto.
+  const stopReason: string | null = response.stop_reason ?? null;
+  // [RESPUESTA] Todos los bloques de texto, en orden (antes, solo el primero). [MODELO] Por tipo: un bloque
+  // thinking (Haiku 5.5 con pensamiento) no es texto y se salta.
   const texts = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : []));
-  if (!texts.length) throw new Error(LOG_PREFIX + ' No text block');
+  if (!texts.length && stopReason !== 'refusal') throw new Error(LOG_PREFIX + ' No text block');
   const rawText = texts.join('\n');
-  const stopReason = response.stop_reason ?? null;
   const diagnostics: ClaudeDiagnostics = { usedDefaults: false, fields: {}, stopReason, length: rawText.length };
+  if (response.usage) diagnostics.tokens = { input: response.usage.input_tokens, output: response.usage.output_tokens };
   // [RESPUESTA] Cortada por max_tokens: incompleta, no se usa nada (un dato a medias no es un dato).
-  const extracted = stopReason === 'max_tokens' ? { ok: false as const, reason: 'respuesta_incompleta' as const } : extractJsonObject(rawText);
+  // [MODELO] Rechazada por los filtros de seguridad: tampoco (lo que haya de texto no es la respuesta).
+  const extracted = stopReason === 'refusal' ? { ok: false as const, reason: 'rechazo' as const }
+    : stopReason === 'max_tokens' ? { ok: false as const, reason: 'respuesta_incompleta' as const } : extractJsonObject(rawText);
   // Sin nada utilizable, los valores por defecto de siempre; el webhook registra el motivo (en vez de "Claude ok")
   // y el paso queda de las reglas del flujo. (=== false: sin strictNullChecks, `if (x.ok)` no estrecha la union.)
   let parsed: ClaudeParsed = { wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + newMessage.substring(0, 100) + '"' };
