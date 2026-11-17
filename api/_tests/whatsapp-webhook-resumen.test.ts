@@ -505,3 +505,97 @@ describe('(ronda 4) la red de seguridad del resumen por el webhook', () => {
     expect({ ...counts(), updates: sim.updates.length }).toEqual(before);
   });
 });
+
+// Quinta ronda de la fase 3B (17-11-2026), por el webhook: toda respuesta al resumen que no se aplica entera deja la línea
+// textual en el mismo negocio (también el comentario, la pregunta con un dato y lo aplicado en parte, que recibe MSG4),
+// y nada de lo que se escribe con el resumen pendiente avisa otra vez a ventas.
+describe('(ronda 5) la línea textual y un solo aviso por el webhook', () => {
+  const PANELS = 'Necesito 20 paneles LED 60x60 luz neutra para una oficina en Maipú';
+  const PANELS_CLAUDE = { producto: 'paneles LED 60x60', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú' };
+  const PANELS_SUMMARY = 'Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está bien?';
+  const ITEMS = 'Necesito 12 focos LED y 5 paneles LED luz fría para una bodega en Quilicura';
+  const ITEMS_CLAUDE = { producto: 'focos LED y paneles LED', tipo_de_luz: 'fría', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura' };
+  const ITEMS_SUMMARY = 'Te resumo: 12 focos LED y 5 paneles LED, luz fría, para bodega y en Quilicura. ¿Está bien?';
+
+  it.each<[string, Record<string, unknown>, string]>([
+    ['Mi cuñado vive en Pirque', { comuna_o_ciudad: 'Pirque' }, MSG_REGISTERED_SHORT],
+    ['Gracias! mi otra casa está en Pirque', { comuna_o_ciudad: 'Pirque' }, MSG_REGISTERED_SHORT],
+    ['luz blanca', {}, MSG_REGISTERED_SHORT],
+    ['Es para la oficina del segundo piso', {}, MSG_REGISTERED_SHORT],
+    ['Sí, pero con sensor', {}, MSG4],
+  ])('«%s»: la respuesta de siempre y la línea en el negocio 9001, sin cambiar campos ni avisar', async (body, parsed, reply) => {
+    const hook = await instance();
+    expect(await closeWithSummary(hook, PANELS, PANELS_CLAUDE)).toBe(PANELS_SUMMARY);
+    const notes = sim.notes.length;
+    claude(body, parsed);
+    expect(await post(hook, body)).toBe(reply);
+    expectUnappliedNote(notes, body);
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject(PANELS_CLAUDE);
+  });
+
+  it('la pregunta con un dato («¿Hacen envío a Rancagua?»): la respuesta del despacho y la línea, sin avisar', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    const notes = sim.notes.length;
+    claude('¿Hacen envío a Rancagua?', { comuna_o_ciudad: 'Rancagua' });
+    expect(await post(hook, '¿Hacen envío a Rancagua?')).toContain('despacho');
+    expectUnappliedNote(notes, '¿Hacen envío a Rancagua?');
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow.captured).toMatchObject({ comuna_o_ciudad: 'Maipú' });
+  });
+
+  it('aplicado en parte («Que sean 30 de 48W»): MSG4 y una nota con «Cambios:» y la línea en el negocio 9001, sin avisar', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+    const notes = sim.notes.length;
+    claude('Que sean 30 de 48W', { cantidad: '30' });
+    expect(await post(hook, 'Que sean 30 de 48W')).toBe(MSG4);
+    expect(sim.notes).toHaveLength(notes + 1);
+    const note = unescape(sim.notes.at(-1)!.content);
+    expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+    expect(note).toContain('Cantidad: antes 20, ahora 30');
+    expect(note).toContain(UNAPPLIED + '"Que sean 30 de 48W"');
+    expect(sim.deals).toHaveLength(1);
+    for (const update of sim.updates) expect(update.dealId).toBe(9001);
+    expect(sim.notified).toBe(1);
+    expect((await snapshot()).flow).toMatchObject({ captured: { cantidad: '30' }, summaryShown: 1, lastQuestion: null });
+  });
+
+  it.each(['No, 12 focos y 5 paneles', 'No, 12 focos LED c/u a $3.000 y 5 paneles'])(
+    '«%s» en los paneles: la lista en el negocio 9001 con un solo aviso en total', async (body) => {
+      const hook = await instance();
+      await closeWithSummary(hook, PANELS, PANELS_CLAUDE);
+      const notes = sim.notes.length;
+      claude(body, {});
+      await post(hook, body);
+      expect(sim.notes).toHaveLength(notes + 1);
+      expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+      expect(unescape(sim.notes.at(-1)!.content)).toContain('Cantidad: antes 20, ahora varios items (' + body.replace(/^No, /, '') + ')');
+      expect(sim.deals).toHaveLength(1);
+      expect(sim.notified).toBe(1);
+    });
+
+  it.each(['No, 12 focos y 5 paneles', 'No, 12 focos LED c/u a $3.000 y 5 paneles'])(
+    '«%s» en el pedido de varios items: la línea, sin sumar otro item, con un solo aviso en total', async (body) => {
+      const hook = await instance();
+      expect(await closeWithSummary(hook, ITEMS, ITEMS_CLAUDE)).toBe(ITEMS_SUMMARY);
+      const notes = sim.notes.length;
+      claude(body, {});
+      expect(await post(hook, body)).toBe(MSG_REGISTERED_SHORT);
+      expectUnappliedNote(notes, body);
+      expect(sim.notified).toBe(1);
+      expect((await snapshot()).flow.captured.cantidad_varios).not.toContain(' / ');
+    });
+
+  it('el cambio de un item («Los focos son 15»): el resumen corregido y la lista nueva en el negocio 9001, sin avisar', async () => {
+    const hook = await instance();
+    await closeWithSummary(hook, ITEMS, ITEMS_CLAUDE);
+    claude('Los focos son 15', {});
+    expect(await post(hook, 'Los focos son 15')).toBe('Te resumo: 15 focos LED y 5 paneles LED, luz fría, para bodega y en Quilicura. ¿Está bien?');
+    expect(unescape(sim.notes.at(-1)!.content)).toContain('ahora varios items (15 focos LED y 5 paneles LED)');
+    expect(sim.notes.at(-1)!.deal_id).toBe(9001);
+    expect(sim.deals).toHaveLength(1);
+    expect(sim.notified).toBe(1);
+  });
+});

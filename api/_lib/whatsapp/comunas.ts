@@ -390,6 +390,14 @@ export interface ComunaOptions {
   firmOnly?: boolean;
 }
 
+/**
+ * [RESUMEN] (ronda 5, C1) La comuna tambien es una palabra comun ("Victoria", "Recoleta", "Retiro"): fuera de la respuesta
+ * a la pregunta por la comuna, cuenta solo escrita con mayuscula.
+ */
+export function isCommonWordComuna(name: string): boolean {
+  return COMMON_WORD.has(name) || ANSWER_ONLY.has(name);
+}
+
 /** [COMUNA] Los nombres de findComunaMentions. */
 export function findComunas(text: string, opts: ComunaOptions = {}): string[] {
   return findComunaMentions(text, opts).map((m) => m.name);

@@ -5,7 +5,7 @@
 // Solo mensajes, correos y RUT inventados.
 
 import { describe, expect, it } from 'vitest';
-import { claudeQuantity, readQuantity } from './quantity';
+import { claudeQuantity, readQuantity, spelledQuantities } from './quantity';
 import { jumpsellerSnapshot } from '../../../src/data/catalog/jumpseller-snapshot.generated';
 import { waProductUrl } from '../../../src/config/business';
 import { isSyncBot } from '../../../src/test/syncBot';
@@ -567,5 +567,26 @@ describe('[LED-INTERNOS] (revisión 13-11) la cantidad pedida con otro producto 
   });
   it('la lista de especificaciones sigue sin cantidad', () => {
     expect(readQuantity('Luminaria vial solar led\n600w\n126 led\n3000 lumenes\nIp 65', { asked: true }).value).toBeUndefined();
+  });
+});
+
+// (ronda 5, C2) La respuesta al resumen con la cantidad en palabras: un solo lector, el de este archivo.
+describe('spelledQuantities: la cantidad en palabras pasa a cifras', () => {
+  it.each([
+    ['No, treinta', 'No, 30'], ['Treinta', '30'], ['Que sean treinta', 'Que sean 30'], ['Sí, pero treinta por favor', 'Sí, pero 30 por favor'],
+    ['una docena', '12'], ['media docena', '6'], ['dos docenas de focos', '24 focos'], ['veinticinco', '25'], ['cuarenta y cinco', '45'],
+    ['cien', '100'], ['Son ciento veinte', 'Son 120'], ['trescientos metros', '300 metros'], ['mil quinientos', '1500'],
+  ])('«%s» → «%s»', (text, expected) => {
+    expect(spelledQuantities(text)).toBe(expected);
+  });
+
+  it.each(['mil gracias', 'un panel', 'una oficina', 'tengo dos bodegas', 'para el uno de diciembre'])('«%s» queda igual: no es la cantidad', (text) => {
+    expect(spelledQuantities(text)).toBe(text);
+  });
+
+  it('con `all`, todas las cantidades en palabras (para comparar lo dicho con lo anotado)', () => {
+    expect(spelledQuantities('doce focos y cinco paneles', true)).toBe('12 focos y 5 paneles');
+    expect(spelledQuantities('tengo dos bodegas', true)).toBe('tengo 2 bodegas');
+    expect(spelledQuantities('mil gracias', true)).toBe('mil gracias');
   });
 });

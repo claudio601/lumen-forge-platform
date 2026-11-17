@@ -474,3 +474,46 @@ export function readQuantity(body: string, options: QuantityOptions = {}): Quant
   }
   return loose.length === 1 && claudeQuantity(options.claude) === loose[0] ? { value: loose[0], explicit: false } : { explicit: false };
 }
+
+// [RESUMEN] (ronda 5, C2) La cantidad en palabras en la respuesta al resumen: "treinta", "veinticinco", "treinta y cinco",
+// "cien", "una docena", "media docena", "dos docenas". El parser es el de arriba (NUMBER_WORDS y wordsValue); "un", "una"
+// y "uno" solos son el articulo y "mil" solo es "mil gracias".
+const DOZEN_RE = new RegExp('\\b(?:(una|media)|(' + byLength(Object.keys(NUMBER_WORDS).filter((w) => !/^un[oa]?$/.test(w))) + ')|(\\d{1,3}))\\s+docenas?\\b(\\s+de\\b(?=\\s+[a-z]))?', 'g');
+// La expresion es una clausula por si sola: antes, el inicio o una pausa y a lo sumo palabras que la presentan ("No,
+// treinta", "Que sean treinta", "Si, pero treinta"); despues, el fin, una pausa, " y ", la cortesia o la unidad.
+const SPELLED_LEAD_RE = /(?:^|[,;:.!?\u00a1\u00bf]|\by)\s*(?:(?:no|si|ok|okay|okey|pero|son|sean|que|mejor|perdon|corrijo|bueno|ya|entonces|ahora|ah|hola|eran|era|serian|seran|sera|seria|solo|solamente|unos|unas|como|aprox|aproximadamente|total|cantidad|necesito|necesitamos|quiero|queremos|pon|ponle)[\s,.:;!]*)*$/;
+const SPELLED_TAIL_RE = /^\s*(?:$|[,;.!?]|y\b|(?:por\s+favor|porfa|porfis|gracias|unidades|unidad|unds?|uds?|u|metros?|mtrs?|mts?|m)\b|[^\s\w])/;
+/**
+ * [RESUMEN] (ronda 5, C2) El texto con la cantidad en palabras escrita en cifras ("No, treinta" -> "No, 30"; "una docena"
+ * -> "12"; "dos docenas de focos" -> "24 focos"), con el resto tal cual. Solo la expresion que es una clausula por si
+ * sola; con `all`, todas (para comparar lo que dijo el cliente con lo que quedo anotado). Un texto que cambia de largo
+ * al sacarle las tildes queda igual.
+ */
+export function spelledQuantities(text: string, all = false): string {
+  if (text.length > MAX_TEXT) return text;
+  const source = plain(text);
+  if (source.length !== text.length) return text;
+  const edits: Array<{ start: number; end: number; value: string }> = [];
+  for (const m of source.matchAll(DOZEN_RE)) {
+    const count = m[1] === 'media' ? 0.5 : m[1] === 'una' ? 1 : m[2] ? wordsValue(m[2]) : Number(m[3]);
+    const value = count === undefined ? undefined : count * 12;
+    if (value !== undefined && value >= 1 && value <= MAX_QUANTITY) edits.push({ start: m.index, end: m.index + m[0].length, value: String(value) });
+  }
+  for (const m of source.matchAll(WORD_SPAN_RE)) {
+    const start = m.index;
+    const end = start + m[0].length;
+    if (/^(?:un[oa]?|mil)$/.test(m[0]) || edits.some((e) => start < e.end && end > e.start)) continue;
+    const value = wordsValue(m[0]);
+    if (value === undefined || value > MAX_QUANTITY) continue;
+    if (!all && !(SPELLED_LEAD_RE.test(source.slice(Math.max(0, start - 60), start)) && SPELLED_TAIL_RE.test(source.slice(end)))) continue;
+    edits.push({ start, end, value: String(value) });
+  }
+  if (!edits.length) return text;
+  let out = '';
+  let last = 0;
+  for (const e of edits.sort((a, b) => a.start - b.start)) {
+    out += text.slice(last, e.start) + e.value;
+    last = e.end;
+  }
+  return out + text.slice(last);
+}

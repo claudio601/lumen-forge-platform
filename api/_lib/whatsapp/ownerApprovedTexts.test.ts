@@ -386,10 +386,13 @@ const IMPORTS: Record<string, Record<string, string>> = {
   quantity: {
     itemsIn: 'lee los ítems del mensaje (dato)', mentionsQuantity: 'lee la cantidad (dato)', readQuantity: 'lee la cantidad (dato)',
     itemPairs: 'lee los ítems «cantidad + producto» del texto del cliente para el resumen (trozos de su texto, sin texto del bot)',
+    spelledQuantities: 'pasa a cifras los números en palabras del mensaje del cliente (dato)',
+    withoutNonQuantities: 'saca del mensaje lo que no es cantidad antes de leer la cantidad de cada ítem (dato)',
   },
   comunas: {
     findComunaMentions: 'lee la comuna (dato)', findComunas: 'lee la comuna (dato)', mentionsCompany: 'señal de empresa (dato)',
     officialComuna: 'nombre oficial de la comuna (el dato del cliente)',
+    isCommonWordComuna: 'la comuna también es una palabra común: cuenta solo con mayúscula (dato)',
   },
   conversation: { getHistory: 'historial para Claude', addTurn: 'historial para Claude' },
   claudeAgent: { askClaude: 'extrae datos y el resumen interno; su reply (FALLBACK_REPLY) no se envía' },

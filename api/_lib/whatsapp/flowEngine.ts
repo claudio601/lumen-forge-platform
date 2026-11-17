@@ -2,9 +2,9 @@
 // shouldNotify es siempre false aqui - la regla real vive en webhook.ts.
 import { inspectRut, isBusinessRut, removeRuts, rutRange } from './rutCapture.js';
 import type { RutFound, RutTipo } from './rutCapture.js';
-import { itemPairs, itemsIn, mentionsQuantity, readQuantity } from './quantity.js';
+import { itemPairs, itemsIn, mentionsQuantity, readQuantity, spelledQuantities, withoutNonQuantities } from './quantity.js';
 import type { QuantityRead } from './quantity.js';
-import { findComunaMentions, findComunas, mentionsCompany, officialComuna } from './comunas.js';
+import { findComunaMentions, findComunas, isCommonWordComuna, mentionsCompany, officialComuna } from './comunas.js';
 import type { ComunaMention } from './comunas.js';
 
 export type FlowStage = 'stage1' | 'stage2' | 'stage3' | 'install_capture' | 'closed';
@@ -1714,7 +1714,7 @@ function mergeProductFields(
   hasMedia = false,
   summaryReply = false,
   instead = false,
-): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number; addsProduct?: boolean; addedText?: string; listReplace?: boolean; switchWords?: boolean } {
+): { merged: CapturedFields; leadType: LeadType; rutToConfirm: boolean; menuPick?: number; addsProduct?: boolean; addedText?: string; listReplace?: boolean; switchWords?: boolean; unmapped?: boolean; destComuna?: boolean; itemFirm?: boolean } {
   const merged: CapturedFields = { ...state.captured };
   // [CANTIDAD] Un estado guardado antes de este cambio puede traer un dato que no es texto (un
   // objeto de Claude) o una cantidad que no es un entero ("No especificada"): se descarta y se pregunta.
@@ -1741,7 +1741,8 @@ function mergeProductFields(
   const summaryFix = summaryReply && Boolean(question?.summaryFix);
   const options = {
     ruts,
-    asked: (Boolean(question?.asks.includes('cantidad')) && !merged.cantidad && !merged.cantidad_varios) || (summaryReply && BARE_NUMBER_RE.test(body)),
+    // (ronda 5, C4) Tambien el numero solo en una de sus clausulas ("30, en Pudahuel", "Si pero 30 y luz fria").
+    asked: (Boolean(question?.asks.includes('cantidad')) && !merged.cantidad && !merged.cantidad_varios) || (summaryReply && bareNumberClause(body)),
     menuLength: question?.listLength ?? 0,
     contact: EMAIL_RE.test(body),
     claude: claudeParsed.cantidad,
@@ -1770,9 +1771,30 @@ function mergeProductFields(
   // La misma lista otra vez ("Si, 12 focos y 5 paneles") confirma: no cambia la cantidad.
   const sameList = Boolean(listFound && sameItems(itemPairs(listFound), capturedPairs(merged)));
   const listText = sameList ? undefined : listFound;
-  const named = summaryReply && !adding && merged.producto ? namedProducts(assertive, claudeParsed) : [];
+  // (ronda 5, C7) Una unidad de venta ("3 rollos", "2 cajas") no nombra otro producto.
+  const named = summaryReply && !adding && merged.producto
+    ? namedProducts(assertive, claudeParsed).filter((p) => !productWords(p).every((w) => PACKAGING_RE.test(w))) : [];
   const summaryAdds = !listText && named.length > 0 && !sameProduct(named, merged.producto as string)
     && (stated.value !== undefined || stated.several) && !CORRECTION_RE.test(assertive) && !PRODUCT_SWITCH_RE.test(assertive) && !switches;
+  // [RESUMEN] (ronda 5, C5) En un pedido de varios items, la cantidad de uno de ellos ("En vez de 5 paneles, 8 paneles",
+  // "Los focos son 15 y los paneles 8") cambia ese item en la lista (itemQuantities), nunca suma "/ 8 paneles" como otro
+  // item. Si no calza con un solo item (unmapped), ni la cantidad ni el producto cambian y el mensaje queda textual en la
+  // nota. Tampoco si trae su propio uso ("Necesito 5 focos LED para el patio"): puede ser otro item.
+  // (ronda 5, C7) Una cantidad en otra unidad de venta ("2 cajas", "10 rollos de 5 metros") tampoco cambia la cantidad.
+  const quantityFound = stated.value !== undefined || stated.several || quantity.value !== undefined;
+  const pairsBefore = capturedPairs(merged);
+  const itemRead = summaryReply && quantityFound && !listText && !sameList && !explicitAdd && !summaryAdds && !merged.cantidad
+    && pairsBefore.length >= 2 ? itemQuantities(assertive, facts, pairsBefore) : undefined;
+  const itemUse = itemRead ? summaryUseValue(base) ?? (SUMMARY_USE_RE.test(assertive) ? extractProyecto(assertive) : undefined) : undefined;
+  const otherUse = Boolean(itemUse && !(merged.proyecto_o_uso && (SAME_VALUE.proyecto_o_uso as (a: string, b: string) => boolean)(merged.proyecto_o_uso, itemUse)));
+  const itemFix = otherUse ? 'unmapped' : itemRead;
+  const unmapped = itemFix === 'unmapped';
+  // "No son 12 focos, son 15": negar la cantidad capturada de un item la corrige con firmeza (como "en vez de").
+  const itemFirm = Boolean(itemFix && !unmapped && pairsBefore.some((pair) => negatesValue(facts, /^\S+/.exec(pair)?.[0])));
+  // Con palabra de correccion o un "No," delante ("Corrijo: son 3 rollos", "No, 300 rollos") la unidad nueva reemplaza los metros
+  // (ronda 4, B3).
+  const firmUnit = CORRECTION_RE.test(assertive) || /^\s*no\s*[,.]/i.test(assertive);
+  const packaging = summaryReply && quantityFound && !listText && !itemFix && !summaryAdds && !explicitAdd && !firmUnit && packagingOnly(assertive, merged.producto);
   // [RESUMEN] (revision 17-11) En un pedido de un item, otro producto afirmado sin su cantidad ("focos LED", "Son focos
   // LED" despues de "20 paneles LED 60x60") lo reemplaza aunque sea un nombre generico: el cliente lo escribe al ver el
   // resumen (decision 2 del dueno: "si despues escribe el dato, se corrige en el mismo negocio"). Un "si" con el nombre
@@ -1786,7 +1808,7 @@ function mergeProductFields(
   const addsProduct = summaryAdds || (adding && namedProducts(addedText, claudeParsed).length > 0);
   // Con varios items ("20 paneles y 30 focos") la regla ve uno solo: no cambia el producto.
   const claudeProd = claudeText(claudeParsed.producto);
-  const prodChange = summaryAdds ? undefined : backed(claudeProd, quantity.several ? undefined : rule(PRODUCTO_RE), base);
+  const prodChange = summaryAdds || unmapped ? undefined : backed(claudeProd, quantity.several ? undefined : rule(PRODUCTO_RE), base);
   // "Corrijo: paneles LED, no regulables": quitar del producto lo que el cliente niega tambien es un cambio.
   const dropsNegated = Boolean(prodChange && merged.producto
     && productWords(merged.producto).some((w) => negated.has(w) && !productWords(prodChange).includes(w)));
@@ -1823,7 +1845,8 @@ function mergeProductFields(
     && (stated.value !== undefined || quantity.value !== undefined) && !CORRECTION_RE.test(assertive)
     && !THIS_ONE_RE.test(comparable(assertive));
   if (listText) replaceVarios(merged, listText);
-  else if (!sameList) mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem || summaryAdds);
+  else if (itemFix && !unmapped) replaceVarios(merged, itemFix);
+  else if (!sameList && !unmapped && !packaging) mergeQuantity(merged, stated.value !== undefined || stated.several ? stated : quantity, stated, facts, adding || mediaItem || summaryAdds);
   // [RESPALDO] El uso sale de lo que el cliente dice, no del nombre del producto ("PROYECTOR LED DE ESTADIO",
   // "Estaca LED COB 5W para jardin") ni de lo que Claude deduce (negocios 119, 197 y 206).
   // (revision 12-11) De un nombre generico ("focos LED para jardin") sale solo la familia: "para jardin" es el uso que
@@ -1834,7 +1857,11 @@ function mergeProductFields(
   // [RESUMEN] (revision 16-11) Despues de "Que dato corrijo?", un texto corto ("bodega", "una bodega") contesta el uso.
   const claudeProy = claudeProject(claudeParsed, body, noProduct(facts), (Boolean(question?.asks.includes('proyecto_o_uso')) && !merged.proyecto_o_uso) || (summaryFix && shortUseReply(facts)));
   const ownProject = (text: string) => extractProyecto(withoutStorePlaces(noProduct(text)));
-  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, ownProject(assertive) ?? ownProject(affirmed)), backed(claudeProy, soleMatch(withoutStorePlaces(noProduct(base)), PROYECTO_RE), base));
+  // [RESUMEN] (ronda 5, C3) Despues del resumen, el uso dicho sin "para" ("Colegio", "Es un colegio", "uso: colegio") o con
+  // un uso de la lista ("Para un taller"): summaryUseValue. El de Claude gana solo si lo contiene y esta en el mensaje.
+  const useValue = summaryReply ? summaryUseValue(withoutStorePlaces(noProduct(base))) : undefined;
+  const useChange = useValue && claudeProy && comparable(claudeProy).includes(comparable(useValue)) ? claudeProy : useValue;
+  keepOrChange(merged, 'proyecto_o_uso', fillWith(claudeProy, useChange ?? ownProject(assertive) ?? ownProject(affirmed)), useChange ?? backed(claudeProy, soleMatch(withoutStorePlaces(noProduct(base)), PROYECTO_RE), base));
   // [RESUMEN] (revision 16-11) Al contestar el resumen, la comuna capturada cambia solo con una comuna sola ("Pudahuel",
   // "Es en Pudahuel": comunaReply) o presentada como la obra o la entrega ("el despacho es a Pudahuel"); "vive en Pirque"
   // o "estoy en Santiago" no (firmOnly).
@@ -1851,6 +1878,20 @@ function mergeProductFields(
     answering: Boolean(question?.asks.includes('comuna_o_ciudad')) || replyComuna || negatesComuna, company: mentionsCompany(body.slice(0, MAX_FACTS)), assertive, affirmed, base,
     firmOnly: summaryReply && !replyComuna && !comunaCorrection, correcting: negatesComuna,
   });
+  // [RESUMEN] (ronda 5, C1) La comuna presentada como destino en una clausula ("Lo necesito en Renca", "Son 30 paneles para
+  // Pudahuel", "Que sean 30 y en Pudahuel"): destinationComuna. Sale de "Otras comunas mencionadas".
+  let destComuna = false;
+  if (summaryReply && state.captured.comuna_o_ciudad && merged.comuna_o_ciudad === state.captured.comuna_o_ciudad) {
+    const dest = destinationComuna(summaryParts(facts).statement, merged.comuna_o_ciudad);
+    if (dest) {
+      noteChange(merged, 'comuna_o_ciudad', merged.comuna_o_ciudad, dest);
+      merged.comuna_o_ciudad = dest;
+      const otras = (merged.comunas_otras ?? []).filter((c) => comparable(c) !== comparable(dest));
+      if (otras.length) merged.comunas_otras = otras;
+      else delete merged.comunas_otras;
+      destComuna = true;
+    }
+  }
   const nombreClaud = claudeText(claudeParsed.nombre) ?? claudeText(claudeParsed.empresa);
   if (nombreClaud) merged.nombre_o_empresa = nombreClaud;
   // [FIX-EMAIL-PARSER] normalizar correo aunque venga de claudeParsed
@@ -1894,7 +1935,7 @@ function mergeProductFields(
     // Un mensaje que pregunta el precio o algo tecnico recibe esa respuesta (pide el correo), como en main.
     && !questionAsksEmail(questionKinds(body));
   const rutToConfirm = !state.rutRetryAsked && ((invalidHere && companyRut) || becameCompany);
-  return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick, ...(summaryReply ? { addsProduct, addedText, listReplace: Boolean(listText), switchWords } : {}) };
+  return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick, ...(summaryReply ? { addsProduct, addedText, listReplace: Boolean(listText) || (Boolean(itemFix) && !unmapped), switchWords, unmapped, destComuna, itemFirm } : {}) };
 }
 /**
  * [RESUMEN] (revision 17-11) La lista de items de la respuesta al resumen, desde su primer par ("No, son 8 paneles y 15
@@ -1954,6 +1995,143 @@ function replaceVarios(merged: CapturedFields, text: string): void {
 function shortUseReply(facts: string): boolean {
   const words = facts.trim().split(/\s+/).filter(Boolean);
   return words.length > 0 && words.length <= 4 && !/\d/.test(facts) && !textLuz(facts) && !findComunas(facts, { answering: true }).length;
+}
+// [RESUMEN] (ronda 5, C4) La cantidad sola en una de las clausulas de la respuesta al resumen ("30, en Pudahuel", "30 y
+// luz fria" despues de summaryData): como el numero solo (BARE_NUMBER_RE), es la cantidad.
+function bareNumberClause(body: string): boolean {
+  const text = body.slice(0, MAX_FACTS);
+  return BARE_NUMBER_RE.test(text) || text.split(/\s*[,;]\s*|\s+y\s+/i).some((part) => BARE_NUMBER_RE.test(part));
+}
+// [RESUMEN] (ronda 5) Las clausulas de la respuesta al resumen: cortadas en sus pausas y en " y ", " e " o " pero ".
+const CLAUSE_SPLIT_RE = /[,;:!?\u00a1\u00bf\n]|\.(?!\d)|\s(?:y|e|pero)\s/i;
+/**
+ * [RESUMEN] (ronda 5, C1) La comuna que una clausula de la respuesta al resumen presenta como el destino: "mejor en
+ * Renca", "Renca mejor", "Lo necesito en Renca", "Va para Renca", "El pedido va a Renca", "Ah, y es en Renca", "Son 30
+ * paneles para Pudahuel", "Que sean 30 y en Pudahuel". No cuenta la de una clausula con otra persona u otro lugar ("Mi
+ * cunado vive en Pirque", "mi otra casa esta en Pirque", "Saludos desde Pirque": DEST_BLOCK_RE), negada o descartada; la
+ * comuna que es una palabra comun ("Florida"), solo con mayuscula. Una sola comuna distinta de la capturada, o nada.
+ */
+const DEST_BLOCK_RE = /(?<![a-z])(?:viv[a-z]*|cunad[oa]s?|herman[oa]s?|famili[a-z]*|mama|papa|madre|padre|suegr[oa]s?|ti[oa]s?|prim[oa]s?|hij[oa]s?|abuel[oa]s?|amig[oa]s?|vecin[oa]s?|novi[oa]s?|pareja|espos[oa]s?|marido|senora|casas?|desde|saludos?|central|matriz|sucursal(?:es)?|factur[a-z]*|boletas?|estoy|estamos|soy|somos|trabaj[a-z]*|naci[a-z]*|ubicad[oa]s?|otr[oa]s?|antes|anterior[a-z]*|retir[a-z]*|busc[a-z]*|ir|voy|vamos|pas[a-z]*|ustedes|su|sus|no|ni|sin|tampoco|vez|lugar)(?![a-z])/;
+const DEST_LEAD_RE = /^(?:(?:ah|ya|ok|okay|si|bueno|pero|y|entonces|ahora|hola|perdon)\s+)*(mejor\s+)?(?:((?:lo|los|las|la|les)\s+(?:necesit|quier|requier|ocup|mand|envi|despach)[a-z]*\s+)|((?:(?:el|la)\s+(?:pedido|despacho|entrega|envio|obra|direccion)\s+)?(?:va|van|iria|irian|es|son|seria|serian|sera|seran|queda|quedan)\s+)|((?:que\s+)?sean?\s+))?(mejor\s+)?((?:en|a|al|para|hacia|hasta)\s+)?/;
+const DEST_TAIL_RE = /(?:\s+(?:mejor|gracias|por favor|porfa))+$/;
+const DEST_PREP_RE = /(?:^|\s)(?:para|a|al|en|hacia|hasta)\s+/g;
+/** [RESUMEN] (ronda 5, C1) El texto escribe la comuna `name` con alguna mayuscula ("en Florida"). */
+function capitalizedIn(text: string, name: string): boolean {
+  const key = comparable(name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+  return [...bareText(text).matchAll(new RegExp('(?<![\\p{L}])' + key + '(?![\\p{L}])', 'giu'))].some((m) => /\p{Lu}/u.test(m[0]));
+}
+function destinationComuna(statement: string, current: string | undefined): string | undefined {
+  const found = new Set<string>();
+  for (const raw of statement.slice(0, MAX_FACTS).split(CLAUSE_SPLIT_RE)) {
+    const clause = comparable(raw ?? '').replace(/[^a-z0-9\s'\u2019.-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!clause || DEST_BLOCK_RE.test(clause)) continue;
+    const tail = DEST_TAIL_RE.exec(clause);
+    const text = tail ? clause.slice(0, tail.index) : clause;
+    const lead = DEST_LEAD_RE.exec(text);
+    // Una comuna sola en una clausula necesita su marca ("mejor", "va", "es", "en"...): "Si, y Pudahuel" puede sumar otra.
+    const marked = Boolean(lead && lead.slice(1).some(Boolean)) || Boolean(tail && /mejor/.test(tail[0]));
+    const candidates = [...(marked && lead ? [text.slice(lead[0].length)] : []), ...[...text.matchAll(DEST_PREP_RE)].map((m) => text.slice(m.index + m[0].length))];
+    for (const candidate of candidates) {
+      const name = officialComuna(candidate.trim());
+      if (name && (!isCommonWordComuna(name) || capitalizedIn(raw ?? '', name))) { found.add(name); break; }
+    }
+  }
+  if (found.size !== 1) return undefined;
+  const [name] = [...found];
+  return name !== current && !negatesValue(statement, name) ? name : undefined;
+}
+/**
+ * [RESUMEN] (ronda 5, C3) El uso dicho sin "para" despues del resumen: la clausula es un uso conocido ("Colegio", "Un
+ * colegio"), "es un/una X", "uso: X" o "para X" con un uso de la lista (tambien "taller", que no es PROYECTO_RE). Una
+ * palabra suelta que no es un uso conocido no cuenta. Con dos usos distintos, ninguno.
+ */
+const USE_NOUNS = 'quincho|terraza|patio|living|comedor|dormitorio|habitacion|cocina|bano|jardin infantil|jardin|bodega|oficina|casa|local comercial|local|galpon|faena|tienda|exterior|interior|planta|fabrica|nave industrial|departamento|depto|edificio|colegio|hospital|estacionamiento|pasillo|sala|taller|restaurante|restaurant|gimnasio|hotel|iglesia|cancha|estadio|condominio|escuela|liceo|supermercado|minimarket|almacen|negocio|clinica|consultorio|hostal|cabana|piscina|parque|plaza|salon|club|universidad|instituto|industria';
+const USE_STOP = '(?:en|para|y|e|con|pero|que|porque|ya|no|esta|estan|es|son|era|queda|quedan|va|van|tiene|tienen|necesito|vive|desde|a|al|de\\s+mi|gracias)';
+const USE_CLAUSE_RE = new RegExp('^(?:(?:si|ok|bueno|pero|y|ah|ahora|entonces|no|mejor|perdon|corrijo)\\s+)*'
+  + '(?:(?:el\\s+)?uso\\s*(?::\\s*|\\s+es\\s+(?:para\\s+)?|\\s+)|(?:es|son|seria|serian|sera|seran)\\s+(?:para\\s+)?|para\\s+)?'
+  + '(?:(?:un|una|unos|unas|el|la|los|las|mi|mis|nuestr[oa]s?)\\s+)?'
+  + '((?:' + USE_NOUNS + ')(?:es|s)?(?:\\s+(?!' + USE_STOP + '(?![a-z]))[a-z]+){0,3})$');
+const USE_WORD_RE = new RegExp('^(?:' + USE_NOUNS.split('|').filter((w) => !/\s/.test(w)).join('|') + ')(?:es|s)?$');
+function summaryUseValue(text: string): string | undefined {
+  const found = new Map<string, string>();
+  const clauses = text.slice(0, MAX_FACTS).split(CLAUSE_SPLIT_RE).map((raw) => (raw ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  // Las clausulas de cortesia ("Si", "gracias") no cuentan.
+  const content = clauses.filter((clause) => leftoverTokens(clause).some((t) => !fillerToken(t))).length;
+  for (const original of clauses) {
+    const bare = bareText(original).toLowerCase();
+    if (!original || bare.length !== original.length) continue;
+    let end = bare.replace(/(?:[\s.!]|\p{Extended_Pictographic}|[\u{1F3FB}-\u{1F3FF}]|\uFE0F|\u200D)+$/u, '').length;
+    let clause = bare.slice(0, end);
+    const place = /^(.*?)\s+en\s+(.+)$/.exec(clause);
+    if (place && officialComuna(place[2])) { end = place[1].length; clause = place[1]; }
+    const m = USE_CLAUSE_RE.exec(clause);
+    // El uso sin "es", "son", "uso" ni "para" ("Colegio", "Un colegio") cuenta solo si es el mensaje entero: "son 3
+    // dormitorios y el living" describe la obra.
+    if (!m || (content > 1 && !/^(?:(?:si|ok|bueno|pero|y|ah|ahora|entonces|no|mejor|perdon|corrijo)\s+)*(?:(?:el\s+)?uso\b|es\b|son\b|seria|serian|sera|seran|para\b)/.test(clause))) continue;
+    const value = original.slice(end - m[1].length, end).trim();
+    found.set(comparable(value), value);
+  }
+  return found.size === 1 ? [...found.values()][0] : undefined;
+}
+/**
+ * [RESUMEN] (ronda 5, C5) En un pedido de varios items, las cantidades dichas por item ("En vez de 5 paneles, 8 paneles",
+ * "No son 12 focos, son 15", "Los focos son 15 y los paneles 8", "Que sean 15 focos"): la lista capturada con esas
+ * cantidades. Cada numero va con su item: el que lo sigue ("15 focos"), el que lo antecede ("los focos son 15") o, si es
+ * el unico numero, el unico item que nombra el mensaje ("No son 12 focos, son 15"). 'unmapped' si un numero no calza con
+ * un solo item capturado (otra unidad, "10 rollos de 5 metros", o un numero solo): nunca se inventa un item.
+ */
+const PACKAGING_RE = /^(?:rollos?|cajas?|paquetes?|packs?|bolsas?|kits?|sets?|piezas?)$/;
+const LINK_SKIP = new Set(['de', 'los', 'las', 'el', 'la']);
+const LINK_BACK_SKIP = new Set(['son', 'sean', 'serian', 'seran', 'seria', 'sera', 'es', 'eran', 'de', 'que', 'mejor', 'ahora', 'solo']);
+function quantityLinks(text: string): Array<{ n: string; noun?: string }> {
+  const tokens = withoutNonQuantities(text).split(/[^a-z0-9]+/).filter(Boolean);
+  const isNoun = (t: string | undefined) => Boolean(t && !/\d/.test(t) && (itemsIn(t).length > 0 || PACKAGING_RE.test(t)));
+  const nounBefore = (i: number) => {
+    let k = i - 1;
+    while (k >= 0 && k >= i - 3 && LINK_BACK_SKIP.has(tokens[k])) k--;
+    return k >= 0 && isNoun(tokens[k]) ? tokens[k] : undefined;
+  };
+  const nounAfter = (i: number) => {
+    let j = i + 1;
+    while (j < tokens.length && j <= i + 2 && LINK_SKIP.has(tokens[j])) j++;
+    return isNoun(tokens[j]) ? tokens[j] : undefined;
+  };
+  const numbers = tokens.map((t, i) => (/^\d{1,5}$/.test(t) ? i : -1)).filter((i) => i >= 0);
+  // "Los focos son 15 y los paneles 8" o "focos 15 paneles 8": el producto va antes del numero en todo el mensaje. Se usa
+  // la forma que da un producto a cada numero; con las dos, el numero antes ("15 focos").
+  const after = numbers.map((i) => nounAfter(i));
+  const before = numbers.map((i) => nounBefore(i));
+  const nounFirst = before.every(Boolean) && !after.every(Boolean);
+  return numbers.map((i, k) => ({ n: String(Number(tokens[i])), noun: nounFirst ? before[k] : after[k] }));
+}
+function itemQuantities(assertive: string, facts: string, pairs: string[]): string | 'unmapped' | undefined {
+  const links = quantityLinks(assertive);
+  if (!links.length || pairs.length < 2) return links.length ? 'unmapped' : undefined;
+  const words = pairs.map((pair) => productWords(pair.replace(/^\S+\s+/, '')));
+  const pairOf = (noun: string) => {
+    const hits = words.map((w, i) => (w.includes(stem(comparable(noun))) ? i : -1)).filter((i) => i >= 0);
+    return hits.length === 1 ? hits[0] : -1;
+  };
+  if (links.length === 1 && !links[0].noun) {
+    const named = [...new Set(itemsIn(facts).map((noun) => stem(comparable(noun))))];
+    if (named.length === 1) links[0].noun = named[0];
+  }
+  const next = pairs.map((pair) => /^\S+/.exec(pair)?.[0] ?? '');
+  const set = new Set<number>();
+  for (const link of links) {
+    const at = link.noun ? pairOf(link.noun) : -1;
+    if (at < 0 || set.has(at)) return 'unmapped';
+    set.add(at);
+    next[at] = link.n;
+  }
+  if (next.every((n, i) => n.replace(/\./g, '') === (/^\S+/.exec(pairs[i])?.[0] ?? '').replace(/\./g, ''))) return undefined;
+  const items = pairs.map((pair, i) => next[i] + pair.replace(/^\S+/, ''));
+  return items.length === 2 ? items.join(' y ') : items.slice(0, -1).join(', ') + ' y ' + items[items.length - 1];
+}
+/** [RESUMEN] (ronda 5, C7) La cantidad en otra unidad de venta ("2 cajas", "3 rollos") que no es la del producto capturado. */
+function packagingOnly(assertive: string, producto: string | undefined): boolean {
+  const own = productWords(producto ?? '');
+  return quantityLinks(assertive).some((link) => Boolean(link.noun && PACKAGING_RE.test(link.noun) && !own.includes(stem(link.noun))));
 }
 
 /**
@@ -2254,49 +2432,122 @@ function unappliedLine(body: string): string {
   const text = chars.length > MAX_UNAPPLIED ? chars.slice(0, MAX_UNAPPLIED - 3).join('') + '...' : chars.join('');
   return UNAPPLIED_PREFIX + '"' + text + '"';
 }
-// Las palabras que piden algo distinto sin un dato que el motor lea ("Si, pero con sensor", "Que sean regulables"); con
-// un dato ("pero la obra es en Maipu") deciden las demas reglas.
-const SUMMARY_QUALIFIER_RE = /(?<![\p{L}])(?:pero|que\s+sean?|que\s+tengan?)\s+(?!(?:gracias|nada|bueno)(?![\p{L}]))(\p{L}.*)$/iu;
-const SUMMARY_MISTAKE_RE = /(?<![a-z\u00e0-\u00fc])(?:me\s+equivoqu[a-z\u00e0-\u00fc]*|me\s+confund[a-z\u00e0-\u00fc]*|error\s+m[i\u00ed]o|mi\s+error|quise\s+decir|quer[i\u00ed]a\s+decir)(?![a-z\u00e0-\u00fc])/i;
 /**
- * [RESUMEN] (ronda 4, A) La respuesta trae algo que lo registrado (`after`) no recoge: un numero, un producto, un color,
- * un uso ("para ...") o una comuna dicha como la obra que no quedaron; o, si nada cambio, una palabra de correccion, un
- * dato capturado negado ("No es oficina, es bodega") o un pedido sin dato ("Si, pero con sensor"). No cuentan las
- * preguntas, lo que el mensaje niega o descarta ("en vez de"), otro lugar ("mi otra casa esta en Pirque"), donde vive
- * otra persona ni de donde saluda ("Mi cunado vive en Pirque", "Saludos desde Pirque").
+ * [RESUMEN] (ronda 5, A) La red de seguridad al reves: lo que queda de la respuesta al resumen (el RESIDUO) despues de
+ * sacar lo que se aplico y las palabras de relleno, cortesia o correccion (LEFTOVER_FILLER_RES, nunca un sustantivo con un
+ * dato). Se compara sin mayusculas, tildes, signos ni emoji, con los numeros en palabras como cifras ("treinta" es 30) y
+ * los colores en una sola forma ("calidos" es "calida"). Lo aplicado: lo registrado (`after`) del producto, la cantidad,
+ * los varios items, el color, el uso y la comuna (nunca "Otras comunas mencionadas"), salvo lo que el mensaje niega sin
+ * cambiarlo; lo que reemplazo un cambio ("antes ..."); y las unidades o los metros de la cantidad. De una pregunta cuenta
+ * solo su dato (un numero, un producto, una comuna, un color o un uso): "Cuando llega?" no deja residuo y "Y si mejor en
+ * Renca?" si. Si nada cambio y el mensaje rechaza ("No, ...", "corrijo"), tambien queda: ante la duda, la linea va.
  */
-function summaryResidual(body: string, before: CapturedFields, after: CapturedFields, claudeParsed: ClaudeFields): boolean {
-  const said = statementText(body);
-  if (!said.trim()) return false;
-  const facts = factsText(said, claudeParsed);
-  const text = insteadSplit(facts) ?? facts;
-  const affirmed = maskNegated(text);
-  const kept = [after.producto, after.cantidad, after.cantidad_varios, after.tipo_de_luz, after.proyecto_o_uso, after.comuna_o_ciudad].filter(Boolean).join(' ');
-  const keptPlain = comparable(kept);
-  const numbers = (value: string) => (comparable(value).match(/\d+(?:[.,]\d+)*/g) ?? []).map((n) => n.replace(/[.,](?=\d{3}(?!\d))/g, ''));
-  const keptNumbers = new Set(numbers(kept));
-  if (numbers(affirmed).some((n) => !keptNumbers.has(n))) return true;
-  const keptStems = new Set(keptPlain.split(/[^a-z0-9]+/).filter(Boolean).map(stem));
-  // Las palabras que sirven para cualquier luminaria ("Si, los focos") no nombran otro producto.
-  if (namedProducts(affirmed, claudeParsed).some((p) => productWords(p).some((w) => !keptStems.has(w) && !ANY_PRODUCT_STEMS.has(w)))) return true;
-  const luz = textLuz(affirmed);
-  if (luz && normalizeLuz(comparable(luz)) !== normalizeLuz(comparable(after.tipo_de_luz ?? '')) && !keptPlain.includes(comparable(luz))) return true;
-  if (!OTHER_PLACE_RE.test(facts)) {
-    const use = SUMMARY_USE_RE.test(affirmed) ? extractProyecto(affirmed) : undefined;
-    if (use && !keptPlain.includes(comparable(use))) return true;
-    const reply = replyComunaName(facts);
-    const places = [...findComunaMentions(affirmed, { firmOnly: true }).filter((m) => !m.billing && !m.origin).map((m) => m.name), ...(reply ? [reply] : [])];
-    if (places.some((c) => c !== after.comuna_o_ciudad && !negatesValue(facts, c))) return true;
-  }
-  if (LATE_FIELDS.some((field) => JSON.stringify(before[field] ?? null) !== JSON.stringify(after[field] ?? null))) return false;
-  const qualifier = SUMMARY_QUALIFIER_RE.exec(text);
-  if (CORRECTION_RE.test(text) || SUMMARY_MISTAKE_RE.test(text) || (qualifier && !hasDatum(qualifier[1]))) return true;
-  return [before.cantidad, before.comuna_o_ciudad, before.tipo_de_luz, before.proyecto_o_uso].some((v) => negatesValue(text, v));
+// Relleno, cortesia y palabras de correccion: nunca un sustantivo con un dato.
+const LEFTOVER_FILLER_RES = [
+  /^(?:no|si|sip|ya|ok|okay|okey|oki|vale|dale|listo|claro|bueno|buena|buenas|buenos|hola|gracias|muchas|mil|favor|porfa|porfis|porfavor|plis|perdon|disculpa|disculpas)$/,
+  /^(?:disculpe|equivoque|confundi|error|quise|queria|decir|dije|olvide|falto|corrijo|correccion|corrige|cambio|cambia|cambiar|cambiamos|es|son|era|eran|sea|sean)$/,
+  /^(?:seria|serian|sera|seran|fue|esta|estan|queda|quedan|va|van|iria|irian|en|a|al|para|de|del|el|la|lo|los|las|le|les|un|una|unos|unas|y|e|o|u|que|con|por|pero)$/,
+  /^(?:sino|mas|mejor|me|mi|mis|te|tu|nos|se|su|sus|desde|pedido|despacho|entrega|envio|cantidad|color|luz|tipo|producto|productos|uso|proyecto|comuna|ciudad|direccion)$/,
+  /^(?:lugar|obra|item|items|total|necesito|necesitamos|necesitaria|quiero|queremos|quisiera|prefiero|preferimos|pon|ponle|ponga|agrega|agregar|agregale|ah|ahora)$/,
+  /^(?:entonces|tambien|ademas|todo|todos|todas|bien|mal|correcto|correcta|exacto|perfecto|acuerdo|genial|excelente|super|cotizar|cotiza|cotizame|cotizacion|presupuesto)$/,
+  /^(?:eso|esto|este|estos|estas|ese|esa|asi|solo|solamente|real|realidad|final|finalmente|vez|led|leds|dias|tardes|noches|saludo|saludos|quedo|atento|atenta|atentos)$/,
+  /^(?:espero|aviso|cada|aprox|aproximadamente|como|salvo|excepto|aunque|ninguno|ninguna|nada|consulta|pregunta|duda|dice|dijo|dicen|creo|pienso|parece)$/,
+  /^(?:esos|esas|aquel|aquella|aquellos|aquellas|estado|nueva|nuevo|nuevas|nuevos|otra|otro|otras|otros|ver|saber|mio|mia|culpa)$/,
+  // Las palabras de correccion conjugadas ("Modifico:", "Actualizo:", "Cambialo a", "Corrige").
+  /^(?:cambi|corrij|corrig|correc|modific|actualiz|equivoc|confund|disculp)[a-z]*$/,
+];
+const fillerToken = (token: string) => LEFTOVER_FILLER_RES.some((re) => re.test(token));
+const LEFTOVER_REJECT = new Set(['no', 'mal', 'incorrecto', 'incorrecta', 'error', 'equivoque', 'confundi', 'corrijo', 'correccion', 'cambio', 'cambiar']);
+// Estas rechazan solo al inicio ("No, 12 focos y 5 paneles"); "Son 20, no 30" niega otro numero.
+const LEFTOVER_LEAD_REJECT = new Set(['no', 'mal', 'incorrecto', 'incorrecta']);
+const UNIT_TOKENS = ['unidad', 'unidades', 'und', 'unds', 'ud', 'uds', 'unid', 'unids'];
+const METER_TOKENS = ['metro', 'metros', 'mt', 'mts', 'mtr', 'mtrs', 'm'];
+function colorToken(token: string): string {
+  const m = /^(calid|fri|neutr|blanc|amarill)[oa]s?$/.exec(token);
+  return m ? m[1] + 'a' : token;
+}
+function leftoverTokens(text: string): string[] {
+  const plainText = comparable(text).replace(/c\/u/g, ' ').replace(/[^a-z0-9\s.,;:!?$/-]+/g, ' ');
+  return spelledQuantities(plainText, true).replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1').replace(/(\d)\s+k(?![a-z])/g, '$1k')
+    .split(/[^a-z0-9]+/).filter(Boolean).map(colorToken);
+}
+/** [RESUMEN] (ronda 5, A) Las palabras de una pregunta que son un dato: numero, producto, comuna, color o uso. */
+function questionData(part: string): string[] {
+  const items = new Set(itemsIn(part).map((noun) => stem(comparable(noun))));
+  const comunaWords = new Set(findComunas(part, { answering: true }).flatMap(leftoverTokens));
+  const luz = textLuz(part);
+  const luzWords = new Set(luz ? leftoverTokens(luz) : []);
+  return leftoverTokens(part).filter((t) => /\d/.test(t) || items.has(stem(t)) || comunaWords.has(t) || luzWords.has(t) || USE_WORD_RE.test(t));
 }
 /**
- * [RESUMEN] (ronda 4, A) Con el resumen pendiente, la respuesta que no se aplico entera (summaryResidual) suma su linea
- * textual a los cambios y se escribe en el mismo negocio (rutUpdate), sin tarea nueva ni aviso a ventas (quietUpdate). La
- * respuesta al cliente no cambia. No cuentan una foto o un audio, el correo o el RUT tardio, ni "Que dato corrijo?".
+ * [RESUMEN] (ronda 5) La respuesta al resumen en lo que afirma y sus preguntas, cortada como statementText. "Que sean 30"
+ * o "Que tengan sensor" piden algo: no son una pregunta aunque empiecen con "que".
+ */
+const SUMMARY_ASK_THAT_RE = /^que\s+(?:sean?|ser[i\u00ed]an?|tengan?|vayan?|lleguen?|vengan?)(?![\p{L}])/iu;
+function summaryParts(text: string): { statement: string; questions: string[] } {
+  const parts = text.slice(0, MAX_FACTS).split(/(?<=[?!\n])|(?=\u00bf)/).flatMap((part) => part.split(/(?<=[\p{L}\s])\.(?!\d)/u))
+    .map((part) => part.trim()).filter(Boolean);
+  const asks = (part: string) => {
+    const plain = questionText(part).trim();
+    const lead = plain.replace(/^[\u00bf\s*_~]+/, '').replace(ASK_LEAD_RE, '');
+    return /[?\u00bf]/.test(part) || (!SUMMARY_ASK_THAT_RE.test(lead) && isQuestionPart(plain));
+  };
+  return { statement: parts.filter((part) => !asks(part)).join('. '), questions: parts.filter(asks) };
+}
+const LEFTOVER_FIELDS = ['producto', 'cantidad', 'cantidad_varios', 'tipo_de_luz', 'proyecto_o_uso', 'comuna_o_ciudad'] as const;
+// La cortesia con una negacion ("Si, no hay problema", "Ok, sin drama", "no te preocupes") no es un dato.
+const COURTESY_DENIAL_RE = /(?<![\p{L}])(?:(?:no\s+hay|sin|ning[u\u00fa]n)\s+(?:problemas?|drama|rollo|apuro)|no\s+(?:te|se)\s+preocupe[ns]?)(?![\p{L}])/giu;
+function summaryLeftover(body: string, before: CapturedFields, after: CapturedFields, claudeParsed: ClaudeFields): string {
+  const { statement, questions } = summaryParts(factsText(body, claudeParsed).replace(COURTESY_DENIAL_RE, ' '));
+  // Lo que el mensaje niega o descarta ("Son 20, no 30", "en vez de 5 paneles") no es un dato por aplicar.
+  const said = maskNegated(insteadSplit(statement) ?? statement);
+  const consumed = new Set<string>();
+  const take = (value: string | undefined) => { for (const t of leftoverTokens(value ?? '')) { consumed.add(t); consumed.add(stem(t)); } };
+  let changed = false;
+  for (const field of LEFTOVER_FIELDS) {
+    const was = before[field];
+    const now = after[field];
+    if (JSON.stringify(was ?? null) !== JSON.stringify(now ?? null)) { changed = true; take(was); take(now); }
+    // Lo que el mensaje niega y quedo igual no cuenta como aplicado ("No es en Maipu" con Maipu registrada).
+    else if (!negatesValue(said, now)) take(now);
+  }
+  if (after.tipo_de_luz) consumed.add(normalizeLuz(comparable(after.tipo_de_luz)));
+  // Las palabras que sirven para cualquier luminaria ("Si, los focos") no nombran otro producto.
+  if (after.producto || after.cantidad_varios) for (const t of ANY_PRODUCT_STEMS) consumed.add(t);
+  if (after.cantidad) for (const t of UNIT_TOKENS) consumed.add(t);
+  if (after.cantidad_unidad === 'm' || /\bm\b|metros?/i.test(after.cantidad_varios ?? '')) for (const t of METER_TOKENS) consumed.add(t);
+  // La comuna escrita de otra forma ("Santiago centro", "pte alto") tambien es la aplicada.
+  const saidTokens = leftoverTokens(said);
+  for (let i = 0; i < saidTokens.length; i++) {
+    for (let size = 2; size <= 4 && i + size <= saidTokens.length; size++) {
+      const words = saidTokens.slice(i, i + size);
+      const name = officialComuna(words.join(' '));
+      if (name && leftoverTokens(name).every((t) => consumed.has(t))) for (const t of words) consumed.add(t);
+    }
+  }
+  const left = (tokens: string[]) => tokens.filter((t) => !fillerToken(t) && !consumed.has(t) && !consumed.has(stem(t)));
+  // Lo negado que no es un dato del pedido ("No es en Pudahuel" con Maipu registrada) tambien queda para el vendedor.
+  const kept = new Set(saidTokens);
+  const negated = leftoverTokens(statement).filter((t) => !kept.has(t));
+  const residue = [...left(saidTokens), ...left(negated), ...questions.flatMap((part) => left(questionData(part)))];
+  if (residue.length) return residue.join(' ');
+  // Nada cambio y el mensaje niega un dato registrado sin dar el nuevo ("No es en Maipu", "No son paneles", "No es luz
+  // neutra"): queda para el vendedor.
+  const denied = negated.filter((t) => !fillerToken(t) && (consumed.has(t) || consumed.has(stem(t))));
+  if (!changed && denied.length) return ['no', ...denied].join(' ');
+  // Nada cambio y el mensaje rechaza el resumen con otras palabras ("No, 12 focos y 5 paneles"): queda para el vendedor.
+  const words = leftoverTokens(statement);
+  const rejects = words.filter((t, i) => LEFTOVER_REJECT.has(t) && (i === 0 || !LEFTOVER_LEAD_REJECT.has(t)));
+  return !changed && rejects.length && questionData(said).length ? rejects.join(' ') : '';
+}
+/**
+ * [RESUMEN] (ronda 4, A) Con el resumen pendiente, la respuesta que no se aplico entera suma su linea textual a los cambios
+ * y se escribe en el mismo negocio (rutUpdate), sin tarea nueva ni aviso a ventas (quietUpdate). La respuesta al cliente
+ * no cambia.
+ * (ronda 5, A) Al reves: primero se apartan las respuestas que no son contenido (el "si" de la lista cerrada, con su
+ * cortesia; el "no" solo o "<dato> esta mal" sin el dato, que contesta "Que dato corrijo?"; una foto o un audio; el correo
+ * o el RUT tardio; un pedido nuevo explicito, que no llega aqui). Todo lo demas es contenido y deja la linea si su residuo
+ * (summaryLeftover) no esta vacio.
  */
 function withUnappliedNote(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, result: StepResult, dropped = false): StepResult {
   if (hasMedia || result.reply === MSG_SUMMARY_FIX || state.deal !== 'registered') return result;
@@ -2305,11 +2556,21 @@ function withUnappliedNote(phone: string, state: FlowState, body: string, claude
   // El RUT y el correo tienen su camino (lateRut, lateEmail): un mensaje que los trae o habla del RUT no es un dato del pedido.
   const inspected = inspectRut(body, { asked: false });
   if (inspected.found || inspected.ambiguous?.length || /(?<![a-z])rut(?![a-z])/i.test(body) || EMAIL_RE.test(body)) return result;
-  if (!dropped && !summaryResidual(body, state.captured, after, claudeParsed)) return result;
+  const answer = summaryAnswerText(body);
+  if (!dropped && (!answer || SUMMARY_YES_RE.test(answer) || SUMMARY_NO_RE.test(answer))) return result;
+  if (!dropped && !summaryLeftover(body, state.captured, after, claudeParsed)) return result;
   const captured: CapturedFields = { ...after, cambios: [...(after.cambios ?? []), unappliedLine(body)].slice(-MAX_CAMBIOS) };
   saveFlowState(phone, { ...getFlowState(phone), captured });
   console.log('[flowEngine] respuesta al resumen sin aplicar entera: queda textual en la nota del negocio');
   return { ...result, captured, shouldCreateDeal: true, rutUpdate: true, quietUpdate: result.rutUpdate ? result.quietUpdate : true, closedFlow: true };
+}
+/**
+ * [RESUMEN] (ronda 5, C6) Con el resumen pendiente, todo camino que escribe un dato del pedido en el negocio va sin aviso a
+ * ventas (quietUpdate): la vuelta sin modo resumen (closedAnswer) tambien. El correo, el RUT y la consulta para Claudio
+ * siguen como hoy.
+ */
+function quietAfterSummary(result: StepResult | undefined, afterSummary: boolean): StepResult | undefined {
+  return result && afterSummary && result.rutUpdate ? { ...result, quietUpdate: true } : result;
 }
 /**
  * [RESUMEN] (revision 16-11) El mensaje sin sus partes de pregunta, cortado como questionText (cada frase hasta "?", "!"
@@ -2331,7 +2592,10 @@ function statementText(body: string): string {
  */
 // [RESUMEN] (ronda 4, A) `report.dropped`: un dato que el mensaje cambiaba quedo sin escribir porque el resumen corregido no
 // sale (ya se mostro, o no se puede armar): withUnappliedNote lo deja textual en la nota.
-function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, summaryReply = false, afterSummary = summaryReply, report?: { dropped?: boolean }): StepResult | undefined {
+// (ronda 5, C5) `report.unmapped`: una cantidad de un pedido de varios items que no calza con un solo item; flowStep no
+// prueba la vuelta sin modo resumen (closedAnswer), que podia reemplazar la lista con una cantidad equivocada.
+interface SummaryReport { dropped?: boolean; unmapped?: boolean }
+function lateChange(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, summaryReply = false, afterSummary = summaryReply, report?: SummaryReport): StepResult | undefined {
   if (state.isInstallFlow) return undefined;
   // Preguntar por el despacho ("Hacen envio a Rancagua?") no cambia la comuna ni otro dato. (revision 13-11) Corregirlo
   // si: "Corrijo: el despacho es a Quilicura".
@@ -2350,7 +2614,8 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   if (fresh) data = fresh;
   const instead = Boolean(fresh);
   const question = /[?\u00bf]/.test(data);
-  const { merged, leadType, addsProduct = false, addedText = '', listReplace = false, switchWords = false } = mergeProductFields(state, data, claudeParsed, hasMedia, summaryReply, instead);
+  const { merged, leadType, addsProduct = false, addedText = '', listReplace = false, switchWords = false, unmapped = false, destComuna = false, itemFirm = false } = mergeProductFields(state, data, claudeParsed, hasMedia, summaryReply, instead);
+  if (unmapped && report) report.unmapped = true;
   const facts = factsText(data, claudeParsed);
   const captured: CapturedFields = { ...state.captured };
   // [RESUMEN] Al contestar el resumen, un dato afirmado distinto del capturado lo corrige sin palabra de correccion. El
@@ -2366,13 +2631,17 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   // (revision 17-11) La lista completa nueva (listReplace) reemplaza los items: no es otro item.
   const addsItem = !listReplace && merged.cantidad_varios !== undefined && merged.cantidad_varios !== state.captured.cantidad_varios;
   const relaxed = (field: typeof LATE_FIELDS[number]): boolean => {
-    if (!summaryReply) return false;
+    // (ronda 5, C5) Con una cantidad que no calza con un item, lo demas del mensaje puede ser de ese item: solo cambia lo firme.
+    if (!summaryReply || unmapped) return false;
     if (field === 'comunas_otras') return captured.comuna_o_ciudad !== state.captured.comuna_o_ciudad;
     // (revision 17-11, ronda 3) El mensaje que es solo la comuna corrige aunque empiece con "Si, y" ("Si, y es en
     // Pudahuel"): no trae otro dato que se sume.
     if (field === 'comuna_o_ciudad' && !hedge && !addsItem && comunaReply(facts)) return true;
+    // (ronda 5, C1) La comuna dicha como destino en una clausula (destinationComuna), tambien tras un "si, y" ("Si, y en Renca").
+    if (field === 'comuna_o_ciudad' && destComuna && !hedge && !addsItem && !SUMMARY_ADDITIVE_RE.test(facts)) return true;
     if (addsItem || !relaxable) return false;
-    if (field === 'proyecto_o_uso') return SUMMARY_USE_RE.test(facts) || (summaryFix && shortUseReply(facts));
+    // (ronda 5, C3) Tambien el uso conocido sin "para" ("Colegio", "Es un colegio", "uso: colegio"): summaryUseValue.
+    if (field === 'proyecto_o_uso') return SUMMARY_USE_RE.test(facts) || (summaryFix && shortUseReply(facts)) || Boolean(summaryUseValue(facts));
     if (field === 'comuna_o_ciudad') return !OTHER_PLACE_RE.test(facts);
     return true;
   };
@@ -2398,7 +2667,7 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   const sameQty = QTY_FIELDS.every((field) => JSON.stringify(state.captured[field] ?? null) === JSON.stringify(merged[field] ?? null));
   const hadQty = Boolean(state.captured.cantidad || state.captured.cantidad_varios);
   // (revision 17-11) "Esta bien, pero mejor 25 paneles" tambien corrige (SUMMARY_BETTER_RE).
-  let qtyOk = !hadQty || instead || correctsCaptured(data, state.captured, merged.cantidad ?? merged.cantidad_varios)
+  let qtyOk = !hadQty || instead || itemFirm || correctsCaptured(data, state.captured, merged.cantidad ?? merged.cantidad_varios)
     || (summaryReply && !hedge && SUMMARY_BETTER_RE.test(facts));
   let qtyFirm = qtyOk;
   // [RESUMEN] (revision 16-11) Otro item cuenta si nombra su producto ("Tambien necesito 10 focos LED"): "Si, en 2
@@ -2410,7 +2679,10 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
   const oneOfSeveral = summaryReply && Boolean(state.captured.cantidad_varios && !state.captured.cantidad)
     && Boolean(merged.cantidad) && !merged.cantidad_varios;
   let qtyLine: string | undefined;
-  if (!sameQty && qtyOk) {
+  // [RESUMEN] (ronda 5, C5) La vuelta sin modo resumen de la respuesta al resumen (closedAnswer en flowStep) no cambia la
+  // cantidad: el modo resumen ya la leyo, y esta vuelta sumaba la respuesta entera como otro item ("/ No, 12 focos y 5
+  // paneles"). Lo que no se aplico queda textual en la nota.
+  if (!sameQty && qtyOk && !(afterSummary && !summaryReply)) {
     if (oneOfSeveral) {
       const before = state.captured.cantidad_varios as string;
       const text = facts.trim().replace(/\s+/g, ' ').slice(0, MAX_VARIOS);
@@ -2463,11 +2735,17 @@ function lateChange(phone: string, state: FlowState, body: string, claudeParsed:
     || findComunas(addedText).some((c) => comparable(c) !== comparable(state.captured.comuna_o_ciudad ?? ''))
     || Boolean(textLuz(addedText) && normalizeLuz(textLuz(addedText) as string) !== normalizeLuz(comparable(state.captured.tipo_de_luz ?? ''))));
   const noSummary = oneOfSeveral || itemOwnData;
-  const again = summaryReply && !noSummary && (state.summaryShown ?? 1) < 2 ? summaryMsg(captured) : undefined;
+  // [RESUMEN] (ronda 5, B) Aplicacion parcial: se aplico algo y queda residuo (summaryLeftover). No sale el resumen
+  // corregido (mostraria lo viejo como si fuera lo nuevo): MSG4, y en el mismo negocio los cambios aplicados con su linea
+  // "Cambios:" y la linea textual (withUnappliedNote), sin aviso a ventas. El resumen corregido sale solo si el mensaje se
+  // aplico entero. Despues del segundo resumen, un dato sin palabra de correccion sigue sin cambiar (ronda 2, punto 4).
+  const partial = summaryReply && Boolean(summaryLeftover(body, state.captured, captured, claudeParsed));
+  const firstSummary = (state.summaryShown ?? 1) < 2;
+  const again = summaryReply && !noSummary && !partial && firstSummary ? summaryMsg(captured) : undefined;
   // [RESUMEN] (revision 16-11) Un cambio sin palabra de correccion que deja un resumen que no se puede armar no se
   // escribe: sigue la respuesta al resumen sin cambios. (revision 17-11) Tampoco despues del segundo resumen ("Si, mi casa
   // esta en Pirque"): sin el resumen corregido a la vista, nada cambia en silencio. Se escriben solo los datos firmes.
-  if (summaryReply && !again && soft.size) {
+  if (summaryReply && !again && soft.size && !(partial && firstSummary && !noSummary)) {
     const restore = (field: string) => {
       for (const f of field === 'cantidad' ? QTY_FIELDS : [field] as Array<keyof CapturedFields>) {
         if (state.captured[f] === undefined) delete captured[f];
@@ -2526,7 +2804,7 @@ function summaryAnswerText(body: string): string {
  * - un "si" con un comentario sin datos ni preguntas: MSG4.
  * Lo demas (una pregunta, "gracias"): nada, y sigue closedFollowUp.
  */
-function summaryAnswer(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, correctingEmail: boolean, report?: { dropped?: boolean }): StepResult | undefined {
+function summaryAnswer(phone: string, state: FlowState, body: string, claudeParsed: ClaudeFields, hasMedia: boolean, correctingEmail: boolean, report?: SummaryReport): StepResult | undefined {
   const answer = summaryAnswerText(body);
   const closed = (reply: string): StepResult => ({
     reply, shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: state.captured, wantsHuman: state.wantsHuman, closedFlow: true,
@@ -2545,7 +2823,8 @@ function summaryAnswer(phone: string, state: FlowState, body: string, claudePars
   const lateRutResult = lateRut(phone, state, body);
   // (ronda 4, B2 y C) El dato sin la aceptacion delante ("Si, 30") ni la cortesia ("25, gracias"): summaryData.
   const late = lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
-    ?? lateChange(phone, state, summaryData(body), claudeParsed, hasMedia, true, true, report);
+    // (ronda 5, C2) Los numeros en palabras que son una clausula por si solos ("treinta", "Que sean treinta y en Pudahuel").
+    ?? lateChange(phone, state, summaryData(spelledQuantities(body)), claudeParsed, hasMedia, true, true, report);
   if (late) return late;
   // (revision 16-11) Un "si" con un comentario que no cambia nada ("Si, quiero cotizar eso", "Si, en 2 semanas mas") y
   // sin pregunta tambien confirma: MSG4.
@@ -2790,7 +3069,7 @@ function flowStep(
       const lateRutResult = state.deal === 'registered' ? lateRut(phone, state, body) : undefined;
       const late = state.deal === 'registered'
         ? lateEmail(phone, lateRutResult ? getFlowState(phone) : state, body, correctingEmail) ?? lateRutResult
-          ?? lateChange(phone, state, body, claudeParsed, Boolean(signals.hasMedia), false, afterSummary)
+          ?? quietAfterSummary(lateChange(phone, state, body, claudeParsed, Boolean(signals.hasMedia), false, afterSummary), afterSummary)
         : undefined;
       if (late) return late;
       const forClaudio = asksForClaudio(state, body);
@@ -2808,8 +3087,10 @@ function flowStep(
     // [RESUMEN] (ronda 4, A) Lo que el cliente contesta al resumen y no se aplica entero queda textual en la nota del
     // mismo negocio (withUnappliedNote): ninguna correccion se pierde.
     if (!newRequest && summaryPending) {
-      const report: { dropped?: boolean } = {};
-      const answered = summaryAnswer(phone, state, body, claudeParsed, Boolean(signals.hasMedia), correctingEmail, report) ?? closedAnswer(true);
+      const report: SummaryReport = {};
+      // (ronda 5, C5) La cantidad que no calza con un item no prueba la vuelta sin modo resumen: MSG4 y la linea textual.
+      const answered = summaryAnswer(phone, state, body, claudeParsed, Boolean(signals.hasMedia), correctingEmail, report)
+        ?? (report.unmapped ? { reply: registeredClosing(), shouldCreateDeal: false, shouldNotify: false, captureStatus: state.captureStatus, captured: state.captured, wantsHuman: state.wantsHuman, closedFlow: true } : closedAnswer(true));
       return withUnappliedNote(phone, state, body, claudeParsed, Boolean(signals.hasMedia), answered, Boolean(report.dropped));
     }
     if (!newRequest) return closedAnswer();
