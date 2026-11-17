@@ -1251,8 +1251,8 @@ export function sameData(a: unknown, b: unknown): boolean {
   return eq(a, b);
 }
 
-// Campos que cambian juntos: el resultado del negocio y su id.
-const FIELD_GROUPS: string[][] = [['deal', 'dealId']];
+// Campos que cambian juntos: el resultado del negocio y su id; [RESUMEN] cuando se mostro el ultimo resumen y cuantos.
+const FIELD_GROUPS: string[][] = [['deal', 'dealId'], ['summaryAt', 'summaryShown']];
 
 /**
  * [CONCURRENCIA] Un lado de la mezcla: su flujo, la marca de cada dato (fieldSeq) y, para un dato sin

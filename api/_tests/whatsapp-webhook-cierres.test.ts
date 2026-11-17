@@ -91,6 +91,9 @@ const REGISTRADA = /qued[oó] registrad[oa]/i;
 const LLAMADA = /llam/i;
 const RUT_SINTETICO = '77.123.456-9'; // dígito verificador válido (módulo 11), no es un RUT real
 const TECNICO = /problema t[eé]cnico/i;
+// (fase 3B, dueño 16-11) El cierre que registra muestra el resumen de lo capturado; MSG4 («quedó registrada») llega con
+// el «sí» del cliente, sin escribir otra vez en Pipedrive.
+const PATIO_SUMMARY = 'Te resumo: focos LED, luz fría y para patio. ¿Está bien?';
 
 let seq = 0;
 // Un MessageSid por mensaje, como Twilio: el registro local deduplica tambien sin Upstash (H11).
@@ -131,6 +134,15 @@ async function send(phone: string, body: string, claude: Record<string, unknown>
 }
 
 /** Conversa turno a turno y devuelve cada respuesta y cuántos negocios había después. */
+/** (fase 3B) El «sí» al resumen: MSG4 («quedó registrada»), sin otro negocio, nota ni aviso. */
+async function confirmSummary(phone: string) {
+  const before = { deals: sim.deals.length, notes: sim.notes.length, notified: vi.mocked(notifyTeam).mock.calls.length };
+  const yes = await send(phone, 'Sí', {});
+  expect(yes.reply).toBe(MSG4);
+  expect(yes.reply).toMatch(REGISTRADA);
+  expect({ deals: sim.deals.length, notes: sim.notes.length, notified: vi.mocked(notifyTeam).mock.calls.length }).toEqual(before);
+}
+
 async function chat(phone: string, turns: Array<[string, Record<string, unknown>?]>) {
   const out: Array<{ reply: string; deals: number }> = [];
   for (const [body, claude] of turns) {
@@ -295,9 +307,10 @@ describe('T-X2 · no sabe la comuna', () => {
       expect(t.reply).not.toMatch(REGISTRADA);
       expect(t.deals).toBe(0);
     }
-    expect(turns[4].reply).toMatch(REGISTRADA);
+    expect(turns[4].reply).toBe(PATIO_SUMMARY);
     expect(turns[4].deals).toBe(1);
     expect(sim.deals).toHaveLength(1);
+    await confirmSummary(phone);
   });
 
   it('producto y cantidad sin responder: pide el correo antes de cerrar y no cierra con "quedó registrada"', async () => {
@@ -326,8 +339,9 @@ describe('T-X2 · no sabe la comuna', () => {
     expect(name.reply).toBe(TEXT_A);
     expect(sim.deals).toHaveLength(0);
     const email = await send(phone, 'ana.prueba@example.com', { correo: 'ana.prueba@example.com' });
-    expect(email.reply).toMatch(REGISTRADA);
+    expect(email.reply).toBe('Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?');
     expect(sim.deals).toHaveLength(1);
+    await confirmSummary(phone);
     expect(sim.notes[0].content).toContain('Nombre/empresa: Ana Prueba');
     expect(sim.notes[0].content).toContain('Correo: ana.prueba@example.com');
   });
@@ -375,6 +389,7 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     producto: 'paneles 60x60 y focos de riel', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'casa',
     comuna_o_ciudad: 'Ñuñoa', nombre: 'Pedro Prueba', correo: 'pedro.prueba@example.com', qualifiesForDeal: true,
   };
+  const FULL_SUMMARY = 'Te resumo: 20 paneles 60x60 y 10 focos de riel, luz neutra, para casa y en Ñuñoa. ¿Está bien?';
 
   it('proyecto como objeto en el primer mensaje: el cliente recibe respuesta', async () => {
     const phone = nextPhone();
@@ -388,7 +403,8 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     const phone = nextPhone();
     const r = await send(phone, FULL, { ...FULL_CLAUDE, proyecto_o_uso: { tipo: 'casa', superficie_m2: 120 } });
     expect(r.status).toBe(200);
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe(FULL_SUMMARY);
+    await confirmSummary(phone);
     expect(sim.persons).toHaveLength(1);
     expect(sim.deals).toHaveLength(1);
     const note = sim.notes[0].content;
@@ -409,7 +425,8 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     const phone = nextPhone();
     const r = await send(phone, FULL, { ...FULL_CLAUDE, correo: ['pedro.prueba@example.com', 'compras.prueba@example.com'] });
     expect(r.status).toBe(200);
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe(FULL_SUMMARY);
+    await confirmSummary(phone);
     expect(sim.persons).toHaveLength(1);
     expect(sim.deals).toHaveLength(1);
     expect(sim.persons[0].email).toBe('pedro.prueba@example.com');
@@ -424,7 +441,8 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
       summary: { resumen: 'Pide paneles y focos', prioridad: 'media' },
     });
     expect(r.status).toBe(200);
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe(FULL_SUMMARY);
+    await confirmSummary(phone);
     expect(sim.persons).toHaveLength(1);
     expect(sim.deals).toHaveLength(1);
     const note = sim.notes[0].content;
@@ -441,9 +459,10 @@ describe('caídas: lo que devuelve Claude con otra forma', () => {
     const phone = nextPhone();
     sim.updateDown = true;
     const r = await send(phone, FULL, FULL_CLAUDE);
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe(FULL_SUMMARY);
     expect(sim.deals).toHaveLength(1);
     expect(sim.notes).toHaveLength(1);
+    await confirmSummary(phone);
   });
 });
 
@@ -479,7 +498,8 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
     expect(first.reply).not.toMatch(REGISTRADA);
     expect(sim.deals).toHaveLength(0);
     const second = await sendRaw(phone, 'Pedro Prueba', NO_JSON);
-    expect(second.reply).toMatch(REGISTRADA);
+    // (fase 3B) Sin Claude, el producto es el que leen las reglas.
+    expect(second.reply).toBe('Te resumo: 20 paneles LED, luz neutra, para casa y en Ñuñoa. ¿Está bien?');
     expect(sim.deals).toHaveLength(1);
     expect(sim.persons[0].email).toBe('pedro.prueba@example.com');
     expect(sim.notes[0].content).toContain(FULL); // la transcripción literal del cliente
@@ -492,6 +512,7 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
       for (const piece of PRIVATE) expect(line).not.toContain(piece);
     }
     expect(qaOut().map((q) => q.ai)).toEqual(['heuristic', 'heuristic']);
+    await confirmSummary(phone);
   });
 
   // [RESPUESTA] Revisión de Codex de la PR 168 (informe del 11-11): en estos dos casos la versión anterior cerraba y
@@ -538,7 +559,7 @@ describe('[RESPUESTA] respuesta de Claude que no se puede usar entera', () => {
   it('JSON en un bloque con texto alrededor: se usa y el log dice «Claude ok»', async () => {
     const phone = nextPhone();
     const r = await sendRaw(phone, FULL, 'Aquí está el JSON:\n```json\n' + JSON.stringify(FULL_CLAUDE) + '\n```\nSaludos.');
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe('Te resumo: 20 paneles 60x60, luz neutra, para casa y en Ñuñoa. ¿Está bien?');
     expect(logged(console.log).some((l) => l.includes('Claude ok'))).toBe(true);
     expect(logged(console.warn).some((l) => l.includes('Claude sin datos') || l.includes('valores por defecto'))).toBe(false);
     expect(qaOut().at(-1).ai).toBe('claude');
@@ -609,13 +630,18 @@ describe('el correo de eLIGHTS (ventas@, que sugieren los textos A y B) no es el
       ['no sé', {}],
     ]);
     const r = await send(phone, 'ya escribí a ventas@elights.cl, mi correo es ana.prueba@example.com', {});
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe(PATIO_SUMMARY);
     expect(sim.deals).toHaveLength(1);
     expect(sim.persons[0].email).toBe('ana.prueba@example.com');
+    await confirmSummary(phone);
   });
 });
 
 describe('correo tardío con "necesito" o "quiero"', () => {
+  const summaries: Record<string, string> = {
+    'necesito que me escriban a ana.prueba@example.com': PATIO_SUMMARY,
+    'ana.prueba@example.com necesito 12': 'Te resumo: 12 focos LED, luz fría y para patio. ¿Está bien?',
+  };
   for (const msg of ['necesito que me escriban a ana.prueba@example.com', 'ana.prueba@example.com necesito 12']) {
     it('"' + msg + '": se suma a lo capturado y crea el negocio (antes reiniciaba la conversación)', async () => {
       const phone = nextPhone();
@@ -626,8 +652,9 @@ describe('correo tardío con "necesito" o "quiero"', () => {
         ['no sé', {}],
       ]);
       const r = await send(phone, msg, { correo: 'ana.prueba@example.com' });
-      expect(r.reply).toMatch(REGISTRADA);
+      expect(r.reply).toBe(summaries[msg]);
       expect(sim.deals).toHaveLength(1);
+      await confirmSummary(phone);
       const note = sim.notes[0].content;
       expect(note).toContain('Producto: focos LED');
       expect(note).toContain('Proyecto/uso: patio');
@@ -699,7 +726,7 @@ describe('dos mensajes seguidos mientras se crea el negocio (Pipedrive tarda)', 
     await pause(30);
     const second = send(phone, 'gracias', {});
     const [a, b] = await Promise.all([first, second]);
-    expect(a.reply).toBe(MSG4);
+    expect(a.reply).toBe('Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?');
     // [PLAZO] El segundo mensaje recibe el recordatorio corto, no otra vez el cierre largo.
     expect(b.reply).toBe(MSG_REGISTERED_SHORT);
     expect(b.reply).not.toMatch(TECNICO);
@@ -711,7 +738,9 @@ describe('dos mensajes seguidos mientras se crea el negocio (Pipedrive tarda)', 
     sim.pdDelayMs = 150;
     const first = send(phone, FULL_B2C, FULL_B2C_CLAUDE);
     await pause(30);
-    const second = send(phone, 'necesito tambien 5 paneles LED', { producto: 'paneles LED', cantidad: '5' });
+    // (fase 3B) Con el resumen a la vista, "necesito también 5 paneles" se suma al mismo pedido
+    // (whatsapp-webhook-resumen.test.ts); un pedido nuevo lo dice.
+    const second = send(phone, 'necesito otro pedido: 5 paneles LED', { producto: 'paneles LED', cantidad: '5' });
     await Promise.all([first, second]);
     sim.pdDelayMs = 0;
     expect(getFlowState(phone).stage).not.toBe('closed');
@@ -721,8 +750,10 @@ describe('dos mensajes seguidos mientras se crea el negocio (Pipedrive tarda)', 
     for (const t of rest) expect(t.reply).not.toMatch(REGISTRADA);
     expect(rest[rest.length - 1].reply).toBe(TEXT_A);
     const late = await send(phone, 'ana.prueba@example.com', { correo: 'ana.prueba@example.com' });
-    expect(late.reply).toMatch(REGISTRADA);
+    // (revisión 16-11, T3) Con dos partes, «y» antes de la última, como en el alcance de la fase 3B.
+    expect(late.reply).toBe('Te resumo: 5 paneles LED y luz fría. ¿Está bien?');
     expect(sim.deals).toHaveLength(2);
+    await confirmSummary(phone);
   });
 });
 
@@ -763,8 +794,9 @@ describe('Pipedrive caído', () => {
   it('control: con Pipedrive arriba, el mismo pedido B2B queda registrado', async () => {
     const phone = nextPhone();
     const r = await send(phone, B2B, B2B_CLAUDE);
-    expect(r.reply).toMatch(REGISTRADA);
+    expect(r.reply).toBe('Te resumo: 30 paneles LED 60x60, luz fría, para oficina y en Providencia. ¿Está bien?');
     expect(sim.deals).toHaveLength(1);
+    await confirmSummary(phone);
   });
 });
 
@@ -779,7 +811,7 @@ describe('[REGISTRO] el negocio nuevo lleva el tipo del flujo', () => {
     expect((await send(phone, ORDER, ORDER_CLAUDE)).reply).not.toMatch(REGISTRADA);
     expect(getFlowState(phone).leadType).toBe('B2C');
     const r = await send(phone, 'Es para la obra de ampliación de mi casa: pedro.prueba@example.com', { correo: 'pedro.prueba@example.com' });
-    expect(r.reply).toBe(MSG4);
+    expect(r.reply).toBe('Te resumo: 20 paneles 60x60, luz neutra, para casa y en Ñuñoa. ¿Está bien?');
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2C');
     expect(sim.persons[0].customerType).toBe('B2C');
@@ -791,7 +823,7 @@ describe('[REGISTRO] el negocio nuevo lleva el tipo del flujo', () => {
       { ...ORDER_CLAUDE, proyecto_o_uso: 'oficina', nombre: undefined, empresa: 'Comercial Prueba SpA' });
     expect(getFlowState(phone).leadType).toBe('B2B');
     const r = await send(phone, 'compras@comercial-prueba.example.com', { correo: 'compras@comercial-prueba.example.com' });
-    expect(r.reply).toBe(MSG4);
+    expect(r.reply).toBe('Te resumo: 20 paneles 60x60, luz neutra, para oficina y en Ñuñoa. ¿Está bien?');
     expect(sim.deals).toHaveLength(1);
     expect(sim.deals[0].leadType).toBe('B2B');
   });

@@ -55,6 +55,9 @@ const WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 77.12
 // de persona (RUT de persona, sin repregunta) está en R121-04.
 const COMPANY = { ...COMPLETE, empresa: 'Comercial Prueba SpA' };
 const PERSON_WRONG_RUT_ORDER = 'Necesito 10 focos LED para una casa en Maipu, RUT 15.432.876-0';
+// (fase 3B, dueño 16-11) El cierre que registra muestra el resumen (sin el RUT, el nombre ni el correo); MSG4 llega con
+// el «sí».
+const FOCOS_SUMMARY = 'Te resumo: 10 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?';
 let redis: ReturnType<typeof createFakeRedis>;
 let seq: number;
 let webhook: typeof import('../whatsapp/webhook.js')['default'];
@@ -239,7 +242,9 @@ describe('R121-04: estado compartido y respaldo', () => {
     sim.parsed = COMPANY;
     expect(await send(WRONG_RUT_ORDER)).toContain('no calza');
     sim.parsed = {};
-    expect(await send('771234569')).toContain('registrad');
+    expect(await send('771234569')).toContain(FOCOS_SUMMARY);
+    expect(sim.created).toBe(1);
+    expect(await send('Sí')).toContain('registrad');
     expect(sim.created).toBe(1);
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Upstash no disponible'));
   });
@@ -249,7 +254,8 @@ describe('R121-04: estado compartido y respaldo', () => {
     const reply = await send(PERSON_WRONG_RUT_ORDER);
     expect(reply).not.toContain('no calza');
     expect(reply).not.toMatch(/RUT/);
-    expect(reply).toContain('Claudio Quero te responderá por correo');
+    expect(reply).toContain(FOCOS_SUMMARY);
+    expect(reply).not.toContain('15.432.876');
     const state = await snapshot();
     expect(state.flow.captured).toMatchObject({ rut: '15.432.876-0', rut_valido: false });
     expect(state.flow.rutRetryAsked).toBeUndefined();
@@ -602,7 +608,11 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
 
   it('una solicitud nueva sin «rut» sigue empezando desde cero', async () => {
     sim.parsed = COMPLETE;
-    await send('Necesito 10 focos LED para una casa en Maipu');
+    expect(await send('Necesito 10 focos LED para una casa en Maipu')).toContain(FOCOS_SUMMARY);
+    // (fase 3B) Con el resumen a la vista, "cambiar a paneles" lo corrige (whatsapp-webhook-resumen.test.ts); confirmado,
+    // es otra solicitud, como antes.
+    sim.parsed = {};
+    expect(await send('Sí')).toContain('registrad');
     sim.parsed = { producto: 'paneles LED' };
     await send('Necesito cambiar a paneles LED');
     const state = (await snapshot()).flow;
@@ -614,6 +624,17 @@ describe('segunda tanda: caducidad de MessageSid y corrección tardía', () => {
 });
 
 describe('PR 3 (B1): la transcripción en el estado compartido', () => {
+  // (fase 3B, revisión 17-11) Cada pedido con su «sí»: el siguiente es otra solicitud con su negocio y su nota, como antes
+  // del resumen. Sin el «sí», el pedido siguiente contesta el resumen (el mismo negocio) y, tras el segundo resumen, otra
+  // cantidad sin palabra de corrección ya no se escribe (flowResumen.test.ts).
+  async function orderConfirmed(body: string) {
+    await send(body);
+    const parsed = sim.parsed;
+    sim.parsed = {};
+    expect(await send('Sí')).toContain('registrad');
+    sim.parsed = parsed;
+  }
+
   it('sobrevive a un reinicio: se restaura del estado guardado y la nota trae los mensajes anteriores', async () => {
     sim.parsed = { producto: 'focos LED', tipo_de_luz: 'calida', cantidad: '10', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipu' };
     await send('Necesito 10 focos LED luz calida para una casa en Maipu');
@@ -638,7 +659,7 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
   it('H2: cuatro notas rechazadas y Pipedrive se recupera: llegan las cuatro, en orden', async () => {
     sim.parsed = COMPLETE;
     sim.noteDown = true;
-    for (let i = 1; i <= 4; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    for (let i = 1; i <= 4; i++) await orderConfirmed('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
     const queued = await pendingQueue();
     expect(queued.map((w) => w.note!.match(/Cliente: Necesito (\d+) focos/)![1])).toEqual(['11', '12', '13', '14']);
     // El estado guardado ya no lleva las notas: solo el campo vacío, para la versión anterior.
@@ -655,7 +676,7 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
     expect(MAX_PENDING_WRITES).toBe(10);
     sim.parsed = COMPLETE;
     sim.noteDown = true;
-    for (let i = 1; i <= MAX_PENDING_WRITES + 1; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    for (let i = 1; i <= MAX_PENDING_WRITES + 1; i++) await orderConfirmed('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
     expect(await pendingQueue()).toHaveLength(MAX_PENDING_WRITES);
     expect(redis.data.get(pendingKey(PHONE))!.ttl).toBe(PENDING_WRITE_TTL_S);
     expect(pendingKey(PHONE)).not.toContain(PHONE.slice(1));
@@ -697,7 +718,7 @@ describe('PR 3 (B1): la transcripción en el estado compartido', () => {
     const { updateDeal } = await import('../_lib/pipedrive/deals.js');
     sim.parsed = COMPLETE;
     sim.noteDown = true;
-    for (let i = 1; i <= MAX_PENDING_WRITES; i++) await send('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
+    for (let i = 1; i <= MAX_PENDING_WRITES; i++) await orderConfirmed('Necesito ' + (10 + i) + ' focos LED para una casa en Maipu');
     expect(await pendingQueue()).toHaveLength(MAX_PENDING_WRITES);
     // Pipedrive acepta las notas nuevas, pero sigue rechazando las de la cola y los campos del negocio.
     sim.noteDown = false;

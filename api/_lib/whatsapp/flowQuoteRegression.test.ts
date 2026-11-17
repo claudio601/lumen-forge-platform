@@ -183,8 +183,10 @@ describe('consulta estrecha, normalización y datos de Claude', () => {
       flow.clearFlowState(PHONE);
       close();
       const before = structuredClone(flow.getFlowState(PHONE));
+      // [RESUMEN] Fase 3B: el cierre fue el resumen, que espera respuesta un solo mensaje; la consulta no cambia nada más.
+      expect(before.lastQuestion).toEqual({ asks: [], listLength: 0, summary: true });
       expect(step(body, parsed)).toMatchObject({ closedFlow: true, shouldCreateDeal: false });
-      expect(flow.getFlowState(PHONE)).toEqual(before);
+      expect(flow.getFlowState(PHONE)).toEqual({ ...before, lastQuestion: null });
     }
   });
   it.each<Claude>([{ producto: 'postes solares' }, { cantidad: '40' }])('la extracción nueva impide frenar el pedido: %j', (parsed) => {

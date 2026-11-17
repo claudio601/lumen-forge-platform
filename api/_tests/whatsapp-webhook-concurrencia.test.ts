@@ -28,6 +28,10 @@ import { MSG_DEAL_PENDING } from '../_lib/whatsapp/flowEngine.js';
 // FASE 3A (revisión 16-11): el cierre registrado (MSG4) se reconoce por su trozo propio. «quedó registrada» también está
 // en el recordatorio corto (MSG_REGISTERED_SHORT) y dejaría pasar ese texto en lugar del cierre.
 const REGISTERED_CLOSING = 'Claudio Quero te responderá por correo';
+// (fase 3B, dueño 16-11) El mensaje que registra el pedido responde el resumen de lo capturado; si Pipedrive falla o no
+// alcanza, el webhook lo cambia por el texto B o MSG_DEAL_PENDING (el resumen solo sale con el negocio registrado).
+const SUMMARY_A = 'Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?';
+const SUMMARY_NEW_ORDER = 'Te resumo: 20 focos LED, luz cálida, para casa y en Lampa. ¿Está bien?';
 
 const sim = vi.hoisted(() => ({
   /** Lo que devuelve Claude según el texto del mensaje, y cuánto tarda. */
@@ -404,22 +408,22 @@ describe('Verificador: el guardado temprano no repite el registro que otro mensa
   it('dos instancias: B lee la conversación cerrada y sin negocio, pero no registra de nuevo: un negocio, una nota de A y un aviso', async () => {
     const { replyA, replyB } = await overlap(true, 12_000);
     await expectOneRegistration(true);
-    // Las dos respuestas dicen lo que confirmó Pipedrive (el registro de A).
-    expect(replyA).toContain(REGISTERED_CLOSING);
+    // Las dos respuestas dicen lo que confirmó Pipedrive (el registro de A): A, con su resumen.
+    expect(replyA).toContain(SUMMARY_A);
     expect(replyB).toContain(REGISTERED_CLOSING);
   });
 
   it('una instancia: B deja de esperar a A, que sigue en Pipedrive, y tampoco registra de nuevo', async () => {
     const { replyA, replyB } = await overlap(false, 12_000);
     await expectOneRegistration(true);
-    expect(replyA).toContain(REGISTERED_CLOSING);
+    expect(replyA).toContain(SUMMARY_A);
     expect(replyB).toContain(REGISTERED_CLOSING);
   });
 
   it('si A no termina antes del plazo de B, B no afirma el registro ni el fallo (texto aprobado) y tampoco lo repite', async () => {
     const { replyA, replyB } = await overlap(true, 20_000);
     await expectOneRegistration();
-    expect(replyA).toContain(REGISTERED_CLOSING);
+    expect(replyA).toContain(SUMMARY_A);
     expect(replyB).toContain(MSG_DEAL_PENDING.slice(0, 60));
     expect(replyB).not.toContain('quedó registrada');
     expect(replyB).not.toContain('No pude registrar');
@@ -445,7 +449,7 @@ describe('Verificador: el guardado temprano no repite el registro que otro mensa
     claude(CONTACT, CONTACT_CLAUDE);
     const reply = post(hook, CONTACT);
     await vi.advanceTimersByTimeAsync(5_000);
-    expect(await reply).toContain(REGISTERED_CLOSING);
+    expect(await reply).toContain(SUMMARY_A);
     expect(sim.deals).toHaveLength(1);
     expect(sim.notes).toHaveLength(1);
     expect(clientTexts(sim.notes[0].content)).toEqual([ORDER, CONTACT]);
@@ -934,7 +938,7 @@ describe('R11: el resultado del registro se consulta por conversación', () => {
     await vi.advanceTimersByTimeAsync(40_000);
     const [replyA, replyB] = await Promise.all([a, b, c]);
     expect(sim.deals).toHaveLength(1);
-    expect(replyA).toContain(REGISTERED_CLOSING);
+    expect(replyA).toContain(SUMMARY_A);
     // C abrió otra conversación: la de A y B ya no es la activa, pero su registro sí se confirmó.
     expect((await snapshot()).flow.firstMessageAt).not.toBe(conversationA);
     expect(replyB).toContain(REGISTERED_CLOSING);
@@ -1032,7 +1036,7 @@ describe('Verificador de R4 y R10 (ronda 3)', () => {
       const [, replyB] = await Promise.all([a, b]);
       // Antes: B esperaba la reserva que tenía la corrección de A y respondía MSG_DEAL_PENDING sin registrar.
       expect(sim.deals.length - dealsBefore).toBe(1);
-      expect(replyB).toContain(REGISTERED_CLOSING);
+      expect(replyB).toContain(SUMMARY_NEW_ORDER);
       expect(replyB).not.toContain(MSG_DEAL_PENDING.slice(0, 60));
       // El pedido nuevo se juntó con el negocio abierto (9001), donde A seguía escribiendo: sus campos salen
       // después de los de A (decisión 7: gana el mensaje que llegó después).
@@ -1059,7 +1063,7 @@ describe('Verificador de R4 y R10 (ronda 3)', () => {
       await vi.advanceTimersByTimeAsync(40_000);
       const [, replyM2] = await Promise.all([m1, m2]);
       expect(sim.deals.length - dealsBefore).toBe(1);
-      expect(replyM2).toContain(REGISTERED_CLOSING);
+      expect(replyM2).toContain(SUMMARY_NEW_ORDER);
       expect(emails().at(-1)).toBe('ana.dos@example.com');
     });
   });
@@ -1084,7 +1088,7 @@ describe('Verificador de R4 y R10 (ronda 3)', () => {
     expect(emails()).toEqual(['ana.prueba@example.com', 'ana.b@example.com']);
     expect(sim.notes.map((n) => [n.deal_id, clientTexts(n.content)])).toEqual([[9001, [ORDER, CONTACT]], [9001, [B]]]);
     expect(sim.notified).toBe(1);
-    expect(replyA).toContain(REGISTERED_CLOSING);
+    expect(replyA).toContain(SUMMARY_A);
     expect(replyB).toContain(REGISTERED_CLOSING);
     expect((await snapshot()).flow.captured.correo).toBe('ana.b@example.com');
   });

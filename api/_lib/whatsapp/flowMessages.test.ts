@@ -184,6 +184,9 @@ describe('[ARCHIVOS] imágenes y archivos por WhatsApp (dueño, 13-11-2026, deci
     const claude = { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'cálida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' };
     expect(flow.processFlowStep(PHONE, body, claude, NO_SIGNALS).shouldCreateDeal).toBe(true);
     expect(flow.getFlowState(PHONE).stage).toBe('closed');
+    // (fase 3B) El resumen espera su respuesta; con el "sí" ya no queda pregunta pendiente.
+    flow.recordDealOutcome(PHONE, true);
+    expect(flow.processFlowStep(PHONE, 'sí', {}, NO_SIGNALS).reply).toBe(flow.MSG4);
     expect(flow.recordMediaReply(PHONE, ['image/jpeg'])).toBe(flow.MSG_MEDIA_NOTICE);
     expect(flow.recordMediaReply(PHONE, ['audio/ogg'])).toBe(flow.MSG_VOICE_NOTICE + '\n\n' + flow.MSG_VOICE_WRITE);
   });

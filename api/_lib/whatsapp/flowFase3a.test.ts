@@ -29,6 +29,14 @@ afterEach(() => { flow.clearFlowState(PHONE); lastReply = undefined; });
 const FIELDS = { producto: 'focos LED', cantidad: '12', tipo_de_luz: 'calida', proyecto_o_uso: 'casa', comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba' };
 const ORDER = 'Necesito 12 focos LED luz cálida para mi casa en Maipú. Soy Ana Prueba';
 const EMAIL = 'ana.prueba@example.com';
+// [RESUMEN] Fase 3B (dueño, 16-11): el cierre que registra es el resumen; MSG4 llega con el «sí» del cliente.
+const summaryOf = (items: string, luz: string, uso: string, comuna: string) => `Te resumo: ${items}, luz ${luz}, para ${uso} y en ${comuna}. ¿Está bien?`;
+const CASA_SUMMARY = summaryOf('12 focos LED', 'cálida', 'casa', 'Maipú');
+/** El «sí» al resumen, con el negocio registrado: MSG4, sin escribir en Pipedrive. */
+function confirm() {
+  flow.recordDealOutcome(PHONE, true, undefined, 4242);
+  expect(step('Sí')).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: false, closedFlow: true });
+}
 
 describe('punto 1: tildes y signos de apertura', () => {
   it.each([
@@ -103,37 +111,41 @@ describe('punto 1: tildes y signos de apertura', () => {
   });
 });
 
-describe('punto 2: un solo cierre registrado (MSG4)', () => {
+describe('punto 2: un solo cierre registrado (MSG4, después del resumen de la fase 3B)', () => {
   it('el texto es el aprobado el 11-11 y no quedan MSG4_B2B ni MSG4_INSTALL', () => {
     expect(flow.MSG4).toBe('Tu solicitud quedó registrada. Claudio Quero te responderá por correo el mismo día hábil.');
     expect(Object.keys(flow)).not.toContain('MSG4_B2B');
     expect(Object.keys(flow)).not.toContain('MSG4_INSTALL');
   });
 
-  it('persona (B2C): cierra con MSG4', () => {
+  it('persona (B2C): cierra con el resumen y, con el «sí», MSG4', () => {
     const r = step(ORDER + ', ' + EMAIL, FIELDS);
-    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+    expect(r).toMatchObject({ reply: CASA_SUMMARY, shouldCreateDeal: true, closedFlow: true });
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
+    confirm();
   });
 
   it('empresa (B2B) con RUT válido: cierra con el mismo MSG4', () => {
     const r = step('Necesito 12 focos LED luz cálida para la bodega de Comercial Prueba SpA en Maipú, RUT 77.123.456-9, compras@comercial-prueba.example.com',
       { ...FIELDS, proyecto_o_uso: 'bodega', empresa: 'Comercial Prueba SpA', correo: 'compras@comercial-prueba.example.com' });
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
-    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(r).toMatchObject({ reply: summaryOf('12 focos LED', 'cálida', 'bodega', 'Maipú'), shouldCreateDeal: true });
+    confirm();
   });
 
-  it('empresa sin RUT que cierra con el correo: MSG4', () => {
+  it('empresa sin RUT que cierra con el correo: el resumen y, con el «sí», MSG4', () => {
     step('Necesito 20 paneles LED 60x60 luz neutra para la oficina de Comercial Prueba SpA en Ñuñoa',
       { producto: 'paneles 60x60', tipo_de_luz: 'neutra', cantidad: '20', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Ñuñoa', empresa: 'Comercial Prueba SpA' });
     const r = step('compras@comercial-prueba.example.com', { correo: 'compras@comercial-prueba.example.com' });
-    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(r).toMatchObject({ reply: summaryOf('20 paneles 60x60', 'neutra', 'oficina', 'Ñuñoa'), shouldCreateDeal: true });
+    confirm();
   });
 
-  it('el correo que llega después del cierre sin negocio: MSG4', () => {
+  it('el correo que llega después del cierre sin negocio: el resumen y, con el «sí», MSG4', () => {
     step(ORDER, FIELDS);
     expect(step('no tengo correo ahora').closedFlow).toBe(true);
-    expect(step(EMAIL, { correo: EMAIL })).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(step(EMAIL, { correo: EMAIL })).toMatchObject({ reply: CASA_SUMMARY, shouldCreateDeal: true });
+    confirm();
   });
 
   it('el RUT válido que llega con el negocio registrado: MSG4', () => {
@@ -185,7 +197,7 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
   it('persona (B2C) en el primer mensaje: no recibe MSG_RUT_INVALID, cierra y la nota marca el RUT', () => {
     const r = step(ORDER + ', RUT ' + PERSON_RUT + ', ' + EMAIL, FIELDS);
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(CASA_SUMMARY);
     expect(r.captured).toMatchObject({ rut: PERSON_RUT, rut_valido: false });
     expect(flow.getFlowState(PHONE).rutRetryAsked).toBeUndefined();
     expect(flow.getFlowState(PHONE).rutAskedLast).toBe(false);
@@ -233,7 +245,7 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
     const fixed = step('perdón, es 76.123.456-0');
     expect(fixed.captured).toMatchObject({ rut: '76.123.456-0', rut_valido: true, rut_tipo: 'empresa' });
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
-    expect(fixed).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(fixed).toMatchObject({ reply: summaryOf('20 campanas LED 150W', 'fría', 'galpon', 'Pudahuel'), shouldCreateDeal: true });
   });
 
   it('RUT de empresa (77.x) que no calza, todo en un mensaje y sin palabras de empresa: se pide de nuevo', () => {
@@ -248,7 +260,7 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
       { producto: 'campanas LED 150W', tipo_de_luz: 'fria', cantidad: '20', proyecto_o_uso: 'galpon', comuna_o_ciudad: 'Pudahuel' });
     expect(step('RUT 76.123.456-3, Maria Prueba, maria@example.com', { nombre: 'Maria Prueba', correo: 'maria@example.com' }).reply).toBe(flow.MSG_RUT_INVALID);
     const again = step('76.123.456-4');
-    expect(again).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(again).toMatchObject({ reply: summaryOf('20 campanas LED 150W', 'fría', 'galpon', 'Pudahuel'), shouldCreateDeal: true });
     expect(again.captured).toMatchObject({ rut: '76.123.456-4', rut_valido: false });
   });
 
@@ -259,7 +271,7 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
     expect(step('Claudio me dijo que les escribiera. Somos Constructora Prueba SpA, RUT 76.123.456-3', { empresa: 'Constructora Prueba SpA' }).reply).toBe(flow.MSG_EXECUTIVE);
     const r = step('necesitamos 50 campanas LED 200W luz fria para una bodega en Quilicura, compras10@example.com',
       { producto: 'campanas LED 200W', tipo_de_luz: 'fria', cantidad: '50', proyecto_o_uso: 'bodega', comuna_o_ciudad: 'Quilicura', correo: 'compras10@example.com' });
-    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+    expect(r).toMatchObject({ reply: summaryOf('50 campanas LED 200W', 'fría', 'bodega', 'Quilicura'), shouldCreateDeal: true, closedFlow: true });
     expect(r.captured).toMatchObject({ rut: '76.123.456-3', rut_valido: false });
   });
 
@@ -277,7 +289,7 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
     expect(step('Es para mi empresa, Comercial Prueba SpA', { empresa: 'Comercial Prueba SpA' }).reply).toBe(flow.MSG_RUT_INVALID);
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
-    expect(step(EMAIL, { correo: EMAIL }).reply).toBe(flow.MSG4);
+    expect(step(EMAIL, { correo: EMAIL }).reply).toBe(CASA_SUMMARY);
   });
 
   it('persona que pasa a empresa y pregunta el precio, con el RUT malo guardado y sin correo: recibe la respuesta del precio', () => {
@@ -290,7 +302,7 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
     step(ORDER + ', RUT ' + PERSON_RUT, FIELDS);
     const r = step('Es para mi empresa, Comercial Prueba SpA: ' + EMAIL, { empresa: 'Comercial Prueba SpA', correo: EMAIL });
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
-    expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true });
+    expect(r).toMatchObject({ reply: CASA_SUMMARY, shouldCreateDeal: true });
     expect(r.captured).toMatchObject({ rut: PERSON_RUT, rut_valido: false });
   });
 });

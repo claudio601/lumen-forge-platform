@@ -73,6 +73,7 @@ const APPROVALS = [
   'dueño 26-10 (#121)',
   'dueño 31-10 (#140)',
   'dueño 12-11 (#176)',
+  'dueño 16-11',
   '#173 (12-11), plan del 11-11 visto por el dueño, sin OK literal anotado',
   'plan del bot, PR #139 (31-10), fusionada con el OK del dueño',
   'legales, dueño 16-10 (#84)',
@@ -85,6 +86,8 @@ const HEREDADO: Approval = 'heredado de main antes del 11-11';
 const PENDIENTE: Approval = 'pendiente OK del dueño (16-11)';
 const MEDIA_185: Approval = 'pendiente OK del dueño (16-11): #185, reescritura del MSG_MEDIA anterior, sin OK literal anotado';
 const PR_173: Approval = '#173 (12-11), plan del 11-11 visto por el dueño, sin OK literal anotado';
+// Fase 3B: el resumen antes del cierre (decisiones del dueño del 16-11-2026, codex-claude/2026-11-16-bot-fase3/).
+const RESUMEN: Approval = 'dueño 16-11';
 
 const MEDIA_ASK = 'Cuéntanos por escrito qué producto necesitas, para qué proyecto y qué cantidad aproximada.';
 const MEDIA_NOTICE = 'Por WhatsApp no podemos recibir imágenes ni archivos para tu solicitud. Por favor, envíalos por correo a ventas@elights.cl.';
@@ -104,6 +107,8 @@ const CONSTANTS: Record<string, Approved> = {
   MSG3_B2B: { text: 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) El RUT de la empresa\n2) Tu correo de contacto', source: HEREDADO },
   MSG3_B2C: { text: 'Perfecto. Para registrar tu solicitud y derivarla a un ejecutivo de eLIGHTS, necesito:\n1) Tu nombre\n2) Tu correo de contacto', source: HEREDADO },
   MSG4: { text: 'Tu solicitud quedó registrada. Claudio Quero te responderá por correo el mismo día hábil.', source: 'dueño 11-11 tabla' },
+  // Decisión 2 del 16-11: la respuesta a un «no» solo después del resumen.
+  MSG_SUMMARY_FIX: { text: '¿Qué dato corrijo? Escríbeme el correcto.', source: RESUMEN },
   MSG4_INSTALL_NO_EMAIL: {
     text: 'Gracias. Para cotizar tu instalación necesitamos tu correo de contacto: escríbelo por aquí o envíanos tu solicitud a ventas@elights.cl.',
     source: 'dueño 16-10, solo correo (#85)',
@@ -231,6 +236,16 @@ const FRAGMENTS: Record<FileKey, Approved[]> = {
     { text: ' para continuar.', source: HEREDADO },
     { text: ' Para recomendarte las opciones adecuadas, necesito:\n', source: HEREDADO },
     { text: '\n\n¿Me los puedes indicar?', source: ORTO },
+    // summaryMsg (decisión 1 del 16-11): «Te resumo: 20 paneles LED 60x60, luz neutra, para oficina y en Maipú. ¿Está
+    // bien?». Las partes (productos y cantidades, «luz …», «para …», «en …») van con «, » y « y » antes de la última,
+    // también con dos (revisión 16-11: «30 tubos LED y luz fría»); la cantidad en metros, «500 m de cinta LED». El color usa 'luz ' y las tildes de arriba. flowResumen.test.ts fija los
+    // cuatro ejemplos aprobados.
+    { text: 'Te resumo: ', source: RESUMEN },
+    { text: '. ¿Está bien?', source: RESUMEN },
+    { text: 'para ', source: RESUMEN },
+    { text: 'en ', source: RESUMEN },
+    { text: ' y ', source: RESUMEN },
+    { text: ' m de ', source: RESUMEN },
     // buildRepregunta2.
     { text: 'Casi listo. Solo me falta saber: ', source: HEREDADO },
     { text: '. ¿Me lo puedes indicar?', source: ORTO },
@@ -265,6 +280,10 @@ const INTERNAL: Record<FileKey, Record<string, string>> = {
     'varios items (': 'nota de Pipedrive: la cantidad de varios ítems',
     ' m': 'nota de Pipedrive: la unidad de la cantidad en metros (cantidad_varios, cambios)',
     'Correo: antes ': 'nota de Pipedrive: el cambio de correo después del cierre (cambios)',
+    'Respuesta del cliente al resumen, sin aplicar (revisar): ': 'nota de Pipedrive (ronda 4, red de seguridad): la respuesta al resumen que no se aplicó entera, textual para el vendedor (cambios); nunca va al cliente',
+    'en vez de': 'summaryLeftover (ronda 7, B1): "en lugar de" se lee como "en vez de" para que "lugar" no cuente como nombre de campo; se compara, nunca va al cliente',
+    'tipo de luz': 'REJECT_FIELD_NAMES (ronda 6, B): nombre de un dato que el cliente rechaza en su respuesta al resumen; se compara, nunca va al cliente',
+    'temperatura de color': 'REJECT_FIELD_NAMES (ronda 6, B): nombre de un dato que el cliente rechaza en su respuesta al resumen; se compara, nunca va al cliente',
     'B2B': 'tipo de lead (interno)',
     'B2C': 'tipo de lead (interno)',
     'Unknown': 'tipo de lead (interno)',
@@ -367,10 +386,16 @@ const IMPORTS: Record<string, Record<string, string>> = {
     inspectRut: 'lee el RUT del mensaje (dato)', isBusinessRut: 'tipo del RUT (dato)', removeRuts: 'saca el RUT antes de leer la cantidad',
     rutRange: 'tipo del RUT por su número (dato)',
   },
-  quantity: { itemsIn: 'lee los ítems del mensaje (dato)', mentionsQuantity: 'lee la cantidad (dato)', readQuantity: 'lee la cantidad (dato)' },
+  quantity: {
+    itemsIn: 'lee los ítems del mensaje (dato)', mentionsQuantity: 'lee la cantidad (dato)', readQuantity: 'lee la cantidad (dato)',
+    itemPairs: 'lee los ítems «cantidad + producto» del texto del cliente para el resumen (trozos de su texto, sin texto del bot)',
+    spelledQuantities: 'pasa a cifras los números en palabras del mensaje del cliente (dato)',
+    withoutNonQuantities: 'saca del mensaje lo que no es cantidad antes de leer la cantidad de cada ítem (dato)',
+  },
   comunas: {
     findComunaMentions: 'lee la comuna (dato)', findComunas: 'lee la comuna (dato)', mentionsCompany: 'señal de empresa (dato)',
     officialComuna: 'nombre oficial de la comuna (el dato del cliente)',
+    isCommonWordComuna: 'la comuna también es una palabra común: cuenta solo con mayúscula (dato)',
   },
   conversation: { getHistory: 'historial para Claude', addTurn: 'historial para Claude' },
   claudeAgent: { askClaude: 'extrae datos y el resumen interno; su reply (FALLBACK_REPLY) no se envía' },
@@ -493,5 +518,26 @@ describe('textos del bot: los demás módulos no arman respuestas', () => {
     const used = new Set(imports.map(([module, name]) => module + '.' + name));
     const stale = Object.entries(IMPORTS).flatMap(([module, names]) => Object.keys(names).map((name) => module + '.' + name)).filter((key) => !used.has(key));
     expect(stale, 'entradas de IMPORTS que ya no se importan').toEqual([]);
+  });
+});
+
+// (revisión 16-11, T5) quantity.itemPairs pasa al resumen sin revisar su texto (IMPORTS lo da por dato): cada par que
+// devuelve tiene que ser un trozo del texto del cliente (con los espacios juntados). Un texto que agregue itemPairs
+// («aprox.», «unidades», una unidad traducida) hace fallar esta prueba.
+describe('textos del bot: itemPairs solo devuelve trozos del texto del cliente', () => {
+  const squeeze = (text: string) => text.replace(/\s+/g, ' ').trim();
+  it.each([
+    'Necesito 12 focos LED y 5 paneles LED para una bodega',
+    'También necesito 10 focos LED',
+    'Necesito 10 paneles LED a $5.000 c/u y 5 focos LED',
+    'necesito 12 focos  LED\ny 5 paneles LED 60x60, luz fría',
+    '20 campanas UFO 200W, 15 reflectores LED 100W IP66 y 8 focos embutidos',
+    'Necesito 1.000 focos LED y 500 metros de cinta LED 220V',
+    '30 tubos LED T8 18W 120cm / 25 tubos LED T5 14W',
+    'Necesito 10 unidades de paneles LED y 4 unds de focos',
+  ])('«%s»', (text) => {
+    const pairs = quantity.itemPairs(text);
+    expect(pairs.length).toBeGreaterThan(0);
+    for (const pair of pairs) expect(squeeze(text)).toContain(squeeze(pair));
   });
 });

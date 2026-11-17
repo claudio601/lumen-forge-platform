@@ -6,6 +6,8 @@ import { createFakeRedis, fakeFetch, UPSTASH_URL } from './fakeUpstash.js';
 // FASE 3A (revisión 16-11): el cierre registrado (MSG4) se reconoce por su trozo propio. «quedó registrada» también está
 // en el recordatorio corto (MSG_REGISTERED_SHORT) y dejaría pasar ese texto en lugar del cierre.
 const REGISTERED_CLOSING = 'Claudio Quero te responderá por correo';
+// (fase 3B, dueño 16-11) El mensaje que registra responde el resumen de lo capturado; MSG4 llega con el «sí».
+const FULL_SUMMARY = 'Te resumo: 12 focos LED, luz cálida, para casa y en Maipú. ¿Está bien?';
 
 const sim = vi.hoisted(() => ({
   claude: new Map<string, Record<string, unknown>>(),
@@ -466,8 +468,9 @@ describe('controles compatibles con main', () => {
     const hook = await instance();
     const start = Date.now();
     const res = await post(hook, FULL, 'SMg1');
-    expect(res.body).toContain(REGISTERED_CLOSING);
+    expect(res.body).toContain(FULL_SUMMARY);
     expect(Date.now() - start).toBeLessThan(30_000);
+    expect((await post(hook, 'Sí', 'SMg1c')).body).toContain(REGISTERED_CLOSING);
     await post(hook, 'gracias', 'SMg1b');
     expect(sim.posts).toBe(1); expect(sim.searches).toBe(0);
   });
@@ -478,7 +481,7 @@ describe('controles compatibles con main', () => {
     // No se pueden entregar las diez para hacer espacio antes del registro.
     sim.outcomes = Array(5).fill('timeout');
     const res = await post(hook, FULL, 'SMg2');
-    expect(res.body).toContain(REGISTERED_CLOSING);
+    expect(res.body).toContain(FULL_SUMMARY);
     expect(sim.notes.filter((x) => x.deal_id === 9001)).toHaveLength(1);
   });
   it('G4: otro sid con dato nuevo crea su nota de correccion', async () => {

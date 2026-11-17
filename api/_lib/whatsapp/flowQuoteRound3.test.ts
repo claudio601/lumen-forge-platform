@@ -178,8 +178,10 @@ const ACCEPTED = [
 it.each(ACCEPTED)('solo la consulta completa conserva el cierre: %s', (body) => {
   close();
   const before = structuredClone(flow.getFlowState(PHONE));
+  // [RESUMEN] Fase 3B: el cierre fue el resumen, que espera respuesta solo un mensaje; la consulta no cambia nada más.
+  expect(before.lastQuestion).toEqual({ asks: [], listLength: 0, summary: true });
   expect(step(body, { ...FIELDS, correo: 'ana.prueba@example.com', empresa: 'Ana Prueba', wantsHuman: false, qualifiesForDeal: false })).toMatchObject({ closedFlow: true, shouldCreateDeal: false });
-  expect(flow.getFlowState(PHONE)).toEqual(before);
+  expect(flow.getFlowState(PHONE)).toEqual({ ...before, lastQuestion: null });
 });
 
 it.each<Claude>([

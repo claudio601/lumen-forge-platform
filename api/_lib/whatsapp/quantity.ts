@@ -278,6 +278,44 @@ export function itemsIn(text: string): string[] {
   return [...plain(text).matchAll(ITEM_RE)].map((m) => m[0]).filter((item) => !/^(?:unidad|leds?$)/.test(item));
 }
 
+// [RESUMEN] Fase 3B (dueno, 16-11-2026): los items de un pedido de varios productos para el resumen antes del cierre
+// (flowEngine.ts, summaryMsg). Cada item es un numero seguido de un producto de UNIT_NOUNS (o de "unidades de" o
+// "metros de" y un producto) y hasta PAIR_EXTRA_WORDS palabras mas, tal como lo escribio el cliente. Termina en un
+// salto de linea, " - ", "/", ",", ";", ":", un punto, " y ", "para", "luz", "en" o en el numero del item siguiente.
+// Solo lee el texto del cliente: no arma texto.
+const PAIR_EXTRA_WORDS = 4;
+const PAIR_CUT_RE = /\n|\s-\s|[/,;:!?()]|\.(?!\d)|(?<![\p{L}\p{N}])(?:y|para|luz|en)(?![\p{L}\p{N}])/giu;
+const PAIR_NUMBER_RE = /^(?:\d{1,3}(?:\.\d{3})+|\d{1,5})$/;
+const PAIR_NOUN_RE = new RegExp('^(?:(?:unidades|unidad|unids?|unds?|uds?|metros?|mtrs?|mts?|m)\\s+(?:de\\s+)?)?(' + UNIT_NOUNS + ')(?![a-z0-9])');
+// Un numero de una medida ("de 50 W", "220 V") no es la cantidad de otro item.
+const PAIR_SPEC_RE = /^(?:w|watts?|v|volts?|k|kelvin|mm|cm|m2|lm|lumenes|%)$/;
+const PAIR_TAIL_RE = /^(?:de|del|con|el|la|los|las|un|una|a|al|que|por|sin|o|e|mas)$/;
+/**
+ * [RESUMEN] Los items de `text` ("12 focos LED y 5 paneles LED para bodega" -> ["12 focos LED", "5 paneles LED"]),
+ * sin repetir. Si un numero que puede ser una cantidad queda sin producto ("12 / 5 UND", "12 focos y 5 de los otros"),
+ * ninguno: el resumen dejaria fuera un item.
+ */
+export function itemPairs(text: string): string[] {
+  const out: string[] = [];
+  for (const segment of text.slice(0, MAX_TEXT).split(PAIR_CUT_RE)) {
+    const words = (segment ?? '').trim().split(/\s+/).filter(Boolean);
+    for (let i = 0; i < words.length; i++) {
+      if (!PAIR_NUMBER_RE.test(words[i]) || PAIR_SPEC_RE.test(plain(words[i + 1] ?? ''))) continue;
+      const noun = PAIR_NOUN_RE.exec(plain(words.slice(i + 1, i + 5).join(' ')));
+      if (!noun || /^(?:unidad(?:es)?|leds?)$/.test(noun[1])) return [];
+      const nounEnd = i + 1 + noun[0].split(/\s+/).length;
+      let end = nounEnd;
+      while (end < nounEnd + PAIR_EXTRA_WORDS && end < words.length
+        && !(PAIR_NUMBER_RE.test(words[end]) && !PAIR_SPEC_RE.test(plain(words[end + 1] ?? '')))) end++;
+      while (end > nounEnd && PAIR_TAIL_RE.test(plain(words[end - 1]))) end--;
+      const pair = words.slice(i, end).join(' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+      if (pair && !out.some((o) => plain(o) === plain(pair))) out.push(pair);
+      i = end - 1;
+    }
+  }
+  return out;
+}
+
 /** [NO-PISAR] El texto trae un numero que puede ser una cantidad ("ademas 20 perfiles de aluminio"). */
 export function mentionsQuantity(text: string): boolean {
   return candidates(withoutNonQuantities(text)).length > 0;
@@ -435,4 +473,47 @@ export function readQuantity(body: string, options: QuantityOptions = {}): Quant
     if (meters) return meters;
   }
   return loose.length === 1 && claudeQuantity(options.claude) === loose[0] ? { value: loose[0], explicit: false } : { explicit: false };
+}
+
+// [RESUMEN] (ronda 5, C2) La cantidad en palabras en la respuesta al resumen: "treinta", "veinticinco", "treinta y cinco",
+// "cien", "una docena", "media docena", "dos docenas". El parser es el de arriba (NUMBER_WORDS y wordsValue); "un", "una"
+// y "uno" solos son el articulo y "mil" solo es "mil gracias".
+const DOZEN_RE = new RegExp('\\b(?:(una|media)|(' + byLength(Object.keys(NUMBER_WORDS).filter((w) => !/^un[oa]?$/.test(w))) + ')|(\\d{1,3}))\\s+docenas?\\b(\\s+de\\b(?=\\s+[a-z]))?', 'g');
+// La expresion es una clausula por si sola: antes, el inicio o una pausa y a lo sumo palabras que la presentan ("No,
+// treinta", "Que sean treinta", "Si, pero treinta"); despues, el fin, una pausa, " y ", la cortesia o la unidad.
+const SPELLED_LEAD_RE = /(?:^|[,;:.!?\u00a1\u00bf]|\by)\s*(?:(?:no|si|ok|okay|okey|pero|son|sean|que|mejor|perdon|corrijo|bueno|ya|entonces|ahora|ah|hola|eran|era|serian|seran|sera|seria|solo|solamente|unos|unas|como|aprox|aproximadamente|total|cantidad|necesito|necesitamos|quiero|queremos|pon|ponle)[\s,.:;!]*)*$/;
+const SPELLED_TAIL_RE = /^\s*(?:$|[,;.!?]|y\b|(?:por\s+favor|porfa|porfis|gracias|unidades|unidad|unds?|uds?|u|metros?|mtrs?|mts?|m)\b|[^\s\w])/;
+/**
+ * [RESUMEN] (ronda 5, C2) El texto con la cantidad en palabras escrita en cifras ("No, treinta" -> "No, 30"; "una docena"
+ * -> "12"; "dos docenas de focos" -> "24 focos"), con el resto tal cual. Solo la expresion que es una clausula por si
+ * sola; con `all`, todas (para comparar lo que dijo el cliente con lo que quedo anotado). Un texto que cambia de largo
+ * al sacarle las tildes queda igual.
+ */
+export function spelledQuantities(text: string, all = false): string {
+  if (text.length > MAX_TEXT) return text;
+  const source = plain(text);
+  if (source.length !== text.length) return text;
+  const edits: Array<{ start: number; end: number; value: string }> = [];
+  for (const m of source.matchAll(DOZEN_RE)) {
+    const count = m[1] === 'media' ? 0.5 : m[1] === 'una' ? 1 : m[2] ? wordsValue(m[2]) : Number(m[3]);
+    const value = count === undefined ? undefined : count * 12;
+    if (value !== undefined && value >= 1 && value <= MAX_QUANTITY) edits.push({ start: m.index, end: m.index + m[0].length, value: String(value) });
+  }
+  for (const m of source.matchAll(WORD_SPAN_RE)) {
+    const start = m.index;
+    const end = start + m[0].length;
+    if (/^(?:un[oa]?|mil)$/.test(m[0]) || edits.some((e) => start < e.end && end > e.start)) continue;
+    const value = wordsValue(m[0]);
+    if (value === undefined || value > MAX_QUANTITY) continue;
+    if (!all && !(SPELLED_LEAD_RE.test(source.slice(Math.max(0, start - 60), start)) && SPELLED_TAIL_RE.test(source.slice(end)))) continue;
+    edits.push({ start, end, value: String(value) });
+  }
+  if (!edits.length) return text;
+  let out = '';
+  let last = 0;
+  for (const e of edits.sort((a, b) => a.start - b.start)) {
+    out += text.slice(last, e.start) + e.value;
+    last = e.end;
+  }
+  return out + text.slice(last);
 }

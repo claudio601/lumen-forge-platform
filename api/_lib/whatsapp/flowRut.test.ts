@@ -33,6 +33,10 @@ const B2C_CLAUDE = {
   comuna_o_ciudad: 'Maipú', nombre: 'Ana Prueba',
 };
 
+// [RESUMEN] Fase 3B (dueño, 16-11): el cierre con correo es el resumen; MSG4 llega con el «sí» (flowResumen.test.ts).
+const B2B_SUMMARY = 'Te resumo: 30 paneles LED 60x60, luz fría, para oficina y en Providencia. ¿Está bien?';
+const casaSummary = (uso: string) => `Te resumo: 10 ampolletas LED, luz cálida, para ${uso} y en Maipú. ¿Está bien?`;
+
 afterEach(() => flow.clearFlowState(PHONE));
 
 describe('texto aprobado', () => {
@@ -45,7 +49,7 @@ describe('T12: RUT válido', () => {
   it('se guarda con formato y como empresa, el lead es B2B y cierra registrando', () => {
     const r = flow.processFlowStep(PHONE, b2b('77123456-9'), B2B_CLAUDE, NO_SIGNALS);
     expect(r.captured).toMatchObject({ rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' });
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(B2B_SUMMARY);
     expect(r.shouldCreateDeal).toBe(true);
     expect(r.captureStatus).toBe('complete');
   });
@@ -69,7 +73,7 @@ describe('el lugar de instalación no identifica al comprador como empresa', () 
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
     expect(r.reply).toBe(flow.MSG3_B2C);
     const end = flow.processFlowStep(PHONE, 'Soy Ana Prueba, ana.prueba@example.com', { nombre: 'Ana Prueba', correo: 'ana.prueba@example.com' }, NO_SIGNALS);
-    expect(end.reply).toBe(flow.MSG4);
+    expect(end.reply).toBe(casaSummary(proyecto));
     expect(end.shouldCreateDeal).toBe(true);
     expect(end.captured.rut).toBeUndefined();
   });
@@ -92,7 +96,7 @@ describe('el lugar de instalación no identifica al comprador como empresa', () 
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
     expect(r.reply).toBe(identidad.startsWith('RUT') ? 'Para registrar tu solicitud necesito tu correo de contacto.' : flow.MSG3_B2B);
     const end = flow.processFlowStep(PHONE, 'RUT 77.123.456-9, ' + CORREO, { correo: CORREO }, NO_SIGNALS);
-    expect(end.reply).toBe(flow.MSG4);
+    expect(end.reply).toBe(casaSummary('oficina'));
     expect(end.shouldCreateDeal).toBe(true);
   });
 });
@@ -106,7 +110,7 @@ describe('T13: RUT que no calza', () => {
 
     const fixed = flow.processFlowStep(PHONE, 'perdón, es 77.123.456-9', {}, NO_SIGNALS);
     expect(fixed.captured).toMatchObject({ rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' });
-    expect(fixed.reply).toBe(flow.MSG4);
+    expect(fixed.reply).toBe(B2B_SUMMARY);
     expect(fixed.shouldCreateDeal).toBe(true);
   });
 
@@ -138,7 +142,7 @@ describe('no es un RUT', () => {
     );
     expect(r.captured.rut).toBeUndefined();
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(casaSummary('casa'));
   });
 
   it('un celular en el mensaje no es RUT', () => {
@@ -163,7 +167,7 @@ describe('RUT de persona', () => {
     );
     expect(r.captured).toMatchObject({ rut: '11.111.111-1', rut_valido: true, rut_tipo: 'persona' });
     expect(flow.getFlowState(PHONE).leadType).toBe('B2C');
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(casaSummary('casa'));
   });
 });
 
@@ -221,7 +225,7 @@ describe('rangos de montos e ID de licitación (revisión de la #121)', () => {
       NO_SIGNALS,
     );
     expect(r.captured).toMatchObject({ rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' });
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(B2B_SUMMARY);
   });
 });
 
@@ -250,7 +254,7 @@ describe('el número solo vale únicamente al contestar la pregunta por el RUT',
     expect(again.reply).toBe('Para registrar tu solicitud necesito tu correo de contacto.');
     const r = flow.processFlowStep(PHONE, 'mi correo es ' + CORREO + ' y mi celular 923456783', { correo: CORREO }, NO_SIGNALS);
     expect(r.captured).toMatchObject({ rut: '77.123.456-7', rut_valido: false });
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(B2B_SUMMARY);
   });
 });
 
@@ -262,7 +266,7 @@ describe('RUT de persona y después el de la empresa', () => {
     const r = flow.processFlowStep(PHONE, 'Mejor factura a mi empresa, RUT 77.123.456-9, ana.prueba@example.com', { correo: 'ana.prueba@example.com' }, NO_SIGNALS);
     expect(r.captured).toMatchObject({ rut: '77.123.456-9', rut_valido: true, rut_tipo: 'empresa' });
     expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
-    expect(r.reply).toBe(flow.MSG4);
+    expect(r.reply).toBe(casaSummary('casa'));
   });
 
   it('otro de persona, o uno que no calza, no lo reemplaza (y no provoca la repregunta)', () => {
@@ -298,7 +302,7 @@ describe('RUT que llega después del cierre (revisión de la #121)', () => {
   function closedWithInvalidRut() {
     expect(flow.processFlowStep(PHONE, b2b('77.123.456-8'), B2B_CLAUDE, NO_SIGNALS).reply).toBe(flow.MSG_RUT_INVALID);
     const closed = flow.processFlowStep(PHONE, 'déjame revisarlo y te lo mando', {}, NO_SIGNALS);
-    expect(closed).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, closedFlow: true });
+    expect(closed).toMatchObject({ reply: B2B_SUMMARY, shouldCreateDeal: true, closedFlow: true });
     expect(closed.captured).toMatchObject({ rut: '77.123.456-8', rut_valido: false });
     expect(closed.rutUpdate).toBeUndefined();
   }
@@ -349,7 +353,7 @@ describe('RUT que llega después del cierre (revisión de la #121)', () => {
       { ...B2C_CLAUDE, correo: 'ana.prueba@example.com' },
       NO_SIGNALS,
     );
-    expect(r0.reply).toBe(flow.MSG4);
+    expect(r0.reply).toBe(casaSummary('casa'));
     flow.recordDealOutcome(PHONE, true);
     const r = flow.processFlowStep(PHONE, 'mi RUT es 11.111.111-1', {}, NO_SIGNALS);
     expect(r).toMatchObject({ reply: flow.MSG4, shouldCreateDeal: true, rutUpdate: true });

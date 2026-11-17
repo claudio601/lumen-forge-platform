@@ -212,6 +212,8 @@ describe('resultado de Pipedrive y la conversación', () => {
     flow.processFlowStep(PHONE, FULL, FULL_PARSED, NO_SIGNALS);
     const conversationId = flow.getFlowState(PHONE).firstMessageAt;
     flow.recordDealOutcome(PHONE, true, conversationId);
+    // (fase 3B) Confirma el resumen; despues, otro producto empieza otro pedido.
+    expect(flow.processFlowStep(PHONE, 'sí', {}, NO_SIGNALS).reply).toBe(flow.MSG4);
     flow.processFlowStep(PHONE, 'necesito tambien 5 paneles LED', { producto: 'paneles LED', cantidad: '5' }, NO_SIGNALS);
     expect(flow.getFlowState(PHONE).deal).toBeUndefined();
     // Llega tarde el resultado de un intento de la conversación anterior: no va a la nueva.
