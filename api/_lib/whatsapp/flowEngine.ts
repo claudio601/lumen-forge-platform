@@ -1668,11 +1668,14 @@ function mergeProductFields(
   // queda guardado como invalido y la nota lo marca para revisarlo (pipedriveLead.ts, rutLine).
   // (revision 16-11) Un RUT malo guardado en un mensaje anterior (por ejemplo, el del ejecutivo, que no lo pide) no se
   // pide en un mensaje sin RUT, como en main. Solo en el mensaje en que la conversacion pasa de persona a empresa, y si
-  // ese mensaje no puede registrar la solicitud (sin correo): la repregunta nunca atrasa un registro.
+  // ese mensaje no puede registrar la solicitud (sin correo) ni pregunta el precio: la repregunta nunca atrasa un
+  // registro ni reemplaza la respuesta a una pregunta.
   const invalidHere = Boolean(rutFound && !rutFound.valido);
   const companyRut = leadType === 'B2B' || Boolean(rutFound && rutRange(rutFound.rut) !== 'persona');
   const becameCompany = !invalidHere && state.leadType !== 'B2B' && leadType === 'B2B'
-    && merged.rut !== undefined && merged.rut_valido === false && !canRegister(merged);
+    && merged.rut !== undefined && merged.rut_valido === false && !canRegister(merged)
+    // Un mensaje que pregunta el precio o algo tecnico recibe esa respuesta (pide el correo), como en main.
+    && !questionAsksEmail(questionKinds(body));
   const rutToConfirm = !state.rutRetryAsked && ((invalidHere && companyRut) || becameCompany);
   return { merged, leadType, rutToConfirm, menuPick: quantity.menuPick };
 }

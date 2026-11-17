@@ -280,6 +280,12 @@ describe('punto 4: el RUT que no calza de una persona no se vuelve a pedir', () 
     expect(step(EMAIL, { correo: EMAIL }).reply).toBe(flow.MSG4);
   });
 
+  it('persona que pasa a empresa y pregunta el precio, con el RUT malo guardado y sin correo: recibe la respuesta del precio', () => {
+    step(ORDER + ', RUT ' + PERSON_RUT, FIELDS);
+    expect(step('Es para mi empresa, Comercial Prueba SpA. ¿Cuánto cuestan?', { empresa: 'Comercial Prueba SpA' }).reply).toBe(flow.MSG_Q_PRICE);
+    expect(flow.getFlowState(PHONE).leadType).toBe('B2B');
+  });
+
   it('persona que pasa a empresa en el mensaje que trae el correo: registra, sin repregunta (no atrasa el registro)', () => {
     step(ORDER + ', RUT ' + PERSON_RUT, FIELDS);
     const r = step('Es para mi empresa, Comercial Prueba SpA: ' + EMAIL, { empresa: 'Comercial Prueba SpA', correo: EMAIL });
