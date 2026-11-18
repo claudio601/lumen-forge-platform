@@ -15,6 +15,7 @@ import type { BaselineEntry } from './jumpseller/diff';
 import type { ProductImageFacts, SnapshotProduct } from '../src/data/catalog/jumpseller.types';
 import type { ImageFetch } from './jumpseller/og-images';
 import { baseFromSnapshot, newSiteId, slugifySiteId } from '../src/data/catalog/build';
+import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 
 const FIX = join(__dirname, 'fixtures/jumpseller');
 const fixture = (f: string) => JSON.parse(readFileSync(join(FIX, f), 'utf8'));
@@ -321,6 +322,26 @@ describe('sincronización completa', () => {
     }
     const hashes = Object.values(files).map(f => f!.match(/SNAPSHOT_HASH = '([0-9a-f]+)'/)![1]);
     expect(new Set(hashes).size).toBe(1);
+  });
+
+  it('product-links (aviso de despacho) sale del snapshot nuevo, con los ids registrados', async () => {
+    await run(root, ['--write', '--baseline', 'legacy']);
+    const files = readGenerated(root);
+    const snapshot = parseExport<SnapshotProduct[]>(files.snapshot!, 'jumpsellerSnapshot');
+    const links = JSON.parse(files.productLinks!.replace(/^[\s\S]*?productLinks[^=]*= \{/, '{').replace(/,?\n\};\n$/, '\n}')) as Record<
+      string,
+      { id: string; name: string; variants: Record<string, { sku: string; label: string }> }
+    >;
+    expect(Object.keys(links).map(Number).sort((a, b) => a - b)).toEqual(snapshot.map(p => p.jumpseller_id));
+    // El id del sitio: el legado o el que esta misma sincronización acaba de registrar
+    const siteIds = parseExport<Record<string, string>>(files.siteIds!, 'SITE_IDS');
+    expect(Object.keys(siteIds).length).toBeGreaterThan(0);
+    for (const p of snapshot) expect(links[p.jumpseller_id].id).toBe(LEGACY_SITE_IDS[p.jumpseller_id] ?? siteIds[p.jumpseller_id]);
+    expect(links['2254290'].name).toBe('PROYECTOR LED ANTIVANDÁLICO 200W IP66');
+    // BESTLED: las 4 variantes, con su SKU y la etiqueta del sitio
+    expect(Object.values(links['2301098'].variants).map(v => v.sku).sort()).toEqual(['APB401', 'APB407', 'APB40F', 'APB40N']);
+    expect(Object.values(links['2301098'].variants).every(v => v.label)).toBe(true);
+    expect(files.productLinks).not.toMatch(/"price"\s*:/);
   });
 
   it('la salida es idéntica byte a byte aunque la API entregue otro orden', async () => {

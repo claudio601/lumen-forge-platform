@@ -17,10 +17,22 @@
 // sigue «Cálida 2200K», como la ficha, hasta que se corrija la temperatura en Jumpseller.
 // Sin imports de datos de Jumpseller ni de contenido: lo usan la tarjeta (bundle principal) y la
 // ficha. De ds1.ts solo entra la lista de líneas certificadas (el resto se descarta al compilar).
+// La única importación que queda en el código compilado es relativa: el escritor de
+// api/_lib/catalog/product-links.generated.ts (scripts/jumpseller/product-links.ts) usa
+// variantLabel desde tsx y desde las pruebas de scripts/, que no resuelven el alias «@/».
+// Por lo mismo, sin tipos de src/types/request-order.ts: traen los del navegador (attribution.ts)
+// y tsconfig.api.json, que revisa scripts/, no tiene DOM. VariantAttributes calza con
+// RequestCartItem['attributes'] (lo comprueba el compilador donde se asigna).
 
-import { isDs1CertifiedKelvin } from '@/data/catalog/ds1';
+import { isDs1CertifiedKelvin } from '../data/catalog/ds1';
 import type { Product, ProductVariant } from '@/data/catalog/types';
-import type { RequestCartItem } from '@/types/request-order';
+
+/** Atributos de la línea de la solicitud (RequestCartItem['attributes']). */
+export interface VariantAttributes {
+  potencia?: string;
+  colorLuz?: string;
+  terminacion?: string;
+}
 
 /** Tipo de opción: color de luz (temperatura), potencia u otra (color de la carcasa, largo…). */
 export type VariantAxisKind = 'luz' | 'potencia' | 'otro';
@@ -287,7 +299,7 @@ export function variantKelvin(product: VariantProduct, variant: ProductVariant):
 export function variantAttributes(
   product: VariantProduct & Pick<Product, 'watts'>,
   variant: ProductVariant,
-): RequestCartItem['attributes'] {
+): VariantAttributes {
   const picked = variantChoices(variantAxes(product), variant);
   const power = picked.find(({ axis }) => axis.kind === 'potencia')?.choice.label;
   const finish = picked.find(({ axis }) => axis.kind === 'otro' && /color/i.test(axis.name))?.choice.label;

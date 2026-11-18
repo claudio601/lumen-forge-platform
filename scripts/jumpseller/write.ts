@@ -17,6 +17,8 @@ export const OUTPUT_PATHS = {
   descriptions: 'src/data/catalog/descriptions.generated.ts',
   ogImages: 'src/data/catalog/og-images.generated.ts',
   datasheets: 'src/data/catalog/datasheets.generated.ts',
+  // Aviso de despacho: id vigente, nombre y etiqueta de variante (scripts/jumpseller/product-links.ts)
+  productLinks: 'api/_lib/catalog/product-links.generated.ts',
 } as const;
 
 /** Claves que nunca pueden aparecer en un archivo generado (defensa en profundidad). */
