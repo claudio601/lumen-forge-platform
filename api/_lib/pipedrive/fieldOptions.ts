@@ -148,6 +148,96 @@ export function getBooleanOptionId(
   return id;
 }
 
+// --- Campos del negocio por nombre (aviso de despacho, spec §4.1) ---
+// Los campos «Despacho · …» se buscan por su nombre en /dealFields: así sus claves hash no llegan al
+// repo ni a variables de entorno. Caché propia, aparte de la de arriba (que solo guarda las claves de
+// variables de entorno y queda lista aunque la consulta falle): si la consulta falla, no se guarda
+// nada y la próxima llamada vuelve a consultar. Si un nombre no está, se vuelve a consultar como
+// mucho una vez por minuto (el dueño pudo crear o renombrar el campo después).
+
+export interface DealFieldMeta {
+  key: string;
+  name: string;
+  fieldType: string;
+  options: PipedriveFieldOption[];
+}
+
+export type DealFieldLookup =
+  | { status: 'ok'; field: DealFieldMeta }
+  /** No hay un campo con ese nombre exacto. */
+  | { status: 'missing' }
+  /** Hay dos o más campos con ese nombre: no se adivina cuál es. */
+  | { status: 'duplicate' }
+  /** /dealFields no respondió (o falta el token): se reintenta en la próxima llamada. */
+  | { status: 'unavailable' };
+
+const MISSING_NAME_REFRESH_MS = 60_000;
+
+/** Nombre exacto (con el «·»), sin espacios en los extremos y en la misma forma Unicode. */
+function exactName(name: string): string {
+  return name.trim().normalize('NFC');
+}
+
+let dealFieldsByName: { fields: Map<string, DealFieldMeta[]>; fetchedAt: number } | null = null;
+let dealFieldsInFlight: Promise<boolean> | null = null;
+
+function loadDealFieldsByName(timeoutMs?: number): Promise<boolean> {
+  if (dealFieldsInFlight) return dealFieldsInFlight;
+  dealFieldsInFlight = (async () => {
+    try {
+      const res = await pipedriveGet<PipedriveField[]>(ENDPOINTS.deal, { limit: '500' }, timeoutMs);
+      if (!res.success || !Array.isArray(res.data)) {
+        console.error('[fieldOptions] Failed to fetch deal fields by name');
+        return false;
+      }
+      const fields = new Map<string, DealFieldMeta[]>();
+      for (const field of res.data) {
+        if (typeof field?.name !== 'string' || typeof field.key !== 'string') continue;
+        const name = exactName(field.name);
+        const meta: DealFieldMeta = {
+          key: field.key,
+          name,
+          fieldType: typeof field.field_type === 'string' ? field.field_type : '',
+          options: Array.isArray(field.options) ? field.options : [],
+        };
+        fields.set(name, [...(fields.get(name) ?? []), meta]);
+      }
+      dealFieldsByName = { fields, fetchedAt: Date.now() };
+      return true;
+    } catch {
+      // getConfig lanza si falta PIPEDRIVE_API_TOKEN; el mensaje no lleva datos, pero no hace falta.
+      console.error('[fieldOptions] Failed to fetch deal fields by name (request error)');
+      return false;
+    } finally {
+      dealFieldsInFlight = null;
+    }
+  })();
+  return dealFieldsInFlight;
+}
+
+/**
+ * Busca un campo del negocio por su nombre exacto. Nunca lanza. `timeoutMs` acota la consulta en
+ * frío (el webhook tiene que responder a Pipedrive en menos de 10 s).
+ */
+export async function findDealFieldByName(
+  name: string,
+  options: { timeoutMs?: number } = {},
+): Promise<DealFieldLookup> {
+  const wanted = exactName(name);
+  let fresh = false;
+  if (!dealFieldsByName) {
+    if (!(await loadDealFieldsByName(options.timeoutMs))) return { status: 'unavailable' };
+    fresh = true;
+  }
+  let found = dealFieldsByName?.fields.get(wanted);
+  if (!found && !fresh && dealFieldsByName && Date.now() - dealFieldsByName.fetchedAt >= MISSING_NAME_REFRESH_MS) {
+    if (await loadDealFieldsByName(options.timeoutMs)) found = dealFieldsByName?.fields.get(wanted);
+  }
+  if (!found || found.length === 0) return { status: 'missing' };
+  if (found.length > 1) return { status: 'duplicate' };
+  return { status: 'ok', field: found[0] };
+}
+
 /**
  * Force re-initialization (useful for tests or after field changes).
  */
@@ -156,4 +246,6 @@ export function resetFieldOptionsCache(): void {
   cache.person.clear();
   cache.organization.clear();
   initialized = false;
+  dealFieldsByName = null;
+  dealFieldsInFlight = null;
 }
