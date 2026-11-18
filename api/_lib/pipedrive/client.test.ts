@@ -95,6 +95,41 @@ describe('pipedriveUploadFile', () => {
       expect(text).not.toContain('x=1');
     });
 
+    // Ronda 3 de la auditoría de Codex (#196).
+    it('el statusText del servidor nunca se usa: solo el código y su descripción fija', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 400, statusText: NAME })));
+      const get = await pipedriveGet('/deals/7');
+      const up = await upload();
+      expect(get.error).toBe('HTTP 400: Bad Request');
+      expect(up.error).toBe('HTTP 400: Bad Request');
+      expect(logged()).toContain('[Pipedrive] POST /files -> 400 Bad Request | dealId: 999');
+      expect(logged()).not.toContain(NAME);
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 599, statusText: NAME })));
+      expect((await pipedriveGet('/deals/7')).error).toBe('HTTP 599: Unknown Status');
+    });
+
+    it('error_info se recorta después de quitar el token (ni un trozo del token queda)', async () => {
+      const body = 'x'.repeat(290) + TOKEN + 'y'.repeat(50);
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 401 })));
+      const get = await pipedriveGet('/deals/7');
+      const up = await upload();
+      for (const res of [get, up]) {
+        expect(res.error_info).not.toContain(TOKEN.slice(0, 6));
+        expect(res.error_info).toBe(('x'.repeat(290) + '[token]' + 'y'.repeat(50)).slice(0, 300));
+        expect(res.error_info!.length).toBeLessThanOrEqual(300);
+      }
+    });
+
+    it('success: false: también se limpia json.error_info', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, error: 'denied', error_info: `ver ${leakedUrl()} o api_token=${TOKEN}` }))));
+      const res = await pipedriveGet('/deals/7');
+      expect(res.error).toBe('denied');
+      expect(res.error_info).toBe('ver [url] o api_token=[token]');
+      // Sin error_info en la respuesta, no se agrega.
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, error: 'denied' }))));
+      expect(await pipedriveGet('/deals/7')).not.toHaveProperty('error_info');
+    });
+
     it('la categoría lleva el código de sistema, nunca el mensaje', async () => {
       vi.stubGlobal('fetch', failures[3][1]());
       await pipedriveGet('/deals/7');

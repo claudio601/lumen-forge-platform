@@ -3,6 +3,7 @@
 
 import { redact } from '../logging/redact.js';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
+import { pipedriveErrorCode } from './errorCode.js';
 import { getBooleanOptionId } from './fieldOptions.js';
 import type {
   PipedriveActivity,
@@ -212,7 +213,7 @@ export async function markFollowup24Created(dealId: number): Promise<void> {
     });
     if (!res.success) {
       console.warn(
-        `${LOG_PREFIX} markFollowup24Created failed dealId=${dealId} error=${redact(res.error, 'error')}`
+        `${LOG_PREFIX} markFollowup24Created failed dealId=${dealId} error=${pipedriveErrorCode(res.error)}`
       );
     } else {
       console.log(`${LOG_PREFIX} followup24Created marked dealId=${dealId}`);
