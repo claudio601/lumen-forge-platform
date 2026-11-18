@@ -71,15 +71,25 @@ const isObj = (value: unknown): value is Obj =>
 /** Clave de un campo personalizado en v1: 40 caracteres hexadecimales en la raíz de `current`. */
 const V1_CUSTOM_KEY = /^[0-9a-f]{40}$/;
 
-function toId(value: unknown): number | null {
+/** Un id escalar: entero positivo, o texto de solo dígitos. */
+function scalarId(value: unknown): number | null {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? value : null;
   if (typeof value === 'string' && /^\d{1,15}$/.test(value.trim())) {
     const n = Number(value.trim());
     return n > 0 ? n : null;
   }
-  // v2 trae algunos ids como objeto ({ id, … }) en entidades relacionadas.
-  if (isObj(value) && 'id' in value) return toId(value.id);
   return null;
+}
+
+/** Un id escalar o, como mucho un nivel, un objeto `{ id }` (v2, entidades relacionadas). */
+function toId(value: unknown): number | null {
+  if (isObj(value) && Object.prototype.hasOwnProperty.call(value, 'id')) return scalarId(value.id);
+  return scalarId(value);
+}
+
+/** La acción del cuerpo solo si es texto conocido: nunca se convierte un objeto a texto. */
+function mapAction(table: Record<string, WebhookAction>, value: unknown): WebhookAction {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(table, value) ? table[value] : 'other';
 }
 
 function toStatus(value: unknown): string | null {
@@ -93,7 +103,14 @@ function isEmpty(value: unknown): boolean {
 /** Para comparar el antes y el después de un campo, sin guardar el valor. */
 function token(value: unknown): string {
   if (isEmpty(value)) return '∅';
-  if (typeof value === 'object') return 'o:' + JSON.stringify(value);
+  if (typeof value === 'object') {
+    try {
+      return 'o:' + JSON.stringify(value);
+    } catch {
+      // Un valor que no se puede comparar (p. ej., anidado de más) cuenta como «sin cambio»: falla cerrado.
+      return 'o:sin_comparar';
+    }
+  }
   return 'p:' + String(value);
 }
 
@@ -154,7 +171,7 @@ function normalizeV1(body: Obj, meta: Obj): NormalizedWebhookEvent {
   const now = snapshot(current);
   const before = snapshot(previous);
 
-  const customFields: Record<string, CustomFieldValue> = {};
+  const customFields: Record<string, CustomFieldValue> = Object.create(null);
   for (const [key, value] of Object.entries(current ?? {})) {
     if (V1_CUSTOM_KEY.test(key)) customFields[key] = v1Value(value);
   }
@@ -168,7 +185,7 @@ function normalizeV1(body: Obj, meta: Obj): NormalizedWebhookEvent {
   return {
     version: 'v1',
     entity: typeof meta.object === 'string' ? meta.object : '',
-    action: V1_ACTIONS[String(meta.action)] ?? 'other',
+    action: mapAction(V1_ACTIONS, meta.action),
     entityId: toId(meta.id) ?? now?.id ?? null,
     companyId: companyId(meta),
     changeSource: changeSource(meta),
@@ -189,7 +206,7 @@ function normalizeV2(body: Obj, meta: Obj): NormalizedWebhookEvent {
 
   const dataCustom = data && isObj(data.custom_fields) ? data.custom_fields : {};
   const previousCustom = previous && isObj(previous.custom_fields) ? previous.custom_fields : {};
-  const customFields: Record<string, CustomFieldValue> = {};
+  const customFields: Record<string, CustomFieldValue> = Object.create(null);
   for (const [key, value] of Object.entries(dataCustom)) customFields[key] = v2Value(value);
   // v2 trae en `previous` solo lo que cambió: un campo cambió si su clave está ahí (y el valor es otro).
   const changedCustomFields = Object.keys(previousCustom)
@@ -203,7 +220,7 @@ function normalizeV2(body: Obj, meta: Obj): NormalizedWebhookEvent {
   return {
     version: 'v2',
     entity: typeof meta.entity === 'string' ? meta.entity : '',
-    action: V2_ACTIONS[String(meta.action)] ?? 'other',
+    action: mapAction(V2_ACTIONS, meta.action),
     entityId: toId(meta.entity_id) ?? now?.id ?? null,
     companyId: companyId(meta),
     changeSource: changeSource(meta),
@@ -220,22 +237,23 @@ function normalizeV2(body: Obj, meta: Obj): NormalizedWebhookEvent {
 /**
  * La forma común de un cuerpo del webhook, o null si no es un cuerpo de Pipedrive que se reconozca
  * (sin `meta`, o sin `meta.entity` ni `meta.object`). Acepta el cuerpo ya leído o como texto JSON.
+ * Nunca lanza (auditoría de la #196): ningún valor se convierte a texto sin comprobar su tipo y, si
+ * algo inesperado falla igual, el cuerpo cuenta como no reconocido. El webhook responde 200: un 5xx
+ * repetido hace que Pipedrive borre el webhook.
  */
 export function normalizeWebhookBody(body: unknown): NormalizedWebhookEvent | null {
-  let parsed = body;
-  if (typeof parsed === 'string') {
-    try {
-      parsed = JSON.parse(parsed);
-    } catch {
-      return null;
-    }
+  try {
+    let parsed = body;
+    if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+    if (!isObj(parsed) || !isObj(parsed.meta)) return null;
+    const meta = parsed.meta;
+    const v2 = typeof meta.entity === 'string' || (typeof meta.version === 'string' && meta.version.startsWith('2'));
+    if (v2) return normalizeV2(parsed, meta);
+    if (typeof meta.object === 'string') return normalizeV1(parsed, meta);
+    return null;
+  } catch {
+    return null;
   }
-  if (!isObj(parsed) || !isObj(parsed.meta)) return null;
-  const meta = parsed.meta;
-  const v2 = typeof meta.entity === 'string' || (typeof meta.version === 'string' && meta.version.startsWith('2'));
-  if (v2) return normalizeV2(parsed, meta);
-  if (typeof meta.object === 'string') return normalizeV1(parsed, meta);
-  return null;
 }
 
 export type OptionFieldChange =

@@ -166,6 +166,40 @@ describe('normalizeWebhookBody: cuerpos que no se reconocen', () => {
     expect(normalizeWebhookBody(JSON.stringify(v2()))?.version).toBe('v2');
   });
 
+  // Hallazgo 2 de la auditoría de Codex (#196): un JSON válido con tipos raros no puede hacer lanzar.
+  it('nunca lanza con tipos raros: acción como objeto o nombre del prototipo, ids anidados, __proto__', () => {
+    const weird: unknown[] = [
+      JSON.parse('{"meta":{"entity":"deal","action":{"toString":null}}}'),
+      JSON.parse('{"meta":{"object":"deal","action":{"toString":null,"valueOf":null}},"current":{},"previous":{}}'),
+      { meta: { entity: 'deal', action: 'toString', entity_id: { id: { id: { id: 5 } } } }, data: { id: { toString: null } } },
+      { meta: { object: 'deal', action: '__proto__', id: [1] }, current: { stage_id: { id: { id: 1 } } }, previous: null },
+      JSON.parse(`{"meta":{"entity":"deal","action":"change","entity_id":"501"},"data":{"custom_fields":{"__proto__":{"type":"enum","id":1},"${TRIGGER}":{"type":"enum","id":{"toString":null}}}},"previous":{"custom_fields":{"__proto__":null,"${TRIGGER}":null}}}`),
+      { meta: { entity: 'deal', action: 'change', version: { startsWith: null }, company_id: { toString: null }, change_source: { toString: null }, attempt: { valueOf: null } }, data: { status: { toString: null } }, previous: { status: [] } },
+    ];
+    for (const body of weird) {
+      expect(() => normalizeWebhookBody(body), JSON.stringify(body)).not.toThrow();
+      const event = normalizeWebhookBody(body);
+      if (event) {
+        expect(['create', 'change', 'delete', 'other']).toContain(event.action);
+        expect(() => optionFieldSetInEvent(event, TRIGGER)).not.toThrow();
+      }
+    }
+    expect(normalizeWebhookBody(weird[0])?.action).toBe('other');
+    expect(normalizeWebhookBody(weird[2])).toMatchObject({ action: 'other', entityId: null });
+    expect(normalizeWebhookBody(weird[3])?.action).toBe('other');
+    // Un id de opción que no es un id: no se toma como opción.
+    expect(optionFieldSetInEvent(normalizeWebhookBody(weird[4])!, TRIGGER)).toEqual({ fired: false, reason: 'no_es_opcion' });
+  });
+
+  it('nunca lanza con un valor anidado de más (no se puede comparar: cuenta como sin cambio)', () => {
+    let deep: unknown = 'x';
+    for (let i = 0; i < 200_000; i++) deep = [deep];
+    const body = { meta: { entity: 'deal', action: 'change', entity_id: '501' }, data: { custom_fields: { [TRIGGER]: deep } }, previous: { custom_fields: { [TRIGGER]: deep } } };
+    expect(() => normalizeWebhookBody(body)).not.toThrow();
+    const event = normalizeWebhookBody(body);
+    if (event) expect(optionFieldSetInEvent(event, TRIGGER).fired).toBe(false);
+  });
+
   it('meta.version "2.0" sin entity sigue siendo v2 (y no se confunde con v1)', () => {
     expect(normalizeWebhookBody({ meta: { version: '2.0', action: 'change' }, data: {} })).toMatchObject({ version: 'v2', entity: '' });
   });

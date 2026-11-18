@@ -128,6 +128,32 @@ describe('método y Basic Auth', () => {
   it('con las credenciales correctas responde 200', async () => {
     expect((await call(v2())).statusCode).toBe(200);
   });
+
+  // Hallazgo 4 de la auditoría de Codex (#196): timingSafeEqual exige el mismo largo en bytes. Con
+  // una «é» el largo en caracteres coincidía y el handler rechazaba su promesa sin responder.
+  it('una cabecera del mismo largo en caracteres pero no en bytes («é») responde 401 sin lanzar', async () => {
+    const tampered = AUTH.slice(0, -2) + 'é' + AUTH.slice(-1);
+    expect(tampered.length).toBe(AUTH.length);
+    expect(Buffer.byteLength(tampered)).not.toBe(Buffer.byteLength(AUTH));
+    const res = await call(triggerChosen(), { auth: tampered });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('una cabecera que no es texto (lista) o sin cabeceras responde 401 sin lanzar', async () => {
+    const res = { statusCode: 0, status(code: number) { this.statusCode = code; return this; }, json() { return this; } };
+    await handler({ method: 'POST', headers: { authorization: [AUTH, AUTH] }, body: v2() } as never, res as never);
+    expect(res.statusCode).toBe(401);
+    await handler({ method: 'POST', body: v2() } as never, res as never);
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('con usuario y clave con tildes, la cabecera correcta pasa y otra del mismo largo no', async () => {
+    vi.stubEnv('PIPEDRIVE_WEBHOOK_USER', 'usuário');
+    vi.stubEnv('PIPEDRIVE_WEBHOOK_PASSWORD', 'contraseña');
+    const good = 'Basic ' + Buffer.from('usuário:contraseña', 'utf8').toString('base64');
+    expect((await call(v2(), { auth: good })).statusCode).toBe(200);
+    expect((await call(v2(), { auth: good.slice(0, -1) + (good.endsWith('A') ? 'B' : 'A') })).statusCode).toBe(401);
+  });
 });
 
 describe('cuerpos v2 (los que manda hoy el webhook configurado)', () => {
@@ -230,6 +256,24 @@ describe('lo que se descarta (siempre con 200, para que Pipedrive no reintente n
     }
     expect(allLogs()).toContain('evento version=desconocida');
   });
+
+  // Hallazgo 2 de la auditoría de Codex (#196): este cuerpo daba 500.
+  it('JSON válido con tipos raros (acción {"toString":null}) responde 200 y se ignora', async () => {
+    const res = await call(JSON.parse('{"meta":{"entity":"deal","action":{"toString":null}}}'));
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual(ignored('accion'));
+    const asText = await call('{"meta":{"object":"deal","action":{"toString":null}},"current":{"id":{"toString":null}}}');
+    expect(asText.statusCode).toBe(200);
+    expect(asText.body).toEqual(ignored('accion'));
+  });
+
+  it('si leer req.body lanza (JSON inválido en Vercel), responde 200 y se ignora', async () => {
+    const res = { statusCode: 0, body: undefined as unknown, status(code: number) { this.statusCode = code; return this; }, json(b: unknown) { this.body = b; return this; } };
+    const req = { method: 'POST', headers: { authorization: AUTH }, get body(): unknown { throw new Error('Invalid JSON'); } };
+    await handler(req as never, res as never);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual(ignored('formato_desconocido'));
+  });
 });
 
 describe('aviso de despacho: el disparador (todavía sin envío)', () => {
@@ -299,7 +343,11 @@ describe('aviso de despacho: el disparador (todavía sin envío)', () => {
     expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(1);
   });
 
-  it('si /dealFields falla, responde 200 sin revisar el disparador y reintenta con el evento siguiente', async () => {
+  // Pipedrive no reintenta un evento que recibió 200: la selección de ese evento se pierde. El segundo
+  // cuerpo es el del dueño que vacía el disparador y lo vuelve a elegir (la señal de la spec §3: «si el
+  // disparador no se vació en 2 minutos, el aviso no se procesó»). Guardar el trabajo pendiente y el
+  // 200 inmediato con waitUntil van en la PR del aviso.
+  it('si /dealFields falla, responde 200 sin revisar el disparador; al volver a elegirlo, se detecta', async () => {
     vi.mocked(pipedriveGet)
       .mockResolvedValueOnce({ success: false, data: null, error: 'Request timeout' } as never)
       .mockResolvedValue({ success: true, data: DEAL_FIELDS } as never);
@@ -310,6 +358,19 @@ describe('aviso de despacho: el disparador (todavía sin envío)', () => {
     await call(triggerChosen());
     expect(logs).toContain(FIRED);
     expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(2);
+  });
+
+  it('límite conocido: si después solo se edita otro campo, la selección perdida no se recupera', async () => {
+    vi.mocked(pipedriveGet)
+      .mockResolvedValueOnce({ success: false, data: null, error: 'Request timeout' } as never)
+      .mockResolvedValue({ success: true, data: DEAL_FIELDS } as never);
+    await call(triggerChosen());
+    await call(v2({
+      data: { custom_fields: { [TRIGGER]: { type: 'enum', id: 71 }, [OTHER]: { type: 'varchar', value: 'Calle Falsa 456' } } },
+      previous: { custom_fields: { [OTHER]: { type: 'varchar', value: 'Calle Falsa 123' } } },
+    }));
+    expect(allLogs()).not.toContain('aviso de despacho');
+    expect(allLogs()).toContain('aviso=sin_cambio');
   });
 
   it('si /dealFields lanza (p. ej., falta el token), responde 200', async () => {

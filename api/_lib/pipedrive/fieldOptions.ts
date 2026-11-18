@@ -151,9 +151,14 @@ export function getBooleanOptionId(
 // --- Campos del negocio por nombre (aviso de despacho, spec §4.1) ---
 // Los campos «Despacho · …» se buscan por su nombre en /dealFields: así sus claves hash no llegan al
 // repo ni a variables de entorno. Caché propia, aparte de la de arriba (que solo guarda las claves de
-// variables de entorno y queda lista aunque la consulta falle): si la consulta falla, no se guarda
-// nada y la próxima llamada vuelve a consultar. Si un nombre no está, se vuelve a consultar como
-// mucho una vez por minuto (el dueño pudo crear o renombrar el campo después).
+// variables de entorno y queda lista aunque la consulta falle):
+// - en frío, si la consulta falla no se guarda nada y la próxima llamada vuelve a consultar;
+// - todo resultado caduca a los 10 minutos (un campo recreado con otra clave); un nombre que falta o
+//   está repetido se vuelve a consultar al minuto (el dueño pudo crearlo, renombrarlo o borrar el
+//   repetido);
+// - con caché, después de un intento fallido se espera un minuto antes del siguiente. Mientras no se
+//   pueda refrescar, un campo encontrado sigue sirviendo (su clave casi nunca cambia), pero «falta» o
+//   «repetido» sin verificar responde `unavailable` (auditoría de la #196).
 
 export interface DealFieldMeta {
   key: string;
@@ -168,10 +173,15 @@ export type DealFieldLookup =
   | { status: 'missing' }
   /** Hay dos o más campos con ese nombre: no se adivina cuál es. */
   | { status: 'duplicate' }
-  /** /dealFields no respondió (o falta el token): se reintenta en la próxima llamada. */
+  /** /dealFields no respondió (o falta el token) y no hay un resultado verificado que dar. */
   | { status: 'unavailable' };
 
-const MISSING_NAME_REFRESH_MS = 60_000;
+/** Todo resultado se vuelve a consultar pasado este tiempo. */
+const CACHE_TTL_MS = 10 * 60_000;
+/** Un nombre que falta o está repetido se vuelve a consultar pasado este tiempo. */
+const NEGATIVE_REFRESH_MS = 60_000;
+/** Con caché, después de una consulta fallida se espera esto antes de la siguiente. */
+const FAILURE_RETRY_MS = 60_000;
 
 /** Nombre exacto (con el «·»), sin espacios en los extremos y en la misma forma Unicode. */
 function exactName(name: string): string {
@@ -180,6 +190,7 @@ function exactName(name: string): string {
 
 let dealFieldsByName: { fields: Map<string, DealFieldMeta[]>; fetchedAt: number } | null = null;
 let dealFieldsInFlight: Promise<boolean> | null = null;
+let dealFieldsLastFailureAt: number | null = null;
 
 function loadDealFieldsByName(timeoutMs?: number): Promise<boolean> {
   if (dealFieldsInFlight) return dealFieldsInFlight;
@@ -188,6 +199,7 @@ function loadDealFieldsByName(timeoutMs?: number): Promise<boolean> {
       const res = await pipedriveGet<PipedriveField[]>(ENDPOINTS.deal, { limit: '500' }, timeoutMs);
       if (!res.success || !Array.isArray(res.data)) {
         console.error('[fieldOptions] Failed to fetch deal fields by name');
+        dealFieldsLastFailureAt = Date.now();
         return false;
       }
       const fields = new Map<string, DealFieldMeta[]>();
@@ -203,10 +215,13 @@ function loadDealFieldsByName(timeoutMs?: number): Promise<boolean> {
         fields.set(name, [...(fields.get(name) ?? []), meta]);
       }
       dealFieldsByName = { fields, fetchedAt: Date.now() };
+      dealFieldsLastFailureAt = null;
       return true;
     } catch {
-      // getConfig lanza si falta PIPEDRIVE_API_TOKEN; el mensaje no lleva datos, pero no hace falta.
+      // getConfig lanza si falta PIPEDRIVE_API_TOKEN. Nunca se registra el mensaje: el cliente ya
+      // registra método, ruta y categoría, y un mensaje podría traer la URL con el token.
       console.error('[fieldOptions] Failed to fetch deal fields by name (request error)');
+      dealFieldsLastFailureAt = Date.now();
       return false;
     } finally {
       dealFieldsInFlight = null;
@@ -224,18 +239,24 @@ export async function findDealFieldByName(
   options: { timeoutMs?: number } = {},
 ): Promise<DealFieldLookup> {
   const wanted = exactName(name);
-  let fresh = false;
+  const lookup = () => dealFieldsByName?.fields.get(wanted) ?? [];
+  let refreshFailed = false;
   if (!dealFieldsByName) {
     if (!(await loadDealFieldsByName(options.timeoutMs))) return { status: 'unavailable' };
-    fresh = true;
+  } else {
+    const now = Date.now();
+    const age = now - dealFieldsByName.fetchedAt;
+    const due = age >= CACHE_TTL_MS || (lookup().length !== 1 && age >= NEGATIVE_REFRESH_MS);
+    if (due) {
+      const waiting = dealFieldsLastFailureAt !== null && now - dealFieldsLastFailureAt < FAILURE_RETRY_MS;
+      refreshFailed = waiting || !(await loadDealFieldsByName(options.timeoutMs));
+    }
   }
-  let found = dealFieldsByName?.fields.get(wanted);
-  if (!found && !fresh && dealFieldsByName && Date.now() - dealFieldsByName.fetchedAt >= MISSING_NAME_REFRESH_MS) {
-    if (await loadDealFieldsByName(options.timeoutMs)) found = dealFieldsByName?.fields.get(wanted);
-  }
-  if (!found || found.length === 0) return { status: 'missing' };
-  if (found.length > 1) return { status: 'duplicate' };
-  return { status: 'ok', field: found[0] };
+  const found = lookup();
+  if (found.length === 1) return { status: 'ok', field: found[0] };
+  // «Falta» o «repetido» que no se pudo volver a verificar: no se afirma nada.
+  if (refreshFailed) return { status: 'unavailable' };
+  return found.length === 0 ? { status: 'missing' } : { status: 'duplicate' };
 }
 
 /**
@@ -248,4 +269,5 @@ export function resetFieldOptionsCache(): void {
   initialized = false;
   dealFieldsByName = null;
   dealFieldsInFlight = null;
+  dealFieldsLastFailureAt = null;
 }

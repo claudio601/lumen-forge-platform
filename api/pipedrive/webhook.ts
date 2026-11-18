@@ -45,6 +45,11 @@ export const FIELD_LOOKUP_TIMEOUT_MS = 4_000;
 
 // --- Basic Auth validator ---
 
+/**
+ * Nunca lanza (auditoría de la #196): la cabecera tiene que ser texto y se comparan los largos en
+ * bytes, que es lo que exige timingSafeEqual (con una «é» el largo en caracteres coincidía y
+ * lanzaba RangeError en vez de responder 401).
+ */
 function validateBasicAuth(req: VercelRequest): 'ok' | 'unauthorized' | 'misconfigured' {
   const user = process.env.PIPEDRIVE_WEBHOOK_USER;
   const password = process.env.PIPEDRIVE_WEBHOOK_PASSWORD;
@@ -53,17 +58,29 @@ function validateBasicAuth(req: VercelRequest): 'ok' | 'unauthorized' | 'misconf
     return 'misconfigured';
   }
 
-  const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
+  try {
+    const authHeader: unknown = req.headers?.['authorization'];
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Basic ')) {
+      return 'unauthorized';
+    }
+
+    const expected = 'Basic ' + Buffer.from(`${user}:${password}`, 'utf8').toString('base64');
+    const authBuf = Buffer.from(authHeader, 'utf8');
+    const expectedBuf = Buffer.from(expected, 'utf8');
+    if (authBuf.length !== expectedBuf.length) return 'unauthorized';
+    return crypto.timingSafeEqual(authBuf, expectedBuf) ? 'ok' : 'unauthorized';
+  } catch {
     return 'unauthorized';
   }
+}
 
-  const expected = 'Basic ' + Buffer.from(`${user}:${password}`).toString('base64');
-  if (authHeader.length !== expected.length) return 'unauthorized';
-  const authBuf = Buffer.from(authHeader);
-  const expectedBuf = Buffer.from(expected);
-  const valid = crypto.timingSafeEqual(authBuf, expectedBuf);
-  return valid ? 'ok' : 'unauthorized';
+/** El cuerpo, sin lanzar: en Vercel `req.body` es un getter que lanza si el JSON no es válido. */
+function readBody(req: VercelRequest): unknown {
+  try {
+    return req.body;
+  } catch {
+    return undefined;
+  }
 }
 
 // --- Event processors ---
@@ -181,7 +198,7 @@ export default async function handler(
   }
 
   try {
-    const event = normalizeWebhookBody(req.body);
+    const event = normalizeWebhookBody(readBody(req));
     const outcome = await processEvent(event);
     logEvent(event, outcome);
 

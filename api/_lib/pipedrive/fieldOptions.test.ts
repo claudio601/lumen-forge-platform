@@ -145,6 +145,73 @@ describe('findDealFieldByName', () => {
     expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'duplicate' });
   });
 
+  // Hallazgo 3 de la auditoría de Codex (#196): la caché tampoco guarda para siempre un resultado
+  // encontrado ni un repetido.
+  it('un repetido que el dueño arregla se vuelve a consultar al minuto', async () => {
+    vi.useFakeTimers();
+    vi.mocked(pipedriveGet)
+      .mockResolvedValueOnce({ success: true, data: [...FIELDS, { ...FIELDS[0], key: '0'.repeat(40) }] } as never)
+      .mockResolvedValue({ success: true, data: FIELDS } as never);
+    const { findDealFieldByName } = await load();
+    expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'duplicate' });
+    vi.advanceTimersByTime(30_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'duplicate' });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(30_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toMatchObject({ status: 'ok', field: { key: 'f'.repeat(40) } });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(2);
+  });
+
+  it('un campo encontrado caduca a los 10 minutos (recreado con otra clave)', async () => {
+    vi.useFakeTimers();
+    const recreated = [{ ...FIELDS[0], key: '1'.repeat(40) }, ...FIELDS.slice(1)];
+    vi.mocked(pipedriveGet)
+      .mockResolvedValueOnce({ success: true, data: FIELDS } as never)
+      .mockResolvedValue({ success: true, data: recreated } as never);
+    const { findDealFieldByName } = await load();
+    expect(await findDealFieldByName('Despacho · Aviso')).toMatchObject({ field: { key: 'f'.repeat(40) } });
+    vi.advanceTimersByTime(9 * 60_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toMatchObject({ field: { key: 'f'.repeat(40) } });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toMatchObject({ status: 'ok', field: { key: '1'.repeat(40) } });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(2);
+  });
+
+  // Hallazgo 5: un refresco fallido no se informa como «falta», y los intentos fallidos esperan un minuto.
+  it('si falla el refresco de un nombre que faltaba: unavailable, y el siguiente intento espera un minuto', async () => {
+    vi.useFakeTimers();
+    vi.mocked(pipedriveGet)
+      .mockResolvedValueOnce({ success: true, data: [] } as never)
+      .mockResolvedValueOnce({ success: false, data: null, error: 'Request timeout' } as never)
+      .mockResolvedValue({ success: true, data: FIELDS } as never);
+    const { findDealFieldByName } = await load();
+    expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'missing' });
+    vi.advanceTimersByTime(60_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'unavailable' });
+    expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'unavailable' });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(59_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toEqual({ status: 'unavailable' });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(1_000);
+    expect((await findDealFieldByName('Despacho · Aviso')).status).toBe('ok');
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(3);
+  });
+
+  it('si falla el refresco de un campo encontrado, sigue sirviendo su clave (sin reintentar cada vez)', async () => {
+    vi.useFakeTimers();
+    vi.mocked(pipedriveGet)
+      .mockResolvedValueOnce({ success: true, data: FIELDS } as never)
+      .mockResolvedValue({ success: false, data: null, error: 'Request timeout' } as never);
+    const { findDealFieldByName } = await load();
+    expect((await findDealFieldByName('Despacho · Aviso')).status).toBe('ok');
+    vi.advanceTimersByTime(10 * 60_000);
+    expect(await findDealFieldByName('Despacho · Aviso')).toMatchObject({ status: 'ok', field: { key: 'f'.repeat(40) } });
+    expect(await findDealFieldByName('Despacho · Aviso')).toMatchObject({ status: 'ok' });
+    expect(vi.mocked(pipedriveGet)).toHaveBeenCalledTimes(2);
+  });
+
   it('resetFieldOptionsCache también vacía esta caché', async () => {
     vi.mocked(pipedriveGet).mockResolvedValue({ success: true, data: FIELDS } as never);
     const { findDealFieldByName, resetFieldOptionsCache } = await load();
