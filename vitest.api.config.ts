@@ -19,8 +19,13 @@ export default defineConfig({
     ],
     // Exclude front-end source
     exclude: ['src/**', 'node_modules/**'],
-    // The sales-email relay (api/_lib/notify/salesEmail.ts) points to a dead port:
-    // a test that forgets to stub fetch fails fast instead of emailing ventas@.
-    env: { GAS_RELAY_URL: 'http://127.0.0.1:9/gas-disabled-in-tests' },
+    // The sales-email relay (api/_lib/notify/salesEmail.ts) and the shipping-notice relay
+    // (api/_lib/notify/shippingRelay.ts) point to a dead port: a test that forgets to stub
+    // fetch fails fast instead of emailing ventas@ or a customer. SHIPPING_RELAY_SECRET stays
+    // unset, so such a test gets `config` and never calls out.
+    env: {
+      GAS_RELAY_URL: 'http://127.0.0.1:9/gas-disabled-in-tests',
+      SHIPPING_RELAY_URL: 'http://127.0.0.1:9/shipping-relay-disabled-in-tests',
+    },
   },
 });
