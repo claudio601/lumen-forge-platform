@@ -187,21 +187,33 @@ const LEGACY_MODEL_RE = /^claude-haiku-4-5/;
  * entero) y ningun otro (additionalProperties: false). Solo palabras clave que la API admite: sin minLength, minimum
  * ni patrones. La lectura sigue estricta: si el texto no es el objeto (rechazo, max_tokens), los motivos de siempre.
  * Haiku 4.5 sigue con el pedido de antes (sin formato).
+ * Descripciones (solo del ultimo mensaje): en la comparacion del 18-11, Haiku 5.5 copiaba del historial el producto
+ * ("son 8, en Rancagua" quedaba con los proyectores del mensaje anterior) y la comuna ("y la comuna es Maipu" despues
+ * del cierre quedaba con la comuna vieja), donde 4.5 no. Repiten la regla del prompt para producto y uso y la extienden
+ * a la cantidad y la comuna, que el flujo igual toma solo del mensaje (quantity.ts, mergeComuna). El producto y la
+ * comuna llevan su propia descripcion: con la corta, "son 8, en Rancagua" seguia copiando el producto 2 de 3 veces y
+ * "Tienen sucursal en Concepcion?" dio la comuna 1 de 3 (la comuna repite las excepciones del prompt). Solo van en el
+ * esquema: el pedido de 4.5 no cambia.
  */
+const LAST_MESSAGE_ONLY = 'Solo si el cliente lo dice en su ultimo mensaje; si no, null (nunca un dato de un mensaje anterior).';
+const PRODUCT_LAST_MESSAGE = 'El producto que nombra el ultimo mensaje del cliente. Si ese mensaje no nombra un producto ' +
+  '(solo trae una cantidad, una comuna, un correo, un saludo o un agradecimiento), null aunque el cliente lo haya nombrado antes.';
+const COMUNA_LAST_MESSAGE = 'La comuna que el ultimo mensaje del cliente da como lugar de instalacion o despacho. Si ese mensaje ' +
+  'no la da, null (nunca una de un mensaje anterior, ni la de un correo, una calle, la razon social o la sucursal por la que pregunta).';
 const NULLABLE_TEXT = { type: ['string', 'null'] } as const;
 const EXTRACTION_PROPERTIES = {
-  producto: NULLABLE_TEXT,
+  producto: { type: ['string', 'null'], description: PRODUCT_LAST_MESSAGE },
   tipo_de_luz: NULLABLE_TEXT,
-  cantidad: { type: ['integer', 'null'] },
-  proyecto_o_uso: NULLABLE_TEXT,
-  comuna_o_ciudad: NULLABLE_TEXT,
+  cantidad: { type: ['integer', 'null'], description: LAST_MESSAGE_ONLY },
+  proyecto_o_uso: { type: ['string', 'null'], description: LAST_MESSAGE_ONLY },
+  comuna_o_ciudad: { type: ['string', 'null'], description: COMUNA_LAST_MESSAGE },
   nombre: NULLABLE_TEXT,
   empresa: NULLABLE_TEXT,
   correo: NULLABLE_TEXT,
   wantsHuman: { type: 'boolean' },
   qualifiesForDeal: { type: 'boolean' },
   summary: { type: 'string' },
-} as const satisfies Record<keyof ClaudeParsed, { type: string | readonly string[] }>;
+} as const satisfies Record<keyof ClaudeParsed, { type: string | readonly string[]; description?: string }>;
 export const EXTRACTION_SCHEMA = {
   type: 'object',
   properties: EXTRACTION_PROPERTIES,
