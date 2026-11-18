@@ -27,6 +27,7 @@ import { redact } from '../logging/redact.js';
 import { randomUUID } from 'node:crypto';
 import { waitUntil } from '@vercel/functions';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
+import { pipedriveErrorCode } from './errorCode.js';
 import { findCrossChannelDuplicates, newDealChannel, pipedriveTime } from './crossChannel.js';
 import { reviewSection } from '../forms/review.js';
 import { getOptionId } from './fieldOptions.js';
@@ -261,7 +262,7 @@ async function addDealNote(dealId: number, content: string): Promise<void> {
     try {
           const res = await pipedrivePost<{ id: number }>('/notes', { content, deal_id: dealId });
           if (!res.success) {
-                  console.warn(`${LOG_PREFIX} Failed to add note to deal ${dealId}: ${redact(res.error, 'error')}`);
+                  console.warn(`${LOG_PREFIX} Failed to add note to deal ${dealId}: ${pipedriveErrorCode(res.error)}`);
           } else {
                   console.log(`${LOG_PREFIX} Added re-dispatch note to deal ${dealId}`);
           }
@@ -280,7 +281,7 @@ async function backfillJumpsellerOrderId(dealId: number, rawOrderId: string): Pr
     try {
           const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, { [fieldKey]: rawOrderId });
           if (!res.success) {
-                  console.warn(`${LOG_PREFIX} Failed to backfill jumpseller_order_id on deal ${dealId}: ${redact(res.error, 'error')}`);
+                  console.warn(`${LOG_PREFIX} Failed to backfill jumpseller_order_id on deal ${dealId}: ${pipedriveErrorCode(res.error)}`);
           } else {
                   console.log(JSON.stringify({ level: 'info', event: 'title_fallback_hit_backfill', dealId, rawOrderId, fieldKey }));
           }
@@ -326,7 +327,7 @@ async function backfillQuoteReference(
           });
           if (!res.success) {
                   console.warn(
-                          `${LOG_PREFIX} Failed to backfill quote_reference on deal ${dealId}: ${redact(res.error, 'error')}`
+                          `${LOG_PREFIX} Failed to backfill quote_reference on deal ${dealId}: ${pipedriveErrorCode(res.error)}`
                   );
           } else {
                   console.log(

@@ -7,46 +7,49 @@
 // PIPEDRIVE_WEBHOOK_USER and PIPEDRIVE_WEBHOOK_PASSWORD.
 // Configure those same credentials in Pipedrive when registering the webhook
 // (http_auth_user / http_auth_password fields).
+//
+// Cuerpos v1 y v2 (N-05): el webhook configurado manda v2 (`meta.entity`), que antes se ignoraba
+// entero («Ignoring undefined event»). api/_lib/pipedrive/webhookEvent.ts los lleva a una forma
+// común. Se descartan, con 200, lo que no sea un negocio actualizado, las ediciones masivas y, si
+// PIPEDRIVE_COMPANY_ID está definida, otra compañía. No se descarta `change_source: "api"`: la app
+// del celular podría llegar así (aviso de despacho, spec §3 paso 3).
+//
+// Aviso de despacho (spec Nivel 2, §3 paso 3): por ahora solo se detecta el disparador
+// («Despacho · Aviso» cambió a una opción en este evento), antes del filtro de embudo, y se registra.
+// Todavía no envía nada.
+//
+// Registros: una línea por evento, solo con metadatos (versión, entidad, acción, id del negocio,
+// change_source, si fue masivo y qué se hizo). Nunca el cuerpo, nombres, correos, teléfonos ni
+// valores de campos.
 
 import { redact } from '../_lib/logging/redact.js';
+import { findDealFieldByName } from '../_lib/pipedrive/fieldOptions.js';
+import {
+  normalizeWebhookBody,
+  optionFieldSetInEvent,
+  type NormalizedWebhookEvent,
+} from '../_lib/pipedrive/webhookEvent.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 
 const LOG_PREFIX = '[pipedrive/webhook]';
 
-// --- Types (v2 payload structure) ---
-
-interface PipedriveDealWebhook {
-  v: number;
-  event: string;       // e.g. 'updated.deal', 'added.deal'
-  retry: number;
-  current: PipedriveDealData;
-  previous: PipedriveDealData | null;
-  meta: {
-    action: string;    // 'updated', 'added', 'deleted'
-    object: string;    // 'deal'
-    id: number;
-    company_id: number;
-    user_id: number;
-    timestamp: number;
-  };
-}
-
-interface PipedriveDealData {
-  id: number;
-  title: string;
-  status: string;       // 'open', 'won', 'lost', 'deleted'
-  stage_id: number;
-  pipeline_id: number;
-  person_id: number | null;
-  org_id: number | null;
-  value: number;
-  currency: string;
-  [key: string]: unknown;
-}
+/** Nombre exacto del campo disparador en Pipedrive (spec §4.1). */
+export const SHIPPING_TRIGGER_FIELD_NAME = 'Despacho · Aviso';
+/**
+ * Plazo de la consulta en frío de /dealFields. Pipedrive da 10 s para responder; el 200 inmediato con
+ * `waitUntil` llega en la PR del aviso. Si no alcanza, el disparador no se revisa y se reintenta la
+ * consulta con el evento siguiente.
+ */
+export const FIELD_LOOKUP_TIMEOUT_MS = 4_000;
 
 // --- Basic Auth validator ---
 
+/**
+ * Nunca lanza (auditoría de la #196): la cabecera tiene que ser texto y se comparan los largos en
+ * bytes, que es lo que exige timingSafeEqual (con una «é» el largo en caracteres coincidía y
+ * lanzaba RangeError en vez de responder 401).
+ */
 function validateBasicAuth(req: VercelRequest): 'ok' | 'unauthorized' | 'misconfigured' {
   const user = process.env.PIPEDRIVE_WEBHOOK_USER;
   const password = process.env.PIPEDRIVE_WEBHOOK_PASSWORD;
@@ -55,63 +58,119 @@ function validateBasicAuth(req: VercelRequest): 'ok' | 'unauthorized' | 'misconf
     return 'misconfigured';
   }
 
-  const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
+  try {
+    const authHeader: unknown = req.headers?.['authorization'];
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Basic ')) {
+      return 'unauthorized';
+    }
+
+    const expected = 'Basic ' + Buffer.from(`${user}:${password}`, 'utf8').toString('base64');
+    const authBuf = Buffer.from(authHeader, 'utf8');
+    const expectedBuf = Buffer.from(expected, 'utf8');
+    if (authBuf.length !== expectedBuf.length) return 'unauthorized';
+    return crypto.timingSafeEqual(authBuf, expectedBuf) ? 'ok' : 'unauthorized';
+  } catch {
     return 'unauthorized';
   }
+}
 
-  const expected = 'Basic ' + Buffer.from(`${user}:${password}`).toString('base64');
-  if (authHeader.length !== expected.length) return 'unauthorized';
-  const authBuf = Buffer.from(authHeader);
-  const expectedBuf = Buffer.from(expected);
-  const valid = crypto.timingSafeEqual(authBuf, expectedBuf);
-  return valid ? 'ok' : 'unauthorized';
+/** El cuerpo, sin lanzar: en Vercel `req.body` es un getter que lanza si el JSON no es válido. */
+function readBody(req: VercelRequest): unknown {
+  try {
+    return req.body;
+  } catch {
+    return undefined;
+  }
 }
 
 // --- Event processors ---
 
-async function handleDealStageChange(
-  current: PipedriveDealData,
-  previous: PipedriveDealData | null,
-): Promise<{ action: string }> {
-  const oldStage = previous?.stage_id;
-  const newStage = current.stage_id;
-
-  console.log(
-    `${LOG_PREFIX} Deal ${current.id} stage changed: ${oldStage} -> ${newStage}`,
-  );
-
+function handleDealStageChange(change: NonNullable<NormalizedWebhookEvent['stageChange']>): string {
   // TODO: Add logic for specific stage transitions
   // e.g., moving to "proposal sent" stage could trigger an email notification
   // e.g., moving to "negotiation" stage could update Jumpseller order status
-
-  return { action: 'stage_change_logged' };
+  return `etapa(${change.from ?? '-'}->${change.to ?? '-'})`;
 }
 
-async function handleDealStatusChange(
-  current: PipedriveDealData,
-  previous: PipedriveDealData | null,
-): Promise<{ action: string }> {
-  const oldStatus = previous?.status;
-  const newStatus = current.status;
-
-  console.log(
-    `${LOG_PREFIX} Deal ${current.id} status changed: ${oldStatus} -> ${newStatus}`,
-  );
-
-  if (newStatus === 'won') {
+function handleDealStatusChange(change: NonNullable<NormalizedWebhookEvent['statusChange']>): string {
+  const transition = `${change.from ?? '-'}->${change.to ?? '-'}`;
+  if (change.to === 'won') {
     // TODO: Trigger order confirmation in Jumpseller, send thank-you email, etc.
-    console.log(`${LOG_PREFIX} Deal ${current.id} won - value: ${current.value} ${current.currency}`);
-    return { action: 'deal_won_processed' };
+    return `ganado(${transition})`;
   }
-
-  if (newStatus === 'lost') {
+  if (change.to === 'lost') {
     // TODO: Trigger lost-deal follow-up sequence
-    console.log(`${LOG_PREFIX} Deal ${current.id} lost`);
-    return { action: 'deal_lost_processed' };
+    return `perdido(${transition})`;
+  }
+  return `estado(${transition})`;
+}
+
+/**
+ * Revisa el disparador del aviso de despacho. Solo consulta /dealFields si en este evento cambió
+ * algún campo personalizado. Nunca lanza. Devuelve qué pasó (para el registro) o null si no se revisó.
+ */
+async function checkShippingTrigger(event: NormalizedWebhookEvent): Promise<string | null> {
+  if (event.changedCustomFields.length === 0) return null;
+  const lookup = await findDealFieldByName(SHIPPING_TRIGGER_FIELD_NAME, { timeoutMs: FIELD_LOOKUP_TIMEOUT_MS });
+  if (lookup.status === 'unavailable') return 'campos_no_disponibles';
+  if (lookup.status === 'missing') return 'campo_no_existe';
+  if (lookup.status === 'duplicate') return 'campo_repetido';
+  if (lookup.field.fieldType !== 'enum') return 'campo_no_es_opcion';
+  const result = optionFieldSetInEvent(event, lookup.field.key);
+  if (result.fired === false) return result.reason;
+  console.log(`${LOG_PREFIX} aviso de despacho: disparador en negocio ${event.entityId} (todavía sin envío)`);
+  return 'disparador';
+}
+
+type Outcome =
+  | { kind: 'ignored'; reason: string }
+  | { kind: 'processed'; dealId: number; actions: string[]; aviso: string | null };
+
+async function processEvent(event: NormalizedWebhookEvent | null): Promise<Outcome> {
+  if (!event) return { kind: 'ignored', reason: 'formato_desconocido' };
+
+  const company = process.env.PIPEDRIVE_COMPANY_ID?.trim();
+  if (company && event.companyId !== company) return { kind: 'ignored', reason: 'otra_compania' };
+  if (event.isBulk) return { kind: 'ignored', reason: 'masivo' };
+  if (event.entity !== 'deal') return { kind: 'ignored', reason: 'entidad' };
+  if (event.action !== 'change') return { kind: 'ignored', reason: 'accion' };
+  if (event.entityId === null || !event.current) return { kind: 'ignored', reason: 'sin_datos' };
+
+  // El disparador va antes del filtro de embudo: el aviso sirve a los negocios de los dos embudos.
+  const aviso = await checkShippingTrigger(event);
+
+  // Etapa y estado: solo los negocios del embudo de los formularios (si está definido).
+  const pipelineId = Number(process.env.PIPEDRIVE_PIPELINE_ID);
+  if (pipelineId && event.current.pipelineId !== pipelineId) {
+    return { kind: 'processed', dealId: event.entityId, actions: ['otro_embudo'], aviso };
   }
 
-  return { action: 'status_change_logged' };
+  // Estado y etapa por separado: un mismo evento puede cambiar los dos (p. ej., ganar y mover).
+  const actions: string[] = [];
+  if (event.statusChange) actions.push(handleDealStatusChange(event.statusChange));
+  if (event.stageChange) actions.push(handleDealStageChange(event.stageChange));
+  if (actions.length === 0) actions.push('sin_cambio_de_etapa_ni_estado');
+  return { kind: 'processed', dealId: event.entityId, actions, aviso };
+}
+
+/** La línea del evento: solo metadatos. */
+function logEvent(event: NormalizedWebhookEvent | null, outcome: Outcome): void {
+  const parts = [
+    `version=${event?.version ?? 'desconocida'}`,
+    `entidad=${event?.entity ? event.entity.replace(/[^a-z_]/g, '').slice(0, 20) || 'otra' : '-'}`,
+    `accion=${event?.action ?? '-'}`,
+    `negocio=${event?.entity === 'deal' && event.entityId !== null ? event.entityId : '-'}`,
+    `origen=${event?.changeSource ?? '-'}`,
+    `masivo=${event?.isBulk ? 'si' : 'no'}`,
+    `intento=${event?.attempt ?? '-'}`,
+  ];
+  if (outcome.kind === 'ignored') {
+    parts.push(`hecho=ignorado(${outcome.reason})`);
+  } else {
+    parts.push(`hecho=${outcome.actions.join(',')}`);
+    if (outcome.aviso) parts.push(`aviso=${outcome.aviso}`);
+  }
+  console.log(`${LOG_PREFIX} evento ${parts.join(' ')}`);
 }
 
 // --- Main handler ---
@@ -139,44 +198,17 @@ export default async function handler(
   }
 
   try {
-    const body = req.body as PipedriveDealWebhook;
-    const { meta, current, previous } = body;
+    const event = normalizeWebhookBody(readBody(req));
+    const outcome = await processEvent(event);
+    logEvent(event, outcome);
 
-    // Only handle deal events for now
-    if (meta.object !== 'deal') {
-      console.log(`${LOG_PREFIX} Ignoring ${meta.object} event`);
-      res.status(200).json({ success: true, action: 'ignored', reason: `Object type ${meta.object} not handled` });
+    // Todo lo que no se usa responde 200: un error repetido haría que Pipedrive reintente, acumule
+    // fallas y, tras 3 días sin entregas exitosas, borre el webhook.
+    if (outcome.kind === 'ignored') {
+      res.status(200).json({ success: true, action: 'ignored', reason: outcome.reason });
       return;
     }
-
-    // Only process deals in our pipeline
-    const pipelineId = Number(process.env.PIPEDRIVE_PIPELINE_ID);
-    if (pipelineId && current.pipeline_id !== pipelineId) {
-      console.log(`${LOG_PREFIX} Ignoring deal ${current.id} - pipeline ${current.pipeline_id} !== ${pipelineId}`);
-      res.status(200).json({ success: true, action: 'ignored', reason: 'Different pipeline' });
-      return;
-    }
-
-    let result: { action: string };
-
-    // Detect what changed
-    const stageChanged = previous && current.stage_id !== previous.stage_id;
-    const statusChanged = previous && current.status !== previous.status;
-
-    if (statusChanged) {
-      result = await handleDealStatusChange(current, previous);
-    } else if (stageChanged) {
-      result = await handleDealStageChange(current, previous);
-    } else {
-      console.log(`${LOG_PREFIX} Deal ${current.id} updated - no stage/status change`);
-      result = { action: 'update_logged' };
-    }
-
-    res.status(200).json({
-      success: true,
-      dealId: current.id,
-      ...result,
-    });
+    res.status(200).json({ success: true, dealId: outcome.dealId, actions: outcome.actions });
   } catch (err) {
     console.error(`${LOG_PREFIX} Error processing webhook:`, redact(err, 'error'));
     res.status(500).json({ success: false, error: 'Internal server error' });

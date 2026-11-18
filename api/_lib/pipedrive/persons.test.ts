@@ -17,7 +17,7 @@ vi.mock('./fieldOptions.js', () => ({
   getOptionId: vi.fn((_entity: string, key: string, label: string) => OPTIONS[key]?.[label]),
 }));
 
-import { pipedriveGet, pipedrivePost } from './client.js';
+import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { findOrCreatePerson } from './persons.js';
 
 const PHONE = '+56900000301';
@@ -77,5 +77,25 @@ describe('findOrCreatePerson: campos de una persona nueva', () => {
     const res = await findOrCreatePerson({ name: 'Persona Prueba', phone: PHONE, preferredChannel: 'WhatsApp', customerType: 'B2C' });
     expect(res.action).toBe('found');
     expect(pipedrivePost).not.toHaveBeenCalled();
+  });
+
+  // Ronda 3 de la auditoría de Codex (#196): el error de Pipedrive puede traer el nombre y `redact`
+  // no reconoce nombres. El registro lleva solo el id y el código.
+  it('si falla la corrección del nombre, el registro no lleva el texto de Pipedrive', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.mocked(pipedriveGet).mockResolvedValue({
+      success: true,
+      data: { items: [{ item: { id: 7100, name: 'undefined undefined', emails: [], phones: [PHONE] } }] },
+    } as never);
+    vi.mocked(pipedrivePut)
+      .mockResolvedValueOnce({ success: false, data: null, error: 'Persona Inventada rechazada' } as never)
+      .mockResolvedValueOnce({ success: false, data: null, error: 'HTTP 400: Bad Request', error_info: 'Persona Inventada' } as never);
+    await findOrCreatePerson({ name: 'Persona Inventada', phone: PHONE });
+    await findOrCreatePerson({ name: 'Persona Inventada', phone: PHONE });
+    const text = warn.mock.calls.flat().map(String).join('\n');
+    expect(text).toContain('Failed to patch person name 7100: otro');
+    expect(text).toContain('Failed to patch person name 7100: HTTP 400');
+    expect(text).not.toContain('Persona Inventada');
+    expect(text).not.toContain('rechazada');
   });
 });

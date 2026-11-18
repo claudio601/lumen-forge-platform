@@ -1,7 +1,7 @@
 // src/lib/pipedrive/persons.ts
 // Find or create a Pipedrive person with deduplication by email/phone.
 
-import { redact } from '../logging/redact.js';
+import { pipedriveErrorCode } from './errorCode.js';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { getOptionId } from './fieldOptions.js';
 import type {
@@ -84,7 +84,7 @@ async function patchPersonName(personId: number, name: string): Promise<void> {
     if (res.success) {
           console.log(`${LOG_PREFIX} Patched person name: ${personId} nombre=${name ? 'sí' : 'no'}`);
     } else {
-          console.warn(`${LOG_PREFIX} Failed to patch person name ${personId}: ${redact(res.error, 'error')}`);
+          console.warn(`${LOG_PREFIX} Failed to patch person name ${personId}: ${pipedriveErrorCode(res.error)}`);
     }
 }
 

@@ -4,7 +4,7 @@
 // nunca lleva el nombre del archivo. fetch está simulado: no sale nada a Pipedrive.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { pipedriveUploadFile, pipedriveGet } from './client';
+import { pipedriveUploadFile, pipedriveGet, pipedrivePost, pipedrivePut, pipedriveDelete } from './client';
 
 const FILE_NAME = 'Plano Juan Pérez.dwg';
 const DWG = new Uint8Array([0x41, 0x43, 0x31, 0x30, 0x33, 0x32]);
@@ -32,7 +32,7 @@ describe('pipedriveUploadFile', () => {
     vi.useRealTimers();
   });
 
-  it('el cliente general conserva respuestas para su consumidor y registra el error sin RUT, correo ni teléfono', async () => {
+  it('el cliente general conserva respuestas para su consumidor y registra solo método, ruta, código y categoría', async () => {
     const privateText = 'Persona Ficticia 12.345.678-5 prueba@ejemplo.cl +56 9 1234 5678';
     vi.stubGlobal('fetch', vi.fn(async () => new Response(privateText, { status: 400 })));
     const failed = await pipedriveGet('/persons/999');
@@ -42,14 +42,99 @@ describe('pipedriveUploadFile', () => {
     const externalError = Object.assign(new Error(privateText), { response: { body: privateText } });
     vi.stubGlobal('fetch', vi.fn(async () => { throw externalError; }));
     expect((await pipedriveGet('/persons/999')).error).toBe(privateText);
-    // El error de Pipedrive se registra (sirve para depurar), pero sin RUT, correo ni teléfono.
-    // Un nombre no se reconoce con regex: es raro que Pipedrive lo devuelva en un error.
-    for (const pii of ['12.345.678-5', 'prueba@ejemplo.cl', '+56 9 1234 5678']) {
+    // (auditoría de la #196) El registro ya no lleva el cuerpo ni el mensaje: un nombre no se
+    // reconoce con regex, y el mensaje puede traer la URL con el token.
+    for (const pii of ['Persona Ficticia', '12.345.678-5', 'prueba@ejemplo.cl', '+56 9 1234 5678', '[RUT]', '[correo]']) {
       expect(logged()).not.toContain(pii);
     }
-    expect(logged()).toContain('[RUT] [correo] [teléfono]');
-    expect(logged()).toContain('HTTP 400');
-    expect(logged()).toContain('/persons/999');
+    expect(logged()).toContain('[Pipedrive] GET /persons/999 -> HTTP 400');
+    expect(logged()).toContain('[Pipedrive] GET /persons/999 -> API error');
+    expect(logged()).toContain('[Pipedrive] GET /persons/999 -> FETCH_ERROR (Error)');
+  });
+
+  // Hallazgo 1 de la auditoría de Codex (#196): con el cliente real y solo `fetch` simulado, ni el
+  // token ni la URL ni un nombre llegan a console.*, en ningún método ni camino de error. Tampoco el
+  // token ni la URL vuelven en `error`/`error_info` (varios llamadores los registran).
+  describe('privacidad de los registros (fetch simulado)', () => {
+    const TOKEN = 'TOKEN_FICTICIO_abcdef';
+    const NAME = 'Persona Inventada';
+    const leakedUrl = () => `https://pipedrive.example/v1/persons/7?api_token=${TOKEN}&term=${encodeURIComponent(NAME)}`;
+    const forbidden = [TOKEN, NAME, 'api_token', 'https://pipedrive.example', encodeURIComponent(NAME)];
+
+    beforeEach(() => {
+      vi.stubEnv('PIPEDRIVE_API_TOKEN', TOKEN);
+    });
+
+    const failures: Array<[string, () => unknown]> = [
+      ['HTTP 401 con el nombre y la URL en el cuerpo', () => vi.fn(async () => new Response(`${NAME} no autorizado en ${leakedUrl()}`, { status: 401, statusText: 'Unauthorized' }))],
+      ['success: false con el nombre y la URL en el error', () => vi.fn(async () => new Response(JSON.stringify({ success: false, error: `${NAME} ${leakedUrl()}` })))],
+      ['fetch lanza con la URL (como «Failed to parse URL from …»)', () => vi.fn(async () => { throw new TypeError(`Failed to parse URL from ${leakedUrl()}`); })],
+      ['fetch lanza con causa de sistema', () => vi.fn(async () => { throw Object.assign(new TypeError(`fetch failed ${leakedUrl()}`), { cause: { code: 'ECONNRESET' } }); })],
+      ['respuesta 200 que no es JSON', () => vi.fn(async () => new Response(`<html>${NAME}</html>`, { status: 200 }))],
+    ];
+
+    it.each(failures)('%s', async (_label, makeFetch) => {
+      vi.stubGlobal('fetch', makeFetch());
+      const results = [
+        await pipedriveGet('/persons/search', { term: NAME }),
+        await pipedrivePost('/persons', { name: NAME }),
+        await pipedrivePut('/deals/7', { title: NAME }),
+        await pipedriveDelete('/deals/7?x=1'),
+        await upload(),
+      ];
+      const text = logged();
+      for (const secret of forbidden) expect(text, secret).not.toContain(secret);
+      for (const res of results) {
+        expect(res.success).toBe(false);
+        const returned = `${res.error ?? ''} ${res.error_info ?? ''}`;
+        expect(returned).not.toContain(TOKEN);
+        expect(returned).not.toContain('https://pipedrive.example');
+      }
+      // La ruta va sin la consulta.
+      expect(text).toContain('[Pipedrive] DELETE /deals/7 ->');
+      expect(text).not.toContain('x=1');
+    });
+
+    // Ronda 3 de la auditoría de Codex (#196).
+    it('el statusText del servidor nunca se usa: solo el código y su descripción fija', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 400, statusText: NAME })));
+      const get = await pipedriveGet('/deals/7');
+      const up = await upload();
+      expect(get.error).toBe('HTTP 400: Bad Request');
+      expect(up.error).toBe('HTTP 400: Bad Request');
+      expect(logged()).toContain('[Pipedrive] POST /files -> 400 Bad Request | dealId: 999');
+      expect(logged()).not.toContain(NAME);
+      vi.stubGlobal('fetch', vi.fn(async () => new Response('x', { status: 599, statusText: NAME })));
+      expect((await pipedriveGet('/deals/7')).error).toBe('HTTP 599: Unknown Status');
+    });
+
+    it('error_info se recorta después de quitar el token (ni un trozo del token queda)', async () => {
+      const body = 'x'.repeat(290) + TOKEN + 'y'.repeat(50);
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(body, { status: 401 })));
+      const get = await pipedriveGet('/deals/7');
+      const up = await upload();
+      for (const res of [get, up]) {
+        expect(res.error_info).not.toContain(TOKEN.slice(0, 6));
+        expect(res.error_info).toBe(('x'.repeat(290) + '[token]' + 'y'.repeat(50)).slice(0, 300));
+        expect(res.error_info!.length).toBeLessThanOrEqual(300);
+      }
+    });
+
+    it('success: false: también se limpia json.error_info', async () => {
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, error: 'denied', error_info: `ver ${leakedUrl()} o api_token=${TOKEN}` }))));
+      const res = await pipedriveGet('/deals/7');
+      expect(res.error).toBe('denied');
+      expect(res.error_info).toBe('ver [url] o api_token=[token]');
+      // Sin error_info en la respuesta, no se agrega.
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, error: 'denied' }))));
+      expect(await pipedriveGet('/deals/7')).not.toHaveProperty('error_info');
+    });
+
+    it('la categoría lleva el código de sistema, nunca el mensaje', async () => {
+      vi.stubGlobal('fetch', failures[3][1]());
+      await pipedriveGet('/deals/7');
+      expect(logged()).toContain('[Pipedrive] GET /deals/7 -> FETCH_ERROR (TypeError ECONNRESET)');
+    });
   });
 
   it('POST /files en multipart con file (nombre y tipo) y deal_id', async () => {

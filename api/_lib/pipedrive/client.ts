@@ -1,10 +1,53 @@
 // src/lib/pipedrive/client.ts
 // Base HTTP client for Pipedrive API
+//
+// Registros (auditoría de la #196): solo el método, la ruta sin la consulta, el código HTTP y una
+// categoría de error. Nunca la URL (lleva `api_token`), ni el cuerpo de la respuesta, ni el mensaje
+// de un error, que pueden traer el token o datos del cliente (un nombre no se reconoce con regex).
+// Lo que se devuelve a quien llama (`error`, `error_info`) conserva el texto, pero sin el token ni
+// URLs: varios llamadores lo escriben en sus registros.
 
+import { STATUS_CODES } from 'node:http';
 import type { PipedriveApiResponse } from '../crm/types.js';
-import { redact } from '../logging/redact.js';
 
 const TIMEOUT_MS = 15_000;
+/** Largo máximo de `error_info`. Se recorta después de quitar el token, nunca antes. */
+const ERROR_INFO_MAX = 300;
+/** Antes de limpiar se mira solo este trozo: basta para que un token que empieza antes del recorte salga entero. */
+const SCRUB_WINDOW = 4_000;
+
+/** La ruta para un registro: sin la consulta y solo con caracteres de ruta. */
+function logPath(path: string): string {
+  return String(path).split('?')[0].replace(/[^\w/.-]/g, '_').slice(0, 120);
+}
+
+/** Categoría de un error lanzado: su nombre y, si lo trae, el código de sistema (ECONNRESET…). */
+function errorCategory(err: unknown): string {
+  const name = err instanceof Error && /^[A-Za-z]{1,40}$/.test(err.name) ? err.name : 'Error';
+  const code = err instanceof Error ? (err as { cause?: { code?: unknown } }).cause?.code : undefined;
+  return typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,39}$/.test(code) ? `${name} ${code}` : name;
+}
+
+/** Quita el token y las URLs de un texto que vuelve a quien llama. */
+function scrubSecrets(text: string): string {
+  const token = process.env.PIPEDRIVE_API_TOKEN;
+  let safe = token ? text.split(token).join('[token]') : text;
+  safe = safe.replace(/\bapi_token=[^&\s"'<>]*/gi, 'api_token=[token]');
+  return safe.replace(/\bhttps?:\/\/[^\s"'<>]+/gi, '[url]');
+}
+
+/** `error_info`: sin el token ni URLs, recortado después de limpiar. */
+function safeErrorInfo(text: string): string {
+  return scrubSecrets(String(text).slice(0, SCRUB_WINDOW)).slice(0, ERROR_INFO_MAX);
+}
+
+/**
+ * Descripción fija del código HTTP (la tabla de Node). Nunca el `statusText` del servidor: filtrar
+ * caracteres no quita un nombre (ronda 3 de la auditoría de la #196).
+ */
+function statusDescription(status: number): string {
+  return STATUS_CODES[status] ?? 'Unknown Status';
+}
 
 function getConfig() {
   const token = process.env.PIPEDRIVE_API_TOKEN;
@@ -61,30 +104,33 @@ async function request<T>(
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => 'no body');
-      console.error(`[Pipedrive] ${method} ${path} -> HTTP ${res.status}`, redact(errorBody.substring(0, 300)));
+      console.error(`[Pipedrive] ${method} ${logPath(path)} -> HTTP ${res.status}`);
       return {
         success: false,
         data: null,
-        error: `HTTP ${res.status}: ${res.statusText}`,
-        error_info: errorBody.substring(0, 300),
+        error: `HTTP ${res.status}: ${statusDescription(res.status)}`,
+        error_info: safeErrorInfo(errorBody),
       };
     }
 
     const json = (await res.json()) as PipedriveApiResponse<T>;
 
     if (!json.success) {
-      console.error(`[Pipedrive] ${method} ${path} -> API error:`, redact(String(json.error)));
+      console.error(`[Pipedrive] ${method} ${logPath(path)} -> API error`);
+      const safe: PipedriveApiResponse<T> = { ...json, error: json.error === undefined ? undefined : scrubSecrets(String(json.error)) };
+      if (json.error_info !== undefined) safe.error_info = safeErrorInfo(String(json.error_info));
+      return safe;
     }
 
     return json;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     const isAbort = err instanceof Error && err.name === 'AbortError';
-    console.error(`[Pipedrive] ${method} ${path} -> ${isAbort ? 'TIMEOUT' : 'FETCH_ERROR'}:`, redact(message));
+    console.error(`[Pipedrive] ${method} ${logPath(path)} -> ${isAbort ? 'TIMEOUT' : `FETCH_ERROR (${errorCategory(err)})`}`);
     return {
       success: false,
       data: null,
-      error: isAbort ? 'Request timeout' : message,
+      error: isAbort ? 'Request timeout' : scrubSecrets(message),
     };
   } finally {
     clearTimeout(timeout);
@@ -146,7 +192,7 @@ export async function pipedriveUploadFile<T = { id: number }>({
   timeoutMs?: number;
 }): Promise<PipedriveApiResponse<T>> {
   const path = '/files';
-  const scrub = (text: string) => (fileName ? text.split(fileName).join('[archivo]') : text).substring(0, 300);
+  const scrub = (text: string) => safeErrorInfo(fileName ? text.split(fileName).join('[archivo]') : text);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -164,11 +210,11 @@ export async function pipedriveUploadFile<T = { id: number }>({
 
     if (!res.ok) {
       const errorBody = await res.text().catch(() => 'no body');
-      console.error(`[Pipedrive] POST ${path} -> ${res.status} ${res.statusText} | dealId: ${dealId}`);
+      console.error(`[Pipedrive] POST ${path} -> ${res.status} ${statusDescription(res.status)} | dealId: ${dealId}`);
       return {
         success: false,
         data: null,
-        error: `HTTP ${res.status}: ${res.statusText}`,
+        error: `HTTP ${res.status}: ${statusDescription(res.status)}`,
         error_info: scrub(errorBody),
       };
     }
