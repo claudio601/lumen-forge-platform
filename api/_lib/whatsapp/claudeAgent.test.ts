@@ -28,7 +28,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }));
 
-import { askClaude, extractJsonObject, textField } from './claudeAgent';
+import { askClaude, EXTRACTION_SCHEMA, extractJsonObject, readClaudeFields, requestParams, textField } from './claudeAgent';
 
 beforeEach(() => {
   queue.length = 0;
@@ -319,7 +319,9 @@ describe('[MODELO] Haiku 5.5', () => {
     queue.push(JSON_TEXT);
     await askClaude([{ role: 'user', content: 'Hola' }, { role: 'assistant', content: 'Hola, cuéntanos.' }], MESSAGE, 'Perfil Prueba');
     const req = requests.at(-1)!;
-    expect(req).toMatchObject({ model: 'claude-haiku-5-5', max_tokens: 1024, thinking: { type: 'disabled' }, output_config: { effort: 'low' } });
+    expect(req).toMatchObject({ model: 'claude-haiku-5-5', max_tokens: 1024, thinking: { type: 'disabled' } });
+    // [SALIDA] El esfuerzo y el formato del JSON, juntos en output_config.
+    expect(req.output_config).toEqual({ effort: 'low', format: { type: 'json_schema', schema: EXTRACTION_SCHEMA } });
     for (const key of ['temperature', 'top_p', 'top_k']) expect(req).not.toHaveProperty(key);
     expect((req.messages as Array<{ role: string }>).at(-1)!.role).toBe('user');
   });
@@ -365,5 +367,100 @@ describe('[MODELO] Haiku 5.5', () => {
   it('sin texto y sin rechazo: lanza como antes (el webhook sigue con las reglas)', async () => {
     queue.push({ blocks: [], thinking: true, stop_reason: 'end_turn' });
     await expect(askClaude([], MESSAGE, 'Perfil Prueba')).rejects.toThrow('No text block');
+  });
+});
+
+// [SALIDA] Salidas estructuradas (18-11-2026): Haiku 5.5 sin pensamiento y con esfuerzo bajo a veces contestaba con una
+// frase para el cliente en vez del JSON (18 turnos «sin_json» en producción, casi todos saludos o mensajes después del
+// cierre). Con output_config.format la API obliga a devolver el objeto del esquema; Haiku 4.5 sigue con el pedido de antes.
+describe('[SALIDA] salidas estructuradas', () => {
+  const MESSAGES = [{ role: 'user' as const, content: 'Hola' }];
+  const FIELDS = ['producto', 'tipo_de_luz', 'cantidad', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo', 'wantsHuman', 'qualifiesForDeal', 'summary'];
+  const MESSAGE = 'Necesito 20 paneles LED 60x60 para una oficina';
+
+  it('requestParams con Haiku 5.5: formato json_schema junto al esfuerzo, sin pensamiento y 1024 tokens', () => {
+    expect(requestParams('claude-haiku-5-5', MESSAGES)).toMatchObject({
+      model: 'claude-haiku-5-5',
+      max_tokens: 1024,
+      thinking: { type: 'disabled' },
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: EXTRACTION_SCHEMA } },
+    });
+    // Otro esfuerzo (solo el arnés de comparación lo cambia): el formato sigue.
+    expect(requestParams('claude-haiku-5-5', MESSAGES, { effort: 'medium' }).output_config).toEqual({ effort: 'medium', format: { type: 'json_schema', schema: EXTRACTION_SCHEMA } });
+  });
+
+  it('requestParams con Haiku 4.5 (con o sin fecha): exactamente el pedido de antes, sin formato', () => {
+    for (const model of ['claude-haiku-4-5', 'claude-haiku-4-5-20251001']) {
+      const params = requestParams(model, MESSAGES);
+      expect(Object.keys(params).sort()).toEqual(['max_tokens', 'messages', 'model', 'system']);
+      expect(params).toMatchObject({ model, max_tokens: 400 });
+    }
+  });
+
+  it('el esquema: los 11 campos que lee readClaudeFields, todos obligatorios y ningún otro', () => {
+    expect(EXTRACTION_SCHEMA.type).toBe('object');
+    expect(EXTRACTION_SCHEMA.additionalProperties).toBe(false);
+    expect(Object.keys(EXTRACTION_SCHEMA.properties)).toEqual(FIELDS);
+    expect([...EXTRACTION_SCHEMA.required]).toEqual(FIELDS);
+    for (const name of ['producto', 'tipo_de_luz', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo'] as const) {
+      expect(EXTRACTION_SCHEMA.properties[name]).toEqual({ type: ['string', 'null'] });
+    }
+    // cantidad: el prompt pide un número entero o null (textField lo pasa a texto).
+    expect(EXTRACTION_SCHEMA.properties.cantidad).toEqual({ type: ['integer', 'null'] });
+    expect(EXTRACTION_SCHEMA.properties.wantsHuman).toEqual({ type: 'boolean' });
+    expect(EXTRACTION_SCHEMA.properties.qualifiesForDeal).toEqual({ type: 'boolean' });
+    expect(EXTRACTION_SCHEMA.properties.summary).toEqual({ type: 'string' });
+  });
+
+  it('el esquema solo usa palabras clave que la API admite (sin minLength, minimum, pattern ni otras)', () => {
+    const keys = new Set<string>();
+    const walk = (node: unknown) => {
+      if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+      for (const [key, value] of Object.entries(node)) {
+        keys.add(key);
+        if (key === 'properties') Object.values(value as object).forEach(walk);
+        else walk(value);
+      }
+    };
+    walk(EXTRACTION_SCHEMA);
+    expect([...keys].sort()).toEqual(['additionalProperties', 'properties', 'required', 'type']);
+  });
+
+  it('el prompt del sistema nombra cada campo del esquema', async () => {
+    queue.push('{}');
+    await askClaude([], MESSAGE, 'Perfil Prueba');
+    for (const name of FIELDS) expect(systems.at(-1)).toContain(name);
+  });
+
+  it('una respuesta con la forma del esquema se lee entera: null es «no aplica» y la cantidad entera pasa a texto', () => {
+    const raw = { producto: 'paneles LED 60x60', tipo_de_luz: null, cantidad: 20, proyecto_o_uso: 'oficina', comuna_o_ciudad: null, nombre: null, empresa: null, correo: null, wantsHuman: false, qualifiesForDeal: false, summary: 'El cliente pide 20 paneles LED 60x60.' };
+    expect(Object.keys(raw)).toEqual(FIELDS);
+    const { parsed, fields } = readClaudeFields(raw, 'respaldo');
+    expect(fields).toEqual({});
+    expect(parsed).toEqual({ producto: 'paneles LED 60x60', cantidad: '20', proyecto_o_uso: 'oficina', wantsHuman: false, qualifiesForDeal: false, summary: 'El cliente pide 20 paneles LED 60x60.' });
+  });
+
+  it('askClaude con la respuesta estructurada de un «gracias»: sin valores por defecto ni motivo', async () => {
+    const text = JSON.stringify({ producto: null, tipo_de_luz: null, cantidad: null, proyecto_o_uso: null, comuna_o_ciudad: null, nombre: null, empresa: null, correo: null, wantsHuman: false, qualifiesForDeal: false, summary: 'El cliente dice que agradece la atención.' });
+    queue.push(text);
+    const result = await askClaude([{ role: 'user', content: 'Hola' }, { role: 'assistant', content: 'Tu solicitud quedó registrada.' }], 'gracias', 'Perfil Prueba');
+    expect(result.parsed).toEqual({ wantsHuman: false, qualifiesForDeal: false, summary: 'El cliente dice que agradece la atención.' });
+    expect(result.diagnostics).toEqual({ usedDefaults: false, fields: {}, stopReason: 'end_turn', length: text.length });
+  });
+
+  it('la lectura sigue estricta con el formato: texto suelto, max_tokens y rechazo dan los motivos de siempre', async () => {
+    const cases: Array<[string | { blocks: string[]; stop_reason?: string }, string]> = [
+      ['¡Gracias a ti! Que tengas un buen día.', 'sin_json'],
+      [{ blocks: ['{"producto": "paneles'], stop_reason: 'max_tokens' }, 'respuesta_incompleta'],
+      [{ blocks: [], stop_reason: 'refusal' }, 'rechazo'],
+      ['{"producto": "paneles"', 'json_invalido'],
+    ];
+    for (const [output, reason] of cases) {
+      queue.push(output);
+      const result = await askClaude([], MESSAGE, 'Perfil Prueba');
+      expect((requests.at(-1)!.output_config as { format?: unknown }).format).toEqual({ type: 'json_schema', schema: EXTRACTION_SCHEMA });
+      expect(result.diagnostics).toMatchObject({ usedDefaults: true, reason });
+      expect(result.parsed).toEqual({ wantsHuman: false, qualifiesForDeal: false, summary: 'Consulta: "' + MESSAGE + '"' });
+    }
   });
 });
