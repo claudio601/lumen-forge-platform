@@ -173,10 +173,41 @@ export function readClaudeFields(raw: Record<string, unknown>, fallbackSummary: 
  * el codigo). Haiku 5.5 piensa por defecto y lo que piensa cuenta en max_tokens: aqui va sin pensamiento y con
  * esfuerzo bajo (solo extrae campos a JSON) y con 1024 tokens, porque su tokenizador cuenta ~30% mas que el de
  * 4.5. Sin temperature, top_p ni top_k (Haiku 5.5 responde 400) y sin prellenado: el ultimo mensaje es siempre
- * del cliente. Haiku 4.5 no acepta output_config: con ANTHROPIC_MODEL=claude-haiku-4-5 va el pedido de antes.
+ * del cliente. Haiku 4.5 no acepta effort: con ANTHROPIC_MODEL=claude-haiku-4-5 va el pedido de antes, sin
+ * thinking ni output_config.
  */
 export const DEFAULT_MODEL = 'claude-haiku-5-5';
 const LEGACY_MODEL_RE = /^claude-haiku-4-5/;
+/**
+ * [SALIDA] Salidas estructuradas (18-11-2026). Con Haiku 5.5, sin pensamiento y con esfuerzo bajo, a veces la
+ * respuesta era una frase para el cliente en vez del JSON (18 turnos "sin_json" en produccion desde el 17-11, casi
+ * todos saludos o mensajes despues del cierre, como "gracias" u "ok": el historial trae las respuestas del bot y el
+ * modelo seguia la conversacion). Con output_config.format la API obliga a responder con este objeto: los mismos
+ * campos que pide SYSTEM_PROMPT y que lee readClaudeFields, todos obligatorios, null si no aplica (cantidad, un
+ * entero) y ningun otro (additionalProperties: false). Solo palabras clave que la API admite: sin minLength, minimum
+ * ni patrones. La lectura sigue estricta: si el texto no es el objeto (rechazo, max_tokens), los motivos de siempre.
+ * Haiku 4.5 sigue con el pedido de antes (sin formato).
+ */
+const NULLABLE_TEXT = { type: ['string', 'null'] } as const;
+const EXTRACTION_PROPERTIES = {
+  producto: NULLABLE_TEXT,
+  tipo_de_luz: NULLABLE_TEXT,
+  cantidad: { type: ['integer', 'null'] },
+  proyecto_o_uso: NULLABLE_TEXT,
+  comuna_o_ciudad: NULLABLE_TEXT,
+  nombre: NULLABLE_TEXT,
+  empresa: NULLABLE_TEXT,
+  correo: NULLABLE_TEXT,
+  wantsHuman: { type: 'boolean' },
+  qualifiesForDeal: { type: 'boolean' },
+  summary: { type: 'string' },
+} as const satisfies Record<keyof ClaudeParsed, { type: string | readonly string[] }>;
+export const EXTRACTION_SCHEMA = {
+  type: 'object',
+  properties: EXTRACTION_PROPERTIES,
+  required: Object.keys(EXTRACTION_PROPERTIES) as Array<keyof ClaudeParsed>,
+  additionalProperties: false,
+} as const;
 /** [MODELO] Solo para comparar configuraciones fuera del webhook; el webhook usa los valores por defecto. */
 export interface AskOptions {
   model?: string;
@@ -187,7 +218,7 @@ export interface AskOptions {
 // El SDK 0.36 no tipa thinking ni output_config: se agregan al tipo y viajan tal cual en el cuerpo del pedido.
 type CreateParams = Anthropic.MessageCreateParamsNonStreaming & {
   thinking?: { type: 'disabled' | 'adaptive' };
-  output_config?: { effort: 'low' | 'medium' | 'high' };
+  output_config?: { effort: 'low' | 'medium' | 'high'; format: { type: 'json_schema'; schema: typeof EXTRACTION_SCHEMA } };
 };
 export function requestParams(model: string, messages: Anthropic.MessageParam[], opts: AskOptions = {}): CreateParams {
   const base = { model, system: SYSTEM_PROMPT, messages };
@@ -196,7 +227,8 @@ export function requestParams(model: string, messages: Anthropic.MessageParam[],
     ...base,
     max_tokens: opts.maxTokens ?? 1024,
     thinking: { type: opts.thinking ?? 'disabled' },
-    output_config: { effort: opts.effort ?? 'low' },
+    // [SALIDA] effort y format van juntos en output_config.
+    output_config: { effort: opts.effort ?? 'low', format: { type: 'json_schema', schema: EXTRACTION_SCHEMA } },
   };
 }
 let _client: Anthropic | null = null;
