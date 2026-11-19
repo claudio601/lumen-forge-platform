@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { redact } from './redact.js';
+import { SHIPPING_RELAY_REASONS, SHIPPING_RELAY_STATUSES, isShippingRelayReason, redact } from './redact.js';
 
 // Valores inventados; los RUT válidos se comprueban también en rut.test.ts.
 describe('redact: datos de contacto en texto libre', () => {
@@ -83,5 +83,45 @@ describe('redact: campos estructurados y fallos externos', () => {
     expect(redact('HTTP 400: prueba@ejemplo.cl', 'error')).toBe('HTTP 400: [correo]');
     expect(redact(new Error('x'.repeat(500)), 'error')).toHaveLength(200);
     expect(redact(new DOMException('datos privados', 'AbortError'), 'error')).toBe('TIMEOUT');
+  });
+});
+
+describe('redact: relay del aviso de despacho (Shipping relay)', () => {
+  it.each(SHIPPING_RELAY_STATUSES)('el estado %s pasa tal cual, sin «no reconocido» ni el tipo del error', (status) => {
+    expect(redact('Shipping relay: status ' + status, 'error')).toBe('Shipping relay: status ' + status);
+    expect(redact(new Error('Shipping relay: status ' + status), 'error')).toBe('Shipping relay: status ' + status);
+  });
+
+  it.each(SHIPPING_RELAY_REASONS)('el motivo «%s» pasa tal cual', (reason) => {
+    expect(isShippingRelayReason(reason)).toBe(true);
+    expect(redact('Shipping relay: status rejected: ' + reason, 'error')).toBe('Shipping relay: status rejected: ' + reason);
+  });
+
+  it('los motivos con dato técnico: estado HTTP y tipo y código del error de red', () => {
+    for (const reason of ['respuesta no JSON (HTTP 200)', 'respuesta no JSON (HTTP 502)', 'error de red (TypeError, ECONNREFUSED)', 'error de red (error)']) {
+      expect(isShippingRelayReason(reason)).toBe(true);
+      expect(redact('Shipping relay: status uncertain: ' + reason, 'error')).toBe('Shipping relay: status uncertain: ' + reason);
+    }
+  });
+
+  it('un motivo fuera de la lista no se imprime (podría repetir datos del cliente)', () => {
+    for (const reason of [
+      'Invalid email: prueba@ejemplo.cl', 'persona ficticia', 'firma no válida extra',
+      'respuesta no JSON (HTTP 999)', 'error de red (TypeError, prueba@ejemplo.cl)',
+    ]) {
+      expect(isShippingRelayReason(reason)).toBe(false);
+      expect(redact('Shipping relay: status rejected: ' + reason, 'error')).toBe('Shipping relay: status rejected: motivo no reconocido');
+    }
+  });
+
+  it('un estado fuera de la lista queda como «no reconocido»', () => {
+    expect(redact('Shipping relay: status PersonaFicticia', 'error')).toBe('Shipping relay: status no reconocido');
+    expect(redact('Shipping relay: status error: firma no válida', 'error')).toBe('Shipping relay: status no reconocido');
+    expect(redact('Shipping relay: prueba@ejemplo.cl', 'error')).toBe('Shipping relay: status no reconocido');
+  });
+
+  it('no cambia los mensajes del relay de ventas', () => {
+    expect(redact('GAS relay: status error', 'error')).toBe('GAS relay: status error');
+    expect(redact('GAS relay: status quota', 'error')).toBe('GAS relay: status no reconocido');
   });
 });

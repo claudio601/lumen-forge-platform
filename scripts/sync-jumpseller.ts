@@ -59,6 +59,7 @@ import {
 import { baseOverrides } from '../src/data/catalog/overlay/overrides';
 import { renderContentReport, reviewContent } from './content/report';
 import { comparePanelBoxes, renderPanelBoxesReport } from './jumpseller/panel-boxes';
+import { buildProductLinks, renderProductLinksFile } from './jumpseller/product-links';
 import { PANEL_MASTER_BOX } from '../src/config/business';
 
 export const MAX_DROP = 0.15;
@@ -408,6 +409,8 @@ export async function runSync(opts: SyncOptions): Promise<number> {
     ...(desc.available ? { [OUTPUT_PATHS.descriptions]: renderDescriptionsFile(desc.descriptions, hash) } : {}),
     [OUTPUT_PATHS.ogImages]: renderOgImagesFile(og.facts, hash),
     [OUTPUT_PATHS.datasheets]: renderDatasheetsFile(sheets.datasheets, hash),
+    // Con el snapshot nuevo y los ids recién registrados (no con `products` de index.ts, que trae el anterior)
+    [OUTPUT_PATHS.productLinks]: renderProductLinksFile(buildProductLinks(next, siteIds), hash),
   };
   const forbidden = findForbiddenKeys(Object.values(files));
   if (forbidden.length) return abort(`campos prohibidos en la salida: ${forbidden.join(', ')}`);

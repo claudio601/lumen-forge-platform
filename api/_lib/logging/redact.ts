@@ -10,6 +10,59 @@ import { rutCheckDigit } from '../rut.js';
 /** Largo máximo de un error en el log. */
 const ERROR_MAX = 200;
 
+/**
+ * Relay del aviso de despacho (api/_lib/notify/shippingRelay.ts). Sus mensajes de log son
+ * `Shipping relay: status <estado>` y, si hay motivo, `: <motivo>`. Solo pasan los estados y
+ * los motivos de estas listas: el texto que devuelve el relay nunca llega al log. Las listas
+ * viven aquí, como los estados del relay de ventas, y shippingRelay.ts las importa.
+ */
+export const SHIPPING_RELAY_STATUSES = ['ok', 'duplicate', 'quota', 'rejected', 'uncertain', 'config'] as const;
+
+export const SHIPPING_RELAY_REASONS = [
+  // Los responde el relay (apps-script/aviso-despacho/Code.gs) o los detecta el servidor antes de llamar.
+  'firma no válida',
+  'hora fuera de rango',
+  'cuerpo no válido',
+  'versión no soportada',
+  'acción no válida',
+  'clave no válida',
+  'destinatario no válido',
+  'asunto no válido',
+  'texto del correo no válido',
+  'adjuntos no válidos',
+  'falta configuración en el relay',
+  'relay ocupado',
+  'el relay no pudo reservar la clave',
+  'clave pendiente en el relay (revisar Enviados)',
+  'reenvío del mismo cuerpo firmado',
+  'caché del relay no disponible',
+  'Gmail no aceptó el envío',
+  'error interno del relay',
+  'motivo no reconocido',
+  'status no reconocido',
+  // Configuración del servidor y plazo.
+  'falta SHIPPING_RELAY_URL',
+  'SHIPPING_RELAY_URL no válida',
+  'falta SHIPPING_RELAY_SECRET',
+  'SHIPPING_RELAY_SECRET demasiado corto',
+  'sin plazo para llamar al relay',
+  // Transporte.
+  'sin respuesta a tiempo',
+  'página de inicio de sesión de Google',
+] as const;
+
+/** Motivos con un dato técnico: el estado HTTP o el tipo y el código del error de red. */
+const SHIPPING_RELAY_REASON_FORMS = [
+  /^respuesta no JSON \(HTTP [1-5]\d{2}\)$/,
+  /^error de red \((?:Error|TypeError|SyntaxError|error)(?:, [A-Z_]{2,40})?\)$/,
+];
+
+/** true si el motivo está en la lista fija o tiene una de las dos formas con dato técnico. */
+export function isShippingRelayReason(reason: string): boolean {
+  return (SHIPPING_RELAY_REASONS as readonly string[]).includes(reason) ||
+    SHIPPING_RELAY_REASON_FORMS.some((form) => form.test(reason));
+}
+
 export function redact(value: unknown, kind: 'text' | 'phone' | 'error' = 'text'): string {
   if (kind === 'phone') {
     const digits = String(value ?? '').replace(/\D/g, '');
@@ -18,6 +71,16 @@ export function redact(value: unknown, kind: 'text' | 'phone' | 'error' = 'text'
   }
   if (kind === 'error') {
     const message = value instanceof Error ? value.message : typeof value === 'string' ? value : '';
+    // Relay del aviso de despacho: estado y motivo de las listas de arriba.
+    if (message.startsWith('Shipping relay: ')) {
+      const shipping = /^Shipping relay: status ([a-z]+)(?:: (.+))?$/.exec(message);
+      if (!shipping || !(SHIPPING_RELAY_STATUSES as readonly string[]).includes(shipping[1])) {
+        return 'Shipping relay: status no reconocido';
+      }
+      const reason = shipping[2];
+      return 'Shipping relay: status ' + shipping[1] +
+        (reason === undefined ? '' : ': ' + (isShippingRelayReason(reason) ? reason : 'motivo no reconocido'));
+    }
     // Mensajes que construyen nuestros relays: solo estados conocidos, nunca texto del servidor.
     const relayHttp = /^GAS relay: HTTP ([1-5]\d{2}), respuesta no JSON$/.exec(message);
     if (relayHttp) return 'GAS relay: HTTP ' + relayHttp[1] + ', respuesta no JSON';
