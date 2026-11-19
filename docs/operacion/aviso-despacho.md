@@ -68,8 +68,10 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 | NO enviado: el relay rechazó el pedido / falta configuración | el relay o Vercel están mal configurados | avisarle a Claude (también llega un correo ATENCIÓN) |
 | Vista previa NO enviada: ya van 5 vistas previas | límite de 5 por hora | esperar un rato |
 | el envío al cliente queda disponible después del cambio de dominio | el sitio todavía no es elights.cl | por ahora, solo vista previa |
+| NO enviado: el aviso de Pipedrive llegó sin la hora del cambio | Pipedrive cambió el formato de sus avisos | avisarle a Claude; mientras tanto, solo vista previa |
+| NO enviado … El negocio tiene demasiados archivos para revisarlos todos | más de 500 archivos: el sitio no puede saber si hay otro PDF o comprobante | avisarle a Claude |
 
-**Correo ATENCIÓN «el aviso salió, pero no quedó en Pipedrive»** (a ventas@, más una tarea para ti en el negocio): el cliente sí recibió el aviso, pero Pipedrive no guardó la nota o los campos. El correo dice qué falta anotar a mano y qué va en «Despacho · Aviso enviado». No vuelvas a elegir «Enviar al cliente» para esa orden.
+**Correo ATENCIÓN «el aviso salió, pero no quedó en Pipedrive»** (a ventas@, más una tarea para ti en el negocio): el cliente sí recibió el aviso, pero Pipedrive no guardó algo: la nota, «Despacho · Aviso enviado», la etapa «Despachado» o el campo «Despacho · Aviso» vacío. El correo dice qué falta hacer a mano y, si falta, qué va en «Despacho · Aviso enviado». No vuelvas a elegir «Enviar al cliente» para esa orden.
 
 ## 4. Si el campo no se vació
 
@@ -78,7 +80,7 @@ Si a los 2 minutos «Despacho · Aviso» sigue con valor y no hay nota nueva, el
 1. vacía el campo y guarda;
 2. vuelve a elegir la opción y guarda.
 
-Elegir de nuevo el valor que ya tiene no hace nada: Pipedrive no avisa si el campo no cambió. Reintentar nunca envía dos veces la misma orden de flete: el sitio, el campo «Aviso enviado» y el relay lo impiden.
+Elegir de nuevo el valor que ya tiene no hace nada: Pipedrive no avisa si el campo no cambió. Reintentar nunca envía dos veces la misma orden de flete: el sitio, el campo «Aviso enviado» y el relay lo impiden. Si Pipedrive repite por su cuenta un aviso que ya llegó (sus reintentos), el sitio lo reconoce y no hace nada: solo cuenta lo que eliges tú.
 
 Si editas otros campos con «Despacho · Aviso» todavía puesto, no se envía nada: el aviso sale solo en el momento en que eliges la opción.
 
