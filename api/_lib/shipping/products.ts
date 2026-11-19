@@ -20,12 +20,15 @@
 //    jumpsellerId y variantId; nunca por `name` ni `url`, que manda el navegador.
 // Nombre visible y enlace: product-links.generated.ts (id vigente del sitio, nombre de la ficha y
 // etiqueta de la variante). Ninguna URL sale de aquí: la plantilla arma SITE_URL + /producto/<id>.
+// El nombre y la etiqueta del catálogo van con mayúscula inicial (productName.ts, dueño 18-11-2026):
+// «Alumbrado público BESTLED 40W IP66 IK08 – neutra 4000K». El texto del dueño va tal cual.
 
 import { MAX_QUANTITY } from '../catalog/pricing.js';
 import { priceIndex } from '../catalog/price-index.generated.js';
 import { productLinks } from '../catalog/product-links.generated.js';
 import { REVIEW_HEADING } from '../forms/review.js';
 import { SHIPPING_FIELD_NAMES, type ShippingProblem } from './fields.js';
+import { displayProductName, displayVariantLabel } from './productName.js';
 
 export const MAX_PRODUCT_LINES = 30;
 export const MAX_LINE_TEXT = 160;
@@ -58,7 +61,12 @@ export function normalizeSku(sku: string): string {
   return sku.normalize('NFKC').replace(/\s+/g, '').toUpperCase();
 }
 
-const lineName = (name: string, label: string) => (label ? `${name} – ${label}` : name);
+/** Nombre del catálogo para el aviso: «Alumbrado público BESTLED 40W IP66 IK08 – neutra 4000K». */
+const lineName = (name: string, label: string) => {
+  const shown = displayProductName(name);
+  const variant = displayVariantLabel(label);
+  return variant ? `${shown} – ${variant}` : shown;
+};
 
 // ── «Despacho · Productos» ──────────────────────────────────────────────────
 

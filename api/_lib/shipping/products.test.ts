@@ -14,6 +14,7 @@ import {
   resolveSku,
   type Catalogs,
 } from './products';
+import { displayProductName } from './productName';
 import { productLinks } from '../catalog/product-links.generated';
 import { priceIndex } from '../catalog/price-index.generated';
 
@@ -83,11 +84,11 @@ describe('resolución del SKU', () => {
   it('sin distinguir mayúsculas ni espacios', () => {
     expect(normalizeSku(' pry 50f ')).toBe('PRY50F');
     expect(resolveSku('pry 50f', CATALOGS)).toEqual({ status: 'ok', jumpsellerId: '1002', variantId: '502' });
-    expect(fromField('4 pan 60').items).toEqual([{ quantity: 4, name: 'PANEL PRUEBA 60X60 48W', siteId: 'panel-prueba-60x60' }]);
+    expect(fromField('4 pan 60').items).toEqual([{ quantity: 4, name: 'Panel prueba 60X60 48W', siteId: 'panel-prueba-60x60' }]);
   });
 
   it('la variante con su etiqueta, como en el sitio', () => {
-    expect(fromField('2 PRY50C').items).toEqual([{ quantity: 2, name: 'PROYECTOR PRUEBA 50W – Cálida 3000K', siteId: 'proyector-prueba-50w' }]);
+    expect(fromField('2 PRY50C').items).toEqual([{ quantity: 2, name: 'Proyector prueba 50W – cálida 3000K', siteId: 'proyector-prueba-50w' }]);
   });
 
   it('el texto de la línea reemplaza el nombre del catálogo, con el enlace', () => {
@@ -98,11 +99,11 @@ describe('resolución del SKU', () => {
 
   it('SKU compartido por variantes del mismo producto: el producto, sin etiqueta de variante', () => {
     expect(resolveSku('COMP7', CATALOGS)).toEqual({ status: 'ok', jumpsellerId: '1005', variantId: null });
-    expect(fromField('1 COMP7').items).toEqual([{ quantity: 1, name: 'COMPARTIDO PRUEBA', siteId: 'compartido-prueba' }]);
+    expect(fromField('1 COMP7').items).toEqual([{ quantity: 1, name: 'Compartido prueba', siteId: 'compartido-prueba' }]);
   });
 
   it('el SKU del producto que es el de una sola variante da esa variante', () => {
-    expect(fromField('1 FLY80N').items[0].name).toBe('FLY PRUEBA 80W – Neutra 4000K');
+    expect(fromField('1 FLY80N').items[0].name).toBe('Fly prueba 80W – neutra 4000K');
   });
 
   it('SKU repetido entre productos: no se resuelve (con texto sale sin enlace; sin texto, detiene)', () => {
@@ -136,7 +137,7 @@ describe('resolución del SKU', () => {
     const [jid, entry] = found;
     const r = productsFromField(`1 ${entry.sku}`);
     if (r.problems.length) return; // SKU repetido en Jumpseller: lo cubre la prueba de arriba
-    expect(r.items).toEqual([{ quantity: 1, name: productLinks[jid].name, siteId: productLinks[jid].id }]);
+    expect(r.items).toEqual([{ quantity: 1, name: displayProductName(productLinks[jid].name), siteId: productLinks[jid].id }]);
   });
 });
 
@@ -236,8 +237,8 @@ describe('resolveRequestedItems', () => {
     const resolved = resolveRequestedItems(r.items, CATALOGS);
     expect(resolved.problems).toEqual([]);
     expect(resolved.items).toEqual([
-      { quantity: 4, name: 'PROYECTOR PRUEBA 50W – Fría 6500K', siteId: 'proyector-prueba-50w' },
-      { quantity: 10, name: 'PANEL PRUEBA 60X60 48W', siteId: 'panel-prueba-60x60' },
+      { quantity: 4, name: 'Proyector prueba 50W – fría 6500K', siteId: 'proyector-prueba-50w' },
+      { quantity: 10, name: 'Panel prueba 60X60 48W', siteId: 'panel-prueba-60x60' },
     ]);
     expect(JSON.stringify(resolved)).not.toMatch(/navegador|malo\.example/);
   });
@@ -251,6 +252,6 @@ describe('resolveRequestedItems', () => {
   });
 
   it('una variante que ya no existe: el producto sin etiqueta', () => {
-    expect(resolveRequestedItems([{ jumpsellerId: 1002, variantId: 999, quantity: 1 }], CATALOGS).items[0].name).toBe('PROYECTOR PRUEBA 50W');
+    expect(resolveRequestedItems([{ jumpsellerId: 1002, variantId: 999, quantity: 1 }], CATALOGS).items[0].name).toBe('Proyector prueba 50W');
   });
 });
