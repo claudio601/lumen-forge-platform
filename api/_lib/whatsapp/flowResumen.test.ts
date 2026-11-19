@@ -1109,6 +1109,12 @@ describe('(ronda 4) la respuesta al resumen: red de seguridad, correcciones y ar
       expect(flow.summaryMsg({ producto: 'focos LED', cantidad: '12', proyecto_o_uso: uso })).toBeUndefined();
     });
 
+    // (revisión 19-11, OK del dueño) DIALux es un servicio pagado: el resumen no lo repite.
+    it.each(['un estudio DIALux', 'simulación en Dialux', 'cálculo en Dia Lux', 'dialux evo'])('DIALux: el resumen no repite «%s» (el cierre de siempre)', (uso) => {
+      expect(flow.summaryMsg({ producto: 'focos LED', cantidad: '12', proyecto_o_uso: uso })).toBeUndefined();
+      expect(flow.summaryMsg({ producto: 'paneles LED y focos LED', cantidad_varios: 'Necesito 10 paneles LED para ' + uso + ' y 5 focos LED' })).toBeUndefined();
+    });
+
     it('C4 el resumen normal sigue igual con medidas y potencias', () => {
       expect(flow.summaryMsg({ producto: 'paneles LED 60x60', cantidad: '20', tipo_de_luz: 'neutra', proyecto_o_uso: 'oficina', comuna_o_ciudad: 'Maipú' })).toBe(EXAMPLE_1);
       expect(flow.summaryMsg({ producto: 'focos LED 50W', cantidad: '8', proyecto_o_uso: 'bodega de 200 m2' })).toBe('Te resumo: 8 focos LED 50W y para bodega de 200 m2. ¿Está bien?');
