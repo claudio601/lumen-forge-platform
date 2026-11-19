@@ -17,23 +17,41 @@
 //     PNG, comprobados por sus primeros bytes) y 10 MB en total.
 //
 // Envío doble: cada despacho trae una clave, que es un hash (no deja leer ni el negocio ni la
-// orden de flete). Dentro de un candado (LockService), si la clave ya está registrada responde
-// «duplicate» sin enviar; si no, envía y registra la clave solo si el envío no lanzó error, para
-// que un reintento después de una falla sí salga. Las claves de más de 400 días se borran
-// (PropertiesService guarda hasta 500 KB).
+// orden de flete). Dentro de un candado (LockService):
+//   - antes de enviar, la clave queda reservada en las propiedades («pendiente:<ms>»). Si la
+//     reserva no se puede guardar (almacenamiento lleno), no se envía;
+//   - si Gmail lanza error, la reserva se borra para que el reintento sí salga;
+//   - si el envío sale, la clave pasa a «enviado:<ms>». Si ese cambio falla, la reserva queda y
+//     se responde ok: el reintento no vuelve a enviar;
+//   - una clave «enviado» responde «duplicate»; una «pendiente» (una ejecución anterior se cortó
+//     en el envío) responde «uncertain» y no se reenvía: hay que revisar Enviados.
+// Las claves de más de 400 días, en los dos estados, se borran (PropertiesService guarda hasta
+// 500 KB).
+//
+// Reenvío del mismo cuerpo: la firma de cada cuerpo aceptado (su hash) queda en CacheService
+// mientras el ts siga dentro de los 5 minutos, más un margen. El mismo cuerpo otra vez responde
+// «duplicate» con reason «reenvio», sin enviar, en la vista previa y en el despacho. Un cuerpo
+// nuevo (otro ts u otro payload) tiene otra firma y sí sale.
 //
 // Registros: solo la acción, los primeros 8 caracteres de la clave y el resultado. Nunca el
 // destinatario, el nombre, el asunto, el cuerpo ni los adjuntos.
 //
-// Respuesta (JSON): {status: "ok"}, {status: "duplicate"}, {status: "quota"} o
+// Respuesta (JSON): {status: "ok"}, {status: "duplicate"} (o con reason "reenvio"),
+// {status: "quota"}, {status: "uncertain", reason: "pendiente"} o
 // {status: "rejected", reason: "<código>"}. Códigos: json, firma, hora, version, accion, clave,
-// para, asunto, texto, adjuntos, config, ocupado, envio, interno.
+// para, asunto, texto, adjuntos, config, ocupado, almacenamiento, envio, interno.
 //
 // Este archivo no tiene secretos ni direcciones (el repo es público): todo va en
 // Configuración del proyecto → Propiedades del script.
 
 var VERSION = 1;
 var PREFIJO_CLAVE = 'aviso:';
+// Valor de una clave: «pendiente:<ms>» mientras se envía, «enviado:<ms>» cuando salió.
+var PENDIENTE = 'pendiente:';
+var ENVIADO = 'enviado:';
+var PREFIJO_HUELLA = 'firma:';
+// Margen de la huella después de que el ts sale de los 5 minutos.
+var MARGEN_HUELLA_S = 60;
 var MAX_DIFERENCIA_MS = 5 * 60 * 1000;
 var MAX_ADJUNTOS = 2;
 var MAX_BYTES_ADJUNTOS = 10 * 1024 * 1024;
@@ -85,6 +103,7 @@ function entornoReal() {
     cuota: function () { return MailApp.getRemainingDailyQuota(); },
     enviar: function (para, asunto, texto, opciones) { GmailApp.sendEmail(para, asunto, texto, opciones); },
     candado: function () { return LockService.getScriptLock(); },
+    cache: function () { return CacheService.getScriptCache(); },
     registrar: function (linea) { console.log(linea); }
   };
 }
@@ -151,26 +170,31 @@ function evaluar(cuerpo, entorno, registro) {
     return rechazo('config');
   }
 
-  return pedido.action === 'preview' ? vistaPrevia(pedido, adjuntos, entorno) : despacho(pedido, adjuntos, entorno);
+  var huella = { nombre: PREFIJO_HUELLA + huellaDeFirma(sobre.sig), segundos: segundosDeHuella(sobre.ts, entorno.ahora()) };
+  return pedido.action === 'preview' ? vistaPrevia(pedido, adjuntos, huella, entorno) : despacho(pedido, adjuntos, huella, entorno);
 }
 
-/** Vista previa: solo a OWNER_EMAIL, sin cc ni bcc. No usa ni registra la clave. */
-function vistaPrevia(pedido, adjuntos, entorno) {
-  if (entorno.cuota() < 1) return { status: 'quota' };
-  var asunto = pedido.subject.indexOf(PREFIJO_VISTA_PREVIA) === 0 ? pedido.subject : PREFIJO_VISTA_PREVIA + pedido.subject;
-  try {
-    entorno.enviar(entorno.config.ownerEmail, asunto, pedido.text, opcionesCorreo(pedido, adjuntos, entorno.config, false));
-  } catch (err) {
-    return errorDeEnvio(err);
-  }
-  return { status: 'ok' };
+/** Vista previa: solo a OWNER_EMAIL, sin cc ni bcc. No registra la clave; el candado es para la huella. */
+function vistaPrevia(pedido, adjuntos, huella, entorno) {
+  return conCandado(entorno, function () {
+    if (huellaRepetida(entorno, huella)) return { status: 'duplicate', reason: 'reenvio' };
+    if (entorno.cuota() < 1) return { status: 'quota' };
+    var asunto = pedido.subject.indexOf(PREFIJO_VISTA_PREVIA) === 0 ? pedido.subject : PREFIJO_VISTA_PREVIA + pedido.subject;
+    guardarHuella(entorno, huella);
+    try {
+      entorno.enviar(entorno.config.ownerEmail, asunto, pedido.text, opcionesCorreo(pedido, adjuntos, entorno.config, false));
+    } catch (err) {
+      quitarHuella(entorno, huella);
+      return errorDeEnvio(err);
+    }
+    return { status: 'ok' };
+  });
 }
 
 /** Despacho: una sola vez por clave, dentro del candado del script. */
-function despacho(pedido, adjuntos, entorno) {
-  var candado = entorno.candado();
-  if (!candado.tryLock(ESPERA_CANDADO_MS)) return rechazo('ocupado');
-  try {
+function despacho(pedido, adjuntos, huella, entorno) {
+  return conCandado(entorno, function () {
+    if (huellaRepetida(entorno, huella)) return { status: 'duplicate', reason: 'reenvio' };
     var ahora = entorno.ahora();
     try {
       limpiarClaves(entorno.claves, ahora);
@@ -179,22 +203,50 @@ function despacho(pedido, adjuntos, entorno) {
       entorno.registrar('[aviso-despacho] limpieza de claves no terminó');
     }
     var nombre = PREFIJO_CLAVE + pedido.key;
-    if (entorno.claves.getProperty(nombre) !== null) return { status: 'duplicate' };
+    var estado = entorno.claves.getProperty(nombre);
+    if (estado !== null) {
+      // «pendiente»: una ejecución anterior reservó la clave y se cortó sin confirmar el envío.
+      // No se sabe si el correo salió: nunca se reenvía (hay que revisar Enviados).
+      return String(estado).indexOf(PENDIENTE) === 0 ? { status: 'uncertain', reason: 'pendiente' } : { status: 'duplicate' };
+    }
     var destinatarios = entorno.config.bcc ? 2 : 1;
     if (entorno.cuota() < destinatarios) return { status: 'quota' };
     try {
+      // Reserva durable antes de enviar: sin ella no hay cómo evitar el doble envío.
+      entorno.claves.setProperty(nombre, PENDIENTE + ahora);
+    } catch (errReserva) {
+      return rechazo('almacenamiento');
+    }
+    guardarHuella(entorno, huella);
+    try {
       entorno.enviar(pedido.to, pedido.subject, pedido.text, opcionesCorreo(pedido, adjuntos, entorno.config, true));
     } catch (err) {
-      // No se registra la clave: el reintento tiene que poder salir.
+      // Gmail no lo aceptó: se borra la reserva para que el reintento sí salga.
+      try {
+        entorno.claves.deleteProperty(nombre);
+      } catch (errBorrado) {
+        // La reserva queda: el reintento responde uncertain/pendiente, nunca un segundo envío.
+        entorno.registrar('[aviso-despacho] despacho ' + pedido.key.slice(0, 8) + ' reserva no borrada');
+      }
+      quitarHuella(entorno, huella);
       return errorDeEnvio(err);
     }
     try {
-      entorno.claves.setProperty(nombre, String(ahora));
+      entorno.claves.setProperty(nombre, ENVIADO + ahora);
     } catch (errRegistro) {
-      // El correo ya salió: se responde ok. Redis y el campo «Aviso enviado» siguen evitando el doble envío.
-      entorno.registrar('[aviso-despacho] despacho ' + pedido.key.slice(0, 8) + ' clave no registrada');
+      // El correo ya salió y la reserva sigue: el reintento no vuelve a enviar. Se responde ok.
+      entorno.registrar('[aviso-despacho] despacho ' + pedido.key.slice(0, 8) + ' clave quedó pendiente');
     }
     return { status: 'ok' };
+  });
+}
+
+/** Corre `trabajo` dentro del candado del script y lo suelta siempre. */
+function conCandado(entorno, trabajo) {
+  var candado = entorno.candado();
+  if (!candado.tryLock(ESPERA_CANDADO_MS)) return rechazo('ocupado');
+  try {
+    return trabajo();
   } finally {
     try {
       candado.releaseLock();
@@ -204,14 +256,55 @@ function despacho(pedido, adjuntos, entorno) {
   }
 }
 
-/** Borra las claves de más de 400 días. No toca las propiedades de configuración. */
+// ---------- Huella del cuerpo (reenvío del mismo cuerpo firmado) ----------
+// CacheService puede perder una entrada antes de tiempo: en el despacho, la clave de las
+// propiedades sigue evitando el doble envío. Si CacheService falla, el aviso no se detiene.
+
+/** SHA-256 en hex de la firma: identifica el cuerpo sin guardar la firma. */
+function huellaDeFirma(sig) {
+  return aHex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, sig, Utilities.Charset.UTF_8));
+}
+
+/** Segundos que el ts sigue dentro de los 5 minutos, más el margen (normalmente unos 6 minutos). */
+function segundosDeHuella(ts, ahora) {
+  return Math.ceil((ts * 1000 + MAX_DIFERENCIA_MS - ahora) / 1000) + MARGEN_HUELLA_S;
+}
+
+function huellaRepetida(entorno, huella) {
+  try {
+    return entorno.cache().get(huella.nombre) !== null;
+  } catch (err) {
+    entorno.registrar('[aviso-despacho] huella no leída');
+    return false;
+  }
+}
+
+function guardarHuella(entorno, huella) {
+  try {
+    entorno.cache().put(huella.nombre, '1', huella.segundos);
+  } catch (err) {
+    entorno.registrar('[aviso-despacho] huella no guardada');
+  }
+}
+
+function quitarHuella(entorno, huella) {
+  try {
+    entorno.cache().remove(huella.nombre);
+  } catch (err) {
+    entorno.registrar('[aviso-despacho] huella no borrada');
+  }
+}
+
+/** Borra las claves de más de 400 días, pendientes o enviadas. No toca la configuración. */
 function limpiarClaves(claves, ahora) {
   var limite = ahora - DIAS_CLAVE * 24 * 60 * 60 * 1000;
   var todas = claves.getProperties();
   Object.keys(todas).forEach(function (nombre) {
     if (nombre.indexOf(PREFIJO_CLAVE) !== 0) return;
-    var cuando = Number(todas[nombre]);
-    if (isFinite(cuando) && cuando < limite) claves.deleteProperty(nombre);
+    var valor = String(todas[nombre]);
+    var marca = valor.indexOf(PENDIENTE) === 0 ? PENDIENTE : valor.indexOf(ENVIADO) === 0 ? ENVIADO : '';
+    var cuando = Number(valor.slice(marca.length));
+    if (marca && valor.length > marca.length && isFinite(cuando) && cuando < limite) claves.deleteProperty(nombre);
   });
 }
 
@@ -346,29 +439,97 @@ function testDoPost() {
   var clave = 'aviso:' + base().key;
   var e;
   var p;
+  var r;
 
   // 1. La firma del vector es la misma que calcula el servidor.
   verificar(firmar(PRUEBA.secreto, PRUEBA.ts, PRUEBA.payload) === PRUEBA.sig, 'la firma del vector no coincide con la del servidor');
   verificar(base().subject === 'Tu pedido va en camino — Factura N° 1234, Starken orden de flete ABC123456', 'el asunto del vector no se lee bien');
 
-  // 2. Un envío que falla no registra la clave; el reintento sí sale; el tercero es duplicate.
+  // 2. Un envío que falla no deja la reserva ni la huella; el reintento sí sale; después, duplicate.
   e = entornoDePrueba({}, lineas);
   e.fallar = true;
   verificar(procesar(vector, e).reason === 'envio', 'una falla de Gmail no respondió rejected/envio');
-  verificar(e.guardadas[clave] === undefined, 'una falla de envío registró la clave');
+  verificar(e.guardadas[clave] === undefined, 'una falla de envío dejó la reserva de la clave');
+  verificar(Object.keys(e.huellas).length === 0, 'una falla de envío dejó la huella del cuerpo');
   verificar(e.tomados === 1 && e.liberados === 1, 'el candado no se soltó después de la falla');
   e.fallar = false;
-  verificar(procesar(vector, e).status === 'ok', 'el reintento después de la falla no salió');
+  verificar(procesar(vector, e).status === 'ok', 'el reintento (el mismo cuerpo) después de la falla no salió');
   verificar(e.envios.length === 1 && e.envios[0].para === 'cliente.prueba@example.com', 'el despacho no fue al correo del pedido');
   verificar(e.envios[0].asunto === base().subject && e.envios[0].texto === base().text, 'el despacho cambió el asunto o el texto');
   verificar(e.envios[0].opciones.htmlBody === base().html && e.envios[0].opciones.name === e.config.senderName &&
     e.envios[0].opciones.replyTo === e.config.replyTo, 'faltan el HTML, el nombre o la respuesta');
   verificar(e.envios[0].opciones.attachments.length === 1 && !('bcc' in e.envios[0].opciones), 'adjuntos o copia oculta incorrectos');
-  verificar(e.guardadas[clave] === String(PRUEBA.ts * 1000), 'la clave no quedó registrada después del envío');
-  verificar(procesar(vector, e).status === 'duplicate' && e.envios.length === 1, 'el tercer intento volvió a enviar');
+  verificar(e.envios[0].guardadas[clave] === 'pendiente:' + PRUEBA.ts * 1000 && e.envios[0].huellas === 1,
+    'la reserva de la clave o la huella no estaban guardadas antes de enviar');
+  verificar(e.guardadas[clave] === 'enviado:' + PRUEBA.ts * 1000, 'la clave no quedó como enviada después del envío');
+  r = procesar(sobre(base(), PRUEBA.ts + 1), e);
+  verificar(r.status === 'duplicate' && r.reason === undefined && e.envios.length === 1, 'otro cuerpo con la misma clave volvió a enviar');
   verificar(e.tomados === 3 && e.liberados === 3, 'el candado no se soltó');
 
-  // 3. Vista previa: solo al dueño, sin copia oculta, con el prefijo una sola vez y sin registrar la clave.
+  // 3. Reserva durable de la clave antes de enviar.
+  // 3a. Almacenamiento lleno: sin reserva no se envía.
+  e = entornoDePrueba({}, lineas);
+  e.fallarGuardar = '';
+  r = procesar(vector, e);
+  verificar(r.status === 'rejected' && r.reason === 'almacenamiento' && e.envios.length === 0, 'sin espacio para la reserva igual envió');
+  verificar(e.guardadas[clave] === undefined && Object.keys(e.huellas).length === 0, 'sin reserva quedó la clave o la huella');
+  e.fallarGuardar = null;
+  verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'con espacio otra vez, el reintento no salió');
+  // 3b. Falla el paso a «enviado»: ok, la reserva queda y el reintento no vuelve a enviar.
+  e = entornoDePrueba({}, lineas);
+  e.fallarGuardar = 'enviado:';
+  verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'el correo salió, pero no respondió ok');
+  verificar(e.guardadas[clave] === 'pendiente:' + PRUEBA.ts * 1000, 'la reserva no quedó cuando falló el paso a enviado');
+  r = procesar(vector, e);
+  verificar(r.status === 'duplicate' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo volvió a enviar después del paso a enviado fallido');
+  r = procesar(sobre(base(), PRUEBA.ts + 1), e);
+  verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 1, 'el reintento con la reserva pendiente volvió a enviar');
+  verificar(lineas.indexOf('[aviso-despacho] despacho c4ea6a81 clave quedó pendiente') !== -1, 'el paso a enviado fallido no quedó en el registro');
+  // 3c. Reserva trabada (una ejecución anterior se cortó en el envío): uncertain, sin enviar ni tocarla.
+  e = entornoDePrueba({}, lineas);
+  e.guardadas[clave] = 'pendiente:' + (PRUEBA.ts * 1000 - 60000);
+  r = procesar(vector, e);
+  verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 0, 'una reserva trabada no respondió uncertain o envió');
+  verificar(e.guardadas[clave] === 'pendiente:' + (PRUEBA.ts * 1000 - 60000) && Object.keys(e.huellas).length === 0,
+    'la reserva trabada cambió o dejó huella');
+  // 3d. Gmail falla y la reserva no se puede borrar: el reintento responde uncertain, nunca un segundo intento.
+  e = entornoDePrueba({}, lineas);
+  e.fallar = true;
+  e.fallarBorrar = true;
+  verificar(procesar(vector, e).reason === 'envio', 'con la reserva sin borrar no respondió rejected/envio');
+  e.fallar = false;
+  r = procesar(sobre(base(), PRUEBA.ts + 1), e);
+  verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 0, 'con la reserva sin borrar el reintento envió');
+
+  // 4. El mismo cuerpo firmado otra vez: duplicate/reenvio, sin enviar (vista previa y despacho).
+  e = entornoDePrueba({}, lineas);
+  p = base();
+  p.action = 'preview';
+  delete p.to;
+  var cuerpoVista = sobre(p);
+  var huellaVista = 'firma:' + huellaDeFirma(JSON.parse(cuerpoVista).sig);
+  verificar(procesar(cuerpoVista, e).status === 'ok', 'la vista previa no salió');
+  verificar(e.envios[0].huellas === 1 && e.huellas[huellaVista].segundos === 360,
+    'la huella no se guardó antes de enviar o no dura unos 6 minutos');
+  r = procesar(cuerpoVista, e);
+  verificar(r.status === 'duplicate' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo de vista previa salió dos veces');
+  verificar(procesar(sobre(p, PRUEBA.ts + 1), e).status === 'ok' && e.envios.length === 2, 'una vista previa con un sobre nuevo no salió');
+  e = entornoDePrueba({}, lineas);
+  verificar(procesar(vector, e).status === 'ok', 'el despacho no salió');
+  r = procesar(vector, e);
+  verificar(r.status === 'duplicate' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo de despacho salió dos veces');
+  // La huella dura lo que le queda al ts dentro de los 5 minutos, más el margen.
+  verificar(segundosDeHuella(PRUEBA.ts, PRUEBA.ts * 1000) === 360, 'la huella de un ts actual no dura 6 minutos');
+  verificar(segundosDeHuella(PRUEBA.ts + 300, PRUEBA.ts * 1000) === 660, 'la huella de un ts adelantado no cubre su ventana');
+  verificar(segundosDeHuella(PRUEBA.ts - 300, PRUEBA.ts * 1000) === 60, 'la huella de un ts atrasado no lleva el margen');
+  // Con CacheService caído, el aviso sale igual y la clave sigue evitando el doble envío.
+  e = entornoDePrueba({}, lineas);
+  e.cacheRota = true;
+  verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'con CacheService caído el despacho no salió');
+  r = procesar(vector, e);
+  verificar(r.status === 'duplicate' && r.reason === undefined && e.envios.length === 1, 'con CacheService caído el mismo cuerpo volvió a enviar');
+
+  // 5. Vista previa: solo al dueño, sin copia oculta, con el prefijo una sola vez y sin registrar la clave.
   e = entornoDePrueba({ bcc: 'copia.prueba@example.com' }, lineas);
   p = base();
   p.action = 'preview';
@@ -377,19 +538,28 @@ function testDoPost() {
   verificar(e.envios[0].para === e.config.ownerEmail, 'la vista previa no fue a OWNER_EMAIL');
   verificar(e.envios[0].asunto === '[Vista previa] ' + p.subject, 'la vista previa no lleva el prefijo');
   verificar(!('bcc' in e.envios[0].opciones) && !('cc' in e.envios[0].opciones), 'la vista previa llevó copia');
-  verificar(Object.keys(e.guardadas).length === 0 && e.tomados === 0, 'la vista previa usó la clave o el candado');
+  verificar(Object.keys(e.guardadas).length === 0, 'la vista previa registró la clave');
+  verificar(e.tomados === 1 && e.liberados === 1, 'la vista previa no tomó o no soltó el candado');
   p.to = 'cliente.prueba@example.com';
   p.subject = '[Vista previa] ' + p.subject;
   procesar(sobre(p), e);
   verificar(e.envios[1].para === e.config.ownerEmail, 'la vista previa con correo del cliente salió al cliente');
   verificar(e.envios[1].asunto === p.subject, 'el prefijo de la vista previa quedó dos veces');
+  e = entornoDePrueba({}, lineas);
+  e.ocupado = true;
+  verificar(procesar(sobre(p), e).reason === 'ocupado' && e.envios.length === 0, 'la vista previa con el candado tomado igual salió');
+  e = entornoDePrueba({}, lineas);
+  e.fallar = true;
+  verificar(procesar(sobre(p), e).reason === 'envio' && Object.keys(e.huellas).length === 0, 'una vista previa fallida dejó la huella');
+  e.fallar = false;
+  verificar(procesar(sobre(p), e).status === 'ok' && e.envios.length === 1, 'el reintento de la vista previa fallida no salió');
 
-  // 4. Con BCC en las propiedades, el despacho lleva la copia oculta.
+  // 6. Con BCC en las propiedades, el despacho lleva la copia oculta.
   e = entornoDePrueba({ bcc: 'copia.prueba@example.com' }, lineas);
   procesar(vector, e);
   verificar(e.envios[0].opciones.bcc === 'copia.prueba@example.com', 'el despacho no llevó el BCC configurado');
 
-  // 5. Rechazos: nada sale.
+  // 7. Rechazos: nada sale.
   e = entornoDePrueba({}, lineas);
   var otraFirma = (PRUEBA.sig.charAt(0) === 'a' ? 'b' : 'a') + PRUEBA.sig.slice(1);
   verificar(procesar(JSON.stringify({ ts: PRUEBA.ts, payload: PRUEBA.payload, sig: otraFirma }), e).reason === 'firma', 'aceptó una firma alterada');
@@ -430,7 +600,7 @@ function testDoPost() {
   verificar(procesar(sobre(p), e).reason === 'adjuntos', 'aceptó un base64 inválido');
   verificar(e.envios.length === 0 && Object.keys(e.guardadas).length === 0, 'un pedido rechazado envió o registró algo');
 
-  // 6. Cuota, candado ocupado, configuración y cuota agotada en Gmail.
+  // 8. Cuota, candado ocupado, configuración y cuota agotada en Gmail.
   e = entornoDePrueba({}, lineas);
   e.cuotaRestante = 0;
   verificar(procesar(vector, e).status === 'quota' && e.envios.length === 0 && e.guardadas[clave] === undefined, 'sin cuota envió o registró la clave');
@@ -457,33 +627,55 @@ function testDoPost() {
   e.fallar = 'Service invoked too many times for one day: email.';
   verificar(procesar(vector, e).status === 'quota' && e.guardadas[clave] === undefined, 'la cuota agotada en Gmail no respondió quota o registró la clave');
 
-  // 7. Limpieza: borra las claves de más de 400 días y deja las demás y la configuración.
+  // 9. Limpieza: borra las claves de más de 400 días, enviadas o pendientes, y deja las demás y la configuración.
   e = entornoDePrueba({}, lineas);
   var dia = 24 * 60 * 60 * 1000;
   var vieja = 'aviso:' + 'a'.repeat(64);
+  var viejaPendiente = 'aviso:' + 'c'.repeat(64);
   var reciente = 'aviso:' + 'b'.repeat(64);
-  e.guardadas[vieja] = String(PRUEBA.ts * 1000 - 401 * dia);
-  e.guardadas[reciente] = String(PRUEBA.ts * 1000 - 399 * dia);
+  var recientePendiente = 'aviso:' + 'd'.repeat(64);
+  e.guardadas[vieja] = 'enviado:' + (PRUEBA.ts * 1000 - 401 * dia);
+  e.guardadas[viejaPendiente] = 'pendiente:' + (PRUEBA.ts * 1000 - 401 * dia);
+  e.guardadas[reciente] = 'enviado:' + (PRUEBA.ts * 1000 - 399 * dia);
+  e.guardadas[recientePendiente] = 'pendiente:' + (PRUEBA.ts * 1000 - 399 * dia);
   e.guardadas.SHARED_SECRET = 'no se toca';
   verificar(procesar(vector, e).status === 'ok', 'el despacho con claves guardadas no salió');
-  verificar(e.guardadas[vieja] === undefined, 'no borró la clave de más de 400 días');
-  verificar(e.guardadas[reciente] !== undefined && e.guardadas.SHARED_SECRET === 'no se toca', 'borró una clave reciente o la configuración');
+  verificar(e.guardadas[vieja] === undefined && e.guardadas[viejaPendiente] === undefined, 'no borró una clave de más de 400 días');
+  verificar(e.guardadas[reciente] !== undefined && e.guardadas[recientePendiente] !== undefined &&
+    e.guardadas.SHARED_SECRET === 'no se toca', 'borró una clave reciente o la configuración');
+  // Una limpieza que falla (al leer o al borrar) no detiene el aviso.
+  e = entornoDePrueba({}, lineas);
+  e.fallarLeer = true;
+  verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'una limpieza que no pudo leer detuvo el aviso');
+  e = entornoDePrueba({}, lineas);
+  e.guardadas[vieja] = 'enviado:' + (PRUEBA.ts * 1000 - 401 * dia);
+  e.fallarBorrar = true;
+  verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'una limpieza que no pudo borrar detuvo el aviso');
+  verificar(e.guardadas[clave] === 'enviado:' + PRUEBA.ts * 1000, 'con la limpieza fallida la clave no quedó como enviada');
+  verificar(lineas.indexOf('[aviso-despacho] limpieza de claves no terminó') !== -1, 'la limpieza fallida no quedó en el registro');
 
-  // 8. Registros: sin destinatario, nombre, asunto, cuerpo, adjuntos ni secreto.
+  // 10. Registros: sin destinatario, nombre, asunto, cuerpo, adjuntos, firma ni secreto.
   var registros = lineas.join('\n');
   ['cliente.prueba', 'dueno.prueba', 'copia.prueba', 'respuestas.prueba', 'Hola Prueba', 'Factura', 'camino',
-    'JVBERi0', PRUEBA.secreto, base().key].forEach(function (dato) {
+    'JVBERi0', PRUEBA.secreto, PRUEBA.sig, huellaDeFirma(PRUEBA.sig), base().key].forEach(function (dato) {
     verificar(registros.indexOf(dato) === -1, 'un registro lleva datos del pedido');
   });
   verificar(registros.indexOf('[aviso-despacho] despacho c4ea6a81 ok') !== -1, 'falta la línea del despacho');
+  verificar(registros.indexOf('[aviso-despacho] despacho c4ea6a81 duplicate reenvio') !== -1, 'falta la línea del reenvío');
+  verificar(registros.indexOf('[aviso-despacho] despacho c4ea6a81 uncertain pendiente') !== -1, 'falta la línea de la reserva pendiente');
 
-  // 9. La respuesta es JSON.
+  // 11. La respuesta es JSON.
   verificar(responder({ status: 'ok' }).getContent() === '{"status":"ok"}', 'la respuesta no es JSON');
 
   console.log('testDoPost: ' + verificaciones + ' verificaciones OK (sin enviar correos ni tocar las propiedades)');
 }
 
-/** Entorno simulado: propiedades en memoria, Gmail que no envía, cuota y candado controlables. */
+/**
+ * Entorno simulado: propiedades y caché en memoria, Gmail que no envía, cuota y candado
+ * controlables. Fallas: `fallar` (Gmail lanza; un texto es su mensaje), `fallarGuardar` (null o
+ * un prefijo: setProperty lanza si el valor empieza con él; '' = almacenamiento lleno),
+ * `fallarBorrar` (deleteProperty lanza), `fallarLeer` (getProperties lanza) y `cacheRota`.
+ */
 function entornoDePrueba(opciones, lineas) {
   var e = {
     config: {
@@ -494,8 +686,13 @@ function entornoDePrueba(opciones, lineas) {
       bcc: opciones.bcc || ''
     },
     guardadas: {},
+    huellas: {},
     envios: [],
     fallar: false,
+    fallarGuardar: null,
+    fallarBorrar: false,
+    fallarLeer: false,
+    cacheRota: false,
     cuotaRestante: 100,
     ocupado: false,
     tomados: 0,
@@ -504,7 +701,19 @@ function entornoDePrueba(opciones, lineas) {
     cuota: function () { return e.cuotaRestante; },
     enviar: function (para, asunto, texto, o) {
       if (e.fallar) throw new Error(typeof e.fallar === 'string' ? e.fallar : 'Fallo simulado de Gmail');
-      e.envios.push({ para: para, asunto: asunto, texto: texto, opciones: o });
+      // Lo que había guardado al momento de enviar: la reserva y la huella van antes.
+      e.envios.push({ para: para, asunto: asunto, texto: texto, opciones: o, guardadas: JSON.parse(JSON.stringify(e.guardadas)),
+        huellas: Object.keys(e.huellas).length });
+    },
+    cache: function () {
+      if (e.cacheRota) throw new Error('CacheService simulado caído');
+      return {
+        get: function (nombre) {
+          return Object.prototype.hasOwnProperty.call(e.huellas, nombre) ? e.huellas[nombre].valor : null;
+        },
+        put: function (nombre, valor, segundos) { e.huellas[nombre] = { valor: String(valor), segundos: segundos }; },
+        remove: function (nombre) { delete e.huellas[nombre]; }
+      };
     },
     candado: function () {
       return {
@@ -522,9 +731,16 @@ function entornoDePrueba(opciones, lineas) {
     getProperty: function (nombre) {
       return Object.prototype.hasOwnProperty.call(e.guardadas, nombre) ? e.guardadas[nombre] : null;
     },
-    setProperty: function (nombre, valor) { e.guardadas[nombre] = String(valor); },
-    deleteProperty: function (nombre) { delete e.guardadas[nombre]; },
+    setProperty: function (nombre, valor) {
+      if (e.fallarGuardar !== null && String(valor).indexOf(e.fallarGuardar) === 0) throw new Error('Almacenamiento simulado lleno');
+      e.guardadas[nombre] = String(valor);
+    },
+    deleteProperty: function (nombre) {
+      if (e.fallarBorrar) throw new Error('Fallo simulado al borrar');
+      delete e.guardadas[nombre];
+    },
     getProperties: function () {
+      if (e.fallarLeer) throw new Error('Fallo simulado al leer');
       var copia = {};
       Object.keys(e.guardadas).forEach(function (nombre) { copia[nombre] = e.guardadas[nombre]; });
       return copia;
