@@ -7289,6 +7289,15 @@
           "value": "noindex"
         }
       ]
+    },
+    {
+      "source": "/feeds/google-merchant.xml",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
     }
   ],
   "functions": {

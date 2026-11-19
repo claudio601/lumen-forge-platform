@@ -31,6 +31,7 @@ import {
   RESERVED_FIRST_SEGMENTS,
   UNPUBLISHED_RENAMED,
 } from './redirects/build';
+import { MERCHANT_FEED_PATH } from './merchant-feed';
 
 interface Rule {
   source: string;
@@ -332,6 +333,26 @@ describe('vercel.json', () => {
     expect(rule?.has).toEqual([{ type: 'host', value: 'nuevo.elights.cl' }]);
     expect(rule?.headers).toEqual([{ key: 'X-Robots-Tag', value: 'noindex' }]);
   });
+
+  it.each([
+    ['6.1.0', pathToRegexp61],
+    ['6.3.0', pathToRegexp63],
+  ] as const)('el feed de Merchant lleva noindex en todos los dominios, después de la regla de nuevo y solo en su URL (compilador %s)', (_version, compile) => {
+    // CLAUDE.md §18: el feed no es una página; Merchant lo lee igual, Google no lo indexa.
+    const headers = cfg.headers ?? [];
+    expect(headers.map(h => h.source)).toEqual(['/((?!api(?:/|$)).*)', MERCHANT_FEED_PATH]);
+    const feed = headers[1];
+    expect(feed.has).toBeUndefined(); // sin condición de dominio: también en elights.cl y www
+    expect(feed.headers).toEqual([{ key: 'X-Robots-Tag', value: 'noindex' }]);
+    const re = compile(feed.source, [], { strict: true, sensitive: true, delimiter: '/' });
+    expect(re.test(MERCHANT_FEED_PATH)).toBe(true);
+    for (const path of ['/', '/feeds', '/feeds/', '/feeds/otro.xml', '/catalogo', '/producto/panel-led', '/sitemap.xml', '/api', '/api/feeds/google-merchant.xml', '/FEEDS/google-merchant.xml']) {
+      expect(re.test(path), path).toBe(false);
+    }
+    // Ninguna redirección ni fila de legacy-urls.json empieza por /feeds (taparía el archivo)
+    for (const r of redirects) expect(firstSegment(r.source.replace(/\{\/\}\?$/, '')), r.source).not.toBe('feeds');
+    for (const u of LEGACY_URLS) expect(firstSegment(u.source), u.source).not.toBe('feeds');
+  });
 });
 
 describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () => {
@@ -580,7 +601,7 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
   });
 
   it('ninguna regla empieza por un segmento reservado: api, la app (también las páginas legales), public/, la build o Jumpseller', () => {
-    for (const segment of ['api', 'producto', 'catalogo', 'assets', '.well-known', 'fichas', 'robots.txt', 'sitemap.xml', 'spa.html', '404.html']) {
+    for (const segment of ['api', 'producto', 'catalogo', 'assets', '.well-known', 'fichas', 'robots.txt', 'sitemap.xml', 'feeds', 'spa.html', '404.html']) {
       expect(RESERVED_FIRST_SEGMENTS.has(segment), segment).toBe(true);
     }
     for (const segment of ['buscar', 'carro', 'cotizador', 'empresa', 'medios-de-pago', 'checkout', 'cart', 'customer', 'attachments']) {
@@ -593,7 +614,7 @@ describe('URLs de elights.cl (PR 08): scripts/redirects/legacy-urls.json', () =>
     }
     // La guarda también vale para las de un solo segmento ('/checkout{/}?' no es 'checkout{')
     expect(firstSegment('/checkout')).toBe('checkout');
-    for (const source of ['/checkout', '/fichas', '/producto', '/fichas/a.pdf', '/api', '/cotizador', '/empresa']) {
+    for (const source of ['/checkout', '/fichas', '/producto', '/fichas/a.pdf', '/api', '/cotizador', '/empresa', '/feeds', '/feeds/google-merchant.xml']) {
       expect(() => legacyRedirects([{ source, path: '/' }]), source).toThrow(/segmento reservado/);
     }
     expect(legacyRedirects([{ source: '/checkout', gone: 'sistema de Jumpseller' }])).toEqual([]); // sin regla, no tapa nada
