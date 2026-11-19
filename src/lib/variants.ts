@@ -203,6 +203,29 @@ export function selectedVariant(
   return hits.length === 1 ? hits[0] : undefined;
 }
 
+/** Parámetro de la URL de la ficha que deja elegida una variante: /producto/<id>?variante=<id de la variante>. */
+export const VARIANT_PARAM = 'variante';
+
+/**
+ * Selección que deja elegida la variante `variantId` (el ?variante= de los enlaces del feed de
+ * Merchant, CLAUDE.md §18): su opción en cada eje. undefined si el producto no tiene variantes
+ * para elegir, si el id no es una de sus variantes o si sus opciones no la distinguen de otra.
+ */
+export function selectionForVariant(product: VariantProduct, variantId: string | number | null | undefined): VariantSelection | undefined {
+  const raw = variantId === null || variantId === undefined ? '' : String(variantId).trim();
+  if (!/^\d{1,15}$/.test(raw)) return undefined;
+  const variant = product.variants?.find(v => v.id === Number(raw));
+  const axes = variantAxes(product);
+  if (!variant || !axes.length) return undefined;
+  const selection: Record<string, string> = {};
+  for (const axis of axes) {
+    const value = optionValue(variant, axis.name);
+    if (value === undefined) return undefined;
+    selection[axis.name] = value;
+  }
+  return selectedVariant(product, axes, selection)?.id === variant.id ? selection : undefined;
+}
+
 /** La opción `value` del eje `axis` se puede combinar con lo elegido en los otros ejes. */
 export function choiceAvailable(
   variants: readonly ProductVariant[],

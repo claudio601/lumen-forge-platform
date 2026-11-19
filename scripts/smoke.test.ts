@@ -2,7 +2,8 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { assetRefs, buildTargets, bypassHeaders, compareStable, inspectHtml, legacyTargets, newFunctions, rowIssues, runSmoke, inspectSitemap, robotsIssues, parseOrigin, type Row } from './smoke';
+import { assetRefs, buildTargets, bypassHeaders, compareStable, feedIssues, inspectHtml, jsonRows, legacyTargets, newFiles, newFunctions, rowIssues, runSmoke, inspectSitemap, robotsIssues, parseOrigin, type Row } from './smoke';
+import { buildFeedItems, MERCHANT_FEED_PATH, renderFeed } from './merchant-feed';
 import { LEGACY_URLS } from './redirects/build';
 import { SITE_URL } from '../src/config/site';
 import { indexableRoutes } from '../src/lib/seo/routes';
@@ -362,5 +363,48 @@ describe('chequeo de humo', () => {
     expect(newFunctions(preview, prod)).toEqual(['/api/project-quotes/upload']);
     // Un archivo que pasa de 404 a 405 no es una función nueva
     expect(compareStable([row('/robots.txt', 'file', 405)], [row('/robots.txt', 'file', 404)])).toHaveLength(1);
+  });
+
+  describe('feed de Google Merchant (CLAUDE.md §18)', () => {
+    const items = buildFeedItems();
+    const xml = renderFeed(items);
+    const feedRow = (extra: Partial<Row> = {}) =>
+      row(MERCHANT_FEED_PATH, 'file', 200, 'application/xml', { added: true, xRobots: 'noindex', body: xml, ...extra });
+
+    it('es una fila fija de archivo, marcada como nueva', () => {
+      expect(buildTargets().filter(t => t.path === MERCHANT_FEED_PATH)).toEqual([{ path: MERCHANT_FEED_PATH, kind: 'file', added: true }]);
+    });
+
+    it('exige 200, XML, X-Robots-Tag: noindex en todo dominio, RSS válido, los ítems del repo y links en el origen esperado', () => {
+      expect(rowIssues(feedRow())).toEqual([]);
+      for (const base of ['https://elights.cl', 'https://www.elights.cl', 'https://rama.vercel.app']) {
+        expect(rowIssues(feedRow(), { base, expectedOrigin: SITE_URL }), base).toEqual([]);
+        expect(rowIssues(feedRow({ xRobots: '' }), { base, expectedOrigin: SITE_URL }).join(' '), base).toMatch(/feed de Merchant sin X-Robots-Tag: noindex/);
+      }
+      expect(rowIssues(feedRow({ type: 'text/plain' })).join(' ')).toMatch(/se esperaba XML/);
+      expect(rowIssues(feedRow({ type: 'text/html' })).join(' ')).toMatch(/devuelve HTML/);
+      expect(rowIssues(feedRow({ status: 404, type: 'text/html', body: '' })).join(' ')).toMatch(/estado 404, se esperaba 200/);
+      expect(rowIssues(feedRow({ body: xml.slice(0, -20) })).join(' ')).toMatch(/feed: XML inválido/);
+      expect(rowIssues(feedRow({ body: renderFeed(items.slice(1)) })).join(' ')).toMatch(/ítems; el repo tiene/);
+      // Links en otro origen: el feed de una preview debe apuntar al público, no al de la preview
+      expect(rowIssues(feedRow({ body: renderFeed(buildFeedItems({ site: 'https://rama.vercel.app' }), 'https://rama.vercel.app') })).join(' ')).toMatch(/no es una ficha de/);
+      expect(feedIssues(xml, SITE_URL, items.length)).toEqual([]);
+    }, 60_000);
+
+    it('con --compare, un 404 en la base es un archivo nuevo (se informa); otro cambio de estado, falla', () => {
+      const prod = [row(MERCHANT_FEED_PATH, 'file', 404, 'text/html', { added: true }), row('/og-default.jpg', 'file', 404, 'text/html')];
+      const preview = [feedRow(), row('/og-default.jpg', 'file', 200, 'image/jpeg')];
+      expect(compareStable(preview, prod)).toEqual(['/og-default.jpg: 404 text/html -> 200 image/jpeg']);
+      expect(newFiles(preview, prod)).toEqual([MERCHANT_FEED_PATH]);
+      // Ya publicado: que desaparezca sí es una regresión
+      expect(compareStable([row(MERCHANT_FEED_PATH, 'file', 404, 'text/html', { added: true })], [feedRow()])).toHaveLength(1);
+      expect(newFiles([feedRow()], [feedRow()])).toEqual([]);
+    });
+
+    it('--json no guarda el contenido del feed (varios MB)', () => {
+      const rows = [feedRow(), row('/robots.txt', 'file', 200, 'text/plain', { body: 'User-agent: *' })];
+      expect(jsonRows(rows).map(r => r.body)).toEqual(['', 'User-agent: *']);
+      expect(rows[0].body).toBe(xml); // no cambia la fila original
+    });
   });
 });

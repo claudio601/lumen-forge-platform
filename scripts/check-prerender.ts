@@ -32,6 +32,9 @@
 //     con «Publicidad en Meta». Las páginas generadas y 404.html llevan un botón «Configurar
 //     cookies» en el pie (spa.html viene vacía: solo las ausencias). /cotizador, /instalacion y
 //     /estudio-luminico traen las dos casillas sin marcar dentro de su data-elights-form.
+//   - feed de Google Merchant (dist/feeds/google-merchant.xml, CLAUDE.md §18): existe, se lee y
+//     pasa inspectFeed, trae los mismos ítems que el repo, y cada link lleva a una ficha indexable
+//     que se generó, con el precio de su JSON-LD (el Offer.price o dentro del AggregateOffer).
 // Avisos (nunca bloquean): un 301 de elights.cl que llega a un producto no publicado (da 404:
 // cambiar su fila a la categoría), y un producto publicado cuyo permalink de Jumpseller no
 // tiene fila en legacy-urls.json (agregarla antes de la Etapa 3). Lo mismo con los ids
@@ -62,6 +65,7 @@ import { NOT_FOUND_URL, outputPath } from './prerender';
 import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, renamedIdDestination, UNPUBLISHED_RENAMED, type LegacyUrl } from './redirects/build';
 import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
 import { CONSENT_FIELD_NAMES, type ConsentForm } from '../api/_lib/forms/consent';
+import { buildFeedItems, inspectFeed, MERCHANT_FEED_FILE, one, PRICE } from './merchant-feed';
 
 interface HtmlNode {
   nodeName: string;
@@ -498,6 +502,66 @@ export function consentSummary(problems: number, forms: readonly string[] = Obje
   );
 }
 
+// ── Feed de Google Merchant (CLAUDE.md §18) ──────────────────────────────────────
+
+/** La oferta del JSON-LD Product de una página, si la tiene. */
+function productOffer(page: Pick<PageFacts, 'jsonLd'>): Record<string, unknown> | undefined {
+  for (const raw of page.jsonLd) {
+    try {
+      const d = JSON.parse(raw) as { '@type'?: string; offers?: Record<string, unknown> };
+      if (d?.['@type'] === 'Product') return d.offers;
+    } catch {
+      /* structuralIssues ya lo informa */
+    }
+  }
+  return undefined;
+}
+
+/**
+ * El feed de dist/ frente a las fichas prerenderizadas (siempre bloquea): se lee y pasa
+ * inspectFeed, trae `expectedCount` ítems, y cada link lleva a una página indexable que se generó
+ * (`pages`), cuyo JSON-LD trae el mismo precio: el Offer.price, o dentro del rango del
+ * AggregateOffer si las variantes no cuestan lo mismo.
+ */
+export function merchantFeedIssues(
+  xml: string | undefined,
+  pages: ReadonlyMap<string, Pick<PageFacts, 'jsonLd'>>,
+  opts: { site?: string; expectedCount?: number } = {},
+): { blocking: string[]; summary: string } {
+  const file = `dist/${MERCHANT_FEED_FILE}`;
+  if (xml === undefined) return { blocking: [`${file}: no se generó`], summary: 'Feed de Merchant: no se generó' };
+  const site = opts.site ?? SITE_URL;
+  const { items, issues } = inspectFeed(xml, { origin: site, expectedCount: opts.expectedCount });
+  const blocking = issues.map(i => `${file}: ${i}`);
+  const routes = new Set<string>();
+  for (const it of items) {
+    const label = `${file}: ítem ${one(it, 'id')}`;
+    let url: URL;
+    try {
+      url = new URL(one(it, 'link'));
+    } catch {
+      continue; // inspectFeed ya lo informó
+    }
+    if (url.origin !== site) continue;
+    const page = pages.get(url.pathname);
+    if (!page) {
+      blocking.push(`${label}: ${url.pathname} no es una página indexable que se generó`);
+      continue;
+    }
+    routes.add(url.pathname);
+    const m = PRICE.exec(one(it, 'price'));
+    if (!m) continue;
+    const price = Number(m[1]);
+    const offer = productOffer(page);
+    if (!offer) blocking.push(`${label}: ${url.pathname} no trae oferta en su JSON-LD`);
+    else if (offer['@type'] === 'AggregateOffer') {
+      const [low, high] = [Number(offer.lowPrice), Number(offer.highPrice)];
+      if (!(price >= low && price <= high)) blocking.push(`${label}: precio ${price} fuera del rango ${low} a ${high} del JSON-LD de ${url.pathname}`);
+    } else if (offer.price !== price) blocking.push(`${label}: precio ${price} y en el JSON-LD de ${url.pathname} ${String(offer.price)}`);
+  }
+  return { blocking, summary: `Feed de Merchant: ${items.length} ítems, con el precio de ${routes.size} fichas prerenderizadas` };
+}
+
 export const isSyncBotBranch = (env: NodeJS.ProcessEnv = process.env) =>
   [env.GITHUB_HEAD_REF, env.GITHUB_REF_NAME].includes('bot/jumpseller-sync');
 
@@ -580,6 +644,10 @@ function main() {
   const legacy = legacyRedirectIssues(LEGACY_URLS, products, file => existsSync(join(dist, file)));
   blocking.push(...legacy.blocking);
 
+  // Feed de Google Merchant (CLAUDE.md §18): los mismos ítems que el repo y el precio de cada ficha
+  const feed = merchantFeedIssues(read(MERCHANT_FEED_FILE), pageFacts, { expectedCount: buildFeedItems().length });
+  blocking.push(...feed.blocking);
+
   // Contenido: el texto de cada página, y una vez la cabecera y el pie (se repiten en todas)
   const content: string[] = [];
   const known: string[] = [];
@@ -604,6 +672,7 @@ function main() {
   console.log(`[check-prerender] Imagen para compartir: ${ownPhotos} fichas con su foto, ${productOg.size - ownPhotos} con la imagen de la marca`);
   console.log(`[check-prerender] ${renamed.summary}`);
   console.log(`[check-prerender] ${legacy.summary}`);
+  console.log(`[check-prerender] ${feed.summary}`);
   console.log(consentSummary(consentProblems));
   for (const k of known) console.log(`  permitida: ${k}`);
   for (const w of warnings) console.log(`::warning title=Contenido de la página::${w}`);

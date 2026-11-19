@@ -23,7 +23,10 @@
 //   redirect  307 al destino de la regla (/carro → /solicitar-pedido); 301 en los ids de
 //             producto renombrados (PR 07) y en las URLs de elights.cl (PR 08). Con '?' en la
 //             URL, Location conserva la consulta
-//   file      200, no HTML
+//   file      200, no HTML. El feed de Merchant (/feeds/google-merchant.xml, CLAUDE.md §18): XML,
+//             X-Robots-Tag: noindex en todo dominio, RSS válido, los mismos ítems que el repo y
+//             cada link en el origen esperado. Es un archivo nuevo: con --compare, un 404 en la
+//             base (producción antes del merge) se informa y no cuenta como diferencia
 //   api       405
 //   observe   se informa sin juzgar (salvo un 5xx): variantes de URL a mirar a mano
 // Cualquier 5xx o falta de respuesta también falla.
@@ -49,6 +52,7 @@ import { indexableGuideRoutes, indexableRoutes, NOINDEX_ROUTES, noindexGuideRout
 import { SITE_URL } from '../src/config/site';
 import { buildRobots } from './generate-sitemap';
 import { LEGACY_URLS, legacyDestination, type LegacyUrl } from './redirects/build';
+import { buildFeedItems, inspectFeed, MERCHANT_FEED_PATH } from './merchant-feed';
 
 export type Kind = 'page' | 'spa' | 'unindexed' | 'notfound' | 'redirect' | 'file' | 'api' | 'observe';
 
@@ -59,6 +63,8 @@ export interface Target {
   to?: string;
   /** redirect: estado esperado (307 si no se indica). No se llama `status`: Row lo usa para el recibido. */
   expectedStatus?: number;
+  /** file: archivo nuevo de esta versión; con --compare, un 404 en la base no es una regresión. */
+  added?: boolean;
 }
 
 /** Productos renombrados que revisa el chequeo (PR 07): la campana NF3 ("w-ip66") y el alumbrado solar 150W ("control-remoto"). */
@@ -129,9 +135,12 @@ export interface Row extends Target, PageInfo {
   location: string;
   xRobots: string;
   bytes: number;
-  /** Solo se conserva el contenido de sitemap.xml y robots.txt. */
+  /** Solo se conserva el contenido de sitemap.xml, robots.txt y el feed de Merchant (este, nunca en --json). */
   body: string;
 }
+
+/** Archivos cuyo contenido se revisa (y se conserva en la fila). */
+const CHECKED_FILES: readonly string[] = ['/sitemap.xml', '/robots.txt', MERCHANT_FEED_PATH];
 
 /**
  * Funciones de api/ que responden 405 a un GET. Las dos de api/cron/ no: followups responde
@@ -179,6 +188,8 @@ export function buildTargets(): Target[] {
     ...['/robots.txt', '/sitemap.xml', '/og-default.jpg', '/favicon.ico', ...(datasheet ? [new URL(datasheet, 'https://x').pathname] : [])].map(
       as('file'),
     ),
+    // Feed de Google Merchant (CLAUDE.md §18): nuevo; antes de su primer merge, producción da 404
+    { path: MERCHANT_FEED_PATH, kind: 'file', added: true },
     ...API_FUNCTIONS.map(as('api')),
     ...[`${productPaths[0]}/`, '/index.html', '/api/no-existe'].map(as('observe')),
   ];
@@ -259,6 +270,12 @@ export function inspectSitemap(xml: string, origin = SITE_URL, routes = indexabl
 }
 
 /** El archivo generado permite el sitio, excluye API y anuncia solo el sitemap esperado. */
+let repoFeedItems: number | undefined;
+/** El feed servido: RSS válido, los mismos ítems que el repo y cada link en el origen esperado. */
+export function feedIssues(body: string, origin = SITE_URL, expectedCount = (repoFeedItems ??= buildFeedItems().length)): string[] {
+  return inspectFeed(body, { origin, expectedCount }).issues.map(i => `feed: ${i}`);
+}
+
 export function robotsIssues(body: string, origin = SITE_URL): string[] {
   const lines = (text: string) => text.split(/\r?\n/).map(line => line.replace(/#.*$/, '').trim()).filter(Boolean);
   return JSON.stringify(lines(body)) === JSON.stringify(lines(buildRobots(origin))) ? [] :
@@ -336,6 +353,11 @@ export function rowIssues(r: Row, opts: { base?: string; expectedOrigin?: string
         want(r.type === 'text/plain', `tipo ${r.type}, se esperaba text/plain`);
         issues.push(...robotsIssues(r.body, origin));
       }
+      if (r.path === MERCHANT_FEED_PATH && r.status === 200) {
+        want(['application/xml', 'text/xml'].includes(r.type), `tipo ${r.type}, se esperaba XML`);
+        want(/\bnoindex\b/i.test(r.xRobots), 'el feed de Merchant sin X-Robots-Tag: noindex');
+        issues.push(...feedIssues(r.body, origin));
+      }
       break;
     case 'api':
       status(405);
@@ -387,7 +409,7 @@ async function fetchRow(base: string, target: Target, headers: Record<string, st
     signal: AbortSignal.timeout(20_000),
   });
   const type = (res.headers.get('content-type') ?? '').split(';')[0].trim();
-  const seoFile = ['/sitemap.xml', '/robots.txt'].includes(target.path);
+  const seoFile = CHECKED_FILES.includes(target.path);
   const body = target.kind === 'file' && type !== 'text/html' && !seoFile ? '' : await res.text();
   if (assets && type === 'text/html') for (const a of assetRefs(body)) assets.add(a);
   return {
@@ -464,6 +486,8 @@ export async function runSmoke(base: string, opts: SmokeOptions = {}): Promise<R
  * que la crea: se informa, pero no hace fallar la comparación.
  */
 const isNewFunction = (r: Row, o: Row) => r.kind === 'api' && o.status === 404 && r.status === 405;
+/** Lo mismo con un archivo nuevo de esta versión (Target.added): 404 en la base y 200 acá. */
+const isNewFile = (r: Row, o: Row) => r.kind === 'file' && !!r.added && o.status === 404 && r.status === 200;
 
 export function compareStable(a: Row[], b: Row[]): string[] {
   const byPath = new Map(b.map(r => [r.path, r]));
@@ -473,7 +497,7 @@ export function compareStable(a: Row[], b: Row[]): string[] {
     if (r.path.startsWith('/assets/')) continue; // el hash cambia en cada build
     const o = byPath.get(r.path);
     if (!o) continue;
-    if (isNewFunction(r, o)) continue;
+    if (isNewFunction(r, o) || isNewFile(r, o)) continue;
     if (r.status !== o.status || r.type !== o.type) {
       diffs.push(`${r.path}: ${o.status} ${o.type} -> ${r.status} ${r.type}`);
     }
@@ -489,6 +513,18 @@ export function newFunctions(a: Row[], b: Row[]): string[] {
     return o !== undefined && isNewFunction(r, o);
   }).map(r => r.path);
 }
+
+/** Archivos nuevos respecto de la base (ver isNewFile): solo se informan. */
+export function newFiles(a: Row[], b: Row[]): string[] {
+  const byPath = new Map(b.map(r => [r.path, r]));
+  return a.filter(r => {
+    const o = byPath.get(r.path);
+    return o !== undefined && isNewFile(r, o);
+  }).map(r => r.path);
+}
+
+/** Filas para --json: sin el contenido del feed (pesa varios MB). */
+export const jsonRows = (rows: readonly Row[]) => rows.map(r => (r.path === MERCHANT_FEED_PATH ? { ...r, body: '' } : r));
 
 function printRows(label: string, rows: Row[], all: boolean, legacy = false, expectedOrigin = SITE_URL) {
   console.log(`\n${label}`);
@@ -556,7 +592,7 @@ async function main() {
   printRows(base, rows, all, legacy, expectedOrigin);
   if (jsonOut) {
     mkdirSync(dirname(jsonOut), { recursive: true });
-    writeFileSync(jsonOut, JSON.stringify({ base, expectedOrigin, at: new Date().toISOString(), rows }, null, 2));
+    writeFileSync(jsonOut, JSON.stringify({ base, expectedOrigin, at: new Date().toISOString(), rows: jsonRows(rows) }, null, 2));
   }
 
   let failed = rows.flatMap(r => rowIssues(r, { base, expectedOrigin }).map(i => `${r.path} (${r.kind}): ${i}`));
@@ -567,6 +603,8 @@ async function main() {
     diffs.forEach(d => console.log(`  ${d}`));
     const added = newFunctions(rows, other);
     if (added.length) console.log(`  Funciones nuevas (404 allá, 405 acá; esperado en la PR que las crea): ${added.join(', ')}`);
+    const addedFiles = newFiles(rows, other);
+    if (addedFiles.length) console.log(`  Archivos nuevos (404 allá, 200 acá; esperado en la PR que los crea): ${addedFiles.join(', ')}`);
     failed = [...failed, ...diffs];
   }
   if (failed.length) {

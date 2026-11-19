@@ -11,6 +11,7 @@ import {
   isGuideRoute,
   isSyncBotBranch,
   legacyRedirectIssues,
+  merchantFeedIssues,
   notFoundMarkerIssues,
   renamedRedirectIssues,
   structuralIssues,
@@ -22,6 +23,9 @@ import { DEFAULT_OG } from '../src/lib/seo/ogImage';
 import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
 import { CONSENT_FORMS } from '../api/_lib/forms/consent';
 import { STATIC_ROUTES } from '../src/lib/seo/routes';
+import { products } from '../src/data/catalog/index';
+import { hasVariantChoice } from '../src/lib/variants';
+import { buildFeedItems, renderFeed } from './merchant-feed';
 
 const SITE = 'https://sitio.test';
 const ROUTE = '/producto/x';
@@ -450,5 +454,47 @@ describe('check-prerender: consentimiento (PR 13)', () => {
     const bad = consentSummary(problems);
     expect(bad).toBe(`[check-prerender] Consentimiento: ${problems} problema(s)`);
     expect(bad).not.toMatch(/sin aviso|en el pie|sin marcar/);
+  });
+});
+
+describe('check-prerender: feed de Google Merchant (CLAUDE.md §18)', () => {
+  // Un producto de un precio y uno cuyas variantes no cuestan lo mismo (precios del catálogo, nunca escritos)
+  const single = products.find(p => !hasVariantChoice(p))!;
+  const ranged = products.find(p => hasVariantChoice(p) && new Set(p.variants!.map(v => v.price)).size > 1)!;
+  const items = buildFeedItems({ products: [single, ranged], exclusions: [], site: SITE });
+  const xml = renderFeed(items, SITE);
+  const prices = ranged.variants!.map(v => v.price);
+  const offerOf = (p: typeof single) =>
+    p === single
+      ? { '@type': 'Offer', price: single.price }
+      : { '@type': 'AggregateOffer', lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: prices.length };
+  const pages = (offers = [offerOf(single), offerOf(ranged)]) =>
+    new Map([single, ranged].map((p, i) => [`/producto/${p.id}`, { jsonLd: [JSON.stringify({ '@type': 'Product', offers: offers[i] })] }]));
+
+  it('un feed igual a las fichas no tiene problemas', () => {
+    const r = merchantFeedIssues(xml, pages(), { site: SITE, expectedCount: items.length });
+    expect(r.blocking).toEqual([]);
+    expect(r.summary).toBe(`Feed de Merchant: ${items.length} ítems, con el precio de 2 fichas prerenderizadas`);
+  });
+
+  it('bloquea si falta el feed, si un link no tiene página o si el número de ítems no es el del repo', () => {
+    expect(merchantFeedIssues(undefined, pages(), { site: SITE }).blocking).toEqual(['dist/feeds/google-merchant.xml: no se generó']);
+    const onlyRanged = new Map([...pages()].filter(([route]) => route !== `/producto/${single.id}`));
+    expect(merchantFeedIssues(xml, onlyRanged, { site: SITE }).blocking.join('\n')).toMatch(/no es una página indexable que se generó/);
+    expect(merchantFeedIssues(xml, pages(), { site: SITE, expectedCount: items.length + 1 }).blocking.join('\n')).toMatch(/ítems; el repo tiene/);
+    expect(merchantFeedIssues(xml, pages(), { site: 'https://otro.test' }).blocking.length).toBeGreaterThan(0);
+    expect(merchantFeedIssues('<rss>', pages(), { site: SITE }).blocking.join('\n')).toMatch(/XML inválido/);
+  });
+
+  it('bloquea si el precio no es el del JSON-LD de la ficha (Offer o rango del AggregateOffer)', () => {
+    const offPrice = merchantFeedIssues(xml, pages([{ '@type': 'Offer', price: single.price + 10 }, offerOf(ranged)]), { site: SITE });
+    expect(offPrice.blocking).toHaveLength(1);
+    expect(offPrice.blocking[0]).toMatch(/: precio \d+ y en el JSON-LD/);
+    const high = Math.max(...prices);
+    const offRange = merchantFeedIssues(xml, pages([offerOf(single), { '@type': 'AggregateOffer', lowPrice: high + 1, highPrice: high + 10, offerCount: prices.length }]), { site: SITE });
+    expect(offRange.blocking).toHaveLength(ranged.variants!.length);
+    expect(offRange.blocking[0]).toMatch(/fuera del rango/);
+    const noOffer = merchantFeedIssues(xml, new Map([...pages()].map(([r]) => [r, { jsonLd: ['{"@type":"Organization"}'] }])), { site: SITE });
+    expect(noOffer.blocking[0]).toMatch(/no trae oferta en su JSON-LD/);
   });
 });

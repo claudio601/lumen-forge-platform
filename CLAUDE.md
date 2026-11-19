@@ -36,6 +36,7 @@
 - **Decisiones del dueño del 2026-11-13** (constantes en `src/config/business.ts`): fuera del despacho sin costo, por pagar (con el transportista) o retiro en bodega; el flete va en la cotización solo si lo exigen las bases de una licitación o el proyecto. Paneles de formato grande (`PANEL_MASTER_BOX`, 11 productos): a regiones solo desde su caja master (el slim 60x60, desde 4 unidades); con menos, retiro o la caja completa; los paneles chicos, en cualquier cantidad. Los precios publicados son para pago por transferencia: con Flow se suma su comisión, que informa la cotización (nunca publicar el porcentaje). Empresas e instituciones pueden comprar con orden de compra. Comprobantes de pago a `pagos@elights.cl` con el número de cotización (`paymentsEmail`); ventas@ para todo lo demás. Estudio DIALux: 48 horas desde los antecedentes completos y el pago acreditado, con una revisión (cotización → pago → simulación).
 - Ya eliminados en la Etapa 1: `api/create-order.ts`, `src/pages/CartPage.tsx`, `src/services/jumpsellerCart.ts` y el paso a `elights.cl/checkout` (`/carro` redirige a `/solicitar-pedido`).
 - **Montos en Pipedrive**: siempre CON IVA, calculados en el servidor desde el catálogo (`api/_lib/catalog/pricing.ts`); nunca se confía en el precio que manda el navegador.
+- **Feed de Google Merchant y compra en línea** (decisiones del dueño del 2026-11-19, §18): habrá un botón «Comprar» con Flow y transferencia (D1, con su especificación aparte antes de programar). En esa compra la comisión de Flow se absorbe (D2) y las fichas del feed dirán «Disponible» (D3). D2 y D3 se activan solo el día en que exista la compra en línea: hasta entonces rigen las reglas de arriba («Consultar disponibilidad» y la comisión en la cotización). El feed no se sube a Merchant antes de ese día.
 
 ---
 
@@ -333,6 +334,48 @@ Paso a paso del dueño: `docs/operacion/aviso-despacho.md`. Spec: `~/proyectos/e
 - **Secretos (los pone el dueño; Claude nunca los ve):** `SHIPPING_RELAY_SECRET` en Vercel (Production) y `SHARED_SECRET` en las propiedades del script, el mismo valor. `SHIPPING_RELAY_URL` (la URL /exec) no es secreta pero no va en el repo.
 - **El relay:** `apps-script/aviso-despacho/Code.gs` y su `README.md` (implementación, propiedades, `testDoPost`). Implementado el 19-11-2026 en la cuenta de Workspace del dueño (proyecto «eLIGHTS · aviso de despacho», versión 1, acceso «Cualquier persona»); `SHIPPING_RELAY_URL` está en Vercel (Production). Para comprobarlo sin enviar nada: un GET a la URL `/exec` devuelve `{"servicio":"aviso-despacho","version":1}` y un POST sin firma, `rejected firma` (con `config`, falta el secreto en el script). Al cambiar `Code.gs`, nueva versión de la misma implementación (README §8), así la URL no cambia. Para revisar el correo a ojo sin Pipedrive: `npm run aviso:render -- --fixture` (escribe en `reports/aviso-despacho/`).
 - **Pruebas:** `api/_tests/shipping-notice*.test.ts` con Upstash, Pipedrive y relay simulados (`fakeUpstash.ts`, `fakePipedrive.ts`, `shippingFixture.ts`); nunca el relay ni el Pipedrive reales. Los registros llevan solo el negocio, la acción, 8 caracteres de la clave y códigos.
+
+---
+
+## 18. Feed de Merchant
+
+Especificación: `~/proyectos/elights-merchant-2026-11/spec-feed-merchant.md` (uso interno, no va al repo).
+
+- **Qué es:** `dist/feeds/google-merchant.xml` (`SITE_URL/feeds/google-merchant.xml`), RSS 2.0 con el espacio `g:`, un ítem por variante de Jumpseller (las de un producto comparten `item_group_id`). Lo escribe `scripts/merchant-feed.ts` en cada `npm run build`, entre `generate-sitemap` y `prerender` (`npm run merchant-feed` lo arma solo). Si falla, falla el build. No es un archivo del repo ni lo escribe la sincronización: se actualiza con cada merge, también el de la PR del robot.
+- **No se sube a Merchant** hasta que exista la compra en línea (D1, §3): Google no acepta sitios donde solo se cotiza. Mientras tanto nadie lo descarga.
+- **Sale de los mismos datos que la ficha:**
+  - el precio CON IVA de la variante (`<entero> CLP`, igual al de `priceIndex`);
+  - el nombre de Jumpseller en tipo oración, más « – » y la etiqueta de la variante;
+  - las fotos, codificadas como en el JSON-LD;
+  - las especificaciones en `product_detail`: los tres grupos de la ficha más «Variante», sin garantía, marca ni ninguna fila que nombre el D.S. N°1 (`DS1_MENTION`: en la ficha la fila es del producto completo, y en el feed cada ítem es una sola variante). En una variante, sus filas «Variante» reemplazan a las del producto con la misma etiqueta y a su temperatura de color (`CCT_LABEL`);
+  - los beneficios en `product_highlight` (de 2 a 10).
+- **La descripción** es la editorial o la del contenido SEO, en texto plano. Se quitan la voz de la tienda, lo comercial (`COMMERCIAL_TEXT`: eLIGHTS, cotización, despacho, precios, pago, Flow, stock, WhatsApp, DIALux, «con nosotros»…) y las frases retiradas (`src/test/retired.ts`).
+- **Títulos repetidos:** si dos ítems quedan con el mismo título (dos variantes con la misma etiqueta o dos productos con el mismo nombre en Jumpseller), se agrega su SKU y, si sigue repetido o no lo tiene, el id del ítem (`distinctTitles`). Así la unicidad no depende de los nombres de Jumpseller.
+- **Ids:** `<jumpseller_id>-<id de la variante>`, o `<jumpseller_id>` si el producto no tiene variante. Nunca cambian: un renombre en `renamed-ids.ts` cambia solo el `link`.
+- **link:** `SITE_URL/producto/<id vigente>`. En los productos con selector se agrega `?variante=<id>`, y la ficha deja elegida esa variante en un efecto después de hidratar (`selectionForVariant`, `src/lib/variants.ts`). Ni el HTML estático ni el canonical cambian, y un id ajeno se ignora.
+- **Atributos:**
+  - `availability: in_stock` (D3) y `condition: new`;
+  - `brand`, si Jumpseller la trae;
+  - `google_product_category`, desde `src/data/merchant/google-categories.ts`: un ID revisado por categoría del sitio; en focos a riel y postes se decide por el nombre, y las correcciones por `jumpseller_id` van en `PRODUCT_GOOGLE_CATEGORY`;
+  - `product_type`;
+  - `color`, solo Blanco o Negro;
+  - `shipping_label: voluminoso`, en los postes y en `PANEL_MASTER_BOX`;
+  - `custom_label_0..3`: categoría, tramo de precio, destacado y voluminoso. Nunca margen, costo ni P.MAYOR.
+  - Sin GTIN (D6). D7 (dueño, 19-11-2026): «JIE» es la marca propia y el fabricante, como «eLIGHTS» (`OWN_BRANDS`). En ellas el SKU de la variante, o del producto sin selector, va como `mpn`, y sin SKU va `identifier_exists: no`. Las marcas de otros fabricantes (CHUHAN, WAROM…) no llevan ninguno de los dos.
+- **Qué entra:** los productos publicados menos los de `src/data/merchant/exclusions.ts`. Esa lista se lleva a mano (D5), con el `jumpseller_id` y un motivo genérico (el repo es público). Los servicios nunca entran.
+- **Guardas:**
+  - El build se detiene si un precio no es el de `priceIndex`, si un link no lleva a la ficha vigente o si el XML no pasa `inspectFeed`.
+  - El build avisa, sin bloquear, de las primeras fotos de menos de 500 px, de las que no tienen medidas, de los productos sin marca, de los ítems de marca propia sin SKU, de un SKU repetido como `mpn` y de los títulos sin minúsculas. Se corrigen en Jumpseller.
+  - `scripts/merchant-feed.test.ts` bloquea las fotos de menos de 500 px desde el 01-01-2027 (Google las rechaza desde el 31-01-2027), salvo en el robot (`isSyncBot`).
+  - `check:prerender` compara cada precio con el JSON-LD de su ficha prerenderizada.
+  - El humo revisa el archivo servido. Es una fila nueva: con `--compare`, el 404 de producción antes del primer merge no cuenta como regresión.
+- **vercel.json:** `X-Robots-Tag: noindex` en `/feeds/google-merchant.xml` para todos los dominios, después de la regla de `nuevo`. `feeds` está en `RESERVED_FIRST_SEGMENTS`. robots.txt y el sitemap no cambian.
+- **Si Merchant rechaza un producto:** corregir el dato en Jumpseller (foto, nombre o marca) o, si no se puede, agregarlo a `exclusions.ts` con su motivo. Una categoría mal asignada se corrige en `PRODUCT_GOOGLE_CATEGORY`. Un rechazo por la página (precio o disponibilidad distintos) se revisa en la ficha, no en el feed.
+- **Pendientes del dueño:**
+  - los montos de la tarifa de despacho (D4: una nacional fija y otra mayor para «voluminoso», nunca «gratis»);
+  - la lista de exclusión (D5);
+  - el tránsito máximo (D8; la preparación es de 0 a 2 días hábiles).
+- **Antes de subirlo** (Shopping estándar, D9): revisar que el firewall de Vercel no pida desafío en `/feeds/`.
 
 ---
 

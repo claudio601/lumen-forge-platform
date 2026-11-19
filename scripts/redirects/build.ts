@@ -101,6 +101,8 @@ export const RESERVED_FIRST_SEGMENTS: ReadonlySet<string> = new Set([
   'spa.html',
   'robots.txt',
   'sitemap.xml',
+  // Feed de Google Merchant (scripts/merchant-feed.ts, CLAUDE.md §18): lo escribe la build en dist/feeds/
+  'feeds',
   ...readdirSync(new URL('../../public', import.meta.url)),
   ...[...STATIC_ROUTES, ...NOINDEX_ROUTES, ...REDIRECT_ROUTES, ...DYNAMIC_ROUTE_PATTERNS]
     .map(route => route.split('/')[1])
