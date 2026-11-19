@@ -14,7 +14,7 @@ vi.mock('../_lib/catalog/price-index.generated.js', async () => ({ SNAPSHOT_HASH
 
 import { SITE_URL } from '../_lib/site.js';
 import { processShippingNotice, PUBLIC_SITE_URL } from '../_lib/shipping/notice.js';
-import { DEAL_ID, K, OPT, setupNoticeWorld, teardownNoticeWorld, type NoticeWorld } from './shippingFixture';
+import { DEAL_ID, K, nextUpdateTime, OPT, setupNoticeWorld, teardownNoticeWorld, type NoticeWorld } from './shippingFixture';
 
 let w: NoticeWorld;
 
@@ -28,7 +28,7 @@ afterEach(() => {
 
 function choose(option: 'preview' | 'send') {
   w.deal()[K.trigger] = OPT[option];
-  return processShippingNotice({ dealId: DEAL_ID, triggerKey: K.trigger, triggerOptionId: OPT[option], startedAt: Date.now() });
+  return processShippingNotice({ dealId: DEAL_ID, triggerKey: K.trigger, triggerOptionId: OPT[option], startedAt: Date.now(), eventUpdateTime: nextUpdateTime() });
 }
 
 describe('SITE_URL todavía no es elights.cl', () => {

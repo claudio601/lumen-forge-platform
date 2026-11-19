@@ -22,27 +22,34 @@ vi.mock('../_lib/notify/shippingRelay.js', async (importOriginal) => {
   const m = await importOriginal<typeof import('../_lib/notify/shippingRelay.js')>();
   return { ...m, sendShippingNotice: vi.fn(m.sendShippingNotice) };
 });
+vi.mock('../_lib/notify/salesEmail.js', async (importOriginal) => {
+  const m = await importOriginal<typeof import('../_lib/notify/salesEmail.js')>();
+  return { ...m, notifySales: vi.fn(m.notifySales) };
+});
 
 import handler from '../pipedrive/webhook';
 import { createDealNote, putDealFields } from '../_lib/pipedrive/deals.js';
 import { findDealFieldByName } from '../_lib/pipedrive/fieldOptions.js';
 import { sendShippingNotice } from '../_lib/notify/shippingRelay.js';
+import { notifySales } from '../_lib/notify/salesEmail.js';
 import { SHIPPING_FIELD_NAMES } from '../_lib/shipping/fields.js';
 import { MAX_DOCUMENT_BYTES } from '../_lib/shipping/files.js';
 import { shippingNoticeKey } from '../_lib/shipping/key.js';
 import {
   noticeDeadline,
+  noticeEventKey,
   noticeLockKey,
   noticeStateKey,
   previewCountKey,
   previewMarkKey,
   processShippingNotice,
   MIN_RELAY_WINDOW_MS,
+  NOTICE_EVENT_TTL_S,
   NOTICE_MAX_DURATION_S,
   PREVIEW_LIMIT,
 } from '../_lib/shipping/notice.js';
 import { jpgBytes, pdfBytes, pipedriveTime } from './fakePipedrive';
-import { DEAL_ID, EMAIL, K, NOW, OPT, OWNER_USER_ID, PERSONAL, PERSON_ID, requestNote, setupNoticeWorld, teardownNoticeWorld, type NoticeWorld } from './shippingFixture';
+import { DEAL_ID, EMAIL, K, nextUpdateTime, NOW, OPT, OWNER_USER_ID, PERSONAL, PERSON_ID, requestNote, setupNoticeWorld, teardownNoticeWorld, type NoticeWorld } from './shippingFixture';
 import { readFileSync } from 'node:fs';
 
 let w: NoticeWorld;
@@ -54,6 +61,7 @@ beforeEach(() => {
   vi.mocked(createDealNote).mockClear();
   vi.mocked(putDealFields).mockClear();
   vi.mocked(sendShippingNotice).mockClear();
+  vi.mocked(notifySales).mockClear();
 });
 
 afterEach(() => {
@@ -63,10 +71,13 @@ afterEach(() => {
   teardownNoticeWorld();
 });
 
-/** El dueño elige una opción del disparador y llega el webhook (directo a processShippingNotice). */
-function choose(option: 'preview' | 'send', startedAt = Date.now()) {
+/**
+ * El dueño elige una opción del disparador y llega el webhook (directo a processShippingNotice).
+ * Cada elección trae otro `update_time`; para una reentrega, se pasa el mismo.
+ */
+function choose(option: 'preview' | 'send', startedAt = Date.now(), eventUpdateTime: string | null = nextUpdateTime()) {
   w.deal()[K.trigger] = OPT[option];
-  return processShippingNotice({ dealId: DEAL_ID, triggerKey: K.trigger, triggerOptionId: OPT[option], startedAt });
+  return processShippingNotice({ dealId: DEAL_ID, triggerKey: K.trigger, triggerOptionId: OPT[option], startedAt, eventUpdateTime });
 }
 
 const lastNote = () => w.notes().at(-1) ?? '';
@@ -79,11 +90,18 @@ const noticeLog = () => w.logs.filter((l) => l.startsWith('[aviso-despacho] nego
 const USER = 'usuario-prueba';
 const PASSWORD = 'clave-prueba';
 
-function webhookBody(optionId: number | null, previousOption: number | null = null, extra: { previous?: Record<string, unknown>; data?: Record<string, unknown> } = {}) {
+/** `update_time` de los cuerpos del webhook (el mismo cuerpo dos veces es una reentrega). */
+const EVENT_TIME = '2026-11-18T15:00:00Z';
+
+function webhookBody(
+  optionId: number | null,
+  previousOption: number | null = null,
+  extra: { previous?: Record<string, unknown>; data?: Record<string, unknown>; meta?: Record<string, unknown> } = {},
+) {
   return {
-    meta: { action: 'change', entity: 'deal', entity_id: String(DEAL_ID), company_id: '777001', is_bulk_edit: false, version: '2.0', change_source: 'app', attempt: 1 },
+    meta: { action: 'change', entity: 'deal', entity_id: String(DEAL_ID), company_id: '777001', is_bulk_edit: false, version: '2.0', change_source: 'app', attempt: 1, ...extra.meta },
     data: {
-      id: DEAL_ID, status: 'open', stage_id: 21, pipeline_id: 2,
+      id: DEAL_ID, status: 'open', stage_id: 21, pipeline_id: 2, update_time: EVENT_TIME,
       custom_fields: { [K.trigger]: optionId === null ? null : { type: 'enum', id: optionId } },
       ...extra.data,
     },
@@ -389,7 +407,7 @@ describe('enviar al cliente', () => {
 
   it('el disparador ya cambió cuando llega el webhook: no hace nada (la fuente de verdad es el negocio)', async () => {
     w.deal()[K.trigger] = OPT.preview;
-    expect(await processShippingNotice({ dealId: DEAL_ID, triggerKey: K.trigger, triggerOptionId: OPT.send, startedAt: Date.now() })).toBe('disparador_cambio');
+    expect(await processShippingNotice({ dealId: DEAL_ID, triggerKey: K.trigger, triggerOptionId: OPT.send, startedAt: Date.now(), eventUpdateTime: nextUpdateTime() })).toBe('disparador_cambio');
     expect(w.relay.calls).toBe(0);
     expect(w.notes()).toEqual([]);
     expect(w.deal()[K.trigger]).toBe(OPT.preview);
@@ -404,7 +422,7 @@ describe('§8 falta algo: nota «NO enviado» con la lista exacta y el disparado
     ['la persona no tiene correo', (w) => { w.pd.persons.get(PERSON_ID)!.email = []; }, ['- La persona del negocio no tiene correo: agrégalo en la persona.']],
     ['la persona ya no existe', (w) => { w.pd.persons.delete(PERSON_ID); }, ['- La persona del negocio ya no existe en Pipedrive: agrega la persona del cliente, con su correo.']],
     ['un SKU desconocido sin texto', (w) => { w.deal()[K.products] = '10 PAN60\n2 NOEXISTE'; }, [`- «${SHIPPING_FIELD_NAMES.products}», línea 2 («2 NOEXISTE»): el SKU NOEXISTE no está en el catálogo publicado. Corrígelo o agrega « — <texto como en la factura>».`]],
-    ['el PDF pesa demasiado (por file_size, sin descargar)', (w) => { w.pd.files[0].file_size = MAX_DOCUMENT_BYTES + 1; }, ['- El PDF «factura-1234.pdf» pesa 3 MB: el máximo es 3 MB.']],
+    ['el PDF pesa demasiado (por file_size, sin descargar)', (w) => { w.pd.files[0].file_size = MAX_DOCUMENT_BYTES + 1; }, ['- El PDF «factura-1234.pdf» supera el máximo de 3 MB (pesa 3.145.729 bytes).']],
     ['el «PDF» es una foto (tipo por los primeros bytes)', (w) => { w.pd.files[0].bytes = jpgBytes(2048); }, ['- El PDF «factura-1234.pdf» no es un PDF: adjunta la factura N° 1234 en PDF.']],
     ['hay 2 PDF sin el número en el nombre', (w) => { w.pd.files[0].file_name = 'doc-a.pdf'; w.addFile('doc-b.pdf', pdfBytes()); }, ['- Hay 2 PDF y ninguno lleva el N° 1234 en el nombre («doc-b.pdf», «doc-a.pdf»): deja solo el de la factura N° 1234 o ponle el número en el nombre.']],
     ['2 fotos candidatas a comprobante', (w) => { w.pd.files[1].file_name = 'foto-1.jpg'; w.addFile('foto-2.jpg', jpgBytes()); }, ['- Hay 2 fotos («foto-2.jpg», «foto-1.jpg») y ninguna dice «comprobante» o «voucher» en el nombre: deja solo la del comprobante.']],
@@ -425,6 +443,25 @@ describe('§8 falta algo: nota «NO enviado» con la lista exacta y el disparado
     expect(w.deal()[K.sentLog] === null || w.deal()[K.sentLog] === 'ayer').toBe(true);
     expect(w.redis.data.has(noticeStateKey(KEY))).toBe(false);
     expect(noticeLog().at(-1)).toMatch(/ resultado=datos_incompletos .*problemas=\S+/);
+  });
+
+  it('más de 500 archivos (lista incompleta): no elige sobre una lista cortada', async () => {
+    // Las 5 páginas ven un PDF nuevo con el N° 1234 y el comprobante; la sexta, la factura original.
+    const old = pipedriveTime(new Date(NOW.getTime() - 30 * 86_400_000));
+    for (let i = 0; i < 498; i++) w.addFile(`viejo-${i}.pdf`, pdfBytes(16), { add_time: old });
+    w.addFile('factura-1234-copia.pdf', pdfBytes());
+    expect(w.pd.files).toHaveLength(501);
+    expect(await choose('send')).toBe('datos_incompletos');
+    expect(w.relay.calls).toBe(0);
+    expect(lastNote()).toContain('- El negocio tiene demasiados archivos para revisarlos todos (el aviso revisa hasta 500): no se puede saber si hay otro PDF o comprobante. Avísale a Claude.');
+    expect(w.deal()[K.trigger]).toBeNull();
+  });
+
+  it('con 500 archivos la lista está completa y sale', async () => {
+    const old = pipedriveTime(new Date(NOW.getTime() - 30 * 86_400_000));
+    for (let i = 0; i < 498; i++) w.addFile(`viejo-${i}.pdf`, pdfBytes(16), { add_time: old });
+    expect(w.pd.files).toHaveLength(500);
+    expect(await choose('send')).toBe('enviado');
   });
 
   it('un archivo borrado entre la lista y la descarga (404) cuenta como faltante', async () => {
@@ -562,6 +599,54 @@ describe('§8 Redis, plazo, candado y respuestas del relay', () => {
     expect(vi.mocked(sendShippingNotice).mock.calls[0][1]).toEqual({ timeoutMs: 30_000 });
   });
 
+  it('en el límite, si guardar `sending` demora 1,5 s, el relay no empieza: se retira la reserva y «reintenta»', async () => {
+    const startedAt = Date.now() - (NOTICE_MAX_DURATION_S * 1000 - 10_000 - MIN_RELAY_WINDOW_MS);
+    w.redis.intercept = (cmd, args) => {
+      if (cmd === 'SET' && args[0] === noticeStateKey(KEY) && args[1].startsWith('sending:')) vi.setSystemTime(Date.now() + 1_500);
+      return undefined;
+    };
+    expect(await choose('send', startedAt)).toBe('reintentar');
+    expect(w.relay.calls).toBe(0);
+    expect(w.redis.data.has(noticeStateKey(KEY))).toBe(false);
+    expect(lastNote()).toBe('Aviso de despacho NO enviado («Enviar al cliente»): no alcanzó el tiempo de la función para enviarlo.\nReintenta en unos minutos: vuelve a elegir «Enviar al cliente» en «Despacho · Aviso».');
+    expect(w.deal()[K.trigger]).toBeNull();
+  });
+
+  it('la reserva `sending` de otra ejecución no se retira', async () => {
+    const startedAt = Date.now() - (NOTICE_MAX_DURATION_S * 1000 - 10_000 - MIN_RELAY_WINDOW_MS);
+    w.redis.intercept = (cmd, args) => {
+      if (cmd === 'SET' && args[0] === noticeStateKey(KEY) && args[1].startsWith('sending:')) vi.setSystemTime(Date.now() + 1_500);
+      // Antes de retirarla, otra ejecución (sin el candado, p. ej. tras una función cortada) la reemplazó.
+      if (cmd === 'EVAL' && args.includes(noticeStateKey(KEY))) {
+        w.redis.data.set(noticeStateKey(KEY), { value: 'sending:otra', ttl: 600, expiresAt: Date.now() + 600_000 });
+      }
+      return undefined;
+    };
+    expect(await choose('send', startedAt)).toBe('reintentar');
+    expect(w.redis.data.get(noticeStateKey(KEY))?.value).toBe('sending:otra');
+  });
+
+  it('las escrituras no empiezan con el plazo vencido y el ATENCIÓN recibe lo que queda menos el margen', async () => {
+    const startedAt = Date.now();
+    // El correo sale y la nota demora hasta los 50,001 s (pasado el plazo de las escrituras).
+    w.pd.intercept = (r) => {
+      if (r.method === 'POST' && r.path === '/notes') {
+        vi.setSystemTime(startedAt + 50_001);
+        return new Response('error', { status: 500 });
+      }
+      return undefined;
+    };
+    expect(await choose('send', startedAt)).toBe('enviado_sin_registro');
+    expect(despachos()).toHaveLength(1);
+    // Ni la relectura ni el PUT empiezan.
+    expect(w.pd.requests.filter((r) => r.method === 'PUT')).toEqual([]);
+    expect(w.pd.requests.filter((r) => r.method === 'GET' && r.path === `/deals/${DEAL_ID}`)).toHaveLength(1);
+    // 60 s de la función − 2 s para terminar − 50,001 s = 7,999 s (no los 10 s fijos de notifySales).
+    expect(vi.mocked(notifySales).mock.calls[0][2]).toEqual({ timeoutMs: 7_999 });
+    expect(w.redis.mails[0].items_lista).toContain(`Falta registrar a mano: la nota del aviso, «${SHIPPING_FIELD_NAMES.sentLog}», la etapa «Despachado» y vaciar «${SHIPPING_FIELD_NAMES.trigger}».`);
+    expect(noticeLog().at(-1)).toContain('put=sin_plazo');
+  });
+
   it('el candado del negocio está tomado: nada (sin nota; el disparador no se vacía)', async () => {
     w.redis.data.set(noticeLockKey(DEAL_ID), { value: 'otro-proceso', ttl: 90_000, expiresAt: Date.now() + 90_000 });
     expect(await choose('send')).toBe('candado_tomado');
@@ -607,9 +692,55 @@ describe('§8 el correo salió, pero falló Pipedrive', () => {
     w.pd.intercept = (r) => (r.method === 'PUT' ? new Response('error', { status: 500 }) : undefined);
     expect(await choose('send')).toBe('enviado_sin_registro');
     const body = w.redis.mails[0].items_lista;
-    expect(body).toContain(`Falta registrar a mano: «${SHIPPING_FIELD_NAMES.sentLog}», la etapa y vaciar «${SHIPPING_FIELD_NAMES.trigger}».`);
+    expect(body).toContain(`Falta registrar a mano: «${SHIPPING_FIELD_NAMES.sentLog}», la etapa «Despachado» y vaciar «${SHIPPING_FIELD_NAMES.trigger}».`);
     expect(body).toContain(`En «${SHIPPING_FIELD_NAMES.sentLog}» va: 2026-11-18 12:00 -03:00 · Starken 123456789`);
     expect(w.notes()[0]).toMatch(/^Aviso de despacho enviado/);
+  });
+
+  it('el ATENCIÓN es interno: responde a ventas@, sin el correo, el nombre ni el teléfono del cliente', async () => {
+    w.pd.intercept = (r) => (r.method === 'PUT' ? new Response('error', { status: 500 }) : undefined);
+    expect(await choose('send')).toBe('enviado_sin_registro');
+    expect(w.redis.mails).toHaveLength(1);
+    expect(w.redis.mails[0].reply_to).toBe('ventas@elights.cl');
+    const mail = JSON.stringify(w.redis.mails[0]);
+    for (const secret of [EMAIL, 'Juana', '1111 2222']) expect(mail).not.toContain(secret);
+    expect(vi.mocked(notifySales).mock.calls[0][0].email).toBe('ventas@elights.cl');
+  });
+
+  it('/stages falla: el correo salió, la etapa no cambió; ATENCIÓN y tarea', async () => {
+    w.pd.intercept = (r) => (r.path === '/stages' ? new Response('error', { status: 500 }) : undefined);
+    expect(await choose('send')).toBe('enviado_sin_registro');
+    expect(despachos()).toHaveLength(1);
+    expect(w.deal().stage_id).toBe(21);
+    expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:00 -03:00 · Starken 123456789');
+    expect(w.deal()[K.trigger]).toBeNull();
+    expect(lastNote()).toContain('Etapa: sin cambio (Pipedrive no entregó las etapas del embudo).');
+    const body = w.redis.mails[0].items_lista;
+    expect(body).toContain('Falta registrar a mano: la etapa «Despachado» (si el embudo la tiene).');
+    // «Aviso enviado» sí quedó: el correo no repite su valor.
+    expect(body).not.toContain(`En «${SHIPPING_FIELD_NAMES.sentLog}» va:`);
+    expect(w.pd.activities).toHaveLength(1);
+  });
+
+  it('falla la relectura que vacía el disparador: «Aviso enviado» queda, el disparador no; ATENCIÓN y tarea', async () => {
+    let dealReads = 0;
+    w.pd.intercept = (r) => (r.method === 'GET' && r.path === `/deals/${DEAL_ID}` && ++dealReads === 2 ? new Response('error', { status: 500 }) : undefined);
+    expect(await choose('send')).toBe('enviado_sin_registro');
+    expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:00 -03:00 · Starken 123456789');
+    expect(w.deal()[K.trigger]).toBe(OPT.send);
+    const body = w.redis.mails[0].items_lista;
+    expect(body).toContain(`Falta registrar a mano: vaciar «${SHIPPING_FIELD_NAMES.trigger}».`);
+    expect(w.pd.activities).toHaveLength(1);
+    expect(noticeLog().at(-1)).toContain('disparador=sin_releer');
+  });
+
+  it('casos normales sin ATENCIÓN: el embudo sin «Despachado» y el disparador que el dueño ya cambió', async () => {
+    w.deal().pipeline_id = 3;
+    w.deal().stage_id = 30;
+    w.relay.onCall = () => { w.deal()[K.trigger] = OPT.preview; };
+    expect(await choose('send')).toBe('enviado');
+    expect(w.redis.mails).toHaveLength(0);
+    expect(w.pd.activities).toHaveLength(0);
   });
 
   it('sin PIPEDRIVE_OWNER_USER_ID: solo el ATENCIÓN', async () => {
@@ -619,6 +750,118 @@ describe('§8 el correo salió, pero falló Pipedrive', () => {
     expect(w.redis.mails).toHaveLength(1);
     expect(w.pd.activities).toHaveLength(0);
     expect(noticeLog().at(-1)).toContain('tarea=sin_usuario');
+  });
+});
+
+// ── Reentregas de Pipedrive: la identidad del evento ────────────────────────
+
+describe('§8 reentregas de Pipedrive: la identidad del evento', () => {
+  beforeEach(() => {
+    vi.stubEnv('PIPEDRIVE_WEBHOOK_USER', USER);
+    vi.stubEnv('PIPEDRIVE_WEBHOOK_PASSWORD', PASSWORD);
+  });
+
+  const failPut = (r: { method: string }) => (r.method === 'PUT' ? new Response('error', { status: 500 }) : undefined);
+
+  it('se reserva bajo el candado con NX por 2 días: hash del negocio, la opción y el update_time', async () => {
+    const seen: string[][] = [];
+    w.redis.intercept = (cmd, args) => { if (cmd === 'SET' && args[0].startsWith('aviso-despacho:v1:evento:')) seen.push(args); return undefined; };
+    expect(await choose('preview', Date.now(), EVENT_TIME)).toBe('vista_previa_enviada');
+    const key = noticeEventKey(DEAL_ID, OPT.preview, EVENT_TIME);
+    expect(key).toMatch(/^aviso-despacho:v1:evento:[0-9a-f]{64}$/);
+    expect(seen).toEqual([[key, '1', 'NX', 'EX', String(NOTICE_EVENT_TTL_S)]]);
+    expect(NOTICE_EVENT_TTL_S).toBe(172_800);
+    expect(w.redis.data.get(key)?.ttl).toBe(172_800);
+    expect(noticeEventKey(DEAL_ID, OPT.send, EVENT_TIME)).not.toBe(key);
+  });
+
+  it('Codex 1: falla el PUT, el dueño cambia la orden y Pipedrive reentrega el evento a los 150 s: no sale otro aviso', async () => {
+    w.deal()[K.trigger] = OPT.send;
+    w.pd.intercept = failPut;
+    const body = webhookBody(OPT.send);
+    await webhook(body);
+    await flush();
+    expect(despachos()).toHaveLength(1);
+    expect(w.deal()[K.trigger]).toBe(OPT.send);
+    expect(noticeLog().at(-1)).toContain('resultado=enviado_sin_registro');
+
+    // Pipedrive ya responde; el dueño corrige la orden (otro campo: no dispara) y llega la reentrega.
+    w.pd.intercept = undefined;
+    w.deal()[K.order] = '987654321';
+    vi.setSystemTime(NOW.getTime() + 150_000);
+    await webhook({ ...body, meta: { ...body.meta, attempt: 4 } });
+    await flush();
+    expect(despachos()).toHaveLength(1);
+    expect(w.relay.calls).toBe(1);
+    expect(noticeLog().at(-1)).toContain('resultado=reentrega');
+    expect(w.notes()).toHaveLength(1);
+  });
+
+  it('Codex 2: `uncertain` y falla vaciar el disparador; la reentrega a los 30 s no llama al relay; una elección nueva sí pasa', async () => {
+    w.deal()[K.trigger] = OPT.send;
+    w.relay.mode = 'sent_then_timeout';
+    w.pd.intercept = failPut;
+    const body = webhookBody(OPT.send);
+    await webhook(body);
+    await flush();
+    expect(noticeLog().at(-1)).toContain('resultado=incierto');
+    expect(w.deal()[K.trigger]).toBe(OPT.send);
+
+    w.relay.mode = 'normal';
+    w.pd.intercept = undefined;
+    vi.setSystemTime(NOW.getTime() + 30_000);
+    await webhook({ ...body, meta: { ...body.meta, attempt: 3 } });
+    await flush();
+    expect(w.relay.calls).toBe(1);
+    expect(noticeLog().at(-1)).toContain('resultado=reentrega');
+
+    // El dueño revisa Enviados, vacía el campo (no dispara) y vuelve a elegir: otro update_time.
+    vi.setSystemTime(NOW.getTime() + 5 * 60_000);
+    w.deal()[K.trigger] = null;
+    await webhook(webhookBody(null, OPT.send, { data: { update_time: '2026-11-18T15:04:50Z' } }));
+    w.deal()[K.trigger] = OPT.send;
+    await webhook(webhookBody(OPT.send, null, { data: { update_time: '2026-11-18T15:05:00Z' } }));
+    await flush();
+    // Había salido: el relay responde duplicate, no hay un segundo correo y queda registrado.
+    expect(w.relay.calls).toBe(2);
+    expect(despachos()).toHaveLength(1);
+    expect(noticeLog().at(-1)).toMatch(/resultado=enviado .*relay=duplicate/);
+    expect(w.deal()[K.trigger]).toBeNull();
+    expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:05 -03:00 · Starken 123456789');
+  });
+
+  it('un evento que llega por primera vez con intento 2 se procesa (el intento 1 pudo no correr)', async () => {
+    w.deal()[K.trigger] = OPT.send;
+    await webhook(webhookBody(OPT.send, null, { meta: { attempt: 2 } }));
+    await flush();
+    expect(despachos()).toHaveLength(1);
+  });
+
+  it('también en la vista previa: la reentrega no manda otra', async () => {
+    w.pd.intercept = failPut;
+    expect(await choose('preview', Date.now(), EVENT_TIME)).toBe('vista_previa_enviada');
+    expect(await choose('preview', Date.now(), EVENT_TIME)).toBe('reentrega');
+    expect(previews()).toHaveLength(1);
+    expect(w.notes()).toHaveLength(1);
+  });
+
+  it('sin update_time: no envía al cliente; nota y el disparador vacío', async () => {
+    expect(await choose('send', Date.now(), null)).toBe('sin_hora_evento');
+    expect(w.relay.calls).toBe(0);
+    expect(lastNote()).toBe('Aviso de despacho NO enviado: el aviso de Pipedrive llegó sin la hora del cambio (update_time) y sin ella no se puede distinguir de un reintento de Pipedrive.\nAvísale a Claude. Mientras tanto funciona «Vista previa».');
+    expect(w.deal()[K.trigger]).toBeNull();
+    expect(noticeLog().at(-1)).toContain('evento=sin_hora');
+  });
+
+  it('sin update_time, la vista previa sí sale (solo llega al dueño)', async () => {
+    expect(await choose('preview', Date.now(), null)).toBe('vista_previa_enviada');
+  });
+
+  it('Redis falla al reservar la identidad: no envía al cliente', async () => {
+    w.redis.intercept = (cmd, args) => (cmd === 'SET' && args[0].startsWith('aviso-despacho:v1:evento:') ? 'fail' : undefined);
+    expect(await choose('send')).toBe('reintentar');
+    expect(w.relay.calls).toBe(0);
+    expect(noticeLog().at(-1)).toContain('evento=sin_reservar');
   });
 });
 

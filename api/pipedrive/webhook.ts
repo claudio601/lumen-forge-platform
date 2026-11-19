@@ -20,7 +20,9 @@
 //
 // Aviso de despacho: si en este evento «Despacho · Aviso» cambió a una opción (antes del filtro de
 // embudo), se llama a processShippingNotice (api/_lib/shipping/notice.ts), que relee el negocio y
-// decide. El flujo de estado y etapa sigue igual, en el mismo segundo plano.
+// decide. Le pasa el `update_time` del cuerpo: con el negocio y la opción, es la identidad del
+// evento, y una reentrega de Pipedrive no vuelve a enviar. El flujo de estado y etapa sigue igual,
+// en el mismo segundo plano.
 //
 // Registros: una línea por evento, solo con metadatos (versión, entidad, acción, id del negocio,
 // change_source, si fue masivo y qué se hizo). Nunca el cuerpo, nombres, correos, teléfonos ni
@@ -202,6 +204,8 @@ export async function processWebhook(body: unknown, startedAt: number): Promise<
         triggerKey: outcome.trigger.key,
         triggerOptionId: outcome.trigger.optionId,
         startedAt,
+        // Identidad del evento (con el negocio y la opción): una reentrega de Pipedrive trae la misma.
+        eventUpdateTime: event?.updateTime ?? null,
       });
     }
   } catch (err) {

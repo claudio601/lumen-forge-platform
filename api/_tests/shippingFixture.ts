@@ -143,6 +143,17 @@ const unescape = (html: string) =>
 /** Hora fija de las pruebas: miércoles 18-11-2026, 12:00 en Chile (-03:00). */
 export const NOW = new Date('2026-11-18T15:00:00.000Z');
 
+let updateTimes = 0;
+
+/**
+ * `update_time` de una elección nueva del dueño (v2: «2026-11-18T15:00:01Z»): cada llamada da
+ * otro, como Pipedrive en cada modificación. Una reentrega del mismo evento repite el mismo.
+ */
+export function nextUpdateTime(): string {
+  updateTimes += 1;
+  return new Date(Date.now() + updateTimes * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
+
 /**
  * Monta Upstash, Pipedrive y el relay simulados, las variables de entorno de prueba y el reloj fijo
  * (solo Date: los plazos de fetch siguen con el reloj real). Con la factura y el voucher.
@@ -150,6 +161,7 @@ export const NOW = new Date('2026-11-18T15:00:00.000Z');
 export function setupNoticeWorld(): NoticeWorld {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
+  updateTimes = 0;
   resetFieldOptionsCache();
   const redis = createFakeRedis();
   const pd = createFakePipedrive();

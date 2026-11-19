@@ -8,7 +8,10 @@
 //    (reintento, doble guardado o aviso en curso). Al terminar se suelta con compare-and-delete.
 //    Redis caído: sigue sin candado, pero solo la vista previa puede salir.
 // 2. Relee el negocio y confirma que el disparador sigue con la opción del evento: la fuente de
-//    verdad es el negocio, nunca la petición.
+//    verdad es el negocio, nunca la petición. Después reserva la identidad del evento (hash del
+//    negocio, la opción y el `update_time` que trae el cuerpo; SET NX, 2 días): si ya estaba, es
+//    una reentrega de Pipedrive y termina sin tocar nada, aunque los campos hayan cambiado. Una
+//    elección nueva del dueño trae otro `update_time`. Sin `update_time` no se envía al cliente.
 // 3. Lee los 15 campos por su nombre (fields.ts). Una opción que no está en las opciones guardadas
 //    refresca /dealFields una vez y se vuelve a leer.
 // 4. Persona y correo (readPersonContact), productos (products.ts), archivos (files.ts: la lista,
@@ -24,24 +27,26 @@
 //    campo «Despacho · Aviso enviado» y la deduplicación del relay.
 // 6. Plazo: 60 s de la función menos 10 s de margen = 50 s desde que llegó el webhook. Las
 //    lecturas tienen hasta el punto en que el relay todavía puede empezar (quedan 40 s); el relay
-//    (hasta 30 s) empieza solo si quedan al menos 40 s; las escrituras, lo que queda hasta los
-//    50 s; el ATENCIÓN, los 10 s de margen.
+//    (hasta 30 s) empieza solo si quedan al menos 40 s, revisado otra vez después de guardar
+//    `sending`; las escrituras, lo que queda hasta los 50 s (con menos de medio segundo no
+//    empiezan); el ATENCIÓN, los 10 s de margen menos 2 s para terminar.
 // 7. Toda salida con nota vacía el disparador después de escribirla, releyendo antes que siga con
 //    la opción procesada (si el dueño ya eligió otra, no se toca). Al enviar, un solo PUT con
 //    «Aviso enviado», el disparador vacío y la etapa «Despachado» del embudo del negocio (por
 //    nombre; sin esa etapa, solo la nota). El valor del negocio nunca se toca.
-// 8. Si el correo salió y Pipedrive no registró la nota o el PUT: correo ATENCIÓN a ventas@
-//    (notifySales) y una tarea al dueño (PIPEDRIVE_OWNER_USER_ID).
+// 8. Si el correo salió y Pipedrive no quedó al día (la nota, el PUT, la consulta de etapas o la
+//    relectura que vacía el disparador): correo ATENCIÓN a ventas@ (notifySales, con ventas@ como
+//    respuesta: nunca el correo del cliente) y una tarea al dueño (PIPEDRIVE_OWNER_USER_ID).
 //
 // Notas: texto interno para el dueño, escapado entero (la nota es HTML). Registros: una línea por
 // aviso con el id del negocio, la acción, los 8 primeros caracteres de la clave, el resultado y
 // los códigos de los problemas; nunca nombres, correos, teléfonos, nombres de archivo ni textos.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { escapeHtml } from '../html/escape.js';
 import { incrementCounter, redisJsonCommandWithTimeout } from '../idempotency/redis.js';
-import { notifySales } from '../notify/salesEmail.js';
+import { notifySales, salesInbox } from '../notify/salesEmail.js';
 import { relayReason, sendShippingNotice, type ShippingAttachment, type ShippingRelayResult } from '../notify/shippingRelay.js';
 import { createAttentionTask } from '../pipedrive/activities.js';
 import { pipedriveGetBinary } from '../pipedrive/client.js';
@@ -85,6 +90,10 @@ const PIPEDRIVE_STEP_MS = 15_000;
 const REDIS_TIMEOUT_MS = 2_000;
 /** El ATENCIÓN y la tarea al dueño no esperan más que esto. */
 const ATTENTION_TIMEOUT_MS = 8_000;
+/** Lo que se deja al final de la función para soltar el candado y escribir el registro. */
+const FINISH_MARGIN_MS = 2_000;
+/** Con menos que esto hasta el plazo, una escritura en Pipedrive no empieza (podría quedar a medias). */
+const MIN_WRITE_MS = 500;
 
 export const NOTICE_LOCK_TTL_MS = 90_000;
 export const SENDING_TTL_S = 10 * 60;
@@ -92,6 +101,8 @@ export const SENT_TTL_S = 400 * 86_400;
 export const PREVIEW_MARK_TTL_S = 24 * 3_600;
 export const PREVIEW_LIMIT = 5;
 export const PREVIEW_WINDOW_S = 3_600;
+/** Identidad del evento: Pipedrive reintenta a los 3, 30 y 150 s; dos días sobran. */
+export const NOTICE_EVENT_TTL_S = 2 * 86_400;
 
 /** Etapa a la que pasa el negocio al enviar, buscada por nombre en su embudo. */
 export const DISPATCHED_STAGE_NAME = 'Despachado';
@@ -112,6 +123,15 @@ export const noticeLockKey = (dealId: number) => `aviso-despacho:lock:${dealId}`
 export const noticeStateKey = (key: string) => `aviso-despacho:v1:${key}`;
 export const previewMarkKey = (key: string) => `aviso-despacho:v1:vista-previa:${key}`;
 export const previewCountKey = (dealId: number) => `aviso-despacho:v1:vistas-previas:${dealId}`;
+/**
+ * Identidad del evento del disparador: hash del negocio, la opción elegida y el `update_time` del
+ * negocio que trae el cuerpo. No lleva `meta.id`: la guía de webhooks v2 lo define como «ID of the
+ * event triggering the webhook», pero no dice que se mantenga entre reintentos.
+ */
+export function noticeEventKey(dealId: number, optionId: number, updateTime: string): string {
+  const hash = createHash('sha256').update(`${dealId}|${optionId}|${updateTime}`).digest('hex');
+  return `aviso-despacho:v1:evento:${hash}`;
+}
 
 const COMPARE_AND_DELETE = `if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end`;
 
@@ -131,7 +151,7 @@ type NoticeState = { kind: 'none' } | { kind: 'sending' } | { kind: 'uncertain' 
 function parseState(raw: unknown): NoticeState {
   if (raw === null || raw === undefined) return { kind: 'none' };
   const value = String(raw);
-  if (value === 'sending') return { kind: 'sending' };
+  if (value === 'sending' || value.startsWith('sending:')) return { kind: 'sending' };
   if (value === 'uncertain') return { kind: 'uncertain' };
   if (value.startsWith('sent:')) {
     const at = new Date(value.slice(5));
@@ -151,10 +171,12 @@ export interface ShippingNoticeInput {
   triggerOptionId: number;
   /** Cuándo llegó el webhook (ms): de ahí sale el plazo. */
   startedAt: number;
+  /** `update_time` del negocio en el cuerpo del evento (webhookEvent.ts), o null si no vino. */
+  eventUpdateTime: string | null;
 }
 
 /**
- * Resultado (para el registro y las pruebas): `candado_tomado`, `disparador_cambio`,
+ * Resultado (para el registro y las pruebas): `candado_tomado`, `disparador_cambio`, `reentrega`,
  * `vista_previa_enviada`, `enviado`, `ya_enviado`, `datos_incompletos`, `reintentar`, …
  */
 export type NoticeOutcome = string;
@@ -163,6 +185,9 @@ interface Run {
   dealId: number;
   triggerKey: string;
   triggerOptionId: number;
+  eventUpdateTime: string | null;
+  /** Valor propio del candado y de `sending` (así solo se borra lo de esta ejecución). */
+  token: string;
   deadline: number;
   /** Último momento en que el relay todavía puede empezar. */
   relayCutoff: number;
@@ -178,6 +203,10 @@ const clampMs = (ms: number, max = PIPEDRIVE_STEP_MS) => Math.max(1, Math.min(ma
 const readBudget = (run: Run) => clampMs(run.relayCutoff - Date.now());
 /** Escrituras: hasta el plazo de 50 s. */
 const writeBudget = (run: Run) => clampMs(run.deadline - Date.now());
+/** ¿Queda plazo para empezar una escritura normal? */
+const canWrite = (run: Run) => run.deadline - Date.now() >= MIN_WRITE_MS;
+/** El ATENCIÓN y la tarea: lo que queda de la función menos lo necesario para terminar (hasta 8 s). */
+const attentionBudget = (run: Run) => clampMs(run.deadline + NOTICE_END_MARGIN_MS - FINISH_MARGIN_MS - Date.now(), ATTENTION_TIMEOUT_MS);
 
 /**
  * Procesa el aviso de despacho de un negocio. Nunca lanza: devuelve el resultado y deja una línea
@@ -185,10 +214,13 @@ const writeBudget = (run: Run) => clampMs(run.deadline - Date.now());
  */
 export async function processShippingNotice(input: ShippingNoticeInput): Promise<NoticeOutcome> {
   const deadline = noticeDeadline(input.startedAt);
+  const token = randomUUID();
   const run: Run = {
     dealId: input.dealId,
     triggerKey: input.triggerKey,
     triggerOptionId: input.triggerOptionId,
+    eventUpdateTime: input.eventUpdateTime,
+    token,
     deadline,
     relayCutoff: deadline - MIN_RELAY_WINDOW_MS,
     redisUp: true,
@@ -196,7 +228,6 @@ export async function processShippingNotice(input: ShippingNoticeInput): Promise
     key: null,
     facts: [],
   };
-  const token = randomUUID();
   const lock = await redis<string | null>('SET', noticeLockKey(input.dealId), token, 'NX', 'PX', NOTICE_LOCK_TTL_MS);
   if (lock.ok && lock.result !== 'OK') {
     logOutcome(run, 'candado_tomado');
@@ -321,6 +352,17 @@ const SENDING_NOTE = [
   `${SENT_CHECK} en 10 minutos; si no está, vuelve a elegir «${SHIPPING_OPTIONS.trigger.send}». Si ya había salido, el relay no lo repite.`,
 ];
 
+const NO_EVENT_TIME_NOTE = [
+  'Aviso de despacho NO enviado: el aviso de Pipedrive llegó sin la hora del cambio (update_time) y sin ella no se puede distinguir de un reintento de Pipedrive.',
+  `Avísale a Claude. Mientras tanto funciona «${SHIPPING_OPTIONS.trigger.preview}».`,
+];
+
+const TOO_MANY_FILES: ShippingProblem = {
+  field: null,
+  code: 'invalid',
+  message: 'El negocio tiene demasiados archivos para revisarlos todos (el aviso revisa hasta 500): no se puede saber si hay otro PDF o comprobante. Avísale a Claude.',
+};
+
 const DOMAIN_NOTE = [
   'Aviso de despacho NO enviado: el envío al cliente queda disponible después del cambio de dominio (los enlaces a las fichas tienen que ir a elights.cl).',
   `Mientras tanto funciona «${SHIPPING_OPTIONS.trigger.preview}».`,
@@ -409,25 +451,59 @@ function sentNote(args: {
 // ── Escrituras en Pipedrive ─────────────────────────────────────────────────
 
 async function writeNote(run: Run, lines: readonly string[]): Promise<boolean> {
+  if (!canWrite(run)) {
+    run.facts.push('nota=sin_plazo');
+    return false;
+  }
   const res = await createDealNote(run.dealId, escapeHtml(lines.join('\n')), writeBudget(run));
   run.facts.push(`nota=${res.ok ? 'ok' : 'fallo'}`);
   return res.ok;
 }
 
+/** Cómo quedó el PUT final, por separado: los campos de `extra` y el disparador. */
+interface FinalPutResult {
+  /** Los campos de `extra` quedaron guardados (sin `extra`, true). */
+  saved: boolean;
+  /**
+   * `vaciado`: en ese PUT. `otra_opcion`: el dueño ya eligió otra (o lo vació), verificado al
+   * releer; no se toca. `sin_vaciar`: no se pudo releer el negocio o el PUT no quedó.
+   */
+  trigger: 'vaciado' | 'otra_opcion' | 'sin_vaciar';
+}
+
 /**
  * Relee el negocio y arma el PUT final: `extra` siempre y el disparador en null solo si sigue con
- * la opción procesada (si el dueño ya eligió otra, no se toca). Devuelve si el PUT quedó.
+ * la opción procesada (si el dueño ya eligió otra, no se toca). Sin plazo, no empieza.
  */
-async function finalPut(run: Run, extra: Record<string, unknown> = {}): Promise<boolean> {
+async function finalPut(run: Run, extra: Record<string, unknown> = {}): Promise<FinalPutResult> {
+  const nothingToSave = Object.keys(extra).length === 0;
+  if (!canWrite(run)) {
+    run.facts.push('put=sin_plazo');
+    return { saved: nothingToSave, trigger: 'sin_vaciar' };
+  }
   const fresh = await getDeal(run.dealId, writeBudget(run));
   const fields: Record<string, unknown> = { ...extra };
-  if (fresh.ok && optionIdOf(fresh.deal[run.triggerKey]) === run.triggerOptionId) fields[run.triggerKey] = null;
-  else run.facts.push(fresh.ok ? 'disparador=cambio' : 'disparador=sin_releer');
+  let trigger: FinalPutResult['trigger'];
+  if (fresh.ok === false) {
+    trigger = 'sin_vaciar';
+    run.facts.push('disparador=sin_releer');
+  } else if (optionIdOf(fresh.deal[run.triggerKey]) === run.triggerOptionId) {
+    fields[run.triggerKey] = null;
+    trigger = 'vaciado';
+  } else {
+    trigger = 'otra_opcion';
+    run.facts.push('disparador=cambio');
+  }
   if ('stage_id' in fields && fresh.ok && Number(fresh.deal.stage_id) === Number(fields.stage_id)) delete fields.stage_id;
-  if (Object.keys(fields).length === 0) return true;
+  if (Object.keys(fields).length === 0) return { saved: true, trigger };
+  const notEmptied = trigger === 'vaciado' ? 'sin_vaciar' : trigger;
+  if (!canWrite(run)) {
+    run.facts.push('put=sin_plazo');
+    return { saved: nothingToSave, trigger: notEmptied };
+  }
   const res = await putDealFields(run.dealId, fields, writeBudget(run));
   run.facts.push(`put=${res.ok ? 'ok' : 'fallo'}`);
-  return res.ok;
+  return res.ok ? { saved: true, trigger } : { saved: nothingToSave, trigger: notEmptied };
 }
 
 const LATE = 'no alcanzó el tiempo de la función para enviarlo';
@@ -460,16 +536,17 @@ interface AttentionArgs {
   /** Primera línea del correo (la que lee ventas@; el relay de hoy ignora el asunto). */
   headline: string;
   details: string[];
-  email: string;
   /** Tarea al dueño: solo si el correo salió y Pipedrive no lo registró. */
   task?: { personId: number | null; subject: string };
 }
 
 async function attention(run: Run, args: AttentionArgs): Promise<void> {
   const body = [args.headline, '', `Negocio ${run.dealId} en Pipedrive.`, ...args.details].join('\n');
+  // Aviso interno: responde a ventas@ (el buzón que ya usa el sistema), nunca al cliente.
   const mail = notifySales(
-    { modo: 'Aviso de despacho', nombre: `Negocio ${run.dealId}`, email: args.email, telefono: '-', cuerpo: body, asunto: `ATENCIÓN aviso de despacho, negocio ${run.dealId}` },
+    { modo: 'Aviso de despacho', nombre: `Negocio ${run.dealId}`, email: salesInbox(), telefono: '-', cuerpo: body, asunto: `ATENCIÓN aviso de despacho, negocio ${run.dealId}` },
     `${LOG} ATENCIÓN negocio=${run.dealId}`,
+    { timeoutMs: attentionBudget(run) },
   );
   const userId = Number(process.env.PIPEDRIVE_OWNER_USER_ID);
   const task = args.task && Number.isSafeInteger(userId) && userId > 0
@@ -479,7 +556,7 @@ async function attention(run: Run, args: AttentionArgs): Promise<void> {
         userId,
         subject: args.task.subject,
         note: body,
-        timeoutMs: clampMs(run.deadline + NOTICE_END_MARGIN_MS - 1_000 - Date.now(), ATTENTION_TIMEOUT_MS),
+        timeoutMs: attentionBudget(run),
       })
     : Promise.resolve(null);
   const [sent, created] = await Promise.all([mail, task]);
@@ -512,6 +589,19 @@ async function execute(run: Run): Promise<NoticeOutcome> {
   const deal = dealRes.deal as Readonly<Record<string, unknown>>;
   if (optionIdOf(deal[run.triggerKey]) !== run.triggerOptionId) return 'disparador_cambio';
 
+  // La identidad del evento, bajo el candado y antes de cualquier nota o envío. Ya reservada: es una
+  // reentrega de Pipedrive (aunque diga intento 1: el primero pudo no correr) y no se hace nada más.
+  // Sin Redis no hay identidad: solo la vista previa puede salir.
+  if (run.eventUpdateTime === null) run.facts.push('evento=sin_hora');
+  else if (run.redisUp) {
+    const reserved = await redis<string | null>('SET', noticeEventKey(run.dealId, run.triggerOptionId, run.eventUpdateTime), '1', 'NX', 'EX', NOTICE_EVENT_TTL_S);
+    if (reserved.ok && reserved.result !== 'OK') return 'reentrega';
+    if (!reserved.ok) {
+      run.redisUp = false;
+      run.facts.push('evento=sin_reservar');
+    }
+  }
+
   // 3. Los campos por nombre.
   const map = await loadFieldMap(readBudget(run));
   if (map.status === 'unavailable') return retryLater(run, 'Pipedrive no entregó la lista de campos');
@@ -538,6 +628,7 @@ async function execute(run: Run): Promise<NoticeOutcome> {
   // Enviar al cliente: antes que nada, el dominio y Redis (sin ellos no sale, falten datos o no).
   if (run.action === 'send') {
     if (SITE_URL !== PUBLIC_SITE_URL) return stop(run, DOMAIN_NOTE, 'dominio');
+    if (run.eventUpdateTime === null) return stop(run, NO_EVENT_TIME_NOTE, 'sin_hora_evento');
     if (!run.redisUp) return retryLater(run, 'el registro contra el envío doble (Redis) no respondió');
   }
   if (read.ok === false) return stopWithProblems(run, read.problems);
@@ -642,6 +733,8 @@ async function prepare(
   // Archivos: la lista y la elección (sin descargar).
   const list = await listDealFiles<DealFileMeta>(run.dealId, { deadline: Date.now() + readBudget(run) });
   if (list.ok === false) return retryLater(run, 'Pipedrive no entregó la lista de archivos del negocio');
+  // Elegir sobre una lista cortada podría pasar por alto otro PDF con el mismo número.
+  if (!list.complete) return stopWithProblems(run, [...problems, TOO_MANY_FILES]);
   const selection = selectShippingFiles(list.files, { document: data.document, lastNoticeAt: data.lastNotice?.at ?? null, now: new Date() });
   if (selection.ok === false) problems.push(...selection.problems);
   if (problems.length || selection.ok === false) return stopWithProblems(run, problems);
@@ -745,15 +838,23 @@ async function sendPreview(run: Run, p: Prepared): Promise<NoticeOutcome> {
   const text = refusedText(result);
   await writeNote(run, [`Vista previa NO enviada: ${text}. Se avisó a ventas@.`, `Cuando esté resuelto, vuelve a elegir «${SHIPPING_OPTIONS.trigger.preview}» en ${TRIGGER}.`]);
   await finalPut(run);
-  await attention(run, { headline: `ATENCIÓN: la vista previa del aviso de despacho NO salió: ${text}.`, details: [], email: p.email });
+  await attention(run, { headline: `ATENCIÓN: la vista previa del aviso de despacho NO salió: ${text}.`, details: [] });
   return 'vista_previa_rechazada';
 }
 
 async function sendToCustomer(run: Run, p: Prepared): Promise<NoticeOutcome> {
   const stateKey = noticeStateKey(p.key);
-  // Capa 1: «enviando», 10 minutos. Sin Redis no sale.
-  const marked = await redis<string>('SET', stateKey, 'sending', 'EX', SENDING_TTL_S);
+  // Capa 1: «enviando», 10 minutos, con el valor propio de esta ejecución. Sin Redis no sale.
+  const sending = `sending:${run.token}`;
+  const marked = await redis<string>('SET', stateKey, sending, 'EX', SENDING_TTL_S);
   if (!marked.ok) return retryLater(run, 'el registro contra el envío doble (Redis) no respondió');
+  // Otra vez los 40 s, ya con `sending` guardado: si esa escritura demoró, el relay no empieza y se
+  // retira la reserva (solo si sigue siendo la de esta ejecución).
+  if (Date.now() > run.relayCutoff) {
+    const removed = await redis<number>('EVAL', COMPARE_AND_DELETE, 1, stateKey, sending);
+    if (!removed.ok) run.facts.push('estado=sin_retirar');
+    return retryLater(run, LATE);
+  }
 
   const result = await sendShippingNotice(
     { action: 'despacho', key: p.key, to: p.email, subject: p.notice.subject, html: p.notice.html, text: p.notice.text, attachments: relayAttachments(p.attachments) },
@@ -771,49 +872,65 @@ async function sendToCustomer(run: Run, p: Prepared): Promise<NoticeOutcome> {
   }
 
   // quota, rejected o config: no salió. Se quita «enviando» (si sigue siendo el de este intento).
-  await redis<number>('EVAL', COMPARE_AND_DELETE, 1, stateKey, 'sending');
+  await redis<number>('EVAL', COMPARE_AND_DELETE, 1, stateKey, sending);
   const text = refusedText(result);
   await writeNote(run, [`Aviso de despacho NO enviado: ${text}. Se avisó a ventas@.`, `Cuando esté resuelto, vuelve a elegir «${SHIPPING_OPTIONS.trigger.send}» en ${TRIGGER}.`]);
   await finalPut(run);
   await attention(run, {
     headline: `ATENCIÓN: el aviso de despacho NO salió: ${text}.`,
     details: [`${p.data.carrier.label} ${p.data.order}, ${documentTitle(p.data.document)}.`],
-    email: p.email,
   });
   return 'rechazado';
 }
 
-/** El correo salió: Redis, la nota completa y un solo PUT; si Pipedrive falla, el ATENCIÓN. */
+/** «a», «a y b», «a, b y c». */
+function joinList(items: readonly string[]): string {
+  return items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} y ${items.at(-1)}`;
+}
+
+/**
+ * El correo salió: Redis, la nota completa y un solo PUT. Si algo de eso no quedó (la nota, los
+ * campos, la etapa porque /stages falló, o el disparador porque no se pudo releer el negocio), el
+ * ATENCIÓN. Una etapa que el embudo no tiene, o un disparador que el dueño ya cambió, son normales.
+ */
 async function recordSent(run: Run, p: Prepared, at: Date): Promise<NoticeOutcome> {
   const saved = await redis<string>('SET', noticeStateKey(p.key), `sent:${at.toISOString()}`, 'EX', SENT_TTL_S);
   if (!saved.ok) run.facts.push('estado=sin_guardar');
 
   const pipelineId = Number(p.deal.pipeline_id);
-  const stage = await findStageByName(pipelineId, DISPATCHED_STAGE_NAME, { timeoutMs: writeBudget(run) });
+  const stage = canWrite(run)
+    ? await findStageByName(pipelineId, DISPATCHED_STAGE_NAME, { timeoutMs: writeBudget(run) })
+    : ({ status: 'unavailable' } as const);
   run.facts.push(`etapa=${stage.status}`);
   const stageLine =
     stage.status === 'ok'
       ? `Etapa: «${DISPATCHED_STAGE_NAME}».`
       : stage.status === 'unavailable'
         ? `Etapa: sin cambio (Pipedrive no entregó las etapas del embudo).`
-        : `Etapa: sin cambio (este embudo no tiene una etapa «${DISPATCHED_STAGE_NAME}»).`;
+        : stage.status === 'duplicate'
+          ? `Etapa: sin cambio (este embudo tiene más de una etapa «${DISPATCHED_STAGE_NAME}»).`
+          : `Etapa: sin cambio (este embudo no tiene una etapa «${DISPATCHED_STAGE_NAME}»).`;
 
   const noted = await writeNote(run, sentNote({ at, data: p.data, products: p.products, source: p.source, attachments: p.attachments, stage: stageLine, key: p.key }));
   const extra: Record<string, unknown> = { [p.fields.sentLog.key]: sentLogValue(at, p.data) };
   if (stage.status === 'ok') extra.stage_id = stage.stageId;
   const put = await finalPut(run, extra);
 
-  if (!noted || !put) {
-    const missing = [!noted ? 'la nota del aviso' : null, !put ? `«${SHIPPING_FIELD_NAMES.sentLog}», la etapa y vaciar ${TRIGGER}` : null].filter(Boolean);
+  const missing: string[] = [];
+  if (!noted) missing.push('la nota del aviso');
+  if (!put.saved) missing.push(`«${SHIPPING_FIELD_NAMES.sentLog}»`);
+  if (stage.status === 'ok' && !put.saved) missing.push(`la etapa «${DISPATCHED_STAGE_NAME}»`);
+  if (stage.status === 'unavailable') missing.push(`la etapa «${DISPATCHED_STAGE_NAME}» (si el embudo la tiene)`);
+  if (put.trigger === 'sin_vaciar') missing.push(`vaciar ${TRIGGER}`);
+  if (missing.length) {
     await attention(run, {
       headline: 'ATENCIÓN: el aviso salió, pero no quedó en Pipedrive.',
       details: [
         `Enviado el ${chileStamp(at)} (hora de Chile): ${p.data.carrier.label} ${p.data.order}, ${documentTitle(p.data.document)}.`,
-        `Falta registrar a mano: ${missing.join(' y ')}.`,
-        `En «${SHIPPING_FIELD_NAMES.sentLog}» va: ${sentLogValue(at, p.data)}`,
+        `Falta registrar a mano: ${joinList(missing)}.`,
+        ...(put.saved ? [] : [`En «${SHIPPING_FIELD_NAMES.sentLog}» va: ${sentLogValue(at, p.data)}`]),
         'No vuelvas a elegir «Enviar al cliente» para esta orden: el correo ya salió.',
       ],
-      email: p.email,
       task: { personId: p.data.personId, subject: 'ATENCIÓN aviso de despacho: registrar el envío en el negocio' },
     });
     return 'enviado_sin_registro';

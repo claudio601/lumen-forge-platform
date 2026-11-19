@@ -11,8 +11,9 @@
 //     `data.custom_fields`; uno de opción única llega como `{ type: "enum", id }`, sin la etiqueta.
 //
 // La forma común no guarda texto de los campos (nombres, correos, montos…): solo ids, el estado, la
-// etapa y, de cada campo personalizado, si está vacío, si es una opción (con su id) u otro valor.
-// Así nada de lo que se normaliza puede terminar en un registro con datos del cliente.
+// etapa, la hora de la modificación (`update_time`) y, de cada campo personalizado, si está vacío, si
+// es una opción (con su id) u otro valor. Así nada de lo que se normaliza puede terminar en un
+// registro con datos del cliente.
 
 export type WebhookVersion = 'v1' | 'v2';
 
@@ -51,6 +52,13 @@ export interface NormalizedWebhookEvent {
   isBulk: boolean;
   /** v1 `retry` (0-3) + 1; v2 `meta.attempt` (1-4). */
   attempt: number | null;
+  /**
+   * Hora de la modificación que originó el evento: v1 `current.update_time`, v2 `data.update_time`
+   * (guía de migración a v2: «2022-11-24T15:11:55Z»). Un reintento de Pipedrive reenvía el mismo
+   * cuerpo, así que la trae igual; una elección nueva del dueño, otra. El aviso de despacho la usa
+   * para reconocer las reentregas. null si no viene o no tiene la forma de una fecha.
+   */
+  updateTime: string | null;
   /** Estado actual (v1 `current`, v2 `data`); null si no viene (p. ej., un borrado). */
   current: DealSnapshot | null;
   /** Solo si la etapa cambió en este evento. */
@@ -90,6 +98,13 @@ function toId(value: unknown): number | null {
 /** La acción del cuerpo solo si es texto conocido: nunca se convierte un objeto a texto. */
 function mapAction(table: Record<string, WebhookAction>, value: unknown): WebhookAction {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(table, value) ? table[value] : 'other';
+}
+
+/** Fecha y hora de Pipedrive (v1 «2026-11-18 15:00:00», v2 «2026-11-18T15:00:00Z»), tal cual. */
+const UPDATE_TIME = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})?$/;
+
+function toUpdateTime(value: unknown): string | null {
+  return typeof value === 'string' && UPDATE_TIME.test(value.trim()) ? value.trim() : null;
 }
 
 function toStatus(value: unknown): string | null {
@@ -191,6 +206,7 @@ function normalizeV1(body: Obj, meta: Obj): NormalizedWebhookEvent {
     changeSource: changeSource(meta),
     isBulk: isTrue(meta.is_bulk_update),
     attempt: retry === null ? null : retry + 1,
+    updateTime: toUpdateTime(current?.update_time),
     current: now,
     stageChange: now && before && now.stageId !== before.stageId ? { from: before.stageId, to: now.stageId } : null,
     statusChange: now && before && now.status !== before.status ? { from: before.status, to: now.status } : null,
@@ -226,6 +242,7 @@ function normalizeV2(body: Obj, meta: Obj): NormalizedWebhookEvent {
     changeSource: changeSource(meta),
     isBulk: isTrue(meta.is_bulk_edit),
     attempt,
+    updateTime: toUpdateTime(data?.update_time),
     current: now,
     stageChange: now && stageFrom !== undefined && stageFrom !== now.stageId ? { from: stageFrom, to: now.stageId } : null,
     statusChange: now && statusFrom !== undefined && statusFrom !== now.status ? { from: statusFrom, to: now.status } : null,

@@ -119,6 +119,21 @@ describe('normalizeWebhookBody: v2', () => {
   });
 });
 
+describe('normalizeWebhookBody: hora de la modificación (update_time)', () => {
+  it('v2 data.update_time y v1 current.update_time, tal cual', () => {
+    expect(normalizeWebhookBody(v2({ data: { update_time: '2026-11-18T15:00:07Z' } }))?.updateTime).toBe('2026-11-18T15:00:07Z');
+    expect(normalizeWebhookBody(v1({ update_time: '2026-11-18 15:00:07' }, {}))?.updateTime).toBe('2026-11-18 15:00:07');
+  });
+
+  it('sin update_time, null o algo que no es una fecha: null', () => {
+    expect(normalizeWebhookBody(v2())?.updateTime).toBeNull();
+    for (const value of [null, '', 'ayer', 1763478007, { at: '2026-11-18T15:00:07Z' }, '2026-11-18']) {
+      expect(normalizeWebhookBody(v2({ data: { update_time: value } }))?.updateTime).toBeNull();
+      expect(normalizeWebhookBody(v1({ update_time: value }, {}))?.updateTime).toBeNull();
+    }
+  });
+});
+
 describe('normalizeWebhookBody: v1', () => {
   it('lee meta.object, meta.id, updated → change, is_bulk_update y retry', () => {
     const event = normalizeWebhookBody(v1({}, {}, { is_bulk_update: true }));

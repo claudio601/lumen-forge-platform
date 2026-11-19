@@ -163,10 +163,10 @@ describe('topes por file_size, antes de descargar', () => {
   it('3 MB el PDF y 5 MB la foto', () => {
     expect(select([file('factura 1234.pdf', { file_size: MAX_DOCUMENT_BYTES })]).ok).toBe(true);
     expect(messages(select([file('factura 1234.pdf', { file_size: MAX_DOCUMENT_BYTES + 1 })]))).toEqual([
-      'El PDF «factura 1234.pdf» pesa 3 MB: el máximo es 3 MB.',
+      'El PDF «factura 1234.pdf» supera el máximo de 3 MB (pesa 3.145.729 bytes).',
     ]);
     expect(messages(select([file('factura 1234.pdf'), file('voucher.jpg', { file_size: 6 * 1024 * 1024 })]))).toEqual([
-      'La foto del comprobante «voucher.jpg» pesa 6 MB: el máximo es 5 MB.',
+      'La foto del comprobante «voucher.jpg» supera el máximo de 5 MB (pesa 6.291.456 bytes).',
     ]);
     expect(select([file('factura 1234.pdf'), file('voucher.jpg', { file_size: MAX_VOUCHER_BYTES })]).ok).toBe(true);
   });

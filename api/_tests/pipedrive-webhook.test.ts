@@ -81,6 +81,7 @@ function v2(overrides: { meta?: Record<string, unknown>; data?: Record<string, u
     },
     data: {
       id: 501, title: 'PRUEBA Juana Pérez', status: 'open', stage_id: 11, pipeline_id: PIPELINE,
+      update_time: '2026-11-18T15:00:00Z',
       person_id: { id: 61, name: 'Juana Pérez', email: [{ value: 'juana.prueba@example.com' }] },
       value: 123456, currency: 'CLP',
       custom_fields: { [OTHER]: { type: 'varchar', value: 'Calle Falsa 123' } },
@@ -91,7 +92,7 @@ function v2(overrides: { meta?: Record<string, unknown>; data?: Record<string, u
 }
 
 function v1(current: Record<string, unknown>, previous: Record<string, unknown> | null, meta: Record<string, unknown> = {}) {
-  const base = { id: 501, title: 'PRUEBA Juana Pérez', status: 'open', stage_id: 11, pipeline_id: PIPELINE, person_name: 'Juana Pérez', value: 123456, [OTHER]: 'Calle Falsa 123' };
+  const base = { id: 501, title: 'PRUEBA Juana Pérez', status: 'open', stage_id: 11, pipeline_id: PIPELINE, update_time: '2026-11-18 15:00:00', person_name: 'Juana Pérez', value: 123456, [OTHER]: 'Calle Falsa 123' };
   return {
     v: 1, event: 'updated.deal', retry: 0,
     current: { ...base, ...current },
@@ -355,8 +356,8 @@ describe('lo que se descarta (siempre con 200, para que Pipedrive no reintente n
 });
 
 describe('aviso de despacho: el disparador llama a processShippingNotice', () => {
-  const fired = (optionId = 71) => expect(vi.mocked(processShippingNotice)).toHaveBeenCalledWith({
-    dealId: 501, triggerKey: TRIGGER, triggerOptionId: optionId, startedAt: expect.any(Number),
+  const fired = (optionId = 71, eventUpdateTime: string | null = '2026-11-18T15:00:00Z') => expect(vi.mocked(processShippingNotice)).toHaveBeenCalledWith({
+    dealId: 501, triggerKey: TRIGGER, triggerOptionId: optionId, startedAt: expect.any(Number), eventUpdateTime,
   });
   const notFired = () => expect(vi.mocked(processShippingNotice)).not.toHaveBeenCalled();
 
@@ -402,9 +403,19 @@ describe('aviso de despacho: el disparador llama a processShippingNotice', () =>
     expect(allLogs()).toContain('aviso=sin_cambio');
   });
 
+  it('el update_time del cuerpo va al aviso (identidad del evento); sin él, null', async () => {
+    await call(triggerChosen());
+    fired(71, '2026-11-18T15:00:00Z');
+    vi.mocked(processShippingNotice).mockClear();
+    const body = triggerChosen();
+    delete (body.data as Record<string, unknown>).update_time;
+    await call(body);
+    fired(71, null);
+  });
+
   it('v1: elegido llega al aviso; ya puesto con otro campo editado y vaciado, no', async () => {
     await call(v1({ [TRIGGER]: '71' }, { [TRIGGER]: null }));
-    fired();
+    fired(71, '2026-11-18 15:00:00');
     vi.mocked(processShippingNotice).mockClear();
     logs.length = 0;
     await call(v1({ [TRIGGER]: '72', [OTHER]: 'Calle Falsa 456' }, { [TRIGGER]: '72', [OTHER]: 'Calle Falsa 123' }));

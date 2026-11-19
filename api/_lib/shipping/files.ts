@@ -73,6 +73,8 @@ const NOTICE_VOUCHER_NAME = /^Comprobante-[A-Za-z0-9-]+\.(?:jpg|png)$/;
 
 const problem = (message: string): ShippingProblem => ({ field: null, code: 'invalid', message });
 const mb = (bytes: number) => `${String(Math.round((bytes / (1024 * 1024)) * 10) / 10).replace('.', ',')} MB`;
+/** Bytes exactos con punto de miles («3.145.729 bytes»): el MB redondeado engaña justo en el tope. */
+const exactBytes = (bytes: number) => `${String(bytes).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} bytes`;
 const list = (files: readonly { fileName: string }[]) => files.map((f) => `«${f.fileName}»`).join(', ');
 
 /** 'aaaa-mm-dd hh:mm:ss' (UTC, Pipedrive) → ms, o null. */
@@ -162,7 +164,7 @@ export function selectShippingFiles(
   const capped = (c: Candidate | null, max: number, what: string) => {
     if (!c) return;
     if (c.size === null) problems.push(problem(`No se pudo leer el tamaño de ${what} «${c.fileName}».`));
-    else if (c.size > max) problems.push(problem(`${what.charAt(0).toUpperCase()}${what.slice(1)} «${c.fileName}» pesa ${mb(c.size)}: el máximo es ${mb(max)}.`));
+    else if (c.size > max) problems.push(problem(`${what.charAt(0).toUpperCase()}${what.slice(1)} «${c.fileName}» supera el máximo de ${mb(max)} (pesa ${exactBytes(c.size)}).`));
   };
   const before = problems.length;
   capped(doc, MAX_DOCUMENT_BYTES, 'el PDF');
@@ -170,7 +172,7 @@ export function selectShippingFiles(
   // Hoy 3 + 5 = 8 MB: el total solo se pasa si cambian los topes de cada uno.
   const total = (doc?.size ?? 0) + (voucher?.size ?? 0);
   if (problems.length === before && total > MAX_TOTAL_BYTES) {
-    problems.push(problem(`El PDF y la foto suman ${mb(total)}: el máximo es ${mb(MAX_TOTAL_BYTES)}.`));
+    problems.push(problem(`El PDF y la foto juntos superan el máximo de ${mb(MAX_TOTAL_BYTES)} (suman ${exactBytes(total)}).`));
   }
 
   if (problems.length || !doc) return { ok: false, problems };
