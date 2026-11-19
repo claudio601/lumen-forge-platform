@@ -1,5 +1,6 @@
 // api/_lib/shipping/files.test.ts
-// Archivos del aviso de despacho (spec Nivel 2, §4.3 y §10): 0, 1 o 2 PDF, el número como entero
+// Archivos del aviso de despacho (spec Nivel 2, §4.3 y §10; desde el 19-11-2026 el PDF es opcional y
+// la foto del comprobante obligatoria): 0, 1 o 2 PDF, el número como entero
 // en el nombre, factura y guía de despacho, tipo por bytes, topes por file_size antes de
 // descargar, «después del último aviso» el mismo día, ventana de 7 días, 2 fotos candidatas,
 // archivos inactivos, remotos, incrustados o de correos, y los nombres que pone el aviso.
@@ -60,35 +61,30 @@ describe('el número del documento en el nombre', () => {
   });
 });
 
-describe('el PDF del documento', () => {
-  it('uno solo, aunque no lleve el número', () => {
-    const r = select([file('documento.pdf')]);
-    expect(r.ok && r.document.fileName).toBe('documento.pdf');
-    expect(r.ok && r.voucher).toBeNull();
+describe('el PDF del documento (opcional desde el 19-11-2026: la factura se envía antes del despacho)', () => {
+  it('sin PDF sale igual, solo con la foto del comprobante', () => {
+    const r = select([file('comprobante.jpg')]);
+    expect(r.ok && [r.document, r.voucher.fileName]).toEqual([null, 'comprobante.jpg']);
   });
 
-  it('sin PDF, el aviso no sale', () => {
-    expect(messages(select([]))).toEqual([
-      'Falta el PDF de la factura N° 1234: adjúntalo en Archivos del negocio (cuenta solo uno agregado en los últimos 7 días; no cuentan los adjuntos de correos).',
-    ]);
+  it('un PDF sin el número no se adjunta: puede ser un adjunto del cliente de /cotizador', () => {
+    const r = select([file('documento.pdf'), file('plano.pdf'), file('comprobante.jpg')]);
+    expect(r.ok && r.document).toBeNull();
   });
 
-  it('con 2 PDF gana el que lleva el número', () => {
-    const r = select([file('cotizacion-2026-11-12.pdf'), file('factura_1234.pdf')]);
-    expect(r.ok && r.document.fileName).toBe('factura_1234.pdf');
+  it('se adjunta el que lleva el número en el nombre', () => {
+    const r = select([file('cotizacion-2026-11-12.pdf'), file('factura_1234.pdf'), file('comprobante.jpg')]);
+    expect(r.ok && r.document?.fileName).toBe('factura_1234.pdf');
   });
 
-  it('con 2 PDF sin el número, o 2 con el número, no sale y los nombra', () => {
-    expect(messages(select([file('a.pdf'), file('b.pdf')]))).toEqual([
-      'Hay 2 PDF y ninguno lleva el N° 1234 en el nombre («a.pdf», «b.pdf»): deja solo el de la factura N° 1234 o ponle el número en el nombre.',
-    ]);
-    expect(messages(select([file('1234.pdf'), file('factura 1234 copia.pdf')]))[0]).toMatch(/^Hay 2 PDF con el N° 1234/);
+  it('2 con el número: no sale y los nombra', () => {
+    expect(messages(select([file('1234.pdf'), file('factura 1234 copia.pdf'), file('comprobante.jpg')]))[0]).toMatch(/^Hay 2 PDF con el N° 1234/);
   });
 
-  it('guía de despacho: la misma regla, con su nombre en los mensajes', () => {
-    const r = select([file('cotizacion.pdf'), file('guia 291.pdf')], { document: GUIA });
-    expect(r.ok && r.document.fileName).toBe('guia 291.pdf');
-    expect(messages(select([], { document: GUIA }))[0]).toMatch(/^Falta el PDF de la guía de despacho N° 291/);
+  it('guía de despacho: la misma regla', () => {
+    const r = select([file('cotizacion.pdf'), file('guia 291.pdf'), file('voucher.jpg')], { document: GUIA });
+    expect(r.ok && r.document?.fileName).toBe('guia 291.pdf');
+    expect(messages(select([file('guia 291.pdf'), file('guia-291 (1).pdf'), file('voucher.jpg')], { document: GUIA }))[0]).toMatch(/deja solo el de la guía de despacho N° 291\.$/);
   });
 });
 
@@ -100,43 +96,42 @@ describe('qué archivos cuentan', () => {
       file('firma.png', { inline_flag: true }),
       file('factura 1234 correo.pdf', { mail_message_id: 'abc123' }),
       file('voucher correo.jpg', { mail_message_id: 987 }),
-      file('factura-ok.pdf'),
+      file('factura-ok-1234.pdf'),
+      file('comprobante.jpg'),
     ]);
-    expect(r.ok && [r.document.fileName, r.voucher]).toEqual(['factura-ok.pdf', null]);
+    expect(r.ok && [r.document?.fileName, r.voucher.fileName]).toEqual(['factura-ok-1234.pdf', 'comprobante.jpg']);
   });
 
   it('(prueba real, 19-11) el nombre es `name`: `file_name` es la clave del almacenamiento, sin extensión', () => {
     const r = select([file('factura-1234.pdf'), file('comprobante-starken.jpg')]);
-    expect(r.ok && [r.document.fileName, r.voucher?.fileName]).toEqual(['factura-1234.pdf', 'comprobante-starken.jpg']);
+    expect(r.ok && [r.document?.fileName, r.voucher.fileName]).toEqual(['factura-1234.pdf', 'comprobante-starken.jpg']);
     // Sin `name`, el de `file_name` (respaldo).
-    const legacy = select([{ ...file('x'), name: undefined, file_name: 'factura 1234.pdf' }]);
-    expect(legacy.ok && legacy.document.fileName).toBe('factura 1234.pdf');
+    const legacy = select([{ ...file('x'), name: undefined, file_name: 'factura 1234.pdf' }, file('comprobante.jpg')]);
+    expect(legacy.ok && legacy.document?.fileName).toBe('factura 1234.pdf');
   });
 
-  it('(prueba real, 19-11) un PDF o una foto que quedó en Google Drive se nombra, en vez de «falta el PDF»', () => {
+  it('(prueba real, 19-11) un PDF o una foto que quedó en Google Drive se nombra, en vez de enviar sin él', () => {
     const drive = { remote_location: 'googledocs' };
-    expect(messages(select([file('factura-1234.pdf', drive)]))).toEqual([
-      'El archivo «factura-1234.pdf» quedó guardado en Google Drive y el aviso no lo puede descargar: súbelo de nuevo al negocio con Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos), o avísale a Claude.',
-    ]);
-    // El comprobante es opcional, pero si el dueño lo subió y quedó en Drive, el aviso no sale sin él.
-    expect(messages(select([file('factura-1234.pdf'), file('comprobante.jpg', drive)]))).toEqual([
-      'El archivo «comprobante.jpg» quedó guardado en Google Drive y el aviso no lo puede descargar: súbelo de nuevo al negocio con Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos), o avísale a Claude.',
-    ]);
+    const driveMessage = (name: string) =>
+      `El archivo «${name}» quedó guardado en Google Drive y el aviso no lo puede descargar: súbelo de nuevo al negocio con Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos), o avísale a Claude.`;
+    // El PDF es opcional, pero si el dueño subió el de la factura y quedó en Drive, el aviso no sale sin él.
+    expect(messages(select([file('factura-1234.pdf', drive), file('comprobante.jpg')]))).toEqual([driveMessage('factura-1234.pdf')]);
+    expect(messages(select([file('factura-1234.pdf'), file('comprobante.jpg', drive)]))).toEqual([driveMessage('comprobante.jpg')]);
     // Si en Pipedrive hay uno que sirve, el de Drive no importa; tampoco los de Drive viejos o de un correo.
     const ok = select([file('factura-1234.pdf'), file('factura-1234 drive.pdf', drive), file('voucher.jpg'), file('voucher drive.jpg', drive)]);
-    expect(ok.ok && [ok.document.fileName, ok.voucher?.fileName]).toEqual(['factura-1234.pdf', 'voucher.jpg']);
-    expect(messages(select([file('viejo.pdf', { ...drive, add_time: '2026-11-08 12:00:00' })]))[0]).toMatch(/^Falta el PDF/);
+    expect(ok.ok && [ok.document?.fileName, ok.voucher.fileName]).toEqual(['factura-1234.pdf', 'voucher.jpg']);
+    expect(messages(select([file('viejo.jpg', { ...drive, add_time: '2026-11-08 12:00:00' })]))[0]).toMatch(/^Falta la foto del comprobante/);
   });
 
-  it('se ignoran los nombres que pone el aviso (factura y guía)', () => {
-    const r = select([file('Factura-1234.pdf'), file('Guia-de-despacho-291.pdf'), file('Comprobante-Starken-123456789.jpg'), file('nuevo.pdf')]);
-    expect(r.ok && [r.document.fileName, r.voucher]).toEqual(['nuevo.pdf', null]);
+  it('se ignoran los nombres que pone el aviso (factura, guía y comprobante)', () => {
+    const r = select([file('Factura-1234.pdf'), file('Guia-de-despacho-291.pdf'), file('Comprobante-Starken-123456789.jpg'), file('nuevo 1234.pdf'), file('comprobante nuevo.jpg')]);
+    expect(r.ok && [r.document?.fileName, r.voucher.fileName]).toEqual(['nuevo 1234.pdf', 'comprobante nuevo.jpg']);
   });
 
   it('ventana de 7 días: los adjuntos de una solicitud PY- de hace 10 días no cuentan', () => {
     const r = select([file('plano-cliente.pdf', { add_time: '2026-11-08 12:00:00' }), file('foto-cliente.jpg', { add_time: '2026-11-08 12:00:00' })]);
     expect(r.ok).toBe(false);
-    expect(select([file('reciente.pdf', { add_time: '2026-11-11 17:06:00' })]).ok).toBe(true);
+    expect(select([file('reciente.jpg', { add_time: '2026-11-11 17:06:00' })]).ok).toBe(true);
   });
 
   it('después del último aviso, el mismo día: lo del minuto del aviso o antes no cuenta', () => {
@@ -150,25 +145,31 @@ describe('qué archivos cuentan', () => {
       file('voucher-2.jpg', { add_time: '2026-11-18 19:31:00' }),
     ];
     const r = selectShippingFiles(files, { document: FACTURA, lastNoticeAt, now });
-    expect(r.ok && [r.document.fileName, r.voucher?.fileName]).toEqual(['factura 1234.pdf', 'voucher-2.jpg']);
+    expect(r.ok && [r.document?.fileName, r.voucher.fileName]).toEqual(['factura 1234.pdf', 'voucher-2.jpg']);
     const onlyOld = selectShippingFiles(files.slice(0, 2), { document: FACTURA, lastNoticeAt, now });
-    expect(onlyOld.ok === false && onlyOld.problems[0].message).toMatch(/cuenta solo uno agregado después del último aviso/);
+    expect(onlyOld.ok === false && onlyOld.problems[0].message).toMatch(/cuenta solo una agregada después del último aviso/);
   });
 
   it('un archivo sin fecha o sin id no cuenta', () => {
-    expect(select([file('factura 1234.pdf', { add_time: 'ayer' }), file('x.pdf', { id: null })]).ok).toBe(false);
+    expect(select([file('comprobante.jpg', { add_time: 'ayer' }), file('voucher.jpg', { id: null })]).ok).toBe(false);
   });
 });
 
-describe('la foto del comprobante', () => {
-  it('opcional; una sola foto, aunque no diga comprobante', () => {
+describe('la foto del comprobante (obligatoria desde el 19-11-2026)', () => {
+  it('sin foto, el aviso no sale', () => {
+    expect(messages(select([file('factura 1234.pdf')]))).toEqual([
+      'Falta la foto del comprobante del operador: súbela en JPG o PNG a Archivos del negocio (cuenta solo una agregada en los últimos 7 días; no cuentan los adjuntos de correos).',
+    ]);
+  });
+
+  it('una sola foto, aunque no diga comprobante', () => {
     const r = select([file('factura 1234.pdf'), file('IMG_2041.jpg')]);
-    expect(r.ok && r.voucher?.fileName).toBe('IMG_2041.jpg');
+    expect(r.ok && r.voucher.fileName).toBe('IMG_2041.jpg');
   });
 
   it('gana la que dice voucher o comprobante', () => {
     const r = select([file('factura 1234.pdf'), file('IMG_2041.jpg'), file('Voucher Starken.PNG')]);
-    expect(r.ok && r.voucher?.fileName).toBe('Voucher Starken.PNG');
+    expect(r.ok && r.voucher.fileName).toBe('Voucher Starken.PNG');
   });
 
   it('2 fotos candidatas: no sale (no se adivina)', () => {
@@ -178,7 +179,7 @@ describe('la foto del comprobante', () => {
     expect(messages(select([file('factura 1234.pdf'), file('comprobante 1.jpg'), file('voucher 2.png')]))[0]).toMatch(/^Hay 2 fotos de comprobante/);
   });
 
-  it('HEIC no se acepta', () => {
+  it('HEIC no se acepta (un solo mensaje, sin además «falta la foto»)', () => {
     expect(messages(select([file('factura 1234.pdf'), file('IMG_3001.HEIC')]))).toEqual([
       'La foto «IMG_3001.HEIC» no es JPG ni PNG: súbela como JPG o PNG (o bórrala si no es el comprobante).',
     ]);
@@ -187,8 +188,8 @@ describe('la foto del comprobante', () => {
 
 describe('topes por file_size, antes de descargar', () => {
   it('3 MB el PDF y 5 MB la foto', () => {
-    expect(select([file('factura 1234.pdf', { file_size: MAX_DOCUMENT_BYTES })]).ok).toBe(true);
-    expect(messages(select([file('factura 1234.pdf', { file_size: MAX_DOCUMENT_BYTES + 1 })]))).toEqual([
+    expect(select([file('factura 1234.pdf', { file_size: MAX_DOCUMENT_BYTES }), file('voucher.jpg')]).ok).toBe(true);
+    expect(messages(select([file('factura 1234.pdf', { file_size: MAX_DOCUMENT_BYTES + 1 }), file('voucher.jpg')]))).toEqual([
       'El PDF «factura 1234.pdf» supera el máximo de 3 MB (pesa 3.145.729 bytes).',
     ]);
     expect(messages(select([file('factura 1234.pdf'), file('voucher.jpg', { file_size: 6 * 1024 * 1024 })]))).toEqual([
@@ -198,12 +199,12 @@ describe('topes por file_size, antes de descargar', () => {
   });
 
   it('sin file_size no se descarga a ciegas', () => {
-    expect(messages(select([file('factura 1234.pdf', { file_size: undefined })]))).toEqual(['No se pudo leer el tamaño de el PDF «factura 1234.pdf».']);
+    expect(messages(select([file('factura 1234.pdf', { file_size: undefined }), file('voucher.jpg')]))).toEqual(['No se pudo leer el tamaño de el PDF «factura 1234.pdf».']);
   });
 
   it('el tope de la descarga va en la selección', () => {
     const r = select([file('factura 1234.pdf'), file('voucher.jpg')]);
-    expect(r.ok && [r.document.maxBytes, r.voucher?.maxBytes]).toEqual([MAX_DOCUMENT_BYTES, MAX_VOUCHER_BYTES]);
+    expect(r.ok && [r.document?.maxBytes, r.voucher.maxBytes]).toEqual([MAX_DOCUMENT_BYTES, MAX_VOUCHER_BYTES]);
   });
 });
 
@@ -241,7 +242,7 @@ describe('bytes descargados', () => {
       (checkDownloadedFile(doc, PDF, { ...ctx, document: GUIA }) as { attachment: { fileName: string } }).attachment.fileName,
       (checkDownloadedFile(photo, JPEG, { ...ctx, carrier: resolveCarrier({ id: 'cruz-del-sur' }) }) as { attachment: { fileName: string } }).attachment.fileName,
     ];
-    const r = select([...names.map((n) => file(n)), file('otro.pdf')]);
-    expect(r.ok && [r.document.fileName, r.voucher]).toEqual(['otro.pdf', null]);
+    const r = select([...names.map((n) => file(n)), file('otro 1234.pdf'), file('comprobante.jpg')]);
+    expect(r.ok && [r.document?.fileName, r.voucher.fileName]).toEqual(['otro 1234.pdf', 'comprobante.jpg']);
   });
 });

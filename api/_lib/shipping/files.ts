@@ -13,12 +13,15 @@
 //   lo agregado desde el minuto siguiente, así el documento del aviso anterior nunca vuelve a contar;
 // - con un nombre que no es de los que pone el aviso (Factura-<N>.pdf, Guia-de-despacho-<N>.pdf,
 //   Comprobante-…).
-// Documento: gana el PDF que lleva el número en el nombre como número entero (la factura 12 no
-// calza con «cotizacion-2026-11-12.pdf»: los dígitos unidos por - . o / son un solo número); si
-// ninguno lo lleva y hay uno solo, ese. Con 0, o con 2 o más sin un ganador, el aviso no sale.
-// Comprobante (opcional): un JPG o PNG; gana el que lleva «voucher» o «comprobante» en el nombre;
-// si ninguno lo lleva y hay uno solo, ese. Con 2 o más sin un ganador, el aviso no sale (no se
-// adivina). HEIC y otros formatos de foto detienen el aviso: el dueño la sube como JPG o PNG.
+// Documento (opcional desde el 19-11-2026: la factura se le envía al cliente antes del despacho,
+// regla del dueño): se adjunta solo el PDF que lleva el número en el nombre como número entero (la
+// factura 12 no calza con «cotizacion-2026-11-12.pdf»: los dígitos unidos por - . o / son un solo
+// número). Un PDF sin el número no se adjunta: podría ser un adjunto del cliente de /cotizador.
+// Con 2 o más con el número, el aviso no sale (no se adivina).
+// Comprobante (obligatorio desde el 19-11-2026): un JPG o PNG; gana el que lleva «voucher» o
+// «comprobante» en el nombre; si ninguno lo lleva y hay uno solo, ese. Sin foto, o con 2 o más sin
+// un ganador, el aviso no sale. HEIC y otros formatos de foto detienen el aviso: el dueño la sube
+// como JPG o PNG.
 // Topes por `file_size`, antes de descargar: 3 MB el PDF, 5 MB la foto y 8 MB en total. El tipo
 // se confirma con los primeros bytes (sniffType).
 // Los nombres de archivo son del dueño o del cliente: van a la nota (escapados), nunca al log.
@@ -65,7 +68,7 @@ export interface SelectedFile {
 }
 
 export type FileSelection =
-  | { ok: true; document: SelectedFile; voucher: SelectedFile | null }
+  | { ok: true; document: SelectedFile | null; voucher: SelectedFile }
   | { ok: false; problems: ShippingProblem[] };
 
 const DOCUMENT_EXT = /\.pdf$/i;
@@ -154,21 +157,17 @@ export function selectShippingFiles(
 
   const problems: ShippingProblem[] = [];
   const phrase = documentPhrase(document);
-  const scope = lastNoticeAt ? 'agregado después del último aviso' : `agregado en los últimos ${FILE_WINDOW_DAYS} días`;
+  const scope = lastNoticeAt ? 'agregada después del último aviso' : `agregada en los últimos ${FILE_WINDOW_DAYS} días`;
 
-  // Documento
-  const pdfs = eligible.filter((f) => DOCUMENT_EXT.test(f.fileName));
-  const named = pdfs.filter((f) => nameHasNumber(f.fileName, document.number));
+  // Documento (opcional): solo el PDF con el número en el nombre.
+  const named = eligible.filter((f) => DOCUMENT_EXT.test(f.fileName) && nameHasNumber(f.fileName, document.number));
   let doc: Candidate | null = null;
   if (named.length === 1) doc = named[0];
   else if (named.length > 1) problems.push(problem(`Hay ${named.length} PDF con el N° ${document.number} en el nombre (${list(named)}): deja solo el de ${phrase}.`));
-  else if (pdfs.length === 1) doc = pdfs[0];
-  else if (pdfs.length === 0) {
-    const remotePdfs = remote.filter((f) => DOCUMENT_EXT.test(f.fileName));
-    if (remotePdfs.length) problems.push(driveProblem(remotePdfs));
-    else problems.push(problem(`Falta el PDF de ${phrase}: adjúntalo en Archivos del negocio (cuenta solo uno ${scope}; no cuentan los adjuntos de correos).`));
-  } else {
-    problems.push(problem(`Hay ${pdfs.length} PDF y ninguno lleva el N° ${document.number} en el nombre (${list(pdfs)}): deja solo el de ${phrase} o ponle el número en el nombre.`));
+  else {
+    // El dueño quiso adjuntarlo, pero quedó en Google Drive: se dice, en vez de enviar sin él.
+    const remoteNamed = remote.filter((f) => DOCUMENT_EXT.test(f.fileName) && nameHasNumber(f.fileName, document.number));
+    if (remoteNamed.length) problems.push(driveProblem(remoteNamed));
   }
 
   // Comprobante
@@ -186,6 +185,9 @@ export function selectShippingFiles(
     // el comprobante que el dueño sí subió.
     const remotePhotos = remote.filter((f) => PHOTO_EXT.test(f.fileName));
     if (remotePhotos.length) problems.push(driveProblem(remotePhotos));
+    else if (!unsupported.length) {
+      problems.push(problem(`Falta la foto del comprobante del operador: súbela en JPG o PNG a Archivos del negocio (cuenta solo una ${scope}; no cuentan los adjuntos de correos).`));
+    }
   }
 
   // Topes, antes de descargar
@@ -203,12 +205,12 @@ export function selectShippingFiles(
     problems.push(problem(`El PDF y la foto juntos superan el máximo de ${mb(MAX_TOTAL_BYTES)} (suman ${exactBytes(total)}).`));
   }
 
-  if (problems.length || !doc) return { ok: false, problems };
+  if (problems.length || !voucher) return { ok: false, problems };
   const selected = (c: Candidate, role: ShippingFileRole, maxBytes: number): SelectedFile => ({ id: c.id, role, fileName: c.fileName, size: c.size!, maxBytes });
   return {
     ok: true,
-    document: selected(doc, 'document', MAX_DOCUMENT_BYTES),
-    voucher: voucher ? selected(voucher, 'voucher', MAX_VOUCHER_BYTES) : null,
+    document: doc ? selected(doc, 'document', MAX_DOCUMENT_BYTES) : null,
+    voucher: selected(voucher, 'voucher', MAX_VOUCHER_BYTES),
   };
 }
 

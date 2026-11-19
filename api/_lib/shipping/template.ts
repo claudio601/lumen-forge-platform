@@ -8,7 +8,8 @@
 // - Textos del Nivel 1 donde chocan con la spec (los avisos enviados del 11 al 18-11-2026):
 //   «Te adjuntamos <documento> en PDF y <el documento del operador>», el aviso sin lista de
 //   productos («El detalle de los productos va en la factura N° X adjunta») y «El flete ya está
-//   pagado: no pagas nada al recibirlo».
+//   pagado: no pagas nada al recibirlo». Sin el PDF (opcional desde el 19-11-2026: la factura se
+//   envía antes del despacho), «Te adjuntamos <el documento del operador>» y «… va en la factura N° X».
 // - Factura o guía de despacho: todo sale de documents.ts (DOCUMENT_TYPES).
 // - Fechas siempre «el <día dd de mes>», nunca «hoy» (el aviso puede salir otro día).
 // - Enlaces: solo el seguimiento de carriers.ts (https fijo, la orden normalizada con
@@ -53,10 +54,13 @@ export interface ShippingNoticeData {
   /** 'aaaa-mm-dd' o null: sin la línea. */
   eta: string | null;
   document: ShippingDocument;
-  /** [] = sin lista: el detalle va en el documento adjunto. */
+  /** [] = sin lista: el detalle va en el documento (adjunto o enviado antes). */
   products: readonly NoticeProductLine[];
-  /** Va adjunto el documento del operador (voucher). */
-  hasVoucher: boolean;
+  /**
+   * Va adjunto el PDF del documento. Opcional desde el 19-11-2026: la factura se le envía al
+   * cliente antes del despacho. La foto del comprobante del operador va siempre.
+   */
+  hasDocument: boolean;
 }
 
 export interface ShippingNotice {
@@ -202,7 +206,7 @@ function buildCopy(data: ShippingNoticeData): Copy {
     ? [`Lleva tu cédula de identidad y ${numberWithArticle}.`, ...(carrier.pickupRule ? [carrier.pickupRule] : []), damage]
     : [damage];
 
-  const voucher = data.hasVoucher ? ` y ${carrier.document.article} ${carrier.document.noun} de ${op}` : '';
+  const voucher = `${carrier.document.article} ${carrier.document.noun} de ${op}`;
 
   return {
     carrier,
@@ -224,10 +228,10 @@ function buildCopy(data: ShippingNoticeData): Copy {
     freightHtml,
     freightText,
     cargo,
-    noProducts: `El detalle de los productos va en ${docPhrase} adjunta.`,
+    noProducts: `El detalle de los productos va en ${docPhrase}${data.hasDocument ? ' adjunta' : ''}.`,
     handlingTitle: pickup ? 'Al retirarlo' : 'Al recibirlo',
     handling,
-    documents: `Te adjuntamos ${docPhrase} en PDF${voucher}.`,
+    documents: data.hasDocument ? `Te adjuntamos ${docPhrase} en PDF y ${voucher}.` : `Te adjuntamos ${voucher}.`,
   };
 }
 

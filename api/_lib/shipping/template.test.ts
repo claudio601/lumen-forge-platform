@@ -31,7 +31,7 @@ const base: ShippingNoticeData = {
     { quantity: 10, name: 'Panel LED de prueba 48W, luz neutra 4000K', siteId: 'panel-led-prueba-48w' },
     { quantity: 2, name: 'Cable de prueba 3x1,5 mm', siteId: null },
   ],
-  hasVoucher: true,
+  hasDocument: true,
 };
 
 const build = (over: Partial<ShippingNoticeData> = {}) => buildShippingNotice({ ...base, ...over });
@@ -63,10 +63,10 @@ function* combinations(): Generator<ShippingNoticeData> {
     for (const delivery of ['pickup', 'home'] as const)
       for (const freight of [{ kind: 'due', amountClp: 9_870 }, { kind: 'paid' }] as const)
         for (const eta of ['2026-11-24', null])
-          for (const hasVoucher of [true, false])
+          for (const hasDocument of [true, false])
             for (const document of [{ type: 'factura', number: '1234' }, { type: 'guia', number: '291' }] as const)
               for (const products of [base.products, []])
-                yield { ...base, carrier, delivery, freight, eta, hasVoucher, document, products, packages: products.length ? 1 : 3 };
+                yield { ...base, carrier, delivery, freight, eta, hasDocument, document, products, packages: products.length ? 1 : 3 };
 }
 
 describe('reglas de todo aviso (todas las combinaciones)', () => {
@@ -132,14 +132,14 @@ describe('reglas de todo aviso (todas las combinaciones)', () => {
         data.order,
         data.place,
         'jueves 19 de noviembre',
-        data.document.number,
-        data.document.type === 'guia' ? 'guía de despacho N° 291' : 'factura N° 1234',
+        // sin el PDF y con lista de productos, el correo no nombra el documento (se envió antes)
+        ...(data.hasDocument || !data.products.length ? [data.document.number, data.document.type === 'guia' ? 'guía de despacho N° 291' : 'factura N° 1234'] : []),
         data.packages === 1 ? '1 bulto' : '3 bultos',
         '3,2 kg',
         ...(data.eta ? ['martes 24 de noviembre'] : []),
         ...(data.freight.kind === 'due' ? ['$9.870'] : ['pagado']),
         ...data.products.map((p) => p.name),
-        ...(data.hasVoucher ? [` de ${label}.`] : []),
+        ` de ${label}.`,
         ...(data.delivery === 'pickup' ? ['cédula de identidad'] : []),
         'escríbenos el mismo día con fotos',
         COMPANY_PHONE,
@@ -155,7 +155,12 @@ describe('reglas de todo aviso (todas las combinaciones)', () => {
         expect(notice.text).toContain(href);
       }
       if (!data.eta) expect(`${notice.text}${html}`).not.toContain('Entrega estimada');
-      if (!data.hasVoucher) expect(notice.text).toContain(`${data.document.type === 'guia' ? 'guía de despacho N° 291' : 'factura N° 1234'} en PDF.`);
+      const doc = data.document.type === 'guia' ? 'guía de despacho N° 291' : 'factura N° 1234';
+      // Sin el PDF (la factura se envía antes del despacho): solo la foto del comprobante, y el detalle «va en» el documento, sin «adjunta».
+      if (!data.hasDocument) {
+        expect(notice.text).not.toContain(`${doc} en PDF`);
+        expect(`${notice.text}${html}`).not.toContain(`${doc} adjunta`);
+      }
     }
   });
 
@@ -202,8 +207,12 @@ describe('asunto, encabezado y documentos', () => {
     expect(`${n.subject}${n.html}${n.text}`).not.toMatch(/factura/i);
   });
 
-  it('sin voucher, solo el documento', () => {
-    expect(build({ hasVoucher: false }).text).toContain('Te adjuntamos la factura N° 1234 en PDF.\n');
+  it('sin el PDF (la factura se envía antes del despacho), solo la foto del comprobante', () => {
+    const n = build({ hasDocument: false, products: [] });
+    expect(n.text).toContain('\nTe adjuntamos el comprobante de Starken.\n');
+    expect(n.text).toContain('el detalle de los productos va en la factura N° 1234.');
+    expect(visible(n.html)).toContain('El detalle de los productos va en la factura N° 1234.');
+    expect(`${n.text}${n.html}`).not.toMatch(/en PDF|adjunta\b/);
   });
 
   it('la referencia solo si calza con el formato del servidor (nunca WA-, que lleva el teléfono)', () => {
