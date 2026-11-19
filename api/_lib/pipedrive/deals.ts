@@ -692,3 +692,140 @@ async function createDealInPipedrive(
     }
     return res.data.id;
 }
+
+// --- Aviso de despacho (spec Nivel 2, §3 pasos 5 a 11): lecturas y escrituras con plazo ---
+// Todas reciben el plazo de quien llama (lo que le queda a la función), nunca lanzan y devuelven
+// `ok`. Para distinguir el resultado: `r.ok === false` (tsconfig.api.json va sin strictNullChecks).
+// Registros: solo el id del negocio y el código de Pipedrive; el cliente registra método, ruta y
+// categoría. Nunca el contenido de una nota, el nombre de un archivo ni un valor de campo.
+
+export type DealReadResult =
+    | { ok: true; deal: PipedriveDeal }
+    | { ok: false; reason: 'not_found' | 'failed' };
+
+/** GET /deals/{id}. Un negocio borrado cuenta como `not_found`. */
+export async function getDeal(dealId: number, timeoutMs: number): Promise<DealReadResult> {
+    try {
+          const res = await pipedriveGet<PipedriveDeal>(`/deals/${dealId}`, undefined, Math.max(1, timeoutMs));
+          if (!res.success || !res.data || typeof res.data !== 'object') {
+                  return { ok: false, reason: pipedriveErrorCode(res.error) === 'HTTP 404' ? 'not_found' : 'failed' };
+          }
+          if (res.data.status === 'deleted') return { ok: false, reason: 'not_found' };
+          return { ok: true, deal: res.data };
+    } catch {
+          return { ok: false, reason: 'failed' };
+    }
+}
+
+/** Páginas como máximo de cada lista (100 archivos o 50 notas por página). */
+const LIST_MAX_PAGES = 5;
+
+async function listPaged<T>(
+    path: string,
+    params: Record<string, string>,
+    pageSize: number,
+    deadline: number,
+): Promise<{ ok: true; items: T[]; complete: boolean } | { ok: false }> {
+    const items: T[] = [];
+    let start = 0;
+    try {
+          for (let page = 0; page < LIST_MAX_PAGES; page++) {
+                  const left = deadline - Date.now();
+                  if (left <= 0) return { ok: false };
+                  const res = await pipedriveGet<T[]>(path, { ...params, start: String(start), limit: String(pageSize) }, left);
+                  if (!res.success) return { ok: false };
+                  // Sin elementos, Pipedrive responde data: null.
+                  if (res.data !== null && res.data !== undefined && !Array.isArray(res.data)) return { ok: false };
+                  items.push(...(res.data ?? []));
+                  const pagination = res.additional_data?.pagination;
+                  if (!pagination?.more_items_in_collection) return { ok: true, items, complete: true };
+                  const next = pagination.next_start ?? start + pageSize;
+                  if (!Number.isInteger(next) || next <= start) return { ok: false };
+                  start = next;
+          }
+          return { ok: true, items, complete: false };
+    } catch {
+          return { ok: false };
+    }
+}
+
+/**
+ * GET /deals/{id}/files, todas las páginas (hasta 500 archivos), del más nuevo al más antiguo.
+ * `complete: false` si quedaron archivos sin leer.
+ */
+export async function listDealFiles<T = Record<string, unknown>>(
+    dealId: number,
+    { deadline }: { deadline: number },
+): Promise<{ ok: true; files: T[]; complete: boolean } | { ok: false }> {
+    const res = await listPaged<T>(`/deals/${dealId}/files`, { sort: 'id DESC' }, 100, deadline);
+    if (res.ok === false) {
+          console.warn(`${LOG_PREFIX} listDealFiles failed dealId=${dealId}`);
+          return res;
+    }
+    return { ok: true, files: res.items, complete: res.complete };
+}
+
+/** Orden de las notas: la más nueva primero y, a igual hora, el id mayor (como findNoteByRef). */
+export const DEAL_NOTES_SORT = 'add_time DESC, id DESC';
+
+/** GET /notes?deal_id=, de la más nueva a la más antigua (hasta 250 notas). */
+export async function listDealNotes<T = Record<string, unknown>>(
+    dealId: number,
+    { deadline }: { deadline: number },
+): Promise<{ ok: true; notes: T[]; complete: boolean } | { ok: false }> {
+    const res = await listPaged<T>('/notes', { deal_id: String(dealId), sort: DEAL_NOTES_SORT }, 50, deadline);
+    if (res.ok === false) {
+          console.warn(`${LOG_PREFIX} listDealNotes failed dealId=${dealId}`);
+          return res;
+    }
+    return { ok: true, notes: res.items, complete: res.complete };
+}
+
+/**
+ * POST /notes con el plazo de quien llama. A diferencia de addDealNote, devuelve si la nota quedó
+ * (el aviso de despacho avisa a ventas si no). `content` va ya escapado (la nota es HTML).
+ */
+export async function createDealNote(
+    dealId: number,
+    content: string,
+    timeoutMs: number,
+): Promise<{ ok: true; noteId: number | null } | { ok: false; error: string }> {
+    try {
+          const res = await pipedrivePost<{ id: number }>('/notes', { content, deal_id: dealId }, undefined, Math.max(1, timeoutMs));
+          if (!res.success) {
+                  const error = pipedriveErrorCode(res.error);
+                  console.warn(`${LOG_PREFIX} createDealNote failed dealId=${dealId} error=${error}`);
+                  return { ok: false, error };
+          }
+          return { ok: true, noteId: typeof res.data?.id === 'number' ? res.data.id : null };
+    } catch {
+          console.warn(`${LOG_PREFIX} createDealNote failed dealId=${dealId} error=otro`);
+          return { ok: false, error: 'otro' };
+    }
+}
+
+/**
+ * PUT /deals/{id} con los campos tal cual: a diferencia de updateDeal, un `null` se manda (vacía el
+ * campo) y nunca lanza. Lo usa el aviso de despacho para su único PUT final (spec §3, paso 10) y
+ * para vaciar el disparador. No agrega nada: el valor del negocio solo cambia si quien llama lo
+ * manda (el aviso nunca lo hace).
+ */
+export async function putDealFields(
+    dealId: number,
+    fields: Record<string, unknown>,
+    timeoutMs: number,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (Object.keys(fields).length === 0) return { ok: true };
+    try {
+          const res = await pipedrivePut<PipedriveDeal>(`/deals/${dealId}`, fields, undefined, Math.max(1, timeoutMs));
+          if (!res.success) {
+                  const error = pipedriveErrorCode(res.error);
+                  console.warn(`${LOG_PREFIX} putDealFields failed dealId=${dealId} error=${error}`);
+                  return { ok: false, error };
+          }
+          return { ok: true };
+    } catch {
+          console.warn(`${LOG_PREFIX} putDealFields failed dealId=${dealId} error=otro`);
+          return { ok: false, error: 'otro' };
+    }
+}
