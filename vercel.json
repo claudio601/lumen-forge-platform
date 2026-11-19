@@ -7300,6 +7300,9 @@
     },
     "api/whatsapp/webhook.ts": {
       "maxDuration": 60
+    },
+    "api/pipedrive/webhook.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [

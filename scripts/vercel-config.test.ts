@@ -143,6 +143,9 @@ describe('vercel.json', () => {
     // Bot de WhatsApp: el reintento de una nota incierta en segundo plano cuenta con 60 s de función
     // (MESSAGE_IN_PROGRESS_TTL_S = 60 + 15 en api/_lib/whatsapp/stateStore.ts).
     expect(cfg.functions?.['api/whatsapp/webhook.ts']?.maxDuration).toBe(60);
+    // Aviso de despacho: el webhook de Pipedrive responde 200 y procesa en waitUntil, con un plazo de
+    // 60 s menos 10 de margen (NOTICE_MAX_DURATION_S en api/_lib/shipping/notice.ts).
+    expect(cfg.functions?.['api/pipedrive/webhook.ts']?.maxDuration).toBe(60);
     for (const cron of cfg.crons ?? []) {
       expect(cron.path, cron.path).toMatch(/^\/api\/cron\/[a-z0-9-]+$/);
       expect(isFunction(cron.path.slice(1) + '.ts'), cron.path).toBe(true);
