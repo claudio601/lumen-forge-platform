@@ -24,10 +24,13 @@ const FACTURA: ShippingDocument = { type: 'factura', number: '1234' };
 const GUIA: ShippingDocument = { type: 'guia', number: '291' };
 
 let nextId = 1;
+/** Como la API real: `name` es el nombre visible y `file_name`, la clave del almacenamiento (sin extensión). */
 function file(fileName: string, over: Partial<DealFileMeta> = {}): DealFileMeta {
+  const id = nextId++;
   return {
-    id: nextId++,
-    file_name: fileName,
+    id,
+    name: fileName,
+    file_name: `k${String(id).padStart(4, '0')}aB3dE5fG7hJ9kL1mN3pQ5rS7tV9w`,
     add_time: '2026-11-18 16:00:00',
     file_size: 200 * 1024,
     active_flag: true,
@@ -100,6 +103,29 @@ describe('qué archivos cuentan', () => {
       file('factura-ok.pdf'),
     ]);
     expect(r.ok && [r.document.fileName, r.voucher]).toEqual(['factura-ok.pdf', null]);
+  });
+
+  it('(prueba real, 19-11) el nombre es `name`: `file_name` es la clave del almacenamiento, sin extensión', () => {
+    const r = select([file('factura-1234.pdf'), file('comprobante-starken.jpg')]);
+    expect(r.ok && [r.document.fileName, r.voucher?.fileName]).toEqual(['factura-1234.pdf', 'comprobante-starken.jpg']);
+    // Sin `name`, el de `file_name` (respaldo).
+    const legacy = select([{ ...file('x'), name: undefined, file_name: 'factura 1234.pdf' }]);
+    expect(legacy.ok && legacy.document.fileName).toBe('factura 1234.pdf');
+  });
+
+  it('(prueba real, 19-11) un PDF o una foto que quedó en Google Drive se nombra, en vez de «falta el PDF»', () => {
+    const drive = { remote_location: 'googledocs' };
+    expect(messages(select([file('factura-1234.pdf', drive)]))).toEqual([
+      'El archivo «factura-1234.pdf» quedó guardado en Google Drive y el aviso no lo puede descargar: súbelo de nuevo al negocio con Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos), o avísale a Claude.',
+    ]);
+    // El comprobante es opcional, pero si el dueño lo subió y quedó en Drive, el aviso no sale sin él.
+    expect(messages(select([file('factura-1234.pdf'), file('comprobante.jpg', drive)]))).toEqual([
+      'El archivo «comprobante.jpg» quedó guardado en Google Drive y el aviso no lo puede descargar: súbelo de nuevo al negocio con Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos), o avísale a Claude.',
+    ]);
+    // Si en Pipedrive hay uno que sirve, el de Drive no importa; tampoco los de Drive viejos o de un correo.
+    const ok = select([file('factura-1234.pdf'), file('factura-1234 drive.pdf', drive), file('voucher.jpg'), file('voucher drive.jpg', drive)]);
+    expect(ok.ok && [ok.document.fileName, ok.voucher?.fileName]).toEqual(['factura-1234.pdf', 'voucher.jpg']);
+    expect(messages(select([file('viejo.pdf', { ...drive, add_time: '2026-11-08 12:00:00' })]))[0]).toMatch(/^Falta el PDF/);
   });
 
   it('se ignoran los nombres que pone el aviso (factura y guía)', () => {

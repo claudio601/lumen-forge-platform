@@ -69,6 +69,7 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 | Vista previa NO enviada: ya van 5 vistas previas | límite de 5 por hora | esperar un rato |
 | el envío al cliente queda disponible después del cambio de dominio | el sitio todavía no es elights.cl | por ahora, solo vista previa |
 | NO enviado: el aviso de Pipedrive llegó sin la hora del cambio | Pipedrive cambió el formato de sus avisos | avisarle a Claude; mientras tanto, solo vista previa |
+| NO enviado … El archivo «…» quedó guardado en Google Drive | Pipedrive tiene Google Drive conectado (Herramientas y aplicaciones → Documentos) y guardó ahí el archivo: el sitio no lo puede descargar | desconectar Drive en Pipedrive y volver a subir el archivo al negocio, o avisarle a Claude |
 | NO enviado … El negocio tiene demasiados archivos para revisarlos todos | más de 500 archivos: el sitio no puede saber si hay otro PDF o comprobante | avisarle a Claude |
 
 **Correo ATENCIÓN «el aviso salió, pero no quedó en Pipedrive»** (a ventas@, más una tarea para ti en el negocio): el cliente sí recibió el aviso, pero Pipedrive no guardó algo: la nota, «Despacho · Aviso enviado», la etapa «Despachado» o el campo «Despacho · Aviso» vacío. El correo dice qué falta hacer a mano y, si falta, qué va en «Despacho · Aviso enviado». No vuelvas a elegir «Enviar al cliente» para esa orden.
@@ -88,4 +89,5 @@ Si editas otros campos con «Despacho · Aviso» todavía puesto, no se envía n
 
 - El relay de Apps Script y sus dos variables de Vercel (`SHIPPING_RELAY_URL`, `SHIPPING_RELAY_SECRET`): `apps-script/aviso-despacho/README.md`. El secreto lo pones tú.
 - `PIPEDRIVE_OWNER_USER_ID` en Vercel: tu usuario de Pipedrive, para la tarea del caso ATENCIÓN. Sin ella, solo llega el correo ATENCIÓN.
+- Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos): con Drive conectado, los archivos que subes a un negocio quedan en Drive y el aviso no los puede adjuntar (prueba del 19-11-2026).
 - Los 15 campos «Despacho · …» y la etapa «Despachado» se buscan por nombre: si cambias un nombre, el aviso no sale y la nota dice cuál falta.
