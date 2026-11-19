@@ -301,6 +301,7 @@ describe('enviar al cliente', () => {
     w.deal()[K.order] = '555';
     vi.setSystemTime(NOW.getTime() + 5 * 60_000);
     w.addFile('factura-1234-b.pdf', pdfBytes(), { add_time: pipedriveTime(new Date(NOW.getTime() + 2 * 60_000)) });
+    w.addFile('voucher-starken-b.jpg', jpgBytes(), { add_time: pipedriveTime(new Date(NOW.getTime() + 2 * 60_000)) });
     expect(await choose('send')).toBe('enviado');
     expect(w.deal().stage_id).toBe(30);
     expect(lastNote()).toContain('Etapa: sin cambio (este embudo no tiene una etapa «Despachado»).');
@@ -323,9 +324,22 @@ describe('enviar al cliente', () => {
     expect(await choose('send')).toBe('enviado');
     expect(despachos()[0].text).toContain('Qué va en tu envío (1 bulto, 3,2 kg): el detalle de los productos va en la factura N° 1234 adjunta.');
     expect(despachos()[0].text).not.toContain('Proyector prueba');
-    expect(lastNote()).toContain('Productos: sin lista (el correo dice que el detalle va en la factura N° 1234 adjunta).');
+    expect(lastNote()).toContain('Productos: sin lista (el correo dice que el detalle va en la factura N° 1234).');
     // Sin la marca de la vista previa, las notas no se leen.
     expect(w.pd.requests.some((r) => r.path === '/notes' && r.method === 'GET')).toBe(false);
+  });
+
+  it('sin el PDF de la factura (se envía antes del despacho, 19-11-2026): sale solo con la foto del comprobante', async () => {
+    w.pd.files.splice(0, 1);
+    w.deal()[K.products] = null;
+    expect(await choose('send')).toBe('enviado');
+    const sent = despachos()[0];
+    expect(sent.attachments).toHaveLength(1);
+    expect(sent.attachments[0].name).toMatch(/^Comprobante-Starken-\d+\.jpg$/);
+    expect(sent.text).toContain('\nTe adjuntamos el comprobante de Starken.\n');
+    expect(sent.text).toContain('el detalle de los productos va en la factura N° 1234.');
+    expect(sent.text).not.toMatch(/en PDF|adjunta\b/);
+    expect(lastNote()).toContain('Productos: sin lista (el correo dice que el detalle va en la factura N° 1234).');
   });
 
   it('vista previa y «Enviar al cliente» 30 s después: sí envía (el candado se soltó), con la lista de la solicitud', async () => {
@@ -397,6 +411,28 @@ describe('enviar al cliente', () => {
     expect(vi.mocked(putDealFields).mock.calls[1][1]).toEqual({ [K.sentLog]: '2026-11-18 12:05 -03:00 · Starken 987654321', [K.trigger]: null });
   });
 
+  it('segundo envío solo con la foto nueva (sin PDF): sale; sin foto nueva, no (la del primer aviso no vuelve a contar)', async () => {
+    await choose('send');
+    vi.setSystemTime(NOW.getTime() + 5 * 60_000);
+    w.deal()[K.order] = '987654321';
+    w.deal()[K.documentNumber] = '1250';
+    expect(await choose('send')).toBe('datos_incompletos');
+    expect(lastNote()).toContain('- Falta la foto del comprobante del operador: súbela en JPG o PNG a Archivos del negocio (cuenta solo una agregada después del último aviso; no cuentan los adjuntos de correos).');
+    w.addFile('voucher-2.jpg', jpgBytes(), { add_time: pipedriveTime(new Date(NOW.getTime() + 2 * 60_000)) });
+    expect(await choose('send')).toBe('enviado');
+    expect(despachos()[1].attachments.map((a) => a.name)).toEqual(['Comprobante-Starken-987654321.jpg']);
+    expect(despachos()[1].text).toContain('\nTe adjuntamos el comprobante de Starken.\n');
+  });
+
+  it('vista previa sin el PDF: llega solo con la foto y sin «adjunta»', async () => {
+    w.pd.files.splice(0, 1);
+    w.deal()[K.products] = null;
+    expect(await choose('preview')).toBe('vista_previa_enviada');
+    const sent = previews().at(-1)!;
+    expect(sent.attachments.map((a) => a.name)).toEqual([expect.stringMatching(/^Comprobante-Starken-\d+\.jpg$/)]);
+    expect(sent.text).not.toMatch(/en PDF|adjunta\b/);
+  });
+
   it('si el dueño ya eligió otra opción mientras salía el aviso, el disparador no se toca', async () => {
     w.relay.onCall = () => { w.deal()[K.trigger] = OPT.preview; };
     expect(await choose('send')).toBe('enviado');
@@ -424,9 +460,9 @@ describe('§8 falta algo: nota «NO enviado» con la lista exacta y el disparado
     ['un SKU desconocido sin texto', (w) => { w.deal()[K.products] = '10 PAN60\n2 NOEXISTE'; }, [`- «${SHIPPING_FIELD_NAMES.products}», línea 2 («2 NOEXISTE»): el SKU NOEXISTE no está en el catálogo publicado. Corrígelo o agrega « — <texto como en la factura>».`]],
     ['el PDF pesa demasiado (por file_size, sin descargar)', (w) => { w.pd.files[0].file_size = MAX_DOCUMENT_BYTES + 1; }, ['- El PDF «factura-1234.pdf» supera el máximo de 3 MB (pesa 3.145.729 bytes).']],
     ['el «PDF» es una foto (tipo por los primeros bytes)', (w) => { w.pd.files[0].bytes = jpgBytes(2048); }, ['- El PDF «factura-1234.pdf» no es un PDF: adjunta la factura N° 1234 en PDF.']],
-    ['hay 2 PDF sin el número en el nombre', (w) => { w.pd.files[0].name = 'doc-a.pdf'; w.addFile('doc-b.pdf', pdfBytes()); }, ['- Hay 2 PDF y ninguno lleva el N° 1234 en el nombre («doc-b.pdf», «doc-a.pdf»): deja solo el de la factura N° 1234 o ponle el número en el nombre.']],
+    ['hay 2 PDF con el número en el nombre', (w) => { w.addFile('factura-1234 copia.pdf', pdfBytes()); }, ['- Hay 2 PDF con el N° 1234 en el nombre («factura-1234 copia.pdf», «factura-1234.pdf»): deja solo el de la factura N° 1234.']],
     ['2 fotos candidatas a comprobante', (w) => { w.pd.files[1].name = 'foto-1.jpg'; w.addFile('foto-2.jpg', jpgBytes()); }, ['- Hay 2 fotos («foto-2.jpg», «foto-1.jpg») y ninguna dice «comprobante» o «voucher» en el nombre: deja solo la del comprobante.']],
-    ['un PDF del cliente de /cotizador de hace 10 días no cuenta', (w) => { w.pd.files[0].add_time = pipedriveTime(new Date(NOW.getTime() - 10 * 86_400_000)); }, ['- Falta el PDF de la factura N° 1234: adjúntalo en Archivos del negocio (cuenta solo uno agregado en los últimos 7 días; no cuentan los adjuntos de correos).']],
+    ['falta la foto del comprobante (una de hace 10 días no cuenta)', (w) => { w.pd.files[1].add_time = pipedriveTime(new Date(NOW.getTime() - 10 * 86_400_000)); }, ['- Falta la foto del comprobante del operador: súbela en JPG o PNG a Archivos del negocio (cuenta solo una agregada en los últimos 7 días; no cuentan los adjuntos de correos).']],
     ['«Aviso enviado» editado a mano (ilegible)', (w) => { w.deal()[K.sentLog] = 'ayer'; }, []],
     ['una fecha de envío futura', (w) => { w.deal()[K.shipDate] = '2026-11-19'; }, [`- «${SHIPPING_FIELD_NAMES.shipDate}» (jueves 19 de noviembre) es posterior a hoy: el aviso diría que ya se entregó.`]],
   ];

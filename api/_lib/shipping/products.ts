@@ -2,7 +2,7 @@
 // «Qué va en tu envío» del aviso de despacho (spec Nivel 2, §4.2). Funciones PURAS: la PR 2 decide
 // cuándo usar cada fuente (el respaldo de requested_items_json vale solo después de una vista
 // previa) y cuándo el aviso sale sin lista («El detalle de los productos va en la factura N° X
-// adjunta», como el aviso real del 16-11).
+// adjunta», como el aviso real del 16-11; sin «adjunta» si no va el PDF, opcional desde el 19-11).
 //
 // 1. «Despacho · Productos»: hasta 30 líneas «<cantidad> <SKU>», con « — <texto como en la
 //    factura>» opcional (también – o -, este último con espacios a los dos lados). El SKU se

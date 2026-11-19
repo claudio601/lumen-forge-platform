@@ -18,7 +18,7 @@
 //    la descarga con tope y sniffType) y la plantilla (template.ts). Los productos, por prioridad:
 //    «Despacho · Productos»; si no, requested_items_json de la solicitud RC- (en la vista previa,
 //    o al enviar si hubo una vista previa de la misma clave en las últimas 24 h); si no, el aviso
-//    sale sin lista («El detalle de los productos va en la <documento> adjunta»). Un aviso ya no
+//    sale sin lista («El detalle de los productos va en la <documento>», con «adjunta» si va el PDF). Un aviso ya no
 //    se detiene por falta de productos (dueño, 18-11-2026), pero un SKU desconocido sin texto sí.
 // 5. Vista previa: hasta 5 por negocio por hora (contador en Redis) y, si sale, la marca de 24 h
 //    (como hash de la clave).
@@ -404,7 +404,7 @@ function formatSize(bytes: number): string {
 type ProductSource = { kind: 'field'; skus: string[] } | { kind: 'request'; reference: string } | { kind: 'none' };
 
 function productLines(products: readonly NoticeProductLine[], source: ProductSource, data: ShippingFields): string[] {
-  if (!products.length) return [`Productos: sin lista (el correo dice que el detalle va en ${documentPhrase(data.document)} adjunta).`];
+  if (!products.length) return [`Productos: sin lista (el correo dice que el detalle va en ${documentPhrase(data.document)}).`];
   const from = source.kind === 'field' ? `de ${PRODUCTS_FIELD}` : source.kind === 'request' ? `de la solicitud ${source.reference}` : '';
   return [
     `Productos${from ? ` (${from})` : ''}:`,
@@ -741,7 +741,8 @@ async function prepare(
 
   // Descargas, con tope y tipo por los primeros bytes.
   const attachments: ReadyAttachment[] = [];
-  const downloads: SelectedFile[] = selection.voucher ? [selection.document, selection.voucher] : [selection.document];
+  // El PDF es opcional (la factura se envía antes del despacho, 19-11-2026); la foto del comprobante, no.
+  const downloads: SelectedFile[] = selection.document ? [selection.document, selection.voucher] : [selection.voucher];
   for (const file of downloads) {
     const what = file.role === 'document' ? `El PDF «${file.fileName}»` : `La foto del comprobante «${file.fileName}»`;
     const got = await pipedriveGetBinary(`/files/${file.id}/download`, file.maxBytes, readBudget(run));
@@ -775,7 +776,7 @@ async function prepare(
       eta: data.eta,
       document: data.document,
       products,
-      hasVoucher: attachments.length > 1,
+      hasDocument: selection.document !== null,
     });
   } catch {
     run.facts.push('plantilla=error');
@@ -809,7 +810,7 @@ async function sendPreview(run: Run, p: Prepared): Promise<NoticeOutcome> {
       ? p.source.kind === 'request'
         ? `los de la solicitud ${p.source.reference} (sin ${PRODUCTS_FIELD})`
         : `${p.products.length} de ${PRODUCTS_FIELD}`
-      : `sin lista (el correo dice que el detalle va en ${documentPhrase(p.data.document)} adjunta)`;
+      : `sin lista (el correo dice que el detalle va en ${documentPhrase(p.data.document)})`;
     const lines = [
       `Vista previa enviada a tu correo (${chileStamp(new Date())}, hora de Chile): es el aviso de despacho tal como le llegaría al cliente.`,
       `${p.data.carrier.label}, ${numberCellLabel(p.data.carrier).toLowerCase()} ${p.data.order} · ${documentTitle(p.data.document)} · Productos: ${summary}.`,

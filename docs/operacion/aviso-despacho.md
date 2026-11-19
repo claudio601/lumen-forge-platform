@@ -1,6 +1,6 @@
 # Aviso de despacho: paso a paso
 
-Cuando el pedido ya está con el operador, el sitio le manda al cliente un correo con el seguimiento, la factura (o la guía de despacho) y el comprobante. Lo eliges tú en el negocio de Pipedrive, con el campo **«Despacho · Aviso»**. Nadie más envía avisos a clientes: ni el sitio por su cuenta ni Claude.
+Cuando el pedido ya está con el operador, el sitio le manda al cliente un correo con el seguimiento y la foto del comprobante del operador (y la factura o la guía de despacho en PDF, si la subes). Lo eliges tú en el negocio de Pipedrive, con el campo **«Despacho · Aviso»**. Nadie más envía avisos a clientes: ni el sitio por su cuenta ni Claude.
 
 El resultado siempre queda como **nota en el negocio**. Si el campo «Despacho · Aviso» vuelve a quedar vacío, el aviso ya se procesó: lee la nota.
 
@@ -10,8 +10,10 @@ El resultado siempre queda como **nota en el negocio**. Si el campo «Despacho �
 
 **Archivos del negocio** (pestaña Archivos, subidos ahí y no como adjunto de un correo):
 
-- **El PDF de la factura o de la guía de despacho.** Ponle el número en el nombre (por ejemplo `factura-8430.pdf`), sobre todo si hay más PDF en el negocio. Hasta 3 MB.
-- **La foto del comprobante del operador** (opcional), en JPG o PNG. Si hay más de una foto, ponle «comprobante» o «voucher» en el nombre. Hasta 5 MB. HEIC no sirve.
+- **La foto del comprobante del operador** (obligatoria), en JPG o PNG. Puede ir junto a la factura en la misma foto. Si hay más de una foto, ponle «comprobante» o «voucher» en el nombre. Hasta 5 MB. HEIC no sirve.
+- **El PDF de la factura o de la guía de despacho** (opcional: la factura se le envía al cliente antes del despacho). Si lo quieres adjuntar, ponle el número en el nombre (por ejemplo `factura-8430.pdf`): un PDF sin el número no se adjunta, porque podría ser un archivo del cliente. Hasta 3 MB.
+
+Sin el PDF, el correo dice «Te adjuntamos el comprobante de <operador>» y, si no lleva la lista de productos, «el detalle de los productos va en la factura N° …».
 
 Solo cuentan los archivos agregados en los últimos 7 días y, si el negocio ya tuvo un aviso, los agregados después de ese aviso.
 
@@ -37,7 +39,7 @@ El correo va al **correo principal de la persona del negocio** (o al primero de 
 **Productos.** Con «Despacho · Productos», el correo lista esos productos con el enlace a su ficha. Un SKU que no está en el catálogo necesita el texto después de « — » (sale sin enlace); sin texto, el aviso no sale. Si lo dejas vacío:
 
 - en un pedido de /solicitar-pedido (RC-…), la vista previa usa los productos de la solicitud, y «Enviar al cliente» también, si la vista previa fue en las últimas 24 horas;
-- en los demás casos, el correo dice «el detalle de los productos va en la factura N° … adjunta».
+- en los demás casos, el correo dice «el detalle de los productos va en la factura N° …» (con «adjunta» si subiste el PDF).
 
 ## 2. Vista previa y envío
 
@@ -51,7 +53,7 @@ El correo va al **correo principal de la persona del negocio** (o al primero de 
 
 El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no envía nada.
 
-**Un segundo envío del mismo negocio** (otra parte del pedido): otra orden de flete, la factura y el comprobante nuevos agregados después del primer aviso, y otra vez «Vista previa» y «Enviar al cliente». Si el negocio está archivado, desarchívalo primero.
+**Un segundo envío del mismo negocio** (otra parte del pedido): otra orden de flete, la foto del comprobante nuevo (y el PDF de la factura, si lo quieres adjuntar) agregada después del primer aviso, y otra vez «Vista previa» y «Enviar al cliente». Si el negocio está archivado, desarchívalo primero.
 
 ## 3. Qué significa cada nota
 
@@ -59,7 +61,7 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 |---|---|---|
 | Vista previa enviada a tu correo | salió la vista previa, solo a ti | revisarla y elegir «Enviar al cliente» |
 | Aviso de despacho enviado | el cliente ya lo tiene | nada |
-| NO enviado … Falta o hay que corregir: (lista) | faltaba un dato, el correo, un archivo, o un archivo no sirve | corregir lo de la lista y volver a elegir |
+| NO enviado … Falta o hay que corregir: (lista) | faltaba un dato, el correo, la foto del comprobante, o un archivo no sirve | corregir lo de la lista y volver a elegir |
 | NO enviado … Reintenta en unos minutos | Pipedrive, Redis o el plazo de la función fallaron un momento (en la vista previa, también el relay: «reenvío del mismo cuerpo firmado» o «caché del relay no disponible») | volver a elegir en unos minutos |
 | NO enviado: ya se envió el … | esa orden de flete ya tuvo su aviso | nada; para corregir algo, escríbele desde Gmail |
 | NO enviado: hay un envío en curso o sin confirmar | otro aviso de la misma orden estaba saliendo | revisar Enviados en 10 minutos; si no está, volver a elegir «Enviar al cliente» |

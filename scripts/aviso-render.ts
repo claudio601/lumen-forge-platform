@@ -28,7 +28,7 @@ export function fixtures(): Record<string, ShippingNoticeData> {
     greetingName: 'Ana',
     reference: 'RC-ab12cd',
     shipDate: '2026-11-19',
-    hasVoucher: true,
+    hasDocument: true,
   } as const;
   return {
     // Starken, retiro en agencia, por pagar, con fecha estimada y voucher.
@@ -45,7 +45,7 @@ export function fixtures(): Record<string, ShippingNoticeData> {
       document: { type: 'factura', number: '1234' },
       products: products('10 APB40N\n2 CABLE-PRUEBA — Cable eléctrico 3x1,5 mm, rollo de 10 m'),
     },
-    // A domicilio, flete pagado, sin fecha estimada ni voucher; página de seguimiento sin el número.
+    // A domicilio, flete pagado, sin fecha estimada ni el PDF de la factura (se envía antes); página de seguimiento sin el número.
     'domicilio-pagado': {
       ...base,
       greetingName: 'Pedro',
@@ -59,7 +59,7 @@ export function fixtures(): Record<string, ShippingNoticeData> {
       kilos: 14.5,
       eta: null,
       document: { type: 'factura', number: '1240' },
-      hasVoucher: false,
+      hasDocument: false,
       products: products('4 PLRE6N\n1 APB407'),
     },
     // Pullman Cargo con guía de despacho, a domicilio, flete pagado.
