@@ -42,7 +42,7 @@ import { randomUUID } from 'node:crypto';
 import { escapeHtml } from '../html/escape.js';
 import { incrementCounter, redisJsonCommandWithTimeout } from '../idempotency/redis.js';
 import { notifySales } from '../notify/salesEmail.js';
-import { sendShippingNotice, type ShippingAttachment, type ShippingRelayResult } from '../notify/shippingRelay.js';
+import { relayReason, sendShippingNotice, type ShippingAttachment, type ShippingRelayResult } from '../notify/shippingRelay.js';
 import { createAttentionTask } from '../pipedrive/activities.js';
 import { pipedriveGetBinary } from '../pipedrive/client.js';
 import { createDealNote, getDeal, listDealFiles, listDealNotes, putDealFields } from '../pipedrive/deals.js';
@@ -333,22 +333,22 @@ function uncertainNote(reason: string): string[] {
   ];
 }
 
-function relayReason(result: ShippingRelayResult): string {
+function reasonOf(result: ShippingRelayResult): string {
   return 'reason' in result && typeof result.reason === 'string' ? result.reason : '';
 }
 
 /**
- * Vista previa rechazada con el motivo `reenvio` o `cache` del relay: no salió y se reintenta en unos
- * minutos, sin ATENCIÓN (contrato del relay, 18-11-2026). Se reconoce el código o su texto.
+ * Vista previa rechazada con el motivo `reenvio` o `cache` del relay (el cliente los entrega ya
+ * traducidos, con relayReason): no salió y se reintenta en unos minutos, sin ATENCIÓN.
  */
-const PREVIEW_RETRY_REASON = /reenv[ií]o|cach[eé]/i;
+const PREVIEW_RETRY_REASONS: ReadonlySet<string> = new Set([relayReason('reenvio'), relayReason('cache')]);
 
 function previewRetryable(result: ShippingRelayResult): boolean {
-  return result.status === 'rejected' && PREVIEW_RETRY_REASON.test(relayReason(result));
+  return result.status === 'rejected' && PREVIEW_RETRY_REASONS.has(reasonOf(result));
 }
 
 function refusedText(result: ShippingRelayResult): string {
-  const reason = relayReason(result);
+  const reason = reasonOf(result);
   if (result.status === 'quota') return 'se acabó la cuota diaria de correos de Gmail; reintenta mañana';
   if (result.status === 'config') return `falta configuración en el servidor (${reason})`;
   return `el relay rechazó el pedido (${reason}); hay que revisar su configuración (secreto, URL o propiedades del script)`;
@@ -733,14 +733,14 @@ async function sendPreview(run: Run, p: Prepared): Promise<NoticeOutcome> {
   }
   if (result.status === 'uncertain') {
     return stop(run, [
-      `Vista previa: no se confirmó el envío (${relayReason(result)}).`,
+      `Vista previa: no se confirmó el envío (${reasonOf(result)}).`,
       `Revisa tu correo en unos minutos; si no llegó, vuelve a elegir «${SHIPPING_OPTIONS.trigger.preview}» en ${TRIGGER}.`,
     ], 'vista_previa_incierta');
   }
   if (previewRetryable(result)) {
     // El relay no la armó ahora (otra vista previa en curso o su caché): no salió y no es una falla
     // de configuración. Después del relay ya pasó el corte, así que va directo a la nota.
-    return stop(run, transientNote('preview', `el relay no la envió ahora (${relayReason(result)})`), 'reintentar');
+    return stop(run, transientNote('preview', `el relay no la envió ahora (${reasonOf(result)})`), 'reintentar');
   }
   const text = refusedText(result);
   await writeNote(run, [`Vista previa NO enviada: ${text}. Se avisó a ventas@.`, `Cuando esté resuelto, vuelve a elegir «${SHIPPING_OPTIONS.trigger.preview}» en ${TRIGGER}.`]);
@@ -767,7 +767,7 @@ async function sendToCustomer(run: Run, p: Prepared): Promise<NoticeOutcome> {
     // Sin reintento automático: el dueño revisa Enviados y vuelve a elegir; el relay deduplica.
     const saved = await redis<string>('SET', stateKey, 'uncertain', 'EX', SENT_TTL_S);
     if (!saved.ok) run.facts.push('estado=sin_guardar');
-    return stop(run, uncertainNote(relayReason(result)), 'incierto');
+    return stop(run, uncertainNote(reasonOf(result)), 'incierto');
   }
 
   // quota, rejected o config: no salió. Se quita «enviando» (si sigue siendo el de este intento).

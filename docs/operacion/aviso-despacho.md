@@ -60,7 +60,7 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 | Vista previa enviada a tu correo | salió la vista previa, solo a ti | revisarla y elegir «Enviar al cliente» |
 | Aviso de despacho enviado | el cliente ya lo tiene | nada |
 | NO enviado … Falta o hay que corregir: (lista) | faltaba un dato, el correo, un archivo, o un archivo no sirve | corregir lo de la lista y volver a elegir |
-| NO enviado … Reintenta en unos minutos | Pipedrive, Redis o el plazo de la función fallaron un momento | volver a elegir en unos minutos |
+| NO enviado … Reintenta en unos minutos | Pipedrive, Redis o el plazo de la función fallaron un momento (en la vista previa, también el relay: «reenvío del mismo cuerpo firmado» o «caché del relay no disponible») | volver a elegir en unos minutos |
 | NO enviado: ya se envió el … | esa orden de flete ya tuvo su aviso | nada; para corregir algo, escríbele desde Gmail |
 | NO enviado: hay un envío en curso o sin confirmar | otro aviso de la misma orden estaba saliendo | revisar Enviados en 10 minutos; si no está, volver a elegir «Enviar al cliente» |
 | no sé si salió | el relay no confirmó a tiempo | revisar Enviados (el asunto sin «[Vista previa]»); si no está, volver a elegir «Enviar al cliente». Si había salido, no se repite. |

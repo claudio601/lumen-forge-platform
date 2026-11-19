@@ -192,7 +192,7 @@ describe('vista previa', () => {
     w.deal()[K.products] = null;
     w.pd.notes.push({ id: 10, deal_id: DEAL_ID, content: requestNote(), add_time: pipedriveTime(new Date(NOW.getTime() - 86_400_000)) });
     await choose('preview');
-    expect(previews()[0].text).toContain('PROYECTOR PRUEBA 50W – Cálida 3000K');
+    expect(previews()[0].text).toContain('Proyector prueba 50W – cálida 3000K');
     expect(previews()[0].text).not.toContain('IGNORADO');
     expect(previews()[0].html).not.toContain('otro.example');
     expect(lastNote()).toContain('Productos: los de la solicitud RC-ab12c');
@@ -209,8 +209,9 @@ describe('vista previa', () => {
   });
 
   it('el relay rechaza con «reenvio» o «cache»: no salió, «reintenta en unos minutos», sin ATENCIÓN', async () => {
-    for (const reason of ['reenvio', 'cache']) {
-      vi.mocked(sendShippingNotice).mockResolvedValueOnce({ status: 'rejected', reason });
+    w.relay.mode = 'rejected';
+    for (const [code, reason] of [['reenvio', 'reenvío del mismo cuerpo firmado'], ['cache', 'caché del relay no disponible']]) {
+      w.relay.rejectReason = code;
       expect(await choose('preview')).toBe('reintentar');
       expect(lastNote()).toContain(`Aviso de despacho NO enviado («Vista previa»): el relay no la envió ahora (${reason}).`);
       expect(lastNote()).toContain('Reintenta en unos minutos');
@@ -242,7 +243,7 @@ describe('enviar al cliente', () => {
     expect(mail.key).toBe(KEY);
     expect(mail.subject).not.toContain('[Vista previa]');
     expect(mail.text).toContain('Hola Juana,');
-    expect(mail.text).toContain('PANEL PRUEBA 60X60');
+    expect(mail.text).toContain('Panel prueba 60X60');
     expect(w.notes()).toHaveLength(1);
     expect(w.notes()[0].split('\n')).toEqual([
       'Aviso de despacho enviado (2026-11-18 12:00, hora de Chile)',
@@ -251,7 +252,7 @@ describe('enviar al cliente', () => {
       'Flete: Por pagar, $14.460 (lo cobra el operador; no es parte del negocio)',
       'Bultos: 1 | Kilos: 3,2 | Factura N° 1234',
       `Productos (de «${SHIPPING_FIELD_NAMES.products}»):`,
-      '- 10 x PAN60 PANEL PRUEBA 60X60',
+      '- 10 x PAN60 Panel prueba 60X60',
       'Adjuntos: Factura-1234.pdf (2 KB), Comprobante-Starken-123456789.jpg (4 KB)',
       'Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).',
       'Etapa: «Despachado».',
@@ -303,7 +304,7 @@ describe('enviar al cliente', () => {
     w.pd.notes.push({ id: 10, deal_id: DEAL_ID, content: requestNote(), add_time: pipedriveTime(NOW) });
     expect(await choose('send')).toBe('enviado');
     expect(despachos()[0].text).toContain('Qué va en tu envío (1 bulto, 3,2 kg): el detalle de los productos va en la factura N° 1234 adjunta.');
-    expect(despachos()[0].text).not.toContain('PROYECTOR PRUEBA');
+    expect(despachos()[0].text).not.toContain('Proyector prueba');
     expect(lastNote()).toContain('Productos: sin lista (el correo dice que el detalle va en la factura N° 1234 adjunta).');
     // Sin la marca de la vista previa, las notas no se leen.
     expect(w.pd.requests.some((r) => r.path === '/notes' && r.method === 'GET')).toBe(false);
@@ -316,9 +317,9 @@ describe('enviar al cliente', () => {
     vi.setSystemTime(NOW.getTime() + 30_000);
     expect(await choose('send')).toBe('enviado');
     expect(despachos()).toHaveLength(1);
-    expect(despachos()[0].text).toContain('PROYECTOR PRUEBA 50W – Cálida 3000K');
+    expect(despachos()[0].text).toContain('Proyector prueba 50W – cálida 3000K');
     expect(lastNote()).toContain('Productos (de la solicitud RC-ab12c):');
-    expect(lastNote()).toContain('- 3 x PROYECTOR PRUEBA 50W – Cálida 3000K');
+    expect(lastNote()).toContain('- 3 x Proyector prueba 50W – cálida 3000K');
   });
 
   it('la marca de la vista previa vence a las 24 h: después sale sin lista', async () => {
@@ -504,10 +505,19 @@ describe('§8 Redis, plazo, candado y respuestas del relay', () => {
     expect(lastNote()).toContain('no sé si salió (respuesta no JSON (HTTP 500))');
   });
 
-  it('`uncertain` con el motivo «pendiente» va a la misma fila', async () => {
-    vi.mocked(sendShippingNotice).mockResolvedValueOnce({ status: 'uncertain', reason: 'pendiente' });
+  it('`uncertain` con el motivo «pendiente» va a la misma fila (sin reintento)', async () => {
+    w.relay.mode = 'pending';
     expect(await choose('send')).toBe('incierto');
-    expect(lastNote()).toContain('no sé si salió (pendiente)');
+    expect(lastNote()).toContain('no sé si salió (clave pendiente en el relay (revisar Enviados))');
+    expect(w.relay.calls).toBe(1);
+    expect(w.redis.data.get(noticeStateKey(KEY))?.value).toBe('uncertain');
+  });
+
+  it('`rejected` en el envío al cliente (aunque sea «reenvio»): no salió, nota y ATENCIÓN', async () => {
+    w.relay.mode = 'rejected';
+    w.relay.rejectReason = 'reenvio';
+    expect(await choose('send')).toBe('rechazado');
+    expect(w.redis.mails).toHaveLength(1);
   });
 
   it('el relay responde quota o rejected: no envía; nota, ATENCIÓN a ventas@ y «enviando» se borra', async () => {

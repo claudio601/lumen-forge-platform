@@ -184,7 +184,10 @@ export type RelayMode =
   /** Envía y responde una página HTML 500 (`uncertain`). */
   | 'sent_then_html'
   | 'quota'
-  | 'rejected';
+  /** `rejected` con `rejectReason` (por defecto `config`). */
+  | 'rejected'
+  /** `uncertain` con el motivo `pendiente`: una ejecución anterior reservó la clave y no confirmó. */
+  | 'pending';
 
 export interface FakeRelay {
   /** Correos que «salieron» (vista previa al dueño y avisos al cliente). */
@@ -194,6 +197,8 @@ export interface FakeRelay {
   /** Llamadas recibidas (también las rechazadas). */
   calls: number;
   mode: RelayMode;
+  /** Código de `rejected` (Code.gs): `config`, `reenvio`, `cache`… */
+  rejectReason?: string;
   /** Antes de responder (p. ej., para cambiar el disparador mientras el relay trabaja). */
   onCall?: () => void;
 }
@@ -214,7 +219,8 @@ async function relayResponse(relay: FakeRelay, init: RequestInit | undefined): P
   };
   if (p.v !== 1) return json({ status: 'rejected', reason: 'version' });
   if (relay.mode === 'quota') return json({ status: 'quota' });
-  if (relay.mode === 'rejected') return json({ status: 'rejected', reason: 'config' });
+  if (relay.mode === 'rejected') return json({ status: 'rejected', reason: relay.rejectReason ?? 'config' });
+  if (relay.mode === 'pending') return json({ status: 'uncertain', reason: 'pendiente' });
   if (relay.mode === 'timeout') throw Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
   if (p.action === 'despacho' && relay.keys.has(p.key)) return json({ status: 'duplicate' });
   relay.sent.push({
