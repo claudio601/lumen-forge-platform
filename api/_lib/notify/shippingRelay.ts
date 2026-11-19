@@ -17,17 +17,23 @@
 //   el cuerpo: JSON.parse recupera los caracteres.
 //   La vista previa no lleva el correo del cliente: el relay la envía solo a OWNER_EMAIL.
 //
-// Respuestas del relay: `{ status: 'ok' | 'duplicate' | 'quota' }` o
+// Respuestas del relay: `{ status: 'ok' | 'duplicate' | 'quota' }`, `duplicate` con
+// `reason: 'reenvio'` (el mismo cuerpo firmado llegó otra vez), `{ status: 'uncertain',
+// reason: 'pendiente' }` (una ejecución anterior reservó la clave y no confirmó el envío) o
 // `{ status: 'rejected', reason: <código> }`. Apps Script responde con una redirección 302 a
 // script.googleusercontent.com, que fetch sigue (como salesEmail.ts).
 //
 // Resultado (nunca lanza):
-//   - ok / duplicate: el correo salió ahora o ya había salido con esa clave;
-//   - quota / rejected / config: no salió (config: faltan las variables del servidor);
-//   - uncertain: no se sabe. Plazo agotado, error de red o una respuesta que no es del relay,
-//     salvo la página de inicio de sesión de Google o un 401/403/404, que prueban que el
-//     script no corrió (rejected). Quien llama no reintenta solo. El relay deduplica por
-//     clave: si el correo había salido, el reintento del dueño responde `duplicate`.
+//   - ok / duplicate: el correo salió ahora o ya había salido con esa clave (o con ese mismo
+//     cuerpo: `reason` «reenvío del mismo cuerpo firmado»);
+//   - quota / rejected / config: no salió (config: faltan las variables del servidor;
+//     rejected «el relay no pudo reservar la clave»: almacenamiento del relay lleno);
+//   - uncertain: no se sabe. Plazo agotado, error de red, una clave que quedó pendiente en el
+//     relay (revisar Enviados) o una respuesta que no es del relay, salvo la página de inicio
+//     de sesión de Google o un 401/403/404, que prueban que el script no corrió (rejected).
+//     Quien llama no reintenta solo. El relay reserva la clave antes de enviar: si el correo
+//     había salido, el reintento del dueño responde `duplicate` (o `uncertain` si la ejecución
+//     anterior se cortó en el envío), nunca un segundo correo.
 //
 // Registros: solo la acción, el resultado, el motivo clasificado y los primeros 8 caracteres
 // de la clave, pasados por redact (api/_lib/logging/redact.ts, «Shipping relay: …»). Nunca el
@@ -88,7 +94,9 @@ export interface ShippingRelayOptions {
 type FixedReason = (typeof SHIPPING_RELAY_REASONS)[number];
 
 export type ShippingRelayResult =
-  | { status: 'ok' | 'duplicate' | 'quota' }
+  | { status: 'ok' | 'quota' }
+  /** `reason` solo si el relay lo dice (el mismo cuerpo firmado otra vez): igual ya había salido. */
+  | { status: 'duplicate'; reason?: string }
   /** `reason`: motivo clasificado (lista de redact.ts), apto para el log y la nota. */
   | { status: 'rejected' | 'uncertain' | 'config'; reason: string };
 
@@ -103,6 +111,9 @@ const ATTACHMENT_RULES: Record<ShippingAttachmentMimeType, { ext: RegExp; sniffe
 
 /** Códigos que responde Code.gs en `reason`, con su motivo. Lo demás: «motivo no reconocido». */
 const RELAY_REASONS = new Map<string, FixedReason>([
+  ['reenvio', 'reenvío del mismo cuerpo firmado'],
+  ['pendiente', 'clave pendiente en el relay (revisar Enviados)'],
+  ['almacenamiento', 'el relay no pudo reservar la clave'],
   ['json', 'cuerpo no válido'],
   ['firma', 'firma no válida'],
   ['hora', 'hora fuera de rango'],
@@ -251,8 +262,11 @@ function classify(response: Response, text: string): ShippingRelayResult {
 
   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
     const { status, reason } = parsed as { status?: unknown; reason?: unknown };
-    if (status === 'ok' || status === 'duplicate' || status === 'quota') return { status };
+    if (status === 'ok' || status === 'quota') return { status };
+    if (status === 'duplicate') return reason === undefined ? { status } : { status, reason: relayReason(reason) };
     if (status === 'rejected') return rejected(relayReason(reason));
+    // El relay no sabe si salió (clave pendiente de una ejecución que se cortó): no se reintenta.
+    if (status === 'uncertain') return { status, reason: relayReason(reason) };
     // JSON que no es del protocolo (otra versión del script, un proxy): no se sabe si salió.
     return { status: 'uncertain', reason: 'status no reconocido' };
   }

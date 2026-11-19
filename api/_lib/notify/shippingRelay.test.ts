@@ -4,7 +4,7 @@
 // que no son del relay, redirección de Apps Script, variables faltantes y registros sin datos
 // del cliente. El relay está simulado: nunca se llama al de Google.
 
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { readFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
@@ -221,6 +221,23 @@ describe('sendShippingNotice', () => {
     expect(logged()).toContain('Shipping relay: status quota');
   });
 
+  it('el mismo cuerpo otra vez (duplicate/reenvio) y una clave pendiente en el relay (uncertain)', async () => {
+    vi.stubGlobal('fetch', relay('{"status":"duplicate","reason":"reenvio"}'));
+    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'duplicate', reason: 'reenvío del mismo cuerpo firmado' });
+    vi.stubGlobal('fetch', relay('{"status":"uncertain","reason":"pendiente"}'));
+    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({
+      status: 'uncertain',
+      reason: 'clave pendiente en el relay (revisar Enviados)',
+    });
+    vi.stubGlobal('fetch', relay('{"status":"uncertain","reason":"cliente.prueba@example.com"}'));
+    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'uncertain', reason: 'motivo no reconocido' });
+    vi.stubGlobal('fetch', relay('{"status":"duplicate","reason":"xyz"}'));
+    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'duplicate', reason: 'motivo no reconocido' });
+    expect(logged()).toContain('[aviso-despacho] despacho c4ea6a81 Shipping relay: status duplicate: reenvío del mismo cuerpo firmado');
+    expect(logged()).toContain('[aviso-despacho] despacho c4ea6a81 Shipping relay: status uncertain: clave pendiente en el relay (revisar Enviados)');
+    expect(logged()).not.toContain('cliente.prueba');
+  });
+
   it('rejected: el código del relay pasa a un motivo de la lista; uno desconocido no se repite', async () => {
     const cases: Array<[string, string]> = [
       ['firma', 'firma no válida'],
@@ -229,6 +246,7 @@ describe('sendShippingNotice', () => {
       ['adjuntos', 'adjuntos no válidos'],
       ['config', 'falta configuración en el relay'],
       ['ocupado', 'relay ocupado'],
+      ['almacenamiento', 'el relay no pudo reservar la clave'],
       ['envio', 'Gmail no aceptó el envío'],
       ['xyz', 'motivo no reconocido'],
       ['constructor', 'motivo no reconocido'],
@@ -476,14 +494,26 @@ describe('sendShippingNotice con un servidor HTTP local (redirección real de Ap
 
 // ── Code.gs en una VM con lo mínimo de Apps Script ───────────────────────────
 // Simula Utilities y ContentService con las mismas formas que documenta Google (bytes con signo
-// de -128 a 127, HMAC con la clave en UTF-8). Así testDoPost corre en cada CI y el servidor y el
-// relay no pueden dejar de entenderse sin que falle una prueba. Gmail, la cuota, el candado y las
-// propiedades los simula el propio testDoPost (entornoDePrueba): esta VM no tiene GmailApp.
+// de -128 a 127, HMAC y SHA-256 del texto en UTF-8). Así testDoPost corre en cada CI y el
+// servidor y el relay no pueden dejar de entenderse sin que falle una prueba. Gmail, la cuota,
+// el candado, las propiedades y CacheService los simula el propio testDoPost (entornoDePrueba):
+// esta VM no tiene GmailApp ni CacheService.
+
+interface CodeGsEnv {
+  envios: Array<{ para: string; asunto: string; opciones: { attachments?: Array<{ mimeType: string; name: string }> } }>;
+  guardadas: Record<string, string>;
+  huellas: Record<string, { valor: string; segundos: number }>;
+  fallar: boolean | string;
+  fallarGuardar: string | null;
+  fallarBorrar: boolean;
+  fallarLeer: boolean;
+  cacheRota: boolean;
+}
 
 interface CodeGs {
   testDoPost(): void;
   procesar(cuerpo: string, entorno: unknown): { status: string; reason?: string };
-  entornoDePrueba(opciones: { bcc?: string }, lineas: string[]): { envios: Array<{ para: string; asunto: string; opciones: { attachments?: Array<{ mimeType: string; name: string }> } }> };
+  entornoDePrueba(opciones: { bcc?: string }, lineas: string[]): CodeGsEnv;
   doGet(): { getContent(): string };
 }
 
@@ -493,9 +523,14 @@ function loadCodeGs(logs: string[] = []): CodeGs {
     console: { log: (line: string) => logs.push(String(line)) },
     Utilities: {
       Charset: { UTF_8: 'UTF_8' },
+      DigestAlgorithm: { SHA_256: 'SHA_256' },
       computeHmacSha256Signature: (value: string, key: string, charset: string) => {
         if (charset !== 'UTF_8') throw new Error('charset inesperado');
         return signed(createHmac('sha256', Buffer.from(key, 'utf8')).update(value, 'utf8').digest());
+      },
+      computeDigest: (algorithm: string, value: string, charset: string) => {
+        if (algorithm !== 'SHA_256' || charset !== 'UTF_8') throw new Error('algoritmo o charset inesperado');
+        return signed(createHash('sha256').update(value, 'utf8').digest());
       },
       base64Decode: (text: string) => signed(Buffer.from(text, 'base64')),
       base64Encode: (text: string) => Buffer.from(text, 'utf8').toString('base64'),
@@ -514,7 +549,7 @@ function loadCodeGs(logs: string[] = []): CodeGs {
 }
 
 describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
-  it('testDoPost pasa: firma, falla sin registrar la clave, reintento, duplicate, vista previa, rechazos, cuota y limpieza', () => {
+  it('testDoPost pasa: firma, reserva de la clave, reintento, duplicate, reenvío del mismo cuerpo, vista previa, rechazos, cuota y limpieza', () => {
     const logs: string[] = [];
     const gs = loadCodeGs(logs);
     expect(() => gs.testDoPost()).not.toThrow();
@@ -531,7 +566,9 @@ describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
       attachments: [...VECTOR_REQUEST.attachments, { name: 'Comprobante-Starken-ABC999.png', mimeType: 'image/png', data: PNG }],
     };
     expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'ok' });
-    expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'duplicate' });
+    // El mismo cuerpo firmado: reenvío. Un cuerpo nuevo (otro ts) con la misma clave: duplicate.
+    expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'duplicate', reason: 'reenvio' });
+    expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts + 1), env)).toEqual({ status: 'duplicate' });
     const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
     expect(gs.procesar(buildRelayBody(preview, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'ok' });
     expect(env.envios.map((s) => s.para)).toEqual(['cliente.prueba@example.com', 'dueno.prueba@example.com']);
@@ -542,13 +579,91 @@ describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
     const other = gs.entornoDePrueba({}, lines);
     expect(gs.procesar(buildRelayBody(VECTOR_REQUEST, VECTOR.secret.replace('prueba', 'otra'), VECTOR.ts), other)).toEqual({ status: 'rejected', reason: 'firma' });
     expect(other.envios).toHaveLength(0);
-    // Todo código que responde Code.gs tiene su motivo en el servidor.
-    const codes = new Set([...readFileSync(new URL('../../../apps-script/aviso-despacho/Code.gs', import.meta.url), 'utf8')
-      .matchAll(/rechazo\('([a-z]+)'\)/g)].map((m) => m[1]));
-    expect(codes.size).toBeGreaterThan(10);
+    // Todo código que responde Code.gs (rechazo('x') o reason: 'x') tiene su motivo en el servidor.
+    const codeGs = readFileSync(new URL('../../../apps-script/aviso-despacho/Code.gs', import.meta.url), 'utf8');
+    const codes = new Set([...codeGs.matchAll(/rechazo\('([a-z]+)'\)|reason: '([a-z]+)'/g)].map((m) => m[1] ?? m[2]));
+    expect(codes.size).toBeGreaterThan(12);
+    expect([...codes]).toEqual(expect.arrayContaining(['almacenamiento', 'pendiente', 'reenvio']));
     for (const code of codes) {
       expect(relayReason(code), code).not.toBe('motivo no reconocido');
     }
+  });
+
+  describe('sendShippingNotice contra Code.gs (fetch corre procesar en la VM)', () => {
+    let gs: CodeGs;
+    let env: CodeGsEnv;
+    const bodies: string[] = [];
+
+    beforeEach(() => {
+      vi.stubEnv('SHIPPING_RELAY_URL', 'https://relay.example.test/macros/s/prueba/exec');
+      vi.stubEnv('SHIPPING_RELAY_SECRET', VECTOR.secret);
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      gs = loadCodeGs();
+      env = gs.entornoDePrueba({}, []);
+      bodies.length = 0;
+      vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+        bodies.push(init.body as string);
+        return { ok: true, status: 200, url: 'https://script.googleusercontent.com/macros/echo', text: async () => JSON.stringify(gs.procesar(init.body as string, env)) } as unknown as Response;
+      }));
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    /** El servidor reenvía exactamente el último cuerpo (lo que haría un proxy o un reintento de red). */
+    const replay = () => gs.procesar(bodies.at(-1)!, env);
+
+    it('almacenamiento lleno antes de enviar: rejected, sin correo; con espacio otra vez sale una sola vez', async () => {
+      env.fallarGuardar = '';
+      await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'rejected', reason: 'el relay no pudo reservar la clave' });
+      expect(env.envios).toHaveLength(0);
+      env.fallarGuardar = null;
+      await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
+      await expect(sendShippingNotice(VECTOR_REQUEST, { now: () => VECTOR.ts * 1000 + 1000 })).resolves.toEqual({ status: 'duplicate' });
+      expect(env.envios).toHaveLength(1);
+    });
+
+    it('falla el paso a «enviado»: ok; el reintento responde uncertain (pendiente) y el mismo cuerpo duplicate, sin un segundo correo', async () => {
+      env.fallarGuardar = 'enviado:';
+      await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
+      expect(env.guardadas['aviso:' + VECTOR_REQUEST.key]).toBe('pendiente:' + VECTOR.ts * 1000);
+      expect(replay()).toEqual({ status: 'duplicate', reason: 'reenvio' });
+      await expect(sendShippingNotice(VECTOR_REQUEST, { now: () => VECTOR.ts * 1000 + 1000 })).resolves.toEqual({
+        status: 'uncertain',
+        reason: 'clave pendiente en el relay (revisar Enviados)',
+      });
+      expect(env.envios).toHaveLength(1);
+    });
+
+    it('reserva trabada de una ejecución que se cortó: uncertain, sin enviar', async () => {
+      env.guardadas['aviso:' + VECTOR_REQUEST.key] = 'pendiente:' + (VECTOR.ts * 1000 - 60_000);
+      await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({
+        status: 'uncertain',
+        reason: 'clave pendiente en el relay (revisar Enviados)',
+      });
+      expect(env.envios).toHaveLength(0);
+    });
+
+    it('una limpieza que falla no detiene el aviso', async () => {
+      env.fallarLeer = true;
+      await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
+      expect(env.envios).toHaveLength(1);
+    });
+
+    it('el mismo cuerpo firmado otra vez: duplicate/reenvio sin enviar, en el despacho y en la vista previa; un sobre nuevo de vista previa sí sale', async () => {
+      await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
+      expect(replay()).toEqual({ status: 'duplicate', reason: 'reenvio' });
+      const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
+      await expect(sendShippingNotice(preview, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
+      expect(replay()).toEqual({ status: 'duplicate', reason: 'reenvio' });
+      await expect(sendShippingNotice(preview, { now: () => VECTOR.ts * 1000 + 1000 })).resolves.toEqual({ status: 'ok' });
+      expect(env.envios.map((s) => s.para)).toEqual(['cliente.prueba@example.com', 'dueno.prueba@example.com', 'dueno.prueba@example.com']);
+      // Cada huella dura lo que le queda a su ts dentro de los 5 minutos, más 60 s (el reloj del relay está fijo).
+      expect(Object.values(env.huellas).map((h) => h.segundos)).toEqual([360, 360, 361]);
+    });
   });
 
   it('doGet responde el nombre del servicio, sin datos', () => {
