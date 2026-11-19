@@ -221,9 +221,7 @@ describe('sendShippingNotice', () => {
     expect(logged()).toContain('Shipping relay: status quota');
   });
 
-  it('el mismo cuerpo otra vez (duplicate/reenvio) y una clave pendiente en el relay (uncertain)', async () => {
-    vi.stubGlobal('fetch', relay('{"status":"duplicate","reason":"reenvio"}'));
-    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'duplicate', reason: 'reenvío del mismo cuerpo firmado' });
+  it('una clave pendiente en el relay queda uncertain; el reenvío y la caché de la vista previa, rejected', async () => {
     vi.stubGlobal('fetch', relay('{"status":"uncertain","reason":"pendiente"}'));
     await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({
       status: 'uncertain',
@@ -231,10 +229,17 @@ describe('sendShippingNotice', () => {
     });
     vi.stubGlobal('fetch', relay('{"status":"uncertain","reason":"cliente.prueba@example.com"}'));
     await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'uncertain', reason: 'motivo no reconocido' });
-    vi.stubGlobal('fetch', relay('{"status":"duplicate","reason":"xyz"}'));
-    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'duplicate', reason: 'motivo no reconocido' });
-    expect(logged()).toContain('[aviso-despacho] despacho c4ea6a81 Shipping relay: status duplicate: reenvío del mismo cuerpo firmado');
+    const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
+    vi.stubGlobal('fetch', relay('{"status":"rejected","reason":"reenvio"}'));
+    await expect(sendShippingNotice(preview)).resolves.toEqual({ status: 'rejected', reason: 'reenvío del mismo cuerpo firmado' });
+    vi.stubGlobal('fetch', relay('{"status":"rejected","reason":"cache"}'));
+    await expect(sendShippingNotice(preview)).resolves.toEqual({ status: 'rejected', reason: 'caché del relay no disponible' });
+    // Un duplicate siempre es «ya salió»: un motivo que lo acompañe no cambia nada.
+    vi.stubGlobal('fetch', relay('{"status":"duplicate","reason":"reenvio"}'));
+    await expect(sendShippingNotice(VECTOR_REQUEST)).resolves.toEqual({ status: 'duplicate' });
     expect(logged()).toContain('[aviso-despacho] despacho c4ea6a81 Shipping relay: status uncertain: clave pendiente en el relay (revisar Enviados)');
+    expect(logged()).toContain('[aviso-despacho] preview c4ea6a81 Shipping relay: status rejected: reenvío del mismo cuerpo firmado');
+    expect(logged()).toContain('[aviso-despacho] preview c4ea6a81 Shipping relay: status rejected: caché del relay no disponible');
     expect(logged()).not.toContain('cliente.prueba');
   });
 
@@ -247,6 +252,8 @@ describe('sendShippingNotice', () => {
       ['config', 'falta configuración en el relay'],
       ['ocupado', 'relay ocupado'],
       ['almacenamiento', 'el relay no pudo reservar la clave'],
+      ['reenvio', 'reenvío del mismo cuerpo firmado'],
+      ['cache', 'caché del relay no disponible'],
       ['envio', 'Gmail no aceptó el envío'],
       ['xyz', 'motivo no reconocido'],
       ['constructor', 'motivo no reconocido'],
@@ -507,7 +514,8 @@ interface CodeGsEnv {
   fallarGuardar: string | null;
   fallarBorrar: boolean;
   fallarLeer: boolean;
-  cacheRota: boolean;
+  fallarCache: null | 'abrir' | 'get' | 'put' | 'remove';
+  enviar: (...args: unknown[]) => void;
 }
 
 interface CodeGs {
@@ -566,8 +574,8 @@ describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
       attachments: [...VECTOR_REQUEST.attachments, { name: 'Comprobante-Starken-ABC999.png', mimeType: 'image/png', data: PNG }],
     };
     expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'ok' });
-    // El mismo cuerpo firmado: reenvío. Un cuerpo nuevo (otro ts) con la misma clave: duplicate.
-    expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'duplicate', reason: 'reenvio' });
+    // El mismo cuerpo firmado o uno nuevo (otro ts) con la misma clave: duplicate, por la clave durable.
+    expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'duplicate' });
     expect(gs.procesar(buildRelayBody(withVoucher, VECTOR.secret, VECTOR.ts + 1), env)).toEqual({ status: 'duplicate' });
     const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
     expect(gs.procesar(buildRelayBody(preview, VECTOR.secret, VECTOR.ts), env)).toEqual({ status: 'ok' });
@@ -583,7 +591,7 @@ describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
     const codeGs = readFileSync(new URL('../../../apps-script/aviso-despacho/Code.gs', import.meta.url), 'utf8');
     const codes = new Set([...codeGs.matchAll(/rechazo\('([a-z]+)'\)|reason: '([a-z]+)'/g)].map((m) => m[1] ?? m[2]));
     expect(codes.size).toBeGreaterThan(12);
-    expect([...codes]).toEqual(expect.arrayContaining(['almacenamiento', 'pendiente', 'reenvio']));
+    expect([...codes]).toEqual(expect.arrayContaining(['almacenamiento', 'pendiente', 'reenvio', 'cache']));
     for (const code of codes) {
       expect(relayReason(code), code).not.toBe('motivo no reconocido');
     }
@@ -626,16 +634,63 @@ describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
       expect(env.envios).toHaveLength(1);
     });
 
-    it('falla el paso a «enviado»: ok; el reintento responde uncertain (pendiente) y el mismo cuerpo duplicate, sin un segundo correo', async () => {
+    it('falla el paso a «enviado»: ok; el mismo cuerpo y el reintento responden uncertain (pendiente), sin un segundo correo', async () => {
       env.fallarGuardar = 'enviado:';
       await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
       expect(env.guardadas['aviso:' + VECTOR_REQUEST.key]).toBe('pendiente:' + VECTOR.ts * 1000);
-      expect(replay()).toEqual({ status: 'duplicate', reason: 'reenvio' });
+      expect(replay()).toEqual({ status: 'uncertain', reason: 'pendiente' });
       await expect(sendShippingNotice(VECTOR_REQUEST, { now: () => VECTOR.ts * 1000 + 1000 })).resolves.toEqual({
         status: 'uncertain',
         reason: 'clave pendiente en el relay (revisar Enviados)',
       });
       expect(env.envios).toHaveLength(1);
+    });
+
+    it('la ejecución se corta antes de Gmail (despacho): el mismo cuerpo y uno nuevo dan uncertain/pendiente, nunca duplicate', () => {
+      // Corte real: el plazo de la VM termina la ejecución dentro de enviar, sin correr catch ni finally (como Apps Script).
+      const context = gs as unknown as vm.Context & { cuerpoCorte: string; entornoCorte: CodeGsEnv };
+      context.cuerpoCorte = buildRelayBody(VECTOR_REQUEST, VECTOR.secret, VECTOR.ts);
+      vm.runInContext('entornoCorte = entornoDePrueba({}, []); entornoCorte.enviar = function () { for (;;) {} };', context);
+      expect(() => vm.runInContext('procesar(cuerpoCorte, entornoCorte)', context, { timeout: 200 })).toThrow(/timed out/i);
+      const cut = context.entornoCorte;
+      expect(cut.envios).toHaveLength(0);
+      expect(cut.guardadas['aviso:' + VECTOR_REQUEST.key]).toBe('pendiente:' + VECTOR.ts * 1000);
+      cut.enviar = () => { throw new Error('no debería enviar'); };
+      expect(gs.procesar(context.cuerpoCorte, cut)).toEqual({ status: 'uncertain', reason: 'pendiente' });
+      expect(gs.procesar(buildRelayBody(VECTOR_REQUEST, VECTOR.secret, VECTOR.ts + 1), cut)).toEqual({ status: 'uncertain', reason: 'pendiente' });
+      expect(cut.huellas).toEqual({});
+    });
+
+    it('la ejecución se corta antes de Gmail (vista previa): el mismo cuerpo da rejected/reenvio (nunca «salió»); uno nuevo sale', () => {
+      const context = gs as unknown as vm.Context & { cuerpoCorte: string; entornoCorte: CodeGsEnv };
+      const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
+      context.cuerpoCorte = buildRelayBody(preview, VECTOR.secret, VECTOR.ts);
+      vm.runInContext('entornoCorte = entornoDePrueba({}, []); entornoCorte.enviar = function () { for (;;) {} };', context);
+      expect(() => vm.runInContext('procesar(cuerpoCorte, entornoCorte)', context, { timeout: 200 })).toThrow(/timed out/i);
+      const cut = context.entornoCorte;
+      expect(cut.envios).toHaveLength(0);
+      expect(gs.procesar(context.cuerpoCorte, cut)).toEqual({ status: 'rejected', reason: 'reenvio' });
+      cut.enviar = () => {}; // sin el bucle del corte
+      expect(gs.procesar(buildRelayBody(preview, VECTOR.secret, VECTOR.ts + 1), cut)).toEqual({ status: 'ok' });
+    });
+
+    it('vista previa: Gmail falla y no se puede borrar la huella; sin caché para leer o guardar, no sale', async () => {
+      const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
+      env.fallar = true;
+      env.fallarCache = 'remove';
+      await expect(sendShippingNotice(preview, AT_VECTOR_TS)).resolves.toEqual({ status: 'rejected', reason: 'Gmail no aceptó el envío' });
+      env.fallar = false;
+      expect(replay()).toEqual({ status: 'rejected', reason: 'reenvio' });
+      expect(env.envios).toHaveLength(0);
+      for (const falla of ['get', 'put', 'abrir'] as const) {
+        const other = gs.entornoDePrueba({}, []);
+        other.fallarCache = falla;
+        env = other;
+        await expect(sendShippingNotice(preview, AT_VECTOR_TS), falla).resolves.toEqual({ status: 'rejected', reason: 'caché del relay no disponible' });
+        expect(other.envios, falla).toHaveLength(0);
+        // El despacho no usa la caché: sale igual.
+        await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS), falla).resolves.toEqual({ status: 'ok' });
+      }
     });
 
     it('reserva trabada de una ejecución que se cortó: uncertain, sin enviar', async () => {
@@ -653,16 +708,16 @@ describe('apps-script/aviso-despacho/Code.gs (VM)', () => {
       expect(env.envios).toHaveLength(1);
     });
 
-    it('el mismo cuerpo firmado otra vez: duplicate/reenvio sin enviar, en el despacho y en la vista previa; un sobre nuevo de vista previa sí sale', async () => {
+    it('el mismo cuerpo firmado otra vez: despacho duplicate (por la clave), vista previa rejected/reenvio; un sobre nuevo de vista previa sí sale', async () => {
       await expect(sendShippingNotice(VECTOR_REQUEST, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
-      expect(replay()).toEqual({ status: 'duplicate', reason: 'reenvio' });
+      expect(replay()).toEqual({ status: 'duplicate' });
       const preview: ShippingNoticeRequest = { ...VECTOR_REQUEST, action: 'preview', to: '' };
       await expect(sendShippingNotice(preview, AT_VECTOR_TS)).resolves.toEqual({ status: 'ok' });
-      expect(replay()).toEqual({ status: 'duplicate', reason: 'reenvio' });
+      expect(replay()).toEqual({ status: 'rejected', reason: 'reenvio' });
       await expect(sendShippingNotice(preview, { now: () => VECTOR.ts * 1000 + 1000 })).resolves.toEqual({ status: 'ok' });
       expect(env.envios.map((s) => s.para)).toEqual(['cliente.prueba@example.com', 'dueno.prueba@example.com', 'dueno.prueba@example.com']);
-      // Cada huella dura lo que le queda a su ts dentro de los 5 minutos, más 60 s (el reloj del relay está fijo).
-      expect(Object.values(env.huellas).map((h) => h.segundos)).toEqual([360, 360, 361]);
+      // Solo la vista previa deja huella: dura lo que le queda a su ts dentro de los 5 minutos, más 60 s (el reloj del relay está fijo).
+      expect(Object.values(env.huellas).map((h) => h.segundos)).toEqual([360, 361]);
     });
   });
 

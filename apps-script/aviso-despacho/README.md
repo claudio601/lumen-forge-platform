@@ -4,7 +4,7 @@
 
 - **Vista previa:** solo a tu correo (`OWNER_EMAIL`), con «[Vista previa]» en el asunto y sin copias.
 - **Enviar al cliente:** al correo del cliente, una sola vez por envío. Si llega dos veces el mismo, responde «duplicate» y no envía. Antes de enviar deja reservado el envío en las propiedades: si un intento anterior se cortó a mitad de camino, responde «uncertain» y no envía (revisa Enviados).
-- **El mismo pedido firmado dos veces** (vista previa o envío al cliente): responde «duplicate» y no lo vuelve a enviar. Un pedido nuevo desde el sitio sí sale.
+- **La misma vista previa firmada dos veces:** la segunda responde «rejected» (`reenvio`) y no sale. Una vista previa nueva desde el sitio sí sale. Si la caché del script no responde, la vista previa no sale (`cache`). En el envío al cliente manda solo la reserva: el mismo pedido otra vez es un reintento más.
 
 Sin la firma correcta no envía nada. El archivo no tiene secretos ni direcciones (el repo es público): todo va en las propiedades del script. El secreto lo escribes tú en los dos lados; Claude nunca lo ve.
 
@@ -25,7 +25,7 @@ Sin la firma correcta no envía nada. El archivo no tiene secretos ni direccione
 2. La primera vez, Google pide autorizar: **Revisar permisos** → tu cuenta. Si dice «Google no verificó esta app», es porque el script es tuyo: **Configuración avanzada** → **Ir a eLIGHTS · aviso de despacho** → **Permitir**. Pide Gmail (para enviar los avisos), las propiedades del script y el envío de correo (para leer la cuota diaria).
 3. En el **Registro de ejecución** tiene que aparecer «testDoPost: … verificaciones OK (sin enviar correos ni tocar las propiedades)».
 
-`testDoPost` usa datos ficticios y un entorno simulado: no envía correos ni toca las propiedades reales. Revisa la firma con el mismo vector que las pruebas del servidor, la reserva del envío (que un envío que falla la borre y el reintento sí salga, que sin espacio no se envíe y que una reserva que quedó pendiente nunca se reenvíe), el «duplicate», el mismo pedido firmado dos veces, la vista previa, los rechazos, la cuota y la limpieza de claves viejas. Si dice «testDoPost falló: …», pásale ese texto a Claude.
+`testDoPost` usa datos ficticios y un entorno simulado: no envía correos ni toca las propiedades reales. Revisa la firma con el mismo vector que las pruebas del servidor, la reserva del envío (que un envío que falla la borre y el reintento sí salga, que sin espacio no se envíe y que una reserva que quedó pendiente nunca se reenvíe), el «duplicate», la vista previa (solo a tu correo, sin repetir la misma y sin salir si la caché no responde), los rechazos, la cuota y la limpieza de claves viejas. Si dice «testDoPost falló: …», pásale ese texto a Claude.
 
 ## 3. El secreto
 
@@ -100,7 +100,7 @@ Así la URL `/exec` no cambia. Una «Nueva implementación» crea otra URL, y ha
 
 - **Ejecuciones** (menú de la izquierda): una línea por pedido, como `[aviso-despacho] despacho c4ea6a81 ok`: la acción, los primeros 8 caracteres de la clave y el resultado. Nunca el destinatario, el nombre, el asunto, el cuerpo ni los adjuntos.
 - **Propiedades del script:** una fila `aviso:<clave>` por aviso al cliente: `pendiente:<hora>` mientras se envía y `enviado:<hora>` cuando salió. Las de más de 400 días se borran solas. No las edites a mano: si una queda en `pendiente` (el script se cortó o no pudo marcarla), el aviso responde `uncertain` hasta que revises Enviados.
-- **Caché del script** (no se ve en el editor): la huella de cada pedido firmado, unos 6 minutos, para no enviar dos veces el mismo pedido.
+- **Caché del script** (no se ve en el editor): la huella de cada vista previa firmada, unos 6 minutos, para no enviarla dos veces. El envío al cliente no la usa.
 - **Enviados** de tu cuenta: el aviso y la vista previa (se confirma en la primera prueba).
 
 ## 10. Qué responde el script
@@ -109,10 +109,11 @@ Así la URL `/exec` no cambia. Una «Nueva implementación» crea otra URL, y ha
 |---|---|
 | `ok` | salió el correo |
 | `duplicate` | ese envío ya había salido antes: no se repite |
-| `duplicate` + `reenvio` | llegó otra vez exactamente el mismo pedido firmado: no se repite |
 | `uncertain` + `pendiente` | un intento anterior reservó el envío y no alcanzó a confirmarlo: no se reenvía. Revisa **Enviados**: si el correo no está, avísale a Claude |
 | `quota` | se acabó la cuota diaria de correos de Gmail: no salió |
 | `rejected` + `almacenamiento` | no se pudo guardar la reserva (propiedades llenas): no salió. Avísale a Claude |
+| `rejected` + `reenvio` | llegó otra vez exactamente la misma vista previa firmada: no se repite. Pide una nueva desde el sitio |
+| `rejected` + `cache` | la caché del script no respondió: la vista previa no salió. Se puede reintentar |
 | `rejected` + `firma` | el secreto no es el mismo en Apps Script y en Vercel |
 | `rejected` + `hora` | el pedido llegó con más de 5 minutos de diferencia |
 | `rejected` + `config` | falta una propiedad del script (paso 4) |

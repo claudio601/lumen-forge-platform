@@ -17,17 +17,17 @@
 //   el cuerpo: JSON.parse recupera los caracteres.
 //   La vista previa no lleva el correo del cliente: el relay la envía solo a OWNER_EMAIL.
 //
-// Respuestas del relay: `{ status: 'ok' | 'duplicate' | 'quota' }`, `duplicate` con
-// `reason: 'reenvio'` (el mismo cuerpo firmado llegó otra vez), `{ status: 'uncertain',
+// Respuestas del relay: `{ status: 'ok' | 'duplicate' | 'quota' }`, `{ status: 'uncertain',
 // reason: 'pendiente' }` (una ejecución anterior reservó la clave y no confirmó el envío) o
 // `{ status: 'rejected', reason: <código> }`. Apps Script responde con una redirección 302 a
 // script.googleusercontent.com, que fetch sigue (como salesEmail.ts).
 //
 // Resultado (nunca lanza):
-//   - ok / duplicate: el correo salió ahora o ya había salido con esa clave (o con ese mismo
-//     cuerpo: `reason` «reenvío del mismo cuerpo firmado»);
+//   - ok / duplicate: el correo salió ahora o ya había salido con esa clave. El relay solo
+//     responde duplicate desde la clave durable del despacho, nunca desde una huella;
 //   - quota / rejected / config: no salió (config: faltan las variables del servidor;
-//     rejected «el relay no pudo reservar la clave»: almacenamiento del relay lleno);
+//     rejected «el relay no pudo reservar la clave»: almacenamiento del relay lleno; en la
+//     vista previa, «reenvío del mismo cuerpo firmado» o «caché del relay no disponible»);
 //   - uncertain: no se sabe. Plazo agotado, error de red, una clave que quedó pendiente en el
 //     relay (revisar Enviados) o una respuesta que no es del relay, salvo la página de inicio
 //     de sesión de Google o un 401/403/404, que prueban que el script no corrió (rejected).
@@ -94,9 +94,7 @@ export interface ShippingRelayOptions {
 type FixedReason = (typeof SHIPPING_RELAY_REASONS)[number];
 
 export type ShippingRelayResult =
-  | { status: 'ok' | 'quota' }
-  /** `reason` solo si el relay lo dice (el mismo cuerpo firmado otra vez): igual ya había salido. */
-  | { status: 'duplicate'; reason?: string }
+  | { status: 'ok' | 'duplicate' | 'quota' }
   /** `reason`: motivo clasificado (lista de redact.ts), apto para el log y la nota. */
   | { status: 'rejected' | 'uncertain' | 'config'; reason: string };
 
@@ -114,6 +112,7 @@ const RELAY_REASONS = new Map<string, FixedReason>([
   ['reenvio', 'reenvío del mismo cuerpo firmado'],
   ['pendiente', 'clave pendiente en el relay (revisar Enviados)'],
   ['almacenamiento', 'el relay no pudo reservar la clave'],
+  ['cache', 'caché del relay no disponible'],
   ['json', 'cuerpo no válido'],
   ['firma', 'firma no válida'],
   ['hora', 'hora fuera de rango'],
@@ -262,8 +261,7 @@ function classify(response: Response, text: string): ShippingRelayResult {
 
   if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
     const { status, reason } = parsed as { status?: unknown; reason?: unknown };
-    if (status === 'ok' || status === 'quota') return { status };
-    if (status === 'duplicate') return reason === undefined ? { status } : { status, reason: relayReason(reason) };
+    if (status === 'ok' || status === 'duplicate' || status === 'quota') return { status };
     if (status === 'rejected') return rejected(relayReason(reason));
     // El relay no sabe si salió (clave pendiente de una ejecución que se cortó): no se reintenta.
     if (status === 'uncertain') return { status, reason: relayReason(reason) };

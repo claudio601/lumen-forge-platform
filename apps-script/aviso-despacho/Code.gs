@@ -28,18 +28,22 @@
 // Las claves de más de 400 días, en los dos estados, se borran (PropertiesService guarda hasta
 // 500 KB).
 //
-// Reenvío del mismo cuerpo: la firma de cada cuerpo aceptado (su hash) queda en CacheService
-// mientras el ts siga dentro de los 5 minutos, más un margen. El mismo cuerpo otra vez responde
-// «duplicate» con reason «reenvio», sin enviar, en la vista previa y en el despacho. Un cuerpo
-// nuevo (otro ts u otro payload) tiene otra firma y sí sale.
+// En el despacho, solo la clave durable decide: el mismo cuerpo firmado otra vez da lo mismo
+// que cualquier reintento («duplicate» si salió, «uncertain» si quedó pendiente).
+//
+// Vista previa (no tiene clave): la firma de cada cuerpo aceptado (su hash, la «huella») queda en
+// CacheService antes de enviar, mientras el ts siga dentro de los 5 minutos, más un margen. El
+// mismo cuerpo otra vez responde «rejected» con reason «reenvio», sin enviar: la huella prueba
+// que hubo un intento, no que el correo salió. Si CacheService no responde, la vista previa no
+// sale («rejected», «cache»). Un cuerpo nuevo (otro ts u otro payload) tiene otra firma y sí sale.
 //
 // Registros: solo la acción, los primeros 8 caracteres de la clave y el resultado. Nunca el
 // destinatario, el nombre, el asunto, el cuerpo ni los adjuntos.
 //
-// Respuesta (JSON): {status: "ok"}, {status: "duplicate"} (o con reason "reenvio"),
-// {status: "quota"}, {status: "uncertain", reason: "pendiente"} o
-// {status: "rejected", reason: "<código>"}. Códigos: json, firma, hora, version, accion, clave,
-// para, asunto, texto, adjuntos, config, ocupado, almacenamiento, envio, interno.
+// Respuesta (JSON): {status: "ok"}, {status: "duplicate"}, {status: "quota"},
+// {status: "uncertain", reason: "pendiente"} o {status: "rejected", reason: "<código>"}.
+// Códigos: json, firma, hora, version, accion, clave, para, asunto, texto, adjuntos, config,
+// ocupado, almacenamiento, reenvio, cache, envio, interno.
 //
 // Este archivo no tiene secretos ni direcciones (el repo es público): todo va en
 // Configuración del proyecto → Propiedades del script.
@@ -170,31 +174,54 @@ function evaluar(cuerpo, entorno, registro) {
     return rechazo('config');
   }
 
+  if (pedido.action === 'despacho') return despacho(pedido, adjuntos, entorno);
   var huella = { nombre: PREFIJO_HUELLA + huellaDeFirma(sobre.sig), segundos: segundosDeHuella(sobre.ts, entorno.ahora()) };
-  return pedido.action === 'preview' ? vistaPrevia(pedido, adjuntos, huella, entorno) : despacho(pedido, adjuntos, huella, entorno);
+  return vistaPrevia(pedido, adjuntos, huella, entorno);
 }
 
-/** Vista previa: solo a OWNER_EMAIL, sin cc ni bcc. No registra la clave; el candado es para la huella. */
+/**
+ * Vista previa: solo a OWNER_EMAIL, sin cc ni bcc. No registra la clave: la huella del cuerpo,
+ * dentro del candado, evita que el mismo cuerpo firmado salga dos veces. Una huella repetida
+ * responde rejected/reenvio (prueba que hubo un intento, no que salió); sin caché, no sale.
+ */
 function vistaPrevia(pedido, adjuntos, huella, entorno) {
   return conCandado(entorno, function () {
-    if (huellaRepetida(entorno, huella)) return { status: 'duplicate', reason: 'reenvio' };
+    var cache;
+    try {
+      cache = entorno.cache();
+      if (cache.get(huella.nombre) !== null) return rechazo('reenvio');
+    } catch (errLectura) {
+      return rechazo('cache');
+    }
     if (entorno.cuota() < 1) return { status: 'quota' };
+    try {
+      // Antes de enviar: si la ejecución se corta en Gmail, el mismo cuerpo igual queda frenado.
+      cache.put(huella.nombre, '1', huella.segundos);
+    } catch (errGuardado) {
+      return rechazo('cache');
+    }
     var asunto = pedido.subject.indexOf(PREFIJO_VISTA_PREVIA) === 0 ? pedido.subject : PREFIJO_VISTA_PREVIA + pedido.subject;
-    guardarHuella(entorno, huella);
     try {
       entorno.enviar(entorno.config.ownerEmail, asunto, pedido.text, opcionesCorreo(pedido, adjuntos, entorno.config, false));
     } catch (err) {
-      quitarHuella(entorno, huella);
+      try {
+        cache.remove(huella.nombre);
+      } catch (errBorrado) {
+        // La huella queda: el mismo cuerpo responde rejected/reenvio (nunca «salió»); uno nuevo sí sale.
+        entorno.registrar('[aviso-despacho] preview ' + pedido.key.slice(0, 8) + ' huella no borrada');
+      }
       return errorDeEnvio(err);
     }
     return { status: 'ok' };
   });
 }
 
-/** Despacho: una sola vez por clave, dentro del candado del script. */
-function despacho(pedido, adjuntos, huella, entorno) {
+/**
+ * Despacho: una sola vez por clave, dentro del candado del script. Solo decide la clave durable
+ * (sin huella): el mismo cuerpo firmado otra vez es un reintento más.
+ */
+function despacho(pedido, adjuntos, entorno) {
   return conCandado(entorno, function () {
-    if (huellaRepetida(entorno, huella)) return { status: 'duplicate', reason: 'reenvio' };
     var ahora = entorno.ahora();
     try {
       limpiarClaves(entorno.claves, ahora);
@@ -217,7 +244,6 @@ function despacho(pedido, adjuntos, huella, entorno) {
     } catch (errReserva) {
       return rechazo('almacenamiento');
     }
-    guardarHuella(entorno, huella);
     try {
       entorno.enviar(pedido.to, pedido.subject, pedido.text, opcionesCorreo(pedido, adjuntos, entorno.config, true));
     } catch (err) {
@@ -228,7 +254,6 @@ function despacho(pedido, adjuntos, huella, entorno) {
         // La reserva queda: el reintento responde uncertain/pendiente, nunca un segundo envío.
         entorno.registrar('[aviso-despacho] despacho ' + pedido.key.slice(0, 8) + ' reserva no borrada');
       }
-      quitarHuella(entorno, huella);
       return errorDeEnvio(err);
     }
     try {
@@ -256,9 +281,9 @@ function conCandado(entorno, trabajo) {
   }
 }
 
-// ---------- Huella del cuerpo (reenvío del mismo cuerpo firmado) ----------
-// CacheService puede perder una entrada antes de tiempo: en el despacho, la clave de las
-// propiedades sigue evitando el doble envío. Si CacheService falla, el aviso no se detiene.
+// ---------- Huella del cuerpo de la vista previa (reenvío del mismo cuerpo firmado) ----------
+// CacheService puede perder una entrada antes de tiempo: en ese caso extremo, la vista previa
+// (solo al dueño) podría salir dos veces. El despacho no usa huella.
 
 /** SHA-256 en hex de la firma: identifica el cuerpo sin guardar la firma. */
 function huellaDeFirma(sig) {
@@ -268,31 +293,6 @@ function huellaDeFirma(sig) {
 /** Segundos que el ts sigue dentro de los 5 minutos, más el margen (normalmente unos 6 minutos). */
 function segundosDeHuella(ts, ahora) {
   return Math.ceil((ts * 1000 + MAX_DIFERENCIA_MS - ahora) / 1000) + MARGEN_HUELLA_S;
-}
-
-function huellaRepetida(entorno, huella) {
-  try {
-    return entorno.cache().get(huella.nombre) !== null;
-  } catch (err) {
-    entorno.registrar('[aviso-despacho] huella no leída');
-    return false;
-  }
-}
-
-function guardarHuella(entorno, huella) {
-  try {
-    entorno.cache().put(huella.nombre, '1', huella.segundos);
-  } catch (err) {
-    entorno.registrar('[aviso-despacho] huella no guardada');
-  }
-}
-
-function quitarHuella(entorno, huella) {
-  try {
-    entorno.cache().remove(huella.nombre);
-  } catch (err) {
-    entorno.registrar('[aviso-despacho] huella no borrada');
-  }
 }
 
 /** Borra las claves de más de 400 días, pendientes o enviadas. No toca la configuración. */
@@ -445,12 +445,11 @@ function testDoPost() {
   verificar(firmar(PRUEBA.secreto, PRUEBA.ts, PRUEBA.payload) === PRUEBA.sig, 'la firma del vector no coincide con la del servidor');
   verificar(base().subject === 'Tu pedido va en camino — Factura N° 1234, Starken orden de flete ABC123456', 'el asunto del vector no se lee bien');
 
-  // 2. Un envío que falla no deja la reserva ni la huella; el reintento sí sale; después, duplicate.
+  // 2. Un envío que falla no deja la reserva; el reintento sí sale; después, duplicate. Sin huella ni caché.
   e = entornoDePrueba({}, lineas);
   e.fallar = true;
   verificar(procesar(vector, e).reason === 'envio', 'una falla de Gmail no respondió rejected/envio');
   verificar(e.guardadas[clave] === undefined, 'una falla de envío dejó la reserva de la clave');
-  verificar(Object.keys(e.huellas).length === 0, 'una falla de envío dejó la huella del cuerpo');
   verificar(e.tomados === 1 && e.liberados === 1, 'el candado no se soltó después de la falla');
   e.fallar = false;
   verificar(procesar(vector, e).status === 'ok', 'el reintento (el mismo cuerpo) después de la falla no salió');
@@ -459,12 +458,14 @@ function testDoPost() {
   verificar(e.envios[0].opciones.htmlBody === base().html && e.envios[0].opciones.name === e.config.senderName &&
     e.envios[0].opciones.replyTo === e.config.replyTo, 'faltan el HTML, el nombre o la respuesta');
   verificar(e.envios[0].opciones.attachments.length === 1 && !('bcc' in e.envios[0].opciones), 'adjuntos o copia oculta incorrectos');
-  verificar(e.envios[0].guardadas[clave] === 'pendiente:' + PRUEBA.ts * 1000 && e.envios[0].huellas === 1,
-    'la reserva de la clave o la huella no estaban guardadas antes de enviar');
+  verificar(e.envios[0].guardadas[clave] === 'pendiente:' + PRUEBA.ts * 1000, 'la reserva de la clave no estaba guardada antes de enviar');
   verificar(e.guardadas[clave] === 'enviado:' + PRUEBA.ts * 1000, 'la clave no quedó como enviada después del envío');
   r = procesar(sobre(base(), PRUEBA.ts + 1), e);
   verificar(r.status === 'duplicate' && r.reason === undefined && e.envios.length === 1, 'otro cuerpo con la misma clave volvió a enviar');
-  verificar(e.tomados === 3 && e.liberados === 3, 'el candado no se soltó');
+  r = procesar(vector, e);
+  verificar(r.status === 'duplicate' && r.reason === undefined && e.envios.length === 1, 'el mismo cuerpo volvió a enviar');
+  verificar(e.tomados === 4 && e.liberados === 4, 'el candado no se soltó');
+  verificar(e.usosCache === 0 && Object.keys(e.huellas).length === 0, 'el despacho usó la caché');
 
   // 3. Reserva durable de la clave antes de enviar.
   // 3a. Almacenamiento lleno: sin reserva no se envía.
@@ -472,7 +473,7 @@ function testDoPost() {
   e.fallarGuardar = '';
   r = procesar(vector, e);
   verificar(r.status === 'rejected' && r.reason === 'almacenamiento' && e.envios.length === 0, 'sin espacio para la reserva igual envió');
-  verificar(e.guardadas[clave] === undefined && Object.keys(e.huellas).length === 0, 'sin reserva quedó la clave o la huella');
+  verificar(e.guardadas[clave] === undefined, 'sin reserva quedó la clave');
   e.fallarGuardar = null;
   verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'con espacio otra vez, el reintento no salió');
   // 3b. Falla el paso a «enviado»: ok, la reserva queda y el reintento no vuelve a enviar.
@@ -481,27 +482,38 @@ function testDoPost() {
   verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'el correo salió, pero no respondió ok');
   verificar(e.guardadas[clave] === 'pendiente:' + PRUEBA.ts * 1000, 'la reserva no quedó cuando falló el paso a enviado');
   r = procesar(vector, e);
-  verificar(r.status === 'duplicate' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo volvió a enviar después del paso a enviado fallido');
+  verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 1, 'el mismo cuerpo con la reserva pendiente no respondió uncertain');
   r = procesar(sobre(base(), PRUEBA.ts + 1), e);
   verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 1, 'el reintento con la reserva pendiente volvió a enviar');
   verificar(lineas.indexOf('[aviso-despacho] despacho c4ea6a81 clave quedó pendiente') !== -1, 'el paso a enviado fallido no quedó en el registro');
-  // 3c. Reserva trabada (una ejecución anterior se cortó en el envío): uncertain, sin enviar ni tocarla.
+  // 3c. Reserva trabada: lo que deja una ejecución que se cortó antes o durante Gmail. El mismo
+  // cuerpo y uno nuevo responden uncertain, sin enviar ni tocarla (nunca «salió»).
   e = entornoDePrueba({}, lineas);
   e.guardadas[clave] = 'pendiente:' + (PRUEBA.ts * 1000 - 60000);
   r = procesar(vector, e);
   verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 0, 'una reserva trabada no respondió uncertain o envió');
-  verificar(e.guardadas[clave] === 'pendiente:' + (PRUEBA.ts * 1000 - 60000) && Object.keys(e.huellas).length === 0,
-    'la reserva trabada cambió o dejó huella');
+  r = procesar(sobre(base(), PRUEBA.ts + 1), e);
+  verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 0, 'una reserva trabada con un sobre nuevo no respondió uncertain');
+  verificar(e.guardadas[clave] === 'pendiente:' + (PRUEBA.ts * 1000 - 60000), 'la reserva trabada cambió');
   // 3d. Gmail falla y la reserva no se puede borrar: el reintento responde uncertain, nunca un segundo intento.
   e = entornoDePrueba({}, lineas);
   e.fallar = true;
   e.fallarBorrar = true;
   verificar(procesar(vector, e).reason === 'envio', 'con la reserva sin borrar no respondió rejected/envio');
   e.fallar = false;
+  r = procesar(vector, e);
+  verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 0, 'con la reserva sin borrar el mismo cuerpo envió');
   r = procesar(sobre(base(), PRUEBA.ts + 1), e);
   verificar(r.status === 'uncertain' && r.reason === 'pendiente' && e.envios.length === 0, 'con la reserva sin borrar el reintento envió');
+  // 3e. El despacho no depende de CacheService: con la caché caída sale y deduplica igual.
+  ['get', 'put', 'remove'].forEach(function (falla) {
+    e = entornoDePrueba({}, lineas);
+    e.fallarCache = falla;
+    verificar(procesar(vector, e).status === 'ok' && procesar(vector, e).status === 'duplicate' && e.envios.length === 1,
+      'con la caché caída (' + falla + ') el despacho no salió o salió dos veces');
+  });
 
-  // 4. El mismo cuerpo firmado otra vez: duplicate/reenvio, sin enviar (vista previa y despacho).
+  // 4. Vista previa: el mismo cuerpo firmado otra vez responde rejected/reenvio, sin enviar (nunca «salió»).
   e = entornoDePrueba({}, lineas);
   p = base();
   p.action = 'preview';
@@ -512,22 +524,36 @@ function testDoPost() {
   verificar(e.envios[0].huellas === 1 && e.huellas[huellaVista].segundos === 360,
     'la huella no se guardó antes de enviar o no dura unos 6 minutos');
   r = procesar(cuerpoVista, e);
-  verificar(r.status === 'duplicate' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo de vista previa salió dos veces');
+  verificar(r.status === 'rejected' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo de vista previa no respondió rejected/reenvio o salió dos veces');
   verificar(procesar(sobre(p, PRUEBA.ts + 1), e).status === 'ok' && e.envios.length === 2, 'una vista previa con un sobre nuevo no salió');
-  e = entornoDePrueba({}, lineas);
-  verificar(procesar(vector, e).status === 'ok', 'el despacho no salió');
-  r = procesar(vector, e);
-  verificar(r.status === 'duplicate' && r.reason === 'reenvio' && e.envios.length === 1, 'el mismo cuerpo de despacho salió dos veces');
   // La huella dura lo que le queda al ts dentro de los 5 minutos, más el margen.
   verificar(segundosDeHuella(PRUEBA.ts, PRUEBA.ts * 1000) === 360, 'la huella de un ts actual no dura 6 minutos');
   verificar(segundosDeHuella(PRUEBA.ts + 300, PRUEBA.ts * 1000) === 660, 'la huella de un ts adelantado no cubre su ventana');
   verificar(segundosDeHuella(PRUEBA.ts - 300, PRUEBA.ts * 1000) === 60, 'la huella de un ts atrasado no lleva el margen');
-  // Con CacheService caído, el aviso sale igual y la clave sigue evitando el doble envío.
+  // Gmail falla y la huella no se puede borrar: el mismo cuerpo responde rejected/reenvio (no «salió»); uno nuevo sale.
   e = entornoDePrueba({}, lineas);
-  e.cacheRota = true;
-  verificar(procesar(vector, e).status === 'ok' && e.envios.length === 1, 'con CacheService caído el despacho no salió');
-  r = procesar(vector, e);
-  verificar(r.status === 'duplicate' && r.reason === undefined && e.envios.length === 1, 'con CacheService caído el mismo cuerpo volvió a enviar');
+  e.fallar = true;
+  e.fallarCache = 'remove';
+  verificar(procesar(cuerpoVista, e).reason === 'envio' && e.huellas[huellaVista] !== undefined, 'con la huella sin borrar no respondió rejected/envio');
+  e.fallar = false;
+  r = procesar(cuerpoVista, e);
+  verificar(r.status === 'rejected' && r.reason === 'reenvio' && e.envios.length === 0, 'con la huella sin borrar el mismo cuerpo salió o respondió otra cosa');
+  verificar(procesar(sobre(p, PRUEBA.ts + 1), e).status === 'ok' && e.envios.length === 1, 'con la huella sin borrar un sobre nuevo no salió');
+  verificar(lineas.indexOf('[aviso-despacho] preview c4ea6a81 huella no borrada') !== -1, 'la huella sin borrar no quedó en el registro');
+  // Sin caché (no se puede leer o no se puede guardar la huella), la vista previa no sale.
+  e = entornoDePrueba({}, lineas);
+  e.fallarCache = 'get';
+  r = procesar(cuerpoVista, e);
+  verificar(r.status === 'rejected' && r.reason === 'cache' && e.envios.length === 0, 'sin poder leer la caché la vista previa salió');
+  e = entornoDePrueba({}, lineas);
+  e.fallarCache = 'put';
+  r = procesar(cuerpoVista, e);
+  verificar(r.status === 'rejected' && r.reason === 'cache' && e.envios.length === 0, 'sin poder guardar la huella la vista previa salió');
+  e = entornoDePrueba({}, lineas);
+  e.fallarCache = 'abrir';
+  r = procesar(cuerpoVista, e);
+  verificar(r.status === 'rejected' && r.reason === 'cache' && e.envios.length === 0 && e.liberados === 1,
+    'sin CacheService la vista previa salió o no soltó el candado');
 
   // 5. Vista previa: solo al dueño, sin copia oculta, con el prefijo una sola vez y sin registrar la clave.
   e = entornoDePrueba({ bcc: 'copia.prueba@example.com' }, lineas);
@@ -661,7 +687,7 @@ function testDoPost() {
     verificar(registros.indexOf(dato) === -1, 'un registro lleva datos del pedido');
   });
   verificar(registros.indexOf('[aviso-despacho] despacho c4ea6a81 ok') !== -1, 'falta la línea del despacho');
-  verificar(registros.indexOf('[aviso-despacho] despacho c4ea6a81 duplicate reenvio') !== -1, 'falta la línea del reenvío');
+  verificar(registros.indexOf('[aviso-despacho] preview c4ea6a81 rejected reenvio') !== -1, 'falta la línea del reenvío');
   verificar(registros.indexOf('[aviso-despacho] despacho c4ea6a81 uncertain pendiente') !== -1, 'falta la línea de la reserva pendiente');
 
   // 11. La respuesta es JSON.
@@ -674,7 +700,8 @@ function testDoPost() {
  * Entorno simulado: propiedades y caché en memoria, Gmail que no envía, cuota y candado
  * controlables. Fallas: `fallar` (Gmail lanza; un texto es su mensaje), `fallarGuardar` (null o
  * un prefijo: setProperty lanza si el valor empieza con él; '' = almacenamiento lleno),
- * `fallarBorrar` (deleteProperty lanza), `fallarLeer` (getProperties lanza) y `cacheRota`.
+ * `fallarBorrar` (deleteProperty lanza), `fallarLeer` (getProperties lanza) y `fallarCache`
+ * (null, 'abrir' para getScriptCache, o 'get', 'put' o 'remove': esa operación lanza).
  */
 function entornoDePrueba(opciones, lineas) {
   var e = {
@@ -692,7 +719,8 @@ function entornoDePrueba(opciones, lineas) {
     fallarGuardar: null,
     fallarBorrar: false,
     fallarLeer: false,
-    cacheRota: false,
+    fallarCache: null,
+    usosCache: 0,
     cuotaRestante: 100,
     ocupado: false,
     tomados: 0,
@@ -706,13 +734,24 @@ function entornoDePrueba(opciones, lineas) {
         huellas: Object.keys(e.huellas).length });
     },
     cache: function () {
-      if (e.cacheRota) throw new Error('CacheService simulado caído');
+      e.usosCache++;
+      function fallaSi(operacion) {
+        if (e.fallarCache === operacion) throw new Error('CacheService simulado: falla en ' + operacion);
+      }
+      fallaSi('abrir');
       return {
         get: function (nombre) {
+          fallaSi('get');
           return Object.prototype.hasOwnProperty.call(e.huellas, nombre) ? e.huellas[nombre].valor : null;
         },
-        put: function (nombre, valor, segundos) { e.huellas[nombre] = { valor: String(valor), segundos: segundos }; },
-        remove: function (nombre) { delete e.huellas[nombre]; }
+        put: function (nombre, valor, segundos) {
+          fallaSi('put');
+          e.huellas[nombre] = { valor: String(valor), segundos: segundos };
+        },
+        remove: function (nombre) {
+          fallaSi('remove');
+          delete e.huellas[nombre];
+        }
       };
     },
     candado: function () {

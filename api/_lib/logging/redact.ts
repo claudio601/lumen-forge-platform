@@ -35,6 +35,7 @@ export const SHIPPING_RELAY_REASONS = [
   'el relay no pudo reservar la clave',
   'clave pendiente en el relay (revisar Enviados)',
   'reenvío del mismo cuerpo firmado',
+  'caché del relay no disponible',
   'Gmail no aceptó el envío',
   'error interno del relay',
   'motivo no reconocido',
