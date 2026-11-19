@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn() }));
 
 import { waitUntil } from '@vercel/functions';
-import { toGasBody, sendSalesEmail, notifySales, SalesEmailError, type SalesEmail } from './salesEmail';
+import { toGasBody, sendSalesEmail, notifySales, salesInbox, SalesEmailError, type SalesEmail } from './salesEmail';
 
 const base: SalesEmail = {
   modo: 'Estudio lumínico DIALux',
@@ -52,6 +52,11 @@ describe('toGasBody', () => {
   it('SALES_EMAIL cambia el destinatario', () => {
     vi.stubEnv('SALES_EMAIL', 'otro@example.com');
     expect(toGasBody(base).to_email).toBe('otro@example.com');
+    expect(salesInbox()).toBe('otro@example.com');
+  });
+
+  it('salesInbox: ventas@elights.cl por defecto (el `email` de los avisos internos)', () => {
+    expect(salesInbox()).toBe('ventas@elights.cl');
   });
 
   it('la fecha es la de Chile, no la de UTC', () => {
@@ -213,6 +218,14 @@ describe('notifySales', () => {
     for (const value of [m.email, m.nombre, m.telefono, m.rutEmpresa!, 'Invalid email', 'PersonaFicticia']) {
       expect(text).not.toContain(value);
     }
+  });
+
+  it('sin timeoutMs espera 10 s; con timeoutMs, ese plazo (el aviso de despacho pasa lo que le queda)', async () => {
+    const timeout = vi.spyOn(AbortSignal, 'timeout');
+    vi.stubGlobal('fetch', relay('{"status":"ok"}'));
+    await notifySales(base, '[prueba]');
+    await notifySales(base, '[prueba]', { timeoutMs: 4_321 });
+    expect(timeout.mock.calls.map((c) => c[0])).toEqual([10_000, 4_321]);
   });
 
   it('timeout y red caída quedan en el log como motivo, sin detalles del relay', async () => {

@@ -147,20 +147,24 @@ export async function pipedriveGet<T>(
   return request<T>('GET', path, { params, timeoutMs });
 }
 
+/** `timeoutMs`: plazo de quien llama (p. ej., lo que le queda a la función); sin él, 15 s. */
 export async function pipedrivePost<T>(
   path: string,
   body: Record<string, unknown>,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  timeoutMs?: number
 ): Promise<PipedriveApiResponse<T>> {
-  return request<T>('POST', path, { body, params });
+  return request<T>('POST', path, { body, params, timeoutMs });
 }
 
+/** `timeoutMs`: plazo de quien llama; sin él, 15 s. Un campo en null se manda tal cual (lo vacía). */
 export async function pipedrivePut<T>(
   path: string,
   body: Record<string, unknown>,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  timeoutMs?: number
 ): Promise<PipedriveApiResponse<T>> {
-  return request<T>('PUT', path, { body, params });
+  return request<T>('PUT', path, { body, params, timeoutMs });
 }
 
 export async function pipedriveDelete<T>(
@@ -168,6 +172,75 @@ export async function pipedriveDelete<T>(
   params?: Record<string, string>
 ): Promise<PipedriveApiResponse<T>> {
   return request<T>('DELETE', path, { params });
+}
+
+export type BinaryResult =
+  | { ok: true; bytes: Uint8Array }
+  /**
+   * not_found: 404 (el archivo se borró entre la lista y la descarga); too_big: pasó el tope;
+   * http: otro código; timeout y network: no se sabe qué tiene el archivo.
+   */
+  | { ok: false; reason: 'not_found' | 'too_big' | 'http' | 'timeout' | 'network'; status?: number };
+
+/** Plazo máximo de una descarga (spec Nivel 2, §4.3). */
+export const BINARY_MAX_TIMEOUT_MS = 15_000;
+
+/**
+ * Descarga binaria (p. ej., GET /files/{id}/download del aviso de despacho), con tope de bytes y de
+ * tiempo: corta apenas el cuerpo pasa `maxBytes` (también si lo anuncia Content-Length) y nunca
+ * espera más de 15 s. Nunca lanza. El registro lleva solo el método, la ruta sin la consulta, el
+ * código y la categoría: nunca la URL (lleva `api_token`), ni la de la redirección (Pipedrive manda
+ * a un enlace firmado), ni el nombre del archivo.
+ */
+export async function pipedriveGetBinary(path: string, maxBytes: number, timeoutMs: number): Promise<BinaryResult> {
+  const controller = new AbortController();
+  const limit = Math.max(1, Math.min(BINARY_MAX_TIMEOUT_MS, Number.isFinite(timeoutMs) ? timeoutMs : BINARY_MAX_TIMEOUT_MS));
+  const timeout = setTimeout(() => controller.abort(), limit);
+  const fail = (reason: Exclude<BinaryResult, { ok: true }>['reason'], status?: number): BinaryResult => {
+    console.error(`[Pipedrive] GET ${logPath(path)} -> ${status ? `HTTP ${status}` : reason === 'too_big' ? 'TOO_BIG' : reason.toUpperCase()}`);
+    return status ? { ok: false, reason, status } : { ok: false, reason };
+  };
+  try {
+    const res = await fetch(buildUrl(path), { method: 'GET', signal: controller.signal, headers: { Accept: '*/*' }, redirect: 'follow' });
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => undefined);
+      return fail(res.status === 404 || res.status === 410 ? 'not_found' : 'http', res.status);
+    }
+    const declared = Number(res.headers.get('content-length'));
+    if (Number.isFinite(declared) && declared > maxBytes) {
+      await res.body?.cancel().catch(() => undefined);
+      return fail('too_big');
+    }
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    if (res.body) {
+      const reader = res.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > maxBytes) {
+          await reader.cancel().catch(() => undefined);
+          return fail('too_big');
+        }
+        chunks.push(value);
+      }
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return { ok: true, bytes };
+  } catch (err: unknown) {
+    const isAbort = err instanceof Error && err.name === 'AbortError';
+    if (isAbort) return fail('timeout');
+    console.error(`[Pipedrive] GET ${logPath(path)} -> FETCH_ERROR (${errorCategory(err)})`);
+    return { ok: false, reason: 'network' };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 const UPLOAD_TIMEOUT_MS = 60_000;

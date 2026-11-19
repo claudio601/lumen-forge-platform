@@ -14,9 +14,15 @@
 // PIPEDRIVE_COMPANY_ID está definida, otra compañía. No se descarta `change_source: "api"`: la app
 // del celular podría llegar así (aviso de despacho, spec §3 paso 3).
 //
-// Aviso de despacho (spec Nivel 2, §3 paso 3): por ahora solo se detecta el disparador
-// («Despacho · Aviso» cambió a una opción en este evento), antes del filtro de embudo, y se registra.
-// Todavía no envía nada.
+// Respuesta inmediata (spec Nivel 2, §3 paso 3): con Basic Auth válido responde 200 de inmediato y
+// todo lo demás corre en waitUntil (maxDuration de 60 s en vercel.json), incluida la consulta en frío
+// de /dealFields. Pipedrive da 10 s y, si no le llega respuesta, reintenta el mismo evento.
+//
+// Aviso de despacho: si en este evento «Despacho · Aviso» cambió a una opción (antes del filtro de
+// embudo), se llama a processShippingNotice (api/_lib/shipping/notice.ts), que relee el negocio y
+// decide. Le pasa el `update_time` del cuerpo: con el negocio y la opción, es la identidad del
+// evento, y una reentrega de Pipedrive no vuelve a enviar. El flujo de estado y etapa sigue igual,
+// en el mismo segundo plano.
 //
 // Registros: una línea por evento, solo con metadatos (versión, entidad, acción, id del negocio,
 // change_source, si fue masivo y qué se hizo). Nunca el cuerpo, nombres, correos, teléfonos ni
@@ -24,24 +30,27 @@
 
 import { redact } from '../_lib/logging/redact.js';
 import { findDealFieldByName } from '../_lib/pipedrive/fieldOptions.js';
+import { SHIPPING_FIELD_NAMES } from '../_lib/shipping/fields.js';
+import { processShippingNotice } from '../_lib/shipping/notice.js';
 import {
   normalizeWebhookBody,
   optionFieldSetInEvent,
   type NormalizedWebhookEvent,
 } from '../_lib/pipedrive/webhookEvent.js';
+import { waitUntil } from '@vercel/functions';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import crypto from 'crypto';
 
 const LOG_PREFIX = '[pipedrive/webhook]';
 
 /** Nombre exacto del campo disparador en Pipedrive (spec §4.1). */
-export const SHIPPING_TRIGGER_FIELD_NAME = 'Despacho · Aviso';
+export const SHIPPING_TRIGGER_FIELD_NAME = SHIPPING_FIELD_NAMES.trigger;
 /**
- * Plazo de la consulta en frío de /dealFields. Pipedrive da 10 s para responder; el 200 inmediato con
- * `waitUntil` llega en la PR del aviso. Si no alcanza, el disparador no se revisa y se reintenta la
- * consulta con el evento siguiente.
+ * Plazo de la consulta en frío de /dealFields. Corre después de responder (waitUntil): no compite
+ * con los 10 s de Pipedrive, pero sí con el plazo del aviso (50 s desde que llegó el webhook). Si no
+ * alcanza, el disparador no se revisa: el dueño lo vacía y lo vuelve a elegir.
  */
-export const FIELD_LOOKUP_TIMEOUT_MS = 4_000;
+export const FIELD_LOOKUP_TIMEOUT_MS = 8_000;
 
 // --- Basic Auth validator ---
 
@@ -105,26 +114,33 @@ function handleDealStatusChange(change: NonNullable<NormalizedWebhookEvent['stat
   return `estado(${transition})`;
 }
 
+/** Disparador elegido en este evento: la clave del campo y la opción que dejó. */
+interface TriggerFired {
+  key: string;
+  optionId: number;
+}
+
 /**
  * Revisa el disparador del aviso de despacho. Solo consulta /dealFields si en este evento cambió
- * algún campo personalizado. Nunca lanza. Devuelve qué pasó (para el registro) o null si no se revisó.
+ * algún campo personalizado. Nunca lanza. Devuelve qué pasó (para el registro) o null si no se
+ * revisó y, si se eligió una opción, la clave y la opción.
  */
-async function checkShippingTrigger(event: NormalizedWebhookEvent): Promise<string | null> {
-  if (event.changedCustomFields.length === 0) return null;
+async function checkShippingTrigger(event: NormalizedWebhookEvent): Promise<{ code: string | null; fired: TriggerFired | null }> {
+  const skip = (code: string | null) => ({ code, fired: null });
+  if (event.changedCustomFields.length === 0) return skip(null);
   const lookup = await findDealFieldByName(SHIPPING_TRIGGER_FIELD_NAME, { timeoutMs: FIELD_LOOKUP_TIMEOUT_MS });
-  if (lookup.status === 'unavailable') return 'campos_no_disponibles';
-  if (lookup.status === 'missing') return 'campo_no_existe';
-  if (lookup.status === 'duplicate') return 'campo_repetido';
-  if (lookup.field.fieldType !== 'enum') return 'campo_no_es_opcion';
+  if (lookup.status === 'unavailable') return skip('campos_no_disponibles');
+  if (lookup.status === 'missing') return skip('campo_no_existe');
+  if (lookup.status === 'duplicate') return skip('campo_repetido');
+  if (lookup.field.fieldType !== 'enum') return skip('campo_no_es_opcion');
   const result = optionFieldSetInEvent(event, lookup.field.key);
-  if (result.fired === false) return result.reason;
-  console.log(`${LOG_PREFIX} aviso de despacho: disparador en negocio ${event.entityId} (todavía sin envío)`);
-  return 'disparador';
+  if (result.fired === false) return skip(result.reason);
+  return { code: 'disparador', fired: { key: lookup.field.key, optionId: result.optionId } };
 }
 
 type Outcome =
   | { kind: 'ignored'; reason: string }
-  | { kind: 'processed'; dealId: number; actions: string[]; aviso: string | null };
+  | { kind: 'processed'; dealId: number; actions: string[]; aviso: string | null; trigger: TriggerFired | null };
 
 async function processEvent(event: NormalizedWebhookEvent | null): Promise<Outcome> {
   if (!event) return { kind: 'ignored', reason: 'formato_desconocido' };
@@ -137,12 +153,12 @@ async function processEvent(event: NormalizedWebhookEvent | null): Promise<Outco
   if (event.entityId === null || !event.current) return { kind: 'ignored', reason: 'sin_datos' };
 
   // El disparador va antes del filtro de embudo: el aviso sirve a los negocios de los dos embudos.
-  const aviso = await checkShippingTrigger(event);
+  const { code: aviso, fired: trigger } = await checkShippingTrigger(event);
 
   // Etapa y estado: solo los negocios del embudo de los formularios (si está definido).
   const pipelineId = Number(process.env.PIPEDRIVE_PIPELINE_ID);
   if (pipelineId && event.current.pipelineId !== pipelineId) {
-    return { kind: 'processed', dealId: event.entityId, actions: ['otro_embudo'], aviso };
+    return { kind: 'processed', dealId: event.entityId, actions: ['otro_embudo'], aviso, trigger };
   }
 
   // Estado y etapa por separado: un mismo evento puede cambiar los dos (p. ej., ganar y mover).
@@ -150,7 +166,7 @@ async function processEvent(event: NormalizedWebhookEvent | null): Promise<Outco
   if (event.statusChange) actions.push(handleDealStatusChange(event.statusChange));
   if (event.stageChange) actions.push(handleDealStageChange(event.stageChange));
   if (actions.length === 0) actions.push('sin_cambio_de_etapa_ni_estado');
-  return { kind: 'processed', dealId: event.entityId, actions, aviso };
+  return { kind: 'processed', dealId: event.entityId, actions, aviso, trigger };
 }
 
 /** La línea del evento: solo metadatos. */
@@ -171,6 +187,30 @@ function logEvent(event: NormalizedWebhookEvent | null, outcome: Outcome): void 
     if (outcome.aviso) parts.push(`aviso=${outcome.aviso}`);
   }
   console.log(`${LOG_PREFIX} evento ${parts.join(' ')}`);
+}
+
+/**
+ * Todo lo que va después del 200: normaliza, filtra, registra el evento y, si se eligió el
+ * disparador, procesa el aviso. Nunca rechaza (waitUntil no tiene a quién avisar).
+ */
+export async function processWebhook(body: unknown, startedAt: number): Promise<void> {
+  try {
+    const event = normalizeWebhookBody(body);
+    const outcome = await processEvent(event);
+    logEvent(event, outcome);
+    if (outcome.kind === 'processed' && outcome.trigger) {
+      await processShippingNotice({
+        dealId: outcome.dealId,
+        triggerKey: outcome.trigger.key,
+        triggerOptionId: outcome.trigger.optionId,
+        startedAt,
+        // Identidad del evento (con el negocio y la opción): una reentrega de Pipedrive trae la misma.
+        eventUpdateTime: event?.updateTime ?? null,
+      });
+    }
+  } catch (err) {
+    console.error(`${LOG_PREFIX} Error processing webhook:`, redact(err, 'error'));
+  }
 }
 
 // --- Main handler ---
@@ -197,20 +237,9 @@ export default async function handler(
     return;
   }
 
-  try {
-    const event = normalizeWebhookBody(readBody(req));
-    const outcome = await processEvent(event);
-    logEvent(event, outcome);
-
-    // Todo lo que no se usa responde 200: un error repetido haría que Pipedrive reintente, acumule
-    // fallas y, tras 3 días sin entregas exitosas, borre el webhook.
-    if (outcome.kind === 'ignored') {
-      res.status(200).json({ success: true, action: 'ignored', reason: outcome.reason });
-      return;
-    }
-    res.status(200).json({ success: true, dealId: outcome.dealId, actions: outcome.actions });
-  } catch (err) {
-    console.error(`${LOG_PREFIX} Error processing webhook:`, redact(err, 'error'));
-    res.status(500).json({ success: false, error: 'Internal server error' });
-  }
+  // 200 de inmediato; lo demás, en segundo plano. Todo evento responde 200 (también los que se
+  // ignoran): un error repetido haría que Pipedrive reintente, acumule fallas y, tras 3 días sin
+  // entregas exitosas, borre el webhook.
+  waitUntil(processWebhook(readBody(req), Date.now()));
+  res.status(200).json({ success: true });
 }

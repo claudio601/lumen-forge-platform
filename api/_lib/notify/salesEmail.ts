@@ -81,10 +81,18 @@ function oneLine(value: unknown): string {
   return asText(value).replace(/\s+/g, ' ').trim().slice(0, MAX_CAMPO);
 }
 
+/**
+ * El buzón de ventas (SALES_EMAIL o ventas@elights.cl): el destino de estos correos y el `email`
+ * de los avisos internos, que no tienen un cliente a quien responder (aviso de despacho, barrido).
+ */
+export function salesInbox(): string {
+  return process.env.SALES_EMAIL ?? 'ventas@elights.cl';
+}
+
 /** Cuerpo JSON con las claves que lee la plantilla del relay. */
 export function toGasBody(m: SalesEmail, now: Date = new Date()): Record<string, string> {
   const body: Record<string, string> = {
-    to_email: process.env.SALES_EMAIL ?? 'ventas@elights.cl',
+    to_email: salesInbox(),
     reply_to: oneLine(m.email),
     from_name: oneLine(m.nombre),
     nombre: oneLine(m.nombre),
@@ -186,9 +194,11 @@ export function failureReason(err: unknown): string {
  * Envía el correo sin bloquear a quien llama: registra el envío en waitUntil
  * (sobrevive al cierre de la función) y devuelve la promesa, que nunca rechaza:
  * true si el relay confirmó el envío, false si falló (queda en el log).
+ * `timeoutMs` (opcional, 10 s por defecto): quien tiene un plazo propio (el aviso de
+ * despacho, al final de su función) pasa lo que le queda.
  */
-export function notifySales(m: SalesEmail, log: string): Promise<boolean> {
-  const sent = sendSalesEmail(m).then(
+export function notifySales(m: SalesEmail, log: string, options: { timeoutMs?: number } = {}): Promise<boolean> {
+  const sent = sendSalesEmail(m, options).then(
     () => {
       console.log(log + ' GAS relay OK');
       return true;

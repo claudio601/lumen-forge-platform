@@ -260,6 +260,101 @@ export async function findDealFieldByName(
 }
 
 /**
+ * Vuelve a consultar /dealFields ahora, sin esperar la caducidad (una consulta en curso se
+ * comparte). La usa el aviso de despacho cuando un campo de opción trae un id que no está en las
+ * opciones guardadas (p. ej., un operador recién agregado), una sola vez. Nunca lanza: true si
+ * respondió.
+ */
+export async function refreshDealFieldsByName(options: { timeoutMs?: number } = {}): Promise<boolean> {
+  return loadDealFieldsByName(options.timeoutMs);
+}
+
+// --- Etapa por nombre dentro de un embudo (aviso de despacho, spec §3 prerrequisito 1) ---
+// «Despachado» existe en los dos embudos de venta con ids distintos: se busca por nombre en el
+// embudo del negocio (GET /stages?pipeline_id=), sin variables de entorno ni ids en el código.
+// Misma caché que los campos por nombre: 10 minutos; un nombre que falta o está repetido se vuelve
+// a consultar al minuto; una consulta fallida no se guarda y, con caché, se espera un minuto.
+
+export type StageLookup =
+  | { status: 'ok'; stageId: number }
+  /** El embudo no tiene una etapa activa con ese nombre (p. ej., Instalación). */
+  | { status: 'missing' }
+  | { status: 'duplicate' }
+  | { status: 'unavailable' };
+
+interface StageMeta {
+  id: number;
+  name: string;
+}
+
+const stagesByPipeline = new Map<number, { stages: StageMeta[]; fetchedAt: number }>();
+const stagesInFlight = new Map<number, Promise<boolean>>();
+const stagesLastFailureAt = new Map<number, number>();
+
+function loadStages(pipelineId: number, timeoutMs?: number): Promise<boolean> {
+  const running = stagesInFlight.get(pipelineId);
+  if (running) return running;
+  const task = (async () => {
+    try {
+      const res = await pipedriveGet<Array<Record<string, unknown>>>('/stages', { pipeline_id: String(pipelineId) }, timeoutMs);
+      if (!res.success || (res.data !== null && !Array.isArray(res.data))) {
+        console.error(`[fieldOptions] Failed to fetch stages pipelineId=${pipelineId}`);
+        stagesLastFailureAt.set(pipelineId, Date.now());
+        return false;
+      }
+      const stages: StageMeta[] = [];
+      for (const stage of res.data ?? []) {
+        if (typeof stage?.id !== 'number' || typeof stage.name !== 'string') continue;
+        if (stage.active_flag === false) continue;
+        // Algunas versiones de /stages no filtran por embudo: se descarta lo de otro.
+        if (stage.pipeline_id !== undefined && Number(stage.pipeline_id) !== pipelineId) continue;
+        stages.push({ id: stage.id, name: exactName(stage.name) });
+      }
+      stagesByPipeline.set(pipelineId, { stages, fetchedAt: Date.now() });
+      stagesLastFailureAt.delete(pipelineId);
+      return true;
+    } catch {
+      console.error(`[fieldOptions] Failed to fetch stages pipelineId=${pipelineId} (request error)`);
+      stagesLastFailureAt.set(pipelineId, Date.now());
+      return false;
+    } finally {
+      stagesInFlight.delete(pipelineId);
+    }
+  })();
+  stagesInFlight.set(pipelineId, task);
+  return task;
+}
+
+/** Etapa activa del embudo con ese nombre exacto. Nunca lanza. */
+export async function findStageByName(
+  pipelineId: number,
+  name: string,
+  options: { timeoutMs?: number } = {},
+): Promise<StageLookup> {
+  if (!Number.isSafeInteger(pipelineId) || pipelineId <= 0) return { status: 'missing' };
+  const wanted = exactName(name);
+  const lookup = () => (stagesByPipeline.get(pipelineId)?.stages ?? []).filter((s) => s.name === wanted);
+  let refreshFailed = false;
+  const cached = stagesByPipeline.get(pipelineId);
+  if (!cached) {
+    if (!(await loadStages(pipelineId, options.timeoutMs))) return { status: 'unavailable' };
+  } else {
+    const now = Date.now();
+    const age = now - cached.fetchedAt;
+    const due = age >= CACHE_TTL_MS || (lookup().length !== 1 && age >= NEGATIVE_REFRESH_MS);
+    if (due) {
+      const failedAt = stagesLastFailureAt.get(pipelineId);
+      const waiting = failedAt !== undefined && now - failedAt < FAILURE_RETRY_MS;
+      refreshFailed = waiting || !(await loadStages(pipelineId, options.timeoutMs));
+    }
+  }
+  const found = lookup();
+  if (found.length === 1) return { status: 'ok', stageId: found[0].id };
+  if (refreshFailed) return { status: 'unavailable' };
+  return found.length === 0 ? { status: 'missing' } : { status: 'duplicate' };
+}
+
+/**
  * Force re-initialization (useful for tests or after field changes).
  */
 export function resetFieldOptionsCache(): void {
@@ -270,4 +365,7 @@ export function resetFieldOptionsCache(): void {
   dealFieldsByName = null;
   dealFieldsInFlight = null;
   dealFieldsLastFailureAt = null;
+  stagesByPipeline.clear();
+  stagesInFlight.clear();
+  stagesLastFailureAt.clear();
 }

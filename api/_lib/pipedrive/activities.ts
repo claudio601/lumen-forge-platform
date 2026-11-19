@@ -1,6 +1,8 @@
 // src/lib/pipedrive/activities.ts
-// Create Pipedrive activities for follow-up scheduling (24h / 72h).
+// Create Pipedrive activities for follow-up scheduling (24h / 72h), and the owner's attention task
+// of the shipping notice (createAttentionTask: the notice went out but Pipedrive did not record it).
 
+import { escapeHtml } from '../html/escape.js';
 import { redact } from '../logging/redact.js';
 import { pipedriveGet, pipedrivePost, pipedrivePut } from './client.js';
 import { pipedriveErrorCode } from './errorCode.js';
@@ -220,5 +222,60 @@ export async function markFollowup24Created(dealId: number): Promise<void> {
     }
   } catch (err) {
     console.warn(`${LOG_PREFIX} markFollowup24Created error dealId=${dealId}:`, redact(err, 'error'));
+  }
+}
+
+// --- Tarea de atención al dueño (aviso de despacho, spec Nivel 2 §3 paso 11) ---
+
+export interface AttentionTaskParams {
+  dealId: number;
+  /** La persona del negocio, si se conoce. */
+  personId?: number | null;
+  /** PIPEDRIVE_OWNER_USER_ID. */
+  userId: number;
+  /** Asunto de la tarea, sin datos del cliente («ATENCIÓN aviso de despacho: …»). */
+  subject: string;
+  /** Texto plano de la nota de la tarea: se escapa aquí (Pipedrive la guarda como HTML). */
+  note: string;
+  /** Plazo de quien llama (lo que le queda a la función). */
+  timeoutMs: number;
+  /** Vence ahora: la tarea es para hoy. */
+  now?: Date;
+}
+
+/**
+ * Tarea para el dueño, que vence ahora, con el tipo de PIPEDRIVE_ACTIVITY_TYPE (el mismo de los
+ * seguimientos, que ya existe en la cuenta). La usa el aviso de despacho cuando el correo salió y
+ * Pipedrive no registró la nota o los campos. A diferencia de createActivity, no lanza, acepta un
+ * plazo y no exige persona. Pipedrive lee due_date y due_time en UTC.
+ */
+export async function createAttentionTask(
+  params: AttentionTaskParams
+): Promise<{ ok: true; activityId: number | null } | { ok: false; error: string }> {
+  const now = params.now ?? new Date();
+  const iso = now.toISOString();
+  const body: Record<string, unknown> = {
+    subject: params.subject.slice(0, 200),
+    type: getActivityType(),
+    due_date: iso.slice(0, 10),
+    due_time: iso.slice(11, 16),
+    deal_id: params.dealId,
+    user_id: params.userId,
+    note: escapeHtml(params.note).replace(/\n/g, '<br>'),
+    done: 0,
+  };
+  if (params.personId) body.person_id = params.personId;
+  try {
+    const res = await pipedrivePost<PipedriveActivity>('/activities', body, undefined, Math.max(1, params.timeoutMs));
+    if (!res.success) {
+      const error = pipedriveErrorCode(res.error);
+      console.warn(`${LOG_PREFIX} attention task failed dealId=${params.dealId} error=${error}`);
+      return { ok: false, error };
+    }
+    console.log(`${LOG_PREFIX} attention task created dealId=${params.dealId}`);
+    return { ok: true, activityId: typeof res.data?.id === 'number' ? res.data.id : null };
+  } catch {
+    console.warn(`${LOG_PREFIX} attention task failed dealId=${params.dealId} error=otro`);
+    return { ok: false, error: 'otro' };
   }
 }

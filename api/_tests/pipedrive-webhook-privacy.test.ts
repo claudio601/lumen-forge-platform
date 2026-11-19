@@ -3,10 +3,18 @@
 // `fetch` simulado (las demás pruebas del webhook simulan pipedriveGet y no pasan por los registros
 // del cliente). Ni el token, ni la URL, ni un nombre, ni un valor de campo llegan a console.*, tanto
 // si /dealFields responde bien como si falla de cualquier forma. Datos inventados; nada sale a la red.
+// El webhook procesa después de responder (waitUntil): la prueba espera ese segundo plano. El aviso
+// de despacho se simula aquí; sus registros se revisan en shipping-notice.test.ts.
 // Vive en api/_tests/ para que Vercel no lo despliegue como función.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { pending } = vi.hoisted(() => ({ pending: [] as Promise<unknown>[] }));
+vi.mock('@vercel/functions', () => ({ waitUntil: vi.fn((p: Promise<unknown>) => { pending.push(p); }) }));
+vi.mock('../_lib/shipping/notice.js', () => ({ processShippingNotice: vi.fn(async () => 'simulado') }));
+
 import handler from '../pipedrive/webhook';
+import { processShippingNotice } from '../_lib/shipping/notice.js';
 import { resetFieldOptionsCache } from '../_lib/pipedrive/fieldOptions.js';
 
 const TOKEN = 'TOKEN_FICTICIO_abcdef';
@@ -42,6 +50,7 @@ async function call() {
     json(b: unknown) { this.body = b; return this; },
   };
   await handler({ method: 'POST', headers: { authorization: AUTH, 'content-type': 'application/json' }, body: body() } as never, res as never);
+  while (pending.length) await Promise.all(pending.splice(0));
   return res;
 }
 
@@ -56,6 +65,8 @@ beforeEach(() => {
   vi.stubEnv('PIPEDRIVE_WEBHOOK_PASSWORD', PASSWORD);
   vi.stubEnv('PIPEDRIVE_PIPELINE_ID', '2');
   vi.stubEnv('PIPEDRIVE_COMPANY_ID', '');
+  pending.length = 0;
+  vi.mocked(processShippingNotice).mockClear();
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -87,5 +98,7 @@ describe('webhook con el cliente real: los registros no llevan el token ni datos
     expect(text).toContain(expected);
     for (const secret of FORBIDDEN) expect(text, secret).not.toContain(secret);
     expect(JSON.stringify(res.body)).not.toContain(TOKEN);
+    // Solo con /dealFields disponible se llega al aviso.
+    expect(vi.mocked(processShippingNotice)).toHaveBeenCalledTimes(expected === 'aviso=disparador' ? 1 : 0);
   });
 });

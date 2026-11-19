@@ -187,3 +187,29 @@ export async function findOrCreatePerson(
   console.log(`${LOG_PREFIX} Created person: ${res.data.id}`);
     return { personId: res.data.id, action: 'created' };
 }
+
+// --- Lectura por id (aviso de despacho, spec Nivel 2 §4.2) ---
+
+/**
+ * GET /persons/{id}, con el plazo de quien llama. Nunca lanza. `not_found`: 404 o una persona
+ * borrada. El registro lleva solo el id y el código (el cliente registra método, ruta y categoría):
+ * nunca el nombre ni el correo.
+ */
+export async function getPerson(
+    personId: number,
+    timeoutMs: number
+  ): Promise<{ ok: true; person: PipedrivePerson } | { ok: false; reason: 'not_found' | 'failed' }> {
+    try {
+          const res = await pipedriveGet<PipedrivePerson>(`/persons/${personId}`, undefined, Math.max(1, timeoutMs));
+          if (!res.success || !res.data || typeof res.data !== 'object') {
+                  const code = pipedriveErrorCode(res.error);
+                  if (code !== 'HTTP 404') console.warn(`${LOG_PREFIX} getPerson failed personId=${personId} error=${code}`);
+                  return { ok: false, reason: code === 'HTTP 404' ? 'not_found' : 'failed' };
+          }
+          if (res.data.active_flag === false) return { ok: false, reason: 'not_found' };
+          return { ok: true, person: res.data };
+    } catch {
+          console.warn(`${LOG_PREFIX} getPerson failed personId=${personId} error=otro`);
+          return { ok: false, reason: 'failed' };
+    }
+}
