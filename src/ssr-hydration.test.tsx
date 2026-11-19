@@ -32,6 +32,7 @@ import { editorialOverlay } from '@/data/catalog/overlay/editorial';
 import { hasProductContent } from '@/data/catalog/content';
 import { productDatasheets } from '@/data/catalog/datasheets.generated';
 import { productDatasheetLinks } from '@/lib/datasheets';
+import { VARIANT_PARAM, variantLabel } from '@/lib/variants';
 import { COOKIE_CONSENT_STORAGE_KEY, COOKIE_CONSENT_VERSION, COOKIE_TEXTS, __resetForTests, type CookieChoice } from '@/lib/cookieConsent';
 import { CONSENT_FIELD_NAMES } from '../api/_lib/forms/consent';
 import { SAVED_CONTACT_STORAGE_KEY, type SavedContact } from '@/lib/savedContact';
@@ -146,6 +147,8 @@ const withContent = products.find(p => hasProductContent(p.jumpseller_id) && !ed
 const bestled = products.find(p => editorialOverlay[p.jumpseller_id])!;
 // Selector de variante genérico con dos ejes (potencia y temperatura de color) y precio «desde»
 const flyhawk = products.find(p => p.jumpseller_id === 11521285)!;
+// Feed de Google Merchant (CLAUDE.md §18): cada ítem lleva a /producto/<id>?variante=<id>; la más cara
+const feedVariant = [...flyhawk.variants!].sort((a, b) => b.price - a.price)[0];
 // Sin PDF de ficha técnica: «Pedir ficha técnica» en vez del botón al PDF
 const noSheet = products.find(p => productDatasheetLinks(p.datasheetUrl, productDatasheets[p.jumpseller_id]).length === 0);
 
@@ -157,6 +160,8 @@ const PAGES: [string, string, string][] = [
   ['ficha con contenido SEO', `/producto/${withContent.id}`, `/producto/${withContent.id}?gclid=abc`],
   ['ficha BESTLED', `/producto/${bestled.id}`, `/producto/${bestled.id}`],
   ['ficha con selector de variante (Flyhawk)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?gclid=abc`],
+  // El HTML estático no trae la variante del enlace: se elige en un efecto, después de hidratar
+  ['ficha desde el feed de Merchant (?variante=)', `/producto/${flyhawk.id}`, `/producto/${flyhawk.id}?${VARIANT_PARAM}=${feedVariant.id}&gclid=abc`],
   ...(noSheet ? [['ficha sin PDF de ficha técnica', `/producto/${noSheet.id}`, `/producto/${noSheet.id}?gclid=abc`] as [string, string, string]] : []),
   // Guías (plan del blog, §5.6): cada guía publicada, también las sin indexar; G1 llega desde el
   // correo del 12/11 a su sección #plazos
@@ -228,6 +233,27 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
     await act(async () => { fireEvent.click(radio(/^Ámbar 2200K/)); });
     expect(price()).toMatch(new RegExp(`^${clp(flyhawk.variants!.find(v => v.id === 118197864)!.price)}`));
     expect(container.textContent).toContain('Elegiste: 80W · Ámbar 2200K.');
+  });
+
+  it('desde el feed de Merchant (?variante=): el HTML trae «desde» y ninguna opción elegida, y al hidratar queda elegida esa variante', async () => {
+    const path = `/producto/${flyhawk.id}`;
+    const { container, html, errors, mismatches } = await hydrate(path, `${path}?${VARIANT_PARAM}=${feedVariant.id}`, false);
+    expect(errors).toEqual([]);
+    expect(mismatches).toEqual([]);
+    // El primer render ignora el parámetro: el mismo HTML que sin él
+    const server = document.createElement('div');
+    server.innerHTML = html;
+    const price = (root: HTMLElement) => root.querySelector('main p.text-3xl')!.parentElement!.textContent!;
+    const clp = (n: number) => formatCLP(n).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const prices = flyhawk.variants!.map(v => v.price);
+    expect(price(server)).toMatch(new RegExp(`^${new Set(prices).size > 1 ? 'desde\\s*' : ''}${clp(Math.min(...prices))}`));
+    expect(html).toContain('Elige una potencia y una temperatura de color para continuar.');
+    expect(server.querySelector('[role="radio"][aria-checked="true"]')).toBeNull();
+    // Después de hidratar: la variante del enlace, con su precio exacto
+    expect(price(container)).toMatch(new RegExp(`^${clp(feedVariant.price)}`));
+    expect(price(container)).not.toMatch(/desde/);
+    expect(container.textContent).toContain(`Elegiste: ${variantLabel(flyhawk, feedVariant)}.`);
+    expect(container.querySelectorAll('[role="radio"][aria-checked="true"]')).toHaveLength(2);
   });
 
   it('el HTML de las fichas con selector no lleva el texto crudo de Jumpseller; en las BESTLED, ningún «% de luz azul»', async () => {

@@ -3,14 +3,14 @@
 // Modelo cotización → link de pago: CTA principal "Solicitar pedido".
 // Nunca se muestra stock (no hay control de bodega): "Consultar disponibilidad".
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { products, categories, PROJECT_CATEGORIES, type Product } from '@/data/products';
 import { useProductContent } from '@/data/catalog/content';
 import type { ProductContent } from '@/data/catalog/types';
 import { buildVariantSku, requestSku } from '@/lib/variantSku';
 import {
-    missingChoicesText, selectedVariant, variantAttributes, variantAxes, variantKelvin, variantLabel,
-    variantLineSku, variantSku, variantSkuIsDistinct, variantsMatching, type VariantSelection,
+    missingChoicesText, selectedVariant, selectionForVariant, VARIANT_PARAM, variantAttributes, variantAxes, variantKelvin,
+    variantLabel, variantLineSku, variantSku, variantSkuIsDistinct, variantsMatching, type VariantSelection,
 } from '@/lib/variants';
 import VariantSelector from '@/components/catalog/VariantSelector';
 import { fallbackToOriginal, jsImage, jsSrcSet } from '@/lib/jumpsellerImage';
@@ -23,7 +23,7 @@ import {
     FileText, FileDown, Mail, MessageCircle, Zap,
     ArrowLeft, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { useId, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useEffect, useId, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import ProductCard from '@/components/catalog/ProductCard';
 import { contactEmail, docsRequestMailto, panelRegionShippingNotice, waProductUrl } from '@/config/business';
@@ -145,6 +145,16 @@ const ProductDetail = () => {
     const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
     // Variante elegida: opción por eje (nombre de la opción en Jumpseller → valor)
     const [selection, setSelection] = useState<VariantSelection>({});
+    // ?variante=<id de la variante> (enlaces del feed de Merchant, CLAUDE.md §18): deja elegida esa
+    // variante, con su precio, su SKU y los botones activos. Se aplica en un efecto, después de
+    // hidratar: el HTML estático y el primer render no dependen de la URL (src/ssr-hydration.test.tsx),
+    // y el canonical sigue siendo /producto/<id>. Un id que no es una variante del producto se ignora.
+    const { search } = useLocation();
+    useEffect(() => {
+      if (!found) return;
+      const preset = selectionForVariant(found, new URLSearchParams(search).get(VARIANT_PARAM));
+      if (preset) setSelection(preset);
+    }, [found, search]);
     const hintId = useId();
     const qtyId = useId();
     const docsTitleId = useId();
