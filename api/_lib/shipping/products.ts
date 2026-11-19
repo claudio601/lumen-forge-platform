@@ -225,7 +225,7 @@ function decodeEntities(text: string): string {
 function noteLines(content: string): string[] {
   return content
     .split(/<br\s*\/?>|<\/p>|<\/div>|\r\n|\r|\n/i)
-    .map((line) => decodeEntities(line.replace(/<[^>]*>/g, '')).replace(/ /g, ' ').trim());
+    .map((line) => decodeEntities(line.replace(/<[^>]*>/g, '')).replace(/\u00a0/g, ' ').trim());
 }
 
 const HEADER = /^(?:Solicitud de pedido|Reenvío de la solicitud) (RC-[A-Za-z0-9]{5,8})(?:\s|$)/;

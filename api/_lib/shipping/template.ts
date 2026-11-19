@@ -81,6 +81,7 @@ const FONT = 'Segoe UI,Roboto,Helvetica,Arial,sans-serif';
 // ── Utilidades ──────────────────────────────────────────────────────────────
 
 /** Sin saltos de línea ni espacios de más (un campo de Pipedrive no puede armar líneas nuevas). */
+// eslint-disable-next-line no-control-regex -- quitar los caracteres de control es justamente el propósito
 const clean = (value: string) => value.replace(/[\u0000-\u001f\u007f\s]+/g, ' ').trim();
 const e = (value: string | number) => escapeHtml(typeof value === 'string' ? clean(value) : value);
 
