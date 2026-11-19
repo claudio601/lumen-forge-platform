@@ -403,10 +403,15 @@ describe('[SALIDA] salidas estructuradas', () => {
     expect(Object.keys(EXTRACTION_SCHEMA.properties)).toEqual(FIELDS);
     expect([...EXTRACTION_SCHEMA.required]).toEqual(FIELDS);
     for (const name of ['producto', 'tipo_de_luz', 'proyecto_o_uso', 'comuna_o_ciudad', 'nombre', 'empresa', 'correo'] as const) {
-      expect(EXTRACTION_SCHEMA.properties[name]).toEqual({ type: ['string', 'null'] });
+      expect(EXTRACTION_SCHEMA.properties[name].type).toEqual(['string', 'null']);
     }
     // cantidad: el prompt pide un número entero o null (textField lo pasa a texto).
-    expect(EXTRACTION_SCHEMA.properties.cantidad).toEqual({ type: ['integer', 'null'] });
+    expect(EXTRACTION_SCHEMA.properties.cantidad.type).toEqual(['integer', 'null']);
+    // Producto, uso, cantidad y comuna: solo del último mensaje (Haiku 5.5 los copiaba del historial); los demás, sin descripción.
+    const properties: Record<string, { type: unknown; description?: string }> = EXTRACTION_SCHEMA.properties;
+    const described = Object.keys(properties).filter((name) => properties[name].description !== undefined);
+    expect(described).toEqual(['producto', 'cantidad', 'proyecto_o_uso', 'comuna_o_ciudad']);
+    for (const name of described) expect(properties[name].description).toMatch(/ultimo mensaje.*null/);
     expect(EXTRACTION_SCHEMA.properties.wantsHuman).toEqual({ type: 'boolean' });
     expect(EXTRACTION_SCHEMA.properties.qualifiesForDeal).toEqual({ type: 'boolean' });
     expect(EXTRACTION_SCHEMA.properties.summary).toEqual({ type: 'string' });
@@ -423,7 +428,7 @@ describe('[SALIDA] salidas estructuradas', () => {
       }
     };
     walk(EXTRACTION_SCHEMA);
-    expect([...keys].sort()).toEqual(['additionalProperties', 'properties', 'required', 'type']);
+    expect([...keys].sort()).toEqual(['additionalProperties', 'description', 'properties', 'required', 'type']);
   });
 
   it('el prompt del sistema nombra cada campo del esquema', async () => {
