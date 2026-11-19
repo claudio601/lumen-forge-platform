@@ -4,14 +4,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   chileDateTime,
-  chileLocalToUtc,
+  chileOffset,
   chileToday,
+  formatChileTimestamp,
   formatClp,
   formatDateLong,
   formatDecimal,
   formatKg,
   formatPackages,
   isIsoDate,
+  parseChileTimestamp,
 } from './format';
 
 describe('montos, kilos y bultos', () => {
@@ -62,9 +64,52 @@ describe('fechas', () => {
     expect(chileDateTime(new Date('2026-07-01T16:00:00Z'))).toEqual({ date: '2026-07-01', time: '12:00' });
   });
 
-  it('hora de Chile → UTC, en verano y en invierno', () => {
-    expect(chileLocalToUtc('2026-11-18', '14:05').toISOString()).toBe('2026-11-18T17:05:00.000Z');
-    expect(chileLocalToUtc('2026-07-01', '12:00').toISOString()).toBe('2026-07-01T16:00:00.000Z');
-    expect(() => chileLocalToUtc('2026-11-18', '25:00')).toThrow();
+  it('marca con desfase: se escribe y se relee igual, en verano y en invierno', () => {
+    expect(formatChileTimestamp(new Date('2026-11-18T17:05:30Z'))).toBe('2026-11-18 14:05 -03:00');
+    expect(formatChileTimestamp(new Date('2026-07-01T16:00:00Z'))).toBe('2026-07-01 12:00 -04:00');
+    expect(chileOffset(new Date('2026-11-18T17:05:00Z'))).toBe('-03:00');
+    expect(chileOffset(new Date('2026-07-01T16:00:00Z'))).toBe('-04:00');
+    expect(parseChileTimestamp('2026-11-18 14:05 -03:00')).toEqual({ ok: true, at: new Date('2026-11-18T17:05:00Z') });
+    expect(parseChileTimestamp('2026-07-01 12:00 -04:00')).toEqual({ ok: true, at: new Date('2026-07-01T16:00:00Z') });
+  });
+
+  it('fin del horario de verano (5-4-2026): la hora que se repite se distingue por el desfase', () => {
+    // 03:00 UTC del 5-4: las 00:00 (-03) vuelven a ser las 23:00 (-04) del 4-4.
+    const first = new Date('2026-04-05T02:30:30Z');
+    const second = new Date('2026-04-05T03:30:30Z');
+    expect(formatChileTimestamp(first)).toBe('2026-04-04 23:30 -03:00');
+    expect(formatChileTimestamp(second)).toBe('2026-04-04 23:30 -04:00');
+    expect(parseChileTimestamp('2026-04-04 23:30 -03:00')).toEqual({ ok: true, at: new Date('2026-04-05T02:30:00Z') });
+    expect(parseChileTimestamp('2026-04-04 23:30 -04:00')).toEqual({ ok: true, at: new Date('2026-04-05T03:30:00Z') });
+    // Sin desfase la hora es ambigua: no se elige ninguna de las dos.
+    expect(parseChileTimestamp('2026-04-04 23:30')).toEqual({ ok: false, reason: 'no_offset' });
+    // Cada minuto de la madrugada se escribe y se relee igual.
+    for (let ms = Date.parse('2026-04-05T01:00:00Z'); ms <= Date.parse('2026-04-05T05:00:00Z'); ms += 60_000) {
+      const r = parseChileTimestamp(formatChileTimestamp(new Date(ms)));
+      expect(r.ok && r.at.getTime()).toBe(ms);
+    }
+  });
+
+  it('inicio del horario de verano (6-9-2026): la hora que se salta no existe con ningún desfase', () => {
+    // 04:00 UTC del 6-9: las 00:00 (-04) pasan a ser las 01:00 (-03).
+    expect(formatChileTimestamp(new Date('2026-09-06T03:59:00Z'))).toBe('2026-09-05 23:59 -04:00');
+    expect(formatChileTimestamp(new Date('2026-09-06T04:00:00Z'))).toBe('2026-09-06 01:00 -03:00');
+    expect(parseChileTimestamp('2026-09-06 00:30 -04:00')).toEqual({ ok: false, reason: 'time' });
+    expect(parseChileTimestamp('2026-09-06 00:30 -03:00')).toEqual({ ok: false, reason: 'time' });
+    expect(parseChileTimestamp('2026-09-06 00:30')).toEqual({ ok: false, reason: 'no_offset' });
+    expect(parseChileTimestamp('2026-09-06 01:00 -03:00')).toEqual({ ok: true, at: new Date('2026-09-06T04:00:00Z') });
+    for (let ms = Date.parse('2026-09-06T02:00:00Z'); ms <= Date.parse('2026-09-06T06:00:00Z'); ms += 60_000) {
+      const r = parseChileTimestamp(formatChileTimestamp(new Date(ms)));
+      expect(r.ok && r.at.getTime()).toBe(ms);
+    }
+  });
+
+  it('un desfase que no es el de Chile en esa fecha, o una marca mal escrita, no se acepta', () => {
+    expect(parseChileTimestamp('2026-11-18 14:05 -04:00')).toEqual({ ok: false, reason: 'time' });
+    expect(parseChileTimestamp('2026-07-01 12:00 -03:00')).toEqual({ ok: false, reason: 'time' });
+    expect(parseChileTimestamp('2026-11-18 14:05 +00:00')).toEqual({ ok: false, reason: 'time' });
+    for (const bad of ['2026-11-18 25:00 -03:00', '2026-02-30 10:00 -03:00', '2026-11-18 14:05 -03:75', '2026-11-18T14:05-03:00', '18-11-2026 14:05 -03:00', '']) {
+      expect(parseChileTimestamp(bad), bad).toEqual({ ok: false, reason: 'format' });
+    }
   });
 });

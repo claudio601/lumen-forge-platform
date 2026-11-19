@@ -14,12 +14,14 @@ import {
   referenceLabel,
   resolveShippingFieldMap,
   sentLogMatches,
+  sentLogProblemMessage,
   SHIPPING_FIELD_IDS,
   SHIPPING_FIELD_NAMES,
   type ShippingFieldId,
   type ShippingFieldMap,
 } from './fields';
 import { carrierFromLabel } from './carriers';
+import { selectShippingFiles } from './files';
 
 const OPTIONS: Partial<Record<ShippingFieldId, string[]>> = {
   carrier: ['Starken', 'Cruz del Sur', 'ECOEx', 'Varmontt', 'Samex', 'PDQ', 'Pullman Cargo', 'Chilexpress', 'Transportes Mena', 'Rapid Cargo'],
@@ -281,9 +283,17 @@ describe('readShippingFields: faltantes e inválidos', () => {
     expect(read({}, { person_id: 55 }).ok).toBe(true);
   });
 
-  it('«Aviso enviado» ilegible detiene el aviso', () => {
+  it('«Aviso enviado» ilegible, sin desfase o con una hora que no existe detiene el aviso', () => {
     expect(problems({ sentLog: 'enviado el martes' }).map((p) => [p.field, p.code])).toEqual([['sentLog', 'invalid']]);
-    expect(problems({ sentLog: '2026-13-40 10:00 · Starken 1' }).map((p) => p.field)).toEqual(['sentLog']);
+    expect(problems({ sentLog: '2026-13-40 10:00 -03:00 · Starken 1' }).map((p) => p.field)).toEqual(['sentLog']);
+    const noOffset = problems({ sentLog: '2026-11-18 14:05 · Starken 123456789' });
+    expect(noOffset.map((p) => [p.field, p.code])).toEqual([['sentLog', 'invalid']]);
+    expect(noOffset[0].message).toMatch(/no trae el desfase horario/);
+    const skipped = problems({ sentLog: '2026-09-06 00:30 -04:00 · Starken 123456789' });
+    expect(skipped[0].message).toMatch(/hora que no existe en Chile/);
+    expect(problems({ sentLog: '2026-11-18 11:05 -03:00 · Starken 123456789' })).toEqual([]);
+    const ok = read({ sentLog: '2026-11-18 11:05 -03:00 · Starken 123456789' });
+    expect(ok.ok === true && ok.data.lastNotice?.at.toISOString()).toBe('2026-11-18T14:05:00.000Z');
   });
 });
 
@@ -297,9 +307,10 @@ describe('normalizeOrder', () => {
 });
 
 describe('«Despacho · Aviso enviado»', () => {
-  it('se escribe y se lee en hora de Chile', () => {
+  it('se escribe y se lee en hora de Chile, con el desfase', () => {
     const text = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Pullman Cargo' }, '23501234567');
-    expect(text).toBe('2026-11-18 14:05 · Pullman Cargo 23501234567');
+    expect(text).toBe('2026-11-18 14:05 -03:00 · Pullman Cargo 23501234567');
+    expect(formatSentLog(new Date('2026-07-01T16:00:00Z'), { label: 'Starken' }, '123')).toBe('2026-07-01 12:00 -04:00 · Starken 123');
     const parsed = parseSentLog(text);
     expect(parsed.status).toBe('ok');
     if (parsed.status !== 'ok') return;
@@ -310,11 +321,49 @@ describe('«Despacho · Aviso enviado»', () => {
     expect(sentLogMatches(parsed.log, carrierFromLabel('Pullman Cargo'), '1')).toBe(false);
   });
 
-  it('vacío: nunca hubo aviso; con solo fecha y hora también sirve', () => {
+  it('vacío: nunca hubo aviso; con solo la marca (sin operador ni orden) también sirve', () => {
     expect(parseSentLog(null)).toEqual({ status: 'empty' });
     expect(parseSentLog('  ')).toEqual({ status: 'empty' });
-    const onlyTime = parseSentLog('2026-11-18 14:05');
+    const onlyTime = parseSentLog('2026-11-18 14:05 -03:00');
     expect(onlyTime.status === 'ok' && onlyTime.log.order).toBeNull();
+  });
+
+  it('fin del horario de verano (5-4-2026): la hora repetida se relee exacta y no vuelve a admitir un PDF anterior', () => {
+    // Codex, 18-11: el aviso real salió a las 03:30:30Z (23:30 -04:00 del 4-4); sin el desfase se
+    // releía como 02:30Z y un PDF agregado a las 03:29Z volvía a contar.
+    const sentAt = new Date('2026-04-05T03:30:30Z');
+    const text = formatSentLog(sentAt, { label: 'Starken' }, '123');
+    expect(text).toBe('2026-04-04 23:30 -04:00 · Starken 123');
+    const parsed = parseSentLog(text);
+    expect(parsed.status === 'ok' && parsed.log.at.toISOString()).toBe('2026-04-05T03:30:00.000Z');
+    const pdfBefore = { id: 9, file_name: 'factura 1234.pdf', add_time: '2026-04-05 03:29:00', file_size: 1000, active_flag: true, inline_flag: false, remote_location: 's3', mail_message_id: null };
+    const files = selectShippingFiles([pdfBefore], {
+      document: { type: 'factura', number: '1234' },
+      lastNoticeAt: parsed.status === 'ok' ? parsed.log.at : null,
+      now: new Date('2026-04-05T12:00:00Z'),
+    });
+    expect(files.ok).toBe(false);
+    // La misma hora con el desfase de verano es otro instante, una hora antes.
+    const summer = parseSentLog('2026-04-04 23:30 -03:00 · Starken 123');
+    expect(summer.status === 'ok' && summer.log.at.toISOString()).toBe('2026-04-05T02:30:00.000Z');
+    expect(parseSentLog('2026-04-04 23:30 · Starken 123')).toEqual({ status: 'invalid', reason: 'no_offset' });
+  });
+
+  it('inicio del horario de verano (6-9-2026): la hora que no existe detiene el aviso', () => {
+    expect(parseSentLog('2026-09-06 00:30 -04:00 · Starken 123')).toEqual({ status: 'invalid', reason: 'time' });
+    expect(parseSentLog('2026-09-06 00:30 -03:00 · Starken 123')).toEqual({ status: 'invalid', reason: 'time' });
+    expect(parseSentLog('2026-09-06 00:30 · Starken 123')).toEqual({ status: 'invalid', reason: 'no_offset' });
+    const text = formatSentLog(new Date('2026-09-06T04:00:00Z'), { label: 'Starken' }, '123');
+    expect(text).toBe('2026-09-06 01:00 -03:00 · Starken 123');
+    const parsed = parseSentLog(text);
+    expect(parsed.status === 'ok' && parsed.log.at.toISOString()).toBe('2026-09-06T04:00:00.000Z');
+  });
+
+  it('el mensaje de la nota dice qué corregir', () => {
+    expect(sentLogProblemMessage('format')).toMatch(/^«Despacho · Aviso enviado» no se puede leer/);
+    expect(sentLogProblemMessage('no_offset')).toMatch(/desfase horario/);
+    expect(sentLogProblemMessage('time')).toMatch(/no existe en Chile/);
+    for (const r of ['format', 'no_offset', 'time'] as const) expect(sentLogProblemMessage(r)).toContain('-03:00');
   });
 });
 
@@ -331,18 +380,33 @@ describe('readPersonContact', () => {
     expect(none.ok && none.greetingName).toBeNull();
   });
 
-  it('el correo primary o, si no hay, el primero válido', () => {
+  it('el correo primary o, si ninguno lo es, el primero de la lista', () => {
+    const p = readPersonContact({ name: 'Ana', email: [{ value: 'a@example.com', primary: false }, { value: 'b@example.com', primary: true }] });
+    expect(p.ok && p.email).toBe('b@example.com');
+    const first = readPersonContact({ name: 'Ana', email: [{ value: 'uno@example.com', primary: false }, { value: 'dos@example.com', primary: false }] });
+    expect(first.ok && first.email).toBe('uno@example.com');
+  });
+
+  it('si el elegido no es válido, el aviso no sale: nunca pasa a otro correo de la lista', () => {
+    // Codex, 18-11: con el principal inválido, el aviso iba al secundario.
     const r = readPersonContact({
       name: 'Ana',
       email: [
-        { value: 'no-es-correo', primary: true },
-        { value: 'uno@example.com', primary: false },
-        { value: 'dos@example.com', primary: false },
+        { value: 'correo-invalido', primary: true },
+        { value: 'secundario@example.com', primary: false },
       ],
     });
-    expect(r.ok && r.email).toBe('uno@example.com');
-    const p = readPersonContact({ name: 'Ana', email: [{ value: 'a@example.com', primary: false }, { value: 'b@example.com', primary: true }] });
-    expect(p.ok && p.email).toBe('b@example.com');
+    expect(r).toEqual({
+      ok: false,
+      problem: { field: null, code: 'no_email', message: 'El correo principal de la persona del negocio no es válido: corrígelo en la persona (el aviso no se manda a otro correo).' },
+    });
+    const firstInvalid = readPersonContact({ name: 'Ana', email: [{ value: 'no-es-correo', primary: false }, { value: 'dos@example.com', primary: false }] });
+    expect(firstInvalid).toMatchObject({ ok: false, problem: { code: 'no_email' } });
+    // un principal vacío tampoco pasa al siguiente
+    expect(readPersonContact({ name: 'Ana', email: [{ value: '', primary: true }, { value: 'b@example.com', primary: false }] })).toMatchObject({
+      ok: false,
+      problem: { code: 'no_email' },
+    });
   });
 
   it('sin persona o sin correo, el aviso no sale', () => {

@@ -92,15 +92,47 @@ function chileOffsetMs(atMs: number): number {
   return Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute)) - minute;
 }
 
-/** Fecha y hora de Chile ('aaaa-mm-dd', 'hh:mm') → instante en UTC. */
-export function chileLocalToUtc(isoDate: string, time: string): Date {
-  const t = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!isIsoDate(isoDate) || !t || Number(t[1]) > 23 || Number(t[2]) > 59) {
-    throw new Error('chileLocalToUtc: fecha u hora inválida');
-  }
-  const [y, mo, d] = isoDate.split('-').map(Number);
-  const local = Date.UTC(y, mo - 1, d, Number(t[1]), Number(t[2]));
-  // Dos pasadas: la segunda corrige el cambio de horario entre la hora local y la UTC.
-  const first = local - chileOffsetMs(local);
-  return new Date(local - chileOffsetMs(first));
+/** Desfase de Chile en ese instante, como lo escribe una marca: «-03:00» (verano) o «-04:00» (invierno). */
+export function chileOffset(at: Date): string {
+  const minutes = Math.round(chileOffsetMs(at.getTime()) / 60_000);
+  const abs = Math.abs(minutes);
+  return `${minutes < 0 ? '-' : '+'}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Marca de hora de Chile con su desfase: «2026-11-18 14:05 -03:00» (sin segundos). Lleva el
+ * desfase porque la hora sola no alcanza: al terminar el horario de verano (primer domingo de
+ * abril) la hora de 23:00 a 23:59 se repite, y al empezar (primer domingo de septiembre) la de
+ * 00:00 a 00:59 no existe. Es lo único que escribe una hora que después se relee
+ * (formatSentLog, «Despacho · Aviso enviado»): siempre con parseChileTimestamp.
+ */
+export function formatChileTimestamp(at: Date): string {
+  const { date, time } = chileDateTime(at);
+  return `${date} ${time} ${chileOffset(at)}`;
+}
+
+export type ChileTimestampResult =
+  | { ok: true; at: Date }
+  /** `format`: no es «aaaa-mm-dd hh:mm ±hh:mm»; `no_offset`: falta el desfase (la hora puede ser ambigua); `time`: esa hora no existe en Chile con ese desfase. */
+  | { ok: false; reason: 'format' | 'no_offset' | 'time' };
+
+const TIMESTAMP = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})(?: ([+-])(\d{2}):(\d{2}))?$/;
+
+/**
+ * Lee una marca de formatChileTimestamp. Exige el desfase y que la hora exista en Chile con ese
+ * desfase: «2026-09-06 00:30 -04:00» (hora que se salta) o «2026-11-18 14:05 -04:00» (desfase de
+ * invierno en verano) no se aceptan. Nunca elige una de dos horas posibles.
+ */
+export function parseChileTimestamp(text: string): ChileTimestampResult {
+  const m = TIMESTAMP.exec(text);
+  if (!m || !isIsoDate(m[1]) || Number(m[2]) > 23 || Number(m[3]) > 59) return { ok: false, reason: 'format' };
+  if (!m[4]) return { ok: false, reason: 'no_offset' };
+  if (Number(m[6]) > 59) return { ok: false, reason: 'format' };
+  const [y, mo, d] = m[1].split('-').map(Number);
+  const offsetMinutes = (m[4] === '-' ? -1 : 1) * (Number(m[5]) * 60 + Number(m[6]));
+  const at = new Date(Date.UTC(y, mo - 1, d, Number(m[2]), Number(m[3])) - offsetMinutes * 60_000);
+  // La hora releída tiene que ser la misma en Chile y con el mismo desfase.
+  const back = chileDateTime(at);
+  if (back.date !== m[1] || back.time !== `${m[2]}:${m[3]}` || chileOffset(at) !== `${m[4]}${m[5]}:${m[6]}`) return { ok: false, reason: 'time' };
+  return { ok: true, at };
 }

@@ -20,7 +20,7 @@
 import type { DealFieldLookup, DealFieldMeta } from '../pipedrive/fieldOptions.js';
 import { carrierFromLabel, type Carrier } from './carriers.js';
 import { DEFAULT_DOCUMENT_TYPE, DOCUMENT_TYPES, type DocumentTypeId, type ShippingDocument } from './documents.js';
-import { chileDateTime, chileLocalToUtc, chileToday, formatDateLong, isIsoDate } from './format.js';
+import { chileToday, formatChileTimestamp, formatDateLong, isIsoDate, parseChileTimestamp } from './format.js';
 
 // ── Nombres y opciones ──────────────────────────────────────────────────────
 
@@ -238,29 +238,48 @@ function fixedKey<K extends string>(options: Readonly<Record<K, string>>, option
 
 // ── «Despacho · Aviso enviado» ──────────────────────────────────────────────
 
-/** «aaaa-mm-dd hh:mm · <operador> <orden normalizada>», en hora de Chile. */
+/**
+ * Lo único que escribe «Despacho · Aviso enviado» (la PR del envío lo usa tal cual):
+ * «aaaa-mm-dd hh:mm -03:00 · <operador> <orden normalizada>», en hora de Chile y con el desfase
+ * (formatChileTimestamp), para que la hora releída sea la misma también en el cambio de horario.
+ */
 export function formatSentLog(at: Date, carrier: Pick<Carrier, 'label'>, orderNormalized: string): string {
-  const { date, time } = chileDateTime(at);
-  return `${date} ${time} · ${carrier.label} ${orderNormalized}`;
+  return `${formatChileTimestamp(at)} · ${carrier.label} ${orderNormalized}`;
 }
 
+export type SentLogResult =
+  | { status: 'empty' }
+  | { status: 'ok'; log: SentLog }
+  /** `format`: no empieza con una marca; `no_offset`: sin desfase; `time`: la hora no existe con ese desfase. */
+  | { status: 'invalid'; reason: 'format' | 'no_offset' | 'time' };
+
 /**
- * Lee «Despacho · Aviso enviado». Vacío: nunca hubo aviso. Si no empieza con una fecha y hora
- * válidas (alguien lo editó), `invalid`: sin esa fecha, una factura vieja contaría como nueva.
+ * Lo único que lee «Despacho · Aviso enviado» (el par de formatSentLog). Vacío: nunca hubo aviso.
+ * Una marca ilegible, sin desfase (en el cambio de horario sería ambigua) o con una hora que no
+ * existe da `invalid` y detiene el aviso: sin la hora exacta, una factura anterior al último aviso
+ * contaría como nueva. Nunca elige entre dos horas posibles.
  */
-export function parseSentLog(raw: unknown): { status: 'empty' } | { status: 'ok'; log: SentLog } | { status: 'invalid' } {
+export function parseSentLog(raw: unknown): SentLogResult {
   const text = textValue(raw);
   if (!text) return { status: 'empty' };
-  const m = /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})(?:\s*·\s*(.*?)\s+([A-Za-z0-9]+))?$/.exec(text) ??
-    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})(?:\s.*)?$/.exec(text);
-  if (!m || !isIsoDate(m[1])) return { status: 'invalid' };
-  let at: Date;
-  try {
-    at = chileLocalToUtc(m[1], m[2]);
-  } catch {
-    return { status: 'invalid' };
+  const m = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?: [+-]\d{2}:\d{2})?)(?=\s|$)(.*)$/.exec(text);
+  if (!m) return { status: 'invalid', reason: 'format' };
+  const stamp = parseChileTimestamp(m[1]);
+  if (stamp.ok === false) return { status: 'invalid', reason: stamp.reason };
+  const rest = /^\s*·\s*(.*?)\s+([A-Za-z0-9]+)$/.exec(m[2]);
+  return { status: 'ok', log: { at: stamp.at, carrierLabel: rest?.[1].trim() || null, order: rest ? normalizeOrder(rest[2]) : null } };
+}
+
+/** Mensaje de la nota para un «Aviso enviado» que no se puede usar. */
+export function sentLogProblemMessage(reason: 'format' | 'no_offset' | 'time'): string {
+  const example = '«aaaa-mm-dd hh:mm -03:00 · <operador> <orden>» (-04:00 en invierno)';
+  if (reason === 'no_offset') {
+    return `${label('sentLog')} no trae el desfase horario después de la hora: sin él, la hora del último aviso puede ser ambigua (cambio de horario). Escríbelo como ${example}.`;
   }
-  return { status: 'ok', log: { at, carrierLabel: m[3]?.trim() || null, order: m[4] ? normalizeOrder(m[4]) : null } };
+  if (reason === 'time') {
+    return `${label('sentLog')} tiene una hora que no existe en Chile con ese desfase (cambio de horario): corrígela como ${example}.`;
+  }
+  return `${label('sentLog')} no se puede leer: tiene que empezar como ${example}, como lo dejó el último aviso.`;
 }
 
 /** El último aviso registrado fue para este mismo operador y orden (segunda capa contra el envío doble). */
@@ -398,9 +417,7 @@ export function readShippingFields(
   const productsRaw = raw('products');
   const productsText = typeof productsRaw === 'string' && productsRaw.trim() ? productsRaw : null;
   const sent = parseSentLog(raw('sentLog'));
-  if (sent.status === 'invalid') {
-    add('sentLog', 'invalid', `${label('sentLog')} no se puede leer (tiene que empezar con «aaaa-mm-dd hh:mm», como lo dejó el último aviso): corrígelo.`);
-  }
+  if (sent.status === 'invalid') add('sentLog', 'invalid', sentLogProblemMessage(sent.reason));
 
   // Persona
   const personId = personIdOf(deal);
@@ -436,8 +453,10 @@ const EMAIL_RE = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
 
 /**
  * Saludo y correo de la persona (GET /v1/persons/{id}): `first_name` o, si viene vacío, la primera
- * palabra de `name`, con mayúscula inicial; el correo `primary` o, si no hay, el primero. Sin
- * correo válido, el aviso no sale.
+ * palabra de `name`, con mayúscula inicial. El destinatario es el correo `primary` o, si ninguno lo
+ * es, el primero de la lista (spec §4.2), y solo ese se valida: si no es un correo válido, el aviso
+ * no sale. Nunca se pasa a otro correo de la lista (la factura y el voucher irían a una dirección
+ * que nadie eligió).
  */
 export function readPersonContact(
   person: Readonly<Record<string, unknown>> | null | undefined,
@@ -452,10 +471,15 @@ export function readPersonContact(
     : typeof raw === 'string'
       ? [{ value: textValue(raw), primary: true }]
       : [];
-  const valid = list.filter((e) => EMAIL_RE.test(e.value));
-  const email = (valid.find((e) => e.primary) ?? valid[0])?.value;
-  if (!email) return { ok: false, problem: { field: null, code: 'no_email', message: 'La persona del negocio no tiene un correo válido.' } };
-  return { ok: true, greetingName, email };
+  const chosen = list.find((e) => e.primary) ?? list[0];
+  if (!chosen?.value) return { ok: false, problem: { field: null, code: 'no_email', message: 'La persona del negocio no tiene correo: agrégalo en la persona.' } };
+  if (!EMAIL_RE.test(chosen.value)) {
+    return {
+      ok: false,
+      problem: { field: null, code: 'no_email', message: 'El correo principal de la persona del negocio no es válido: corrígelo en la persona (el aviso no se manda a otro correo).' },
+    };
+  }
+  return { ok: true, greetingName, email: chosen.value };
 }
 
 /** Formatos que exige el servidor (api/request-orders/create.ts y api/quotes/create.ts). */
