@@ -50,13 +50,17 @@ export const MERCHANT_FEED_PATH = `/${MERCHANT_FEED_FILE}`;
 const G_NS = 'http://base.google.com/ns/1.0';
 
 /**
- * D7 (pendiente del dueño): qué es la marca «JIE» de 277 productos. Si es marca propia, el SKU de
- * Jumpseller es el MPN y va en g:mpn; si es la del fabricante, nuestro SKU no es su MPN y lo
- * correcto sería identifier_exists: no (con D6, sin GTIN). Hasta que lo confirme, el feed no manda
- * ni mpn ni identifier_exists: los dos son opcionales para Google mientras no haya GTIN.
- * Esta constante es el único interruptor; identifier_exists se agrega cuando se decidan D6 y D7.
+ * D7 (dueño, 19-11-2026: «es la marca propia» «y fabricante»): «JIE» es la marca propia de eLIGHTS
+ * y su fabricante, como «eLIGHTS». En esas marcas el SKU de Jumpseller es el MPN (g:mpn), y un ítem
+ * sin SKU lleva identifier_exists: no (sin GTIN por D6 y sin número de pieza). Las marcas de otros
+ * fabricantes (CHUHAN, WAROM…) no llevan ni mpn ni identifier_exists: nuestro SKU no es su MPN.
  */
-export const SKU_IS_MPN = false;
+export const OWN_BRANDS: readonly string[] = ['JIE', 'eLIGHTS', 'eLIGHTS.cl'];
+export const isOwnBrand = (brand: string | undefined, own: readonly string[] = OWN_BRANDS) =>
+  !!brand?.trim() && own.some(b => b.toLowerCase() === brand.trim().toLowerCase());
+
+/** Menciones del D.S. N°1/2022 («DS1», «D.S. N°1»): nunca van en product_detail (ver specDetails). */
+export const DS1_MENTION = /\bDS\s?-?1\b|\bD\.\s?S\.?\s*(?:N\s?[°º.]?\s*)?1\b/i;
 
 /** Límites de Google (especificación de datos de producto, support.google.com/merchants/answer/7052112). */
 export const LIMITS = {
@@ -269,7 +273,10 @@ export interface FeedItem {
   /** CON IVA, en CLP (el de la variante). */
   price: number;
   brand?: string;
+  /** Solo en las marcas propias (D7): el SKU de la variante, o del producto sin selector. */
   mpn?: string;
+  /** Solo en las marcas propias sin SKU (D6 y D7). */
+  identifierExists?: 'no';
   condition: 'new';
   googleProductCategory?: number;
   productType: string;
@@ -284,6 +291,8 @@ export interface FeedItem {
   jumpsellerId: number;
   variantId?: number;
   siteId: string;
+  /** El SKU de Jumpseller (de la variante o del producto), en cualquier marca: distingue títulos repetidos. */
+  sku?: string;
 }
 
 /** Fuentes del feed: por defecto, las del sitio. Las pruebas pasan las suyas. */
@@ -293,7 +302,7 @@ export interface FeedSources {
   descriptions: Readonly<Record<number, ProductDescription>>;
   exclusions: readonly MerchantExclusion[];
   site: string;
-  skuIsMpn: boolean;
+  ownBrands: readonly string[];
 }
 
 const contentCache = new Map<number, ProductContent | undefined>();
@@ -308,7 +317,7 @@ export const defaultSources = (): FeedSources => ({
   descriptions: productDescriptions,
   exclusions: MERCHANT_EXCLUSIONS,
   site: SITE_URL,
-  skuIsMpn: SKU_IS_MPN,
+  ownBrands: OWN_BRANDS,
 });
 
 const categoryName = new Map(categories.map(c => [c.slug, c.name]));
@@ -323,16 +332,23 @@ function specGroups(p: Product, d: ProductDescription | undefined): Record<(type
 
 /** «Packaging por mayor» es el embalaje de la ficha, no la lista P.MAYOR: su nombre se permite. */
 const PACKAGING_LABEL = /^packaging por mayor$/i;
-/** Filas que no van: la garantía (la ficha la muestra aparte) y la marca (va en g:brand; D7 pendiente). */
+/** Filas que no van: la garantía (la ficha la muestra aparte) y la marca (va en g:brand). */
 const SKIPPED_LABEL = /garant[ií]a|^marca$/i;
 
+/**
+ * Las especificaciones de la ficha, sin garantía ni marca y sin ninguna fila que nombre el
+ * D.S. N°1 (DS1_MENTION). En la ficha esa fila es del producto completo, junto al selector; en el
+ * feed cada ítem es una sola variante, y «Certificación: SEC · DS1» en un ítem de 5000K sería una
+ * certificación que esa variante no tiene. La descripción conserva la frase de la ficha, que dice
+ * a qué variantes corresponde.
+ */
 function specDetails(p: Product, d: ProductDescription | undefined): FeedDetail[] {
   const groups = specGroups(p, d);
   return SPEC_SECTIONS.flatMap(([key, section]) =>
     groups[key].flatMap(row => {
       const name = squash(row.label);
       const value = row.value.split('\n').map(squash).filter(Boolean).join(', ');
-      if (!name || !value || SKIPPED_LABEL.test(name)) return [];
+      if (!name || !value || SKIPPED_LABEL.test(name) || DS1_MENTION.test(`${name} ${value}`)) return [];
       if (!isProductSentence(`${PACKAGING_LABEL.test(name) ? '' : name} ${value}`)) return [];
       if (name.length > LIMITS.detailName || value.length > LIMITS.detailValue) return [];
       return [{ section, name, value }];
@@ -346,6 +362,21 @@ function variantDetails(p: Product, v: ProductVariant): FeedDetail[] {
     const choice = axis.choices.find(c => c.value === v.options.find(o => o.name === axis.name)?.value);
     return choice ? [{ section: VARIANT_SECTION, name: axis.legend, value: choice.detail ? `${choice.label}, ${choice.detail}` : choice.label }] : [];
   });
+}
+
+/** Etiquetas de temperatura de color en las tablas de Jumpseller («Temperatura color (°K)», «Color de luz», «CCT»). */
+export const CCT_LABEL = /temperatura|color de luz|°\s?k\b|\bcct\b/i;
+const labelKey = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Las filas «Variante» del ítem y después las del producto, sin las que la variante reemplaza:
+ * las de la misma etiqueta y, si la variante elige temperatura de color, las de temperatura del
+ * producto («Luz fría 6500K, luz cálida 2200K y 2700K…» no describe un ítem de 5000K).
+ */
+function itemDetails(variant: readonly FeedDetail[], specs: readonly FeedDetail[]): FeedDetail[] {
+  const names = new Set(variant.map(d => labelKey(d.name)));
+  const cct = variant.some(d => CCT_LABEL.test(d.name));
+  return [...variant, ...specs.filter(s => !names.has(labelKey(s.name)) && !(cct && CCT_LABEL.test(s.name)))];
 }
 
 const BODY_COLOR = /^(blanco|negro)$/i;
@@ -395,25 +426,50 @@ function highlights(p: Product, content: ProductContent | undefined): string[] {
 }
 
 /**
- * El SKU de la variante; sin selector, el de su única variante o el del producto (solo si
- * SKU_IS_MPN). Una variante sin SKU queda sin mpn: nunca el del producto, que repetiría el mismo
- * mpn en varias variantes.
+ * El SKU de la variante; sin selector, el de su única variante o el del producto. Una variante
+ * sin SKU queda sin él: nunca el del producto, que repetiría el mismo código en varias variantes.
  */
-function mpnFor(p: Product, v: ProductVariant | undefined): string | undefined {
-  const sku = (v ? v.sku ?? '' : p.singleVariant?.sku || p.sku || '').trim();
-  return sku && sku.length <= LIMITS.mpn ? sku : undefined;
+function skuFor(p: Product, v: ProductVariant | undefined): string | undefined {
+  return (v ? v.sku ?? '' : p.singleVariant?.sku || p.sku || '').trim() || undefined;
+}
+
+/** D7: en las marcas propias, el SKU como mpn o, sin SKU, identifier_exists: no. En las demás, nada. */
+function identifiers(own: boolean, sku: string | undefined): Pick<FeedItem, 'mpn' | 'identifierExists'> {
+  if (!own) return {};
+  return sku && sku.length <= LIMITS.mpn ? { mpn: sku } : { identifierExists: 'no' };
+}
+
+/** El título con « (sufijo)» al final, cortado antes para que el sufijo siempre quepa. */
+const withSuffix = (title: string, suffix: string) => `${clip(title, LIMITS.title - suffix.length - 3)} (${suffix})`;
+
+/**
+ * Google pide títulos que distingan cada ítem. Dos ítems con el mismo título (dos variantes con
+ * la misma etiqueta, o dos productos de Jumpseller con el mismo nombre) se distinguen con su SKU
+ * y, si sigue repetido o no tiene SKU, con el id del ítem. Así la unicidad no depende de los
+ * nombres que traiga Jumpseller.
+ */
+function distinctTitles(items: FeedItem[]): void {
+  for (const suffixOf of [(it: FeedItem) => it.sku, (it: FeedItem) => it.id]) {
+    const count = new Map<string, number>();
+    for (const it of items) count.set(it.title, (count.get(it.title) ?? 0) + 1);
+    for (const it of items) {
+      const suffix = suffixOf(it);
+      if (count.get(it.title)! > 1 && suffix) it.title = withSuffix(it.title, suffix);
+    }
+  }
 }
 
 /** Ítems del feed: los productos publicados menos la lista de exclusión, uno por variante. */
 export function buildFeedItems(sources: Partial<FeedSources> = {}): FeedItem[] {
   const src = { ...defaultSources(), ...sources };
   const excluded = new Set(src.exclusions.map(e => e.jumpseller_id));
-  return src.products
+  const items = src.products
     .filter(p => !excluded.has(p.jumpseller_id))
     .flatMap(p => {
       const content = p.description ? undefined : src.content(p.jumpseller_id);
       const d = src.descriptions[p.jumpseller_id];
       const base = sentenceCase(p.name);
+      const own = isOwnBrand(p.brand, src.ownBrands);
       const shared = {
         description: itemDescription(p, content, d, base),
         imageLink: encodeImageUrl(p.images?.[0] ?? p.image),
@@ -433,23 +489,24 @@ export function buildFeedItems(sources: Partial<FeedSources> = {}): FeedItem[] {
       const labels = (price: number): FeedItem['customLabels'] => [p.category, priceTier(price), p.featured ? 'destacado' : undefined, isBulky(p) ? BULKY_LABEL : undefined];
       if (!hasVariantChoice(p)) {
         const vid = p.jumpseller_variant_id;
-        const mpn = src.skuIsMpn ? mpnFor(p, undefined) : undefined;
+        const sku = skuFor(p, undefined);
         return [{
           ...shared,
           id: vid ? `${p.jumpseller_id}-${vid}` : String(p.jumpseller_id),
           title: clip(base, LIMITS.title),
           link,
           price: p.price,
-          ...(mpn ? { mpn } : {}),
+          ...identifiers(own, sku),
           productDetails: specs.slice(0, LIMITS.productDetails),
           customLabels: labels(p.price),
           ...(vid ? { variantId: vid } : {}),
+          ...(sku ? { sku } : {}),
         } satisfies FeedItem];
       }
-      const items = p.variants!.map((v): FeedItem => {
+      return p.variants!.map((v): FeedItem => {
         const label = variantLabel(p, v);
         const color = bodyColor(v);
-        const mpn = src.skuIsMpn ? mpnFor(p, v) : undefined;
+        const sku = skuFor(p, v);
         return {
           ...shared,
           id: `${p.jumpseller_id}-${v.id}`,
@@ -457,22 +514,17 @@ export function buildFeedItems(sources: Partial<FeedSources> = {}): FeedItem[] {
           title: clip(label ? `${base} – ${label}` : base, LIMITS.title),
           link: `${link}?${VARIANT_PARAM}=${v.id}`,
           price: v.price,
-          ...(mpn ? { mpn } : {}),
-          productDetails: [...variantDetails(p, v), ...specs].slice(0, LIMITS.productDetails),
+          ...identifiers(own, sku),
+          productDetails: itemDetails(variantDetails(p, v), specs).slice(0, LIMITS.productDetails),
           ...(color ? { color } : {}),
           customLabels: labels(v.price),
           variantId: v.id,
+          ...(sku ? { sku } : {}),
         };
       });
-      // Dos variantes con la misma etiqueta: Google pide títulos que distingan cada variante
-      const repeated = new Set(items.filter((it, i) => items.findIndex(o => o.title === it.title) !== i).map(it => it.title));
-      for (const it of items) {
-        if (!repeated.has(it.title)) continue;
-        const v = p.variants!.find(x => x.id === it.variantId)!;
-        it.title = clip(`${it.title} (${v.sku || `variante ${v.id}`})`, LIMITS.title);
-      }
-      return items;
     });
+  distinctTitles(items);
+  return items;
 }
 
 // ── XML ────────────────────────────────────────────────────────────────────────
@@ -501,6 +553,7 @@ function renderItem(it: FeedItem): string[] {
     ...tag('price', `${it.price} CLP`),
     ...tag('brand', it.brand),
     ...tag('mpn', it.mpn),
+    ...tag('identifier_exists', it.identifierExists),
     ...tag('condition', it.condition),
     ...tag('google_product_category', it.googleProductCategory),
     ...tag('product_type', it.productType),
@@ -631,7 +684,7 @@ export function parseFeed(xml: string): XmlElement {
 /** Atributos g: que puede traer un ítem (y cuántas veces). */
 const SINGLE_TAGS = [
   'id', 'item_group_id', 'title', 'description', 'link', 'image_link', 'availability', 'price', 'brand', 'mpn',
-  'condition', 'google_product_category', 'product_type', 'color', 'shipping_label',
+  'identifier_exists', 'condition', 'google_product_category', 'product_type', 'color', 'shipping_label',
   'custom_label_0', 'custom_label_1', 'custom_label_2', 'custom_label_3', 'custom_label_4',
 ] as const;
 const REPEATED_TAGS = ['additional_image_link', 'product_detail', 'product_highlight'] as const;
@@ -716,6 +769,10 @@ export function inspectFeed(xml: string, opts: { origin?: string; expectedCount?
     if (price && !PRICE.test(price)) issues.push(`${label}: precio «${price}» no es «<entero> CLP»`);
     const availability = one(it, 'availability');
     if (availability && !AVAILABILITY_VALUES.includes(availability)) issues.push(`${label}: disponibilidad «${availability}»`);
+    const identifierExists = one(it, 'identifier_exists');
+    if (identifierExists && identifierExists !== 'no') issues.push(`${label}: identifier_exists «${identifierExists}»`);
+    if (identifierExists && one(it, 'mpn')) issues.push(`${label}: identifier_exists junto a mpn`);
+    if ((one(it, 'mpn') || identifierExists) && !one(it, 'brand')) issues.push(`${label}: mpn o identifier_exists sin brand`);
     const link = one(it, 'link');
     if (link) {
       let url: URL | undefined;
@@ -762,7 +819,7 @@ export function feedInvariantIssues(items: readonly FeedItem[], xml: string, sit
   }
   const forbidden = findForbiddenKeys([xml]);
   if (forbidden.length) issues.push(`campos prohibidos en el feed: ${forbidden.join(', ')}`);
-  for (const t of ['cost_per_item', 'stock', 'barcode', 'gtin', 'identifier_exists']) if (xml.includes(`<g:${t}`)) issues.push(`el feed trae <g:${t}>`);
+  for (const t of ['cost_per_item', 'stock', 'barcode', 'gtin']) if (xml.includes(`<g:${t}`)) issues.push(`el feed trae <g:${t}>`);
   return issues;
 }
 
@@ -788,6 +845,12 @@ export interface FeedReport {
   unmeasuredImages: number[];
   /** jumpseller_id sin marca en Jumpseller. */
   withoutBrand: number[];
+  /** Ítems de marca propia sin SKU (van con identifier_exists: no): se completan en Jumpseller. */
+  withoutSku: string[];
+  /** mpn usados por más de un ítem: Google los trataría como el mismo producto. */
+  repeatedMpns: string[];
+  /** Ítems cuyo título no tiene minúsculas (Google rechaza el exceso de mayúsculas). */
+  upperTitles: string[];
   /** Ítems cuyo ?variante= no deja elegida la variante en la ficha (sus opciones no la distinguen). */
   unresolvedVariants: string[];
   /** Exclusiones de productos que ya no se publican. */
@@ -818,6 +881,9 @@ export function feedReport(
     }),
     unmeasuredImages: inFeed.filter(jid => !factsOf(jid)?.width),
     withoutBrand: inFeed.filter(jid => !items.find(i => i.jumpsellerId === jid)?.brand),
+    withoutSku: items.filter(i => i.identifierExists).map(i => i.id),
+    repeatedMpns: [...new Set(items.filter((i, n) => i.mpn && items.findIndex(o => o.mpn === i.mpn) !== n).map(i => i.mpn!))],
+    upperTitles: items.filter(i => !/\p{Ll}/u.test(i.title)).map(i => i.id),
     unresolvedVariants: items
       .filter(i => i.itemGroupId && !selectionForVariant(byId.get(i.jumpsellerId)!, i.variantId))
       .map(i => i.id),
@@ -831,6 +897,9 @@ export function renderFeedReport(r: FeedReport, bytes: number): string[] {
     `[merchant-feed] ${r.items} ítems de ${r.products} productos (${r.groups} con variantes; ${r.excluded} excluidos a mano) en dist/${MERCHANT_FEED_FILE}, ${(bytes / 1024).toFixed(0)} KB`,
     `[merchant-feed] Avisos (no bloquean; se corrigen en Jumpseller): ${r.smallImages.length} primeras fotos bajo ${MIN_IMAGE_SIDE} px${list(r.smallImages)}`,
     `[merchant-feed]   ${r.unmeasuredImages.length} primeras fotos sin medidas leídas${list(r.unmeasuredImages)}; ${r.withoutBrand.length} productos sin marca${list(r.withoutBrand)}`,
+    `[merchant-feed]   ${r.withoutSku.length} ítems de marca propia sin SKU (van con identifier_exists: no)`,
+    ...(r.repeatedMpns.length ? [`[merchant-feed]   ${r.repeatedMpns.length} SKU usados como mpn en más de un ítem${list(r.repeatedMpns)}`] : []),
+    ...(r.upperTitles.length ? [`[merchant-feed]   ${r.upperTitles.length} títulos sin minúsculas${list(r.upperTitles)}`] : []),
     ...(r.unresolvedVariants.length ? [`[merchant-feed]   ${r.unresolvedVariants.length} ítems cuyo ?${VARIANT_PARAM}= no deja elegida la variante${list(r.unresolvedVariants)}`] : []),
     ...(r.staleExclusions.length ? [`[merchant-feed]   exclusiones de productos que ya no se publican (se pueden borrar)${list(r.staleExclusions)}`] : []),
   ];

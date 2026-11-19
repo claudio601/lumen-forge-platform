@@ -30,6 +30,7 @@ import {
 import { PICKUP_PLACE } from '../src/config/business';
 import { encodeImageUrl } from '../src/lib/seo/ogImage';
 import { indexableRoutes, productPath } from '../src/lib/seo/routes';
+import type { Product } from '../src/data/catalog/types';
 import { hasVariantChoice, VARIANT_PARAM } from '../src/lib/variants';
 import { retiredIn } from '../src/test/retired';
 import { isSyncBot } from '../src/test/syncBot';
@@ -39,11 +40,14 @@ import { findForbiddenKeys } from './jumpseller/write';
 import {
   buildFeedItems,
   BULKY_LABEL,
+  CCT_LABEL,
+  DS1_MENTION,
   escapeXml,
   feedInvariantIssues,
   feedReport,
   htmlToBlocks,
   inspectFeed,
+  isOwnBrand,
   LIMITS,
   MERCHANT_FEED_PATH,
   MIN_IMAGE_SIDE,
@@ -53,10 +57,11 @@ import {
   priceTier,
   renderFeed,
   REQUIRED_TAGS,
+  OWN_BRANDS,
   sentenceCase,
-  SKU_IS_MPN,
   smallImagesBlock,
   SPEC_SECTIONS,
+  VARIANT_SECTION,
   type FeedItem,
 } from './merchant-feed';
 
@@ -140,7 +145,7 @@ describe('feed de Merchant: lo que genera el build', () => {
 
   it('4. sin campos prohibidos: costos, stock, códigos de barra, P.MAYOR, bodega ni comisión de Flow', () => {
     expect(findForbiddenKeys([xml])).toEqual([]);
-    expect(xml).not.toMatch(/cost_per_item|barcode|<g:(?:stock|gtin|identifier_exists|cost_of_goods_sold)\b/i);
+    expect(xml).not.toMatch(/cost_per_item|barcode|<g:(?:stock|gtin|cost_of_goods_sold)\b/i);
     expect(xml).not.toMatch(/p\.\s?mayor/i);
     // «por mayor» solo en el nombre de la fila «Packaging por mayor» (el embalaje de la ficha)
     for (const m of xml.matchAll(/.{0,40}por mayor.{0,25}/gi)) expect(m[0], m[0]).toMatch(/<g:attribute_name>Packaging por mayor<\/g:attribute_name>/);
@@ -160,7 +165,6 @@ describe('feed de Merchant: lo que genera el build', () => {
     const checked = new Set<string>();
     for (const it of items) {
       want(it.title.length > 0 && it.title.length <= LIMITS.title, it, `título de ${it.title.length} caracteres`);
-      want(/\p{Ll}/u.test(it.title), it, `título todo en mayúsculas: ${it.title}`);
       want(it.title === it.title.trim(), it, 'título con espacios en los bordes');
       want(it.description.length > 0 && it.description.length <= LIMITS.description, it, `descripción de ${it.description.length} caracteres`);
       want(!/\*\*|^- /m.test(it.description), it, 'descripción con negritas o listas');
@@ -376,19 +380,80 @@ describe('feed de Merchant: categorías, grupos y mpn', () => {
     for (const s of sections) expect([...SPEC_SECTIONS.map(([, t]) => t), 'Variante']).toContain(s);
   });
 
-  it('sin mpn mientras SKU_IS_MPN sea false (D7); con true, el SKU de la variante', () => {
-    expect(SKU_IS_MPN).toBe(false);
-    expect(xml).not.toContain('<g:mpn>');
-    const withMpn = buildFeedItems({ skuIsMpn: true });
-    const withSku = withMpn.filter(i => i.mpn);
-    expect(withSku.length).toBeGreaterThan(0);
-    for (const it of withSku) {
-      expect(it.mpn!.length).toBeLessThanOrEqual(LIMITS.mpn);
-      if (it.itemGroupId) expect(it.mpn).toBe(byJid.get(it.jumpsellerId)!.variants!.find(v => v.id === it.variantId)!.sku);
+  it('D7: en las marcas propias, el SKU como mpn o, sin SKU, identifier_exists: no; en las demás, ninguno', () => {
+    expect(OWN_BRANDS).toEqual(['JIE', 'eLIGHTS', 'eLIGHTS.cl']);
+    expect([isOwnBrand('JIE'), isOwnBrand(' jie '), isOwnBrand('ELIGHTS'), isOwnBrand('eLIGHTS.cl')]).toEqual([true, true, true, true]);
+    expect([isOwnBrand('CHUHAN'), isOwnBrand('WAROM'), isOwnBrand('OEM'), isOwnBrand(''), isOwnBrand(undefined)]).toEqual([false, false, false, false, false]);
+    for (const it of items) {
+      const p = byJid.get(it.jumpsellerId)!;
+      const v = it.itemGroupId ? p.variants!.find(x => x.id === it.variantId)! : undefined;
+      const sku = (v ? v.sku ?? '' : p.singleVariant?.sku || p.sku || '').trim();
+      expect(it.sku ?? '', it.id).toBe(sku);
+      if (!isOwnBrand(p.brand)) {
+        expect([it.mpn, it.identifierExists], it.id).toEqual([undefined, undefined]);
+      } else if (sku && sku.length <= LIMITS.mpn) {
+        expect([it.mpn, it.identifierExists], it.id).toEqual([sku, undefined]);
+      } else {
+        expect([it.mpn, it.identifierExists], it.id).toEqual([undefined, 'no']);
+      }
     }
-    expect(renderFeed(withMpn)).toContain('<g:mpn>');
-    expect(inspectFeed(renderFeed(withMpn)).issues).toEqual([]);
+    expect(xml).toContain('<g:mpn>');
+    expect(xml).toContain('<g:identifier_exists>no</g:identifier_exists>');
   }, HEAVY);
+
+  it('D7: inspectFeed rechaza identifier_exists distinto de «no», junto a mpn o sin brand', () => {
+    const [it] = items.filter(i => i.mpn);
+    const issuesOf = (patch: Partial<FeedItem>) => inspectFeed(renderFeed([{ ...it, ...patch }])).issues;
+    expect(issuesOf({})).toEqual([]);
+    expect(issuesOf({ mpn: undefined, identifierExists: 'no' })).toEqual([]);
+    expect(issuesOf({ identifierExists: 'no' }).join()).toContain('identifier_exists junto a mpn');
+    expect(issuesOf({ mpn: undefined, identifierExists: 'yes' as 'no' }).join()).toContain('identifier_exists «yes»');
+    expect(issuesOf({ brand: undefined }).join()).toContain('sin brand');
+  });
+
+  it('ningún product_detail nombra el D.S. N°1: cada ítem es una variante y la fila es del producto completo', () => {
+    for (const text of ['SEC · DS1', 'SEC, DS1', 'SEC - CE - RoHS - DS1', 'SEC. D.S. N°1/2022 solo en la versión ámbar', '2700K (CON DS1)', 'D.S. Nº 1', 'DS-1']) {
+      expect(DS1_MENTION.test(text), text).toBe(true);
+    }
+    for (const text of ['SEC', 'DS43', 'DS 10', 'IP65 IK10', 'D.S. N°43']) expect(DS1_MENTION.test(text), text).toBe(false);
+    const bad = items.flatMap(it => it.productDetails.filter(d => DS1_MENTION.test(`${d.name} ${d.value}`)).map(d => `${it.id}: ${d.name} = ${d.value}`));
+    expect(bad).toEqual([]);
+  }, HEAVY);
+
+  it('en las variantes, las filas «Variante» reemplazan a las del producto con la misma etiqueta y a su temperatura de color', () => {
+    const key = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+    let withCct = 0;
+    for (const it of items.filter(i => i.itemGroupId)) {
+      const variant = it.productDetails.filter(d => d.section === VARIANT_SECTION);
+      const rest = it.productDetails.filter(d => d.section !== VARIANT_SECTION);
+      expect(it.productDetails.slice(0, variant.length), it.id).toEqual(variant);
+      const names = new Set(variant.map(d => key(d.name)));
+      expect(rest.filter(d => names.has(key(d.name))), it.id).toEqual([]);
+      if (variant.some(d => CCT_LABEL.test(d.name))) {
+        withCct++;
+        expect(rest.filter(d => CCT_LABEL.test(d.name)), it.id).toEqual([]);
+      }
+    }
+    expect(withCct).toBeGreaterThan(0);
+    for (const label of ['Temperatura de color', 'Temperatura color (°K)', 'Color de luz', 'CCT']) expect(CCT_LABEL.test(label), label).toBe(true);
+    for (const label of ['Flujo luminoso', 'Potencia', 'Color', 'Índice de reproducción cromática (CRI)']) expect(CCT_LABEL.test(label), label).toBe(false);
+  }, HEAVY);
+
+  it('títulos distintos aunque Jumpseller repita un nombre: primero el SKU y, si sigue repetido o no hay, el id', () => {
+    const p = products.find(x => !hasVariantChoice(x) && x.jumpseller_variant_id)!;
+    const twin = (jid: number, sku: string | undefined, name = p.name) => ({ ...p, jumpseller_id: jid, id: `${p.id}-${jid}`, name, sku, singleVariant: undefined, jumpseller_variant_id: undefined });
+    const titles = (list: Product[]) => buildFeedItems({ products: list, exclusions: [] }).map(i => i.title);
+    const base = sentenceCase(p.name);
+    expect(titles([twin(1, 'AB-1'), twin(2, 'AB-2')])).toEqual([`${base} (AB-1)`, `${base} (AB-2)`]);
+    expect(titles([twin(1, undefined), twin(2, undefined)])).toEqual([`${base} (1)`, `${base} (2)`]);
+    expect(titles([twin(1, 'AB'), twin(2, 'AB')])).toEqual([`${base} (AB) (1)`, `${base} (AB) (2)`]);
+    // Dos nombres que solo difieren en mayúsculas quedan iguales con sentenceCase
+    expect(new Set(titles([twin(1, 'X1', p.name.toUpperCase()), twin(2, 'X2', p.name.toLowerCase())])).size).toBe(2);
+    // El sufijo siempre cabe en los 150 caracteres
+    const [long] = titles([twin(1, 'SKU-LARGO-1', 'Proyector '.repeat(20)), twin(2, 'SKU-LARGO-2', 'Proyector '.repeat(20))]);
+    expect(long.length).toBeLessThanOrEqual(LIMITS.title);
+    expect(long.endsWith(' (SKU-LARGO-1)')).toBe(true);
+  });
 });
 
 describe('feed de Merchant: textos', () => {

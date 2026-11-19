@@ -347,9 +347,10 @@ Especificación: `~/proyectos/elights-merchant-2026-11/spec-feed-merchant.md` (u
   - el precio CON IVA de la variante (`<entero> CLP`, igual al de `priceIndex`);
   - el nombre de Jumpseller en tipo oración, más « – » y la etiqueta de la variante;
   - las fotos, codificadas como en el JSON-LD;
-  - las especificaciones en `product_detail`: los tres grupos de la ficha más «Variante», sin garantía ni marca;
+  - las especificaciones en `product_detail`: los tres grupos de la ficha más «Variante», sin garantía, marca ni ninguna fila que nombre el D.S. N°1 (`DS1_MENTION`: en la ficha la fila es del producto completo, y en el feed cada ítem es una sola variante). En una variante, sus filas «Variante» reemplazan a las del producto con la misma etiqueta y a su temperatura de color (`CCT_LABEL`);
   - los beneficios en `product_highlight` (de 2 a 10).
 - **La descripción** es la editorial o la del contenido SEO, en texto plano. Se quitan la voz de la tienda, lo comercial (`COMMERCIAL_TEXT`: eLIGHTS, cotización, despacho, precios, pago, Flow, stock, WhatsApp, DIALux, «con nosotros»…) y las frases retiradas (`src/test/retired.ts`).
+- **Títulos repetidos:** si dos ítems quedan con el mismo título (dos variantes con la misma etiqueta o dos productos con el mismo nombre en Jumpseller), se agrega su SKU y, si sigue repetido o no lo tiene, el id del ítem (`distinctTitles`). Así la unicidad no depende de los nombres de Jumpseller.
 - **Ids:** `<jumpseller_id>-<id de la variante>`, o `<jumpseller_id>` si el producto no tiene variante. Nunca cambian: un renombre en `renamed-ids.ts` cambia solo el `link`.
 - **link:** `SITE_URL/producto/<id vigente>`. En los productos con selector se agrega `?variante=<id>`, y la ficha deja elegida esa variante en un efecto después de hidratar (`selectionForVariant`, `src/lib/variants.ts`). Ni el HTML estático ni el canonical cambian, y un id ajeno se ignora.
 - **Atributos:**
@@ -360,11 +361,11 @@ Especificación: `~/proyectos/elights-merchant-2026-11/spec-feed-merchant.md` (u
   - `color`, solo Blanco o Negro;
   - `shipping_label: voluminoso`, en los postes y en `PANEL_MASTER_BOX`;
   - `custom_label_0..3`: categoría, tramo de precio, destacado y voluminoso. Nunca margen, costo ni P.MAYOR.
-  - Sin GTIN (D6). Sin `mpn` ni `identifier_exists` mientras `SKU_IS_MPN = false` (D7: falta saber qué es la marca «JIE»).
+  - Sin GTIN (D6). D7 (dueño, 19-11-2026): «JIE» es la marca propia y el fabricante, como «eLIGHTS» (`OWN_BRANDS`). En ellas el SKU de la variante, o del producto sin selector, va como `mpn`, y sin SKU va `identifier_exists: no`. Las marcas de otros fabricantes (CHUHAN, WAROM…) no llevan ninguno de los dos.
 - **Qué entra:** los productos publicados menos los de `src/data/merchant/exclusions.ts`. Esa lista se lleva a mano (D5), con el `jumpseller_id` y un motivo genérico (el repo es público). Los servicios nunca entran.
 - **Guardas:**
   - El build se detiene si un precio no es el de `priceIndex`, si un link no lleva a la ficha vigente o si el XML no pasa `inspectFeed`.
-  - El build avisa, sin bloquear, de las primeras fotos de menos de 500 px, de las que no tienen medidas y de los productos sin marca. Se corrigen en Jumpseller.
+  - El build avisa, sin bloquear, de las primeras fotos de menos de 500 px, de las que no tienen medidas, de los productos sin marca, de los ítems de marca propia sin SKU, de un SKU repetido como `mpn` y de los títulos sin minúsculas. Se corrigen en Jumpseller.
   - `scripts/merchant-feed.test.ts` bloquea las fotos de menos de 500 px desde el 01-01-2027 (Google las rechaza desde el 31-01-2027), salvo en el robot (`isSyncBot`).
   - `check:prerender` compara cada precio con el JSON-LD de su ficha prerenderizada.
   - El humo revisa el archivo servido. Es una fila nueva: con `--compare`, el 404 de producción antes del primer merge no cuenta como regresión.
@@ -373,7 +374,6 @@ Especificación: `~/proyectos/elights-merchant-2026-11/spec-feed-merchant.md` (u
 - **Pendientes del dueño:**
   - los montos de la tarifa de despacho (D4: una nacional fija y otra mayor para «voluminoso», nunca «gratis»);
   - la lista de exclusión (D5);
-  - qué es «JIE» (D7);
   - el tránsito máximo (D8; la preparación es de 0 a 2 días hábiles).
 - **Antes de subirlo** (Shopping estándar, D9): revisar que el firewall de Vercel no pida desafío en `/feeds/`.
 
