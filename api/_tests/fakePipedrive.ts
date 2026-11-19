@@ -32,6 +32,9 @@ export interface FakeNote {
 export interface FakeFile {
   id: number;
   deal_id: number;
+  /** El nombre visible (con extensión). */
+  name: string;
+  /** Como la API real: la clave del almacenamiento, sin extensión. */
   file_name: string;
   add_time: string;
   file_size: number;

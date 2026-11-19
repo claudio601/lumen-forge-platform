@@ -310,7 +310,7 @@ describe('enviar al cliente', () => {
   it('guía de despacho: el asunto, el adjunto y la nota la nombran', async () => {
     w.deal()[K.documentType] = OPT.guia;
     w.deal()[K.documentNumber] = '291';
-    w.pd.files[0].file_name = 'guia-291.pdf';
+    w.pd.files[0].name = 'guia-291.pdf';
     await choose('send');
     expect(despachos()[0].subject).toContain('Guía de despacho N° 291');
     expect(despachos()[0].attachments[0].name).toBe('Guia-de-despacho-291.pdf');
@@ -424,8 +424,8 @@ describe('§8 falta algo: nota «NO enviado» con la lista exacta y el disparado
     ['un SKU desconocido sin texto', (w) => { w.deal()[K.products] = '10 PAN60\n2 NOEXISTE'; }, [`- «${SHIPPING_FIELD_NAMES.products}», línea 2 («2 NOEXISTE»): el SKU NOEXISTE no está en el catálogo publicado. Corrígelo o agrega « — <texto como en la factura>».`]],
     ['el PDF pesa demasiado (por file_size, sin descargar)', (w) => { w.pd.files[0].file_size = MAX_DOCUMENT_BYTES + 1; }, ['- El PDF «factura-1234.pdf» supera el máximo de 3 MB (pesa 3.145.729 bytes).']],
     ['el «PDF» es una foto (tipo por los primeros bytes)', (w) => { w.pd.files[0].bytes = jpgBytes(2048); }, ['- El PDF «factura-1234.pdf» no es un PDF: adjunta la factura N° 1234 en PDF.']],
-    ['hay 2 PDF sin el número en el nombre', (w) => { w.pd.files[0].file_name = 'doc-a.pdf'; w.addFile('doc-b.pdf', pdfBytes()); }, ['- Hay 2 PDF y ninguno lleva el N° 1234 en el nombre («doc-b.pdf», «doc-a.pdf»): deja solo el de la factura N° 1234 o ponle el número en el nombre.']],
-    ['2 fotos candidatas a comprobante', (w) => { w.pd.files[1].file_name = 'foto-1.jpg'; w.addFile('foto-2.jpg', jpgBytes()); }, ['- Hay 2 fotos («foto-2.jpg», «foto-1.jpg») y ninguna dice «comprobante» o «voucher» en el nombre: deja solo la del comprobante.']],
+    ['hay 2 PDF sin el número en el nombre', (w) => { w.pd.files[0].name = 'doc-a.pdf'; w.addFile('doc-b.pdf', pdfBytes()); }, ['- Hay 2 PDF y ninguno lleva el N° 1234 en el nombre («doc-b.pdf», «doc-a.pdf»): deja solo el de la factura N° 1234 o ponle el número en el nombre.']],
+    ['2 fotos candidatas a comprobante', (w) => { w.pd.files[1].name = 'foto-1.jpg'; w.addFile('foto-2.jpg', jpgBytes()); }, ['- Hay 2 fotos («foto-2.jpg», «foto-1.jpg») y ninguna dice «comprobante» o «voucher» en el nombre: deja solo la del comprobante.']],
     ['un PDF del cliente de /cotizador de hace 10 días no cuenta', (w) => { w.pd.files[0].add_time = pipedriveTime(new Date(NOW.getTime() - 10 * 86_400_000)); }, ['- Falta el PDF de la factura N° 1234: adjúntalo en Archivos del negocio (cuenta solo uno agregado en los últimos 7 días; no cuentan los adjuntos de correos).']],
     ['«Aviso enviado» editado a mano (ilegible)', (w) => { w.deal()[K.sentLog] = 'ayer'; }, []],
     ['una fecha de envío futura', (w) => { w.deal()[K.shipDate] = '2026-11-19'; }, [`- «${SHIPPING_FIELD_NAMES.shipDate}» (jueves 19 de noviembre) es posterior a hoy: el aviso diría que ya se entregó.`]],

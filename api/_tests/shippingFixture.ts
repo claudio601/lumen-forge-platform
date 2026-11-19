@@ -191,7 +191,8 @@ export function setupNoticeWorld(): NoticeWorld {
     const file: FakeFile = {
       id: pd.nextId++,
       deal_id: DEAL_ID,
-      file_name: name,
+      name,
+      file_name: `k${String(pd.nextId).padStart(4, '0')}aB3dE5fG7hJ9kL1mN3pQ5rS7tV9w`,
       add_time: pipedriveTime(new Date(Date.now() - 3_600_000)),
       file_size: bytes.length,
       active_flag: true,

@@ -36,8 +36,13 @@ export const FILE_WINDOW_DAYS = 7;
 /** Lo que trae cada archivo de GET /v1/deals/{id}/files (lo que usa la regla). */
 export interface DealFileMeta {
   id?: unknown;
-  file_name?: unknown;
+  /** El nombre visible, con su extensión («factura-8430.pdf»): el que ve el dueño en Pipedrive. */
   name?: unknown;
+  /**
+   * (prueba real, 19-11) En la API real es la clave del archivo en el almacenamiento (30 letras y dígitos, sin
+   * extensión), no el nombre: solo se usa si falta `name`.
+   */
+  file_name?: unknown;
   /** 'aaaa-mm-dd hh:mm:ss' en UTC. */
   add_time?: unknown;
   file_size?: unknown;
@@ -76,6 +81,16 @@ const mb = (bytes: number) => `${String(Math.round((bytes / (1024 * 1024)) * 10)
 /** Bytes exactos con punto de miles («3.145.729 bytes»): el MB redondeado engaña justo en el tope. */
 const exactBytes = (bytes: number) => `${String(bytes).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} bytes`;
 const list = (files: readonly { fileName: string }[]) => files.map((f) => `«${f.fileName}»`).join(', ');
+/**
+ * (prueba real, 19-11) Con Google Drive conectado en Pipedrive (Herramientas y aplicaciones → Documentos), lo que se
+ * sube a un negocio queda en ese Drive (`remote_location` «googledocs»), y la API de Pipedrive no lo entrega sin una
+ * sesión de Google: el aviso no lo puede adjuntar. Se dice, en vez de «falta el PDF».
+ */
+const driveProblem = (files: readonly { fileName: string }[]) =>
+  problem(
+    `${files.length === 1 ? 'El archivo' : 'Los archivos'} ${list(files)} ${files.length === 1 ? 'quedó guardado' : 'quedaron guardados'} en Google Drive y el aviso no ${files.length === 1 ? 'lo' : 'los'} puede descargar: ` +
+      'súbelo de nuevo al negocio con Google Drive desconectado en Pipedrive (Herramientas y aplicaciones → Documentos), o avísale a Claude.',
+  );
 
 /** 'aaaa-mm-dd hh:mm:ss' (UTC, Pipedrive) → ms, o null. */
 function pipedriveTime(raw: unknown): number | null {
@@ -119,15 +134,20 @@ export function selectShippingFiles(
 ): FileSelection {
   const since = Math.max(now.getTime() - FILE_WINDOW_DAYS * 86_400_000, lastNoticeAt ? lastNoticeAt.getTime() + 60_000 : -Infinity);
   const eligible: Candidate[] = [];
+  /** Los que contarían pero quedaron fuera de Pipedrive (Google Drive): solo para decir por qué no se usan. */
+  const remote: { fileName: string }[] = [];
   for (const f of files) {
     const id = typeof f.id === 'number' && Number.isInteger(f.id) && f.id > 0 ? f.id : null;
-    const fileName = typeof f.file_name === 'string' && f.file_name.trim() ? f.file_name.trim() : typeof f.name === 'string' ? f.name.trim() : '';
+    const fileName = typeof f.name === 'string' && f.name.trim() ? f.name.trim() : typeof f.file_name === 'string' ? f.file_name.trim() : '';
     const addedAt = pipedriveTime(f.add_time);
     if (!id || !fileName || addedAt === null) continue;
     if (!isTrue(f.active_flag) || isTrue(f.inline_flag) || !isEmpty(f.mail_message_id)) continue;
-    if (!isEmpty(f.remote_location) && f.remote_location !== 's3') continue;
     if (addedAt < since) continue;
     if (NOTICE_DOCUMENT_NAME.test(fileName) || NOTICE_VOUCHER_NAME.test(fileName)) continue;
+    if (!isEmpty(f.remote_location) && f.remote_location !== 's3') {
+      remote.push({ fileName });
+      continue;
+    }
     const size = typeof f.file_size === 'number' && Number.isFinite(f.file_size) && f.file_size >= 0 ? f.file_size : null;
     eligible.push({ id, fileName, size });
   }
@@ -144,7 +164,9 @@ export function selectShippingFiles(
   else if (named.length > 1) problems.push(problem(`Hay ${named.length} PDF con el N° ${document.number} en el nombre (${list(named)}): deja solo el de ${phrase}.`));
   else if (pdfs.length === 1) doc = pdfs[0];
   else if (pdfs.length === 0) {
-    problems.push(problem(`Falta el PDF de ${phrase}: adjúntalo en Archivos del negocio (cuenta solo uno ${scope}; no cuentan los adjuntos de correos).`));
+    const remotePdfs = remote.filter((f) => DOCUMENT_EXT.test(f.fileName));
+    if (remotePdfs.length) problems.push(driveProblem(remotePdfs));
+    else problems.push(problem(`Falta el PDF de ${phrase}: adjúntalo en Archivos del negocio (cuenta solo uno ${scope}; no cuentan los adjuntos de correos).`));
   } else {
     problems.push(problem(`Hay ${pdfs.length} PDF y ninguno lleva el N° ${document.number} en el nombre (${list(pdfs)}): deja solo el de ${phrase} o ponle el número en el nombre.`));
   }
@@ -159,6 +181,12 @@ export function selectShippingFiles(
   else if (marked.length > 1) problems.push(problem(`Hay ${marked.length} fotos de comprobante (${list(marked)}): deja una.`));
   else if (photos.length === 1) voucher = photos[0];
   else if (photos.length > 1) problems.push(problem(`Hay ${photos.length} fotos (${list(photos)}) y ninguna dice «comprobante» o «voucher» en el nombre: deja solo la del comprobante.`));
+  else {
+    // Sin foto en Pipedrive, una que quedó en Google Drive no se descarta callada: el cliente recibiría el aviso sin
+    // el comprobante que el dueño sí subió.
+    const remotePhotos = remote.filter((f) => PHOTO_EXT.test(f.fileName));
+    if (remotePhotos.length) problems.push(driveProblem(remotePhotos));
+  }
 
   // Topes, antes de descargar
   const capped = (c: Candidate | null, max: number, what: string) => {
