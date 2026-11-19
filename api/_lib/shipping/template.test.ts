@@ -1,7 +1,7 @@
 // api/_lib/shipping/template.test.ts
 // Plantilla del aviso de despacho (spec Nivel 2, §5 y §10): escape, enlaces solo de carriers.ts y
 // SITE_URL, las combinaciones (agencia/domicilio, por pagar/pagado, con o sin fecha estimada y
-// voucher, Starken/otro/desconocido, factura/guía, sin productos), el texto y el HTML con los
+// PDF del documento, Starken/otro/desconocido, factura/guía, sin productos), el texto y el HTML con los
 // mismos datos, las reglas del correo (600 px, sin var(--, flex ni <style>) y las del sitio (sin
 // «gratis», stock, «24–48 h», nuevo.elights.cl, «bodega» ni frases retiradas). Datos inventados.
 
@@ -57,7 +57,7 @@ const hrefs = (html: string) => [...html.matchAll(/href="([^"]*)"/g)].map((m) =>
 
 const CARRIER_CASES: CarrierRef[] = [{ id: 'starken' }, { id: 'pullman-cargo' }, { id: 'varmontt' }, { id: 'cruz-del-sur' }, { id: null, label: 'Rapid Cargo' }];
 
-/** Todas las combinaciones de §10 (5 operadores × 2 entregas × 2 fletes × fecha × voucher × documento × productos). */
+/** Todas las combinaciones de §10 (5 operadores × 2 entregas × 2 fletes × fecha × PDF × documento × productos). */
 function* combinations(): Generator<ShippingNoticeData> {
   for (const carrier of CARRIER_CASES)
     for (const delivery of ['pickup', 'home'] as const)

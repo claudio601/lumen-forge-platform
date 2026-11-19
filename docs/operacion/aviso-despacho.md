@@ -53,7 +53,7 @@ El correo va al **correo principal de la persona del negocio** (o al primero de 
 
 El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no envía nada.
 
-**Un segundo envío del mismo negocio** (otra parte del pedido): otra orden de flete, la factura y el comprobante nuevos agregados después del primer aviso, y otra vez «Vista previa» y «Enviar al cliente». Si el negocio está archivado, desarchívalo primero.
+**Un segundo envío del mismo negocio** (otra parte del pedido): otra orden de flete, la foto del comprobante nuevo (y el PDF de la factura, si lo quieres adjuntar) agregada después del primer aviso, y otra vez «Vista previa» y «Enviar al cliente». Si el negocio está archivado, desarchívalo primero.
 
 ## 3. Qué significa cada nota
 

@@ -411,6 +411,28 @@ describe('enviar al cliente', () => {
     expect(vi.mocked(putDealFields).mock.calls[1][1]).toEqual({ [K.sentLog]: '2026-11-18 12:05 -03:00 · Starken 987654321', [K.trigger]: null });
   });
 
+  it('segundo envío solo con la foto nueva (sin PDF): sale; sin foto nueva, no (la del primer aviso no vuelve a contar)', async () => {
+    await choose('send');
+    vi.setSystemTime(NOW.getTime() + 5 * 60_000);
+    w.deal()[K.order] = '987654321';
+    w.deal()[K.documentNumber] = '1250';
+    expect(await choose('send')).toBe('datos_incompletos');
+    expect(lastNote()).toContain('- Falta la foto del comprobante del operador: súbela en JPG o PNG a Archivos del negocio (cuenta solo una agregada después del último aviso; no cuentan los adjuntos de correos).');
+    w.addFile('voucher-2.jpg', jpgBytes(), { add_time: pipedriveTime(new Date(NOW.getTime() + 2 * 60_000)) });
+    expect(await choose('send')).toBe('enviado');
+    expect(despachos()[1].attachments.map((a) => a.name)).toEqual(['Comprobante-Starken-987654321.jpg']);
+    expect(despachos()[1].text).toContain('\nTe adjuntamos el comprobante de Starken.\n');
+  });
+
+  it('vista previa sin el PDF: llega solo con la foto y sin «adjunta»', async () => {
+    w.pd.files.splice(0, 1);
+    w.deal()[K.products] = null;
+    expect(await choose('preview')).toBe('vista_previa_enviada');
+    const sent = previews().at(-1)!;
+    expect(sent.attachments.map((a) => a.name)).toEqual([expect.stringMatching(/^Comprobante-Starken-\d+\.jpg$/)]);
+    expect(sent.text).not.toMatch(/en PDF|adjunta\b/);
+  });
+
   it('si el dueño ya eligió otra opción mientras salía el aviso, el disparador no se toca', async () => {
     w.relay.onCall = () => { w.deal()[K.trigger] = OPT.preview; };
     expect(await choose('send')).toBe('enviado');

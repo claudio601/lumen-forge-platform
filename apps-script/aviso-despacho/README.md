@@ -51,7 +51,7 @@ No lo pegues en el chat ni en archivos del repo. Para cambiarlo, cámbialo en lo
 | Propiedad | Valor |
 |---|---|
 | `SHARED_SECRET` | el secreto del paso 3 |
-| `OWNER_EMAIL` | tu correo de Workspace. Ahí llega la vista previa, que trae la factura y el comprobante del cliente: nunca una cuenta personal. |
+| `OWNER_EMAIL` | tu correo de Workspace. Ahí llega la vista previa, que trae el comprobante del cliente (y su factura, si se adjuntó): nunca una cuenta personal. |
 | `REPLY_TO` | el correo donde quieres recibir las respuestas de los clientes (el de la firma del aviso) |
 | `SENDER_NAME` | `eLIGHTS.cl` (el nombre que ve el cliente como remitente) |
 | `BCC` | no la crees en la primera versión. Si algún día se agrega, va un solo correo y solo en los envíos al cliente, nunca en la vista previa. |
