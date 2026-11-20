@@ -5,6 +5,7 @@
 export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
+  "2251059": ["https://images.jumpseller.com/store/elights-cl/2251059/attachments/471c4dc8ed11656c142a459993ddd414/Ficha-Ampolleta-LED-Bola-9W-E27.pdf?1795201637"],
   "2251313": ["https://images.jumpseller.com/store/elights-cl/2251313/attachments/15146e05ea68ef8f78a44b337b0a4525/FT_AMPOLLETA_LED_DICROICA_4-50W_GU10_eLIGHTS.cl.pdf?1669657872"],
   "2252771": ["https://images.jumpseller.com/store/elights-cl/2252771/attachments/0211280a2037d7b3a05dca4cc7ee9f82/FT_PROYECTOR_LED_ANTIVAND%C3%81LICO_NEGRO_50W_eLIGHTS.cl.pdf?1662057911"],
   "2252959": ["https://images.jumpseller.com/store/elights-cl/2252959/attachments/b3502a2304d1efe08603743ccca510ab/FT_PROYECTOR_LED_ANTIVAND%C3%81LICO_NEGRO_70W_eLIGHTS.cl.pdf?1662057679"],
@@ -311,12 +312,15 @@ export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "33748536": ["https://images.jumpseller.com/store/elights-cl/33748536/attachments/17694d39e0cd35dbcef97e8b12a174d6/FT_CAMPANA_LED_UFO_NF9_150_W-ELIGHTS.pdf?1772035464"],
   "33748560": ["https://images.jumpseller.com/store/elights-cl/33748560/attachments/61ba2949b06e8e0fbde08dd373074507/FT_CAMPANA_LED_UFO_NF9_200_w-ELIGHTS.pdf?1772035393"],
   "34057374": ["https://images.jumpseller.com/store/elights-cl/34057374/attachments/40c313fefea2a8fb168ef6bb4de881a4/FT_PROYECTOR_LED_SOLAR_500W_IP65_C_PANEL_SOLAR_C_CONTROL_REMOTO-ELIGHTS.pdf?1772734793"],
+  "35794580": ["https://images.jumpseller.com/store/elights-cl/35794580/attachments/387e4675003ecf2456a66428bafe69b5/Ficha_tecnica_Luminaria_emergencia_1000lm_2_faros_30070.pdf?1795203563"],
   "35808441": ["https://images.jumpseller.com/store/elights-cl/35808441/attachments/faf38edaa21537ad1e323a11e2715c4f/LUMINARIA_DE_EMERGENCIA_LED_6W_ELIGHTS.pdf?1781577933"],
+  "37039738": ["https://images.jumpseller.com/store/elights-cl/37039738/attachments/5445037fd60054f9a141a0fbeb45e35d/Ficha_tecnica_Senaletica_LED_Slim_Salida_33716.pdf?1795203632"],
   "37379454": ["https://images.jumpseller.com/store/elights-cl/37379454/attachments/9dd7a6b005e454112eb6199cccc3207d/Ficha_tecnica_-_Brazo_galvanizado_1_salida_48_mm.pdf?1791987504"],
   "37404730": ["https://images.jumpseller.com/store/elights-cl/37404730/attachments/3a24dca2b94099e8af6e778a51786dbd/FT_UFO_APEX_300W_ELIGHTS.pdf?1790869432"],
   "37625224": ["https://images.jumpseller.com/store/elights-cl/37625224/attachments/239d379b380084a178d861f016e04421/ficha-tecnica-panel-led-cuadrado-embutido-eLIGHTS-v01.pdf?1792508045"],
   "37625303": ["https://images.jumpseller.com/store/elights-cl/37625303/attachments/5e6a2d90828f346e2c73145881c7d418/ficha-tecnica-panel-led-cuadrado-embutido-eLIGHTS-v01.pdf?1792508048"],
   "37656341": ["https://images.jumpseller.com/store/elights-cl/37656341/attachments/f90394285fcc606bcadedf96f78417f4/ficha-STA1-125W-eLIGHTS.pdf?1791571733"],
+  "1234852242": ["https://images.jumpseller.com/store/elights-cl/1234852242/attachments/c3fa4b85c5980760696bd687771dbaf0/Ficha_tecnica_Foco_LED_COB_basculante_codo_40W_FLCB40.pdf?1795203524"],
   "1234977373": ["https://images.jumpseller.com/store/elights-cl/1234977373/attachments/356f8549a1ca6602a79696e212c060b5/ficha-sensor-pir-180.pdf?1794340095"],
   "1234997838": ["https://images.jumpseller.com/store/elights-cl/1234997838/attachments/bfb6d5c8e84622da0207594ad7ddf578/ficha-tecnica-CUFOPROHL200.pdf?1794412243"],
 };
