@@ -274,8 +274,9 @@ describe('páginas legales y de compra: contenido', () => {
       expect(text).toContain(s);
     }
     expect(text).toContain('Despacho en hasta 2 días hábiles');
-    // El precio publicado es para transferencia; con Flow se suma su comisión (decisión del dueño 5A, 2026-11-13)
-    expect(text).toContain('Los precios publicados son para pago por transferencia: con el link de pago de Flow se suma la comisión de Flow, que te informamos en la cotización.');
+    // Mismo precio por transferencia o con Flow, sin recargo (dueño, 2026-11-19; cláusula 10 de Flow)
+    expect(text).toContain('Pagas el mismo precio por transferencia o con el link de pago de Flow.');
+    expect(text).not.toMatch(/comisi[oó]n|recargo por pagar con Flow/i);
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
     expect(text).not.toMatch(/proveedores@|Postulaci[oó]n|Trabaja con nosotros/i);
     expect(main.querySelector(`a[href="${waBase}"]`)?.getAttribute('target')).toBe('_blank');
@@ -318,18 +319,17 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '3.').text).toContain(
       'si el despacho va sin costo o por pagar o si retiras en bodega (el flete va por separado solo cuando las bases de una licitación o el proyecto lo exigen)',
     );
-    // §3.3 (versión 1.11, 5A): lo que trae la cotización incluye la comisión de Flow que §4 promete informar
-    expect(section(main, '3.').text).toContain(
-      'productos sin derecho a retracto) y un link de pago. También indica la comisión de Flow, que se suma si pagas con el link de pago de Flow.',
-    );
+    // §3.3 (versión 1.12): la cotización ya no indica una comisión de Flow aparte
+    expect(section(main, '3.').text).toContain('productos sin derecho a retracto) y un link de pago.');
+    expect(text).not.toMatch(/comisi[oó]n/i);
     const precios = section(main, '4.');
     expect(precios.text).toContain(
       `La cotización indica si va sin costo (compras sobre ${THRESHOLD} con IVA, con entrega en la ${FREE_SHIPPING_AREA.name}), por pagar o con retiro en bodega. El flete va por separado en la cotización solo cuando las bases de una licitación o el proyecto lo exigen. Las comunas que no entran y las demás condiciones están en Despacho.`,
     );
-    // §4 (versión 1.11, decisión del dueño 5A, 2026-11-13): el precio publicado es para transferencia;
-    // con Flow se suma su comisión, que informa la cotización, sin publicar el porcentaje
+    // §4 (versión 1.12, dueño 2026-11-19): el mismo precio por transferencia o con Flow, sin recargo
+    // (la cláusula 10 de los términos de Flow prohíbe recargos o precios distintos con tarjeta)
     expect(precios.text).toContain(
-      'Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente. Los precios publicados son para pago por transferencia bancaria. Si pagas con el link de pago de Flow, se suma la comisión de Flow, que te informamos en la cotización antes de que pagues.',
+      'Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente. El precio es el mismo si pagas por transferencia bancaria o con el link de pago de Flow: no cobramos recargo por pagar con tarjeta.',
     );
     expect(text).not.toMatch(/\d\s?%/);
     expect(precios.els.some(el => el.querySelector('a[href="/despacho"]'))).toBe(true);
@@ -535,10 +535,11 @@ describe('páginas legales y de compra: contenido', () => {
     // Empresas e instituciones con orden de compra (decisión del dueño 6A, 2026-11-13); Mercado Público, sin confirmar
     expect(text).toContain('Empresas e instituciones: compra con orden de compra, según las condiciones acordadas.');
     expect(text).not.toMatch(/Mercado Público/i);
-    // Precio publicado para transferencia; con Flow, su comisión en la cotización, sin el porcentaje (5A)
+    // Mismo precio por transferencia o con Flow, sin recargo (dueño, 2026-11-19; cláusula 10 de Flow)
     expect(text).toContain(
-      'Los precios publicados son para pago por transferencia bancaria. Si pagas con el link de pago de Flow, se suma la comisión de Flow, que te informamos en la cotización antes de que pagues.',
+      'Pagas el mismo precio por transferencia bancaria o con el link de pago de Flow: no cobramos recargo por pagar con tarjeta.',
     );
+    expect(text).not.toMatch(/comisi[oó]n/i);
     expect(text).not.toMatch(/\d\s?%/);
     // El comprobante va a pagos@ con el número de cotización; ventas@ sigue para todo lo demás (8A)
     expect(paymentsEmail).toBe('pagos@elights.cl');
@@ -1084,10 +1085,10 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
 });
 
 
-it('textos legales 1.11: fecha provisional y versión anterior publicada', () => {
-  expect(LEGAL_VERSION).toBe('1.11');
-  expect(LEGAL_UPDATED).toBe('2026-11-14');
-  expect(LEGAL_UPDATED_LABEL).toBe('14 de noviembre de 2026');
-  expect(LEGAL_ARCHIVE).toContain('1.10');
+it('textos legales 1.12: fecha provisional y versión anterior publicada', () => {
+  expect(LEGAL_VERSION).toBe('1.12');
+  expect(LEGAL_UPDATED).toBe('2026-11-20');
+  expect(LEGAL_UPDATED_LABEL).toBe('20 de noviembre de 2026');
+  expect(LEGAL_ARCHIVE).toContain('1.11');
   expect(LEGAL_RUT).toBe('76.947.784-5');
 });
