@@ -17,6 +17,9 @@
 // cotización (5A; el porcentaje no se publica; §3.3 la nombra entre lo que trae la cotización);
 // §3.3 y §4, fuera del despacho sin costo, por pagar o retiro en bodega, y el flete en la
 // cotización solo si lo exigen las bases de una licitación o el proyecto (4A).
+// Versión 1.12 (dueño, 2026-11-19): §3.3 y §4, el precio es el mismo por transferencia o con el link
+// de pago de Flow, sin recargo (la comisión se absorbe; en proyectos va dentro del precio cotizado).
+// La cláusula 10 de los términos de Flow prohíbe recargos o precios distintos por pagar con tarjeta.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -67,8 +70,7 @@ const TerminosPage = () => (
         <strong>Cotización y link de pago.</strong> Te respondemos con una cotización que indica los productos, las cantidades, el
         precio unitario y el total con IVA, si el despacho va sin costo o por pagar o si retiras en bodega (el flete va por
         separado solo cuando las bases de una licitación o el proyecto lo exigen), el plazo, las condiciones especiales (por
-        ejemplo, productos sin derecho a retracto) y un link de pago. También indica la comisión de Flow, que se suma si pagas
-        con el link de pago de Flow.
+        ejemplo, productos sin derecho a retracto) y un link de pago.
       </li>
       <li>
         <strong>Revisión.</strong> Si ves un error en la cotización, avísanos antes de pagar y te mandamos una corregida.
@@ -104,8 +106,8 @@ const TerminosPage = () => (
       </li>
       <li>
         Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente.
-        Los precios publicados son para pago por transferencia bancaria. Si pagas con el link de pago de Flow, se suma la
-        comisión de Flow, que te informamos en la cotización antes de que pagues.
+        El precio es el mismo si pagas por transferencia bancaria o con el link de pago de Flow: no cobramos recargo por pagar
+        con tarjeta.
       </li>
       <li>Si publicamos una promoción, junto a ella indicaremos sus condiciones y su vigencia.</li>
     </ul>
