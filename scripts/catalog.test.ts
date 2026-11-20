@@ -15,7 +15,7 @@ import { editorialOverlay } from '../src/data/catalog/overlay/editorial';
 import { baseOverrides } from '../src/data/catalog/overlay/overrides';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
-import { RENAMED_FROM, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
+import { MERGED_SITE_IDS, RENAMED_FROM, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { EDITORIAL_KEYS, parseIp, parseKelvin, parseKelvins, parseWatts, productKelvins, skuOwners } from '../src/data/catalog/build';
 import { cleanSku } from './jumpseller/normalize';
 import { buildVariantSku } from '../src/lib/variantSku';
@@ -248,11 +248,13 @@ describe('catálogo desde Jumpseller', () => {
     for (const p of products) {
       expect(p.id).toBe(registeredId(p.jumpseller_id));
     }
-    // Todos los ids usados alguna vez: ninguno se repite (previous[0] es el legado o el de la sincronización)
+    // Todos los ids usados alguna vez: ninguno se repite (previous[0] es el legado o el de la
+    // sincronización; el `id` de un fusionado es el del que lo reemplaza, ya contado)
     const all = [
       ...Object.values(LEGACY_SITE_IDS),
       ...Object.values(SITE_IDS),
       ...Object.values(RENAMED_SITE_IDS).flatMap(r => [r.id, ...r.previous.slice(1)]),
+      ...Object.values(MERGED_SITE_IDS).flatMap(m => m.previous.slice(1)),
     ];
     expect(new Set(all).size).toBe(all.length);
   });
@@ -262,6 +264,7 @@ describe('catálogo desde Jumpseller', () => {
       ...Object.values(LEGACY_SITE_IDS),
       ...Object.values(SITE_IDS),
       ...Object.values(RENAMED_SITE_IDS).flatMap(r => [r.id, ...r.previous]),
+      ...Object.values(MERGED_SITE_IDS).flatMap(m => [m.id, ...m.previous]),
       ...products.map(p => p.id),
     ];
     expect(ids.filter(id => !SITE_ID.test(id))).toEqual([]);
@@ -581,7 +584,9 @@ describe('ids renombrados (src/data/catalog/renamed-ids.ts)', () => {
   });
 
   it('ningún producto se publica con un id retirado (su 301 taparía la página)', () => {
-    expect(RETIRED_SITE_IDS.size).toBe(renamed.reduce((n, r) => n + r.previous.length, 0));
+    // Retirados: los anteriores de cada renombre y los de cada producto fusionado (MERGED_SITE_IDS)
+    const merged = Object.values(MERGED_SITE_IDS).reduce((n, m) => n + m.previous.length, 0);
+    expect(RETIRED_SITE_IDS.size).toBe(renamed.reduce((n, r) => n + r.previous.length, 0) + merged);
     expect(products.filter(p => RETIRED_SITE_IDS.has(p.id)).map(p => p.id)).toEqual([]);
     for (const r of renamed) expect(RETIRED_SITE_IDS.has(r.id), r.id).toBe(false);
     // Un Map: /producto/constructor no encuentra nada heredado de Object.prototype
@@ -595,5 +600,34 @@ describe('ids renombrados (src/data/catalog/renamed-ids.ts)', () => {
       const staticImports = [...read(f).matchAll(/^import\s[^;]*?from\s+'([^']+)'/gms)].map(m => m[1]);
       expect(staticImports.filter(i => /seo\/routes|data\/catalog\/index|data\/products/.test(i)), f).toEqual([]);
     }
+  });
+});
+
+// Productos fusionados (MERGED_SITE_IDS, en renamed-ids.ts): el id del retirado lleva con 301 a la
+// ficha del que lo reemplaza. Solo crece, como los renombres.
+describe('productos fusionados (MERGED_SITE_IDS, en renamed-ids.ts)', () => {
+  const merged = Object.entries(MERGED_SITE_IDS).map(([jid, m]) => ({ jid: Number(jid), ...m }));
+
+  it('cada fusión parte del id registrado del retirado y lleva al id vigente del que lo reemplaza', () => {
+    for (const m of merged) {
+      expect(m.previous.length, String(m.jid)).toBeGreaterThan(0);
+      expect(m.previous[0], String(m.jid)).toBe(LEGACY_SITE_IDS[m.jid] ?? SITE_IDS[m.jid]);
+      expect(m.id, `${m.jid} → ${m.into}`).toBe(registeredId(m.into));
+      expect(m.previous, String(m.jid)).not.toContain(m.id);
+      // Sin cadenas ni mezclas: el retirado no es un renombrado y el que lo reemplaza no está fusionado
+      expect(RENAMED_SITE_IDS[m.jid], String(m.jid)).toBeUndefined();
+      expect(m.into, String(m.jid)).not.toBe(m.jid);
+      expect(MERGED_SITE_IDS[m.into], String(m.into)).toBeUndefined();
+      for (const old of m.previous) expect(RENAMED_FROM.get(old), old).toBe(m.id);
+      expect(RETIRED_SITE_IDS.has(m.id), m.id).toBe(false);
+    }
+  });
+
+  it('solo crece: el panel 120x15 36W luz cálida (21766686) va al 120x15 36W (2347849), decisión del dueño del 2026-11-20', () => {
+    expect(MERGED_SITE_IDS[21766686]).toEqual({
+      into: 2347849,
+      id: 'panel-led-120x15-cm-36w-para-cielo-americano',
+      previous: ['panel-led-120x15-cm-36w-luz-calida-para-cielo-americano'],
+    });
   });
 });

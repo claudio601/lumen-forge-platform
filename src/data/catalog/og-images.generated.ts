@@ -4,7 +4,7 @@
 
 import type { ProductImageFacts } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
+export const SNAPSHOT_HASH = 'a483dfbd60d7';
 
 export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "2251059": {"url":"https://images.jumpseller.com/store/elights-cl/2251059/amp-led-bola-7-70w-e27.jpg?1617628757","format":"jpeg","bytes":8174,"width":600,"height":600},
@@ -254,7 +254,6 @@ export const productImageFacts: Readonly<Record<number, ProductImageFacts>> = {
   "21441880": {"url":"https://images.jumpseller.com/store/elights-cl/21441880/01-backlight-600x300-mm.png?1695305682","format":"png","bytes":60294,"width":907,"height":907},
   "21739206": {"url":"https://images.jumpseller.com/store/elights-cl/21739206/amp-led-bola-7-70w-e27.jpg?1696947724","format":"jpeg","bytes":8174,"width":600,"height":600},
   "21743223": {"url":"https://images.jumpseller.com/store/elights-cl/21743223/Dise_o_sin_t_tulo__61_-transformed.png?1706904738","format":"png","bytes":1667204,"width":2160,"height":2160},
-  "21766686": {"url":"https://images.jumpseller.com/store/elights-cl/21766686/panel-led-1200x150-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1697046106","format":"jpeg","bytes":11864,"width":600,"height":600},
   "21809432": {"url":"https://images.jumpseller.com/store/elights-cl/21809432/CINTA_LED_EXTERIOR_6_5W_SMD_2835_48_LED_100mt._220V_RGB.webp?1697213171","format":"webp","bytes":68684},
   "22672906": {"url":"https://images.jumpseller.com/store/elights-cl/22672906/CINTA_LED_EXTERIOR_14_4W_SMD_5730_72LEDsm_100mt._220V._AMARILLO.png?1701114371","format":"png","bytes":564726,"width":1080,"height":1080},
   "22679546": {"url":"https://images.jumpseller.com/store/elights-cl/22679546/CINTA_LED_EXTERIOR_14_4W_SMD_5730_72LEDsm_100mt._220V._AZUL.png?1701114366","format":"png","bytes":588178,"width":1080,"height":1080},

@@ -4,8 +4,8 @@
 // qué productos se publican: solo de las tablas.
 
 import { describe, expect, it } from 'vitest';
-import { RENAMED_DESTINATION_FROM, RENAMED_SITE_IDS } from '../../src/data/catalog/renamed-ids';
-import { buildRedirects, renamedIdDestination, renamedIdRedirects, UNPUBLISHED_RENAMED } from './build';
+import { MERGED_SITE_IDS, RENAMED_DESTINATION_FROM, RENAMED_FROM, RENAMED_SITE_IDS } from '../../src/data/catalog/renamed-ids';
+import { buildRedirects, LEGACY_URLS, legacyDestination, mergedIdDestination, renamedIdDestination, renamedIdRedirects, UNPUBLISHED_RENAMED } from './build';
 
 const ruleFor = (rules: { source: string; destination: string }[], old: string) => rules.find(r => r.source === `/producto/${old}{/}?`);
 
@@ -47,5 +47,31 @@ describe('ids renombrados de productos no publicados (UNPUBLISHED_RENAMED)', () 
     expect(() => renamedIdRedirects({ 999: 'campanas-led' })).toThrow(/999 no está en src\/data\/catalog\/renamed-ids\.ts/);
     expect(() => renamedIdRedirects({ 24043822: 'no-existe' })).toThrow(/categories\.config\.ts/);
     expect(() => renamedIdDestination(999)).toThrow(/renamed-ids\.ts/);
+  });
+});
+
+// Productos fusionados (MERGED_SITE_IDS): el id del retirado va con 301 a la ficha del que lo
+// reemplaza, en el mismo bloque que los renombres, y sus URLs de elights.cl van a esa misma ficha.
+describe('ids de productos fusionados (MERGED_SITE_IDS)', () => {
+  const PANEL_120X15 = '/producto/panel-led-120x15-cm-36w-para-cielo-americano';
+  const OLD = 'panel-led-120x15-cm-36w-luz-calida-para-cielo-americano';
+
+  it('el panel 120x15 36W luz cálida (21766686) va con 301 al 120x15 36W (2347849), en Vercel y dentro de la app', () => {
+    expect(ruleFor(buildRedirects(), OLD)).toEqual({ source: `/producto/${OLD}{/}?`, destination: PANEL_120X15, statusCode: 301 });
+    expect(ruleFor(renamedIdRedirects(), OLD)?.destination).toBe(PANEL_120X15);
+    expect(mergedIdDestination(21766686)).toBe(PANEL_120X15);
+    expect(RENAMED_DESTINATION_FROM.get(OLD)).toBe(PANEL_120X15);
+    expect(RENAMED_FROM.get(OLD)).toBe('panel-led-120x15-cm-36w-para-cielo-americano');
+  });
+
+  it('sus URLs de elights.cl llevan a la misma ficha, sin pasar por el id retirado', () => {
+    const rows = LEGACY_URLS.filter(u => ['/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano', '/panel-led-120x15-cm-40w-para-cielo-americano-copiar'].includes(u.source));
+    expect(rows).toHaveLength(2);
+    for (const u of rows) expect(legacyDestination(u), u.source).toBe(PANEL_120X15);
+    expect(LEGACY_URLS.filter(u => u.product !== undefined && MERGED_SITE_IDS[u.product]).map(u => u.source)).toEqual([]);
+  });
+
+  it('un producto que no está en la tabla hace fallar redirects:write', () => {
+    expect(() => mergedIdDestination(999)).toThrow(/MERGED_SITE_IDS/);
   });
 });

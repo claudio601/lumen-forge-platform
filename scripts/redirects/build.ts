@@ -1,8 +1,8 @@
 // scripts/redirects/build.ts
 // Las redirecciones de vercel.json. Se generan: `npm run redirects:write` escribe
 // buildRedirects() en vercel.json y scripts/vercel-config.test.ts exige que sean iguales.
-// Nunca editarlas a mano: después de cambiar src/data/catalog/renamed-ids.ts,
-// UNPUBLISHED_RENAMED (en renamed-ids.ts) o scripts/redirects/legacy-urls.json, correr
+// Nunca editarlas a mano: después de cambiar src/data/catalog/renamed-ids.ts (también
+// UNPUBLISHED_RENAMED o MERGED_SITE_IDS) o scripts/redirects/legacy-urls.json, correr
 // `npm run redirects:write`.
 //
 //   1. Rutas que solo redirigen (REDIRECT_ROUTES): 307 al mismo destino que su <Navigate>
@@ -10,21 +10,23 @@
 //   2. Ids de producto renombrados (src/data/catalog/renamed-ids.ts): 301 de cada id
 //      anterior al vigente, con o sin barra final. Vercel conserva la consulta (?gclid=…).
 //      Si el producto ya no se publica (UNPUBLISHED_RENAMED), el 301 va a su categoría o a
-//      /catalogo, como las filas `category` de legacy-urls.json.
+//      /catalogo, como las filas `category` de legacy-urls.json. En el mismo bloque, los ids
+//      de productos fusionados (MERGED_SITE_IDS, en renamed-ids.ts): 301 a la ficha del que
+//      los reemplaza.
 //   3. URLs de elights.cl en Jumpseller (legacy-urls.json, PR 08): 301 de cada URL vieja a
 //      su página en el sitio nuevo, con o sin barra final. También conserva la consulta.
 //
-// Solo depende de tablas congeladas o mantenidas a mano: renamed-ids.ts, UNPUBLISHED_RENAMED,
-// legacy-ids.ts, los ids ya registrados en site-ids.generated.ts (el robot solo agrega, nunca
-// cambia uno), los slugs de categories.config.ts y legacy-urls.json. No mira qué productos se
-// publican ni el snapshot: así la sincronización con Jumpseller nunca la cambia ni hace fallar
-// sus pruebas. Cuando un producto sale o vuelve al catálogo, check:prerender avisa.
+// Solo depende de tablas congeladas o mantenidas a mano: renamed-ids.ts (con UNPUBLISHED_RENAMED
+// y MERGED_SITE_IDS), legacy-ids.ts, los ids ya registrados en site-ids.generated.ts (el robot
+// solo agrega, nunca cambia uno), los slugs de categories.config.ts y legacy-urls.json. No mira
+// qué productos se publican ni el snapshot: así la sincronización con Jumpseller nunca la cambia
+// ni hace fallar sus pruebas. Cuando un producto sale o vuelve al catálogo, check:prerender avisa.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { LEGACY_SITE_IDS } from '../../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../../src/data/catalog/site-ids.generated';
-import { RENAMED_SITE_IDS, UNPUBLISHED_RENAMED } from '../../src/data/catalog/renamed-ids';
+import { MERGED_SITE_IDS, RENAMED_SITE_IDS, UNPUBLISHED_RENAMED } from '../../src/data/catalog/renamed-ids';
 import { categories } from '../../src/data/catalog/categories.config';
 import { categoryPath, DYNAMIC_ROUTE_PATTERNS, NOINDEX_ROUTES, productPath, REDIRECT_ROUTES, STATIC_ROUTES } from '../../src/lib/seo/routes';
 
@@ -63,19 +65,37 @@ export function renamedIdDestination(jid: number, unpublished: Readonly<Record<n
 }
 
 /**
+ * Destino de los ids de un producto fusionado (MERGED_SITE_IDS): la ficha del que lo reemplaza,
+ * con su id vigente (o, si es un renombrado que ya no se publica, su categoría o /catalogo).
+ * Falla si la tabla no cuadra: un retirado que también es renombrado, una cadena de fusiones o un
+ * `id` que ya no es el vigente del que lo reemplaza.
+ */
+export function mergedIdDestination(jid: number, unpublished: Readonly<Record<number, string | null>> = UNPUBLISHED_RENAMED): string {
+  const merged = MERGED_SITE_IDS[jid];
+  if (!merged) throw new Error(`mergedIdDestination: el producto ${jid} no está en MERGED_SITE_IDS (src/data/catalog/renamed-ids.ts)`);
+  const where = `MERGED_SITE_IDS (src/data/catalog/renamed-ids.ts): ${jid} → ${merged.into}`;
+  if (RENAMED_SITE_IDS[jid]) throw new Error(`${where}: ${jid} también está en RENAMED_SITE_IDS`);
+  if (merged.into === jid || MERGED_SITE_IDS[merged.into]) throw new Error(`${where}: ${merged.into} también es un producto fusionado (sin cadenas)`);
+  const id = currentSiteId(merged.into);
+  if (merged.id !== id) throw new Error(`${where}: dice id "${merged.id}", pero el vigente de ${merged.into} es "${id ?? 'ninguno'}"`);
+  return RENAMED_SITE_IDS[merged.into] ? renamedIdDestination(merged.into, unpublished) : productPath(merged.id);
+}
+
+/**
  * Un 301 por cada id anterior, directo al id vigente (sin cadenas), o a la categoría si el
- * producto ya no se publica; ordenados por fuente.
+ * producto ya no se publica; también los ids de los productos fusionados, a la ficha del que los
+ * reemplaza. Ordenados por fuente.
  */
 export function renamedIdRedirects(unpublished: Readonly<Record<number, string | null>> = UNPUBLISHED_RENAMED): RedirectRule[] {
   for (const jid of Object.keys(unpublished).map(Number)) {
     if (!RENAMED_SITE_IDS[jid]) throw new Error(`UNPUBLISHED_RENAMED: el producto ${jid} no está en src/data/catalog/renamed-ids.ts`);
   }
-  return Object.entries(RENAMED_SITE_IDS)
-    .flatMap(([jid, r]) => {
-      const destination = renamedIdDestination(Number(jid), unpublished);
-      return r.previous.map(old => ({ source: `${productPath(old)}{/}?`, destination, statusCode: 301 as const }));
-    })
-    .sort(bySource);
+  const rules = (previous: readonly string[], destination: string) =>
+    previous.map(old => ({ source: `${productPath(old)}{/}?`, destination, statusCode: 301 as const }));
+  return [
+    ...Object.entries(RENAMED_SITE_IDS).flatMap(([jid, r]) => rules(r.previous, renamedIdDestination(Number(jid), unpublished))),
+    ...Object.entries(MERGED_SITE_IDS).flatMap(([jid, m]) => rules(m.previous, mergedIdDestination(Number(jid), unpublished))),
+  ].sort(bySource);
 }
 
 // --- URLs de elights.cl (PR 08) ---------------------------------------------------------

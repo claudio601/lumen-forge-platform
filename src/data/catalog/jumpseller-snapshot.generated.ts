@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
+export const SNAPSHOT_HASH = 'a483dfbd60d7';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -2984,13 +2984,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95663094,
+        "id": 103678745,
         "sku": "",
         "price": 14900,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 3500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       },
@@ -3001,18 +3001,18 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Neutra - 4500K"
+            "value": "Luz Neutra - 4000K"
           }
         ]
       },
       {
-        "id": 103678745,
+        "id": 123877452,
         "sku": "",
         "price": 14900,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 6500K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -7974,17 +7974,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 8717397,
-        "sku": "PLB120100BN",
-        "price": 32390,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Neutra - 4500K"
-          }
-        ]
-      },
-      {
         "id": 6202217,
         "sku": "PLB120100BF",
         "price": 32390,
@@ -7992,6 +7981,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Fría"
+          }
+        ]
+      },
+      {
+        "id": 123877456,
+        "sku": "PLB120100BN",
+        "price": 32390,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Neutra - 4000K"
           }
         ]
       }
@@ -8767,24 +8767,24 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103713737,
+        "id": 123875907,
         "sku": "",
         "price": 13590,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Cálida - 3500K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
       {
-        "id": 103713738,
+        "id": 123875908,
         "sku": "",
         "price": 13590,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Neutra - 4500K"
+            "value": "Luz Neutra - 4000K"
           }
         ]
       },
@@ -8915,17 +8915,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 8741597,
-        "sku": "PLB12040BN",
-        "price": 18590,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Neutra - 4500K"
-          }
-        ]
-      },
-      {
         "id": 87995436,
         "sku": "PLB12040BF",
         "price": 18590,
@@ -8933,6 +8922,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Fría - 6500K"
+          }
+        ]
+      },
+      {
+        "id": 123877455,
+        "sku": "PLB12040BN",
+        "price": 18590,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Neutra - 4000K"
           }
         ]
       }
@@ -11744,13 +11744,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95662544,
+        "id": 123877453,
         "sku": "",
         "price": 14200,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11828,49 +11828,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       }
     ],
     "variants": []
-  },
-  {
-    "jumpseller_id": 21766686,
-    "name": "PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO",
-    "permalink": "panel-led-120x15-cm-36w-luz-calida-para-cielo-americano",
-    "sku": "",
-    "price": 21890,
-    "brand": "JIE",
-    "featured": false,
-    "categories": [
-      "paneles-led"
-    ],
-    "images": [
-      {
-        "id": 40730693,
-        "url": "https://images.jumpseller.com/store/elights-cl/21766686/panel-led-1200x150-mm-40w-embutido-o-suspendido-marco-blanco.jpg?1697046106",
-        "position": 2
-      }
-    ],
-    "variants": [
-      {
-        "id": 96276928,
-        "sku": "",
-        "price": 21890,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Cálida - 3500K"
-          }
-        ]
-      },
-      {
-        "id": 96276929,
-        "sku": "",
-        "price": 21890,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
-          }
-        ]
-      }
-    ]
   },
   {
     "jumpseller_id": 21809432,

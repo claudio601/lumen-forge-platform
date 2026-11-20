@@ -16,7 +16,7 @@ import { categories } from '../src/data/catalog/categories.config';
 import { products } from '../src/data/catalog/index';
 import { LEGACY_SITE_IDS } from '../src/data/catalog/legacy-ids';
 import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
-import { RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
+import { MERGED_SITE_IDS, RENAMED_SITE_IDS, RETIRED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import {
   buildRedirects,
   currentSiteId,
@@ -289,9 +289,15 @@ describe('vercel.json', () => {
   it('ids renombrados: un 301 por id viejo, al id vigente (o a su categoría si ya no se publica), sin cadenas', () => {
     const idRules = redirects.filter(isProductRule);
     const renamed = Object.entries(RENAMED_SITE_IDS).map(([jid, r]) => ({ jid: Number(jid), ...r }));
+    const merged = Object.entries(MERGED_SITE_IDS).map(([jid, m]) => ({ jid: Number(jid), ...m }));
     // Id vigente de cada producto registrado, publicado o no (sin mirar el catálogo)
     const current = new Map<number, string>(Object.entries({ ...LEGACY_SITE_IDS, ...SITE_IDS }).map(([jid, id]) => [Number(jid), id]));
     for (const r of renamed) current.set(r.jid, r.id);
+    // Un producto fusionado ya no tiene ficha propia: la suya es la del que lo reemplaza
+    for (const m of merged) {
+      expect(m.id, `MERGED_SITE_IDS: ${m.jid} → ${m.into}`).toBe(current.get(m.into));
+      current.delete(m.jid);
+    }
     const currentPaths = new Set([...current.values()].map(productPath));
     // Los que ya no se publican están en UNPUBLISHED_RENAMED (a mano): a su categoría o a /catalogo
     const slugs = new Set(categories.map(c => c.slug));
@@ -302,7 +308,10 @@ describe('vercel.json', () => {
       return slug === null ? '/catalogo' : categoryPath(slug);
     };
 
-    const previous = renamed.flatMap(r => r.previous.map(old => ({ old, to: destinationOf(r.jid, r.id) })));
+    const previous = [
+      ...renamed.flatMap(r => r.previous.map(old => ({ old, to: destinationOf(r.jid, r.id) }))),
+      ...merged.flatMap(m => m.previous.map(old => ({ old, to: destinationOf(m.into, m.id) }))),
+    ];
     expect(previous.length).toBeGreaterThanOrEqual(50); // PR 07
     expect(idRules).toHaveLength(previous.length);
     for (const { old, to } of previous) {

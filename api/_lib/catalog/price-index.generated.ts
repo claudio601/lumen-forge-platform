@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
+export const SNAPSHOT_HASH = 'a483dfbd60d7';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -743,15 +743,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 14900,
     "variants": {
-      "95663094": {
-        "sku": "",
-        "price": 14900
-      },
       "103678744": {
         "sku": "",
         "price": 14900
       },
       "103678745": {
+        "sku": "",
+        "price": 14900
+      },
+      "123877452": {
         "sku": "",
         "price": 14900
       }
@@ -2163,7 +2163,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "sku": "PLB120100BF",
         "price": 32390
       },
-      "8717397": {
+      "123877456": {
         "sku": "PLB120100BN",
         "price": 32390
       }
@@ -2378,11 +2378,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "sku": "",
         "price": 13590
       },
-      "103713737": {
+      "123875907": {
         "sku": "",
         "price": 13590
       },
-      "103713738": {
+      "123875908": {
         "sku": "",
         "price": 13590
       }
@@ -2418,12 +2418,12 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "sku": "PLB12040BC",
         "price": 18590
       },
-      "8741597": {
-        "sku": "PLB12040BN",
-        "price": 18590
-      },
       "87995436": {
         "sku": "PLB12040BF",
+        "price": 18590
+      },
+      "123877455": {
+        "sku": "PLB12040BN",
         "price": 18590
       }
     }
@@ -3262,7 +3262,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
         "sku": "",
         "price": 14200
       },
-      "95662544": {
+      "123877453": {
         "sku": "",
         "price": 14200
       }
@@ -3288,21 +3288,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "SS50WU",
     "price": 18790,
     "variants": {}
-  },
-  "21766686": {
-    "name": "PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO",
-    "sku": "",
-    "price": 21890,
-    "variants": {
-      "96276928": {
-        "sku": "",
-        "price": 21890
-      },
-      "96276929": {
-        "sku": "",
-        "price": 21890
-      }
-    }
   },
   "21809432": {
     "name": "CINTA LED EXTERIOR 6,5W SMD 2835 48LEDs/m 100mt. 220V. RGB",
