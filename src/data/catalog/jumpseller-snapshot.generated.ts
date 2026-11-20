@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'a483dfbd60d7';
+export const SNAPSHOT_HASH = 'f0e42f886a13';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -7992,6 +7992,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Neutra - 4000K"
+          }
+        ]
+      },
+      {
+        "id": 123878723,
+        "sku": "PLB120100BC",
+        "price": 32390,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Cálida - 3000K"
           }
         ]
       }

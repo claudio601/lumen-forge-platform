@@ -13,7 +13,7 @@ export interface ProductLinkEntry {
   variants: Record<string, { sku: string; label: string }>;
 }
 
-export const SNAPSHOT_HASH = 'a483dfbd60d7';
+export const SNAPSHOT_HASH = 'f0e42f886a13';
 
 export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2251059": {"id":"ampolleta-led-bola-9w-e27","name":"AMPOLLETA LED BOLA 9W E27","variants":{"94680904":{"sku":"ALE9F","label":"Fría 6000K"},"123217978":{"sku":"ALE9C","label":"Cálida 3000K"}}},
@@ -178,7 +178,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "3613081": {"id":"kit-de-emergencia-led-ss36w-90-minutos-de-autonomia-1","name":"KIT DE EMERGENCIA LED SS36W 90 MINUTOS DE AUTONOMIA","variants":{}},
   "3614974": {"id":"riel-trifasico-1-mt","name":"RIEL TRIFÁSICO 1 MT.","variants":{}},
   "3615048": {"id":"riel-trifasico-2-mt","name":"RIEL TRIFÁSICO 2 MT.","variants":{}},
-  "3702364": {"id":"panel-led-120x60-cm-96w-backlight-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X60 CM. 96W PARA CIELO AMERICANO","variants":{"6202217":{"sku":"PLB120100BF","label":"Fría"},"123877456":{"sku":"PLB120100BN","label":"Neutra 4000K"}}},
+  "3702364": {"id":"panel-led-120x60-cm-96w-backlight-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X60 CM. 96W PARA CIELO AMERICANO","variants":{"6202217":{"sku":"PLB120100BF","label":"Fría"},"123877456":{"sku":"PLB120100BN","label":"Neutra 4000K"},"123878723":{"sku":"PLB120100BC","label":"Cálida 3000K"}}},
   "3724234": {"id":"ampolleta-led-dicroica-6w-gu10-opal","name":"AMPOLLETA LED DICROICA 6W GU10 OPAL","variants":{"6232152":{"sku":"ALE6GC","label":"Cálida 3000K"},"6232162":{"sku":"ALE6GF","label":"Fría"}}},
   "3770404": {"id":"tripode-para-proyector-led","name":"TRIPODE PARA PROYECTOR LED 10W / 20W/ 30W/ 50W/ 100W/ 150W/ 200W","variants":{}},
   "3921249": {"id":"lineal-led-flat-54w-120-cm-ip44","name":"LINEAL LED FLAT 54W 120 CM. IP44","variants":{"6544256":{"sku":"LLF54120C","label":"Cálida 3000K"},"6544257":{"sku":"LLF54120N","label":"Neutra 4500K"},"6544258":{"sku":"LLF54120F","label":"Fría 6000K"}}},
