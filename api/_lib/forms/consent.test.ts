@@ -101,6 +101,8 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.12 (dueño, 2026-11-19): los Términos §3.3 y §4 (mismo precio por transferencia o con Flow, sin
   // recargo); las casillas no cambian.
   '1.12': CONSENT_TEXTS_SINCE_1_2,
+  // 1.13 (dueño, 2026-11-20): los Términos §4 (el mismo monto, al precio publicado); las casillas no cambian.
+  '1.13': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

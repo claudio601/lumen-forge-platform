@@ -5,10 +5,10 @@
 // (tarjetas de crédito y débito), Onepay y otras billeteras, MACH, Servipag (bancos y efectivo) y
 // Banca.me (cuotas sin tarjeta). No están activas las cuotas sin interés ni la transferencia por
 // Khipu o ETpay. Si cambian en Flow, cambia esta página. Además: transferencia y crédito caso a
-// caso para clientes frecuentes. Decisiones del dueño del 2026-11-13: el precio es el mismo por
-// transferencia o con Flow, sin recargo (5A, corregida por el dueño el 2026-11-19: la comisión de Flow
-// se absorbe y, en las cotizaciones de proyecto, va dentro del precio cotizado; la cláusula 10 de los
-// términos de Flow prohíbe recargos o precios distintos por pagar con tarjeta); empresas e instituciones compran con orden de compra, según las
+// caso para clientes frecuentes. Decisiones del dueño del 2026-11-13: al precio publicado se paga lo
+// mismo por transferencia o con Flow (5A, aclarada por el dueño el 2026-11-20: en los pedidos de la
+// web la comisión de Flow se absorbe; en las cotizaciones de proyecto se ofrecen dos montos, y el del
+// link de Flow incluye su comisión, que el sitio no publica); empresas e instituciones compran con orden de compra, según las
 // condiciones acordadas (6A); los comprobantes van a pagos@elights.cl con el número de cotización
 // (8A; ventas@ sigue para todo lo demás). Mercado Público no se publica: sin confirmar.
 
@@ -27,8 +27,9 @@ const MediosPagoPage = () => (
       confirmamos la disponibilidad de tus productos.
     </p>
     <p>
-      Los precios están en pesos chilenos e incluyen IVA. Pagas el mismo precio por transferencia bancaria o con el link de
-      pago de Flow: no cobramos recargo por pagar con tarjeta.
+      Los precios están en pesos chilenos e incluyen IVA. Al precio publicado en el sitio pagas lo mismo por transferencia
+      bancaria o con el link de pago de Flow. En una cotización de proyecto, el monto con cada medio de pago va en la
+      cotización.
     </p>
 
     <h2>Cómo puedes pagar</h2>
