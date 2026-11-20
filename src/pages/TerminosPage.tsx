@@ -20,6 +20,8 @@
 // Versión 1.12 (dueño, 2026-11-19): §3.3 y §4, el precio es el mismo por transferencia o con el link
 // de pago de Flow, sin recargo (la comisión se absorbe; en proyectos va dentro del precio cotizado).
 // La cláusula 10 de los términos de Flow prohíbe recargos o precios distintos por pagar con tarjeta.
+// Versión 1.13 (aclaración del dueño, 2026-11-20): §4, el mismo monto vale para el precio publicado; en
+// una cotización de proyecto, el monto con cada medio de pago va en la cotización (se ofrecen dos).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -106,8 +108,8 @@ const TerminosPage = () => (
       </li>
       <li>
         Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente.
-        El precio es el mismo si pagas por transferencia bancaria o con el link de pago de Flow: no cobramos recargo por pagar
-        con tarjeta.
+        Al precio publicado en el sitio pagas lo mismo por transferencia bancaria o con el link de pago de Flow. En una
+        cotización de proyecto, el monto con cada medio de pago va en la cotización.
       </li>
       <li>Si publicamos una promoción, junto a ella indicaremos sus condiciones y su vigencia.</li>
     </ul>

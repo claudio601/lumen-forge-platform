@@ -274,8 +274,8 @@ describe('páginas legales y de compra: contenido', () => {
       expect(text).toContain(s);
     }
     expect(text).toContain('Despacho en hasta 2 días hábiles');
-    // Mismo precio por transferencia o con Flow, sin recargo (dueño, 2026-11-19; cláusula 10 de Flow)
-    expect(text).toContain('Pagas el mismo precio por transferencia o con el link de pago de Flow.');
+    // Al precio publicado, el mismo monto por transferencia o con Flow (aclaración del dueño, 2026-11-20)
+    expect(text).toContain('Al precio publicado, pagas lo mismo por transferencia o con el link de pago de Flow.');
     expect(text).not.toMatch(/comisi[oó]n|recargo por pagar con Flow/i);
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
     expect(text).not.toMatch(/proveedores@|Postulaci[oó]n|Trabaja con nosotros/i);
@@ -326,10 +326,10 @@ describe('páginas legales y de compra: contenido', () => {
     expect(precios.text).toContain(
       `La cotización indica si va sin costo (compras sobre ${THRESHOLD} con IVA, con entrega en la ${FREE_SHIPPING_AREA.name}), por pagar o con retiro en bodega. El flete va por separado en la cotización solo cuando las bases de una licitación o el proyecto lo exigen. Las comunas que no entran y las demás condiciones están en Despacho.`,
     );
-    // §4 (versión 1.12, dueño 2026-11-19): el mismo precio por transferencia o con Flow, sin recargo
-    // (la cláusula 10 de los términos de Flow prohíbe recargos o precios distintos con tarjeta)
+    // §4 (versión 1.13, aclaración del dueño 2026-11-20): el mismo monto vale al precio publicado; en una
+    // cotización de proyecto, el monto con cada medio de pago va en la cotización (se ofrecen dos)
     expect(precios.text).toContain(
-      'Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente. El precio es el mismo si pagas por transferencia bancaria o con el link de pago de Flow: no cobramos recargo por pagar con tarjeta.',
+      'Respetamos el precio publicado en el sitio al momento en que enviaste tu solicitud, mientras la cotización esté vigente. Al precio publicado en el sitio pagas lo mismo por transferencia bancaria o con el link de pago de Flow. En una cotización de proyecto, el monto con cada medio de pago va en la cotización.',
     );
     expect(text).not.toMatch(/\d\s?%/);
     expect(precios.els.some(el => el.querySelector('a[href="/despacho"]'))).toBe(true);
@@ -535,9 +535,9 @@ describe('páginas legales y de compra: contenido', () => {
     // Empresas e instituciones con orden de compra (decisión del dueño 6A, 2026-11-13); Mercado Público, sin confirmar
     expect(text).toContain('Empresas e instituciones: compra con orden de compra, según las condiciones acordadas.');
     expect(text).not.toMatch(/Mercado Público/i);
-    // Mismo precio por transferencia o con Flow, sin recargo (dueño, 2026-11-19; cláusula 10 de Flow)
+    // Al precio publicado, el mismo monto; en proyectos, cada monto en la cotización (dueño, 2026-11-20)
     expect(text).toContain(
-      'Pagas el mismo precio por transferencia bancaria o con el link de pago de Flow: no cobramos recargo por pagar con tarjeta.',
+      'Al precio publicado en el sitio pagas lo mismo por transferencia bancaria o con el link de pago de Flow. En una cotización de proyecto, el monto con cada medio de pago va en la cotización.',
     );
     expect(text).not.toMatch(/comisi[oó]n/i);
     expect(text).not.toMatch(/\d\s?%/);
@@ -1085,10 +1085,10 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
 });
 
 
-it('textos legales 1.12: fecha provisional y versión anterior publicada', () => {
-  expect(LEGAL_VERSION).toBe('1.12');
+it('textos legales 1.13: fecha provisional y versión anterior publicada', () => {
+  expect(LEGAL_VERSION).toBe('1.13');
   expect(LEGAL_UPDATED).toBe('2026-11-20');
   expect(LEGAL_UPDATED_LABEL).toBe('20 de noviembre de 2026');
-  expect(LEGAL_ARCHIVE).toContain('1.11');
+  expect(LEGAL_ARCHIVE).toContain('1.12');
   expect(LEGAL_RUT).toBe('76.947.784-5');
 });

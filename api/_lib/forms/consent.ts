@@ -33,7 +33,10 @@
  * LEGAL_UPDATED no mueve el margen de CONSENT_GRACE_DAYS días: se cuenta desde
  * CONSENT_SINCE_DATE (consentGraceUntil), que no cambia al subir la versión.
  */
-export const LEGAL_VERSION: string = '1.12';
+export const LEGAL_VERSION: string = '1.13';
+// La 1.13 (aclaración del dueño, 2026-11-20) acota los Términos §4: el mismo monto por transferencia
+// o con Flow vale para el precio publicado; en una cotización de proyecto, el monto con cada medio de
+// pago va en la cotización. La 1.12 rigió desde el 20-11-2026 (PR #206).
 // La 1.12 (dueño, 2026-11-19) cambia los Términos §3.3 y §4: el precio es el mismo por transferencia
 // o con el link de pago de Flow, sin recargo (la comisión se absorbe; en las cotizaciones de proyecto
 // va dentro del precio cotizado), porque la cláusula 10 de los términos de Flow prohíbe recargos o
@@ -54,7 +57,7 @@ export const LEGAL_UPDATED: string = '2026-11-20';
 export const LEGAL_UPDATED_LABEL: string = '20 de noviembre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
-export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11'];
+export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '1.12'];
 
 /** Páginas con versión y archivo permanente (LegalLayout con `updated`). */
 export const LEGAL_VERSIONED_PATHS = [
