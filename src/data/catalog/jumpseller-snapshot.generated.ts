@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '6300c0dd22d5';
+export const SNAPSHOT_HASH = 'a5bc02c623a3';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -97,7 +97,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -2265,7 +2265,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -2387,7 +2387,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -4487,7 +4487,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -4534,7 +4534,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -5159,7 +5159,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -7412,7 +7412,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -7778,7 +7778,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -8002,7 +8002,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -8296,7 +8296,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -8937,7 +8937,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 87995436,
+        "id": 123886058,
         "sku": "PLB12040BF",
         "price": 18590,
         "options": [
@@ -9133,7 +9133,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -9778,7 +9778,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -9837,7 +9837,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -9896,7 +9896,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -10379,7 +10379,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -10647,7 +10647,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -13290,7 +13290,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -13349,7 +13349,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fria - 6500K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
