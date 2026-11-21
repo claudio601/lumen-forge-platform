@@ -159,6 +159,11 @@
       "statusCode": 301
     },
     {
+      "source": "/producto/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano{/}?",
+      "destination": "/producto/panel-led-120x15-cm-36w-para-cielo-americano",
+      "statusCode": 301
+    },
+    {
       "source": "/producto/rejilla-e27-ip54-blanca{/}?",
       "destination": "/producto/tortuga-aluminio-oval-c-rejilla-e27-ip54-blanca",
       "statusCode": 301
@@ -4165,7 +4170,7 @@
     },
     {
       "source": "/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano{/}?",
-      "destination": "/producto/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano",
+      "destination": "/producto/panel-led-120x15-cm-36w-para-cielo-americano",
       "statusCode": 301
     },
     {
@@ -4175,7 +4180,7 @@
     },
     {
       "source": "/panel-led-120x15-cm-40w-para-cielo-americano-copiar{/}?",
-      "destination": "/producto/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano",
+      "destination": "/producto/panel-led-120x15-cm-36w-para-cielo-americano",
       "statusCode": 301
     },
     {

@@ -104,18 +104,17 @@ describe('ProductDetail: paneles de formato grande a regiones', () => {
     2347854: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
     2348922: 'Despacho a regiones: desde una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
     2347849: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
-    21766686: 'Despacho a regiones: desde 10 unidades, una caja completa. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
     4608256: 'Despacho a regiones: desde 4 unidades. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
     2501112: 'Despacho a regiones: desde 4 unidades. Con menos unidades, retiro en nuestra bodega en Quinta Normal.',
   };
 
-  it('los 11 paneles de la regla, cada uno con su aviso', () => {
+  it('los 10 paneles de la regla, cada uno con su aviso', () => {
     expect(Object.keys(PANEL_MASTER_BOX).map(Number).sort()).toEqual(Object.keys(PANELS).map(Number).sort());
     for (const id of Object.keys(PANELS).map(Number)) expect(panelRegionShippingNotice(id)).toBe(PANELS[id]);
   });
 
   // Datos del día: si Jumpseller despublica uno, el robot no se bloquea (src/test/syncBot.ts)
-  it.skipIf(isSyncBot)('los 11 están publicados en Paneles LED', () => {
+  it.skipIf(isSyncBot)('los 10 están publicados en Paneles LED', () => {
     for (const id of Object.keys(PANELS).map(Number)) {
       expect(products.find(p => p.jumpseller_id === id)?.category, String(id)).toBe('paneles-led');
     }

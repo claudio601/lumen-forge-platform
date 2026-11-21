@@ -18,7 +18,7 @@ import {
   type ExpectedOg,
   type ExpectedPrice,
 } from './check-prerender';
-import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
+import { MERGED_SITE_IDS, RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { DEFAULT_OG } from '../src/lib/seo/ogImage';
 import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
 import { CONSENT_FORMS } from '../api/_lib/forms/consent';
@@ -286,11 +286,13 @@ describe('check-prerender: URLs de elights.cl (PR 08)', () => {
 });
 
 describe('check-prerender: ids renombrados (PR 07) de productos no publicados', () => {
-  // Las tablas reales (renamed-ids.ts y UNPUBLISHED_RENAMED); el catálogo y la build se simulan
+  // Las tablas reales (renamed-ids.ts, UNPUBLISHED_RENAMED y MERGED_SITE_IDS); el catálogo y la build se simulan
   const all = Object.entries(RENAMED_SITE_IDS).map(([jid, r]) => ({ id: r.id, jumpseller_id: Number(jid) }));
-  const total = Object.values(RENAMED_SITE_IDS).reduce((n, r) => n + r.previous.length, 0);
+  // Los que reemplazan a un producto fusionado, publicados con su id vigente
+  const mergeTargets = Object.values(MERGED_SITE_IDS).map(m => ({ id: m.id, jumpseller_id: m.into }));
+  const total = [...Object.values(RENAMED_SITE_IDS), ...Object.values(MERGED_SITE_IDS)].reduce((n, r) => n + r.previous.length, 0);
   const ufoNf8 = [24031164, 24040212, 24040292, 24043701];
-  const published = all.filter(p => !ufoNf8.includes(p.jumpseller_id));
+  const published = [...all.filter(p => !ufoNf8.includes(p.jumpseller_id)), ...mergeTargets];
   const built = new Set(['catalogo/index.html', 'catalogo/campanas-led/index.html']);
   const exists = (file: string) => built.has(file);
 
@@ -321,6 +323,19 @@ describe('check-prerender: ids renombrados (PR 07) de productos no publicados', 
       '/producto/w-ip65-24031164 → /catalogo/campanas-led (Jumpseller 24031164): el producto se publica otra vez; ' +
         'quitarlo de UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts) para que vuelva a su ficha y correr npm run redirects:write',
     ]);
+  });
+
+  it('el id de un producto fusionado va a la ficha del que lo reemplaza; si ese no se publica, avisa', () => {
+    expect(mergeTargets.length).toBeGreaterThan(0);
+    const r = renamedRedirectIssues(all.filter(p => !ufoNf8.includes(p.jumpseller_id)), exists);
+    expect(r.blocking).toEqual([]);
+    expect(r.warnings).toContain(
+      '/producto/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano → /producto/panel-led-120x15-cm-36w-para-cielo-americano ' +
+        '(Jumpseller 21766686, fusionado con 2347849): el producto que lo reemplaza no se publica (da 404); ' +
+        'elegir otro en MERGED_SITE_IDS (src/data/catalog/renamed-ids.ts) y correr npm run redirects:write',
+    );
+    expect(r.warnings).toHaveLength(mergeTargets.length);
+    expect(r.summary).toContain(`${mergeTargets.length} llegan a productos no publicados (dan 404)`);
   });
 
   it('bloquea si falta la página de la categoría o del catálogo de destino', () => {

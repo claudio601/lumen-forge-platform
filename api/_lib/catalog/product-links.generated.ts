@@ -13,7 +13,7 @@ export interface ProductLinkEntry {
   variants: Record<string, { sku: string; label: string }>;
 }
 
-export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
+export const SNAPSHOT_HASH = '6300c0dd22d5';
 
 export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2251059": {"id":"ampolleta-led-bola-9w-e27","name":"AMPOLLETA LED BOLA 9W E27","variants":{"94680904":{"sku":"ALE9F","label":"Fría 6000K"},"123217978":{"sku":"ALE9C","label":"Cálida 3000K"}}},
@@ -70,7 +70,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2293796": {"id":"proyector-led-de-emergencia-recargable-smd-20w-ip66","name":"PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 20W IP66","variants":{}},
   "2293830": {"id":"proyector-led-de-emergencia-recargable-smd-30w-ip66","name":"PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 30W IP66","variants":{}},
   "2293849": {"id":"proyector-led-de-emergencia-recargable-smd-50w-ip66","name":"PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 50W IP66","variants":{}},
-  "2294706": {"id":"panel-led-60-30-cm-36w-para-cielo-americano","name":"PANEL LED 60X30 CM. 36W PARA CIELO AMERICANO","variants":{"95663094":{"sku":"","label":"Cálida 3500K"},"103678744":{"sku":"","label":"Neutra 4500K"},"103678745":{"sku":"","label":"Fría 6500K"}}},
+  "2294706": {"id":"panel-led-60-30-cm-36w-para-cielo-americano","name":"PANEL LED 60X30 CM. 36W PARA CIELO AMERICANO","variants":{"103678744":{"sku":"","label":"Neutra 4000K"},"103678745":{"sku":"","label":"Fría 6500K"},"123877452":{"sku":"","label":"Cálida 3000K"}}},
   "2295723": {"id":"proyector-led-ultra-thin-smd-10w-ip66-negro","name":"PROYECTOR LED ULTRA THIN SMD 10W IP66 NEGRO","variants":{"4180522":{"sku":"PLUTSMD10NF","label":"Fría"},"88623122":{"sku":"PLUTSMD10NN","label":"Neutra 4500K"}}},
   "2300759": {"id":"tubo-led-t8-opal-vidrio-9w-60cm-220v","name":"TUBO LED T8 OPAL VIDRIO 9W 60CM 220V","variants":{"4186062":{"sku":"TLV9220C","label":"Cálida"},"4186063":{"sku":"TLV9220N","label":"Natural"},"4186064":{"sku":"TLV9220F","label":"Fría"}}},
   "2300762": {"id":"tubo-led-t8-opal-vidrio-18w-120cm-220v","name":"TUBO LED T8 OPAL VIDRIO 18W 120CM. 220V","variants":{"4186073":{"sku":"TLV18220C","label":"Cálida"},"4186074":{"sku":"TLV18220N","label":"Natural"},"4186075":{"sku":"TLV18220F","label":"Fría"}}},
@@ -178,7 +178,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "3613081": {"id":"kit-de-emergencia-led-ss36w-90-minutos-de-autonomia-1","name":"KIT DE EMERGENCIA LED SS36W 90 MINUTOS DE AUTONOMIA","variants":{}},
   "3614974": {"id":"riel-trifasico-1-mt","name":"RIEL TRIFÁSICO 1 MT.","variants":{}},
   "3615048": {"id":"riel-trifasico-2-mt","name":"RIEL TRIFÁSICO 2 MT.","variants":{}},
-  "3702364": {"id":"panel-led-120x60-cm-96w-backlight-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X60 CM. 96W PARA CIELO AMERICANO","variants":{"6202217":{"sku":"PLB120100BF","label":"Fría"},"8717397":{"sku":"PLB120100BN","label":"Neutra 4500K"}}},
+  "3702364": {"id":"panel-led-120x60-cm-96w-backlight-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X60 CM. 96W PARA CIELO AMERICANO","variants":{"123877456":{"sku":"PLB120100BN","label":"Neutra 4000K"},"123878723":{"sku":"PLB120100BC","label":"Cálida 3000K"},"123882127":{"sku":"PLB120100BF","label":"Fría 6500K"}}},
   "3724234": {"id":"ampolleta-led-dicroica-6w-gu10-opal","name":"AMPOLLETA LED DICROICA 6W GU10 OPAL","variants":{"6232152":{"sku":"ALE6GC","label":"Cálida 3000K"},"6232162":{"sku":"ALE6GF","label":"Fría"}}},
   "3770404": {"id":"tripode-para-proyector-led","name":"TRIPODE PARA PROYECTOR LED 10W / 20W/ 30W/ 50W/ 100W/ 150W/ 200W","variants":{}},
   "3921249": {"id":"lineal-led-flat-54w-120-cm-ip44","name":"LINEAL LED FLAT 54W 120 CM. IP44","variants":{"6544256":{"sku":"LLF54120C","label":"Cálida 3000K"},"6544257":{"sku":"LLF54120N","label":"Neutra 4500K"},"6544258":{"sku":"LLF54120F","label":"Fría 6000K"}}},
@@ -194,10 +194,10 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "4133148": {"id":"60x60-marco-para-sobreponer-panel-led-cielo-americano","name":"60x60 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO","variants":{}},
   "4133194": {"id":"120x60-marco-para-sobreponer-panel-led-cielo-americano","name":"120x60 MARCO PARA SOBREPONER PANEL LED CIELO AMERICANO","variants":{}},
   "4156930": {"id":"alumbrado-publico-bestled-150w-ip66-ik08","name":"ALUMBRADO PÚBLICO BESTLED 150W IP66 IK08","variants":{"8853442":{"sku":"APB150N","label":"Neutra 4000K"},"113961236":{"sku":"APB1507","label":"Cálida 2700K"},"113961237":{"sku":"APB150F","label":"Fría 5000K"},"116896286":{"sku":"APB1501","label":"Ámbar 2200K"}}},
-  "4190659": {"id":"panel-led-backlight-60x60-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X60 CM. 48W PARA CIELO AMERICANO","variants":{"103713736":{"sku":"","label":"Fría 6500K"},"103713737":{"sku":"","label":"Cálida 3500K"},"103713738":{"sku":"","label":"Neutra 4500K"}}},
+  "4190659": {"id":"panel-led-backlight-60x60-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X60 CM. 48W PARA CIELO AMERICANO","variants":{"103713736":{"sku":"PLB6048BF","label":"Fría 6500K"},"123875907":{"sku":"PLB6048BC","label":"Cálida 3000K"},"123875908":{"sku":"PLB6048BN","label":"Neutra 4000K"}}},
   "4361806": {"id":"foco-dicroico-led-embutido-smd-18w-niquel","name":"Foco Dicroico LED Embutido SMD 18W Niquel","variants":{"95520898":{"sku":"","label":"Cálida 2200K"},"95520899":{"sku":"","label":"Fría 6000K"}}},
   "4370201": {"id":"fuente-de-poder-switching-400w-12v-33a-interior-perforada","name":"FUENTE DE PODER SWITCHING 400W 12V 33A  INTERIOR PERFORADA","variants":{}},
-  "4426526": {"id":"panel-led-backlight-120x30-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO","variants":{"8713180":{"sku":"PLB12040BC","label":"Cálida"},"8741597":{"sku":"PLB12040BN","label":"Neutra 4500K"},"87995436":{"sku":"PLB12040BF","label":"Fría 6500K"}}},
+  "4426526": {"id":"panel-led-backlight-120x30-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO","variants":{"87995436":{"sku":"PLB12040BF","label":"Fría 6500K"},"123877455":{"sku":"PLB12040BN","label":"Neutra 4000K"},"123882283":{"sku":"PLB12040BC","label":"Cálida 3000K"}}},
   "4450187": {"id":"proyector-led-de-estadio-600w-ip66-ik09","name":"PROYECTOR LED DE ESTADIO 600W IP66 IK09","variants":{"95929972":{"sku":"PLE600F","label":""}}},
   "4537309": {"id":"fuente-de-poder-switching-150w-12v-125a-exterior-ip67","name":"FUENTE DE PODER SWITCHING 150W 12V 12.5A EXTERIOR IP67","variants":{}},
   "4608256": {"id":"panel-led-slim-60x60-cm-40w-para-cielo-americano","name":"PANEL LED SLIM 60X60 CM. 40W PARA CIELO AMERICANO","variants":{"8853489":{"sku":"PL6040BC","label":"Cálida"},"8853490":{"sku":"PL6040BN","label":"Natural"},"8853491":{"sku":"PL6040BF","label":"Fría"}}},
@@ -260,10 +260,9 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "21391522": {"id":"foco-dicroico-led-embutido-smd-15w-niquel","name":"FOCO DICROICO LED EMBUTIDO SMD 15W NIQUEL","variants":{"95519334":{"sku":"","label":"Cálida 2200K"},"95519335":{"sku":"","label":"Fría 6000K"}}},
   "21392612": {"id":"foco-dicroico-led-embutido-smd-24w-niquel","name":"Foco Dicroico LED Embutido SMD 24W Niquel","variants":{"95520928":{"sku":"","label":"Cálida 2200K"},"95520929":{"sku":"","label":"Fría 6000K"}}},
   "21392713": {"id":"foco-dicroico-led-embutido-smd-30w-niquel","name":"Foco Dicroico LED Embutido SMD 30W Niquel","variants":{"95521230":{"sku":"","label":"Cálida 2200K"},"95521231":{"sku":"","label":"Fría 6000K"}}},
-  "21441880": {"id":"panel-led-backlight-60x30-cm-40w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X30 CM. 40W PARA CIELO AMERICANO","variants":{"95662543":{"sku":"","label":"Neutra 4000K"},"95662544":{"sku":"","label":"Fría 5000K"}}},
+  "21441880": {"id":"panel-led-backlight-60x30-cm-40w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X30 CM. 40W PARA CIELO AMERICANO","variants":{"95662543":{"sku":"PLB6040BN","label":"Neutra 4000K"},"123877453":{"sku":"PLB6040BF","label":"Fría 6500K"},"123879624":{"sku":"PLB6040BC","label":"Cálida 3000K"}}},
   "21739206": {"id":"ampolleta-led-bola-15w-e27","name":"AMPOLLETA LED BOLA 15W E27","variants":{"96221780":{"sku":"","label":"Cálida 2200K"},"96221781":{"sku":"","label":"Fría 5000K"}}},
   "21743223": {"id":"kit-de-emergencia-led-50w-universal-90-minutos-de-autonomia","name":"KIT DE EMERGENCIA LED 50W UNIVERSAL 90 MINUTOS DE AUTONOMIA","variants":{}},
-  "21766686": {"id":"panel-led-120x15-cm-36w-luz-calida-para-cielo-americano","name":"PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO","variants":{"96276928":{"sku":"","label":"Cálida 3500K"},"96276929":{"sku":"","label":"Cálida 2200K"}}},
   "21809432": {"id":"cinta-led-exterior-6-5w-smd-2835-48leds-m-100mt-220v-rgb","name":"CINTA LED EXTERIOR 6,5W SMD 2835 48LEDs/m 100mt. 220V. RGB","variants":{}},
   "22672906": {"id":"cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-amarillo","name":"CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AMARILLO","variants":{}},
   "22679546": {"id":"cinta-led-exterior-14-4w-smd-5730-72leds-m-100mt-220v-azul","name":"CINTA LED EXTERIOR 14,4W SMD 5730 72LEDs/m 100mt. 220V. AZUL","variants":{}},

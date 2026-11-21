@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { products } from '../src/data/catalog/index';
 import { jumpsellerSnapshot, SNAPSHOT_HASH } from '../src/data/catalog/jumpseller-snapshot.generated';
 import { SITE_IDS } from '../src/data/catalog/site-ids.generated';
-import { RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
+import { MERGED_SITE_IDS, RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { variantLabel } from '../src/lib/variants';
 import { productLinks } from '../api/_lib/catalog/product-links.generated';
 import { priceIndex } from '../api/_lib/catalog/price-index.generated';
@@ -40,7 +40,8 @@ describe('product-links.generated.ts', () => {
   });
 
   it('un id renombrado a mano gana, y nunca aparece un id anterior', () => {
-    const previous = new Set(Object.values(RENAMED_SITE_IDS).flatMap((r) => r.previous));
+    // También los ids de los productos fusionados (MERGED_SITE_IDS): llevan a la ficha del que los reemplaza
+    const previous = new Set([...Object.values(RENAMED_SITE_IDS), ...Object.values(MERGED_SITE_IDS)].flatMap((r) => r.previous));
     for (const [jid, r] of Object.entries(RENAMED_SITE_IDS)) {
       const link = productLinks[jid];
       if (link) expect(link.id, jid).toBe(r.id);

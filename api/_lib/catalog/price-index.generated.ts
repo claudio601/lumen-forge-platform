@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'f0fcbd9a68a7';
+export const SNAPSHOT_HASH = '6300c0dd22d5';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -743,15 +743,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 14900,
     "variants": {
-      "95663094": {
-        "sku": "",
-        "price": 14900
-      },
       "103678744": {
         "sku": "",
         "price": 14900
       },
       "103678745": {
+        "sku": "",
+        "price": 14900
+      },
+      "123877452": {
         "sku": "",
         "price": 14900
       }
@@ -2159,12 +2159,16 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 32390,
     "variants": {
-      "6202217": {
-        "sku": "PLB120100BF",
+      "123877456": {
+        "sku": "PLB120100BN",
         "price": 32390
       },
-      "8717397": {
-        "sku": "PLB120100BN",
+      "123878723": {
+        "sku": "PLB120100BC",
+        "price": 32390
+      },
+      "123882127": {
+        "sku": "PLB120100BF",
         "price": 32390
       }
     }
@@ -2375,15 +2379,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 13590,
     "variants": {
       "103713736": {
-        "sku": "",
+        "sku": "PLB6048BF",
         "price": 13590
       },
-      "103713737": {
-        "sku": "",
+      "123875907": {
+        "sku": "PLB6048BC",
         "price": 13590
       },
-      "103713738": {
-        "sku": "",
+      "123875908": {
+        "sku": "PLB6048BN",
         "price": 13590
       }
     }
@@ -2414,16 +2418,16 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 18590,
     "variants": {
-      "8713180": {
-        "sku": "PLB12040BC",
+      "87995436": {
+        "sku": "PLB12040BF",
         "price": 18590
       },
-      "8741597": {
+      "123877455": {
         "sku": "PLB12040BN",
         "price": 18590
       },
-      "87995436": {
-        "sku": "PLB12040BF",
+      "123882283": {
+        "sku": "PLB12040BC",
         "price": 18590
       }
     }
@@ -3259,11 +3263,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 14200,
     "variants": {
       "95662543": {
-        "sku": "",
+        "sku": "PLB6040BN",
         "price": 14200
       },
-      "95662544": {
-        "sku": "",
+      "123877453": {
+        "sku": "PLB6040BF",
+        "price": 14200
+      },
+      "123879624": {
+        "sku": "PLB6040BC",
         "price": 14200
       }
     }
@@ -3288,21 +3296,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "SS50WU",
     "price": 18790,
     "variants": {}
-  },
-  "21766686": {
-    "name": "PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO",
-    "sku": "",
-    "price": 21890,
-    "variants": {
-      "96276928": {
-        "sku": "",
-        "price": 21890
-      },
-      "96276929": {
-        "sku": "",
-        "price": 21890
-      }
-    }
   },
   "21809432": {
     "name": "CINTA LED EXTERIOR 6,5W SMD 2835 48LEDs/m 100mt. 220V. RGB",

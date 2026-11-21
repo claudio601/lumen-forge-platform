@@ -17,10 +17,10 @@
 //     guía (/guias/<slug>) trae su JSON-LD Article con el h1 como headline, sus migas y ningún
 //     FAQPage. La regla de siempre no cambia: una página indexable con noindex bloquea;
 //   - solo 404.html lleva la marca de "no encontrada" en #root, y su h1 es "404";
-//   - ningún id retirado (src/data/catalog/renamed-ids.ts) tiene página: Vercel aplica su
-//     301 antes que los archivos, así que nunca se vería. Los de productos que ya no se
-//     publican (UNPUBLISHED_RENAMED, src/data/catalog/renamed-ids.ts) van a su categoría o a
-//     /catalogo, y esa página se generó;
+//   - ningún id retirado (src/data/catalog/renamed-ids.ts, también los de productos fusionados,
+//     MERGED_SITE_IDS) tiene página: Vercel aplica su 301 antes que los archivos, así que nunca
+//     se vería. Los de productos que ya no se publican (UNPUBLISHED_RENAMED,
+//     src/data/catalog/renamed-ids.ts) van a su categoría o a /catalogo, y esa página se generó;
 //   - URLs de elights.cl (scripts/redirects/legacy-urls.json, PR 08): ninguna fuente con regla
 //     es un archivo de dist/ (su 301 lo taparía), y cada destino de categoría o página fija
 //     se generó (o es /buscar, que sirve spa.html).
@@ -39,7 +39,8 @@
 // cambiar su fila a la categoría), y un producto publicado cuyo permalink de Jumpseller no
 // tiene fila en legacy-urls.json (agregarla antes de la Etapa 3). Lo mismo con los ids
 // renombrados: uno que llega a un producto no publicado (agregarlo a UNPUBLISHED_RENAMED) y
-// uno de esa tabla que vuelve a publicarse (quitarlo). Sin red: solo datos locales.
+// uno de esa tabla que vuelve a publicarse (quitarlo); y el id de un producto fusionado cuyo
+// reemplazo ya no se publica (MERGED_SITE_IDS). Sin red: solo datos locales.
 // Contenido (bloquea, salvo en la PR diaria del robot de Jumpseller, donde solo avisa):
 //   - frases de stock o plazos de despacho distintos de "hasta 2 días hábiles" en el texto
 //     visible. Las reglas miran el contexto: "48 horas" de un ensayo de niebla salina no
@@ -54,7 +55,7 @@ import { parse } from 'parse5';
 import { SITE_URL } from '../src/config/site';
 import { products } from '../src/data/catalog/index';
 import type { Product } from '../src/data/catalog/types';
-import { RENAMED_FROM, RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
+import { MERGED_SITE_IDS, RENAMED_FROM, RENAMED_SITE_IDS } from '../src/data/catalog/renamed-ids';
 import { productImageFacts } from '../src/data/catalog/og-images.generated';
 import { DEFAULT_OG, ogImageUrl, productOgImage, type OgImage } from '../src/lib/seo/ogImage';
 import { indexableRoutes, noindexGuideRoutes, productPath } from '../src/lib/seo/routes';
@@ -62,7 +63,7 @@ import { findPolicyBreaking } from './jumpseller/descriptions';
 import { KNOWN_PHRASES } from './known-phrases';
 import { NOT_FOUND_ATTR } from '../src/lib/notFound';
 import { NOT_FOUND_URL, outputPath } from './prerender';
-import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, renamedIdDestination, UNPUBLISHED_RENAMED, type LegacyUrl } from './redirects/build';
+import { LEGACY_TARGET_KEYS, LEGACY_URLS, legacyDestination, mergedIdDestination, renamedIdDestination, UNPUBLISHED_RENAMED, type LegacyUrl } from './redirects/build';
 import { COOKIE_TEXTS } from '../src/lib/cookieTexts';
 import { CONSENT_FIELD_NAMES, type ConsentForm } from '../api/_lib/forms/consent';
 import { buildFeedItems, inspectFeed, MERCHANT_FEED_FILE, one, PRICE } from './merchant-feed';
@@ -362,10 +363,10 @@ export function legacyRedirectIssues(
 }
 
 /**
- * Cruza los 301 de ids renombrados (PR 07) con los productos publicados y la build. Como en las
- * URLs de elights.cl, el catálogo solo avisa: los destinos salen de tablas a mano (renamed-ids.ts
- * y UNPUBLISHED_RENAMED) y la PR del robot de Jumpseller nunca falla por ellas. Bloquea si falta
- * la página de una categoría de destino.
+ * Cruza los 301 de ids renombrados (PR 07) y de productos fusionados (MERGED_SITE_IDS) con los
+ * productos publicados y la build. Como en las URLs de elights.cl, el catálogo solo avisa: los
+ * destinos salen de tablas a mano (renamed-ids.ts, UNPUBLISHED_RENAMED y MERGED_SITE_IDS) y la PR
+ * del robot de Jumpseller nunca falla por ellas. Bloquea si falta la página de una categoría de destino.
  */
 export function renamedRedirectIssues(
   published: readonly { id: string; jumpseller_id: number }[],
@@ -374,6 +375,7 @@ export function renamedRedirectIssues(
 ): LegacyCheck {
   const blocking: string[] = [];
   const toUnpublished: string[] = [];
+  const mergedToUnpublished: string[] = [];
   const republished: string[] = [];
   const publishedJids = new Set(published.map(p => p.jumpseller_id));
   const publishedPaths = new Set(published.map(p => productPath(p.id)));
@@ -392,14 +394,30 @@ export function renamedRedirectIssues(
     if (publishedJids.has(jid)) republished.push(rule);
     if (!exists(outputPath(destination))) blocking.push(`${rule}: esa página no se generó`);
   }
+  // Productos fusionados: a la ficha del que los reemplaza (o a su categoría, si es un renombrado no publicado)
+  for (const [key, m] of Object.entries(MERGED_SITE_IDS)) {
+    const jid = Number(key);
+    const destination = mergedIdDestination(jid, unpublished);
+    const rule = `${m.previous.map(productPath).join(', ')} → ${destination} (Jumpseller ${jid}, fusionado con ${m.into})`;
+    rules += m.previous.length;
+    if (destination.startsWith('/producto/')) {
+      if (!publishedPaths.has(destination)) mergedToUnpublished.push(rule);
+      continue;
+    }
+    toCategory += m.previous.length;
+    if (!exists(outputPath(destination))) blocking.push(`${rule}: esa página no se generó`);
+  }
   const table = 'UNPUBLISHED_RENAMED (src/data/catalog/renamed-ids.ts)';
   const warnings = [
     ...toUnpublished.map(t => `${t}: llega a un producto no publicado (da 404); agregarlo a ${table} con su categoría y correr npm run redirects:write`),
     ...republished.map(t => `${t}: el producto se publica otra vez; quitarlo de ${table} para que vuelva a su ficha y correr npm run redirects:write`),
+    ...mergedToUnpublished.map(
+      t => `${t}: el producto que lo reemplaza no se publica (da 404); elegir otro en MERGED_SITE_IDS (src/data/catalog/renamed-ids.ts) y correr npm run redirects:write`,
+    ),
   ];
   const summary =
     `Ids renombrados: ${rules} redirecciones 301 (${rules - toCategory} a fichas, ${toCategory} a categorías o al catálogo); ` +
-    `${toUnpublished.length} llegan a productos no publicados (dan 404); ${republished.length} productos publicados van a su categoría`;
+    `${toUnpublished.length + mergedToUnpublished.length} llegan a productos no publicados (dan 404); ${republished.length} productos publicados van a su categoría`;
   return { blocking, warnings, summary };
 }
 

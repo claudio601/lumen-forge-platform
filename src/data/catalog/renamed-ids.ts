@@ -13,6 +13,10 @@
 // Jumpseller (p. ej. "w-ip66"). El id nuevo es el permalink vigente sin %XX, tildes ni
 // signos (la misma regla que newSiteId en build.ts), congelado aquí.
 //
+// Productos fusionados (MERGED_SITE_IDS, abajo): el id del producto retirado redirige con 301
+// a la ficha del que lo reemplaza y tampoco se reutiliza. Van en el mismo bloque de 301 y en
+// los mismos mapas (RENAMED_FROM, RENAMED_DESTINATION_FROM, RETIRED_SITE_IDS).
+//
 // Sin imports: lo usan el carrito de pedido, la cotización y las rutas, que van en el
 // bundle principal (el catálogo completo es un trozo aparte).
 
@@ -79,6 +83,37 @@ export const RENAMED_SITE_IDS: Readonly<Record<number, RenamedSiteId>> = {
   34057374: { id: 'proyector-led-solar-500w-ip65-c-panel-solar-c-control-remoto', previous: ['control-remoto-34057374'] },
 };
 
+/** Un producto retirado porque el dueño lo fusionó con otro en Jumpseller. */
+export interface MergedSiteId {
+  /** jumpseller_id del producto que lo reemplaza (publicado, sin fusionar a su vez). */
+  into: number;
+  /**
+   * Id vigente del que lo reemplaza (renamed-ids.ts, site-ids.generated.ts o legacy-ids.ts), copiado
+   * aquí porque este archivo no importa nada. Si deja de coincidir (p. ej. ese producto se renombra),
+   * `npm run redirects:write` y las pruebas fallan: se corrige aquí.
+   */
+  id: string;
+  /** Ids del sitio del producto retirado: el primero es su id registrado (legado o de la sincronización). */
+  previous: readonly string[];
+}
+
+/**
+ * Productos fusionados con otro, por jumpseller_id del retirado. Se mantiene a mano y solo crece.
+ * Cada id anterior redirige con 301 a la ficha del que lo reemplaza (vercel.json, con
+ * `npm run redirects:write`, y ProductRoute dentro de la app) y nunca se reutiliza. Las URLs de
+ * elights.cl del retirado (legacy-urls.json) llevan `product` del que lo reemplaza. El retirado ya
+ * no se publica: si volviera, el 301 taparía su ficha (catalog.test y check:prerender lo detectan).
+ */
+export const MERGED_SITE_IDS: Readonly<Record<number, MergedSiteId>> = {
+  // «PANEL LED 120X15 CM 36W. LUZ CÁLIDA PARA CIELO AMERICANO»: el dueño lo fusionó con el
+  // 120x15 36W (2347849), que trae las tres temperaturas (2026-11-20).
+  21766686: {
+    into: 2347849,
+    id: 'panel-led-120x15-cm-36w-para-cielo-americano',
+    previous: ['panel-led-120x15-cm-36w-luz-calida-para-cielo-americano'],
+  },
+};
+
 /**
  * Renombrados que ya no se publican: jumpseller_id → slug de su categoría (categories.config.ts),
  * o null si no se conoce (entonces, /catalogo). Sus ids anteriores no van a la ficha, que da 404,
@@ -96,26 +131,31 @@ export const UNPUBLISHED_RENAMED: Readonly<Record<number, string | null>> = {
   24043701: 'campanas-led',
 };
 
-/**
- * Id anterior → destino en el sitio, el mismo del 301: la ficha vigente o, si ya no se publica
- * (UNPUBLISHED_RENAMED), su categoría o /catalogo. Lo usa ProductRoute (src/routes.tsx).
- */
-export const RENAMED_DESTINATION_FROM: ReadonlyMap<string, string> = new Map(
-  Object.entries(RENAMED_SITE_IDS).flatMap(([jid, r]) => {
-    // Claves numéricas: nada heredado de Object.prototype (src compila con ES2020, sin Object.hasOwn)
-    const slug = UNPUBLISHED_RENAMED[Number(jid)];
-    const to = slug === undefined ? `/producto/${r.id}` : slug === null ? '/catalogo' : `/catalogo/${slug}`;
-    return r.previous.map(p => [p, to] as const);
-  }),
-);
+/** Destino de la ficha `id` del producto `jid`: ella misma o, si ya no se publica (UNPUBLISHED_RENAMED), su categoría o /catalogo. */
+function destinationOf(jid: number, id: string): string {
+  // Claves numéricas: nada heredado de Object.prototype (src compila con ES2020, sin Object.hasOwn)
+  const slug = UNPUBLISHED_RENAMED[jid];
+  return slug === undefined ? `/producto/${id}` : slug === null ? '/catalogo' : `/catalogo/${slug}`;
+}
 
 /**
- * Id anterior → id vigente. Es un Map (no un objeto) para que una URL como
- * /producto/constructor no encuentre nada heredado de Object.prototype.
+ * Id anterior → destino en el sitio, el mismo del 301: la ficha vigente o, si ya no se publica
+ * (UNPUBLISHED_RENAMED), su categoría o /catalogo. Un id de un producto fusionado va al destino del
+ * que lo reemplaza. Lo usa ProductRoute (src/routes.tsx).
  */
-export const RENAMED_FROM: ReadonlyMap<string, string> = new Map(
-  Object.values(RENAMED_SITE_IDS).flatMap(r => r.previous.map(p => [p, r.id] as const)),
-);
+export const RENAMED_DESTINATION_FROM: ReadonlyMap<string, string> = new Map([
+  ...Object.entries(RENAMED_SITE_IDS).flatMap(([jid, r]) => r.previous.map(p => [p, destinationOf(Number(jid), r.id)] as const)),
+  ...Object.values(MERGED_SITE_IDS).flatMap(m => m.previous.map(p => [p, destinationOf(m.into, m.id)] as const)),
+]);
+
+/**
+ * Id anterior (de un renombre o de un producto fusionado) → id vigente. Es un Map (no un objeto)
+ * para que una URL como /producto/constructor no encuentre nada heredado de Object.prototype.
+ */
+export const RENAMED_FROM: ReadonlyMap<string, string> = new Map([
+  ...Object.values(RENAMED_SITE_IDS).flatMap(r => r.previous.map(p => [p, r.id] as const)),
+  ...Object.values(MERGED_SITE_IDS).flatMap(m => m.previous.map(p => [p, m.id] as const)),
+]);
 
 /** Ids que ya no se usan: tienen su 301 y nunca se asignan a otro producto. */
 export const RETIRED_SITE_IDS: ReadonlySet<string> = new Set(RENAMED_FROM.keys());

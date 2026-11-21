@@ -59,6 +59,14 @@ describe('rutas: ids de producto renombrados (PR 07)', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/catalogo/campanas-led'), WAIT);
     expect(window.location.search).toBe('?gclid=x');
   });
+
+  it('el id de un producto fusionado (MERGED_SITE_IDS) lleva a la ficha del que lo reemplaza, como el 301 de Vercel', async () => {
+    // 21766686 (120x15 36W luz cálida), fusionado con 2347849 (dueño, 2026-11-20)
+    renderAt('/producto/panel-led-120x15-cm-36w-luz-calida-para-cielo-americano?gclid=x');
+    await waitFor(() => expect(window.location.pathname).toBe('/producto/panel-led-120x15-cm-36w-para-cielo-americano'), WAIT);
+    expect(window.location.search).toBe('?gclid=x');
+    expect(await screen.findByRole('heading', { level: 1, name: /PANEL LED 120X15 CM 36W/ }, WAIT)).toBeInTheDocument();
+  });
 });
 
 describe('catálogo: la categoría sigue a la URL', () => {
