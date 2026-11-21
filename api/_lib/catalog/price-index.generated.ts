@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'fc696e54cc8a';
+export const SNAPSHOT_HASH = '6300c0dd22d5';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -2159,16 +2159,16 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 32390,
     "variants": {
-      "6202217": {
-        "sku": "PLB120100BF",
-        "price": 32390
-      },
       "123877456": {
         "sku": "PLB120100BN",
         "price": 32390
       },
       "123878723": {
         "sku": "PLB120100BC",
+        "price": 32390
+      },
+      "123882127": {
+        "sku": "PLB120100BF",
         "price": 32390
       }
     }
@@ -2379,15 +2379,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 13590,
     "variants": {
       "103713736": {
-        "sku": "",
+        "sku": "PLB6048BF",
         "price": 13590
       },
       "123875907": {
-        "sku": "",
+        "sku": "PLB6048BC",
         "price": 13590
       },
       "123875908": {
-        "sku": "",
+        "sku": "PLB6048BN",
         "price": 13590
       }
     }
@@ -2418,16 +2418,16 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 18590,
     "variants": {
-      "8713180": {
-        "sku": "PLB12040BC",
-        "price": 18590
-      },
       "87995436": {
         "sku": "PLB12040BF",
         "price": 18590
       },
       "123877455": {
         "sku": "PLB12040BN",
+        "price": 18590
+      },
+      "123882283": {
+        "sku": "PLB12040BC",
         "price": 18590
       }
     }

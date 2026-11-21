@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'fc696e54cc8a';
+export const SNAPSHOT_HASH = '6300c0dd22d5';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -7996,13 +7996,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 6202217,
+        "id": 123882127,
         "sku": "PLB120100BF",
         "price": 32390,
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fría"
+            "value": "Luz Fria - 6500K"
           }
         ]
       }
@@ -8779,7 +8779,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 123875907,
-        "sku": "",
+        "sku": "PLB6048BC",
         "price": 13590,
         "options": [
           {
@@ -8790,7 +8790,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 123875908,
-        "sku": "",
+        "sku": "PLB6048BN",
         "price": 13590,
         "options": [
           {
@@ -8801,7 +8801,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 103713736,
-        "sku": "",
+        "sku": "PLB6048BF",
         "price": 13590,
         "options": [
           {
@@ -8915,13 +8915,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 8713180,
+        "id": 123882283,
         "sku": "PLB12040BC",
         "price": 18590,
         "options": [
           {
             "name": "Color",
-            "value": "Luz Cálida"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
