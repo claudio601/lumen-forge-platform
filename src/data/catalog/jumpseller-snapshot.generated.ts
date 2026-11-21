@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'f0e42f886a13';
+export const SNAPSHOT_HASH = '1eb612474e7b';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -11745,7 +11745,7 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 95662543,
-        "sku": "",
+        "sku": "PLB6040BN",
         "price": 14200,
         "options": [
           {
@@ -11756,12 +11756,23 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
       },
       {
         "id": 123877453,
-        "sku": "",
+        "sku": "PLB6040BF",
         "price": 14200,
         "options": [
           {
             "name": "Color de Temperatura",
             "value": "Luz Fría - 6500K"
+          }
+        ]
+      },
+      {
+        "id": 123879624,
+        "sku": "PLB6040BC",
+        "price": 14200,
+        "options": [
+          {
+            "name": "Color de Temperatura",
+            "value": "Luz Cálida - 3000K"
           }
         ]
       }

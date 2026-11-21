@@ -13,7 +13,7 @@ export interface ProductLinkEntry {
   variants: Record<string, { sku: string; label: string }>;
 }
 
-export const SNAPSHOT_HASH = 'f0e42f886a13';
+export const SNAPSHOT_HASH = '1eb612474e7b';
 
 export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2251059": {"id":"ampolleta-led-bola-9w-e27","name":"AMPOLLETA LED BOLA 9W E27","variants":{"94680904":{"sku":"ALE9F","label":"Fría 6000K"},"123217978":{"sku":"ALE9C","label":"Cálida 3000K"}}},
@@ -260,7 +260,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "21391522": {"id":"foco-dicroico-led-embutido-smd-15w-niquel","name":"FOCO DICROICO LED EMBUTIDO SMD 15W NIQUEL","variants":{"95519334":{"sku":"","label":"Cálida 2200K"},"95519335":{"sku":"","label":"Fría 6000K"}}},
   "21392612": {"id":"foco-dicroico-led-embutido-smd-24w-niquel","name":"Foco Dicroico LED Embutido SMD 24W Niquel","variants":{"95520928":{"sku":"","label":"Cálida 2200K"},"95520929":{"sku":"","label":"Fría 6000K"}}},
   "21392713": {"id":"foco-dicroico-led-embutido-smd-30w-niquel","name":"Foco Dicroico LED Embutido SMD 30W Niquel","variants":{"95521230":{"sku":"","label":"Cálida 2200K"},"95521231":{"sku":"","label":"Fría 6000K"}}},
-  "21441880": {"id":"panel-led-backlight-60x30-cm-40w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X30 CM. 40W PARA CIELO AMERICANO","variants":{"95662543":{"sku":"","label":"Neutra 4000K"},"123877453":{"sku":"","label":"Fría 6500K"}}},
+  "21441880": {"id":"panel-led-backlight-60x30-cm-40w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X30 CM. 40W PARA CIELO AMERICANO","variants":{"95662543":{"sku":"PLB6040BN","label":"Neutra 4000K"},"123877453":{"sku":"PLB6040BF","label":"Fría 6500K"},"123879624":{"sku":"PLB6040BC","label":"Cálida 3000K"}}},
   "21739206": {"id":"ampolleta-led-bola-15w-e27","name":"AMPOLLETA LED BOLA 15W E27","variants":{"96221780":{"sku":"","label":"Cálida 2200K"},"96221781":{"sku":"","label":"Fría 5000K"}}},
   "21743223": {"id":"kit-de-emergencia-led-50w-universal-90-minutos-de-autonomia","name":"KIT DE EMERGENCIA LED 50W UNIVERSAL 90 MINUTOS DE AUTONOMIA","variants":{}},
   "21809432": {"id":"cinta-led-exterior-6-5w-smd-2835-48leds-m-100mt-220v-rgb","name":"CINTA LED EXTERIOR 6,5W SMD 2835 48LEDs/m 100mt. 220V. RGB","variants":{}},
