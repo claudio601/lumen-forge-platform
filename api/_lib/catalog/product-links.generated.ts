@@ -13,7 +13,7 @@ export interface ProductLinkEntry {
   variants: Record<string, { sku: string; label: string }>;
 }
 
-export const SNAPSHOT_HASH = '6300c0dd22d5';
+export const SNAPSHOT_HASH = 'a5bc02c623a3';
 
 export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2251059": {"id":"ampolleta-led-bola-9w-e27","name":"AMPOLLETA LED BOLA 9W E27","variants":{"94680904":{"sku":"ALE9F","label":"Fría 6000K"},"123217978":{"sku":"ALE9C","label":"Cálida 3000K"}}},
@@ -197,7 +197,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "4190659": {"id":"panel-led-backlight-60x60-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X60 CM. 48W PARA CIELO AMERICANO","variants":{"103713736":{"sku":"PLB6048BF","label":"Fría 6500K"},"123875907":{"sku":"PLB6048BC","label":"Cálida 3000K"},"123875908":{"sku":"PLB6048BN","label":"Neutra 4000K"}}},
   "4361806": {"id":"foco-dicroico-led-embutido-smd-18w-niquel","name":"Foco Dicroico LED Embutido SMD 18W Niquel","variants":{"95520898":{"sku":"","label":"Cálida 2200K"},"95520899":{"sku":"","label":"Fría 6000K"}}},
   "4370201": {"id":"fuente-de-poder-switching-400w-12v-33a-interior-perforada","name":"FUENTE DE PODER SWITCHING 400W 12V 33A  INTERIOR PERFORADA","variants":{}},
-  "4426526": {"id":"panel-led-backlight-120x30-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO","variants":{"87995436":{"sku":"PLB12040BF","label":"Fría 6500K"},"123877455":{"sku":"PLB12040BN","label":"Neutra 4000K"},"123882283":{"sku":"PLB12040BC","label":"Cálida 3000K"}}},
+  "4426526": {"id":"panel-led-backlight-120x30-cm-48w-para-cielo-americano","name":"PANEL LED BACKLIGHT 120X30 CM. 48W PARA CIELO AMERICANO","variants":{"123877455":{"sku":"PLB12040BN","label":"Neutra 4000K"},"123882283":{"sku":"PLB12040BC","label":"Cálida 3000K"},"123886058":{"sku":"PLB12040BF","label":"Fría 6500K"}}},
   "4450187": {"id":"proyector-led-de-estadio-600w-ip66-ik09","name":"PROYECTOR LED DE ESTADIO 600W IP66 IK09","variants":{"95929972":{"sku":"PLE600F","label":""}}},
   "4537309": {"id":"fuente-de-poder-switching-150w-12v-125a-exterior-ip67","name":"FUENTE DE PODER SWITCHING 150W 12V 12.5A EXTERIOR IP67","variants":{}},
   "4608256": {"id":"panel-led-slim-60x60-cm-40w-para-cielo-americano","name":"PANEL LED SLIM 60X60 CM. 40W PARA CIELO AMERICANO","variants":{"8853489":{"sku":"PL6040BC","label":"Cálida"},"8853490":{"sku":"PL6040BN","label":"Natural"},"8853491":{"sku":"PL6040BF","label":"Fría"}}},
