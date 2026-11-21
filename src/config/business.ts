@@ -134,12 +134,13 @@ export const PICKUP_PLACE = 'nuestra bodega en Quinta Normal';
 // Cada fila, con su fuente: la regla del dueño y el «Packaging por mayor» de Jumpseller (revisado
 // el 2026-11-13 con `npm run content -- export`). Donde la regla no nombra el formato, o el nombre
 // de Jumpseller no dice si es slim o backlight (2347854, 2347849), manda el packaging de
-// Jumpseller; sin packaging, box: null (la ficha dice «desde una caja completa», sin número). Lo lee
-// la ficha (ProductDetail, panelRegionShippingNotice). /despacho no nombra cajas: solo la regla y el
-// «desde N» del slim 60x60 (SLIM_60X60_MIN_UNITS, el mismo de estas filas; legal.test lo fija).
-// No cambia formularios ni cantidades: el pedido se cotiza igual.
+// Jumpseller; sin packaging, box: null.
+// Ya no se publica (dueño, 2026-11-21: «este mensaje no podemos mantenerlo en la web, en ocasiones
+// podemos hacer excepciones»): ni la ficha ni /despacho nombran la regla; el vendedor la aplica en la
+// cotización. La tabla queda para la etiqueta «voluminoso» del feed de Merchant y para el informe de
+// la sincronización (scripts/jumpseller/panel-boxes.ts). No cambia formularios ni cantidades.
 
-/** El slim 60x60 va a regiones desde estas unidades (regla del dueño A22). Lo leen PANEL_MASTER_BOX y /despacho. */
+/** El slim 60x60 va a regiones desde estas unidades (regla del dueño A22, uso interno). */
 export const SLIM_60X60_MIN_UNITS = 4;
 
 export interface PanelMasterBox {
@@ -178,22 +179,6 @@ export const PANEL_MASTER_BOX: Readonly<Record<number, PanelMasterBox>> = {
   // Slim 60x60 40W dimerizable: también es slim 60x60 (regla del dueño, desde 4); Jumpseller, «10 unidades por cajas».
   2501112: { box: 10, minUnits: SLIM_60X60_MIN_UNITS },
 };
-
-/**
- * Aviso de la ficha de un panel de formato grande (junto a «Despacho en hasta 2 días hábiles»),
- * o null si el producto no está en PANEL_MASTER_BOX. «Desde N unidades» y no «por caja»: con una
- * caja o más se cotiza lo pedido, sin redondear a cajas.
- */
-export function panelRegionShippingNotice(jumpsellerId: number): string | null {
-  const panel = PANEL_MASTER_BOX[jumpsellerId];
-  if (!panel) return null;
-  const from = panel.minUnits
-    ? `desde ${panel.minUnits} unidades`
-    : panel.box
-      ? `desde ${panel.box} unidades, una caja completa`
-      : 'desde una caja completa';
-  return `Despacho a regiones: ${from}. Con menos unidades, retiro en ${PICKUP_PLACE}.`;
-}
 
 /** Días hábiles que vale una cotización desde su fecha (términos y condiciones, §5). */
 export const quoteValidityBusinessDays = 10;

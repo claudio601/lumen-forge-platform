@@ -1,6 +1,6 @@
 // src/test/retired.ts
 // Frases retiradas del sitio (PR 11, 2026-10): afirmaciones sin respaldo que no pueden volver.
-// Al final, las que reemplazaron las decisiones del dueño del 2026-11-13.
+// Al final, las que reemplazaron las decisiones del dueño del 2026-11-13 y la del 2026-11-21.
 // Lista compartida (plan del blog, §5.6): la usan src/config/contentTruth.test.ts (el código y el
 // HTML de las páginas) y src/data/guides/guides.test.ts (el contenido de las guías).
 
@@ -55,6 +55,11 @@ export const RETIRED: readonly Retired[] = [
   },
   // En el HTML: «comprobante a<!-- --> <a href="mailto:ventas@…»
   { re: /comprobante (?:de pago |de (?:la )?transferencia )?a\b[^.]{0,40}ventas@/i, why: 'los comprobantes de pago van a pagos@elights.cl (8A)' },
+  // Dueño, 2026-11-21: «este mensaje no podemos mantenerlo en la web, en ocasiones podemos hacer excepciones»
+  {
+    re: /despacho a regiones: desde|despachamos solo desde una caja|solo desde (?:una|su) caja (?:completa|master)/i,
+    why: 'la regla de la caja master de los paneles grandes ya no se publica: a veces hay excepciones',
+  },
 ];
 
 export function retiredIn(text: string, onlyRendered = false): string[] {

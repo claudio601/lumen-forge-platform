@@ -34,13 +34,11 @@ import {
   FREE_SHIPPING_AREA,
   FREE_SHIPPING_THRESHOLD_CLP,
   freeShippingExcludedList,
-  PANEL_MASTER_BOX,
   paymentsEmail,
   paymentsMailto,
   PICKUP_PLACE,
   quoteValidityBusinessDays,
   REGION_CARRIERS,
-  SLIM_60X60_MIN_UNITS,
   waBase,
 } from '@/config/business';
 import { NOINDEX_ROUTES, STATIC_ROUTES } from '@/lib/seo/routes';
@@ -442,24 +440,12 @@ describe('páginas legales y de compra: contenido', () => {
     );
     expect(costo).toContain('Solo cuando las bases de una licitación o el proyecto lo exigen, la cotización incluye el flete, por separado.');
     expect(costo).not.toContain('lo muestra por separado');
-    // Paneles de formato grande a regiones (regla del dueño A22, decisión 2A, 2026-11-13)
+    // Paneles de formato grande: la regla de la caja master ya no se publica, porque a veces se hacen
+    // excepciones (dueño, 2026-11-21). Solo la recomendación, sin «solo» ni cantidades mínimas.
     expect(regiones).toContain(
-      'Paneles de formato grande (60x60, 120x60, 120x30 y 120x15, backlight y slim): a regiones los despachamos solo desde una caja completa',
+      'Paneles de formato grande (60x60, 120x60, 120x30 y 120x15, backlight y slim): por su tamaño, viajan más protegidos en su caja completa. Si pides menos unidades para regiones, en la cotización te indicamos cómo despacharlos.',
     );
-    expect(regiones).toContain('El panel slim de 60x60 se despacha desde 4 unidades.');
-    expect(regiones).toContain('Con menos unidades, retiras tu pedido en la bodega o te cotizamos la caja completa.');
-    expect(regiones).toContain('Desde una caja, cotizamos la cantidad que pidas, sin redondear a cajas.');
-    expect(regiones).toContain('Los paneles chicos, redondos y cuadrados, se despachan en cualquier cantidad.');
-    // /despacho no promete un número por panel: la ficha del 120x30 regulable (2348922) no lo tiene
-    expect(regiones).toContain('La ficha de cada uno de estos paneles indica cómo se despacha a regiones.');
-    expect(regiones).not.toContain('desde cuántas unidades');
-    expect(PANEL_MASTER_BOX[2348922].box).toBeNull();
-    // el «4» de la página y el de las fichas son la misma constante (regla del dueño A22)
-    expect(SLIM_60X60_MIN_UNITS).toBe(4);
-    expect(Object.values(PANEL_MASTER_BOX).filter(p => p.minUnits).map(p => p.minUnits)).toEqual([
-      SLIM_60X60_MIN_UNITS,
-      SLIM_60X60_MIN_UNITS,
-    ]); // los dos slim 60x60
+    expect(regiones).not.toMatch(/solo desde una caja|desde \d+ unidades|Con menos unidades|cualquier cantidad|La ficha de cada uno/);
     // Seguimiento solo por correo (dueño, 2026-10-16): el WhatsApp lo atiende un asistente que no
     // responde consultas de pedidos.
     const seguimiento = section(main, 'Seguimiento').text;
