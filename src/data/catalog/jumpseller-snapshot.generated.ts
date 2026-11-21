@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '1eb612474e7b';
+export const SNAPSHOT_HASH = 'fc696e54cc8a';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -628,6 +628,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94980260,
+        "sku": "PLRE6C",
+        "price": 2790,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885636,
         "sku": "PLRE6N",
         "price": 2790,
@@ -646,17 +657,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94980260,
-        "sku": "PLRE6C",
-        "price": 2790,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -697,6 +697,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94980570,
+        "sku": "PLRE9C",
+        "price": 2890,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885493,
         "sku": "PLRE9N",
         "price": 2890,
@@ -715,17 +726,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94980570,
-        "sku": "PLRE9C",
-        "price": 2890,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -766,6 +766,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94985727,
+        "sku": "PLRE12C",
+        "price": 2890,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885505,
         "sku": "PLRE12N",
         "price": 2890,
@@ -784,17 +795,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94985727,
-        "sku": "PLRE12C",
-        "price": 2890,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -835,6 +835,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95081689,
+        "sku": "PLRE24C",
+        "price": 5690,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885628,
         "sku": "PLRE24N",
         "price": 5690,
@@ -853,17 +864,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95081689,
-        "sku": "PLRE24C",
-        "price": 5690,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -894,6 +894,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95018431,
+        "sku": "PLRE15C",
+        "price": 2890,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885644,
         "sku": "PLRE15N",
         "price": 2890,
@@ -912,17 +923,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95018431,
-        "sku": "PLRE15C",
-        "price": 2890,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -978,17 +978,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 120884787,
-        "sku": "",
-        "price": 2390,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
         "id": 120885521,
         "sku": "",
         "price": 2390,
@@ -1007,6 +996,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Neutra - 4000K"
+          }
+        ]
+      },
+      {
+        "id": 120884787,
+        "sku": "",
+        "price": 2390,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -1062,6 +1062,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95314431,
+        "sku": "",
+        "price": 2990,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885487,
         "sku": "",
         "price": 2990,
@@ -1080,17 +1091,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95314431,
-        "sku": "",
-        "price": 2990,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1220,6 +1220,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95081793,
+        "sku": "",
+        "price": 15690,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885592,
         "sku": "",
         "price": 15690,
@@ -1238,17 +1249,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95081793,
-        "sku": "",
-        "price": 15690,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1294,6 +1294,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95082356,
+        "sku": "",
+        "price": 6990,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885534,
         "sku": "",
         "price": 6990,
@@ -1312,17 +1323,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95082356,
-        "sku": "",
-        "price": 6990,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1383,6 +1383,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95288390,
+        "sku": "PLCE3C",
+        "price": 2090,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885597,
         "sku": "PLCE3N",
         "price": 2090,
@@ -1401,17 +1412,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95288390,
-        "sku": "PLCE3C",
-        "price": 2090,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1472,6 +1472,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 4160970,
+        "sku": "PLCE4C",
+        "price": 2290,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885601,
         "sku": "PLCE4N",
         "price": 2290,
@@ -1490,17 +1501,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 4160970,
-        "sku": "PLCE4C",
-        "price": 2290,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1729,6 +1729,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95091077,
+        "sku": "PLCE18C",
+        "price": 5190,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885610,
         "sku": "PLCE18N",
         "price": 5190,
@@ -1747,17 +1758,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95091077,
-        "sku": "PLCE18C",
-        "price": 5190,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1788,6 +1788,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95236943,
+        "sku": "PLCE24C",
+        "price": 6590,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885618,
         "sku": "PLCE24N",
         "price": 6590,
@@ -1806,17 +1817,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95236943,
-        "sku": "PLCE24C",
-        "price": 6590,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1867,6 +1867,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94979071,
+        "sku": "",
+        "price": 2590,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885622,
         "sku": "",
         "price": 2590,
@@ -1885,17 +1896,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94979071,
-        "sku": "",
-        "price": 2590,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -1946,6 +1946,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94988327,
+        "sku": "",
+        "price": 3790,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885511,
         "sku": "",
         "price": 3790,
@@ -1964,17 +1975,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94988327,
-        "sku": "",
-        "price": 3790,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -2025,6 +2025,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95082060,
+        "sku": "",
+        "price": 5290,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885530,
         "sku": "",
         "price": 5290,
@@ -2043,17 +2054,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95082060,
-        "sku": "",
-        "price": 5290,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -2104,6 +2104,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95082234,
+        "sku": "",
+        "price": 8690,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885540,
         "sku": "",
         "price": 8690,
@@ -2122,17 +2133,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95082234,
-        "sku": "",
-        "price": 8690,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -2984,13 +2984,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103678745,
+        "id": 123877452,
         "sku": "",
         "price": 14900,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 6500K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -3006,13 +3006,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 123877452,
+        "id": 103678745,
         "sku": "",
         "price": 14900,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 3000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -3043,17 +3043,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 4180522,
-        "sku": "PLUTSMD10NF",
-        "price": 2590,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Fría"
-          }
-        ]
-      },
-      {
         "id": 88623122,
         "sku": "PLUTSMD10NN",
         "price": 2590,
@@ -3061,6 +3050,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Neuta - 4500K"
+          }
+        ]
+      },
+      {
+        "id": 4180522,
+        "sku": "PLUTSMD10NF",
+        "price": 2590,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Fría"
           }
         ]
       }
@@ -4565,17 +4565,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 96644488,
-        "sku": "",
-        "price": 97490,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Fría 6500K"
-          }
-        ]
-      },
-      {
         "id": 96644489,
         "sku": "",
         "price": 97490,
@@ -4605,6 +4594,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Temperatura",
             "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
+        "id": 96644488,
+        "sku": "",
+        "price": 97490,
+        "options": [
+          {
+            "name": "Color de Temperatura",
+            "value": "Luz Fría 6500K"
           }
         ]
       }
@@ -4705,17 +4705,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 4205118,
-        "sku": "PLSSMD30F",
-        "price": 8840,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Fría"
-          }
-        ]
-      },
-      {
         "id": 11927469,
         "sku": "PLSSMD30C",
         "price": 8840,
@@ -4723,6 +4712,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Cálida"
+          }
+        ]
+      },
+      {
+        "id": 4205118,
+        "sku": "PLSSMD30F",
+        "price": 8840,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Fría"
           }
         ]
       }
@@ -4768,17 +4768,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 4205128,
-        "sku": "PLSSMD50F",
-        "price": 11190,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Fría"
-          }
-        ]
-      },
-      {
         "id": 11927470,
         "sku": "PLSSMD50C",
         "price": 11190,
@@ -4786,6 +4775,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Cálida"
+          }
+        ]
+      },
+      {
+        "id": 4205128,
+        "sku": "PLSSMD50F",
+        "price": 11190,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Fría"
           }
         ]
       }
@@ -4826,17 +4826,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 96644373,
-        "sku": "",
-        "price": 47490,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
-          }
-        ]
-      },
-      {
         "id": 96644372,
         "sku": "",
         "price": 47490,
@@ -4866,6 +4855,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Temperatura",
             "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
+        "id": 96644373,
+        "sku": "",
+        "price": 47490,
+        "options": [
+          {
+            "name": "Color de Temperatura",
+            "value": "Luz Fría - 5000K"
           }
         ]
       }
@@ -4954,17 +4954,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 4205286,
-        "sku": "PLSSMD100F",
-        "price": 34890,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Fría"
-          }
-        ]
-      },
-      {
         "id": 11927471,
         "sku": "PLSSMD100C",
         "price": 34890,
@@ -4972,6 +4961,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Cálida"
+          }
+        ]
+      },
+      {
+        "id": 4205286,
+        "sku": "PLSSMD100F",
+        "price": 34890,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Fría"
           }
         ]
       }
@@ -6128,6 +6128,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94997211,
+        "sku": "",
+        "price": 10900,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885648,
         "sku": "",
         "price": 10900,
@@ -6146,17 +6157,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94997211,
-        "sku": "",
-        "price": 10900,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -6182,6 +6182,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 101025652,
+        "sku": "",
+        "price": 11880,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885587,
         "sku": "",
         "price": 11880,
@@ -6200,17 +6211,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 101025652,
-        "sku": "",
-        "price": 11880,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -6256,6 +6256,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 95016390,
+        "sku": "PLRE18C",
+        "price": 3190,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885652,
         "sku": "PLRE18N",
         "price": 3190,
@@ -6274,17 +6285,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 95016390,
-        "sku": "PLRE18C",
-        "price": 3190,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -6384,6 +6384,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 94999119,
+        "sku": "",
+        "price": 3690,
+        "options": [
+          {
+            "name": "Color de temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 120885522,
         "sku": "",
         "price": 3690,
@@ -6402,17 +6413,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 94999119,
-        "sku": "",
-        "price": 3690,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -6967,17 +6967,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 7201885,
-        "sku": "PLSSMD500F",
-        "price": 222490,
-        "options": [
-          {
-            "name": "Colores",
-            "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
         "id": 121250285,
         "sku": "",
         "price": 222490,
@@ -7007,6 +6996,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Colores",
             "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
+        "id": 7201885,
+        "sku": "PLSSMD500F",
+        "price": 222490,
+        "options": [
+          {
+            "name": "Colores",
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -7974,13 +7974,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 6202217,
-        "sku": "PLB120100BF",
+        "id": 123878723,
+        "sku": "PLB120100BC",
         "price": 32390,
         "options": [
           {
             "name": "Color",
-            "value": "Luz Fría"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -7996,13 +7996,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 123878723,
-        "sku": "PLB120100BC",
+        "id": 6202217,
+        "sku": "PLB120100BF",
         "price": 32390,
         "options": [
           {
             "name": "Color",
-            "value": "Luz Cálida - 3000K"
+            "value": "Luz Fría"
           }
         ]
       }
@@ -8926,17 +8926,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 87995436,
-        "sku": "PLB12040BF",
-        "price": 18590,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
         "id": 123877455,
         "sku": "PLB12040BN",
         "price": 18590,
@@ -8944,6 +8933,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color",
             "value": "Luz Neutra - 4000K"
+          }
+        ]
+      },
+      {
+        "id": 87995436,
+        "sku": "PLB12040BF",
+        "price": 18590,
+        "options": [
+          {
+            "name": "Color",
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11744,6 +11744,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
+        "id": 123879624,
+        "sku": "PLB6040BC",
+        "price": 14200,
+        "options": [
+          {
+            "name": "Color de Temperatura",
+            "value": "Luz Cálida - 3000K"
+          }
+        ]
+      },
+      {
         "id": 95662543,
         "sku": "PLB6040BN",
         "price": 14200,
@@ -11762,17 +11773,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Temperatura",
             "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
-        "id": 123879624,
-        "sku": "PLB6040BC",
-        "price": 14200,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -12884,17 +12884,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103125555,
-        "sku": "",
-        "price": 106800,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz Fría - 6500K"
-          }
-        ]
-      },
-      {
         "id": 123679272,
         "sku": "",
         "price": 106800,
@@ -12902,6 +12891,17 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Cálida - 2700K"
+          }
+        ]
+      },
+      {
+        "id": 103125555,
+        "sku": "",
+        "price": 106800,
+        "options": [
+          {
+            "name": "Color de Luz",
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
