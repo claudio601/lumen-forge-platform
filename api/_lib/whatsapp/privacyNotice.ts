@@ -13,13 +13,15 @@
 //   privacyNotice.test.ts lo comprueba.
 // - Los textos van con escapes \u, como flowEngine.ts, para no arriesgar mojibake.
 // - El registro local se recupera y guarda junto al estado de la conversacion en Upstash.
-//   Si Upstash falla, sigue en memoria; el aviso puede repetirse en otra instancia.
+//   Si Upstash falla, sigue en memoria; el aviso puede repetirse en otra instancia. Vence con
+//   ese estado (CONVERSATION_TTL_S, 7 días sin mensajes) y entonces el aviso vuelve a mostrarse.
 // - Solo se da por mostrado si la respuesta sale a tiempo. Twilio espera 15 s la respuesta del
 //   webhook y, si se pasa, no envía nada (error 11200), aunque la función siga corriendo. Si
 //   pasaron más de NOTICE_DEADLINE_MS desde que empezó el webhook (Claude o Pipedrive lentos),
 //   la respuesta lleva el aviso, pero el número no se marca y la siguiente lo vuelve a llevar.
 // - Lo que este código no ve: si Twilio o WhatsApp no entregan una respuesta enviada a tiempo,
-//   el número queda marcado en esa instancia y no vuelve a recibir el aviso hasta un reinicio.
+//   el número queda marcado y no vuelve a recibir el aviso hasta que vence el estado de su
+//   conversación (7 días sin mensajes).
 // - Síncrono, sin red ni I/O, y nunca lanza: ante cualquier falla del registro se envía la
 //   respuesta CON el aviso (lado seguro). Nunca bloquea ni demora la respuesta.
 // - webhook.ts lo llama al armar el TwiML que se envía, después de addTurn y del log QA: el

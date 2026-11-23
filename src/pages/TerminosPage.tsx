@@ -22,6 +22,8 @@
 // La cláusula 10 de los términos de Flow prohíbe recargos o precios distintos por pagar con tarjeta.
 // Versión 1.13 (aclaración del dueño, 2026-11-20): §4, el mismo monto vale para el precio publicado; en
 // una cotización de proyecto, el monto con cada medio de pago va en la cotización (se ofrecen dos).
+// Versión 1.14: §1, en las solicitudes de instalación también respondemos por teléfono (dueño,
+// 2026-10-24).
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -48,7 +50,10 @@ const TerminosPage = () => (
 
     <h2>1. Quién vende</h2>
     <CompanyFacts />
-    <p>Te respondemos por correo electrónico, al que indiques en tu solicitud.</p>
+    <p>
+      Te respondemos por correo electrónico, al que indiques en tu solicitud; en las solicitudes de instalación, también por
+      teléfono.
+    </p>
 
     <h2>2. A quién se aplican</h2>
     <p>

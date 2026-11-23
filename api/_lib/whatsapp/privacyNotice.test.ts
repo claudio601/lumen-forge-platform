@@ -43,7 +43,8 @@ const MAX_COMBINED = 1000;
  * Versión de los textos legales con la que se revisó el aviso. Al subirla, se vuelve a leer
  * el aviso contra la política nueva (sobre todo el §4) y se actualiza aquí.
  */
-const NOTICE_REVIEWED_FOR_LEGAL_VERSION = '1.13'; // 1.11 a 1.13 no cambian la Política (solo los Términos §3.3 y §4)
+// 1.14 (Ley 21.855): fechas de la Política al 15-10-2027 y hechos de §2, §5 y §7; el aviso sigue siendo cierto.
+const NOTICE_REVIEWED_FOR_LEGAL_VERSION = '1.14';
 
 /** Módulo nuevo, con el registro vacío. */
 async function freshModule(): Promise<NoticeModule> {
