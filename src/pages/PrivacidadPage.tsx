@@ -1,12 +1,13 @@
 // /politica-de-privacidad: tratamiento de datos personales. Base: Ley 19.628 con las
-// modificaciones de la Ley 21.719 (rigen desde el 2026-12-01), art. 14 ter. Defaults del
-// dueño: solicitudes a ventas@elights.cl con el asunto "Datos personales"; sin delegado de
+// modificaciones de la Ley 21.719 (rigen desde el 2027-10-15, Ley 21.855, DO 23-11-2026), art. 14 ter.
+// Defaults del dueño: solicitudes a ventas@elights.cl con el asunto "Datos personales"; sin delegado de
 // protección de datos; encargados sin Axiom; 24 meses para solicitudes sin compra y 6 años
 // para documentos tributarios; asistente de WhatsApp con IA activo, descrito como funciona hoy
 // (versión 1.3); una persona revisa cada solicitud que queda registrada. Que el equipo responda
 // por correo (nunca por WhatsApp ni por teléfono) es regla del dueño. La PR 13y (#85) ajustó
 // MSG_HUMAN y MSG4_INSTALL a esa regla, y la PR 1 del bot (#88) hizo que «quedó registrada» y
-// «ya derivé» salgan solo cuando Pipedrive confirma el negocio.
+// «ya derivé» salgan solo cuando Pipedrive confirma el negocio. Excepción (dueño, 2026-10-24;
+// Términos §1 desde la 1.14): las solicitudes de instalación también se responden por teléfono.
 // Versión 1.4 (decisión del dueño, 2026-10-17): revisión de las conversaciones con el asistente
 // para corregirlo (finalidad, §3, §4, §5, §7, §8 y §9), con el procedimiento y los plazos de
 // ~/proyectos/elights-bot-2026-10/marcha-blanca/protocolo-marcha-blanca.md (fuera del repo):
@@ -49,6 +50,8 @@
 // Upstash relaciona cada una con su negocio en Pipedrive (api/_lib/idempotency/redis.ts).
 // Versión 1.9 (dueño, 2026-10-25): §5 nombra la lista completa de transportistas con que
 // despachamos (REGION_CARRIERS, la misma de /despacho), que pasó de 3 a 10 nombres.
+// Versión 1.14: fechas de la Ley 21.855 (§ intro, §3, §8 y §9) y las correcciones de hecho de §2,
+// §5 y §7.
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
 //   respuestas son mensajes predefinidos (flowEngine.ts), y buildRepregunta1 repite datos que
@@ -57,11 +60,14 @@
 //   correo: no deriva si el mensaje trae intención comercial («necesito», COMMERCIAL_INTENT_RE)
 //   y, si nombran a Claudio o Constanza, da sus correos (MSG_EXECUTIVE); sin correo no crea el
 //   negocio en Pipedrive (hasMinCommercial); prioridad «Alta» si pidió una persona
-//   (pipedriveLead.ts); historial, estado y registro del aviso solo en memoria; aviso breve en
+//   (pipedriveLead.ts); historial, estado y registro del aviso en Upstash (stateStore.ts: 7 días,
+//   CONVERSATION_TTL_S; cola de notas y campos del negocio pendientes, 30 días, PENDING_WRITE_TTL_S,
+//   enqueuePendingWrite y enqueueFields); aviso breve en
 //   la primera respuesta (privacyNotice.ts); adjuntos: NumMedia (webhook.ts). Twilio y Anthropic
-//   conservan los mensajes según las condiciones de servicio que aceptamos al contratarlos (el
-//   plazo, pendiente: consola de Twilio y pregunta Q6). El bot no reconoce retractos, garantías
-//   ni reclamos: por eso Términos §16 y Cambios los piden por correo.
+//   conservan los mensajes según las condiciones de servicio que aceptamos al contratarlos
+//   (Twilio: 400 días, TWILIO_RETENTION_DAYS; Anthropic y el respaldo de Twilio: pendientes, G05
+//   del repaso 2026-11). El bot no reconoce retractos, garantías ni reclamos: por eso Términos §16
+//   y Cambios los piden por correo.
 // - Casillas de los cinco formularios (useConsentFields, src/components/legal/ConsentFields.tsx):
 //   la de privacidad, obligatoria (con los términos en /solicitar-pedido), y la de novedades
 //   por correo, opcional y sin marcar.
@@ -162,7 +168,7 @@ const PrivacidadPage = () => (
       Esta política explica qué datos personales tratamos cuando usas este sitio, nos envías una solicitud, nos escribes por
       correo o WhatsApp, o nos compras; para qué los usamos, con quién los compartimos, cuánto tiempo los guardamos y cómo puedes
       ejercer tus derechos. Se basa en la Ley N° 19.628 sobre Protección de la Vida Privada, con las modificaciones de la Ley N°
-      21.719, que rigen desde el 1 de diciembre de 2026.
+      21.719, que rigen desde el 15 de octubre de 2027 (Ley N° 21.855).
     </p>
 
     <h2>1. Responsable de tus datos</h2>
@@ -193,7 +199,8 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Empresa (si compras para una):</strong> razón social, RUT, giro y dirección comercial. Los datos de una empresa no
-        son datos personales, pero sí lo son los de su persona de contacto.
+        son datos personales, salvo si es una persona natural con giro (empresario individual); los de su persona de contacto sí
+        lo son.
       </li>
       <li>
         <strong>Tu solicitud:</strong> productos, cantidades, montos referenciales, comuna y región, comentarios y, en las
@@ -201,8 +208,9 @@ const PrivacidadPage = () => (
         los archivos que adjuntes, como bases de licitación, fichas técnicas, planos o planillas.
       </li>
       <li>
-        <strong>Tu compra:</strong> dirección de despacho, documento tributario y estado del pago. No recibimos los datos de tu
-        tarjeta.
+        <strong>Tu compra:</strong> dirección de despacho, documento tributario, la orden de compra de tu empresa o institución,
+        el comprobante de transferencia que nos envíes (con el nombre, el RUT y el banco de quien paga) y el estado del pago. No
+        recibimos los datos de tu tarjeta.
       </li>
       <li>
         <strong>Tus mensajes:</strong> lo que nos escribes o nos envías (por ejemplo, fotos o archivos) por correo, WhatsApp o
@@ -231,8 +239,9 @@ const PrivacidadPage = () => (
     <p>
       <strong>De dónde vienen:</strong> casi todos nos los das tú en los formularios, por correo o por WhatsApp. Si nos escribes
       por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp. Si pagas con el link de
-      pago, Flow nos informa el estado de tu pago. Si haces tu solicitud en nuestra tienda de Jumpseller, sus datos vienen de
-      esa plataforma. Los parámetros de campaña vienen del enlace con el que llegaste.
+      pago, Flow nos informa el estado de tu pago. Si tu empresa o institución paga por ti o nos envía una orden de compra, esos
+      datos vienen de ella. Si haces tu solicitud en nuestra tienda de Jumpseller, sus datos vienen de esa plataforma. Los
+      parámetros de campaña vienen del enlace con el que llegaste.
     </p>
 
     <h2>3. Para qué los usamos y con qué base legal</h2>
@@ -255,7 +264,7 @@ const PrivacidadPage = () => (
       </table>
     </div>
     <p>
-      Hasta el 30 de noviembre de 2026 rige la Ley N° 19.628 en su texto anterior. Durante ese período tratamos tus datos con las
+      Hasta el 14 de octubre de 2027 rige la Ley N° 19.628 en su texto anterior. Durante ese período tratamos tus datos con las
       mismas finalidades, sobre la base de la autorización que nos das al enviarnos una solicitud (en el sitio, al marcar la
       casilla «Leí la Política de privacidad y autorizo…»; por correo o WhatsApp, con tu mensaje escrito) y de las obligaciones
       legales que nos aplican. Ordenar y priorizar tu solicitud es parte de responderla. Para saber de dónde vienen las
@@ -264,8 +273,8 @@ const PrivacidadPage = () => (
       autorización que das en el aviso de cookies. Recordar tus datos en tu navegador se basa en la autorización que das al
       marcar esa casilla. En ese período, la
       revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle;
-      el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. Desde el 1 de
-      diciembre de 2026 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
+      el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. Desde el 15 de
+      octubre de 2027 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
       pides, y la casilla queda como constancia de que leíste esta política.
     </p>
     <p>
@@ -342,7 +351,8 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Anthropic PBC</strong> (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus
-        conversaciones (punto 4).
+        conversaciones (punto 4), y de las herramientas con que nuestro equipo prepara cotizaciones y respuestas a partir de tu
+        solicitud.
       </li>
       <li>
         <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller
@@ -449,7 +459,9 @@ const PrivacidadPage = () => (
       <li>
         <strong>Asistente de WhatsApp:</strong> guarda en Upstash el historial reciente de la conversación, los datos que va
         reuniendo de tu solicitud y si ya te mostró el aviso de privacidad, hasta 7 días después de tu último mensaje. Lo que
-        registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes.
+        registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes. Si una nota o los
+        datos de tu solicitud no alcanzan a quedar en nuestro sistema de seguimiento, los guardamos en Upstash para reintentarlo,
+        hasta 30 días después de tu último mensaje.
       </li>
       <li>
         <strong>Copia de revisión del asistente</strong> (punto 4): no guardamos la exportación original; el mismo día la cambiamos
@@ -514,12 +526,12 @@ const PrivacidadPage = () => (
     </p>
     <ul>
       <li>
-        <strong>Hasta el 30 de noviembre de 2026</strong> (Ley N° 19.628 en su texto anterior): respondemos dentro de 2 días
+        <strong>Hasta el 14 de octubre de 2027</strong> (Ley N° 19.628 en su texto anterior): respondemos dentro de 2 días
         hábiles. Si no respondemos en ese plazo o rechazamos tu solicitud, puedes recurrir al juez de letras en lo civil (art. 16
         de la Ley N° 19.628) o, si eres consumidor, reclamar ante el Servicio Nacional del Consumidor (SERNAC).
       </li>
       <li>
-        <strong>Desde el 1 de diciembre de 2026</strong> (con las modificaciones de la Ley N° 21.719): respondemos dentro de 30
+        <strong>Desde el 15 de octubre de 2027</strong> (con las modificaciones de la Ley N° 21.719): respondemos dentro de 30
         días corridos, prorrogables una vez por otros 30 si es necesario; te avisaremos si usamos la prórroga. Las solicitudes de
         bloqueo las resolvemos dentro de 2 días hábiles. Si no quedas conforme, puedes reclamar ante la Agencia de Protección de
         Datos Personales dentro de 30 días hábiles desde nuestra respuesta o desde que venció el plazo para responder.
@@ -532,8 +544,9 @@ const PrivacidadPage = () => (
       necesitan y guardamos las credenciales de los sistemas fuera del código del sitio. Los registros técnicos del sitio y del
       asistente de WhatsApp pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje; se guardan
       solo los plazos breves que define cada proveedor, salvo la copia de revisión del asistente, que tiene sus propios plazos
-      (punto 7). Si ocurre una vulneración de seguridad que pueda afectar tus datos, la informaremos a la Agencia
-      de Protección de Datos Personales y, cuando corresponda, a ti.
+      (punto 7). Si ocurre una vulneración de seguridad que pueda afectar tus datos, te la informaremos cuando corresponda y,
+      desde el 15 de octubre de 2027, la reportaremos también a la Agencia de Protección de Datos Personales cuando la ley lo
+      exija.
     </p>
 
     <h2>10. Cookies y almacenamiento en tu navegador</h2>

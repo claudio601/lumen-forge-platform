@@ -103,6 +103,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   '1.12': CONSENT_TEXTS_SINCE_1_2,
   // 1.13 (dueño, 2026-11-20): los Términos §4 (el mismo monto, al precio publicado); las casillas no cambian.
   '1.13': CONSENT_TEXTS_SINCE_1_2,
+  // 1.14 (Ley 21.855, DO 23-11-2026): las fechas de la Política pasan al 15-10-2027 y se corrigen hechos
+  // de la Política §2, §5 y §7 y de los Términos §1; las casillas no cambian.
+  '1.14': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

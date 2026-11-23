@@ -568,22 +568,40 @@ describe('páginas legales y de compra: contenido', () => {
     }
     // §6: sin afirmar acuerdos de tratamiento de datos que el dueño no ha confirmado (C26 d)
     expect(section(main, '6.').text).not.toMatch(/cláusulas contractuales|acuerdos de tratamiento de datos, que incluyen/);
-    // §8: hasta el 30-11-2026 rige la Ley 19.628 original (2 días hábiles, juez civil o SERNAC); desde el 1-12, la 21.719
+    // §8: hasta el 14-10-2027 rige la Ley 19.628 original (2 días hábiles, juez civil o SERNAC); desde el 15-10-2027, la
+    // 21.719 (Ley 21.855)
     const rights = section(main, '8.').text;
     for (const s of [
-      'Hasta el 30 de noviembre de 2026 (Ley N° 19.628 en su texto anterior): respondemos dentro de 2 días hábiles.',
+      'Hasta el 14 de octubre de 2027 (Ley N° 19.628 en su texto anterior): respondemos dentro de 2 días hábiles.',
       'juez de letras en lo civil (art. 16 de la Ley N° 19.628)',
       'Servicio Nacional del Consumidor (SERNAC)',
-      'Desde el 1 de diciembre de 2026 (con las modificaciones de la Ley N° 21.719): respondemos dentro de 30 días corridos',
+      'Desde el 15 de octubre de 2027 (con las modificaciones de la Ley N° 21.719): respondemos dentro de 30 días corridos',
       'ante la Agencia de Protección de Datos Personales dentro de 30 días hábiles',
     ]) {
       expect(rights, s).toContain(s);
     }
-    expect(rights.indexOf('Hasta el 30 de noviembre')).toBeLessThan(rights.indexOf('Agencia de Protección'));
+    expect(rights.indexOf('Hasta el 14 de octubre')).toBeLessThan(rights.indexOf('Agencia de Protección'));
     // §9: los registros técnicos sí pueden tener datos de clientes (api/ los registra)
     const security = section(main, '9.').text;
     expect(security).not.toContain('no contengan datos de clientes');
     expect(security).toContain('pueden incluir tu teléfono, nombre, empresa, correo, comuna o un extracto de tu mensaje');
+    // §9 (versión 1.14, Ley 21.855): la Agencia recibe el reporte de una vulneración desde el 15-10-2027
+    expect(security).toContain('desde el 15 de octubre de 2027, la reportaremos también a la Agencia');
+    expect(text).not.toMatch(/1 de diciembre de 2026|30 de noviembre de 2026/);
+    // Versión 1.14: la introducción y §3 con las fechas de la Ley 21.855
+    expect(text).toContain('con las modificaciones de la Ley N° 21.719, que rigen desde el 15 de octubre de 2027 (Ley N° 21.855).');
+    expect(section(main, '3.').text).toContain('Hasta el 14 de octubre de 2027 rige la Ley N° 19.628 en su texto anterior.');
+    // §2 (versión 1.14): empresario individual, orden de compra y comprobante de transferencia, y de dónde vienen
+    const clean2 = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const items2 = section(main, '2.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean2));
+    const item2 = (start: string) => items2.find(t => t.startsWith(start)) ?? '';
+    expect(item2('Empresa (si compras para una):')).toBe(
+      'Empresa (si compras para una): razón social, RUT, giro y dirección comercial. Los datos de una empresa no son datos personales, salvo si es una persona natural con giro (empresario individual); los de su persona de contacto sí lo son.',
+    );
+    expect(item2('Tu compra:')).toBe(
+      'Tu compra: dirección de despacho, documento tributario, la orden de compra de tu empresa o institución, el comprobante de transferencia que nos envíes (con el nombre, el RUT y el banco de quien paga) y el estado del pago. No recibimos los datos de tu tarjeta.',
+    );
+    expect(section(main, '2.').text).toContain('Si tu empresa o institución paga por ti o nos envía una orden de compra, esos datos vienen de ella.');
     const hrefs = [...main.querySelectorAll('a')].map(a => a.getAttribute('href'));
     expect(hrefs).toContain('mailto:ventas@elights.cl?subject=Datos%20personales');
     expect(main.querySelectorAll('table tbody tr')).toHaveLength(13); // 1.5: suma la finalidad de Meta; 1.7, recordar tus datos
@@ -645,7 +663,7 @@ describe('páginas legales y de compra: contenido', () => {
     const items = section(main, '7.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
     const item = (start: string) => items.find(t => t.startsWith(start)) ?? '';
     expect(item('Asistente de WhatsApp:')).toBe(
-      'Asistente de WhatsApp: guarda en Upstash el historial reciente de la conversación, los datos que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad, hasta 7 días después de tu último mensaje. Lo que registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes.',
+      'Asistente de WhatsApp: guarda en Upstash el historial reciente de la conversación, los datos que va reuniendo de tu solicitud y si ya te mostró el aviso de privacidad, hasta 7 días después de tu último mensaje. Lo que registramos de la conversación en nuestro sistema de seguimiento sigue el plazo de las solicitudes. Si una nota o los datos de tu solicitud no alcanzan a quedar en nuestro sistema de seguimiento, los guardamos en Upstash para reintentarlo, hasta 30 días después de tu último mensaje.',
     );
     // Desde la 1.4, Twilio (con su plazo configurado) y Anthropic van por separado
     expect(item('Anthropic')).toContain(
@@ -664,7 +682,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(row, 'falta la finalidad de la revisión del asistente').toBeDefined();
     expect(row).toContain('para corregir sus errores y mejorarlo (ver punto 4)');
     expect(row).toContain('Interés legítimo de eLIGHTS en que el asistente entienda bien las solicitudes y las registre completas; puedes oponerte');
-    // §3: hasta el 30-11, la base es la autorización, y el aviso del bot informa la finalidad
+    // §3: hasta el 14-10-2027, la base es la autorización, y el aviso del bot informa la finalidad
     expect(section(main, '3.').text).toContain(
       'En ese período, la revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle; el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta.',
     );
@@ -682,7 +700,7 @@ describe('páginas legales y de compra: contenido', () => {
     }
     // §5: Anthropic también para la revisión
     expect(section(main, '5.').text).toContain(
-      'Anthropic PBC (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus conversaciones (punto 4).',
+      'Anthropic PBC (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus conversaciones (punto 4), y de las herramientas con que nuestro equipo prepara cotizaciones y respuestas a partir de tu solicitud.',
     );
     // §7: plazos de la copia y de la tabla de claves; Twilio con su plazo configurado
     const items = section(main, '7.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
@@ -719,7 +737,9 @@ describe('páginas legales y de compra: contenido', () => {
     );
     expect(cambios.main.querySelector('a[href^="https://wa.me/"]')).toBeNull();
     const terminos = await page('/terminos-y-condiciones');
-    expect(section(terminos.main, '1.').text).toContain('Te respondemos por correo electrónico, al que indiques en tu solicitud.');
+    expect(section(terminos.main, '1.').text).toContain(
+      'Te respondemos por correo electrónico, al que indiques en tu solicitud; en las solicitudes de instalación, también por teléfono.',
+    );
     expect(terminos.text).not.toContain('Nos comunicaremos contigo por el correo electrónico, el teléfono o el WhatsApp');
     const reclamos = section(terminos.main, '16.');
     expect(reclamos.text).toContain('Si tienes un problema con tu compra, escríbenos a ventas@elights.cl y lo resolvemos contigo.');
@@ -749,7 +769,7 @@ describe('páginas legales y de compra: contenido', () => {
       'por correo o WhatsApp, con tu mensaje escrito',
       'Ordenar y priorizar tu solicitud es parte de responderla.',
       'usamos el origen de tu visita solo internamente, con fines estadísticos',
-      'Desde el 1 de diciembre de 2026 rigen las bases de la tabla',
+      'Desde el 15 de octubre de 2027 rigen las bases de la tabla',
       // La medición con cookies no se basa en la autorización de la solicitud: también en la transición, en el aviso de cookies
       'La medición con cookies (Google Analytics, medición de anuncios de Google y Publicidad en Meta) se basa, también en ese período, en la autorización que das en el aviso de cookies.',
       'la casilla queda como constancia de que leíste esta política',
@@ -994,7 +1014,7 @@ describe('páginas legales y de compra: contenido', () => {
     expect(item('2.', 'Tus autorizaciones y decisiones:')).toMatch(
       /\. En tu navegador guardamos tu decisión sobre cookies y, si lo pides, tus datos de contacto \(punto 10\)\.$/,
     );
-    // §3: la fila de la tabla y la base durante el período hasta el 30-11-2026
+    // §3: la fila de la tabla y la base durante el período hasta el 14-10-2027
     const rows = [...main.querySelectorAll('table tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(clean));
     expect(rows).toContainEqual([
       'Recordar tus datos en tu navegador para completar los formularios, solo si marcas esa casilla',
@@ -1071,10 +1091,10 @@ describe('pie y enlaces del sitio a las páginas legales', () => {
 });
 
 
-it('textos legales 1.13: fecha provisional y versión anterior publicada', () => {
-  expect(LEGAL_VERSION).toBe('1.13');
-  expect(LEGAL_UPDATED).toBe('2026-11-20');
-  expect(LEGAL_UPDATED_LABEL).toBe('20 de noviembre de 2026');
-  expect(LEGAL_ARCHIVE).toContain('1.12');
+it('textos legales 1.14: fecha provisional y versión anterior publicada', () => {
+  expect(LEGAL_VERSION).toBe('1.14');
+  expect(LEGAL_UPDATED).toBe('2026-11-23');
+  expect(LEGAL_UPDATED_LABEL).toBe('23 de noviembre de 2026');
+  expect(LEGAL_ARCHIVE).toContain('1.13');
   expect(LEGAL_RUT).toBe('76.947.784-5');
 });
