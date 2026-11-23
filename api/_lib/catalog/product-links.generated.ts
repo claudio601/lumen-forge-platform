@@ -13,7 +13,7 @@ export interface ProductLinkEntry {
   variants: Record<string, { sku: string; label: string }>;
 }
 
-export const SNAPSHOT_HASH = 'a5bc02c623a3';
+export const SNAPSHOT_HASH = 'f75f9f95b57b';
 
 export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2251059": {"id":"ampolleta-led-bola-9w-e27","name":"AMPOLLETA LED BOLA 9W E27","variants":{"94680904":{"sku":"ALE9F","label":"Fría 6000K"},"123217978":{"sku":"ALE9C","label":"Cálida 3000K"}}},
@@ -59,7 +59,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2283811": {"id":"panel-led-concentrico-opal-15w-ip33","name":"PANEL LED CONCENTRICO OPAL 15W IP33","variants":{"94905373":{"sku":"","label":"Cálida 3000K"},"94905374":{"sku":"","label":"Neutra 4000K"},"94905375":{"sku":"","label":"Fría 6500K"}}},
   "2283850": {"id":"panel-led-concentrico-opal-30w-ip33","name":"PANEL LED CONCENTRICO OPAL 30W IP33","variants":{"94905450":{"sku":"","label":"Cálida 2200K"},"94905451":{"sku":"","label":"Neutra 4000K"},"94905452":{"sku":"","label":"Fría 5000K"}}},
   "2284560": {"id":"foco-led-cob-basculante-5w-ip44-marco-blanco","name":"FOCO LED COB BASCULANTE 5W IP44 MARCO BLANCO","variants":{"4165318":{"sku":"FLCB5BC","label":"Cálida"},"4165319":{"sku":"FLCB5BF","label":"Fría 6500K"}}},
-  "2286835": {"id":"foco-led-cob-basculante-codo-30w-ip33","name":"FOCO LED COB BASCULANTE CODO 30W IP33","variants":{"105152274":{"sku":"FLCB30F","label":"Fría 6500K"},"105152275":{"sku":"FLCB30N","label":"Neutra 4000K"},"118438897":{"sku":"FLCB30C","label":"Cálida 3000K"}}},
+  "2286835": {"id":"foco-led-cob-basculante-codo-30w-ip33","name":"FOCO LED COB BASCULANTE CODO 30W IP33","variants":{"105152275":{"sku":"FLCB30N","label":"Neutra 4000K"},"118438897":{"sku":"FLCB30C","label":"Cálida 3000K"}}},
   "2291780": {"id":"proyector-led-empotrado-a-muro-35w-muro-ip44","name":"PROYECTOR LED EMPOTRADO A MURO BASCULANTE 35W IP44","variants":{"4175919":{"sku":"PLEMB35C","label":"Cálida"},"6043276":{"sku":"PLEMB35N","label":"Natural"},"6043290":{"sku":"PLEMB35F","label":"Fría"}}},
   "2292318": {"id":"proyector-led-cob-20w-gris-ip65","name":"PROYECTOR LED COB 20W GRIS IP65","variants":{"4176509":{"sku":"PLC20GC","label":""}}},
   "2292375": {"id":"proyector-led-cob-30w-gris-ip65","name":"PROYECTOR LED COB 30W GRIS IP65","variants":{"4176583":{"sku":"PLC30GC","label":""}}},
@@ -257,7 +257,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "21244485": {"id":"poste-tubular-galvanizado-4mts","name":"POSTE TUBULAR GALVANIZADO 4MTS","variants":{}},
   "21244500": {"id":"poste-tubular-galvanizado-5mts","name":"POSTE TUBULAR GALVANIZADO 5MTS","variants":{}},
   "21244533": {"id":"poste-tubular-galvanizado-6mts","name":"POSTE TUBULAR GALVANIZADO 6MTS","variants":{}},
-  "21391522": {"id":"foco-dicroico-led-embutido-smd-15w-niquel","name":"FOCO DICROICO LED EMBUTIDO SMD 15W NIQUEL","variants":{"95519334":{"sku":"","label":"Cálida 2200K"},"95519335":{"sku":"","label":"Fría 6000K"}}},
+  "21391522": {"id":"foco-dicroico-led-embutido-smd-15w-niquel","name":"FOCO DICROICO LED EMBUTIDO SMD 15W NIQUEL","variants":{"95519334":{"sku":"","label":""}}},
   "21392612": {"id":"foco-dicroico-led-embutido-smd-24w-niquel","name":"Foco Dicroico LED Embutido SMD 24W Niquel","variants":{"95520928":{"sku":"","label":"Cálida 2200K"},"95520929":{"sku":"","label":"Fría 6000K"}}},
   "21392713": {"id":"foco-dicroico-led-embutido-smd-30w-niquel","name":"Foco Dicroico LED Embutido SMD 30W Niquel","variants":{"95521230":{"sku":"","label":"Cálida 2200K"},"95521231":{"sku":"","label":"Fría 6000K"}}},
   "21441880": {"id":"panel-led-backlight-60x30-cm-40w-para-cielo-americano","name":"PANEL LED BACKLIGHT 60X30 CM. 40W PARA CIELO AMERICANO","variants":{"95662543":{"sku":"PLB6040BN","label":"Neutra 4000K"},"123877453":{"sku":"PLB6040BF","label":"Fría 6500K"},"123879624":{"sku":"PLB6040BC","label":"Cálida 3000K"}}},
@@ -335,7 +335,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "37625224": {"id":"panel-led-cuadrado-embutido-9w-ip44","name":"PANEL LED CUADRADO EMBUTIDO 9W IP44","variants":{"122880398":{"sku":"PLCE9C","label":"Cálida 3000K"},"122880399":{"sku":"PLCE9N","label":"Neutra 4000K"},"122880400":{"sku":"PLCE9F","label":"Fría 6500K"}}},
   "37625303": {"id":"panel-led-cuadrado-embutido-15w-ip44","name":"PANEL LED CUADRADO EMBUTIDO 15W IP44","variants":{"122880402":{"sku":"PLCE15C","label":"Cálida 3000K"},"122880403":{"sku":"PLCE15N","label":"Neutra 4000K"},"122880404":{"sku":"PLCE15F","label":"Fría 6500K"}}},
   "37656341": {"id":"luminaria-led-vial-a-prueba-de-explosion-125w-ip66-clase-i-div-2","name":"LUMINARIA LED VIAL A PRUEBA DE EXPLOSIÓN 125W IP66 CLASE I DIV. 2","variants":{}},
-  "1234852242": {"id":"foco-led-cob-basculante-codo-40w-ip33","name":"FOCO LED COB BASCULANTE CODO 40W IP33","variants":{"123532514":{"sku":"FLCB40C","label":"Cálida 3000K"},"123532515":{"sku":"FLCB40N","label":"Neutra 4000K"},"123532516":{"sku":"FLCB40F","label":"Fría 6000K"}}},
+  "1234852242": {"id":"foco-led-cob-basculante-codo-40w-ip33","name":"FOCO LED COB BASCULANTE CODO 40W IP33","variants":{"123532514":{"sku":"FLCB40C","label":"Cálida 3000K"},"123532515":{"sku":"FLCB40N","label":"Neutra 4000K"}}},
   "1234977373": {"id":"sensor-de-movimiento-pir-180-muro-ip44-negro","name":"SENSOR DE MOVIMIENTO PIR 180° MURO IP44 NEGRO","variants":{}},
   "1234997838": {"id":"campana-led-ufo-pro-hl-200w-190lmw-ip65-con-sensor","name":"CAMPANA LED UFO PRO HL 200W 190LM/W IP65 CON SENSOR","variants":{}},
 };

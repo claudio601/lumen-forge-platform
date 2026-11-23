@@ -2,7 +2,7 @@
 // Fichas técnicas en PDF de cada producto (adjuntos en el CDN de Jumpseller), revisadas en la sincronización.
 // Fuente: API de Jumpseller (productos disponibles). Regenerar: npm run sync:catalog -- --write
 
-export const SNAPSHOT_HASH = 'a5bc02c623a3';
+export const SNAPSHOT_HASH = 'f75f9f95b57b';
 
 export const productDatasheets: Readonly<Record<number, readonly string[]>> = {
   "2251059": ["https://images.jumpseller.com/store/elights-cl/2251059/attachments/471c4dc8ed11656c142a459993ddd414/Ficha-Ampolleta-LED-Bola-9W-E27.pdf?1795201637"],
