@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'a5bc02c623a3';
+export const SNAPSHOT_HASH = 'f75f9f95b57b';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -2446,17 +2446,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Neutra - 4000K"
-          }
-        ]
-      },
-      {
-        "id": 105152274,
-        "sku": "FLCB30F",
-        "price": 24900,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11619,17 +11608,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
             "value": "Luz Cálida - 2200K"
           }
         ]
-      },
-      {
-        "id": 95519335,
-        "sku": "",
-        "price": 13590,
-        "options": [
-          {
-            "name": "Color de Temperatura",
-            "value": "Luz Fría- 6000K"
-          }
-        ]
       }
     ]
   },
@@ -15237,17 +15215,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de Luz",
             "value": "Luz Neutra - 4000K"
-          }
-        ]
-      },
-      {
-        "id": 123532516,
-        "sku": "FLCB40F",
-        "price": 27900,
-        "options": [
-          {
-            "name": "Color de Luz",
-            "value": "Luz Fría - 6000K"
           }
         ]
       }

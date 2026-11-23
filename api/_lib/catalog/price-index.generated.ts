@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'a5bc02c623a3';
+export const SNAPSHOT_HASH = 'f75f9f95b57b';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -632,10 +632,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "FLCB30",
     "price": 24900,
     "variants": {
-      "105152274": {
-        "sku": "FLCB30F",
-        "price": 24900
-      },
       "105152275": {
         "sku": "FLCB30N",
         "price": 24900
@@ -3220,10 +3216,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       "95519334": {
         "sku": "",
         "price": 13590
-      },
-      "95519335": {
-        "sku": "",
-        "price": 13590
       }
     }
   },
@@ -4237,10 +4229,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
       },
       "123532515": {
         "sku": "FLCB40N",
-        "price": 27900
-      },
-      "123532516": {
-        "sku": "FLCB40F",
         "price": 27900
       }
     }
