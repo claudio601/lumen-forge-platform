@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = 'f75f9f95b57b';
+export const SNAPSHOT_HASH = 'aa4f3a86cfb8';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -560,15 +560,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 9790,
     "variants": {
-      "94905391": {
-        "sku": "",
-        "price": 9790
-      },
       "94905392": {
         "sku": "",
         "price": 9790
       },
       "94905393": {
+        "sku": "",
+        "price": 9790
+      },
+      "123932845": {
         "sku": "",
         "price": 9790
       }
@@ -598,15 +598,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 16190,
     "variants": {
-      "94905450": {
-        "sku": "",
-        "price": 16190
-      },
       "94905451": {
         "sku": "",
         "price": 16190
       },
       "94905452": {
+        "sku": "",
+        "price": 16190
+      },
+      "123932846": {
         "sku": "",
         "price": 16190
       }
@@ -1436,11 +1436,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 14790,
     "variants": {
-      "95315223": {
+      "95315224": {
         "sku": "",
         "price": 14790
       },
-      "95315224": {
+      "123932847": {
         "sku": "",
         "price": 14790
       }
@@ -1451,11 +1451,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 26190,
     "variants": {
-      "95433611": {
+      "95433612": {
         "sku": "",
         "price": 26190
       },
-      "95433612": {
+      "123932853": {
         "sku": "",
         "price": 26190
       }
@@ -1769,11 +1769,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 4790,
     "variants": {
-      "95518891": {
+      "95518892": {
         "sku": "",
         "price": 4790
       },
-      "95518892": {
+      "123932790": {
         "sku": "",
         "price": 4790
       }
@@ -1784,11 +1784,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 6290,
     "variants": {
-      "95519092": {
+      "95519093": {
         "sku": "",
         "price": 6290
       },
-      "95519093": {
+      "123932791": {
         "sku": "",
         "price": 6290
       }
@@ -1799,11 +1799,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 6290,
     "variants": {
-      "95519315": {
+      "95519316": {
         "sku": "",
         "price": 6290
       },
-      "95519316": {
+      "123932792": {
         "sku": "",
         "price": 6290
       }
@@ -1972,15 +1972,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 16090,
     "variants": {
-      "94905403": {
-        "sku": "",
-        "price": 16090
-      },
       "94905404": {
         "sku": "",
         "price": 16090
       },
       "94905405": {
+        "sku": "",
+        "price": 16090
+      },
+      "123932855": {
         "sku": "",
         "price": 16090
       }
@@ -2393,11 +2393,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 16890,
     "variants": {
-      "95520898": {
+      "95520899": {
         "sku": "",
         "price": 16890
       },
-      "95520899": {
+      "123932793": {
         "sku": "",
         "price": 16890
       }
@@ -3046,11 +3046,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 19890,
     "variants": {
-      "94905551": {
+      "94905552": {
         "sku": "",
         "price": 19890
       },
-      "94905552": {
+      "123932859": {
         "sku": "",
         "price": 19890
       }
@@ -3061,11 +3061,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 22890,
     "variants": {
-      "94913533": {
+      "94913534": {
         "sku": "",
         "price": 22890
       },
-      "94913534": {
+      "123932864": {
         "sku": "",
         "price": 22890
       }
@@ -3076,11 +3076,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 60690,
     "variants": {
-      "94913521": {
+      "94913522": {
         "sku": "",
         "price": 60690
       },
-      "94913522": {
+      "123932866": {
         "sku": "",
         "price": 60690
       }
@@ -3091,11 +3091,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 175890,
     "variants": {
-      "94913483": {
+      "94913484": {
         "sku": "",
         "price": 175890
       },
-      "94913484": {
+      "123932868": {
         "sku": "",
         "price": 175890
       }
@@ -3106,11 +3106,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 220290,
     "variants": {
-      "94905568": {
+      "94905569": {
         "sku": "",
         "price": 220290
       },
-      "94905569": {
+      "123932872": {
         "sku": "",
         "price": 220290
       }
@@ -3127,11 +3127,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 7290,
     "variants": {
-      "94905413": {
+      "94905414": {
         "sku": "",
         "price": 7290
       },
-      "94905414": {
+      "123932873": {
         "sku": "",
         "price": 7290
       }
@@ -3142,15 +3142,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 2800,
     "variants": {
-      "95177030": {
-        "sku": "",
-        "price": 2800
-      },
       "95177031": {
         "sku": "",
         "price": 2800
       },
       "95177032": {
+        "sku": "",
+        "price": 2800
+      },
+      "123932874": {
         "sku": "",
         "price": 2800
       }
@@ -3161,15 +3161,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 3190,
     "variants": {
-      "95177036": {
-        "sku": "",
-        "price": 3190
-      },
       "95177037": {
         "sku": "",
         "price": 3190
       },
       "95177038": {
+        "sku": "",
+        "price": 3190
+      },
+      "123932875": {
         "sku": "",
         "price": 3190
       }
@@ -3180,11 +3180,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 81600,
     "variants": {
-      "95178953": {
+      "95178954": {
         "sku": "",
         "price": 81600
       },
-      "95178954": {
+      "123932877": {
         "sku": "",
         "price": 81600
       }
@@ -3213,7 +3213,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 13590,
     "variants": {
-      "95519334": {
+      "123932789": {
         "sku": "",
         "price": 13590
       }
@@ -3224,11 +3224,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 27390,
     "variants": {
-      "95520928": {
+      "95520929": {
         "sku": "",
         "price": 27390
       },
-      "95520929": {
+      "123932794": {
         "sku": "",
         "price": 27390
       }
@@ -3239,11 +3239,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 27390,
     "variants": {
-      "95521230": {
+      "95521231": {
         "sku": "",
         "price": 27390
       },
-      "95521231": {
+      "123932795": {
         "sku": "",
         "price": 27390
       }
@@ -3273,11 +3273,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 1690,
     "variants": {
-      "96221780": {
+      "96221781": {
         "sku": "",
         "price": 1690
       },
-      "96221781": {
+      "123932882": {
         "sku": "",
         "price": 1690
       }
@@ -3318,11 +3318,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 685490,
     "variants": {
-      "98856612": {
+      "98856613": {
         "sku": "",
         "price": 685490
       },
-      "98856613": {
+      "123932898": {
         "sku": "",
         "price": 685490
       }
@@ -3333,11 +3333,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 262890,
     "variants": {
-      "98856617": {
+      "98856618": {
         "sku": "",
         "price": 262890
       },
-      "98856618": {
+      "123932899": {
         "sku": "",
         "price": 262890
       }
