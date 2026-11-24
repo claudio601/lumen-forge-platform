@@ -225,9 +225,9 @@ export interface ReadyAttachment {
   bytes: Uint8Array;
 }
 
-/** «Comprobante-Pullman-Cargo-23501234567.jpg». */
+/** «Comprobante-Pullman-Cargo-23501234567.jpg»; sin orden de flete, «Comprobante-Transportes-TVP.jpg». */
 export function voucherFileName(carrier: Pick<Carrier, 'label'>, orderNormalized: string, ext: 'jpg' | 'png'): string {
-  return `Comprobante-${carrierFileLabel(carrier)}-${orderNormalized}.${ext}`;
+  return `Comprobante-${carrierFileLabel(carrier)}${orderNormalized ? `-${orderNormalized}` : ''}.${ext}`;
 }
 
 /**

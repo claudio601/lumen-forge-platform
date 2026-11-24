@@ -33,6 +33,9 @@ export const DEFAULT_DOCUMENT_TYPE: DocumentTypeId = 'factura';
 
 export const DOCUMENT_TYPE_IDS = Object.keys(DOCUMENT_TYPES) as DocumentTypeId[];
 
+/** Dígitos del N° de documento (fields.ts lo valida; key.ts lo usa en la clave sin orden). */
+export const MAX_DOCUMENT_DIGITS = 10;
+
 export interface ShippingDocument {
   type: DocumentTypeId;
   /** Solo dígitos, sin ceros a la izquierda. */

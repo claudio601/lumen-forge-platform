@@ -15,11 +15,17 @@
 //   El número va en «Despacho · N° de documento» (antes «Despacho · Factura N°»).
 // - Fechas en hora de Chile. Nunca «hoy»: una «Fecha de envío» vacía es la fecha del aviso y una
 //   futura detiene el aviso (el texto diría que ya se entregó).
+// - Opcionales (dueño, 24-11-2026): Orden de flete, Entrega, Agencia o comuna, Flete y Kilos. Vacíos
+//   quedan en null (la orden normalizada, en ''), y el correo omite esas líneas (template.ts). Con un
+//   valor, siguen sus validaciones (largo, opción desconocida, «Por pagar» sin monto, kilos ≤ 0).
+//   Nada se descarta sin avisar: «Agencia o comuna» sin «Entrega» y «Flete por pagar» con monto
+//   sin «Flete» detienen el aviso. Siguen obligatorios el Operador, los Bultos y el N° de
+//   documento. Sin orden, el documento identifica el aviso (key.ts y «Aviso enviado»).
 // Los mensajes pueden traer lo que escribió el dueño: en la nota (HTML) van con escapeHtml.
 
 import type { DealFieldLookup, DealFieldMeta } from '../pipedrive/fieldOptions.js';
 import { carrierFromLabel, type Carrier } from './carriers.js';
-import { DEFAULT_DOCUMENT_TYPE, DOCUMENT_TYPES, type DocumentTypeId, type ShippingDocument } from './documents.js';
+import { DEFAULT_DOCUMENT_TYPE, DOCUMENT_TYPE_IDS, DOCUMENT_TYPES, MAX_DOCUMENT_DIGITS, type DocumentTypeId, type ShippingDocument } from './documents.js';
 import { chileToday, formatChileTimestamp, formatDateLong, isIsoDate, parseChileTimestamp } from './format.js';
 
 // ── Nombres y opciones ──────────────────────────────────────────────────────
@@ -66,7 +72,6 @@ export const MAX_PACKAGES = 99;
 export const MAX_KILOS = 100_000;
 /** Tope de cordura del flete por pagar (CLP): más que esto es casi seguro un error de tipeo. */
 export const MAX_FREIGHT_CLP = 10_000_000;
-export const MAX_DOCUMENT_DIGITS = 10;
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -106,22 +111,29 @@ export interface SentLog {
   at: Date;
   /** Operador y orden normalizada, si el texto los trae como los escribe formatSentLog. */
   carrierLabel: string | null;
+  /** '' si el aviso salió sin orden («· sin orden»); null si el texto no la trae. */
   order: string | null;
+  /** Sin orden, el documento que identifica ese aviso («· sin orden · factura 8459»); si no, null. */
+  document: ShippingDocument | null;
 }
 
 export interface ShippingFields {
   /** null si el disparador está vacío (la PR 2 decide). */
   action: ShippingAction | null;
   carrier: Carrier;
-  /** La orden como la escribió el dueño (para mostrar). */
-  order: string;
-  /** Solo letras y dígitos, en mayúsculas (clave de idempotencia y enlace). */
+  /** La orden como la escribió el dueño (para mostrar), o null si va vacía (opcional). */
+  order: string | null;
+  /** Solo letras y dígitos, en mayúsculas (clave de idempotencia y enlace); '' sin orden. */
   orderNormalized: string;
-  delivery: DeliveryKind;
-  place: string;
-  freight: Freight;
+  /** null: sin la línea «Entrega» y con el cierre neutro («Al recibirlo»). */
+  delivery: DeliveryKind | null;
+  /** Agencia (retiro) o comuna (domicilio), o null. */
+  place: string | null;
+  /** null: sin la línea «Flete». */
+  freight: Freight | null;
   packages: number;
-  kilos: number;
+  /** null: «5 bultos», sin los kilos. */
+  kilos: number | null;
   /** 'aaaa-mm-dd'. */
   shipDate: string;
   /** La fecha de envío venía vacía y se usó la del aviso (hoy en Chile). */
@@ -238,13 +250,27 @@ function fixedKey<K extends string>(options: Readonly<Record<K, string>>, option
 
 // ── «Despacho · Aviso enviado» ──────────────────────────────────────────────
 
+/** Lo que va en lugar de la orden en «Aviso enviado» cuando el aviso salió sin ella. */
+export const SENT_LOG_NO_ORDER = 'sin orden';
+/** «· <operador> · sin orden · <documento> <número>», después de la marca de hora. */
+const SENT_LOG_NO_ORDER_RE = new RegExp(`^\\s*·\\s*(.*?)\\s*·\\s*${SENT_LOG_NO_ORDER}(?:\\s*·\\s*(\\D*?)\\s*(\\d+))?\\s*$`);
+
+/** «factura 8459» / «guía de despacho 123»: el documento de un aviso sin orden. */
+function sentLogDocument(document: ShippingDocument): string {
+  return `${DOCUMENT_TYPES[document.type].noun} ${document.number}`;
+}
+
 /**
  * Lo único que escribe «Despacho · Aviso enviado» (la PR del envío lo usa tal cual):
  * «aaaa-mm-dd hh:mm -03:00 · <operador> <orden normalizada>», en hora de Chile y con el desfase
  * (formatChileTimestamp), para que la hora releída sea la misma también en el cambio de horario.
+ * Sin orden, el documento identifica el aviso: «… · <operador> · sin orden · factura 8459» (o
+ * «guía de despacho 123»). Con «<operador> » y nada más, un operador de dos palabras
+ * («Transportes TVP») se releería como el operador «Transportes» con la orden «TVP».
  */
-export function formatSentLog(at: Date, carrier: Pick<Carrier, 'label'>, orderNormalized: string): string {
-  return `${formatChileTimestamp(at)} · ${carrier.label} ${orderNormalized}`;
+export function formatSentLog(at: Date, carrier: Pick<Carrier, 'label'>, orderNormalized: string, document: ShippingDocument): string {
+  const ref = orderNormalized || `· ${SENT_LOG_NO_ORDER} · ${sentLogDocument(document)}`;
+  return `${formatChileTimestamp(at)} · ${carrier.label} ${ref}`;
 }
 
 export type SentLogResult =
@@ -266,8 +292,15 @@ export function parseSentLog(raw: unknown): SentLogResult {
   if (!m) return { status: 'invalid', reason: 'format' };
   const stamp = parseChileTimestamp(m[1]);
   if (stamp.ok === false) return { status: 'invalid', reason: stamp.reason };
+  const noOrder = SENT_LOG_NO_ORDER_RE.exec(m[2]);
+  if (noOrder) {
+    const type = noOrder[2] === undefined ? undefined : DOCUMENT_TYPE_IDS.find((t) => normalizeLabel(DOCUMENT_TYPES[t].noun) === normalizeLabel(noOrder[2]));
+    const number = noOrder[3]?.replace(/^0+/, '');
+    const document = type && number ? { type, number } : null;
+    return { status: 'ok', log: { at: stamp.at, carrierLabel: noOrder[1].trim() || null, order: '', document } };
+  }
   const rest = /^\s*·\s*(.*?)\s+([A-Za-z0-9]+)$/.exec(m[2]);
-  return { status: 'ok', log: { at: stamp.at, carrierLabel: rest?.[1].trim() || null, order: rest ? normalizeOrder(rest[2]) : null } };
+  return { status: 'ok', log: { at: stamp.at, carrierLabel: rest?.[1].trim() || null, order: rest ? normalizeOrder(rest[2]) : null, document: null } };
 }
 
 /** Mensaje de la nota para un «Aviso enviado» que no se puede usar. */
@@ -282,9 +315,21 @@ export function sentLogProblemMessage(reason: 'format' | 'no_offset' | 'time'): 
   return `${label('sentLog')} no se puede leer: tiene que empezar como ${example}, como lo dejó el último aviso.`;
 }
 
-/** El último aviso registrado fue para este mismo operador y orden (segunda capa contra el envío doble). */
-export function sentLogMatches(log: SentLog | null, carrier: Pick<Carrier, 'label'>, orderNormalized: string): boolean {
-  return Boolean(log?.order && log.carrierLabel && log.order === orderNormalized && normalizeLabel(log.carrierLabel) === normalizeLabel(carrier.label));
+/**
+ * El último aviso registrado fue para este mismo despacho (segunda capa contra el envío doble):
+ * el mismo operador y la misma orden o, sin orden, un aviso «sin orden» del mismo operador con
+ * el mismo documento (tipo y número).
+ */
+export function sentLogMatches(
+  log: SentLog | null,
+  carrier: Pick<Carrier, 'label'>,
+  orderNormalized: string,
+  document: ShippingDocument,
+): boolean {
+  if (!log || !log.carrierLabel || typeof log.order !== 'string') return false;
+  if (normalizeLabel(log.carrierLabel) !== normalizeLabel(carrier.label)) return false;
+  if (orderNormalized) return log.order === orderNormalized;
+  return log.order === '' && !!log.document && log.document.type === document.type && log.document.number === document.number;
 }
 
 // ── Lectura del negocio ─────────────────────────────────────────────────────
@@ -330,29 +375,29 @@ export function readShippingFields(
   if (carrierOption.status === 'empty') required('carrier');
   if (carrierOption.status === 'ok') carrier = carrierFromLabel(carrierOption.label);
 
-  // Orden de flete
+  // Orden de flete (opcional: sin ella, el correo va sin seguimiento ni la nombra)
   const order = textValue(raw('order'));
   const orderNormalized = normalizeOrder(order);
-  if (!order) required('order');
-  else if (!orderNormalized) add('order', 'invalid', `${label('order')} no trae letras ni dígitos.`);
+  if (order && !orderNormalized) add('order', 'invalid', `${label('order')} no trae letras ni dígitos.`);
   else if (orderNormalized.length > MAX_ORDER_LENGTH) add('order', 'invalid', `${label('order')} tiene más de ${MAX_ORDER_LENGTH} letras y dígitos.`);
 
-  // Entrega y lugar
+  // Entrega y lugar (opcionales)
   let delivery: DeliveryKind | null = null;
   const deliveryOption = option('delivery');
-  if (deliveryOption.status === 'empty') required('delivery');
   if (deliveryOption.status === 'ok') {
     delivery = fixedKey(SHIPPING_OPTIONS.delivery, deliveryOption.label);
     if (!delivery) add('delivery', 'unknown_option', `${label('delivery')} trae «${shown(deliveryOption.label)}», que no es «Retiro en agencia» ni «A domicilio».`);
   }
   const place = textValue(raw('place'));
-  if (!place) required('place');
-  else if (place.length > MAX_PLACE_LENGTH) add('place', 'invalid', `${label('place')} tiene más de ${MAX_PLACE_LENGTH} caracteres.`);
+  if (place.length > MAX_PLACE_LENGTH) add('place', 'invalid', `${label('place')} tiene más de ${MAX_PLACE_LENGTH} caracteres.`);
+  // Un lugar sin «Entrega» no se sabe si es la agencia o la comuna: no se descarta sin avisar.
+  if (place && deliveryOption.status === 'empty') {
+    add('place', 'invalid', `${label('place')} tiene texto, pero ${label('delivery')} está vacía: elige «${SHIPPING_OPTIONS.delivery.pickup}» o «${SHIPPING_OPTIONS.delivery.home}», o borra el lugar.`);
+  }
 
-  // Flete
+  // Flete (opcional; con «Por pagar», el monto sigue siendo obligatorio)
   let freight: Freight | null = null;
   const freightOption = option('freight');
-  if (freightOption.status === 'empty') required('freight');
   if (freightOption.status === 'ok') {
     const kind = fixedKey(SHIPPING_OPTIONS.freight, freightOption.label);
     if (!kind) add('freight', 'unknown_option', `${label('freight')} trae «${shown(freightOption.label)}», que no es «Por pagar» ni «Pagado por eLIGHTS.cl».`);
@@ -368,16 +413,19 @@ export function readShippingFields(
       }
     }
   }
+  // Un monto sin «Flete»: el cliente no se enteraría de que paga el flete. No se descarta sin avisar.
+  if (freightOption.status === 'empty' && numberValue(raw('freightAmount')) !== null) {
+    add('freightAmount', 'invalid', `${label('freightAmount')} tiene monto, pero ${label('freight')} está vacío: elige «${SHIPPING_OPTIONS.freight.due}» o borra el monto.`);
+  }
 
-  // Bultos y kilos
+  // Bultos (obligatorio) y kilos (opcional)
   const packages = numberValue(raw('packages'));
   if (packages === null) required('packages');
   else if (packages === 'invalid' || !Number.isInteger(packages) || packages < 1 || packages > MAX_PACKAGES) {
     add('packages', 'invalid', `${label('packages')} tiene que ser un número entero de 1 a ${MAX_PACKAGES}.`);
   }
   const kilos = numberValue(raw('kilos'));
-  if (kilos === null) required('kilos');
-  else if (kilos === 'invalid' || !(kilos > 0) || kilos >= MAX_KILOS) {
+  if (kilos !== null && (kilos === 'invalid' || !(kilos > 0) || kilos >= MAX_KILOS)) {
     add('kilos', 'invalid', `${label('kilos')} tiene que ser un número mayor que 0 (tiene «${shown(raw('kilos'))}»).`);
   }
 
@@ -429,13 +477,13 @@ export function readShippingFields(
     data: {
       action,
       carrier: carrier!,
-      order,
+      order: order || null,
       orderNormalized,
-      delivery: delivery!,
-      place,
-      freight: freight!,
+      delivery,
+      place: place || null,
+      freight,
       packages: packages as number,
-      kilos: kilos as number,
+      kilos: kilos === null ? null : (kilos as number),
       shipDate: shipDate!,
       shipDateFromNotice: !shipText,
       eta,

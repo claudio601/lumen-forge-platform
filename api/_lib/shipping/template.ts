@@ -12,6 +12,11 @@
 //   envía antes del despacho), «Te adjuntamos <el documento del operador>» y «… va en la factura N° X».
 // - Factura o guía de despacho: todo sale de documents.ts (DOCUMENT_TYPES).
 // - Fechas siempre «el <día dd de mes>», nunca «hoy» (el aviso puede salir otro día).
+// - Opcionales (dueño, 24-11-2026): sin orden de flete, el asunto, el texto previo y el resto del
+//   correo no la nombran (sin seguimiento ni botón; «el comprobante de <operador>»); sin entrega, sin
+//   esa línea y con el cierre neutro «Al recibirlo»; con entrega y sin agencia o comuna, la entrega
+//   sin lugar; sin flete, sin esa línea ni el recuadro; sin kilos, «5 bultos». Una lista de
+//   viñetas sin líneas no se escribe.
 // - Enlaces: solo el seguimiento de carriers.ts (https fijo, la orden normalizada con
 //   encodeURIComponent) y SITE_URL + /producto/<id>. La plantilla nunca recibe una URL, y
 //   assertSafeLinks revisa al final cada href.
@@ -41,14 +46,17 @@ export interface ShippingNoticeData {
   reference: string | null;
   /** El operador por id o, sin fila, por etiqueta: nunca un enlace. */
   carrier: CarrierRef;
-  /** La orden como la escribió el dueño; el enlace usa la normalizada. */
-  order: string;
-  delivery: DeliveryKind;
-  /** Agencia (retiro) o comuna (domicilio). */
-  place: string;
-  freight: Freight;
+  /** La orden como la escribió el dueño (el enlace usa la normalizada), o null: sin seguimiento. */
+  order: string | null;
+  /** null: sin la línea «Entrega» y con el cierre neutro («Al recibirlo»). */
+  delivery: DeliveryKind | null;
+  /** Agencia (retiro) o comuna (domicilio), o null: la entrega sin lugar. */
+  place: string | null;
+  /** null: sin la línea «Flete» ni su recuadro. */
+  freight: Freight | null;
   packages: number;
-  kilos: number;
+  /** null: «5 bultos», sin los kilos. */
+  kilos: number | null;
   /** 'aaaa-mm-dd'. */
   shipDate: string;
   /** 'aaaa-mm-dd' o null: sin la línea. */
@@ -121,6 +129,12 @@ export function assertSafeLinks(html: string): void {
 
 interface Copy {
   carrier: Carrier;
+  /** La orden limpia, o null (sin orden: nada la nombra). */
+  order: string | null;
+  delivery: DeliveryKind | null;
+  /** La agencia o comuna limpia, o null. */
+  place: string | null;
+  freight: Freight | null;
   link: string | null;
   subject: string;
   preheader: string;
@@ -130,16 +144,18 @@ interface Copy {
   docTitle: string;
   docPhrase: string;
   reference: string | null;
-  /** «la orden de flete 282.022.397», «el N° de guía 123». */
-  numberWithArticle: string;
-  /** «Retirarlo» o «recibirlo». */
+  /** «la orden de flete 282.022.397», «el N° de guía 123»; null sin orden. */
+  numberWithArticle: string | null;
+  /** «Retirarlo» o «recibirlo» (también sin entrega: el cierre neutro). */
   verb: 'retirarlo' | 'recibirlo';
   lead: string;
-  trackingLine: string;
+  /** null sin orden: no hay con qué seguirlo. */
+  trackingLine: string | null;
   cells: { label: string; value: string }[];
   steps: readonly [string, string, string, string];
-  freightHtml: string;
-  freightText: string;
+  /** null sin flete. */
+  freightHtml: string | null;
+  freightText: string | null;
   cargo: string;
   noProducts: string;
   handlingTitle: string;
@@ -147,69 +163,89 @@ interface Copy {
   documents: string;
 }
 
+/** Texto limpio de un campo opcional, o null si va vacío. */
+const optional = (value: string | null | undefined) => (typeof value === 'string' && clean(value) ? clean(value) : null);
+
 function buildCopy(data: ShippingNoticeData): Copy {
   const carrier = resolveCarrier(data.carrier);
-  const order = clean(data.order);
-  const orderNormalized = normalizeOrder(order);
-  if (!orderNormalized) throw new Error('aviso de despacho: orden vacía');
-  const place = clean(data.place);
-  if (!place) throw new Error('aviso de despacho: agencia o comuna vacía');
+  const order = optional(data.order);
+  const orderNormalized = order ? normalizeOrder(order) : '';
+  if (order && !orderNormalized) throw new Error('aviso de despacho: orden sin letras ni dígitos');
+  const delivery: DeliveryKind | null = data.delivery === 'pickup' || data.delivery === 'home' ? data.delivery : null;
+  const place = optional(data.place);
+  const freight: Freight | null = data.freight && (data.freight.kind === 'due' || data.freight.kind === 'paid') ? data.freight : null;
+  const kilos = typeof data.kilos === 'number' ? data.kilos : null;
   if (!Number.isInteger(data.packages) || data.packages < 1) throw new Error('aviso de despacho: bultos inválidos');
-  if (!Number.isFinite(data.kilos) || data.kilos <= 0) throw new Error('aviso de despacho: kilos inválidos');
+  if (kilos !== null && (!Number.isFinite(kilos) || kilos <= 0)) throw new Error('aviso de despacho: kilos inválidos');
 
-  const link = trackingLink(carrier, orderNormalized);
+  // Sin orden no hay seguimiento: el botón a una página sin el número tampoco serviría.
+  const link = order ? trackingLink(carrier, orderNormalized) : null;
   const op = carrier.label;
-  const pickup = data.delivery === 'pickup';
+  const pickup = delivery === 'pickup';
   const verb = pickup ? 'retirarlo' : 'recibirlo';
   const shipDate = formatDateLong(data.shipDate);
   const eta = data.eta ? formatDateLong(data.eta) : null;
   const docTitle = documentTitle(data.document);
   const docPhrase = documentPhrase(data.document);
   const name = data.greetingName ? clean(data.greetingName) : '';
-  const numberWithArticle = `${carrier.numberArticle} ${carrier.numberLabel} ${order}`;
+  const numberWithArticle = order ? `${carrier.numberArticle} ${carrier.numberLabel} ${order}` : null;
   const pronoun = carrier.numberArticle === 'el' ? 'él' : 'ella';
 
-  const subject = clean(`${data.preview ? PREVIEW_SUBJECT_PREFIX : ''}Tu pedido va en camino — ${docTitle}, ${op} ${carrier.numberLabel} ${order}`);
-  const preheader = clean(`${op}, ${numberPhrase(carrier, order)} · ${eta ? `Entrega estimada: ${eta}` : `Despachado el ${shipDate}`}`);
+  const subject = clean(`${data.preview ? PREVIEW_SUBJECT_PREFIX : ''}Tu pedido va en camino — ${docTitle}, ${op}${order ? ` ${carrier.numberLabel} ${order}` : ''}`);
+  const preheader = clean(`${op}${order ? `, ${numberPhrase(carrier, order)}` : ''} · ${eta ? `Entrega estimada: ${eta}` : `Despachado el ${shipDate}`}`);
 
-  const where = pickup ? `para retiro en su agencia de ${place}` : `con entrega en tu dirección de ${place}`;
+  const where =
+    delivery === 'pickup' ? `, para retiro en su agencia${place ? ` de ${place}` : ''}` : delivery === 'home' ? `, con entrega en tu dirección${place ? ` de ${place}` : ''}` : '';
   const what = link ? 'el seguimiento' : 'los datos del envío';
-  const lead = `Lo entregamos a ${op} el ${shipDate}, ${where}. Aquí tienes ${what} y lo que necesitas para ${verb}.`;
+  const lead = `Lo entregamos a ${op} el ${shipDate}${where}. Aquí tienes ${what} y lo que necesitas para ${verb}.`;
 
-  let trackingLine: string;
-  if (!link) trackingLine = `Guarda ${numberWithArticle}: con ${pronoun} consultas tu envío en ${op}.`;
-  else if (carrier.numberInUrl) trackingLine = `Ingresa ${numberWithArticle}.`;
-  else trackingLine = `Ingresa ${numberWithArticle} en su página.`;
-  if (link && carrier.trackingExtra) trackingLine += ` También puedes seguirlo ${carrier.trackingExtra}.`;
+  let trackingLine: string | null = null;
+  if (numberWithArticle) {
+    if (!link) trackingLine = `Guarda ${numberWithArticle}: con ${pronoun} consultas tu envío en ${op}.`;
+    else if (carrier.numberInUrl) trackingLine = `Ingresa ${numberWithArticle}.`;
+    else trackingLine = `Ingresa ${numberWithArticle} en su página.`;
+    if (link && carrier.trackingExtra) trackingLine += ` También puedes seguirlo ${carrier.trackingExtra}.`;
+  }
 
-  const cargo = `${formatPackages(data.packages)}, ${formatKg(data.kilos)}`;
+  const cargo = kilos !== null ? `${formatPackages(data.packages)}, ${formatKg(kilos)}` : formatPackages(data.packages);
+  const deliveryCell = delivery === 'pickup' ? `Retiro en agencia ${op}${place ? `, ${place}` : ''}` : delivery === 'home' ? `A domicilio${place ? `, ${place}` : ''}` : null;
   const cells = [
     { label: 'Operador', value: op },
-    { label: numberCellLabel(carrier), value: order },
+    ...(order ? [{ label: numberCellLabel(carrier), value: order }] : []),
     ...(eta ? [{ label: 'Entrega estimada', value: eta }] : []),
-    { label: 'Entrega', value: pickup ? `Retiro en agencia ${op}, ${place}` : `A domicilio, ${place}` },
+    ...(deliveryCell ? [{ label: 'Entrega', value: deliveryCell }] : []),
   ];
   if (cells.length % 2 === 1) cells.push({ label: 'Carga', value: cargo });
 
-  const steps = ['Pedido confirmado', 'Despachado', pickup ? 'En agencia' : 'En reparto', pickup ? 'Retirado' : 'Entregado'] as const;
+  // Sin entrega, el tercer paso no dice agencia ni reparto.
+  const steps = ['Pedido confirmado', 'Despachado', pickup ? 'En agencia' : delivery === 'home' ? 'En reparto' : 'En camino', pickup ? 'Retirado' : 'Entregado'] as const;
 
-  const freightHtml =
-    data.freight.kind === 'due'
-      ? `Por pagar: <b>${e(formatClp(data.freight.amountClp))}</b>. Lo pagas a ${e(op)} al ${verb}.`
+  const freightHtml = !freight
+    ? null
+    : freight.kind === 'due'
+      ? `Por pagar: <b>${e(formatClp(freight.amountClp))}</b>. Lo pagas a ${e(op)} al ${verb}.`
       : `El flete ya está pagado: no pagas nada al ${verb}.`;
-  const freightText =
-    data.freight.kind === 'due' ? `por pagar, ${formatClp(data.freight.amountClp)}. Lo pagas a ${op} al ${verb}.` : `pagado por eLIGHTS.cl. No pagas nada al ${verb}.`;
+  const freightText = !freight
+    ? null
+    : freight.kind === 'due'
+      ? `por pagar, ${formatClp(freight.amountClp)}. Lo pagas a ${op} al ${verb}.`
+      : `pagado por eLIGHTS.cl. No pagas nada al ${verb}.`;
 
   const boxes = data.packages === 1 ? 'la caja esté' : 'las cajas estén';
   const damage = `Revisa que ${boxes} en buen estado antes de firmar. Si ves algún daño, déjalo anotado con ${op} y escríbenos el mismo día con fotos.`;
   const handling = pickup
-    ? [`Lleva tu cédula de identidad y ${numberWithArticle}.`, ...(carrier.pickupRule ? [carrier.pickupRule] : []), damage]
+    ? [numberWithArticle ? `Lleva tu cédula de identidad y ${numberWithArticle}.` : 'Lleva tu cédula de identidad.', ...(carrier.pickupRule ? [carrier.pickupRule] : []), damage]
     : [damage];
 
-  const voucher = `${carrier.document.article} ${carrier.document.noun} de ${op}`;
+  // Sin orden, el documento del operador no se nombra «la orden de flete de …»: es su comprobante.
+  const voucher = order ? `${carrier.document.article} ${carrier.document.noun} de ${op}` : `el comprobante de ${op}`;
 
   return {
     carrier,
+    order,
+    delivery,
+    place,
+    freight,
     link,
     subject,
     preheader,
@@ -241,19 +277,23 @@ const previewNotice = `Vista previa: este correo no le llegó al cliente. Para e
 
 function renderText(data: ShippingNoticeData, c: Copy): string {
   const op = c.carrier.label;
-  const pickup = data.delivery === 'pickup';
-  const place = clean(data.place);
-  const order = clean(data.order);
+  const { order, place } = c;
   const lines: string[] = [];
   if (data.preview) lines.push(`[${previewNotice}]`, '');
   lines.push(`${c.greeting},`, '', `Tu pedido ya va en camino: lo entregamos a ${op} el ${c.shipDate}.`, '');
 
-  if (!c.link) lines.push(`- Seguimiento: ${numberPhrase(c.carrier, order)}. Con ${c.carrier.numberArticle === 'el' ? 'él' : 'ella'} consultas tu envío en ${op}.`);
-  else if (c.carrier.numberInUrl) lines.push(`- Seguimiento: ${numberPhrase(c.carrier, order)}, en ${c.link}${c.carrier.trackingExtra ? `, ${c.carrier.trackingExtra}` : ''}.`);
-  else lines.push(`- Seguimiento: ingresa ${c.numberWithArticle} en ${c.link}${c.carrier.trackingExtra ? `, o síguelo ${c.carrier.trackingExtra}` : ''}.`);
-  if (c.eta) lines.push(`- Entrega estimada: ${c.eta}, según ${op}.`);
-  lines.push(pickup ? `- Entrega: retiro en la agencia ${op} de ${place}.` : `- Entrega: a domicilio en ${place}.`);
-  lines.push(`- Flete: ${c.freightText}`, '');
+  // Viñetas: solo las que tienen dato; sin ninguna, no queda una lista vacía.
+  const bullets: string[] = [];
+  if (order) {
+    if (!c.link) bullets.push(`- Seguimiento: ${numberPhrase(c.carrier, order)}. Con ${c.carrier.numberArticle === 'el' ? 'él' : 'ella'} consultas tu envío en ${op}.`);
+    else if (c.carrier.numberInUrl) bullets.push(`- Seguimiento: ${numberPhrase(c.carrier, order)}, en ${c.link}${c.carrier.trackingExtra ? `, ${c.carrier.trackingExtra}` : ''}.`);
+    else bullets.push(`- Seguimiento: ingresa ${c.numberWithArticle} en ${c.link}${c.carrier.trackingExtra ? `, o síguelo ${c.carrier.trackingExtra}` : ''}.`);
+  }
+  if (c.eta) bullets.push(`- Entrega estimada: ${c.eta}, según ${op}.`);
+  if (c.delivery === 'pickup') bullets.push(`- Entrega: retiro en la agencia ${op}${place ? ` de ${place}` : ''}.`);
+  if (c.delivery === 'home') bullets.push(`- Entrega: a domicilio${place ? ` en ${place}` : ''}.`);
+  if (c.freightText) bullets.push(`- Flete: ${c.freightText}`);
+  if (bullets.length) lines.push(...bullets, '');
 
   if (data.products.length) {
     lines.push(`Qué va en tu envío (${c.cargo}):`);
@@ -338,8 +378,9 @@ function productsBlock(data: ShippingNoticeData, c: Copy): string {
 function renderHtml(data: ShippingNoticeData, c: Copy): string {
   const op = c.carrier.label;
   const ref = [c.docTitle, ...(c.reference ? [c.reference] : []), `Despachado el ${c.shipDate}`].map(e).join('<br>');
-  const freightBox =
-    data.freight.kind === 'due'
+  const freightBox = !c.freight
+    ? ''
+    : c.freight.kind === 'due'
       ? `<div style="background:${WARN_SOFT};color:${WARN};border-radius:6px;padding:10px 12px;font-size:14px;line-height:1.5">${c.freightHtml}</div>`
       : `<div style="background:${BRAND_SOFT};color:${INK};border-radius:6px;padding:10px 12px;font-size:14px;line-height:1.5">${c.freightHtml}</div>`;
   const handling = `<ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.55;color:${INK}">${c.handling.map((h) => `<li style="margin:4px 0">${e(h)}</li>`).join('')}</ul>`;
@@ -368,12 +409,12 @@ function renderHtml(data: ShippingNoticeData, c: Copy): string {
       `<td style="padding:18px 18px 16px;font-family:${FONT}">` +
       trackingCells(c.cells) +
       (c.link ? trackingButton(c.link, op) : '') +
-      `<p style="margin:${c.link ? '10px' : '0'} 0 0;font-size:12px;line-height:1.5;color:${MUTED}">${e(c.trackingLine)}</p>` +
+      (c.trackingLine ? `<p style="margin:${c.link ? '10px' : '0'} 0 0;font-size:12px;line-height:1.5;color:${MUTED}">${e(c.trackingLine)}</p>` : '') +
       `</td></tr></table></td></tr>`,
     // 4. Estado
     stepsRow(c.steps),
-    // 5. Flete
-    section('Flete', freightBox),
+    // 5. Flete (sin flete, sin la sección)
+    c.freight ? section('Flete', freightBox) : '',
     // 6. Qué va en tu envío
     section(`Qué va en tu envío · ${e(c.cargo)}`, productsBlock(data, c)),
     // 7. Al retirarlo / Al recibirlo
