@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'f75f9f95b57b';
+export const SNAPSHOT_HASH = 'aa4f3a86cfb8';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -2178,13 +2178,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94905391,
+        "id": 123932845,
         "sku": "",
         "price": 9790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -2311,13 +2311,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94905450,
+        "id": 123932846,
         "sku": "",
         "price": 16190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -5390,13 +5390,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95315223,
+        "id": 123932847,
         "sku": "",
         "price": 14790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -5453,13 +5453,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95433611,
+        "id": 123932853,
         "sku": "",
         "price": 26190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -6481,13 +6481,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95518891,
+        "id": 123932790,
         "sku": "",
         "price": 4790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -6524,13 +6524,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95519092,
+        "id": 123932791,
         "sku": "",
         "price": 6290,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -6567,13 +6567,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95519315,
+        "id": 123932792,
         "sku": "",
         "price": 6290,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -7245,13 +7245,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94905403,
+        "id": 123932855,
         "sku": "",
         "price": 16090,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -8821,13 +8821,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95520898,
+        "id": 123932793,
         "sku": "",
         "price": 16890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11100,13 +11100,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94905551,
+        "id": 123932859,
         "sku": "",
         "price": 19890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11143,13 +11143,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94913533,
+        "id": 123932864,
         "sku": "",
         "price": 22890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11186,13 +11186,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94913521,
+        "id": 123932866,
         "sku": "",
         "price": 60690,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11229,13 +11229,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94913483,
+        "id": 123932868,
         "sku": "",
         "price": 175890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11272,13 +11272,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94905568,
+        "id": 123932872,
         "sku": "",
         "price": 220290,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11335,13 +11335,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 94905413,
+        "id": 123932873,
         "sku": "",
         "price": 7290,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11378,13 +11378,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95177030,
+        "id": 123932874,
         "sku": "",
         "price": 2800,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11432,13 +11432,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95177036,
+        "id": 123932875,
         "sku": "",
         "price": 3190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11496,13 +11496,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95178953,
+        "id": 123932877,
         "sku": "",
         "price": 81600,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11599,13 +11599,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95519334,
+        "id": 123932789,
         "sku": "",
         "price": 13590,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       }
@@ -11631,13 +11631,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95520928,
+        "id": 123932794,
         "sku": "",
         "price": 27390,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11674,13 +11674,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 95521230,
+        "id": 123932795,
         "sku": "",
         "price": 27390,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11781,13 +11781,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 96221780,
+        "id": 123932882,
         "sku": "",
         "price": 1690,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11934,13 +11934,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 98856612,
+        "id": 123932898,
         "sku": "",
         "price": 685490,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -11992,13 +11992,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 98856617,
+        "id": 123932899,
         "sku": "",
         "price": 262890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
