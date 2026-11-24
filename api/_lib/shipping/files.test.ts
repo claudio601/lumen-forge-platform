@@ -124,7 +124,7 @@ describe('qué archivos cuentan', () => {
   });
 
   it('se ignoran los nombres que pone el aviso (factura, guía y comprobante)', () => {
-    const r = select([file('Factura-1234.pdf'), file('Guia-de-despacho-291.pdf'), file('Comprobante-Starken-123456789.jpg'), file('nuevo 1234.pdf'), file('comprobante nuevo.jpg')]);
+    const r = select([file('Factura-1234.pdf'), file('Guia-de-despacho-291.pdf'), file('Comprobante-Starken-123456789.jpg'), file('Comprobante-Transportes-TVP.png'), file('nuevo 1234.pdf'), file('comprobante nuevo.jpg')]);
     expect(r.ok && [r.document?.fileName, r.voucher.fileName]).toEqual(['nuevo 1234.pdf', 'comprobante nuevo.jpg']);
   });
 
@@ -224,6 +224,9 @@ describe('bytes descargados', () => {
     // la extensión sale de los bytes, no del nombre
     expect(checkDownloadedFile(photo, PNG, ctx)).toMatchObject({ ok: true, attachment: { fileName: 'Comprobante-Starken-123456789.png', contentType: 'image/png' } });
     expect(voucherFileName(resolveCarrier({ id: 'pullman-cargo' }), '23501234567', 'jpg')).toBe('Comprobante-Pullman-Cargo-23501234567.jpg');
+    // Sin orden de flete (opcional desde el 24-11-2026): sin el guion final.
+    expect(voucherFileName(resolveCarrier({ id: null, label: 'Transportes TVP' }), '', 'png')).toBe('Comprobante-Transportes-TVP.png');
+    expect(checkDownloadedFile(photo, JPEG, { ...ctx, orderNormalized: '' })).toMatchObject({ ok: true, attachment: { fileName: 'Comprobante-Starken.jpg' } });
   });
 
   it('tipo por bytes: un PDF con extensión .jpg no pasa como comprobante; una foto no pasa como factura', () => {

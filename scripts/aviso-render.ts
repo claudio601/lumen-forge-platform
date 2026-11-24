@@ -108,6 +108,22 @@ export function fixtures(): Record<string, ShippingNoticeData> {
       document: { type: 'factura', number: '1262' },
       products: [],
     },
+    // Sin orden de flete, entrega, agencia o comuna, flete ni kilos (opcionales desde el 24-11-2026):
+    // un operador sin fila y solo los bultos; el correo omite esas líneas.
+    'tvp-sin-datos': {
+      ...base,
+      greetingName: 'Marta',
+      carrier: { id: null, label: 'Transportes TVP' },
+      order: null,
+      delivery: null,
+      place: null,
+      freight: null,
+      packages: 5,
+      kilos: null,
+      eta: null,
+      document: { type: 'factura', number: '1270' },
+      products: products('4 PLRE6N'),
+    },
     // Vista previa (solo al dueño): PDQ a domicilio, por pagar, guía de despacho.
     'vista-previa': {
       ...base,

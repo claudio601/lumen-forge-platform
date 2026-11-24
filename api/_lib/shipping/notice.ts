@@ -13,7 +13,10 @@
 //    una reentrega de Pipedrive y termina sin tocar nada, aunque los campos hayan cambiado. Una
 //    elección nueva del dueño trae otro `update_time`. Sin `update_time` no se envía al cliente.
 // 3. Lee los 15 campos por su nombre (fields.ts). Una opción que no está en las opciones guardadas
-//    refresca /dealFields una vez y se vuelve a leer.
+//    refresca /dealFields una vez y se vuelve a leer. Orden de flete, Entrega, Agencia o comuna,
+//    Flete y Kilos son opcionales (dueño, 24-11-2026): sin ellos, el correo omite esas líneas y la
+//    nota dice «sin dato». Sin orden, la clave es la de `{negocio}:{operador}:` (key.ts) y «Aviso
+//    enviado» lleva «· sin orden» (formatSentLog): las tres capas siguen.
 // 4. Persona y correo (readPersonContact), productos (products.ts), archivos (files.ts: la lista,
 //    la descarga con tope y sniffType) y la plantilla (template.ts). Los productos, por prioridad:
 //    «Despacho · Productos»; si no, requested_items_json de la solicitud RC- (en la vista previa,
@@ -340,9 +343,14 @@ function transientNote(action: ShippingAction | null, reason: string): string[] 
   return [`${headline(action)}: ${reason}.`, `Reintenta en unos minutos: vuelve a elegir «${label}» en ${TRIGGER}.`];
 }
 
+/** «Starken 123.456.789» o, sin orden, «Transportes TVP, sin orden de flete» (para las notas y el ATENCIÓN). */
+function shipmentLabel(data: ShippingFields): string {
+  return data.order ? `${data.carrier.label} ${data.order}` : `${data.carrier.label}, sin ${data.carrier.numberLabel}`;
+}
+
 function alreadySentNote(at: Date | null, data: ShippingFields): string[] {
   return [
-    `Aviso de despacho NO enviado: ya se envió${at ? ` el ${chileStamp(at)} (hora de Chile)` : ''} con ${data.carrier.label} ${data.order}.`,
+    `Aviso de despacho NO enviado: ya se envió${at ? ` el ${chileStamp(at)} (hora de Chile)` : ''} con ${shipmentLabel(data)}.`,
     'Para corregir algo, escríbele desde Gmail.',
   ];
 }
@@ -429,17 +437,20 @@ function sentNote(args: {
   key: string;
 }): string[] {
   const { data } = args;
-  const delivery = data.delivery === 'pickup' ? SHIPPING_OPTIONS.delivery.pickup : SHIPPING_OPTIONS.delivery.home;
-  const freight =
-    data.freight.kind === 'due'
+  // Los campos opcionales vacíos (dueño, 24-11-2026) quedan como «sin dato»: el correo no los nombra.
+  const none = 'sin dato';
+  const delivery = data.delivery === 'pickup' ? SHIPPING_OPTIONS.delivery.pickup : data.delivery === 'home' ? SHIPPING_OPTIONS.delivery.home : none;
+  const freight = !data.freight
+    ? none
+    : data.freight.kind === 'due'
       ? `${SHIPPING_OPTIONS.freight.due}, ${formatClp(data.freight.amountClp)} (lo cobra el operador; no es parte del negocio)`
       : SHIPPING_OPTIONS.freight.paid;
   return [
     `Aviso de despacho enviado (${chileStamp(args.at)}, hora de Chile)`,
-    `Operador: ${data.carrier.label} | ${numberCellLabel(data.carrier)}: ${data.order}`,
-    `Entrega: ${delivery}, ${data.place} | Estimada: ${data.eta ? formatDateLong(data.eta) : 'sin fecha'}`,
+    `Operador: ${data.carrier.label} | ${numberCellLabel(data.carrier)}: ${data.order || none}`,
+    `Entrega: ${delivery}${data.place ? `, ${data.place}` : ''} | Estimada: ${data.eta ? formatDateLong(data.eta) : 'sin fecha'}`,
     `Flete: ${freight}`,
-    `Bultos: ${data.packages} | Kilos: ${formatDecimal(data.kilos)} | ${documentTitle(data.document)}`,
+    `Bultos: ${data.packages} | Kilos: ${typeof data.kilos === 'number' ? formatDecimal(data.kilos) : none} | ${documentTitle(data.document)}`,
     ...productLines(args.products, args.source, data),
     attachmentsLine(args.attachments),
     'Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).',
@@ -813,7 +824,7 @@ async function sendPreview(run: Run, p: Prepared): Promise<NoticeOutcome> {
       : `sin lista (el correo dice que el detalle va en ${documentPhrase(p.data.document)})`;
     const lines = [
       `Vista previa enviada a tu correo (${chileStamp(new Date())}, hora de Chile): es el aviso de despacho tal como le llegaría al cliente.`,
-      `${p.data.carrier.label}, ${numberCellLabel(p.data.carrier).toLowerCase()} ${p.data.order} · ${documentTitle(p.data.document)} · Productos: ${summary}.`,
+      `${p.data.order ? `${p.data.carrier.label}, ${numberCellLabel(p.data.carrier).toLowerCase()} ${p.data.order}` : shipmentLabel(p.data)} · ${documentTitle(p.data.document)} · Productos: ${summary}.`,
       attachmentsLine(p.attachments),
     ];
     if (p.requestIssue) lines.push(`No se usó la lista de la solicitud: ${p.requestIssue}`);
@@ -879,7 +890,7 @@ async function sendToCustomer(run: Run, p: Prepared): Promise<NoticeOutcome> {
   await finalPut(run);
   await attention(run, {
     headline: `ATENCIÓN: el aviso de despacho NO salió: ${text}.`,
-    details: [`${p.data.carrier.label} ${p.data.order}, ${documentTitle(p.data.document)}.`],
+    details: [`${shipmentLabel(p.data)}, ${documentTitle(p.data.document)}.`],
   });
   return 'rechazado';
 }
@@ -927,10 +938,10 @@ async function recordSent(run: Run, p: Prepared, at: Date): Promise<NoticeOutcom
     await attention(run, {
       headline: 'ATENCIÓN: el aviso salió, pero no quedó en Pipedrive.',
       details: [
-        `Enviado el ${chileStamp(at)} (hora de Chile): ${p.data.carrier.label} ${p.data.order}, ${documentTitle(p.data.document)}.`,
+        `Enviado el ${chileStamp(at)} (hora de Chile): ${shipmentLabel(p.data)}, ${documentTitle(p.data.document)}.`,
         `Falta registrar a mano: ${joinList(missing)}.`,
         ...(put.saved ? [] : [`En «${SHIPPING_FIELD_NAMES.sentLog}» va: ${sentLogValue(at, p.data)}`]),
-        'No vuelvas a elegir «Enviar al cliente» para esta orden: el correo ya salió.',
+        `No vuelvas a elegir «Enviar al cliente» para ${p.data.order ? 'esta orden' : 'este despacho'}: el correo ya salió.`,
       ],
       task: { personId: p.data.personId, subject: 'ATENCIÓN aviso de despacho: registrar el envío en el negocio' },
     });

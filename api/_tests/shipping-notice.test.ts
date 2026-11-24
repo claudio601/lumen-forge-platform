@@ -450,11 +450,177 @@ describe('enviar al cliente', () => {
   });
 });
 
+// ── Campos opcionales (dueño, 24-11-2026) ───────────────────────────────────
+
+describe('campos opcionales (dueño, 24-11-2026): orden, entrega, agencia o comuna, flete y kilos', () => {
+  /** Clave sin orden de flete: `{negocio}:starken:`. */
+  const KEY_NO_ORDER = shippingNoticeKey(DEAL_ID, 'starken', '');
+
+  /** El caso que lo motivó: sin orden de flete, sin saber si es retiro o domicilio, ni el flete ni los kilos. */
+  function emptyOptional() {
+    Object.assign(w.deal(), { [K.order]: '', [K.delivery]: null, [K.place]: '', [K.freight]: null, [K.freightAmount]: null, [K.kilos]: null, [K.packages]: 5 });
+  }
+
+  it('los cinco vacíos: la vista previa y el envío salen, sin esas líneas', async () => {
+    emptyOptional();
+    expect(await choose('preview')).toBe('vista_previa_enviada');
+    expect(previews()[0].subject).toBe('[Vista previa] Tu pedido va en camino — Factura N° 1234, Starken');
+    expect(lastNote().split('\n')[1]).toBe(`Starken, sin orden de flete · Factura N° 1234 · Productos: 1 de «${SHIPPING_FIELD_NAMES.products}».`);
+
+    vi.setSystemTime(NOW.getTime() + 60_000);
+    expect(await choose('send')).toBe('enviado');
+    const mail = despachos()[0];
+    expect(mail.key).toBe(KEY_NO_ORDER);
+    expect(mail.subject).toBe('Tu pedido va en camino — Factura N° 1234, Starken');
+    expect(mail.attachments.map((a) => a.name)).toEqual(['Factura-1234.pdf', 'Comprobante-Starken.jpg']);
+    expect(mail.text).toBe(
+      [
+        'Hola Juana,',
+        '',
+        'Tu pedido ya va en camino: lo entregamos a Starken el miércoles 18 de noviembre.',
+        '',
+        'Qué va en tu envío (5 bultos):',
+        '- 10 Panel prueba 60X60',
+        '  Ficha técnica: https://elights.cl/producto/panel-prueba-60x60',
+        '',
+        'Te adjuntamos la factura N° 1234 en PDF y el comprobante de Starken.',
+        '',
+        'Al recibirlo: revisa que las cajas estén en buen estado antes de firmar. Si ves algún daño, déjalo anotado con Starken y escríbenos el mismo día con fotos.',
+        '',
+        'Quedo atento.',
+        '',
+        'Saludos cordiales,',
+        'Claudio Quero',
+        'eLIGHTS.cl SpA',
+        'claudio@elights.cl',
+        '',
+        '¿Dudas con tu pedido? Responde este correo o llámanos al +56 9 9127 3128.',
+        'eLIGHTS.cl SpA · RUT 76.947.784-5 · claudio@elights.cl · elights.cl',
+        '',
+      ].join('\n'),
+    );
+    expect(mail.html).not.toMatch(/Seguir mi envío|>Flete<\/h2>|orden de flete/);
+    expect(lastNote().split('\n')).toEqual([
+      'Aviso de despacho enviado (2026-11-18 12:01, hora de Chile)',
+      'Operador: Starken | Orden de flete: sin dato',
+      'Entrega: sin dato | Estimada: sin fecha',
+      'Flete: sin dato',
+      'Bultos: 5 | Kilos: sin dato | Factura N° 1234',
+      `Productos (de «${SHIPPING_FIELD_NAMES.products}»):`,
+      '- 10 x PAN60 Panel prueba 60X60',
+      'Adjuntos: Factura-1234.pdf (2 KB), Comprobante-Starken.jpg (4 KB)',
+      'Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).',
+      'Etapa: «Despachado».',
+      `aviso_despacho_key: ${KEY_NO_ORDER}`,
+    ]);
+    expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:01 -03:00 · Starken · sin orden');
+    expect(w.deal()[K.trigger]).toBeNull();
+    expect(w.redis.data.get(noticeStateKey(KEY_NO_ORDER))?.value).toBe(`sent:${new Date(NOW.getTime() + 60_000).toISOString()}`);
+  });
+
+  const partial: Array<[string, (w: NoticeWorld) => void, string[], string[], string]> = [
+    [
+      'solo sin orden',
+      (w) => { w.deal()[K.order] = ''; },
+      ['- Entrega: retiro en la agencia Starken de Temuco.\n- Flete: por pagar, $14.460. Lo pagas a Starken al retirarlo.\n', 'Al retirarlo: lleva tu cédula de identidad. Tienes 10 días', 'Te adjuntamos la factura N° 1234 en PDF y el comprobante de Starken.'],
+      ['Seguimiento', 'orden de flete', '123.456.789'],
+      'Operador: Starken | Orden de flete: sin dato',
+    ],
+    [
+      'con entrega y sin agencia o comuna',
+      (w) => { w.deal()[K.place] = ''; },
+      ['\n- Entrega: retiro en la agencia Starken.\n', '- Seguimiento: orden de flete N° 123.456.789'],
+      ['Temuco'],
+      'Entrega: Retiro en agencia | Estimada: sin fecha',
+    ],
+    [
+      'sin kilos',
+      (w) => { w.deal()[K.kilos] = null; },
+      ['\nQué va en tu envío (1 bulto):\n'],
+      [' kg'],
+      'Bultos: 1 | Kilos: sin dato | Factura N° 1234',
+    ],
+    [
+      'sin entrega ni flete (con la comuna: sin entrega no se sabe si es la agencia o la comuna)',
+      (w) => { w.deal()[K.delivery] = null; w.deal()[K.freight] = null; },
+      ['\nAl recibirlo: revisa que la caja esté en buen estado antes de firmar. Si ves algún daño, déjalo anotado con Starken y escríbenos el mismo día con fotos.\n'],
+      ['- Entrega:', '- Flete:', 'Temuco', 'cédula'],
+      'Entrega: sin dato, Temuco | Estimada: sin fecha',
+    ],
+  ];
+
+  it.each(partial)('%s: sale, sin esa línea', async (_label, arrange, contains, absent, noteLine) => {
+    arrange(w);
+    expect(await choose('send')).toBe('enviado');
+    const mail = despachos()[0];
+    for (const text of contains) expect(mail.text, text).toContain(text);
+    for (const text of absent) expect(`${mail.subject}\n${mail.text}`, text).not.toContain(text);
+    expect(lastNote().split('\n')).toContain(noteLine);
+  });
+
+  it('el operador vacío sigue dando «Falta»; los cinco opcionales vacíos, no', async () => {
+    emptyOptional();
+    w.deal()[K.carrier] = null;
+    expect(await choose('send')).toBe('datos_incompletos');
+    expect(lastNote().split('\n')).toEqual([
+      'Aviso de despacho NO enviado («Enviar al cliente»). Falta o hay que corregir:',
+      `- Falta «${SHIPPING_FIELD_NAMES.carrier}».`,
+      `Cuando esté listo, vuelve a elegir «Enviar al cliente» en «${SHIPPING_FIELD_NAMES.trigger}».`,
+    ]);
+    expect(w.relay.calls).toBe(0);
+  });
+
+  it('envío doble sin orden: las tres capas siguen (el campo, Redis y el relay)', async () => {
+    emptyOptional();
+    expect(await choose('send')).toBe('enviado');
+    // Capa 2: «Aviso enviado» dice «· sin orden» del mismo operador.
+    vi.setSystemTime(NOW.getTime() + 10 * 60_000);
+    expect(await choose('send')).toBe('ya_enviado');
+    expect(lastNote()).toBe('Aviso de despacho NO enviado: ya se envió el 2026-11-18 12:00 (hora de Chile) con Starken, sin orden de flete.\nPara corregir algo, escríbele desde Gmail.');
+    // Capa 1: aunque alguien borre «Aviso enviado», la clave sin orden está en `sent`.
+    w.deal()[K.sentLog] = null;
+    expect(await choose('send')).toBe('ya_enviado');
+    // Capa 3: sin Redis ni el campo, el relay responde duplicate por la misma clave.
+    w.redis.data.delete(noticeStateKey(KEY_NO_ORDER));
+    w.deal()[K.sentLog] = null;
+    expect(await choose('send')).toBe('enviado');
+    expect(noticeLog().at(-1)).toContain('relay=duplicate');
+    expect(despachos()).toHaveLength(1);
+    expect(w.relay.calls).toBe(2);
+  });
+
+  it('sin orden y después con la orden: es otra clave, y sale un segundo correo si hay una foto nueva (lo decide el dueño)', async () => {
+    emptyOptional();
+    expect(await choose('send')).toBe('enviado');
+    vi.setSystemTime(NOW.getTime() + 5 * 60_000);
+    w.deal()[K.order] = '987654321';
+    // El campo no calza (otra orden) ni Redis (otra clave); la foto del primer aviso ya no cuenta.
+    expect(await choose('send')).toBe('datos_incompletos');
+    expect(lastNote()).toContain('- Falta la foto del comprobante del operador');
+    expect(w.relay.calls).toBe(1);
+    // Con una foto nueva, sale el segundo correo, ahora con la orden.
+    w.addFile('voucher-2.jpg', jpgBytes(), { add_time: pipedriveTime(new Date(NOW.getTime() + 2 * 60_000)) });
+    expect(await choose('send')).toBe('enviado');
+    expect(despachos()).toHaveLength(2);
+    expect(despachos()[1].key).toBe(shippingNoticeKey(DEAL_ID, 'starken', '987654321'));
+    expect(despachos()[1].subject).toBe('Tu pedido va en camino — Factura N° 1234, Starken orden de flete 987654321');
+    expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:05 -03:00 · Starken 987654321');
+  });
+});
+
 // ── Lo que detiene el aviso (§8) ────────────────────────────────────────────
 
 describe('§8 falta algo: nota «NO enviado» con la lista exacta y el disparador vacío', () => {
   const cases: Array<[string, (w: NoticeWorld) => void, string[]]> = [
-    ['faltan el operador y la orden', (w) => { w.deal()[K.carrier] = null; w.deal()[K.order] = ''; }, [`- Falta «${SHIPPING_FIELD_NAMES.carrier}».`, `- Falta «${SHIPPING_FIELD_NAMES.order}».`]],
+    // La orden de flete es opcional desde el 24-11-2026: solo falta el operador.
+    ['falta el operador (la orden vacía ya no cuenta)', (w) => { w.deal()[K.carrier] = null; w.deal()[K.order] = ''; }, [`- Falta «${SHIPPING_FIELD_NAMES.carrier}».`]],
+    ['faltan los bultos', (w) => { w.deal()[K.packages] = null; }, [`- Falta «${SHIPPING_FIELD_NAMES.packages}».`]],
+    ['falta el N° de documento', (w) => { w.deal()[K.documentNumber] = ''; }, [`- Falta «${SHIPPING_FIELD_NAMES.documentNumber}».`]],
+    ['una orden sin letras ni dígitos', (w) => { w.deal()[K.order] = '---'; }, [`- «${SHIPPING_FIELD_NAMES.order}» no trae letras ni dígitos.`]],
+    ['una agencia o comuna de más de 80 caracteres', (w) => { w.deal()[K.place] = 'x'.repeat(81); }, [`- «${SHIPPING_FIELD_NAMES.place}» tiene más de 80 caracteres.`]],
+    ['kilos en 0', (w) => { w.deal()[K.kilos] = 0; }, [`- «${SHIPPING_FIELD_NAMES.kilos}» tiene que ser un número mayor que 0 (tiene «0»).`]],
+    ['«Por pagar» sin el monto', (w) => { w.deal()[K.freightAmount] = null; }, [`- Falta «${SHIPPING_FIELD_NAMES.freightAmount}»: con «Por pagar» va el monto del comprobante del operador.`]],
+    ['una entrega que no está en las opciones', (w) => { w.deal()[K.delivery] = 999; }, [`- «${SHIPPING_FIELD_NAMES.delivery}» trae una opción que no está en Pipedrive: vuelve a elegirla.`]],
     ['la persona no tiene correo', (w) => { w.pd.persons.get(PERSON_ID)!.email = []; }, ['- La persona del negocio no tiene correo: agrégalo en la persona.']],
     ['la persona ya no existe', (w) => { w.pd.persons.delete(PERSON_ID); }, ['- La persona del negocio ya no existe en Pipedrive: agrega la persona del cliente, con su correo.']],
     ['un SKU desconocido sin texto', (w) => { w.deal()[K.products] = '10 PAN60\n2 NOEXISTE'; }, [`- «${SHIPPING_FIELD_NAMES.products}», línea 2 («2 NOEXISTE»): el SKU NOEXISTE no está en el catálogo publicado. Corrígelo o agrega « — <texto como en la factura>».`]],
@@ -697,8 +863,8 @@ describe('§8 Redis, plazo, candado y respuestas del relay', () => {
   it('el candado se toma con NX y 90 s, y se suelta al terminar (también si el aviso no sale)', async () => {
     const seen: string[][] = [];
     w.redis.intercept = (cmd, args) => { if (cmd === 'SET' && args[0] === noticeLockKey(DEAL_ID)) seen.push(args); return undefined; };
-    w.deal()[K.order] = '';
-    await choose('send');
+    w.deal()[K.carrier] = null;
+    expect(await choose('send')).toBe('datos_incompletos');
     expect(seen).toHaveLength(1);
     expect(seen[0].slice(2)).toEqual(['NX', 'PX', '90000']);
     expect(w.redis.data.has(noticeLockKey(DEAL_ID))).toBe(false);

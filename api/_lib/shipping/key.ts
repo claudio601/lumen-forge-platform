@@ -11,21 +11,26 @@
 // doble dejarían de servir. Por eso la función no normaliza nada por su cuenta: exige la
 // orden ya normalizada (solo A-Z y 0-9) y lanza si no lo está, y trata igual el id como
 // número (webhook v1) o como texto (v2, `meta.entity_id`).
+//
+// Sin orden de flete (opcional desde el 24-11-2026, decisión del dueño), la orden va vacía:
+// `{dealId}:{carrierId}:`, siempre la misma para ese negocio y ese operador. Un aviso sin orden
+// y otro del mismo negocio y operador con orden tienen claves distintas (son dos envíos).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createHash } from 'node:crypto';
 
 const DEAL_ID_RE = /^[1-9]\d{0,15}$/;
 const CARRIER_ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
-/** Orden de flete normalizada: solo letras y dígitos, en mayúsculas. */
-const ORDER_RE = /^[A-Z0-9]{1,64}$/;
+/** Orden de flete normalizada: solo letras y dígitos, en mayúsculas; vacía si el aviso va sin orden. */
+const ORDER_RE = /^[A-Z0-9]{0,64}$/;
 /** Forma de la clave: 64 caracteres hex en minúscula. */
 export const SHIPPING_NOTICE_KEY_RE = /^[0-9a-f]{64}$/;
 
 /**
- * Clave de idempotencia del aviso: SHA-256 en hex de `{dealId}:{carrierId}:{orden}`.
- * Lanza TypeError si el id del negocio no es un entero positivo, si el id del operador
- * no es un identificador corto o si la orden no viene normalizada.
+ * Clave de idempotencia del aviso: SHA-256 en hex de `{dealId}:{carrierId}:{orden}` (la orden
+ * puede ir vacía: aviso sin orden de flete). Lanza TypeError si el id del negocio no es un
+ * entero positivo, si el id del operador no es un identificador corto o si la orden no viene
+ * normalizada.
  */
 export function shippingNoticeKey(
   dealId: number | string,

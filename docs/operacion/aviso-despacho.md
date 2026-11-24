@@ -19,15 +19,18 @@ Solo cuentan los archivos agregados en los últimos 7 días y, si el negocio ya 
 
 **Campos** (los «Despacho · …» del negocio):
 
+Orden de flete, entrega, agencia o comuna, flete y kilos son opcionales (dueño, 24-11-2026): sin ellos, el correo omite esas líneas.
+
 | Campo | Qué va |
 |---|---|
 | Despacho · Operador | el de la lista. Si el operador no está, agrégalo como opción: el aviso sale sin botón de seguimiento. |
-| Despacho · Orden de flete | la del comprobante, como venga (con puntos o guiones). |
-| Despacho · Entrega | «Retiro en agencia» o «A domicilio». |
-| Despacho · Agencia o comuna | la agencia (retiro) o la comuna (domicilio). |
-| Despacho · Flete | «Por pagar» o «Pagado por eLIGHTS.cl». |
+| Despacho · Orden de flete | opcional: la del comprobante, como venga (con puntos o guiones). Sin ella, el correo no lleva seguimiento ni nombra la orden. |
+| Despacho · Entrega | opcional: «Retiro en agencia» o «A domicilio». Sin ella, el correo no dice cómo se entrega y cierra con «Al recibirlo». |
+| Despacho · Agencia o comuna | opcional: la agencia (retiro) o la comuna (domicilio). Va con «Entrega»: sin ella, no sale en el correo. |
+| Despacho · Flete | opcional: «Por pagar» o «Pagado por eLIGHTS.cl». Sin él, el correo no habla del flete. |
 | Despacho · Flete por pagar | solo con «Por pagar»: el monto del comprobante, en pesos, sin puntos. No toca el valor del negocio. |
-| Despacho · Bultos y Despacho · Kilos | los del comprobante. |
+| Despacho · Bultos | los del comprobante. |
+| Despacho · Kilos | opcional: los del comprobante. Sin ellos, el correo dice solo los bultos. |
 | Despacho · Fecha de envío | si va vacía, es hoy. No puede ser una fecha futura. |
 | Despacho · Entrega estimada | opcional. Si va vacía, el correo no promete fecha. |
 | Despacho · Documento | «Factura» o «Guía de despacho». Vacío = factura. |
@@ -47,13 +50,15 @@ El correo va al **correo principal de la persona del negocio** (o al primero de 
 2. Revisa el correo. Si algo está mal, corrige el campo o el archivo y pide otra vista previa (hasta 5 por hora por negocio).
 3. Elige **«Enviar al cliente»**. Sale el correo al cliente. En el negocio quedan:
    - la nota «Aviso de despacho enviado (…)», con todos los datos y los adjuntos;
-   - «Despacho · Aviso enviado» con la fecha, la hora, el operador y la orden;
+   - «Despacho · Aviso enviado» con la fecha, la hora, el operador y la orden (o «sin orden»);
    - la etapa «Despachado» (si el embudo la tiene; si no, solo la nota);
    - el campo «Despacho · Aviso» vacío.
 
 El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no envía nada.
 
 **Un segundo envío del mismo negocio** (otra parte del pedido): otra orden de flete, la foto del comprobante nuevo (y el PDF de la factura, si lo quieres adjuntar) agregada después del primer aviso, y otra vez «Vista previa» y «Enviar al cliente». Si el negocio está archivado, desarchívalo primero.
+
+**Si el aviso salió sin orden de flete y después la completas**, «Enviar al cliente» lo cuenta como otro envío: sin una foto nueva del comprobante, la nota dice que falta; con una foto nueva, sale un segundo correo al cliente, ahora con la orden.
 
 ## 3. Qué significa cada nota
 
@@ -63,7 +68,7 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 | Aviso de despacho enviado | el cliente ya lo tiene | nada |
 | NO enviado … Falta o hay que corregir: (lista) | faltaba un dato, el correo, la foto del comprobante, o un archivo no sirve | corregir lo de la lista y volver a elegir |
 | NO enviado … Reintenta en unos minutos | Pipedrive, Redis o el plazo de la función fallaron un momento (en la vista previa, también el relay: «reenvío del mismo cuerpo firmado» o «caché del relay no disponible») | volver a elegir en unos minutos |
-| NO enviado: ya se envió el … | esa orden de flete ya tuvo su aviso | nada; para corregir algo, escríbele desde Gmail |
+| NO enviado: ya se envió el … | esa orden de flete (o, sin orden, ese operador) ya tuvo su aviso | nada; para corregir algo, escríbele desde Gmail |
 | NO enviado: hay un envío en curso o sin confirmar | otro aviso de la misma orden estaba saliendo | revisar Enviados en 10 minutos; si no está, volver a elegir «Enviar al cliente» |
 | no sé si salió | el relay no confirmó a tiempo | revisar Enviados (el asunto sin «[Vista previa]»); si no está, volver a elegir «Enviar al cliente». Si había salido, no se repite. |
 | NO enviado: se acabó la cuota diaria de correos | Gmail no envía más hoy | reintentar mañana (también llega un correo ATENCIÓN a ventas@) |
@@ -83,7 +88,7 @@ Si a los 2 minutos «Despacho · Aviso» sigue con valor y no hay nota nueva, el
 1. vacía el campo y guarda;
 2. vuelve a elegir la opción y guarda.
 
-Elegir de nuevo el valor que ya tiene no hace nada: Pipedrive no avisa si el campo no cambió. Reintentar nunca envía dos veces la misma orden de flete: el sitio, el campo «Aviso enviado» y el relay lo impiden. Si Pipedrive repite por su cuenta un aviso que ya llegó (sus reintentos), el sitio lo reconoce y no hace nada: solo cuenta lo que eliges tú.
+Elegir de nuevo el valor que ya tiene no hace nada: Pipedrive no avisa si el campo no cambió. Reintentar nunca envía dos veces la misma orden de flete (ni, sin orden, el mismo aviso sin orden del mismo operador): el sitio, el campo «Aviso enviado» y el relay lo impiden. Si Pipedrive repite por su cuenta un aviso que ya llegó (sus reintentos), el sitio lo reconoce y no hace nada: solo cuenta lo que eliges tú.
 
 Si editas otros campos con «Despacho · Aviso» todavía puesto, no se envía nada: el aviso sale solo en el momento en que eliges la opción.
 

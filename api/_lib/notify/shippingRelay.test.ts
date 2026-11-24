@@ -92,8 +92,17 @@ describe('shippingNoticeKey', () => {
     expect(shippingNoticeKey(4242, 'chilexpress', 'ABC123456')).not.toBe(base);
   });
 
+  it('sin orden de flete (opcional desde el 24-11-2026): la clave de `{dealId}:{carrierId}:`, siempre la misma', () => {
+    const noOrder = shippingNoticeKey(4242, 'transportes-tvp', '');
+    expect(noOrder).toBe(createHash('sha256').update('4242:transportes-tvp:', 'utf8').digest('hex'));
+    expect(shippingNoticeKey('4242', 'transportes-tvp', '')).toBe(noOrder);
+    // Con la orden ya es otro envío; otro operador sin orden, también.
+    expect(shippingNoticeKey(4242, 'transportes-tvp', 'ABC123')).not.toBe(noOrder);
+    expect(shippingNoticeKey(4242, 'starken', '')).not.toBe(noOrder);
+  });
+
   it('lanza si la orden no viene normalizada o los ids no son válidos (la clave cambiaría entre intentos)', () => {
-    for (const order of ['ABC-123', 'abc123', '123.456.789', ' ABC123', '', 'ÑANDU1']) {
+    for (const order of ['ABC-123', 'abc123', '123.456.789', ' ABC123', ' ', 'ÑANDU1']) {
       expect(() => shippingNoticeKey(4242, 'starken', order), order).toThrow(TypeError);
     }
     for (const deal of [0, -1, 1.5, '12a', '', '0123'] as Array<number | string>) {

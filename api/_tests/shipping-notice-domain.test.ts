@@ -47,8 +47,8 @@ describe('SITE_URL todavía no es elights.cl', () => {
     expect(w.deal()[K.sentLog]).toBeNull();
   });
 
-  it('la guarda va antes que los datos: con un campo vacío, la nota es la del dominio', async () => {
-    w.deal()[K.order] = '';
+  it('la guarda va antes que los datos: con un campo obligatorio vacío, la nota es la del dominio', async () => {
+    w.deal()[K.carrier] = null;
     expect(await choose('send')).toBe('dominio');
   });
 

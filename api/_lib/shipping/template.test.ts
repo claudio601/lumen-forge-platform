@@ -1,7 +1,8 @@
 // api/_lib/shipping/template.test.ts
 // Plantilla del aviso de despacho (spec Nivel 2, §5 y §10): escape, enlaces solo de carriers.ts y
 // SITE_URL, las combinaciones (agencia/domicilio, por pagar/pagado, con o sin fecha estimada y
-// PDF del documento, Starken/otro/desconocido, factura/guía, sin productos), el texto y el HTML con los
+// PDF del documento, Starken/otro/desconocido, factura/guía, sin productos), los campos opcionales
+// (sin orden, entrega, agencia o comuna, flete ni kilos: dueño, 24-11-2026), el texto y el HTML con los
 // mismos datos, las reglas del correo (600 px, sin var(--, flex ni <style>) y las del sitio (sin
 // «gratis», stock, «24–48 h», nuevo.elights.cl, «bodega» ni frases retiradas). Datos inventados.
 
@@ -391,10 +392,210 @@ describe('vista previa', () => {
 describe('datos que no sirven', () => {
   it('lanza en vez de armar un correo con un hueco', () => {
     expect(() => build({ order: ' .-. ' })).toThrow();
-    expect(() => build({ place: '  ' })).toThrow();
     expect(() => build({ packages: 0 })).toThrow();
     expect(() => build({ kilos: Number.NaN })).toThrow();
+    expect(() => build({ kilos: 0 })).toThrow();
     expect(() => build({ shipDate: '2026-02-30' })).toThrow();
     expect(() => build({ eta: '23-11-2026' })).toThrow();
+  });
+
+  it('una orden o un lugar con solo espacios cuentan como vacíos: se omiten, sin hueco', () => {
+    const n = build({ order: '  ', place: '  ' });
+    expect(n.subject).toBe('Tu pedido va en camino — Factura N° 1234, Starken');
+    expect(n.text).toContain('- Entrega: retiro en la agencia Starken.');
+    expect(n.text).not.toContain('Seguimiento');
+  });
+});
+
+// ── Campos opcionales (dueño, 24-11-2026) ───────────────────────────────────
+
+describe('campos opcionales (dueño, 24-11-2026): sin orden, entrega, agencia o comuna, flete ni kilos', () => {
+  const TVP: CarrierRef = { id: null, label: 'Transportes TVP' };
+  const EMPTY: Partial<ShippingNoticeData> = { carrier: TVP, order: null, delivery: null, place: null, freight: null, kilos: null, packages: 5, eta: null };
+  /** Cómo nombran la orden los operadores de las pruebas: ninguna frase lo dice si no hay orden. */
+  const ORDER_WORDS = /orden de (?:flete|transporte|servicio)|N° de guía|N° de orden|\bOT\b/;
+
+  /** Con y sin cada opcional (5 operadores × orden × entrega × lugar × flete × kilos × fecha estimada). */
+  function* optionalCombinations(): Generator<ShippingNoticeData> {
+    for (const carrier of CARRIER_CASES)
+      for (const order of ['123.456.789', null])
+        for (const delivery of ['pickup', 'home', null] as const)
+          for (const place of ['La Serena', null])
+            for (const freight of [{ kind: 'due', amountClp: 9_870 }, { kind: 'paid' }, null] as const)
+              for (const kilos of [3.2, null])
+                for (const eta of ['2026-11-24', null]) yield { ...base, carrier, order, delivery, place, freight, kilos, eta, packages: 2 };
+  }
+
+  const all = [...optionalCombinations()].map((data) => ({ data, notice: buildShippingNotice(data) }));
+
+  it('arma las 720 combinaciones, sin huecos ni restos de un dato vacío', () => {
+    expect(all).toHaveLength(720);
+    for (const { notice } of all) {
+      for (const out of [notice.subject, notice.preheader, notice.text, visible(notice.html)]) {
+        expect(out).not.toMatch(/undefined|null|NaN|\s[,.:]|,\.|\(\)/);
+      }
+      // Una lista de viñetas sin líneas no se escribe: nunca tres saltos seguidos ni una viñeta vacía.
+      expect(notice.text).not.toMatch(/\n\n\n|^- *$/m);
+      expect(notice.html).toContain('width="600"');
+      expect(retiredIn(notice.text, true)).toEqual([]);
+    }
+  });
+
+  it('el texto y el HTML dicen lo mismo, y cada línea sale solo con su dato', () => {
+    for (const { data, notice } of all) {
+      const html = visible(notice.html);
+      const both = `${notice.subject}\n${notice.preheader}\n${notice.text}\n${html}`;
+      const op = 'label' in data.carrier ? data.carrier.label : CARRIERS.find((c) => c.id === data.carrier.id)!.label;
+      const facts = [op, '2 bultos', 'jueves 19 de noviembre'];
+      if (data.order) facts.push(data.order);
+      if (data.delivery && data.place) facts.push(data.place);
+      if (data.kilos) facts.push('3,2 kg');
+      if (data.freight?.kind === 'due') facts.push('$9.870');
+      if (data.freight?.kind === 'paid') facts.push('pagado');
+      if (data.eta) facts.push('martes 24 de noviembre');
+      for (const fact of facts) {
+        expect(notice.text, fact).toContain(fact);
+        expect(html, fact).toContain(fact);
+      }
+
+      // Sin orden: ni asunto, ni texto previo, ni seguimiento, ni «la orden de flete de …».
+      if (!data.order) {
+        expect(both).not.toMatch(ORDER_WORDS);
+        expect(both).not.toMatch(/Seguimiento|Seguir mi envío|Ingresa |Guarda /);
+        expect(hrefs(notice.html).every((h) => h.startsWith(`${SITE_URL}/producto/`))).toBe(true);
+        expect(notice.subject).toBe(`Tu pedido va en camino — Factura N° 1234, ${op}`);
+        expect(notice.text).toContain(`el comprobante de ${op}.`);
+      } else {
+        expect(notice.text).toContain('- Seguimiento: ');
+      }
+
+      // Entrega: sin ella, ni la línea ni el lugar, y el cierre neutro; con ella y sin lugar, sin lugar.
+      if (!data.delivery) {
+        expect(notice.text).not.toContain('- Entrega:');
+        expect(both).not.toMatch(/Retiro en agencia|A domicilio|cédula|La Serena/);
+        expect(notice.text).toContain(`\nAl recibirlo: revisa que las cajas estén en buen estado antes de firmar. Si ves algún daño, déjalo anotado con ${op} y escríbenos el mismo día con fotos.\n`);
+        expect(html).toMatch(/Despachado .*En camino .*Entregado/);
+      } else if (!data.place) {
+        expect(notice.text).toContain(data.delivery === 'pickup' ? `\n- Entrega: retiro en la agencia ${op}.\n` : '\n- Entrega: a domicilio.\n');
+        expect(html).toContain(data.delivery === 'pickup' ? `Entrega Retiro en agencia ${op} ` : 'Entrega A domicilio ');
+      } else {
+        expect(notice.text).toContain(data.delivery === 'pickup' ? `\n- Entrega: retiro en la agencia ${op} de La Serena.\n` : '\n- Entrega: a domicilio en La Serena.\n');
+      }
+
+      if (!data.freight) {
+        expect(notice.text).not.toContain('- Flete:');
+        expect(notice.html).not.toContain('>Flete</h2>');
+      }
+      if (!data.kilos) {
+        expect(both).not.toContain(' kg');
+        expect(notice.text).toMatch(/\nQué va en tu envío \(2 bultos\):/);
+        expect(html).toContain('Qué va en tu envío · 2 bultos');
+      }
+      if (!data.order && !data.eta && !data.delivery && !data.freight) {
+        expect(notice.text).toContain('el jueves 19 de noviembre.\n\nQué va en tu envío (');
+      }
+    }
+  });
+
+  it('los cinco vacíos: asunto, texto previo y texto completos (Transportes TVP, 5 bultos)', () => {
+    const n = build(EMPTY);
+    expect(n.subject).toBe('Tu pedido va en camino — Factura N° 1234, Transportes TVP');
+    expect(n.preheader).toBe('Transportes TVP · Despachado el jueves 19 de noviembre');
+    expect(n.text).toBe(
+      [
+        'Hola Ana,',
+        '',
+        'Tu pedido ya va en camino: lo entregamos a Transportes TVP el jueves 19 de noviembre.',
+        '',
+        'Qué va en tu envío (5 bultos):',
+        '- 10 Panel LED de prueba 48W, luz neutra 4000K',
+        `  Ficha técnica: ${SITE_URL}/producto/panel-led-prueba-48w`,
+        '- 2 Cable de prueba 3x1,5 mm',
+        '',
+        'Te adjuntamos la factura N° 1234 en PDF y el comprobante de Transportes TVP.',
+        '',
+        'Al recibirlo: revisa que las cajas estén en buen estado antes de firmar. Si ves algún daño, déjalo anotado con Transportes TVP y escríbenos el mismo día con fotos.',
+        '',
+        'Quedo atento.',
+        '',
+        'Saludos cordiales,',
+        'Claudio Quero',
+        'eLIGHTS.cl SpA',
+        'claudio@elights.cl',
+        '',
+        `¿Dudas con tu pedido? Responde este correo o llámanos al ${COMPANY_PHONE}.`,
+        `eLIGHTS.cl SpA · RUT ${COMPANY_RUT} · claudio@elights.cl · elights.cl`,
+        '',
+      ].join('\n'),
+    );
+    const html = visible(n.html);
+    expect(html).toContain('Hola Ana, tu pedido va en camino Lo entregamos a Transportes TVP el jueves 19 de noviembre. Aquí tienes los datos del envío y lo que necesitas para recibirlo.');
+    expect(html).toContain('Operador Transportes TVP Carga 5 bultos');
+    expect(html).toMatch(/Pedido confirmado .*Despachado .*En camino .*Entregado/);
+    expect(html).toContain('Qué va en tu envío · 5 bultos');
+    expect(html).toContain('Al recibirlo Revisa que las cajas estén en buen estado antes de firmar.');
+    expect(html).toContain('Documentos Te adjuntamos la factura N° 1234 en PDF y el comprobante de Transportes TVP.');
+    expect(n.html).not.toContain('>Flete</h2>');
+    expect(n.html).not.toContain('Seguir mi envío');
+    expect(hrefs(n.html)).toEqual([`${SITE_URL}/producto/panel-led-prueba-48w`]);
+  });
+
+  it('solo sin orden: sin seguimiento ni botón, y «lleva tu cédula de identidad» sin la orden', () => {
+    const n = build({ order: null });
+    expect(n.subject).toBe('Tu pedido va en camino — Factura N° 1234, Starken');
+    expect(n.preheader).toBe('Starken · Entrega estimada: lunes 23 de noviembre');
+    expect(n.text).toContain(
+      'jueves 19 de noviembre.\n\n- Entrega estimada: lunes 23 de noviembre, según Starken.\n- Entrega: retiro en la agencia Starken de La Serena.\n- Flete: por pagar, $14.460. Lo pagas a Starken al retirarlo.\n\nQué va',
+    );
+    expect(n.text).toContain('Al retirarlo: lleva tu cédula de identidad. Tienes 10 días corridos desde la fecha de entrega para retirarlo;');
+    expect(n.text).toContain('Te adjuntamos la factura N° 1234 en PDF y el comprobante de Starken.');
+    const html = visible(n.html);
+    expect(html).toContain('Aquí tienes los datos del envío y lo que necesitas para retirarlo.');
+    expect(html).toContain('Operador Starken Entrega estimada lunes 23 de noviembre Entrega Retiro en agencia Starken, La Serena Carga 1 bulto, 3,2 kg');
+    expect(hrefs(n.html).filter((h) => !h.startsWith(SITE_URL))).toEqual([]);
+    expect(`${n.subject}${n.preheader}${n.text}${html}`).not.toMatch(/123\.456\.789|orden de flete|Seguimiento|Seguir mi envío/);
+    // Un operador cuyo documento es «la orden de flete» (Chilexpress) adjunta «el comprobante».
+    const c = build({ carrier: { id: 'chilexpress' }, order: null, hasDocument: false });
+    expect(c.text).toContain('\nTe adjuntamos el comprobante de Chilexpress.\n');
+    expect(`${c.subject}${c.text}${c.html}`).not.toMatch(/orden de (?:flete|transporte)/);
+  });
+
+  it('con entrega y sin agencia o comuna: la entrega sin lugar', () => {
+    const pickup = build({ place: null, eta: null });
+    expect(pickup.text).toContain('\n- Entrega: retiro en la agencia Starken.\n');
+    expect(visible(pickup.html)).toContain('Lo entregamos a Starken el jueves 19 de noviembre, para retiro en su agencia. Aquí tienes el seguimiento');
+    expect(visible(pickup.html)).toContain('Entrega Retiro en agencia Starken Carga');
+    const home = build({ delivery: 'home', place: null, eta: null });
+    expect(home.text).toContain('\n- Entrega: a domicilio.\n');
+    expect(visible(home.html)).toContain('Lo entregamos a Starken el jueves 19 de noviembre, con entrega en tu dirección. Aquí tienes');
+    expect(visible(home.html)).toContain('Entrega A domicilio Carga');
+  });
+
+  it('sin entrega: sin la línea y con el cierre neutro «Al recibirlo» (sin cédula ni regla de retiro)', () => {
+    const n = build({ delivery: null, packages: 3 });
+    expect(n.text).not.toContain('- Entrega:');
+    expect(n.text).not.toContain('La Serena');
+    expect(n.text).toContain('\nAl recibirlo: revisa que las cajas estén en buen estado antes de firmar. Si ves algún daño, déjalo anotado con Starken y escríbenos el mismo día con fotos.\n');
+    expect(n.text).toContain('- Flete: por pagar, $14.460. Lo pagas a Starken al recibirlo.');
+    expect(`${n.text}${n.html}`).not.toMatch(/cédula|10 días|Al retirarlo/);
+    expect(visible(n.html)).toMatch(/Despachado .*En camino .*Entregado/);
+  });
+
+  it('sin flete: sin la línea ni la sección', () => {
+    const n = build({ freight: null });
+    expect(n.text).not.toContain('- Flete:');
+    expect(n.text).toContain('- Entrega: retiro en la agencia Starken de La Serena.\n\nQué va');
+    expect(n.html).not.toContain('>Flete</h2>');
+    // ni el recuadro amarillo de «Por pagar»
+    expect(n.html).not.toContain('#FFF6E0');
+  });
+
+  it('sin kilos: «Qué va en tu envío (5 bultos)», sin los kg', () => {
+    const n = build({ kilos: null, packages: 5, eta: null });
+    expect(n.text).toContain('\nQué va en tu envío (5 bultos):\n');
+    expect(visible(n.html)).toContain('Qué va en tu envío · 5 bultos');
+    // Sin fecha estimada, la celda «Carga» completa el par con los bultos.
+    expect(visible(n.html)).toContain('Carga 5 bultos');
+    expect(`${n.text}${n.html}`).not.toContain(' kg');
   });
 });

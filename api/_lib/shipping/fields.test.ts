@@ -1,6 +1,7 @@
 // api/_lib/shipping/fields.test.ts
-// Campos «Despacho · …» (spec Nivel 2, §4.1 y §10): resolución por nombre, faltantes, opciones
-// como id, normalización de la orden, fechas en hora de Chile, persona y referencia.
+// Campos «Despacho · …» (spec Nivel 2, §4.1 y §10): resolución por nombre, faltantes, opcionales
+// (orden, entrega, agencia o comuna, flete y kilos: dueño, 24-11-2026), opciones como id,
+// normalización de la orden, fechas en hora de Chile, persona y referencia.
 // Claves, ids y datos inventados.
 
 import { describe, expect, it } from 'vitest';
@@ -214,17 +215,50 @@ describe('readShippingFields: datos completos', () => {
   });
 });
 
+describe('readShippingFields: campos opcionales (dueño, 24-11-2026)', () => {
+  const EMPTY_OPTIONAL = { order: '', delivery: null, place: '  ', freight: null, freightAmount: null, kilos: null } as const;
+
+  it('sin orden, entrega, agencia o comuna, flete ni kilos: el dato listo, con null', () => {
+    const r = read(EMPTY_OPTIONAL);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data).toMatchObject({ order: null, orderNormalized: '', delivery: null, place: null, freight: null, kilos: null, packages: 1 });
+    expect(r.data.document).toEqual({ type: 'factura', number: '1234' });
+  });
+
+  it('cada uno por separado', () => {
+    const noOrder = read({ order: null });
+    expect(noOrder.ok && [noOrder.data.order, noOrder.data.orderNormalized]).toEqual([null, '']);
+    const noPlace = read({ place: '' });
+    expect(noPlace.ok && [noPlace.data.delivery, noPlace.data.place]).toEqual(['pickup', null]);
+    const noDelivery = read({ delivery: null });
+    expect(noDelivery.ok && [noDelivery.data.delivery, noDelivery.data.place]).toEqual([null, 'La Serena']);
+    const noFreight = read({ freight: null });
+    expect(noFreight.ok && noFreight.data.freight).toBeNull();
+    const noKilos = read({ kilos: '' });
+    expect(noKilos.ok && noKilos.data.kilos).toBeNull();
+  });
+
+  it('con un valor, siguen las validaciones de formato', () => {
+    expect(problems({ ...EMPTY_OPTIONAL, order: '---' }).map((p) => [p.field, p.code])).toEqual([['order', 'invalid']]);
+    expect(problems({ order: 'A'.repeat(31) }).map((p) => p.message)).toEqual(['«Despacho · Orden de flete» tiene más de 30 letras y dígitos.']);
+    expect(problems({ ...EMPTY_OPTIONAL, place: 'x'.repeat(81) }).map((p) => p.field)).toEqual(['place']);
+    expect(problems({ ...EMPTY_OPTIONAL, kilos: 0 }).map((p) => p.field)).toEqual(['kilos']);
+    expect(problems({ ...EMPTY_OPTIONAL, delivery: '999999' }).map((p) => [p.field, p.code])).toEqual([['delivery', 'unknown_option']]);
+    expect(problems({ ...EMPTY_OPTIONAL, freight: '999999' }).map((p) => [p.field, p.code])).toEqual([['freight', 'unknown_option']]);
+    // «Por pagar» sin el monto sigue sin servir.
+    expect(problems({ ...EMPTY_OPTIONAL, freight: String(optionId('freight', 'Por pagar')) }).map((p) => p.message)).toEqual([
+      'Falta «Despacho · Flete por pagar»: con «Por pagar» va el monto del comprobante del operador.',
+    ]);
+  });
+});
+
 describe('readShippingFields: faltantes e inválidos', () => {
-  it('lista exacta de lo que falta, en el orden de los campos', () => {
+  it('lista exacta de lo que falta, en el orden de los campos: el operador, los bultos y el N° de documento', () => {
     const p = problems({ carrier: null, order: '', delivery: null, place: '  ', freight: null, packages: null, kilos: null, documentNumber: null });
     expect(p.map((x) => x.message)).toEqual([
       'Falta «Despacho · Operador».',
-      'Falta «Despacho · Orden de flete».',
-      'Falta «Despacho · Entrega».',
-      'Falta «Despacho · Agencia o comuna».',
-      'Falta «Despacho · Flete».',
       'Falta «Despacho · Bultos».',
-      'Falta «Despacho · Kilos».',
       'Falta «Despacho · N° de documento».',
     ]);
   });
@@ -319,6 +353,25 @@ describe('«Despacho · Aviso enviado»', () => {
     expect(sentLogMatches(parsed.log, carrierFromLabel('pullman cargo'), '23501234567')).toBe(true);
     expect(sentLogMatches(parsed.log, carrierFromLabel('Starken'), '23501234567')).toBe(false);
     expect(sentLogMatches(parsed.log, carrierFromLabel('Pullman Cargo'), '1')).toBe(false);
+  });
+
+  it('sin orden: «· sin orden», que se relee con el operador completo (aunque tenga dos palabras)', () => {
+    const text = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Transportes TVP' }, '');
+    expect(text).toBe('2026-11-18 14:05 -03:00 · Transportes TVP · sin orden');
+    const parsed = parseSentLog(text);
+    expect(parsed.status === 'ok' && parsed.log).toMatchObject({ carrierLabel: 'Transportes TVP', order: '' });
+    if (parsed.status !== 'ok') return;
+    const tvp = carrierFromLabel('Transportes TVP');
+    // El mismo envío sin orden calza (no se repite); con la orden, otro operador u otro registro, no.
+    expect(sentLogMatches(parsed.log, tvp, '')).toBe(true);
+    expect(sentLogMatches(parsed.log, tvp, 'ABC123')).toBe(false);
+    expect(sentLogMatches(parsed.log, carrierFromLabel('Starken'), '')).toBe(false);
+    const withOrder = parseSentLog(formatSentLog(new Date('2026-11-18T17:05:30Z'), tvp, 'ABC123'));
+    expect(withOrder.status === 'ok' && withOrder.log).toMatchObject({ carrierLabel: 'Transportes TVP', order: 'ABC123' });
+    expect(withOrder.status === 'ok' && sentLogMatches(withOrder.log, tvp, '')).toBe(false);
+    // Solo la marca (sin operador ni orden) nunca calza con un envío sin orden.
+    const onlyTime = parseSentLog('2026-11-18 14:05 -03:00');
+    expect(onlyTime.status === 'ok' && sentLogMatches(onlyTime.log, tvp, '')).toBe(false);
   });
 
   it('vacío: nunca hubo aviso; con solo la marca (sin operador ni orden) también sirve', () => {
