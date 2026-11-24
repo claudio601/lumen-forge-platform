@@ -383,15 +383,23 @@ describe('enviar al cliente', () => {
     expect(lastNote()).toContain('ya se envió el 2026-11-18 12:00 (hora de Chile)');
   });
 
-  it('§8 capa 3 (relay): sin Redis ni «Aviso enviado» al día, el relay responde duplicate y cuenta como enviado', async () => {
+  it('§8 capa 3 (relay): sin Redis ni «Aviso enviado» al día, el relay responde duplicate: se registra sin un correo nuevo, y la nota lo dice', async () => {
     await choose('send');
     w.redis.data.delete(noticeStateKey(KEY));
     w.deal()[K.sentLog] = null;
     vi.setSystemTime(NOW.getTime() + 10 * 60_000);
-    expect(await choose('send')).toBe('enviado');
+    expect(await choose('send')).toBe('ya_habia_salido');
     expect(despachos()).toHaveLength(1);
     expect(w.relay.calls).toBe(2);
-    expect(noticeLog().at(-1)).toContain('relay=duplicate');
+    expect(noticeLog().at(-1)).toMatch(/resultado=ya_habia_salido .*relay=duplicate/);
+    const note = lastNote().split('\n');
+    expect(note.slice(0, 2)).toEqual([
+      'No salió un correo nuevo: el relay confirmó que el aviso anterior de este despacho ya había salido.',
+      'Aviso de despacho ya había salido: registrado el 2026-11-18 12:10 (hora de Chile)',
+    ]);
+    expect(note).not.toContain('Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).');
+    // Se registra igual, para que no se reintente.
+    expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:10 -03:00 · Starken 123456789');
   });
 
   it('§8 dos envíos del mismo negocio: otra orden da otra clave y sale; «Aviso enviado» queda con el último', async () => {
@@ -577,6 +585,9 @@ describe('campos opcionales (dueño, 24-11-2026): orden, entrega, agencia o comu
     w.addFile(`comprobante-${days}.jpg`, jpgBytes(), { add_time: pipedriveTime(new Date(Date.now() - 60_000)) });
   }
 
+  const NO_ORDER_DUPLICATE_LINE =
+    'No salió un correo nuevo: el relay ya tenía un aviso con la factura N° 1234 con Starken. Si este es otro despacho de esa factura, escríbele desde Gmail.';
+
   const SAME_DOCUMENT_NOTE = [
     'Aviso de despacho NO enviado: ya se envió el 2026-11-18 12:00 (hora de Chile) con Starken, sin orden de flete, Factura N° 1234.',
     'Sin orden de flete, el aviso va por documento: para otro despacho de la factura N° 1234 con Starken, o para corregir algo, escríbele desde Gmail.',
@@ -595,8 +606,9 @@ describe('campos opcionales (dueño, 24-11-2026): orden, entrega, agencia o comu
     // Capa 3: sin Redis ni el campo, el relay responde duplicate por la misma clave (y no manda otro correo).
     w.redis.data.delete(noticeStateKey(KEY_NO_ORDER));
     w.deal()[K.sentLog] = null;
-    expect(await choose('send')).toBe('enviado');
+    expect(await choose('send')).toBe('ya_habia_salido');
     expect(noticeLog().at(-1)).toContain('relay=duplicate');
+    expect(lastNote().split('\n')[0]).toBe(NO_ORDER_DUPLICATE_LINE);
     expect(despachos()).toHaveLength(1);
     expect(w.relay.calls).toBe(2);
   });
@@ -667,10 +679,25 @@ describe('campos opcionales (dueño, 24-11-2026): orden, entrega, agencia o comu
     expect(await choose('send')).toBe('incierto');
     w.relay.mode = 'normal';
     nextDispatch(8, '1234', 2);
-    // Es la misma clave: no se distingue de reintentar el primero, que sí había salido.
-    expect(await choose('send')).toBe('enviado');
-    expect(noticeLog().at(-1)).toContain('relay=duplicate');
+    // Es la misma clave: no se distingue de reintentar el primero, que sí había salido. Se registra
+    // (para que no se reintente), pero la nota dice que no salió un correo nuevo y manda a Gmail.
+    expect(await choose('send')).toBe('ya_habia_salido');
+    expect(noticeLog().at(-1)).toMatch(/resultado=ya_habia_salido .*relay=duplicate/);
     expect(despachos()).toHaveLength(1);
+    expect(lastNote().split('\n')).toEqual([
+      NO_ORDER_DUPLICATE_LINE,
+      'Aviso de despacho ya había salido: registrado el 2026-11-26 12:00 (hora de Chile)',
+      'Operador: Starken | Orden de flete: sin dato',
+      'Entrega: sin dato | Estimada: sin fecha',
+      'Flete: sin dato',
+      'Bultos: 2 | Kilos: sin dato | Factura N° 1234',
+      `Productos (de «${SHIPPING_FIELD_NAMES.products}»):`,
+      '- 10 x PAN60 Panel prueba 60X60',
+      'Adjuntos: Comprobante-Starken.jpg (4 KB)',
+      'Etapa: «Despachado».',
+      `aviso_despacho_key: ${KEY_NO_ORDER}`,
+    ]);
+    expect(w.deal()[K.sentLog]).toBe('2026-11-26 12:00 -03:00 · Starken · sin orden · factura 1234');
   });
 
   it('sin orden y después con la orden: es otra clave; sale un segundo correo solo con una foto nueva del comprobante', async () => {
@@ -808,7 +835,7 @@ describe('§8 Redis, plazo, candado y respuestas del relay', () => {
     expect(w.deal()[K.trigger]).toBeNull();
   });
 
-  it('el relay no responde a tiempo: `uncertain`, nota «no sé si salió», sin reintento; al reintentar, duplicate cuenta como enviado sin un segundo correo', async () => {
+  it('con orden: el relay no responde a tiempo (`uncertain`, nota «no sé si salió», sin reintento); al reintentar, duplicate se registra sin un segundo correo y la nota lo dice', async () => {
     w.relay.mode = 'sent_then_timeout';
     expect(await choose('send')).toBe('incierto');
     expect(w.relay.calls).toBe(1);
@@ -819,10 +846,20 @@ describe('§8 Redis, plazo, candado y respuestas del relay', () => {
 
     w.relay.mode = 'normal';
     vi.setSystemTime(NOW.getTime() + 15 * 60_000);
-    expect(await choose('send')).toBe('enviado');
+    expect(await choose('send')).toBe('ya_habia_salido');
     expect(despachos()).toHaveLength(1);
     expect(w.relay.calls).toBe(2);
+    expect(noticeLog().at(-1)).toMatch(/resultado=ya_habia_salido .*relay=duplicate/);
+    const note = lastNote().split('\n');
+    expect(note.slice(0, 3)).toEqual([
+      'No salió un correo nuevo: el relay confirmó que el aviso anterior de este despacho ya había salido.',
+      'Aviso de despacho ya había salido: registrado el 2026-11-18 12:15 (hora de Chile)',
+      'Operador: Starken | Orden de flete: 123.456.789',
+    ]);
+    expect(note).not.toContain('Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).');
+    expect(note.filter((l) => /enviado/i.test(l))).toEqual([]);
     expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:15 -03:00 · Starken 123456789');
+    expect(w.deal()[K.trigger]).toBeNull();
   });
 
   it('una respuesta HTML del relay (puede llegar después del envío): `uncertain`', async () => {
@@ -986,6 +1023,25 @@ describe('§8 el correo salió, pero falló Pipedrive', () => {
     expect(w.notes()[0]).toMatch(/^Aviso de despacho enviado/);
   });
 
+  it('el relay responde duplicate y falla el PUT: el ATENCIÓN tampoco dice que salió un correo nuevo', async () => {
+    w.relay.mode = 'sent_then_timeout';
+    expect(await choose('send')).toBe('incierto');
+    w.relay.mode = 'normal';
+    vi.setSystemTime(NOW.getTime() + 15 * 60_000);
+    w.pd.intercept = (r) => (r.method === 'PUT' ? new Response('error', { status: 500 }) : undefined);
+    expect(await choose('send')).toBe('ya_habia_salido_sin_registro');
+    expect(despachos()).toHaveLength(1);
+    expect(w.redis.mails).toHaveLength(1);
+    const body = w.redis.mails[0].items_lista;
+    const lines = body.split('\n');
+    expect(lines[0]).toBe('ATENCIÓN: el aviso ya había salido (no salió un correo nuevo), pero no quedó en Pipedrive.');
+    expect(lines).toContain('No salió un correo nuevo: el relay confirmó que el aviso anterior de este despacho ya había salido.');
+    expect(lines).toContain('Registrado el 2026-11-18 12:15 (hora de Chile): Starken 123.456.789, Factura N° 1234.');
+    expect(body).not.toContain('Enviado el');
+    expect(w.notes().at(-1)).toMatch(/^No salió un correo nuevo/);
+    expect(noticeLog().at(-1)).toMatch(/resultado=ya_habia_salido_sin_registro .*relay=duplicate/);
+  });
+
   it('el ATENCIÓN es interno: responde a ventas@, sin el correo, el nombre ni el teléfono del cliente', async () => {
     w.pd.intercept = (r) => (r.method === 'PUT' ? new Response('error', { status: 500 }) : undefined);
     expect(await choose('send')).toBe('enviado_sin_registro');
@@ -1114,7 +1170,7 @@ describe('§8 reentregas de Pipedrive: la identidad del evento', () => {
     // Había salido: el relay responde duplicate, no hay un segundo correo y queda registrado.
     expect(w.relay.calls).toBe(2);
     expect(despachos()).toHaveLength(1);
-    expect(noticeLog().at(-1)).toMatch(/resultado=enviado .*relay=duplicate/);
+    expect(noticeLog().at(-1)).toMatch(/resultado=ya_habia_salido .*relay=duplicate/);
     expect(w.deal()[K.trigger]).toBeNull();
     expect(w.deal()[K.sentLog]).toBe('2026-11-18 12:05 -03:00 · Starken 123456789');
   });

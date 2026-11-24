@@ -70,6 +70,7 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 |---|---|---|
 | Vista previa enviada a tu correo | salió la vista previa, solo a ti | revisarla y elegir «Enviar al cliente» |
 | Aviso de despacho enviado | el cliente ya lo tiene | nada |
+| No salió un correo nuevo … Aviso de despacho ya había salido: registrado el … | el relay ya tenía un aviso con la misma clave (por ejemplo, después de un «no sé si salió» que sí había salido) y no mandó otro correo. El sitio lo registra igual («Aviso enviado» y la etapa) para que no se reintente | si era el mismo despacho, nada. Sin orden, la clave es la del documento: si era otro despacho de esa factura o guía con el mismo operador, el cliente no recibió nada de este, y se lo escribes desde Gmail |
 | NO enviado … Falta o hay que corregir: (lista) | faltaba un dato, el correo, la foto del comprobante, o un archivo no sirve | corregir lo de la lista y volver a elegir |
 | NO enviado … Reintenta en unos minutos | Pipedrive, Redis o el plazo de la función fallaron un momento (en la vista previa, también el relay: «reenvío del mismo cuerpo firmado» o «caché del relay no disponible») | volver a elegir en unos minutos |
 | NO enviado: ya se envió el … | esa orden de flete (o, sin orden, ese documento con ese operador) ya tuvo su aviso | nada; para corregir algo, o para otro despacho del mismo documento sin orden, escríbele desde Gmail |
@@ -83,7 +84,7 @@ El valor del negocio nunca cambia. Mover el negocio a mano a «Despachado» no e
 | NO enviado … El archivo «…» quedó guardado en Google Drive | Pipedrive tiene Google Drive conectado (Herramientas y aplicaciones → Documentos) y guardó ahí el archivo: el sitio no lo puede descargar | desconectar Drive en Pipedrive y volver a subir el archivo al negocio, o avisarle a Claude |
 | NO enviado … El negocio tiene demasiados archivos para revisarlos todos | más de 500 archivos: el sitio no puede saber si hay otro PDF o comprobante | avisarle a Claude |
 
-**Correo ATENCIÓN «el aviso salió, pero no quedó en Pipedrive»** (a ventas@, más una tarea para ti en el negocio): el cliente sí recibió el aviso, pero Pipedrive no guardó algo: la nota, «Despacho · Aviso enviado», la etapa «Despachado» o el campo «Despacho · Aviso» vacío. El correo dice qué falta hacer a mano y, si falta, qué va en «Despacho · Aviso enviado». No vuelvas a elegir «Enviar al cliente» para esa orden.
+**Correo ATENCIÓN «el aviso salió, pero no quedó en Pipedrive»** (a ventas@, más una tarea para ti en el negocio): el cliente sí recibió el aviso, pero Pipedrive no guardó algo: la nota, «Despacho · Aviso enviado», la etapa «Despachado» o el campo «Despacho · Aviso» vacío. El correo dice qué falta hacer a mano y, si falta, qué va en «Despacho · Aviso enviado». No vuelvas a elegir «Enviar al cliente» para esa orden. Si dice «el aviso ya había salido (no salió un correo nuevo)», es el caso de la fila «No salió un correo nuevo» de arriba: lo mismo, más Gmail si era otro despacho.
 
 ## 4. Si el campo no se vació
 

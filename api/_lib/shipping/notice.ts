@@ -60,7 +60,7 @@ import { findDealFieldByName, findStageByName, refreshDealFieldsByName, type Dea
 import { getPerson } from '../pipedrive/persons.js';
 import { SITE_URL } from '../site.js';
 import { carrierRef, numberCellLabel } from './carriers.js';
-import { documentPhrase, documentTitle } from './documents.js';
+import { DOCUMENT_TYPES, documentPhrase, documentTitle } from './documents.js';
 import {
   formatSentLog,
   readPersonContact,
@@ -182,7 +182,8 @@ export interface ShippingNoticeInput {
 
 /**
  * Resultado (para el registro y las pruebas): `candado_tomado`, `disparador_cambio`, `reentrega`,
- * `vista_previa_enviada`, `enviado`, `ya_enviado`, `datos_incompletos`, `reintentar`, …
+ * `vista_previa_enviada`, `enviado`, `ya_enviado`, `ya_habia_salido` (el relay respondió
+ * `duplicate`: se registró sin un correo nuevo), `datos_incompletos`, `reintentar`, …
  */
 export type NoticeOutcome = string;
 
@@ -432,6 +433,16 @@ function attachmentsLine(attachments: readonly ReadyAttachment[]): string {
   return `Adjuntos: ${attachments.map((a) => `${a.fileName} (${formatSize(a.bytes.length)})`).join(', ')}`;
 }
 
+/**
+ * El relay respondió `duplicate`: ya tenía un aviso con esta clave y no mandó otro correo. Con
+ * orden es el mismo despacho; sin orden, la clave es la del documento, así que puede ser otro
+ * despacho de la misma factura (ese se escribe desde Gmail).
+ */
+function duplicateLine(data: ShippingFields): string {
+  if (data.order) return 'No salió un correo nuevo: el relay confirmó que el aviso anterior de este despacho ya había salido.';
+  return `No salió un correo nuevo: el relay ya tenía un aviso con ${documentPhrase(data.document)} con ${data.carrier.label}. Si este es otro despacho de esa ${DOCUMENT_TYPES[data.document.type].noun}, escríbele desde Gmail.`;
+}
+
 function sentNote(args: {
   at: Date;
   data: ShippingFields;
@@ -440,6 +451,8 @@ function sentNote(args: {
   attachments: readonly ReadyAttachment[];
   stage: string;
   key: string;
+  /** El relay respondió `duplicate`: se registra, pero la nota no afirma un correo nuevo. */
+  duplicate: boolean;
 }): string[] {
   const { data } = args;
   // Los campos opcionales vacíos (dueño, 24-11-2026) quedan como «sin dato»: el correo no los nombra.
@@ -451,14 +464,16 @@ function sentNote(args: {
       ? `${SHIPPING_OPTIONS.freight.due}, ${formatClp(data.freight.amountClp)} (lo cobra el operador; no es parte del negocio)`
       : SHIPPING_OPTIONS.freight.paid;
   return [
-    `Aviso de despacho enviado (${chileStamp(args.at)}, hora de Chile)`,
+    ...(args.duplicate
+      ? [duplicateLine(data), `Aviso de despacho ya había salido: registrado el ${chileStamp(args.at)} (hora de Chile)`]
+      : [`Aviso de despacho enviado (${chileStamp(args.at)}, hora de Chile)`]),
     `Operador: ${data.carrier.label} | ${numberCellLabel(data.carrier)}: ${data.order || none}`,
     `Entrega: ${delivery}${data.place ? `, ${data.place}` : ''} | Estimada: ${data.eta ? formatDateLong(data.eta) : 'sin fecha'}`,
     `Flete: ${freight}`,
     `Bultos: ${data.packages} | Kilos: ${typeof data.kilos === 'number' ? formatDecimal(data.kilos) : none} | ${documentTitle(data.document)}`,
     ...productLines(args.products, args.source, data),
     attachmentsLine(args.attachments),
-    'Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).',
+    ...(args.duplicate ? [] : ['Enviado al correo principal de la persona del negocio (o al primero de su lista, si ninguno es principal).']),
     args.stage,
     `aviso_despacho_key: ${args.key}`,
   ];
@@ -879,7 +894,7 @@ async function sendToCustomer(run: Run, p: Prepared): Promise<NoticeOutcome> {
   );
   run.facts.push(`relay=${result.status}`);
 
-  if (result.status === 'ok' || result.status === 'duplicate') return recordSent(run, p, new Date());
+  if (result.status === 'ok' || result.status === 'duplicate') return recordSent(run, p, new Date(), result.status === 'duplicate');
 
   if (result.status === 'uncertain') {
     // Sin reintento automático: el dueño revisa Enviados y vuelve a elegir; el relay deduplica.
@@ -909,8 +924,10 @@ function joinList(items: readonly string[]): string {
  * El correo salió: Redis, la nota completa y un solo PUT. Si algo de eso no quedó (la nota, los
  * campos, la etapa porque /stages falló, o el disparador porque no se pudo releer el negocio), el
  * ATENCIÓN. Una etapa que el embudo no tiene, o un disparador que el dueño ya cambió, son normales.
+ * Con `duplicate` (el relay ya tenía el aviso y no mandó otro) se registra igual, para que no se
+ * reintente, pero la nota, el ATENCIÓN y el resultado del registro no afirman un correo nuevo.
  */
-async function recordSent(run: Run, p: Prepared, at: Date): Promise<NoticeOutcome> {
+async function recordSent(run: Run, p: Prepared, at: Date, duplicate: boolean): Promise<NoticeOutcome> {
   const saved = await redis<string>('SET', noticeStateKey(p.key), `sent:${at.toISOString()}`, 'EX', SENT_TTL_S);
   if (!saved.ok) run.facts.push('estado=sin_guardar');
 
@@ -928,7 +945,7 @@ async function recordSent(run: Run, p: Prepared, at: Date): Promise<NoticeOutcom
           ? `Etapa: sin cambio (este embudo tiene más de una etapa «${DISPATCHED_STAGE_NAME}»).`
           : `Etapa: sin cambio (este embudo no tiene una etapa «${DISPATCHED_STAGE_NAME}»).`;
 
-  const noted = await writeNote(run, sentNote({ at, data: p.data, products: p.products, source: p.source, attachments: p.attachments, stage: stageLine, key: p.key }));
+  const noted = await writeNote(run, sentNote({ at, data: p.data, products: p.products, source: p.source, attachments: p.attachments, stage: stageLine, key: p.key, duplicate }));
   const extra: Record<string, unknown> = { [p.fields.sentLog.key]: sentLogValue(at, p.data) };
   if (stage.status === 'ok') extra.stage_id = stage.stageId;
   const put = await finalPut(run, extra);
@@ -941,18 +958,21 @@ async function recordSent(run: Run, p: Prepared, at: Date): Promise<NoticeOutcom
   if (put.trigger === 'sin_vaciar') missing.push(`vaciar ${TRIGGER}`);
   if (missing.length) {
     await attention(run, {
-      headline: 'ATENCIÓN: el aviso salió, pero no quedó en Pipedrive.',
+      headline: duplicate
+        ? 'ATENCIÓN: el aviso ya había salido (no salió un correo nuevo), pero no quedó en Pipedrive.'
+        : 'ATENCIÓN: el aviso salió, pero no quedó en Pipedrive.',
       details: [
-        `Enviado el ${chileStamp(at)} (hora de Chile): ${shipmentLabel(p.data)}, ${documentTitle(p.data.document)}.`,
+        ...(duplicate ? [duplicateLine(p.data)] : []),
+        `${duplicate ? 'Registrado' : 'Enviado'} el ${chileStamp(at)} (hora de Chile): ${shipmentLabel(p.data)}, ${documentTitle(p.data.document)}.`,
         `Falta registrar a mano: ${joinList(missing)}.`,
         ...(put.saved ? [] : [`En «${SHIPPING_FIELD_NAMES.sentLog}» va: ${sentLogValue(at, p.data)}`]),
         `No vuelvas a elegir «Enviar al cliente» para ${p.data.order ? 'esta orden' : 'este despacho'}: el correo ya salió.`,
       ],
       task: { personId: p.data.personId, subject: 'ATENCIÓN aviso de despacho: registrar el envío en el negocio' },
     });
-    return 'enviado_sin_registro';
+    return duplicate ? 'ya_habia_salido_sin_registro' : 'enviado_sin_registro';
   }
-  return 'enviado';
+  return duplicate ? 'ya_habia_salido' : 'enviado';
 }
 
 /** Lo único que arma el valor de «Despacho · Aviso enviado» (formatSentLog, fields.ts). */
