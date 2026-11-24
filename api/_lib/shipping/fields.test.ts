@@ -22,6 +22,7 @@ import {
   type ShippingFieldMap,
 } from './fields';
 import { carrierFromLabel } from './carriers';
+import type { ShippingDocument } from './documents';
 import { selectShippingFiles } from './files';
 
 const OPTIONS: Partial<Record<ShippingFieldId, string[]>> = {
@@ -231,9 +232,9 @@ describe('readShippingFields: campos opcionales (dueño, 24-11-2026)', () => {
     expect(noOrder.ok && [noOrder.data.order, noOrder.data.orderNormalized]).toEqual([null, '']);
     const noPlace = read({ place: '' });
     expect(noPlace.ok && [noPlace.data.delivery, noPlace.data.place]).toEqual(['pickup', null]);
-    const noDelivery = read({ delivery: null });
-    expect(noDelivery.ok && [noDelivery.data.delivery, noDelivery.data.place]).toEqual([null, 'La Serena']);
-    const noFreight = read({ freight: null });
+    const noDelivery = read({ delivery: null, place: '' });
+    expect(noDelivery.ok && [noDelivery.data.delivery, noDelivery.data.place]).toEqual([null, null]);
+    const noFreight = read({ freight: null, freightAmount: null });
     expect(noFreight.ok && noFreight.data.freight).toBeNull();
     const noKilos = read({ kilos: '' });
     expect(noKilos.ok && noKilos.data.kilos).toBeNull();
@@ -242,7 +243,7 @@ describe('readShippingFields: campos opcionales (dueño, 24-11-2026)', () => {
   it('con un valor, siguen las validaciones de formato', () => {
     expect(problems({ ...EMPTY_OPTIONAL, order: '---' }).map((p) => [p.field, p.code])).toEqual([['order', 'invalid']]);
     expect(problems({ order: 'A'.repeat(31) }).map((p) => p.message)).toEqual(['«Despacho · Orden de flete» tiene más de 30 letras y dígitos.']);
-    expect(problems({ ...EMPTY_OPTIONAL, place: 'x'.repeat(81) }).map((p) => p.field)).toEqual(['place']);
+    expect(problems({ ...EMPTY_OPTIONAL, delivery: String(optionId('delivery', 'A domicilio')), place: 'x'.repeat(81) }).map((p) => p.field)).toEqual(['place']);
     expect(problems({ ...EMPTY_OPTIONAL, kilos: 0 }).map((p) => p.field)).toEqual(['kilos']);
     expect(problems({ ...EMPTY_OPTIONAL, delivery: '999999' }).map((p) => [p.field, p.code])).toEqual([['delivery', 'unknown_option']]);
     expect(problems({ ...EMPTY_OPTIONAL, freight: '999999' }).map((p) => [p.field, p.code])).toEqual([['freight', 'unknown_option']]);
@@ -251,11 +252,31 @@ describe('readShippingFields: campos opcionales (dueño, 24-11-2026)', () => {
       'Falta «Despacho · Flete por pagar»: con «Por pagar» va el monto del comprobante del operador.',
     ]);
   });
+
+  it('nada se descarta sin avisar: un lugar sin «Entrega» o un monto sin «Flete» detienen el aviso', () => {
+    expect(problems({ delivery: null }).map((p) => [p.field, p.code, p.message])).toEqual([
+      ['place', 'invalid', '«Despacho · Agencia o comuna» tiene texto, pero «Despacho · Entrega» está vacía: elige «Retiro en agencia» o «A domicilio», o borra el lugar.'],
+    ]);
+    expect(problems({ freight: null }).map((p) => [p.field, p.code, p.message])).toEqual([
+      ['freightAmount', 'invalid', '«Despacho · Flete por pagar» tiene monto, pero «Despacho · Flete» está vacío: elige «Por pagar» o borra el monto.'],
+    ]);
+    // Los dos juntos, en el orden de los campos; un monto como texto o mal escrito también cuenta.
+    expect(problems({ delivery: null, freight: null }).map((p) => p.field)).toEqual(['place', 'freightAmount']);
+    expect(problems({ freight: null, freightAmount: '14460' }).map((p) => p.field)).toEqual(['freightAmount']);
+    expect(problems({ freight: null, freightAmount: 'abc' }).map((p) => p.field)).toEqual(['freightAmount']);
+    // Con el lugar o el monto vacíos, no hay problema.
+    expect(read({ delivery: null, place: '  ' }).ok).toBe(true);
+    expect(read({ freight: null, freightAmount: null }).ok).toBe(true);
+    expect(read({ freight: null, freightAmount: '' }).ok).toBe(true);
+    // Una opción que no existe ya es un problema: no se suma otro por el lugar o el monto.
+    expect(problems({ delivery: '999999' }).map((p) => [p.field, p.code])).toEqual([['delivery', 'unknown_option']]);
+    expect(problems({ freight: '999999' }).map((p) => [p.field, p.code])).toEqual([['freight', 'unknown_option']]);
+  });
 });
 
 describe('readShippingFields: faltantes e inválidos', () => {
   it('lista exacta de lo que falta, en el orden de los campos: el operador, los bultos y el N° de documento', () => {
-    const p = problems({ carrier: null, order: '', delivery: null, place: '  ', freight: null, packages: null, kilos: null, documentNumber: null });
+    const p = problems({ carrier: null, order: '', delivery: null, place: '  ', freight: null, freightAmount: null, packages: null, kilos: null, documentNumber: null });
     expect(p.map((x) => x.message)).toEqual([
       'Falta «Despacho · Operador».',
       'Falta «Despacho · Bultos».',
@@ -341,37 +362,67 @@ describe('normalizeOrder', () => {
 });
 
 describe('«Despacho · Aviso enviado»', () => {
+  const F1234: ShippingDocument = { type: 'factura', number: '1234' };
+  const F8459: ShippingDocument = { type: 'factura', number: '8459' };
+
   it('se escribe y se lee en hora de Chile, con el desfase', () => {
-    const text = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Pullman Cargo' }, '23501234567');
+    const text = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Pullman Cargo' }, '23501234567', F1234);
     expect(text).toBe('2026-11-18 14:05 -03:00 · Pullman Cargo 23501234567');
-    expect(formatSentLog(new Date('2026-07-01T16:00:00Z'), { label: 'Starken' }, '123')).toBe('2026-07-01 12:00 -04:00 · Starken 123');
+    expect(formatSentLog(new Date('2026-07-01T16:00:00Z'), { label: 'Starken' }, '123', F1234)).toBe('2026-07-01 12:00 -04:00 · Starken 123');
     const parsed = parseSentLog(text);
     expect(parsed.status).toBe('ok');
     if (parsed.status !== 'ok') return;
     expect(parsed.log.at.toISOString()).toBe('2026-11-18T17:05:00.000Z');
     expect(parsed.log).toMatchObject({ carrierLabel: 'Pullman Cargo', order: '23501234567' });
-    expect(sentLogMatches(parsed.log, carrierFromLabel('pullman cargo'), '23501234567')).toBe(true);
-    expect(sentLogMatches(parsed.log, carrierFromLabel('Starken'), '23501234567')).toBe(false);
-    expect(sentLogMatches(parsed.log, carrierFromLabel('Pullman Cargo'), '1')).toBe(false);
+    expect(sentLogMatches(parsed.log, carrierFromLabel('pullman cargo'), '23501234567', F1234)).toBe(true);
+    expect(sentLogMatches(parsed.log, carrierFromLabel('Starken'), '23501234567', F1234)).toBe(false);
+    expect(sentLogMatches(parsed.log, carrierFromLabel('Pullman Cargo'), '1', F1234)).toBe(false);
   });
 
-  it('sin orden: «· sin orden», que se relee con el operador completo (aunque tenga dos palabras)', () => {
-    const text = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Transportes TVP' }, '');
-    expect(text).toBe('2026-11-18 14:05 -03:00 · Transportes TVP · sin orden');
-    const parsed = parseSentLog(text);
-    expect(parsed.status === 'ok' && parsed.log).toMatchObject({ carrierLabel: 'Transportes TVP', order: '' });
-    if (parsed.status !== 'ok') return;
+  it('sin orden: «· sin orden · <documento>», que se relee con el operador completo y el documento', () => {
     const tvp = carrierFromLabel('Transportes TVP');
-    // El mismo envío sin orden calza (no se repite); con la orden, otro operador u otro registro, no.
-    expect(sentLogMatches(parsed.log, tvp, '')).toBe(true);
-    expect(sentLogMatches(parsed.log, tvp, 'ABC123')).toBe(false);
-    expect(sentLogMatches(parsed.log, carrierFromLabel('Starken'), '')).toBe(false);
-    const withOrder = parseSentLog(formatSentLog(new Date('2026-11-18T17:05:30Z'), tvp, 'ABC123'));
-    expect(withOrder.status === 'ok' && withOrder.log).toMatchObject({ carrierLabel: 'Transportes TVP', order: 'ABC123' });
-    expect(withOrder.status === 'ok' && sentLogMatches(withOrder.log, tvp, '')).toBe(false);
+    const text = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Transportes TVP' }, '', F8459);
+    expect(text).toBe('2026-11-18 14:05 -03:00 · Transportes TVP · sin orden · factura 8459');
+    const guide = formatSentLog(new Date('2026-11-18T17:05:30Z'), { label: 'Starken' }, '', { type: 'guia', number: '123' });
+    expect(guide).toBe('2026-11-18 14:05 -03:00 · Starken · sin orden · guía de despacho 123');
+    expect(parseSentLog(guide)).toMatchObject({ status: 'ok', log: { carrierLabel: 'Starken', order: '', document: { type: 'guia', number: '123' } } });
+    const parsed = parseSentLog(text);
+    expect(parsed.status === 'ok' && parsed.log).toMatchObject({ carrierLabel: 'Transportes TVP', order: '', document: F8459 });
+    if (parsed.status !== 'ok') return;
+    // El mismo despacho sin orden (operador y documento) calza: no se repite.
+    expect(sentLogMatches(parsed.log, tvp, '', F8459)).toBe(true);
+    // Otro número, otro tipo de documento, la orden u otro operador: otro despacho.
+    expect(sentLogMatches(parsed.log, tvp, '', { type: 'factura', number: '8460' })).toBe(false);
+    expect(sentLogMatches(parsed.log, tvp, '', { type: 'guia', number: '8459' })).toBe(false);
+    expect(sentLogMatches(parsed.log, tvp, 'ABC123', F8459)).toBe(false);
+    expect(sentLogMatches(parsed.log, carrierFromLabel('Starken'), '', F8459)).toBe(false);
+    const withOrder = parseSentLog(formatSentLog(new Date('2026-11-18T17:05:30Z'), tvp, 'ABC123', F8459));
+    expect(withOrder.status === 'ok' && withOrder.log).toMatchObject({ carrierLabel: 'Transportes TVP', order: 'ABC123', document: null });
+    expect(withOrder.status === 'ok' && sentLogMatches(withOrder.log, tvp, '', F8459)).toBe(false);
+    // Corregido a mano (sin tilde, con mayúsculas o ceros a la izquierda): se lee igual.
+    const byHand = parseSentLog('2026-11-18 14:05 -03:00 · Starken · sin orden · Guia de Despacho 0123');
+    expect(byHand.status === 'ok' && byHand.log.document).toEqual({ type: 'guia', number: '123' });
+    // Sin documento, o con uno que no existe, la capa 2 no calza: siguen Redis y el relay.
+    for (const raw of ['2026-11-18 14:05 -03:00 · Transportes TVP · sin orden', '2026-11-18 14:05 -03:00 · Transportes TVP · sin orden · boleta 8459']) {
+      const p = parseSentLog(raw);
+      expect(p.status === 'ok' && p.log, raw).toMatchObject({ carrierLabel: 'Transportes TVP', order: '', document: null });
+      expect(p.status === 'ok' && sentLogMatches(p.log, tvp, '', F8459), raw).toBe(false);
+    }
     // Solo la marca (sin operador ni orden) nunca calza con un envío sin orden.
     const onlyTime = parseSentLog('2026-11-18 14:05 -03:00');
-    expect(onlyTime.status === 'ok' && sentLogMatches(onlyTime.log, tvp, '')).toBe(false);
+    expect(onlyTime.status === 'ok' && sentLogMatches(onlyTime.log, tvp, '', F8459)).toBe(false);
+  });
+
+  it('con orden, los valores escritos antes de este cambio se leen igual (el documento no cuenta)', () => {
+    const old = parseSentLog('2026-11-18 12:01 -03:00 · Starken 123456789');
+    expect(old).toEqual({ status: 'ok', log: { at: new Date('2026-11-18T15:01:00Z'), carrierLabel: 'Starken', order: '123456789', document: null } });
+    if (old.status !== 'ok') return;
+    const starken = carrierFromLabel('Starken');
+    expect(sentLogMatches(old.log, starken, '123456789', F8459)).toBe(true);
+    expect(sentLogMatches(old.log, starken, '123456789', { type: 'guia', number: '1' })).toBe(true);
+    expect(sentLogMatches(old.log, starken, '', F8459)).toBe(false);
+    // Con orden, lo que se escribe no cambia.
+    expect(formatSentLog(new Date('2026-11-18T15:01:00Z'), { label: 'Starken' }, '123456789', F8459)).toBe('2026-11-18 12:01 -03:00 · Starken 123456789');
   });
 
   it('vacío: nunca hubo aviso; con solo la marca (sin operador ni orden) también sirve', () => {
@@ -385,7 +436,7 @@ describe('«Despacho · Aviso enviado»', () => {
     // Codex, 18-11: el aviso real salió a las 03:30:30Z (23:30 -04:00 del 4-4); sin el desfase se
     // releía como 02:30Z y un PDF agregado a las 03:29Z volvía a contar.
     const sentAt = new Date('2026-04-05T03:30:30Z');
-    const text = formatSentLog(sentAt, { label: 'Starken' }, '123');
+    const text = formatSentLog(sentAt, { label: 'Starken' }, '123', F1234);
     expect(text).toBe('2026-04-04 23:30 -04:00 · Starken 123');
     const parsed = parseSentLog(text);
     expect(parsed.status === 'ok' && parsed.log.at.toISOString()).toBe('2026-04-05T03:30:00.000Z');
@@ -406,7 +457,7 @@ describe('«Despacho · Aviso enviado»', () => {
     expect(parseSentLog('2026-09-06 00:30 -04:00 · Starken 123')).toEqual({ status: 'invalid', reason: 'time' });
     expect(parseSentLog('2026-09-06 00:30 -03:00 · Starken 123')).toEqual({ status: 'invalid', reason: 'time' });
     expect(parseSentLog('2026-09-06 00:30 · Starken 123')).toEqual({ status: 'invalid', reason: 'no_offset' });
-    const text = formatSentLog(new Date('2026-09-06T04:00:00Z'), { label: 'Starken' }, '123');
+    const text = formatSentLog(new Date('2026-09-06T04:00:00Z'), { label: 'Starken' }, '123', F1234);
     expect(text).toBe('2026-09-06 01:00 -03:00 · Starken 123');
     const parsed = parseSentLog(text);
     expect(parsed.status === 'ok' && parsed.log.at.toISOString()).toBe('2026-09-06T04:00:00.000Z');

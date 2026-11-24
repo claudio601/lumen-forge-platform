@@ -20,7 +20,7 @@ import {
   validateShippingRequest,
   type ShippingNoticeRequest,
 } from './shippingRelay';
-import { shippingNoticeKey, shortKey } from '../shipping/key';
+import { dispatchRef, shippingNoticeKey, shortKey } from '../shipping/key';
 
 // ── Vector fijo ──────────────────────────────────────────────────────────────
 // El mismo secreto, ts, payload y sig que PRUEBA en Code.gs (una prueba de abajo lo exige).
@@ -92,19 +92,39 @@ describe('shippingNoticeKey', () => {
     expect(shippingNoticeKey(4242, 'chilexpress', 'ABC123456')).not.toBe(base);
   });
 
-  it('sin orden de flete (opcional desde el 24-11-2026): la clave de `{dealId}:{carrierId}:`, siempre la misma', () => {
-    const noOrder = shippingNoticeKey(4242, 'transportes-tvp', '');
-    expect(noOrder).toBe(createHash('sha256').update('4242:transportes-tvp:', 'utf8').digest('hex'));
-    expect(shippingNoticeKey('4242', 'transportes-tvp', '')).toBe(noOrder);
-    // Con la orden ya es otro envío; otro operador sin orden, también.
-    expect(shippingNoticeKey(4242, 'transportes-tvp', 'ABC123')).not.toBe(noOrder);
-    expect(shippingNoticeKey(4242, 'starken', '')).not.toBe(noOrder);
+  it('con orden, la referencia es la orden y la clave no cambia (el documento no cuenta)', () => {
+    expect(dispatchRef('ABC123456', { type: 'factura', number: '8459' })).toBe('ABC123456');
+    expect(dispatchRef('ABC123456', { type: 'guia', number: '1' })).toBe('ABC123456');
+    expect(shippingNoticeKey(4242, 'starken', dispatchRef('ABC123456', { type: 'factura', number: '8459' }))).toBe(
+      'c4ea6a81742a5462b236a0d8840ed67e10003fce958d08d528e2ffe866266ba3',
+    );
   });
 
-  it('lanza si la orden no viene normalizada o los ids no son válidos (la clave cambiaría entre intentos)', () => {
-    for (const order of ['ABC-123', 'abc123', '123.456.789', ' ABC123', ' ', 'ÑANDU1']) {
+  it('sin orden de flete (opcional desde el 24-11-2026): el documento identifica el despacho', () => {
+    const f8459 = dispatchRef('', { type: 'factura', number: '8459' });
+    expect(f8459).toBe('-factura8459');
+    expect(dispatchRef('', { type: 'guia', number: '123' })).toBe('-guia123');
+    const noOrder = shippingNoticeKey(4242, 'transportes-tvp', f8459);
+    expect(noOrder).toBe(createHash('sha256').update('4242:transportes-tvp:-factura8459', 'utf8').digest('hex'));
+    expect(shippingNoticeKey('4242', 'transportes-tvp', '-factura8459')).toBe(noOrder);
+    // Otro número u otro tipo de documento, la orden u otro operador: otro despacho.
+    expect(shippingNoticeKey(4242, 'transportes-tvp', '-factura8460')).not.toBe(noOrder);
+    expect(shippingNoticeKey(4242, 'transportes-tvp', '-guia8459')).not.toBe(noOrder);
+    expect(shippingNoticeKey(4242, 'transportes-tvp', 'ABC123')).not.toBe(noOrder);
+    expect(shippingNoticeKey(4242, 'starken', '-factura8459')).not.toBe(noOrder);
+    // Una orden normalizada nunca lleva «-»: no choca con un documento.
+    expect(shippingNoticeKey(4242, 'transportes-tvp', 'FACTURA8459')).not.toBe(noOrder);
+  });
+
+  it('lanza si la referencia no es una orden normalizada ni la forma exacta del documento, o los ids no son válidos', () => {
+    for (const order of ['ABC-123', 'abc123', '123.456.789', ' ABC123', ' ', '', 'ÑANDU1']) {
       expect(() => shippingNoticeKey(4242, 'starken', order), order).toThrow(TypeError);
     }
+    // Sin orden: «-», el tipo (factura o guia) y el número sin ceros a la izquierda, hasta 10 dígitos.
+    for (const ref of ['-', '-factura', '-factura0123', '-boleta123', '-Factura123', '-factura 123', 'factura-123', '--factura123', '-guía123', '-factura12345678901', '-factura123-']) {
+      expect(() => shippingNoticeKey(4242, 'starken', ref), ref).toThrow(TypeError);
+    }
+    expect(shippingNoticeKey(4242, 'starken', '-factura1234567890')).toMatch(/^[0-9a-f]{64}$/);
     for (const deal of [0, -1, 1.5, '12a', '', '0123'] as Array<number | string>) {
       expect(() => shippingNoticeKey(deal, 'starken', 'ABC123'), String(deal)).toThrow(TypeError);
     }

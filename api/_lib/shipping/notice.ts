@@ -15,8 +15,10 @@
 // 3. Lee los 15 campos por su nombre (fields.ts). Una opción que no está en las opciones guardadas
 //    refresca /dealFields una vez y se vuelve a leer. Orden de flete, Entrega, Agencia o comuna,
 //    Flete y Kilos son opcionales (dueño, 24-11-2026): sin ellos, el correo omite esas líneas y la
-//    nota dice «sin dato». Sin orden, la clave es la de `{negocio}:{operador}:` (key.ts) y «Aviso
-//    enviado» lleva «· sin orden» (formatSentLog): las tres capas siguen.
+//    nota dice «sin dato». Sin orden, el documento identifica el despacho: la clave es la de
+//    `{negocio}:{operador}:-<documento><número>` (key.ts) y «Aviso enviado» lleva «· sin orden ·
+//    factura 8459» (formatSentLog): las tres capas siguen. «Agencia o comuna» sin «Entrega» y un
+//    monto de «Flete por pagar» sin «Flete» detienen el aviso (fields.ts).
 // 4. Persona y correo (readPersonContact), productos (products.ts), archivos (files.ts: la lista,
 //    la descarga con tope y sniffType) y la plantilla (template.ts). Los productos, por prioridad:
 //    «Despacho · Productos»; si no, requested_items_json de la solicitud RC- (en la vista previa,
@@ -76,7 +78,7 @@ import {
 } from './fields.js';
 import { checkDownloadedFile, selectShippingFiles, type DealFileMeta, type ReadyAttachment, type SelectedFile } from './files.js';
 import { chileDateTime, formatClp, formatDateLong, formatDecimal } from './format.js';
-import { shippingNoticeKey, shortKey } from './key.js';
+import { dispatchRef, shippingNoticeKey, shortKey } from './key.js';
 import { parseProductLines, productsFromField, readRequestedItems, resolveRequestedItems, type DealNote, type NoticeProductLine } from './products.js';
 import { buildShippingNotice, type ShippingNotice } from './template.js';
 
@@ -349,9 +351,12 @@ function shipmentLabel(data: ShippingFields): string {
 }
 
 function alreadySentNote(at: Date | null, data: ShippingFields): string[] {
+  const sent = `Aviso de despacho NO enviado: ya se envió${at ? ` el ${chileStamp(at)} (hora de Chile)` : ''} con ${shipmentLabel(data)}`;
+  if (data.order) return [`${sent}.`, 'Para corregir algo, escríbele desde Gmail.'];
+  // Sin orden, el documento identifica el aviso: otro despacho del mismo documento y operador no tiene clave propia.
   return [
-    `Aviso de despacho NO enviado: ya se envió${at ? ` el ${chileStamp(at)} (hora de Chile)` : ''} con ${shipmentLabel(data)}.`,
-    'Para corregir algo, escríbele desde Gmail.',
+    `${sent}, ${documentTitle(data.document)}.`,
+    `Sin ${data.carrier.numberLabel}, el aviso va por documento: para otro despacho de ${documentPhrase(data.document)} con ${data.carrier.label}, o para corregir algo, escríbele desde Gmail.`,
   ];
 }
 
@@ -648,7 +653,7 @@ async function execute(run: Run): Promise<NoticeOutcome> {
 
   let key: string;
   try {
-    key = shippingNoticeKey(run.dealId, data.carrier.slug, data.orderNormalized);
+    key = shippingNoticeKey(run.dealId, data.carrier.slug, dispatchRef(data.orderNormalized, data.document));
   } catch {
     return stopWithProblems(run, [{ field: 'carrier', code: 'invalid', message: `El nombre del operador «${data.carrier.label}» no sirve para el registro del envío: usa una opción más corta.` }]);
   }
@@ -657,7 +662,7 @@ async function execute(run: Run): Promise<NoticeOutcome> {
   // Enviar al cliente: ¿ya salió? Capa 2 (el campo) y capa 1 (Redis).
   let previewMark = false;
   if (run.action === 'send') {
-    if (sentLogMatches(data.lastNotice, data.carrier, data.orderNormalized)) return stop(run, alreadySentNote(data.lastNotice.at, data), 'ya_enviado');
+    if (sentLogMatches(data.lastNotice, data.carrier, data.orderNormalized, data.document)) return stop(run, alreadySentNote(data.lastNotice.at, data), 'ya_enviado');
     const state = await redis<string | null>('GET', noticeStateKey(key));
     if (state.ok === false) return retryLater(run, 'el registro contra el envío doble (Redis) no respondió');
     const parsed = parseState(state.result);
@@ -952,5 +957,5 @@ async function recordSent(run: Run, p: Prepared, at: Date): Promise<NoticeOutcom
 
 /** Lo único que arma el valor de «Despacho · Aviso enviado» (formatSentLog, fields.ts). */
 function sentLogValue(at: Date, data: ShippingFields): string {
-  return formatSentLog(at, data.carrier, data.orderNormalized);
+  return formatSentLog(at, data.carrier, data.orderNormalized, data.document);
 }
