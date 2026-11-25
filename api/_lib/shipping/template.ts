@@ -226,7 +226,7 @@ function buildCopy(data: ShippingNoticeData): Copy {
     : freight.kind === 'due'
       ? freight.amountClp !== null
         ? `Por pagar: <b>${e(formatClp(freight.amountClp))}</b>. Lo pagas a ${e(op)} al ${verb}.`
-        : `Flete por pagar: lo pagas a ${e(op)} al ${verb}.`
+        : `Por pagar: lo pagas a ${e(op)} al ${verb}.`
       : `El flete ya está pagado: no pagas nada al ${verb}.`;
   const freightText = !freight
     ? null

@@ -302,7 +302,8 @@ describe('entrega, flete, pasos y productos', () => {
   it('por pagar sin monto (el comprobante de PDQ no lo trae, 25-11-2026): la misma frase, sin cifra', () => {
     const n = build({ carrier: { id: 'pdq' }, order: '8084765', delivery: 'home', place: 'Copiapó', freight: { kind: 'due', amountClp: null }, packages: 6, kilos: null });
     const html = visible(n.html);
-    expect(html).toContain('Flete por pagar: lo pagas a PDQ al recibirlo.');
+    expect(html).toContain('Por pagar: lo pagas a PDQ al recibirlo.');
+    expect(html).not.toContain('Flete por pagar');
     expect(n.text).toContain('- Flete: por pagar. Lo pagas a PDQ al recibirlo.');
     expect(`${n.subject}\n${n.preheader}\n${n.text}\n${html}`).not.toMatch(/\$|null|NaN|undefined/);
     expect(n.html).toContain('#FFF6E0');
@@ -459,7 +460,8 @@ describe('campos opcionales (dueño, 24-11-2026): sin orden, entrega, agencia o 
       if (data.order) facts.push(data.order);
       if (data.delivery && data.place) facts.push(data.place);
       if (data.kilos) facts.push('3,2 kg');
-      if (data.freight?.kind === 'due') facts.push(data.freight.amountClp !== null ? '$9.870' : 'por pagar');
+      // Sin monto: «Por pagar: lo pagas…» en el HTML y «por pagar. Lo pagas…» en el texto.
+      if (data.freight?.kind === 'due') facts.push(data.freight.amountClp !== null ? '$9.870' : 'or pagar');
       if (data.freight?.kind === 'paid') facts.push('pagado');
       if (data.eta) facts.push('martes 24 de noviembre');
       for (const fact of facts) {

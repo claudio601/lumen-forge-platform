@@ -30,7 +30,7 @@ Nada se descarta sin avisar: si «Agencia o comuna» tiene texto y «Entrega» e
 | Despacho · Entrega | opcional: «Retiro en agencia» o «A domicilio». Sin ella, el correo no dice cómo se entrega y cierra con «Al recibirlo». |
 | Despacho · Agencia o comuna | opcional: la agencia (retiro) o la comuna (domicilio). Va con «Entrega»: con texto y sin «Entrega», el aviso se detiene (elige «Retiro en agencia» o «A domicilio», o borra el lugar). |
 | Despacho · Flete | opcional: «Por pagar» o «Pagado por eLIGHTS.cl». Sin él, el correo no habla del flete. |
-| Despacho · Flete por pagar | opcional, solo con «Por pagar»: el monto del comprobante, en pesos, sin puntos. Si el comprobante no lo trae (PDQ), déjalo vacío: el correo dice «Flete por pagar: lo pagas a … al recibirlo», sin cifra. No toca el valor del negocio. Con monto y sin «Flete», el aviso se detiene (elige «Por pagar» o borra el monto). |
+| Despacho · Flete por pagar | opcional, solo con «Por pagar»: el monto del comprobante, en pesos, sin puntos. Si el comprobante no lo trae (PDQ), déjalo vacío: el correo dice «Por pagar: lo pagas a … al recibirlo» (o «al retirarlo», si es retiro en agencia), sin cifra. No toca el valor del negocio. Con monto y sin «Flete», el aviso se detiene (elige «Por pagar» o borra el monto). |
 | Despacho · Bultos | los del comprobante. |
 | Despacho · Kilos | opcional: los del comprobante. Sin ellos, el correo dice solo los bultos. |
 | Despacho · Fecha de envío | si va vacía, es hoy. No puede ser una fecha futura. |
