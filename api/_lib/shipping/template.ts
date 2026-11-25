@@ -220,15 +220,20 @@ function buildCopy(data: ShippingNoticeData): Copy {
   // Sin entrega, el tercer paso no dice agencia ni reparto.
   const steps = ['Pedido confirmado', 'Despachado', pickup ? 'En agencia' : delivery === 'home' ? 'En reparto' : 'En camino', pickup ? 'Retirado' : 'Entregado'] as const;
 
+  // «Por pagar» sin monto (el comprobante no lo trae, p. ej. PDQ): la misma frase, sin cifra.
   const freightHtml = !freight
     ? null
     : freight.kind === 'due'
-      ? `Por pagar: <b>${e(formatClp(freight.amountClp))}</b>. Lo pagas a ${e(op)} al ${verb}.`
+      ? freight.amountClp !== null
+        ? `Por pagar: <b>${e(formatClp(freight.amountClp))}</b>. Lo pagas a ${e(op)} al ${verb}.`
+        : `Por pagar: lo pagas a ${e(op)} al ${verb}.`
       : `El flete ya está pagado: no pagas nada al ${verb}.`;
   const freightText = !freight
     ? null
     : freight.kind === 'due'
-      ? `por pagar, ${formatClp(freight.amountClp)}. Lo pagas a ${op} al ${verb}.`
+      ? freight.amountClp !== null
+        ? `por pagar, ${formatClp(freight.amountClp)}. Lo pagas a ${op} al ${verb}.`
+        : `por pagar. Lo pagas a ${op} al ${verb}.`
       : `pagado por eLIGHTS.cl. No pagas nada al ${verb}.`;
 
   const boxes = data.packages === 1 ? 'la caja esté' : 'las cajas estén';

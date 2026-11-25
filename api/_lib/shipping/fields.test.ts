@@ -247,10 +247,9 @@ describe('readShippingFields: campos opcionales (dueño, 24-11-2026)', () => {
     expect(problems({ ...EMPTY_OPTIONAL, kilos: 0 }).map((p) => p.field)).toEqual(['kilos']);
     expect(problems({ ...EMPTY_OPTIONAL, delivery: '999999' }).map((p) => [p.field, p.code])).toEqual([['delivery', 'unknown_option']]);
     expect(problems({ ...EMPTY_OPTIONAL, freight: '999999' }).map((p) => [p.field, p.code])).toEqual([['freight', 'unknown_option']]);
-    // «Por pagar» sin el monto sigue sin servir.
-    expect(problems({ ...EMPTY_OPTIONAL, freight: String(optionId('freight', 'Por pagar')) }).map((p) => p.message)).toEqual([
-      'Falta «Despacho · Flete por pagar»: con «Por pagar» va el monto del comprobante del operador.',
-    ]);
+    // «Por pagar» sin el monto sirve desde el 25-11-2026 (el comprobante de PDQ no lo trae).
+    const dueNoAmount = read({ ...EMPTY_OPTIONAL, freight: String(optionId('freight', 'Por pagar')) });
+    expect(dueNoAmount.ok && dueNoAmount.data.freight).toEqual({ kind: 'due', amountClp: null });
   });
 
   it('nada se descarta sin avisar: un lugar sin «Entrega» o un monto sin «Flete» detienen el aviso', () => {
@@ -284,10 +283,11 @@ describe('readShippingFields: faltantes e inválidos', () => {
     ]);
   });
 
-  it('por pagar sin monto, o con un monto con decimales (14.460 escrito con punto)', () => {
-    expect(problems({ freightAmount: null }).map((p) => p.message)).toEqual([
-      'Falta «Despacho · Flete por pagar»: con «Por pagar» va el monto del comprobante del operador.',
-    ]);
+  it('por pagar sin monto sirve (25-11-2026); con un monto con decimales (14.460 escrito con punto), no', () => {
+    for (const freightAmount of [null, '', '  ']) {
+      const r = read({ freightAmount });
+      expect(r.ok && r.data.freight, String(freightAmount)).toEqual({ kind: 'due', amountClp: null });
+    }
     expect(problems({ freightAmount: 14.46 }).map((p) => [p.field, p.code])).toEqual([['freightAmount', 'invalid']]);
     expect(problems({ freightAmount: 0 }).map((p) => p.code)).toEqual(['invalid']);
   });

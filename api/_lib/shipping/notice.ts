@@ -461,7 +461,7 @@ function sentNote(args: {
   const freight = !data.freight
     ? none
     : data.freight.kind === 'due'
-      ? `${SHIPPING_OPTIONS.freight.due}, ${formatClp(data.freight.amountClp)} (lo cobra el operador; no es parte del negocio)`
+      ? `${SHIPPING_OPTIONS.freight.due}, ${data.freight.amountClp !== null ? formatClp(data.freight.amountClp) : 'sin monto'} (lo cobra el operador; no es parte del negocio)`
       : SHIPPING_OPTIONS.freight.paid;
   return [
     ...(args.duplicate
