@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = 'aa4f3a86cfb8';
+export const SNAPSHOT_HASH = '077aecb032b2';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -43,13 +43,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94680904,
+        "id": 123958652,
         "sku": "ALE9F",
         "price": 1290,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Fría - 6000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -2200,13 +2200,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94905393,
+        "id": 123958655,
         "sku": "",
         "price": 9790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -2333,13 +2333,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94905452,
+        "id": 123958657,
         "sku": "",
         "price": 16190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -4848,13 +4848,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 96644373,
+        "id": 123958650,
         "sku": "",
         "price": 47490,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -5002,13 +5002,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95315974,
+        "id": 123958660,
         "sku": "",
         "price": 7790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -5401,13 +5401,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95315224,
+        "id": 123958662,
         "sku": "",
         "price": 14790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -7267,13 +7267,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94905405,
+        "id": 123958656,
         "sku": "",
         "price": 16090,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -9637,13 +9637,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95315720,
+        "id": 123958661,
         "sku": "",
         "price": 7490,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -10896,13 +10896,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94913516,
+        "id": 123958636,
         "sku": "",
         "price": 2590,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -10939,13 +10939,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94913512,
+        "id": 123958637,
         "sku": "",
         "price": 3390,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -10982,13 +10982,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 118661558,
+        "id": 123958638,
         "sku": "",
         "price": 4090,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 6000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11111,13 +11111,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94905552,
+        "id": 123958639,
         "sku": "",
         "price": 19890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11154,13 +11154,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94913534,
+        "id": 123958640,
         "sku": "",
         "price": 22890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11197,13 +11197,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94913522,
+        "id": 123958641,
         "sku": "",
         "price": 60690,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11240,13 +11240,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94913484,
+        "id": 123958642,
         "sku": "",
         "price": 175890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11283,13 +11283,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94905569,
+        "id": 123958643,
         "sku": "",
         "price": 220290,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11346,13 +11346,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 94905414,
+        "id": 123958654,
         "sku": "",
         "price": 7290,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11400,13 +11400,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95177032,
+        "id": 123958658,
         "sku": "",
         "price": 2800,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11454,13 +11454,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95177038,
+        "id": 123958659,
         "sku": "",
         "price": 3190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11507,13 +11507,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95178954,
+        "id": 123958663,
         "sku": "",
         "price": 81600,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11792,13 +11792,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 96221781,
+        "id": 123958653,
         "sku": "",
         "price": 1690,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -11945,13 +11945,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 98856613,
+        "id": 123958645,
         "sku": "",
         "price": 685490,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12003,13 +12003,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 98856618,
+        "id": 123958644,
         "sku": "",
         "price": 262890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12045,13 +12045,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 100182787,
+        "id": 123958651,
         "sku": "CUFONF8P300F",
         "price": 97490,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Fría - 6000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12077,13 +12077,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 100489355,
+        "id": 123958646,
         "sku": "",
         "price": 16190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12109,13 +12109,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 100489826,
+        "id": 123958647,
         "sku": "",
         "price": 30090,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12141,13 +12141,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 100621990,
+        "id": 123958648,
         "sku": "",
         "price": 33890,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12173,13 +12173,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 100622100,
+        "id": 123958649,
         "sku": "",
         "price": 37590,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
