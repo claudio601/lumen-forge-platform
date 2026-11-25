@@ -17,7 +17,9 @@
 //   futura detiene el aviso (el texto diría que ya se entregó).
 // - Opcionales (dueño, 24-11-2026): Orden de flete, Entrega, Agencia o comuna, Flete y Kilos. Vacíos
 //   quedan en null (la orden normalizada, en ''), y el correo omite esas líneas (template.ts). Con un
-//   valor, siguen sus validaciones (largo, opción desconocida, «Por pagar» sin monto, kilos ≤ 0).
+//   valor, siguen sus validaciones (largo, opción desconocida, monto mal escrito, kilos ≤ 0).
+//   «Por pagar» sin monto sirve (dueño, 25-11-2026: el comprobante de PDQ no lo trae): el correo
+//   dice que el flete va por pagar, sin cifra.
 //   Nada se descarta sin avisar: «Agencia o comuna» sin «Entrega» y «Flete por pagar» con monto
 //   sin «Flete» detienen el aviso. Siguen obligatorios el Operador, los Bultos y el N° de
 //   documento. Sin orden, el documento identifica el aviso (key.ts y «Aviso enviado»).
@@ -104,7 +106,8 @@ export type FieldMapResult =
 
 export type ShippingAction = 'preview' | 'send';
 export type DeliveryKind = 'pickup' | 'home';
-export type Freight = { kind: 'paid' } | { kind: 'due'; amountClp: number };
+/** «Por pagar» sin monto (amountClp null): el comprobante no lo trae, como el de PDQ (dueño, 25-11-2026). */
+export type Freight = { kind: 'paid' } | { kind: 'due'; amountClp: number | null };
 
 export interface SentLog {
   /** Instante del último aviso (UTC). */
@@ -395,7 +398,7 @@ export function readShippingFields(
     add('place', 'invalid', `${label('place')} tiene texto, pero ${label('delivery')} está vacía: elige «${SHIPPING_OPTIONS.delivery.pickup}» o «${SHIPPING_OPTIONS.delivery.home}», o borra el lugar.`);
   }
 
-  // Flete (opcional; con «Por pagar», el monto sigue siendo obligatorio)
+  // Flete (opcional; con «Por pagar», el monto también: sin él, el correo no da la cifra)
   let freight: Freight | null = null;
   const freightOption = option('freight');
   if (freightOption.status === 'ok') {
@@ -405,7 +408,7 @@ export function readShippingFields(
     if (kind === 'due') {
       const amount = numberValue(raw('freightAmount'));
       if (amount === null) {
-        add('freightAmount', 'required', `Falta ${label('freightAmount')}: con «Por pagar» va el monto del comprobante del operador.`);
+        freight = { kind: 'due', amountClp: null };
       } else if (amount === 'invalid' || !Number.isInteger(amount) || amount <= 0 || amount > MAX_FREIGHT_CLP) {
         add('freightAmount', 'invalid', `${label('freightAmount')} tiene que ser el monto en pesos, entero y sin puntos (tiene «${shown(raw('freightAmount'))}»).`);
       } else {

@@ -299,6 +299,15 @@ describe('entrega, flete, pasos y productos', () => {
     expect(n.html).toContain('#FFF6E0');
   });
 
+  it('por pagar sin monto (el comprobante de PDQ no lo trae, 25-11-2026): la misma frase, sin cifra', () => {
+    const n = build({ carrier: { id: 'pdq' }, order: '8084765', delivery: 'home', place: 'Copiapó', freight: { kind: 'due', amountClp: null }, packages: 6, kilos: null });
+    const html = visible(n.html);
+    expect(html).toContain('Flete por pagar: lo pagas a PDQ al recibirlo.');
+    expect(n.text).toContain('- Flete: por pagar. Lo pagas a PDQ al recibirlo.');
+    expect(`${n.subject}\n${n.preheader}\n${n.text}\n${html}`).not.toMatch(/\$|null|NaN|undefined/);
+    expect(n.html).toContain('#FFF6E0');
+  });
+
   it('domicilio pagado: comuna, «al recibirlo», pasos En reparto / Entregado', () => {
     const n = build({ delivery: 'home', place: 'Viña del Mar', freight: { kind: 'paid' }, packages: 2 });
     const html = visible(n.html);
@@ -421,15 +430,15 @@ describe('campos opcionales (dueño, 24-11-2026): sin orden, entrega, agencia o 
       for (const order of ['123.456.789', null])
         for (const delivery of ['pickup', 'home', null] as const)
           for (const place of ['La Serena', null])
-            for (const freight of [{ kind: 'due', amountClp: 9_870 }, { kind: 'paid' }, null] as const)
+            for (const freight of [{ kind: 'due', amountClp: 9_870 }, { kind: 'due', amountClp: null }, { kind: 'paid' }, null] as const)
               for (const kilos of [3.2, null])
                 for (const eta of ['2026-11-24', null]) yield { ...base, carrier, order, delivery, place, freight, kilos, eta, packages: 2 };
   }
 
   const all = [...optionalCombinations()].map((data) => ({ data, notice: buildShippingNotice(data) }));
 
-  it('arma las 720 combinaciones, sin huecos ni restos de un dato vacío', () => {
-    expect(all).toHaveLength(720);
+  it('arma las 960 combinaciones, sin huecos ni restos de un dato vacío', () => {
+    expect(all).toHaveLength(960);
     for (const { notice } of all) {
       for (const out of [notice.subject, notice.preheader, notice.text, visible(notice.html)]) {
         expect(out).not.toMatch(/undefined|null|NaN|\s[,.:]|,\.|\(\)/);
@@ -450,7 +459,7 @@ describe('campos opcionales (dueño, 24-11-2026): sin orden, entrega, agencia o 
       if (data.order) facts.push(data.order);
       if (data.delivery && data.place) facts.push(data.place);
       if (data.kilos) facts.push('3,2 kg');
-      if (data.freight?.kind === 'due') facts.push('$9.870');
+      if (data.freight?.kind === 'due') facts.push(data.freight.amountClp !== null ? '$9.870' : 'por pagar');
       if (data.freight?.kind === 'paid') facts.push('pagado');
       if (data.eta) facts.push('martes 24 de noviembre');
       for (const fact of facts) {

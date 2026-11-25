@@ -19,7 +19,7 @@ Solo cuentan los archivos agregados en los últimos 7 días y, si el negocio ya 
 
 **Campos** (los «Despacho · …» del negocio):
 
-Orden de flete, entrega, agencia o comuna, flete y kilos son opcionales (dueño, 24-11-2026): sin ellos, el correo omite esas líneas. Sin orden, el aviso se identifica por el documento (tipo y número).
+Orden de flete, entrega, agencia o comuna, flete y kilos son opcionales (dueño, 24-11-2026): sin ellos, el correo omite esas líneas. El monto del flete por pagar también (25-11-2026): con «Por pagar» y sin monto, el correo dice que el flete va por pagar, sin cifra. Sin orden, el aviso se identifica por el documento (tipo y número).
 
 Nada se descarta sin avisar: si «Agencia o comuna» tiene texto y «Entrega» está vacía, o si «Flete por pagar» tiene monto y «Flete» está vacío, el aviso se detiene y la nota dice qué elegir o qué borrar.
 
@@ -30,7 +30,7 @@ Nada se descarta sin avisar: si «Agencia o comuna» tiene texto y «Entrega» e
 | Despacho · Entrega | opcional: «Retiro en agencia» o «A domicilio». Sin ella, el correo no dice cómo se entrega y cierra con «Al recibirlo». |
 | Despacho · Agencia o comuna | opcional: la agencia (retiro) o la comuna (domicilio). Va con «Entrega»: con texto y sin «Entrega», el aviso se detiene (elige «Retiro en agencia» o «A domicilio», o borra el lugar). |
 | Despacho · Flete | opcional: «Por pagar» o «Pagado por eLIGHTS.cl». Sin él, el correo no habla del flete. |
-| Despacho · Flete por pagar | solo con «Por pagar»: el monto del comprobante, en pesos, sin puntos. No toca el valor del negocio. Con monto y sin «Flete», el aviso se detiene (elige «Por pagar» o borra el monto). |
+| Despacho · Flete por pagar | opcional, solo con «Por pagar»: el monto del comprobante, en pesos, sin puntos. Si el comprobante no lo trae (PDQ), déjalo vacío: el correo dice «Flete por pagar: lo pagas a … al recibirlo», sin cifra. No toca el valor del negocio. Con monto y sin «Flete», el aviso se detiene (elige «Por pagar» o borra el monto). |
 | Despacho · Bultos | los del comprobante. |
 | Despacho · Kilos | opcional: los del comprobante. Sin ellos, el correo dice solo los bultos. |
 | Despacho · Fecha de envío | si va vacía, es hoy. No puede ser una fecha futura. |

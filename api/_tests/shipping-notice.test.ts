@@ -549,6 +549,14 @@ describe('campos opcionales (dueño, 24-11-2026): orden, entrega, agencia o comu
       'Bultos: 1 | Kilos: sin dato | Factura N° 1234',
     ],
     [
+      // El comprobante de PDQ no trae el monto (dueño, 25-11-2026): «Por pagar» sale sin cifra.
+      '«Por pagar» sin monto',
+      (w) => { w.deal()[K.freightAmount] = null; },
+      ['\n- Flete: por pagar. Lo pagas a Starken al retirarlo.\n'],
+      ['$14.460', '14460'],
+      'Flete: Por pagar, sin monto (lo cobra el operador; no es parte del negocio)',
+    ],
+    [
       'sin entrega ni flete',
       (w) => { Object.assign(w.deal(), { [K.delivery]: null, [K.place]: '', [K.freight]: null, [K.freightAmount]: null }); },
       ['\nAl recibirlo: revisa que la caja esté en buen estado antes de firmar. Si ves algún daño, déjalo anotado con Starken y escríbenos el mismo día con fotos.\n'],
@@ -730,7 +738,6 @@ describe('§8 falta algo: nota «NO enviado» con la lista exacta y el disparado
     ['una orden sin letras ni dígitos', (w) => { w.deal()[K.order] = '---'; }, [`- «${SHIPPING_FIELD_NAMES.order}» no trae letras ni dígitos.`]],
     ['una agencia o comuna de más de 80 caracteres', (w) => { w.deal()[K.place] = 'x'.repeat(81); }, [`- «${SHIPPING_FIELD_NAMES.place}» tiene más de 80 caracteres.`]],
     ['kilos en 0', (w) => { w.deal()[K.kilos] = 0; }, [`- «${SHIPPING_FIELD_NAMES.kilos}» tiene que ser un número mayor que 0 (tiene «0»).`]],
-    ['«Por pagar» sin el monto', (w) => { w.deal()[K.freightAmount] = null; }, [`- Falta «${SHIPPING_FIELD_NAMES.freightAmount}»: con «Por pagar» va el monto del comprobante del operador.`]],
     // Nada se descarta sin avisar: el lugar sin la entrega y el monto sin el flete detienen el aviso.
     ['«Agencia o comuna» con texto y «Entrega» vacía', (w) => { w.deal()[K.delivery] = null; }, [`- «${SHIPPING_FIELD_NAMES.place}» tiene texto, pero «${SHIPPING_FIELD_NAMES.delivery}» está vacía: elige «Retiro en agencia» o «A domicilio», o borra el lugar.`]],
     ['«Flete por pagar» con monto y «Flete» vacío', (w) => { w.deal()[K.freight] = null; }, [`- «${SHIPPING_FIELD_NAMES.freightAmount}» tiene monto, pero «${SHIPPING_FIELD_NAMES.freight}» está vacío: elige «Por pagar» o borra el monto.`]],
