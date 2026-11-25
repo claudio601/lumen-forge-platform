@@ -13,7 +13,7 @@ export interface ProductLinkEntry {
   variants: Record<string, { sku: string; label: string }>;
 }
 
-export const SNAPSHOT_HASH = '077aecb032b2';
+export const SNAPSHOT_HASH = '5bf2da3d4d48';
 
 export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2251059": {"id":"ampolleta-led-bola-9w-e27","name":"AMPOLLETA LED BOLA 9W E27","variants":{"123217978":{"sku":"ALE9C","label":"Cálida 3000K"},"123958652":{"sku":"ALE9F","label":"Fría 6500K"}}},
@@ -41,7 +41,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2268816": {"id":"panel-led-redondo-embutido-24w-ip44","name":"PANEL LED REDONDO EMBUTIDO 24W IP44","variants":{"95081689":{"sku":"PLRE24C","label":"Cálida 3000K"},"120885628":{"sku":"PLRE24N","label":"Neutra 4000K"},"120885631":{"sku":"PLRE24F","label":"Fría 6500K"}}},
   "2269032": {"id":"panel-led-redondo-embutido-15w-ip44","name":"PANEL LED REDONDO EMBUTIDO 15W IP44","variants":{"95018431":{"sku":"PLRE15C","label":"Cálida 3000K"},"120885644":{"sku":"PLRE15N","label":"Neutra 4000K"},"120885647":{"sku":"PLRE15F","label":"Fría 6500K"}}},
   "2269355": {"id":"panel-led-redondo-sobrepuesto-6w-ip44","name":"PANEL LED REDONDO SOBREPUESTO 6W IP44","variants":{"94980013":{"sku":"","label":"Neutra 4000K"},"120884787":{"sku":"","label":"Fría 6500K"},"120885521":{"sku":"","label":"Cálida 3000K"}}},
-  "2269456": {"id":"panel-led-redondo-sobrepuesto-9w-ip44","name":"PANEL LED REDONDO SOBREPUESTO 9W IP44","variants":{"95314431":{"sku":"","label":"Cálida 3000K"},"120885487":{"sku":"","label":"Neutra 4000K"},"120885489":{"sku":"","label":"Fría 6500K"}}},
+  "2269456": {"id":"panel-led-redondo-sobrepuesto-9w-ip44","name":"PANEL LED REDONDO SOBREPUESTO 9W IP44","variants":{"95314431":{"sku":"","label":"Cálida 3000K"},"120885489":{"sku":"","label":"Fría 6500K"}}},
   "2269468": {"id":"panel-led-redondo-sobrepuesto-12w-ip44","name":"PANEL LED REDONDO SOBREPUESTO 12W IP44","variants":{"6701576":{"sku":"PLRS12C","label":"Cálida 3000K"},"120885517":{"sku":"PLRS12N","label":"Neutra 4000K"},"120885520":{"sku":"PLRS12F","label":"Fría 6500K"}}},
   "2269493": {"id":"panel-led-redondo-sobrepuesto-18w-ip44-regulable","name":"PANEL LED REDONDO SOBREPUESTO 18W IP44 REGULABLE","variants":{"95081793":{"sku":"","label":"Cálida 3000K"},"120885592":{"sku":"","label":"Neutra 4000K"},"120885595":{"sku":"","label":"Fría 6500K"}}},
   "2269544": {"id":"panel-led-redondo-sobrepuesto-24w-ip44","name":"PANEL LED REDONDO SOBREPUESTO 24W IP44","variants":{"95082356":{"sku":"","label":"Cálida 3000K"},"120885534":{"sku":"","label":"Neutra 4000K"},"120885537":{"sku":"","label":"Fría 6500K"}}},
@@ -105,7 +105,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2327026": {"id":"regleta-led-t5-18w-120-cm-ip44","name":"REGLETA LED T5 18W 120 CM. IP44","variants":{"4192897":{"sku":"RLT518120C","label":"Cálida"},"4192898":{"sku":"RLT518120F","label":"Fría"}}},
   "2327095": {"id":"regleta-led-t8-9w-60-cm-ip44","name":"REGLETA LED T8 9W 60 CM. IP44","variants":{"4192987":{"sku":"RLT8960C","label":"Cálida"},"4192988":{"sku":"RLT8960F","label":"Fría"}}},
   "2327131": {"id":"regleta-led-t8-18w-120-cm-ip44","name":"REGLETA LED T8 18W 120 CM. IP44","variants":{"4193016":{"sku":"RLT818120C","label":"Cálida"},"4193017":{"sku":"RLT818120F","label":"Fría"}}},
-  "2328732": {"id":"aplique-decorativo-bidireccional-semi-curculo-2x5w-ip65-negro","name":"APLIQUE DECORATIVO BIDIRECCIONAL SEMI CIRCULO 2x5W IP65 NEGRO","variants":{"12612703":{"sku":"ADCE2X5NC","label":"Cálida 3000K"},"12612704":{"sku":"ADCE2X5NF","label":"Fría 6500K"}}},
+  "2328732": {"id":"aplique-decorativo-bidireccional-semi-curculo-2x5w-ip65-negro","name":"APLIQUE DECORATIVO BIDIRECCIONAL SEMI CIRCULO 2x5W IP65 NEGRO","variants":{"12612703":{"sku":"ADBSC2X5NC","label":""}}},
   "2339101": {"id":"amp-led-ar111-15-150w","name":"AMPOLLETA LED AR111 15-150W 24° 1200 Lm. IP44","variants":{"4203853":{"sku":"ALAR11115F","label":""}}},
   "2340383": {"id":"proyector-led-slim-smd-300w-ip66","name":"PROYECTOR LED SLIM SMD 300W IP66","variants":{"96644488":{"sku":"","label":"Fría 6500K"},"96644489":{"sku":"","label":"Ámbar 2200K"},"121250279":{"sku":"","label":"Cálida 2700K"},"121250280":{"sku":"","label":"Cálida 3000K"}}},
   "2340385": {"id":"proyector-led-slim-smd-400w-ip66","name":"PROYECTOR LED SLIM SMD 400W IP66","variants":{"121250397":{"sku":"PLSSMD400C","label":"Cálida 3000K"},"121250398":{"sku":"PLSSMD4007","label":"Cálida 2700K"},"121250399":{"sku":"PLSSMD400F","label":"Fría 6500K"},"121250400":{"sku":"PLSSMD4001","label":"Ámbar 2200K"}}},
@@ -120,10 +120,10 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "2345290": {"id":"tortuga-led-16w-opal-blanca-lisa","name":"TORTUGA LED 16W OPAL BLANCA LISA","variants":{"4210916":{"sku":"TL16PBLC","label":"Cálida 3000K"},"4210917":{"sku":"TL16PBLF","label":"Fría 6500K"}}},
   "2345320": {"id":"tortuga-aluminio-oval-c-rejilla-e27-ip54-blanca","name":"TORTUGA ALUMINIO OVAL C/ REJILLA E27 IP54 BLANCA","variants":{}},
   "2346900": {"id":"foco-sumergible-piscina-sobrepuesto-18w-ip68-12v","name":"FOCO SUMERGIBLE PISCINA SOBREPUESTO 18W IP68 12V","variants":{"4213555":{"sku":"FSPS36C","label":"Cálida"},"4213556":{"sku":"FSPS36F","label":"Fría"},"4213557":{"sku":"FSPS36RGB","label":"RGB"}}},
-  "2347029": {"id":"foco-led-embutido-en-piso-1w-ip67","name":"FOCO LED EMBUTIDO EN PISO 1W IP67","variants":{"95315043":{"sku":"","label":"Fría 5000K"},"111913322":{"sku":"","label":"Cálida 3000K"}}},
+  "2347029": {"id":"foco-led-embutido-en-piso-1w-ip67","name":"FOCO LED EMBUTIDO EN PISO 1W IP67","variants":{"111913322":{"sku":"","label":"Cálida 3000K"},"123958774":{"sku":"","label":"Fría 6500K"}}},
   "2347032": {"id":"foco-led-embutido-en-piso-3w-ip67","name":"FOCO LED EMBUTIDO EN PISO 3W IP67","variants":{"4213632":{"sku":"FLEP3C","label":"Cálida"},"4213633":{"sku":"FLEP3F","label":"Fría"}}},
   "2347102": {"id":"foco-led-embutido-en-piso-5w-ip67","name":"FOCO LED EMBUTIDO EN PISO 5W IP67","variants":{"123932847":{"sku":"","label":"Cálida 3000K"},"123958662":{"sku":"","label":"Fría 6500K"}}},
-  "2347159": {"id":"foco-led-embutido-en-piso-12w-ip67","name":"FOCO LED EMBUTIDO EN PISO 12W IP67","variants":{"95433612":{"sku":"","label":"Fría 6000K"},"123932853":{"sku":"","label":"Cálida 3000K"}}},
+  "2347159": {"id":"foco-led-embutido-en-piso-12w-ip67","name":"FOCO LED EMBUTIDO EN PISO 12W IP67","variants":{"123932853":{"sku":"","label":"Cálida 3000K"},"123958775":{"sku":"","label":"Fría 6500K"}}},
   "2347175": {"id":"foco-led-embutido-en-piso-9w-ip67","name":"FOCO LED EMBUTIDO EN PISO 9W IP67","variants":{"4213947":{"sku":"FLEP9C","label":"Cálida"},"4213948":{"sku":"FLEP9F","label":"Fría"}}},
   "2347772": {"id":"panel-led-120x60-cm-80w-embutido-o-suspendido","name":"PANEL LED 120X60 CM. 80W PARA CIELO AMERICANO MARCO BLANCO","variants":{"4214389":{"sku":"PL12060BC","label":"Cálida"},"4214390":{"sku":"PL12060BN","label":"Natural"},"4214391":{"sku":"PL12060BF","label":"Fría"}}},
   "2347849": {"id":"panel-led-120x15-cm-36w-para-cielo-americano","name":"PANEL LED 120X15 CM 36W. PARA CIELO AMERICANO","variants":{"4214610":{"sku":"PL12015BC","label":"Cálida"},"4214611":{"sku":"PL12015BN","label":"Natural"},"4214612":{"sku":"PL12015BF","label":"Fría"}}},
@@ -234,7 +234,7 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "16755056": {"id":"campana-led-ufo-nf3-250w-150lmw-ip66","name":"CAMPANA LED UFO NF3 250W 150LM/W IP66","variants":{"88800759":{"sku":"CUFONF3250F","label":""}}},
   "16755401": {"id":"campana-led-ufo-nf3-300w-150lmw-ip66","name":"CAMPANA LED UFO NF3 300W 150LM/W IP66","variants":{"88801056":{"sku":"CUFONF3300C","label":"Cálida"},"88801057":{"sku":"CUFONF3300N","label":"Neutra 4500K"},"95471323":{"sku":"","label":"Fría 6500K"}}},
   "16842942": {"id":"canoa-doble-para-tubo-led-1200-mm","name":"CANOA DOBLE PARA TUBO LED 1200 MM.","variants":{}},
-  "16848748": {"id":"tubo-led-t8-opal-vidrio-24w-150cm-220v","name":"TUBO LED T8 OPAL VIDRIO 24W 150CM 220V","variants":{"98855111":{"sku":"","label":"Neutra 4500K"},"98855112":{"sku":"","label":"Fría 6500K"},"98855113":{"sku":"","label":"Cálida 3500K"}}},
+  "16848748": {"id":"tubo-led-t8-opal-vidrio-24w-150cm-220v","name":"TUBO LED T8 OPAL VIDRIO 24W 150CM 220V","variants":{"98855112":{"sku":"","label":"Fría 6500K"},"123958766":{"sku":"","label":"Cálida 3000K"},"123958771":{"sku":"","label":"Neutra 4000K"}}},
   "19136920": {"id":"alumbrado-publico-led-solar-90w-all-in-one","name":"ALUMBRADO PÚBLICO LED SOLAR 90W ALL IN ONE","variants":{}},
   "19841604": {"id":"senaletica-de-emergencia-salida-a-prueba-de-explosion","name":"SEÑALÉTICA DE EMERGENCIA SALIDA A PRUEBA DE EXPLOSIÓN","variants":{}},
   "20450795": {"id":"proyector-led-de-emergencia-recargable-smd-100w-ip66","name":"PROYECTOR LED DE EMERGENCIA RECARGABLE SMD 100W IP66","variants":{}},
@@ -284,12 +284,12 @@ export const productLinks: Readonly<Record<string, ProductLinkEntry>> = {
   "24696451": {"id":"proyector-led-de-estadio-modular-600w-ip66-ik10","name":"PROYECTOR LED DE ESTADIO MODULAR 600W IP66 IK10","variants":{"101383761":{"sku":"","label":"Cálida 2700K"},"115585822":{"sku":"","label":"Neutra 4000K"},"116874527":{"sku":"","label":"Fría 5000K"}}},
   "24697125": {"id":"proyector-led-de-estadio-modular-1000w-ip66-ik10","name":"PROYECTOR LED DE ESTADIO MODULAR 1000W IP66 IK10","variants":{"101398930":{"sku":"","label":"Cálida 2700K"},"115585846":{"sku":"","label":"Neutra 4000K"},"117590890":{"sku":"","label":"Fría 5000K"}}},
   "24698439": {"id":"proyector-led-de-estadio-modular-500w-ip66-ik10","name":"PROYECTOR LED DE ESTADIO MODULAR 500W IP66 IK10","variants":{"101405875":{"sku":"","label":"Cálida 2700K"},"115585793":{"sku":"","label":"Neutra 4000K"},"117590887":{"sku":"","label":"Fría 5000K"}}},
-  "25714697": {"id":"panel-led-retraido-concentrico-opal-24w-ip40","name":"PANEL LED RETRAÍDO OPAL 24W IP40","variants":{"103033375":{"sku":"PLRO24N","label":""}}},
-  "25714841": {"id":"panel-led-retraido-concentrico-opal-6w-ip40","name":"PANEL LED RETRAÍDO OPAL 6W IP40","variants":{"103033507":{"sku":"PLRO6N","label":""}}},
+  "25714697": {"id":"panel-led-retraido-concentrico-opal-24w-ip40","name":"PANEL LED RETRAÍDO OPAL 24W IP40","variants":{"123958772":{"sku":"PLRO24F","label":""}}},
+  "25714841": {"id":"panel-led-retraido-concentrico-opal-6w-ip40","name":"PANEL LED RETRAÍDO OPAL 6W IP40","variants":{"123958773":{"sku":"PLRO6F","label":""}}},
   "25818717": {"id":"alumbrado-publico-led-solar-200w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 200W ALL IN ONE C/CONTROL REMOTO","variants":{"103125555":{"sku":"","label":"Fría 6500K"},"123679272":{"sku":"","label":"Cálida 2700K"}}},
-  "25885210": {"id":"alumbrado-publico-led-solar-100w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 100W ALL IN ONE C/CONTROL REMOTO","variants":{"103206091":{"sku":"","label":"Cálida 2200K"},"103206092":{"sku":"","label":"Fría 6500K"}}},
-  "25888711": {"id":"alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 150W ALL IN ONE C/CONTROL REMOTO","variants":{"103206295":{"sku":"","label":"Cálida 2200K"},"103206296":{"sku":"","label":"Fría 6500K"}}},
-  "25888760": {"id":"alumbrado-publico-led-solar-60w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 60W ALL IN ONE C/CONTROL REMOTO","variants":{"103206381":{"sku":"","label":"Cálida 2200K"},"103206382":{"sku":"","label":"Fría 6500K"}}},
+  "25885210": {"id":"alumbrado-publico-led-solar-100w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 100W ALL IN ONE C/CONTROL REMOTO","variants":{"103206092":{"sku":"","label":"Fría 6500K"},"123958764":{"sku":"","label":"Cálida 3000K"}}},
+  "25888711": {"id":"alumbrado-publico-led-solar-150w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 150W ALL IN ONE C/CONTROL REMOTO","variants":{"103206296":{"sku":"","label":"Fría 6500K"},"123958765":{"sku":"","label":"Cálida 3000K"}}},
+  "25888760": {"id":"alumbrado-publico-led-solar-60w-all-in-one-c-control-remoto","name":"ALUMBRADO PÚBLICO LED SOLAR 60W ALL IN ONE C/CONTROL REMOTO","variants":{"103206382":{"sku":"","label":"Fría 6500K"},"123958763":{"sku":"","label":"Cálida 3000K"}}},
   "25891192": {"id":"proyector-led-solar-100w-ip65-c-panel-solar-c-control-remoto","name":"PROYECTOR LED SOLAR 100W IP65 C/PANEL SOLAR C/CONTROL REMOTO","variants":{}},
   "25891958": {"id":"proyector-led-solar-150w-ip65-c-panel-solar-c-control-remoto","name":"PROYECTOR LED SOLAR 150W IP65 C/PANEL SOLAR C/CONTROL REMOTO","variants":{}},
   "25892132": {"id":"proyector-led-solar-200w-ip65-c-panel-solar-c-control-remoto","name":"PROYECTOR LED SOLAR 200W IP65 C/PANEL SOLAR C/CONTROL REMOTO","variants":{}},
