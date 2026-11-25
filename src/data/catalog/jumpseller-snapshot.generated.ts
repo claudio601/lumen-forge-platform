@@ -4,7 +4,7 @@
 
 import type { SnapshotProduct } from './jumpseller.types';
 
-export const SNAPSHOT_HASH = '077aecb032b2';
+export const SNAPSHOT_HASH = '5bf2da3d4d48';
 
 export const jumpsellerSnapshot: SnapshotProduct[] = [
   {
@@ -1069,17 +1069,6 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
           {
             "name": "Color de temperatura",
             "value": "Luz Cálida - 3000K"
-          }
-        ]
-      },
-      {
-        "id": 120885487,
-        "sku": "",
-        "price": 2990,
-        "options": [
-          {
-            "name": "Color de temperatura",
-            "value": "Luz Neutra - 4000K"
           }
         ]
       },
@@ -4460,23 +4449,12 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     "variants": [
       {
         "id": 12612703,
-        "sku": "ADCE2X5NC",
+        "sku": "ADBSC2X5NC",
         "price": 17900,
         "options": [
           {
             "name": "Color",
             "value": "Luz Cálida - 3000K"
-          }
-        ]
-      },
-      {
-        "id": 12612704,
-        "sku": "ADCE2X5NF",
-        "price": 17900,
-        "options": [
-          {
-            "name": "Color",
-            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -5270,13 +5248,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95315043,
+        "id": 123958774,
         "sku": "",
         "price": 8590,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría - 5000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -5464,13 +5442,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
         ]
       },
       {
-        "id": 95433612,
+        "id": 123958775,
         "sku": "",
         "price": 26190,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Fría- 6000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -10687,24 +10665,24 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 98855113,
+        "id": 123958766,
         "sku": "",
         "price": 4790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Cálida - 3500K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
       {
-        "id": 98855111,
+        "id": 123958771,
         "sku": "",
         "price": 4790,
         "options": [
           {
             "name": "Color de Temperatura",
-            "value": "Luz Neutra 4500K"
+            "value": "Luz Neutra - 4000K"
           }
         ]
       },
@@ -12782,13 +12760,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103033375,
-        "sku": "PLRO24N",
+        "id": 123958772,
+        "sku": "PLRO24F",
         "price": 14790,
         "options": [
           {
             "name": "Color",
-            "value": "Luz Natural - 4000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12814,13 +12792,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103033507,
-        "sku": "PLRO6N",
+        "id": 123958773,
+        "sku": "PLRO6F",
         "price": 7290,
         "options": [
           {
             "name": "Color",
-            "value": "Luz Natural - 4000K"
+            "value": "Luz Fría - 6500K"
           }
         ]
       }
@@ -12916,13 +12894,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103206091,
+        "id": 123958764,
         "sku": "",
         "price": 59890,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -12970,13 +12948,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103206295,
+        "id": 123958765,
         "sku": "",
         "price": 72890,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },
@@ -13024,13 +13002,13 @@ export const jumpsellerSnapshot: SnapshotProduct[] = [
     ],
     "variants": [
       {
-        "id": 103206381,
+        "id": 123958763,
         "sku": "",
         "price": 59890,
         "options": [
           {
             "name": "Color de Luz",
-            "value": "Luz Cálida - 2200K"
+            "value": "Luz Cálida - 3000K"
           }
         ]
       },

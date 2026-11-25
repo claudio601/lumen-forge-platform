@@ -9,7 +9,7 @@ export interface PriceIndexEntry {
   variants: Record<string, { sku: string; price: number }>;
 }
 
-export const SNAPSHOT_HASH = '077aecb032b2';
+export const SNAPSHOT_HASH = '5bf2da3d4d48';
 
 export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
   "2251059": {
@@ -295,10 +295,6 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 2990,
     "variants": {
       "95314431": {
-        "sku": "",
-        "price": 2990
-      },
-      "120885487": {
         "sku": "",
         "price": 2990
       },
@@ -1167,11 +1163,7 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "price": 17900,
     "variants": {
       "12612703": {
-        "sku": "ADCE2X5NC",
-        "price": 17900
-      },
-      "12612704": {
-        "sku": "ADCE2X5NF",
+        "sku": "ADBSC2X5NC",
         "price": 17900
       }
     }
@@ -1406,11 +1398,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 8590,
     "variants": {
-      "95315043": {
+      "111913322": {
         "sku": "",
         "price": 8590
       },
-      "111913322": {
+      "123958774": {
         "sku": "",
         "price": 8590
       }
@@ -1451,11 +1443,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 26190,
     "variants": {
-      "95433612": {
+      "123932853": {
         "sku": "",
         "price": 26190
       },
-      "123932853": {
+      "123958775": {
         "sku": "",
         "price": 26190
       }
@@ -2919,15 +2911,15 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 4790,
     "variants": {
-      "98855111": {
-        "sku": "",
-        "price": 4790
-      },
       "98855112": {
         "sku": "",
         "price": 4790
       },
-      "98855113": {
+      "123958766": {
+        "sku": "",
+        "price": 4790
+      },
+      "123958771": {
         "sku": "",
         "price": 4790
       }
@@ -3593,8 +3585,8 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 14790,
     "variants": {
-      "103033375": {
-        "sku": "PLRO24N",
+      "123958772": {
+        "sku": "PLRO24F",
         "price": 14790
       }
     }
@@ -3604,8 +3596,8 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 7290,
     "variants": {
-      "103033507": {
-        "sku": "PLRO6N",
+      "123958773": {
+        "sku": "PLRO6F",
         "price": 7290
       }
     }
@@ -3630,11 +3622,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 59890,
     "variants": {
-      "103206091": {
+      "103206092": {
         "sku": "",
         "price": 59890
       },
-      "103206092": {
+      "123958764": {
         "sku": "",
         "price": 59890
       }
@@ -3645,11 +3637,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 72890,
     "variants": {
-      "103206295": {
+      "103206296": {
         "sku": "",
         "price": 72890
       },
-      "103206296": {
+      "123958765": {
         "sku": "",
         "price": 72890
       }
@@ -3660,11 +3652,11 @@ export const priceIndex: Readonly<Record<string, PriceIndexEntry>> = {
     "sku": "",
     "price": 59890,
     "variants": {
-      "103206381": {
+      "103206382": {
         "sku": "",
         "price": 59890
       },
-      "103206382": {
+      "123958763": {
         "sku": "",
         "price": 59890
       }
