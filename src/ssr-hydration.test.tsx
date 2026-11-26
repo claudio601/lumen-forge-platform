@@ -26,6 +26,7 @@ import { preloadRoute, staticPage } from '@/routes';
 import { NOT_FOUND_ATTR, NOT_FOUND_URL } from '@/lib/notFound';
 import { notFoundSearch } from '@/lib/notFoundSearch';
 import { prerenderedRoutes, STATIC_ROUTES } from '@/lib/seo/routes';
+import { SITE_URL } from '@/config/site';
 import { products } from '@/data/products';
 import { formatCLP } from '@/lib/requestOrder';
 import { editorialOverlay } from '@/data/catalog/overlay/editorial';
@@ -212,6 +213,10 @@ describe('hidratación de las páginas estáticas (árbol real: entry-server y A
   it('después de hidratar, la categoría muestra la página de la URL y la sesión queda aplicada', async () => {
     const { container } = await hydrate('/catalogo/paneles-led', '/catalogo/paneles-led?page=2', true);
     expect(container.textContent).toContain('Página 2 de');
+    // El canonical sigue siendo el de la página 1, igual que en el HTML estático (Search Console, 26-11-2026)
+    await waitFor(() => expect(document.title).toContain('página 2'));
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(`${SITE_URL}/catalogo/paneles-led`);
+    expect(document.head.querySelector('meta[property="og:url"]')?.getAttribute('content')).toBe(`${SITE_URL}/catalogo/paneles-led`);
     expect(container.textContent).toContain('B2B - Precio neto');
     expect(sessionStorage.getItem('elights_b2b')).toBe('true');
     expect(JSON.parse(sessionStorage.getItem('elights_request_cart')!)).toHaveLength(1);

@@ -18,7 +18,7 @@ import { DEFAULT_OG, ogImageUrl, type OgImage } from '@/lib/seo/ogImage';
 export interface SeoProps {
   title: string;
   description: string;
-  /** Ruta canónica ('/catalogo/paneles-led', con ?page=N solo si N > 1). Se ignora con noindex. */
+  /** Ruta canónica ('/catalogo/paneles-led'; el catálogo no agrega ?page=N). Se ignora con noindex. */
   path?: string;
   noindex?: boolean;
   /**

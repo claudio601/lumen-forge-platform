@@ -287,9 +287,11 @@ const NO_KELVIN: number[] = [];
   // Categoría inexistente: página "no encontrada" (noindex) en vez de un catálogo vacío.
   if (categorySlug && !category) return <NotFound />;
 
-  // SEO: título y canonical por categoría y página (la página N > 1 tiene su propio canonical).
+  // SEO: el título lleva la página, pero el canonical es siempre el de la página 1. Vercel sirve el mismo
+  // HTML estático para cualquier ?page=N, con el canonical de la página 1: si después de hidratar pasara a
+  // ?page=N, Google recibiría dos señales distintas (Search Console, 26-11-2026: eligió /catalogo).
   const pageSuffix = safePage > 1 ? ` — página ${safePage}` : '';
-  const seoPath = (category ? categoryPath(category.slug) : '/catalogo') + (safePage > 1 ? `?page=${safePage}` : '');
+  const seoPath = category ? categoryPath(category.slug) : '/catalogo';
   const seoTitle = category
     ? `${category.name}${pageSuffix} | Catálogo eLIGHTS.cl`
     : `Catálogo de iluminación LED${pageSuffix} | eLIGHTS.cl`;
