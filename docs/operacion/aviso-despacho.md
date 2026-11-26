@@ -1,6 +1,6 @@
 # Aviso de despacho: paso a paso
 
-Cuando el pedido ya está con el operador, el sitio le manda al cliente un correo con el seguimiento y la foto del comprobante del operador (y la factura o la guía de despacho en PDF, si la subes). Lo eliges tú en el negocio de Pipedrive, con el campo **«Despacho · Aviso»**, o se lo pides a Claude en el chat (desde el 25-11-2026): le mandas la foto del comprobante y la subes a Archivos del negocio; Claude llena los campos, revisa la vista previa y lo envía al cliente. Si algo no calza, te pregunta antes de enviar. El sitio nunca envía un aviso por su cuenta.
+Cuando el pedido ya está con el operador, el sitio le manda al cliente un correo con el seguimiento y la foto del comprobante del operador (y la factura o la guía de despacho en PDF, si la subes). Lo eliges tú en el negocio de Pipedrive, con el campo **«Despacho · Aviso»**, o se lo pides a Claude en el chat (desde el 25-11-2026): le mandas la foto del comprobante y Claude la sube a Archivos del negocio (o la subes tú), llena los campos, agrega el operador si no está en la lista, revisa la vista previa y lo envía al cliente. Si algo no calza, te pregunta antes de enviar. El sitio nunca envía un aviso por su cuenta.
 
 El resultado siempre queda como **nota en el negocio**. Si el campo «Despacho · Aviso» vuelve a quedar vacío, el aviso ya se procesó: lee la nota.
 
