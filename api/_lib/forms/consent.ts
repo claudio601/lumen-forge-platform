@@ -36,8 +36,9 @@
 export const LEGAL_VERSION: string = '1.15';
 // La 1.15 (paso de Mailchimp a EmailOctopus, D3 del dueño del 2026-11-26) cambia los Términos §14 y la
 // Política §2, §3, §5, §6 y §7: las novedades se envían con EmailOctopus (encargado en el Reino Unido)
-// a quien marca la casilla y a quien ya las recibía desde Mailchimp, con reconfirmación para quien no
-// abrió ni hizo clic en 12 meses y la medición de aperturas y clics. Las casillas no cambian. La 1.14
+// a quien marca la casilla y a quien ya las recibía desde Mailchimp (base: la ley del consumidor, Q6 del
+// dueño del 2026-11-27), con una sola reconfirmación para quien no abrió ni hizo clic en los 12 meses
+// anteriores al cambio y la medición de aperturas y clics. Las casillas no cambian. La 1.14
 // rigió desde el 23-11-2026 (PR #212).
 // La 1.14 (Ley 21.855, DO 23-11-2026) cambia las fechas de la Política al 15-10-2027 y corrige hechos
 // de §2, §5 y §7 y de los Términos §1. La 1.13 rigió desde el 20-11-2026 (PR #207).

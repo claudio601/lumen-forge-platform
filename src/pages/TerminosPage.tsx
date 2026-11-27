@@ -26,7 +26,7 @@
 // Versión 1.14: §1, en las solicitudes de instalación también respondemos por teléfono (dueño,
 // 2026-10-24).
 // Versión 1.15 (paso de Mailchimp a EmailOctopus, D3 del dueño del 2026-11-26): §14, las novedades
-// van también a quien ya las recibía antes de la casilla; el detalle está en la Política §3.
+// van también a quien ya las recibía desde Mailchimp; el detalle está en la Política §3.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -219,8 +219,9 @@ const TerminosPage = () => (
     <h2>14. Comunicaciones comerciales</h2>
     <p>
       Te enviamos novedades u ofertas por correo solo si marcas la casilla para recibirlas en un formulario (es opcional y viene
-      sin marcar) o si ya las recibías antes. En cada correo encontrarás cómo dejar de recibirlos, y también puedes pedirlo en
-      cualquier momento a <EmailLink subject="Datos personales" />. Más detalles en el punto 3 de la{' '}
+      sin marcar) o si ya las recibías desde Mailchimp, la plataforma que usábamos antes. En cada correo encontrarás cómo dejar
+      de recibirlos, y también puedes pedirlo en cualquier momento a <EmailLink subject="Datos personales" />. Más detalles en
+      el punto 3 de la{' '}
       <Link to="/politica-de-privacidad">Política de privacidad</Link>.
     </p>
 

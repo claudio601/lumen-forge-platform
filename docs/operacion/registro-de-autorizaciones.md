@@ -34,24 +34,41 @@ Dónde queda primero:
 
 - Vale **la última línea que empieza con `consent_json:`** de la nota o del correo. No te guíes por la línea legible: un cliente puede escribir un texto parecido en sus comentarios, pero lo que escribe el cliente queda siempre **antes** del bloque.
 - Campos del JSON: `v` (versión que vio el cliente; `null` si es un formulario anterior), `sv` (versión del servidor, solo si es distinta), `at` (instante UTC), `form`, `privacy`, `terms`, `marketing`, `src` (`web` o `web-legacy`).
-- Si una persona tiene varias solicitudes, manda la más reciente (`at` mayor). Una solicitud posterior **sin** la casilla de novedades cuenta como retiro (Política §7).
+- Si una persona tiene varias solicitudes, manda la más reciente (`at` mayor). Una solicitud posterior **sin** la casilla de novedades cuenta como baja (Política §7).
 - Para saber qué texto aceptó, abre el archivo de su versión (`v`): `https://elights.cl/legal/politica-de-privacidad-v1.15.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`).
 
 ## 3. Novedades y ofertas por correo
 
-Desde la 1.15 (Política §3, §5 y §7; D3 del dueño, 26-11-2026) las novedades se envían con **EmailOctopus**, lista «Novedades de eLIGHTS.cl», con doble confirmación. Nada promocional por WhatsApp.
+Desde la 1.15 (Política §3, §5 y §7; D3 del dueño, 26-11-2026) las novedades se envían con **EmailOctopus**, lista «Novedades de eLIGHTS.cl», con doble confirmación. Nada promocional por WhatsApp. Base (dueño, 27-11-2026): la casilla del sitio o, para la base heredada, la ley del consumidor (Ley 19.496, art. 28 B), porque esas personas pidieron una cotización o información, o compraron. Los contactos de Mailchimp son de eLIGHTS.CL SpA.
 
 - **Quién las recibe:**
-  - quien tenga `"marketing":true` en su última `consent_json`: entra como pendiente y recibe el correo de confirmación de EmailOctopus;
+  - quien tenga `"marketing":true` en su última `consent_json`: entra como pendiente y recibe el correo de confirmación de EmailOctopus. Solo recibe campañas si confirma;
   - la base heredada: quien estaba suscrito en Mailchimp en los públicos Pipedrive, «Suscriptores eLIGHTS.cl» o Jivochat. El público de instaladores y los contactos archivados no se importan;
-  - quien no abrió ni hizo clic en ninguna campaña en los últimos 12 meses recibe primero un pedido de reconfirmación (etiqueta `reconfirmar`) y no recibe campañas mientras no confirme.
-- **Nunca las reciben** (supresión, se carga antes que la base y queda como baja): toda baja o rebote de cualquiera de los 4 públicos de Mailchimp, también del de instaladores y de los archivados; las filas de la pestaña «Bajas» de la hoja de ventas, y quien tenga `"marketing":false` en su última `consent_json`.
-- **Cada campaña** lleva enlace de baja, asunto y remitente identificables (Ley 19.496, art. 28 B). Antes de cada envío se revisa el registro No Molestar del SERNAC.
+  - **reconfirmación, una sola vez, en el paso a EmailOctopus:** de la base heredada, quien no abrió ni hizo clic en ninguna campaña en los 12 meses anteriores al cambio (según el export de Mailchimp) entra con la etiqueta `reconfirmar`, recibe un solo pedido de confirmación y no recibe campañas mientras no confirme. A los 14 días de su tanda, quien no confirmó pasa a baja («Unsubscribed»); esa fecha se anota en el calendario al programar cada tanda. No es una ronda periódica: para repetirla, antes cambia la Política §3.
+- **No las reciben** (supresión: se carga antes que la base, solo con el correo y la etiqueta, y queda como baja):
+  - las bajas (`supr-baja-mc`) y los rebotes (`supr-rebote-mc`) de cualquiera de los 4 públicos de Mailchimp, también del de instaladores y de los archivados;
+  - las filas de la pestaña «Bajas» de la hoja de ventas y quien tenga `"marketing":false` en su última `consent_json` (`supr-retiro-web`);
+  - quien esté en el registro No Molestar del SERNAC (`supr-no-molestar`), que se cruza antes de cada envío.
+  - Excepción: quien después marca la casilla en el sitio pasa a pendiente y recibe la confirmación de EmailOctopus; solo recibe campañas si confirma. Si tiene `supr-rebote-mc` o `supr-no-molestar`, una persona lo revisa antes de subirlo.
+- **Aviso del cambio** (Política §3 y §12; Términos de EmailOctopus §7.4), antes de que cada grupo reciba campañas:
+  - la Política 1.15 está publicada en elights.cl antes de la primera carga en EmailOctopus;
+  - el correo de confirmación del doble opt-in (altas del sitio) y el de reconfirmación enlazan la Política y dicen que se miden aperturas y clics;
+  - la primera campaña a cada tanda de la base heredada lleva un aviso breve del cambio (EmailOctopus y la medición de aperturas y clics), con el enlace a la Política y el de baja.
+- **Cada campaña** lleva enlace de baja, asunto y remitente identificables (Ley 19.496, art. 28 B) y el enlace a la Política.
 - **Registro de altas y bajas:** EmailOctopus (estado del contacto, etiquetas `origen-*` y `supr-*`, campos «Fecha de alta» y «Base del permiso»). Reemplaza a las pestañas «Altas» y «Bajas» de la hoja de ventas; lo que ya tenían se carga en EmailOctopus.
+  - «Fecha de alta» y «Base del permiso» son la constancia de cómo entró cada contacto (Política §7), que no se borra con la solicitud:
+    - alta del sitio: «Casilla del sitio (<formulario>, v<versión>)», con el `form` y la `v` de su `consent_json`, y el día de su `at` en hora de Chile; al confirmar, EmailOctopus guarda además la fecha del doble opt-in;
+    - base heredada: «Suscrito en Mailchimp (<públicos>)», o «Formulario de Mailchimp (Suscriptores eLIGHTS.cl)» si entró por un formulario, y la fecha de alta más antigua de Mailchimp (CONFIRM_TIME o, si falta, OPTIN_TIME). En los contactos que llegaron sincronizados desde Pipedrive, esa fecha y la IP reflejan la sincronización: no prueban un consentimiento;
+    - quien confirma en la reconfirmación: la fecha del doble opt-in que guarda EmailOctopus.
   - Bajas desde el enlace de un correo: EmailOctopus las registra solo.
   - Bajas pedidas por correo (respuesta a una campaña o asunto «Datos personales»): marca el contacto como baja en EmailOctopus antes de 2 días.
-  - Altas y bajas del sitio: hasta que la casilla quede conectada con EmailOctopus (PR 3 del plan), Claude las sube cada 2 días como máximo, con OK del dueño: `"marketing":true` como pendiente y `"marketing":false` como baja.
-- **Plazos:** la suscripción no se borra con la solicitud (24 meses sin compra): sigue en EmailOctopus mientras no se dé de baja. Una baja queda **4 años** marcada como baja (prescripción de 4 años, art. 40 de la Ley 19.628 reformada, que rige desde el 15-10-2027), para respetarla y poder demostrar la suscripción que hubo.
+  - Altas y bajas del sitio, hasta que la casilla quede conectada con EmailOctopus (PR 3 del plan): una ronda cada 2 días como máximo, desde que se carga la supresión, con un recordatorio en el calendario del dueño.
+    - Bajas (`"marketing":false`): Claude las marca en cada ronda sin esperar OK, porque no envían nada al cliente y EmailOctopus exige respetarlas antes de 2 días.
+    - Altas (`"marketing":true`): Claude las sube como pendientes con OK del dueño en cada ronda, porque disparan el correo de confirmación.
+- **Plazos:**
+  - La suscripción no se borra con la solicitud (24 meses sin compra): sigue en EmailOctopus mientras no se dé de baja.
+  - Una baja se guarda **4 años** (prescripción de 4 años, art. 40 de la Ley 19.628 reformada, que rige desde el 15-10-2027), para respetarla y poder demostrar por qué se le escribió. Se cuenta desde que el contacto queda como baja en EmailOctopus; las de Mailchimp, desde que se cargan. Un contacto en baja no se vuelve a editar, para no mover esa fecha (en la API, `last_updated_at`; comprobarlo con la primera baja de prueba).
+  - Una vez al año (recordatorio en el calendario del dueño, desde la primera carga), Claude lista las bajas de más de 4 años y, con OK del dueño, las borra de EmailOctopus.
 - Un campo o una etiqueta de novedades en Pipedrive sería otra PR (`api/_lib/pipedrive` está protegido).
 
 ## 4. Oposición al origen de la visita
@@ -88,7 +105,7 @@ Aplica a la oposición y a los demás derechos (acceso, rectificación, supresi�
 
 - Solicitudes que no terminan en compra: 24 meses desde el último contacto. La constancia sigue a su solicitud.
 - Novedades: en EmailOctopus, mientras no se den de baja; no se borran con la solicitud.
-- Bajas de novedades: 4 años, en EmailOctopus, marcadas como baja.
+- Bajas de novedades: 4 años desde que quedan como baja en EmailOctopus (las de Mailchimp, desde que se cargan); después se borran en la revisión anual (punto 3).
 - Twilio (asistente de WhatsApp): 400 días en su consola y su API, más su respaldo (Backup Storage), que queda encendido por decisión del dueño (2026-10-18) para revisar y mejorar el asistente. La política §7 lo informa.
 - Revisión del asistente (desde la 1.4): la exportación de Twilio no se guarda; la tabla de claves, cifrada, 14 días; la copia seudonimizada y la huella del teléfono, 60 días; las cifras, sin plazo. Los borrados los ejecuta el dueño con el comando que deja Claude en `marcha-blanca/registro.md`, y cada uno tiene su recordatorio en el calendario.
 

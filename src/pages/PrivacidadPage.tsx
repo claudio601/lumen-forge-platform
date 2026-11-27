@@ -56,8 +56,12 @@
 // ~/proyectos/elights-email-2026-10/, fuera del repo): las novedades se envían con EmailOctopus
 // (Three Hearts Digital Ltd, Reino Unido; datos en AWS de la UE, sobre todo Irlanda; subencargados
 // en emailoctopus.com/legal/subprocessors, revisados el 2026-11-27) a quien marca la casilla y a
-// quien ya las recibía desde Mailchimp; quien no abrió ni hizo clic en 12 meses reconfirma primero;
-// EmailOctopus mide aperturas y clics (sus Términos §7.4 piden informarlo). §2, §3, §5, §6 y §7.
+// quien ya las recibía desde Mailchimp. La base de esa base heredada es la ley del consumidor (Ley
+// 19.496, art. 28 B), con el texto del dueño del 2026-11-27 (Q6, sin abogado); los contactos de
+// Mailchimp son de eLIGHTS.CL SpA (dueño, 2026-11-27). Quien no abrió ni hizo clic en los 12 meses
+// anteriores al cambio reconfirma una sola vez (el historial sale del export de Mailchimp) y, si no
+// confirma, pasa a baja. EmailOctopus mide aperturas y clics (sus Términos §7.4 piden informarlo). Una
+// baja se borra a los 4 años (registro de autorizaciones §3). §2, §3, §5, §6 y §7.
 // Mailchimp queda en §5 hasta que se cierre esa cuenta (está en pausa).
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
 // - Asistente de WhatsApp (§2, §4 y §7; api/whatsapp/webhook.ts y api/_lib/whatsapp/): las
@@ -143,8 +147,8 @@ const PURPOSES: [string, string][] = [
   ],
   ['Proteger el sitio y prevenir abusos y fraudes', 'Interés legítimo'],
   [
-    'Enviarte novedades y ofertas por correo y saber si abres esos correos y en qué enlaces haces clic (ver más abajo)',
-    'Tu consentimiento, si marcas la casilla opcional de un formulario, o tu suscripción anterior, si ya las recibías; puedes darte de baja cuando quieras',
+    'Enviarte novedades y ofertas por correo y saber si abres esos correos y en qué enlaces haces clic (ver «Novedades por correo», más abajo)',
+    'Tu consentimiento, si marcas la casilla opcional de un formulario; si ya las recibías porque nos pediste una cotización o información, o compraste, la ley del consumidor. En los dos casos puedes darte de baja en cada correo (Ley N° 19.496, art. 28 B)',
   ],
   [
     'Recordar tus datos en tu navegador para completar los formularios, solo si marcas esa casilla',
@@ -234,8 +238,8 @@ const PrivacidadPage = () => (
         10).
       </li>
       <li>
-        <strong>Novedades por correo:</strong> si las recibes, tu nombre y correo, cuándo y cómo te suscribiste, si abres cada
-        correo y en qué enlaces haces clic, y tu baja si la pides.
+        <strong>Novedades por correo:</strong> si las recibes, tu nombre y correo, cuándo y cómo entraste a nuestra lista, si
+        abres cada correo y en qué enlaces haces clic, y tu baja si la pides.
       </li>
       <li>
         <strong>Datos técnicos:</strong> dirección IP, tipo de navegador y registros de funcionamiento y seguridad del sitio y del
@@ -252,8 +256,8 @@ const PrivacidadPage = () => (
       por WhatsApp, también recibimos automáticamente tu número y el nombre de tu perfil de WhatsApp. Si pagas con el link de
       pago, Flow nos informa el estado de tu pago. Si tu empresa o institución paga por ti o nos envía una orden de compra, esos
       datos vienen de ella. Si haces tu solicitud en nuestra tienda de Jumpseller, sus datos vienen de esa plataforma. Los
-      parámetros de campaña vienen del enlace con el que llegaste. Si ya recibías nuestras novedades, tus datos de suscripción
-      vienen de Mailchimp, la plataforma que usábamos antes para enviarlas.
+      parámetros de campaña vienen del enlace con el que llegaste. Si ya recibías nuestras novedades, tus datos de la lista y si
+      abriste o hiciste clic en nuestros correos anteriores vienen de Mailchimp, la plataforma que usábamos antes para enviarlas.
     </p>
 
     <h2>3. Para qué los usamos y con qué base legal</h2>
@@ -285,7 +289,10 @@ const PrivacidadPage = () => (
       autorización que das en el aviso de cookies. Recordar tus datos en tu navegador se basa en la autorización que das al
       marcar esa casilla. En ese período, la
       revisión de las conversaciones con el asistente de WhatsApp (punto 4) se basa en la autorización que nos das al escribirle;
-      el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. Desde el 15 de
+      el asistente te informa esa finalidad en su aviso de privacidad, al final de su primera respuesta. En ese período, las
+      novedades por correo se basan en la autorización que das al marcar la casilla y, si ya las recibías porque nos pediste una
+      cotización o información, o compraste, en la ley del consumidor (Ley N° 19.496, art. 28 B); en cada correo puedes darte de
+      baja. Desde el 15 de
       octubre de 2027 rigen las bases de la tabla: responder tu solicitud se basa en las medidas previas a un contrato que nos
       pides, y la casilla queda como constancia de que leíste esta política.
     </p>
@@ -304,11 +311,13 @@ const PrivacidadPage = () => (
       visitas y anuncios no enviamos a Google ni a Meta tu nombre, correo ni teléfono.
     </p>
     <p>
-      <strong>Novedades por correo.</strong> Las enviamos con EmailOctopus (punto 5) a quienes marcan la casilla opcional de un
-      formulario y a quienes ya las recibían desde Mailchimp, la plataforma que usábamos antes. Cada correo trae un enlace para
-      darte de baja. Si no abriste ni hiciste clic en ninguno de nuestros correos en los últimos 12 meses, antes de enviarte más
-      te pedimos que confirmes que quieres seguir recibiéndolos. EmailOctopus registra si abres cada correo y en qué enlaces
-      haces clic; lo usamos para medir nuestros correos y para saber a quién pedirle esa confirmación.
+      <strong>Novedades por correo.</strong> Te las enviamos con EmailOctopus (punto 5) solo si marcas la casilla opcional de un
+      formulario o si ya las recibías desde Mailchimp, la plataforma que usábamos antes. Cada correo trae un enlace para darte
+      de baja. Si ya las recibías desde Mailchimp y no abriste ni hiciste clic en ninguno de nuestros correos en los 12 meses
+      anteriores al cambio de plataforma, antes de enviarte más te pedimos una vez que confirmes que quieres seguir
+      recibiéndolas; si no confirmas, dejamos de enviártelas. Para saber a quién pedirle esa confirmación, y a quién escribirle
+      primero, usamos lo que Mailchimp registró de nuestros correos anteriores. EmailOctopus registra si abres cada correo y en
+      qué enlaces haces clic, y lo usamos para medir nuestros correos.
     </p>
 
     <h2>4. Priorización de solicitudes y respuestas automáticas</h2>
@@ -384,7 +393,7 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>EmailOctopus</strong> (Three Hearts Digital Ltd, Reino Unido): envío de nuestras novedades por correo y registro
-        de tu suscripción o tu baja, de si abres cada correo y de en qué enlaces haces clic. Guarda los datos sobre todo en
+        de cómo entraste a la lista o de tu baja, de si abres cada correo y de en qué enlaces haces clic. Guarda los datos sobre todo en
         Irlanda (Unión Europea) y trabaja con sus propios proveedores, algunos en Estados Unidos, que publica en su{' '}
         <a href="https://emailoctopus.com/legal/subprocessors" target="_blank" rel="noopener noreferrer">
           lista de subencargados
@@ -451,10 +460,12 @@ const PrivacidadPage = () => (
         <strong>Boletas, facturas y respaldos contables:</strong> 6 años, por obligación tributaria.
       </li>
       <li>
-        <strong>Novedades y ofertas:</strong> tu nombre, tu correo, la constancia de tu suscripción y las aperturas y los clics de
-        cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se elimine tu
-        solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como retiro. Cuando te das de baja, tu registro
-        queda en EmailOctopus marcado como baja por 4 años, para respetar tu baja y poder demostrar tu suscripción.
+        <strong>Novedades y ofertas:</strong> tu nombre, tu correo, la constancia de cómo entraste a la lista y las aperturas y los
+        clics de cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se elimine
+        tu solicitud. Si en una solicitud posterior no marcas la casilla, o si no confirmas cuando te lo pedimos, lo tomamos como
+        baja. Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja, para no volver a escribirte y poder
+        demostrar por qué te escribimos, y lo borramos 4 años después (si te diste de baja en Mailchimp, 4 años después de pasar
+        tu baja a EmailOctopus).
       </li>
       <li>
         <strong>Constancia de tus autorizaciones</strong> (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.
