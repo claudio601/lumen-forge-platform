@@ -6,7 +6,8 @@
 // Despacho sin costo y retiro en bodega (dueño, 2026-10-14, PR 12b): monto, zona y lugar desde
 // src/config/business.ts; el detalle está en /despacho.
 // /solicitar-pedido pide aceptar estos términos en su casilla obligatoria (useConsentFields);
-// novedades por correo solo con la casilla opcional. Versión y fecha: LEGAL_VERSION y
+// novedades por correo con la casilla opcional o, desde la 1.15, a quien ya las recibía desde
+// Mailchimp (§14; Política §3). Versión y fecha: LEGAL_VERSION y
 // LEGAL_UPDATED_LABEL (api/_lib/forms/consent.ts); cada versión queda en public/legal/
 // (npm run legal:archive), el enlace permanente que promete §3.6.
 // Versión 1.3 (PR 13x): §1, respondemos por correo (regla del dueño: no llamar ni seguir por
@@ -24,6 +25,9 @@
 // una cotización de proyecto, el monto con cada medio de pago va en la cotización (se ofrecen dos).
 // Versión 1.14: §1, en las solicitudes de instalación también respondemos por teléfono (dueño,
 // 2026-10-24).
+// Versión 1.15 (paso de Mailchimp a EmailOctopus, D3 del dueño del 2026-11-26): §14, las novedades
+// van también a quien ya las recibía desde Mailchimp (base: Ley 19.496, art. 28 B, decisión del dueño
+// del 2026-11-27); el detalle está en la Política §3.
 
 import { Link } from 'react-router-dom';
 import LegalLayout from '@/components/legal/LegalLayout';
@@ -215,9 +219,11 @@ const TerminosPage = () => (
 
     <h2>14. Comunicaciones comerciales</h2>
     <p>
-      Solo te enviaremos novedades u ofertas por correo si marcas la casilla para recibirlas en un formulario: es opcional y
-      viene sin marcar. En cada correo encontrarás cómo dejar de recibirlos, y también puedes pedirlo en cualquier momento a{' '}
-      <EmailLink subject="Datos personales" />.
+      Te enviamos novedades u ofertas por correo solo si marcas la casilla para recibirlas en un formulario (es opcional y viene
+      sin marcar) o si ya las recibías desde Mailchimp, la plataforma que usábamos antes. En cada correo encontrarás cómo dejar
+      de recibirlos, y también puedes pedirlo en cualquier momento a <EmailLink subject="Datos personales" />. Más detalles en
+      el punto 3 de la{' '}
+      <Link to="/politica-de-privacidad">Política de privacidad</Link>.
     </p>
 
     <h2>15. Cambios a estos términos</h2>

@@ -33,7 +33,13 @@
  * LEGAL_UPDATED no mueve el margen de CONSENT_GRACE_DAYS días: se cuenta desde
  * CONSENT_SINCE_DATE (consentGraceUntil), que no cambia al subir la versión.
  */
-export const LEGAL_VERSION: string = '1.14';
+export const LEGAL_VERSION: string = '1.15';
+// La 1.15 (paso de Mailchimp a EmailOctopus, D3 del dueño del 2026-11-26) cambia los Términos §14 y la
+// Política §2, §3, §5, §6 y §7: las novedades se envían con EmailOctopus (encargado en el Reino Unido)
+// a quien marca la casilla (con doble opt-in) y a quien ya las recibía desde Mailchimp, también los
+// instaladores activos (base: Ley 19.496, art. 28 B, decisiones del dueño del 2026-11-27), con
+// reconfirmación, solo en el cambio, de quien no abrió ni hizo clic en 12 meses, y la medición de
+// aperturas y clics. Las casillas no cambian. La 1.14 rigió desde el 23-11-2026 (PR #212).
 // La 1.14 (Ley 21.855, DO 23-11-2026) cambia las fechas de la Política al 15-10-2027 y corrige hechos
 // de §2, §5 y §7 y de los Términos §1. La 1.13 rigió desde el 20-11-2026 (PR #207).
 // La 1.13 (aclaración del dueño, 2026-11-20) acota los Términos §4: el mismo monto por transferencia
@@ -55,11 +61,11 @@ export const LEGAL_VERSION: string = '1.14';
 // §7) se publicó el 25-10-2026 (PR #118); la 1.7 («Recordar mis datos en este dispositivo»: la
 // Política §2, §3, §7 y §10), el mismo día (PR #112); la 1.6 (adjuntos del cotizador), el 23-10-2026 (PR #105); la
 // 1.5, el 22-10-2026 (PR #103); la 1.4, el 21-10-2026 (PR #90 y #102).
-export const LEGAL_UPDATED: string = '2026-11-23';
-export const LEGAL_UPDATED_LABEL: string = '23 de noviembre de 2026';
+export const LEGAL_UPDATED: string = '2026-11-27';
+export const LEGAL_UPDATED_LABEL: string = '27 de noviembre de 2026';
 
 /** Versiones anteriores, ya publicadas en public/legal/<página>-v<versión>.html. */
-export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '1.12', '1.13'];
+export const LEGAL_ARCHIVE: readonly string[] = ['1.0', '1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8', '1.9', '1.10', '1.11', '1.12', '1.13', '1.14'];
 
 /** Páginas con versión y archivo permanente (LegalLayout con `updated`). */
 export const LEGAL_VERSIONED_PATHS = [

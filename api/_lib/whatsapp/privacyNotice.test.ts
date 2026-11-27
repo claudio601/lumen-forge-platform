@@ -44,7 +44,9 @@ const MAX_COMBINED = 1000;
  * el aviso contra la política nueva (sobre todo el §4) y se actualiza aquí.
  */
 // 1.14 (Ley 21.855): fechas de la Política al 15-10-2027 y hechos de §2, §5 y §7; el aviso sigue siendo cierto.
-const NOTICE_REVIEWED_FOR_LEGAL_VERSION = '1.14';
+// 1.15 (EmailOctopus): solo cambian las novedades por correo (§2, §3, §5, §6 y §7); el aviso no las nombra y sigue
+// siendo cierto.
+const NOTICE_REVIEWED_FOR_LEGAL_VERSION = '1.15';
 
 /** Módulo nuevo, con el registro vacío. */
 async function freshModule(): Promise<NoticeModule> {
