@@ -106,6 +106,9 @@ const CONSENT_TEXTS_BY_VERSION: Readonly<Record<string, Readonly<Record<string, 
   // 1.14 (Ley 21.855, DO 23-11-2026): las fechas de la Política pasan al 15-10-2027 y se corrigen hechos
   // de la Política §2, §5 y §7 y de los Términos §1; las casillas no cambian.
   '1.14': CONSENT_TEXTS_SINCE_1_2,
+  // 1.15 (paso a EmailOctopus, D3 del dueño del 2026-11-26): los Términos §14 y la Política §2, §3, §5, §6 y
+  // §7 (novedades con EmailOctopus, base heredada de Mailchimp y aperturas y clics); las casillas no cambian.
+  '1.15': CONSENT_TEXTS_SINCE_1_2,
 });
 
 const parsed = (over: Partial<ParsedConsent> = {}): ParsedConsent => ({

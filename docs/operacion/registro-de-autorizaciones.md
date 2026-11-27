@@ -1,6 +1,6 @@
 # Registro de autorizaciones: novedades, bajas y oposiciones
 
-Procedimiento de ventas desde la PR 13 (versión 1.2 de los textos legales; 1.3, PR 13x, que corrige lo que la política dice del asistente de WhatsApp y pide por correo el retracto, la garantía y los reclamos; 1.4, PR 13z, que agrega la revisión de las conversaciones con el asistente para mejorarlo; desde entonces la versión vigente es la de `LEGAL_VERSION`, 1.14 desde la PR de la Ley 21.855). Lo que dice este documento tiene que coincidir con la Política de privacidad (§4 asistente de WhatsApp, §7 plazos, §8 derechos y §10 cookies) y con los Términos (§15 cambios). Si la política cambia, este documento cambia en la misma PR. La redacción legal la revisa el abogado (pregunta Q6 del plan).
+Procedimiento de ventas desde la PR 13 (versión 1.2 de los textos legales; 1.3, PR 13x, que corrige lo que la política dice del asistente de WhatsApp y pide por correo el retracto, la garantía y los reclamos; 1.4, PR 13z, que agrega la revisión de las conversaciones con el asistente para mejorarlo; desde entonces la versión vigente es la de `LEGAL_VERSION`, 1.15 desde la PR del paso de Mailchimp a EmailOctopus). Lo que dice este documento tiene que coincidir con la Política de privacidad (§4 asistente de WhatsApp, §7 plazos, §8 derechos y §10 cookies) y con los Términos (§15 cambios). Si la política cambia, este documento cambia en la misma PR. La redacción legal la revisa el abogado (pregunta Q6 del plan).
 
 ## 1. Qué queda registrado y dónde
 
@@ -35,14 +35,24 @@ Dónde queda primero:
 - Vale **la última línea que empieza con `consent_json:`** de la nota o del correo. No te guíes por la línea legible: un cliente puede escribir un texto parecido en sus comentarios, pero lo que escribe el cliente queda siempre **antes** del bloque.
 - Campos del JSON: `v` (versión que vio el cliente; `null` si es un formulario anterior), `sv` (versión del servidor, solo si es distinta), `at` (instante UTC), `form`, `privacy`, `terms`, `marketing`, `src` (`web` o `web-legacy`).
 - Si una persona tiene varias solicitudes, manda la más reciente (`at` mayor). Una solicitud posterior **sin** la casilla de novedades cuenta como retiro (Política §7).
-- Para saber qué texto aceptó, abre el archivo de su versión (`v`): `https://elights.cl/legal/politica-de-privacidad-v1.14.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`).
+- Para saber qué texto aceptó, abre el archivo de su versión (`v`): `https://elights.cl/legal/politica-de-privacidad-v1.15.html` (lo mismo para `terminos-y-condiciones` y `cambios-devoluciones-y-garantia`).
 
 ## 3. Novedades y ofertas por correo
 
-- Solo por correo y solo a quien tenga `"marketing":true` vigente. Nada promocional por WhatsApp.
-- **No se envía ninguna campaña** hasta tener una herramienta con enlace de baja, asunto y remitente identificables (Ley 19.496, art. 28 B) y hasta revisar el registro No Molestar del SERNAC. Un campo o una etiqueta en Pipedrive sería otra PR (`api/_lib/pipedrive` está protegido).
-- **Registro de novedades** (hoja de Google de ventas, pestaña «Altas»): correo, referencia de la solicitud (`RC-`, `NE-`, `PY-`, `INST-` o `ESTL-`) y la línea `consent_json` copiada tal cual. Antes de borrar o anonimizar solicitudes (24 meses sin compra), copia ahí a quienes tengan `"marketing":true` vigente: el consentimiento sigue mientras no lo retiren.
-- **Bajas** (pestaña «Bajas»): correo, fecha y cómo la pidió (respuesta a un correo, mensaje con el asunto «Datos personales» o una solicitud posterior sin la casilla). Se guardan **4 años** desde la baja (prescripción de 4 años, art. 40 de la Ley 19.628 reformada, que rige desde el 15-10-2027), solo el correo y la constancia, para respetar la baja y poder demostrar el consentimiento que hubo. Antes de cada envío, cruza la lista con las bajas.
+Desde la 1.15 (Política §3, §5 y §7; D3 del dueño, 26-11-2026) las novedades se envían con **EmailOctopus**, lista «Novedades de eLIGHTS.cl», con doble confirmación. Nada promocional por WhatsApp.
+
+- **Quién las recibe:**
+  - quien tenga `"marketing":true` en su última `consent_json`: entra como pendiente y recibe el correo de confirmación de EmailOctopus;
+  - la base heredada: quien estaba suscrito en Mailchimp en los públicos Pipedrive, «Suscriptores eLIGHTS.cl» o Jivochat. El público de instaladores y los contactos archivados no se importan;
+  - quien no abrió ni hizo clic en ninguna campaña en los últimos 12 meses recibe primero un pedido de reconfirmación (etiqueta `reconfirmar`) y no recibe campañas mientras no confirme.
+- **Nunca las reciben** (supresión, se carga antes que la base y queda como baja): toda baja o rebote de cualquiera de los 4 públicos de Mailchimp, también del de instaladores y de los archivados; las filas de la pestaña «Bajas» de la hoja de ventas, y quien tenga `"marketing":false` en su última `consent_json`.
+- **Cada campaña** lleva enlace de baja, asunto y remitente identificables (Ley 19.496, art. 28 B). Antes de cada envío se revisa el registro No Molestar del SERNAC.
+- **Registro de altas y bajas:** EmailOctopus (estado del contacto, etiquetas `origen-*` y `supr-*`, campos «Fecha de alta» y «Base del permiso»). Reemplaza a las pestañas «Altas» y «Bajas» de la hoja de ventas; lo que ya tenían se carga en EmailOctopus.
+  - Bajas desde el enlace de un correo: EmailOctopus las registra solo.
+  - Bajas pedidas por correo (respuesta a una campaña o asunto «Datos personales»): marca el contacto como baja en EmailOctopus antes de 2 días.
+  - Altas y bajas del sitio: hasta que la casilla quede conectada con EmailOctopus (PR 3 del plan), Claude las sube cada 2 días como máximo, con OK del dueño: `"marketing":true` como pendiente y `"marketing":false` como baja.
+- **Plazos:** la suscripción no se borra con la solicitud (24 meses sin compra): sigue en EmailOctopus mientras no se dé de baja. Una baja queda **4 años** marcada como baja (prescripción de 4 años, art. 40 de la Ley 19.628 reformada, que rige desde el 15-10-2027), para respetarla y poder demostrar la suscripción que hubo.
+- Un campo o una etiqueta de novedades en Pipedrive sería otra PR (`api/_lib/pipedrive` está protegido).
 
 ## 4. Oposición al origen de la visita
 
@@ -72,13 +82,13 @@ Llega por correo (asunto «Datos personales»), con el teléfono desde el que la
 | Hasta el 14-10-2027 | 2 días hábiles |
 | Desde el 15-10-2027 | 30 días corridos, prorrogables una vez por otros 30 (avisando al cliente). Bloqueo: 2 días hábiles |
 
-Aplica a la oposición y a los demás derechos (acceso, rectificación, supresión, portabilidad, bloqueo y retiro del consentimiento). Si piden la supresión y tenían novedades, anota la baja (punto 3) antes de borrar.
+Aplica a la oposición y a los demás derechos (acceso, rectificación, supresión, portabilidad, bloqueo y retiro del consentimiento). Si piden la supresión y tenían novedades, marca la baja en EmailOctopus (punto 3) antes de borrar.
 
 ## 6. Plazos de conservación (Política §7)
 
 - Solicitudes que no terminan en compra: 24 meses desde el último contacto. La constancia sigue a su solicitud.
-- Novedades: mientras no se retiren. Si se borra la solicitud, la constancia pasa al registro de novedades.
-- Bajas de novedades: 4 años, solo el correo y la constancia.
+- Novedades: en EmailOctopus, mientras no se den de baja; no se borran con la solicitud.
+- Bajas de novedades: 4 años, en EmailOctopus, marcadas como baja.
 - Twilio (asistente de WhatsApp): 400 días en su consola y su API, más su respaldo (Backup Storage), que queda encendido por decisión del dueño (2026-10-18) para revisar y mejorar el asistente. La política §7 lo informa.
 - Revisión del asistente (desde la 1.4): la exportación de Twilio no se guarda; la tabla de claves, cifrada, 14 días; la copia seudonimizada y la huella del teléfono, 60 días; las cifras, sin plazo. Los borrados los ejecuta el dueño con el comando que deja Claude en `marcha-blanca/registro.md`, y cada uno tiene su recordatorio en el calendario.
 
