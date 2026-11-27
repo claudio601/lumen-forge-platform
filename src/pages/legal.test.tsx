@@ -354,7 +354,7 @@ describe('páginas legales y de compra: contenido', () => {
     if (LEGAL_REPRESENTATIVE === null) expect(text).not.toContain('Representante legal');
   });
 
-  it('/terminos-y-condiciones (PR 13): casilla del pedido, copia permanente al pagar, novedades con la casilla o la suscripción anterior y versiones', async () => {
+  it('/terminos-y-condiciones (PR 13): casilla del pedido, copia permanente al pagar, novedades con la casilla o si ya las recibías desde Mailchimp y versiones', async () => {
     const { main } = await page('/terminos-y-condiciones');
     const buying = section(main, '3.').text;
     // §3.1: la casilla obligatoria de /solicitar-pedido (consent.ts, privacyWithTerms)
@@ -364,12 +364,13 @@ describe('páginas legales y de compra: contenido', () => {
     expect(buying).toContain(
       'una copia de estos términos en la versión vigente al pagar (adjunta o en un enlace permanente que puedes guardar o imprimir)',
     );
-    // §14: novedades solo por correo, con la casilla opcional, sin marcar, o a quien ya las recibía (versión 1.15,
-    // base heredada de Mailchimp); baja por el canal de datos personales y el detalle en la Política §3
+    // §14: novedades solo por correo, con la casilla opcional, sin marcar, o a quien ya las recibía desde Mailchimp
+    // (versión 1.15, base heredada); baja por el canal de datos personales y el detalle en la Política §3
     const marketing = section(main, '14.');
     expect(marketing.text).toContain(
-      'Te enviamos novedades u ofertas por correo solo si marcas la casilla para recibirlas en un formulario (es opcional y viene sin marcar) o si ya las recibías antes.',
+      'Te enviamos novedades u ofertas por correo solo si marcas la casilla para recibirlas en un formulario (es opcional y viene sin marcar) o si ya las recibías desde Mailchimp, la plataforma que usábamos antes.',
     );
+    expect(marketing.text).not.toContain('o si ya las recibías antes.');
     expect(marketing.text).toContain('Más detalles en el punto 3 de la Política de privacidad.');
     expect(marketing.text).not.toContain('Solo te enviaremos novedades');
     expect(linksIn(marketing.els)).toContain(DATA_MAILTO);
@@ -762,8 +763,12 @@ describe('páginas legales y de compra: contenido', () => {
     expect(basisOf('Saber qué canales y campañas generan solicitudes')).toBe(
       'Interés legítimo de eLIGHTS en evaluar su publicidad; puedes oponerte desde «Configurar cookies», al pie de cada página, o escribiéndonos',
     );
+    // Base de la base heredada: la Ley del consumidor, con el texto aprobado por el dueño el 27-11-2026 (Q6)
     expect(basisOf('Enviarte novedades y ofertas por correo y saber si abres esos correos')).toBe(
-      'Tu consentimiento, si marcas la casilla opcional de un formulario, o tu suscripción anterior, si ya las recibías; puedes darte de baja cuando quieras',
+      'Tu consentimiento, si marcas la casilla opcional de un formulario, o la Ley del consumidor, si ya las recibías porque nos pediste una cotización o información, o compraste; puedes darte de baja en cada correo (Ley 19.496, art. 28 B)',
+    );
+    expect(rows.find(([p]) => p?.startsWith('Enviarte novedades'))?.[0]).toBe(
+      'Enviarte novedades y ofertas por correo y saber si abres esos correos y en qué enlaces haces clic (ver «Novedades por correo», más abajo)',
     );
     expect(basisOf('Que Google Ads registre, con sus propias cookies')).toBe('Tu consentimiento, dado en el aviso de cookies');
     expect(basisOf('Guardar la constancia de tus autorizaciones')).toBe('Obligación legal de acreditar que tratamos tus datos de forma lícita');
@@ -782,6 +787,8 @@ describe('páginas legales y de compra: contenido', () => {
       'Desde el 15 de octubre de 2027 rigen las bases de la tabla',
       // La medición con cookies no se basa en la autorización de la solicitud: también en la transición, en el aviso de cookies
       'La medición con cookies (Google Analytics, medición de anuncios de Google y Publicidad en Meta) se basa, también en ese período, en la autorización que das en el aviso de cookies.',
+      // Las novedades, también en la transición: la casilla o, en la base heredada, la Ley 19.496 (art. 28 B)
+      'Las novedades por correo se basan, también en ese período, en la casilla que marcas o, si ya las recibías, en la Ley 19.496, art. 28 B, y en cada correo puedes darte de baja.',
       'la casilla queda como constancia de que leíste esta política',
     ]) {
       expect(bases, s).toContain(s);
@@ -794,8 +801,8 @@ describe('páginas legales y de compra: contenido', () => {
     // §7: plazos de las novedades, la constancia, la decisión de cookies y las cookies de Google
     const retention = section(main, '7.').text;
     for (const s of [
-      'Si en una solicitud posterior no marcas la casilla, lo tomamos como retiro.',
-      'Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja por 4 años, para respetar tu baja y poder demostrar tu suscripción.',
+      'Si en una solicitud posterior no marcas la casilla, lo tomamos como baja.',
+      'Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y poder demostrar por qué te escribimos.',
       'Constancia de tus autorizaciones (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.',
       'Tu decisión sobre cookies: 12 meses en tu navegador',
       'las de Google Analytics, hasta 13 meses; las de medición de anuncios y su copia en el almacenamiento local de tu navegador (_gcl_ls), hasta 90 días',
@@ -1084,34 +1091,45 @@ describe('páginas legales y de compra: contenido', () => {
     }
   });
 
-  it('/politica-de-privacidad (versión 1.15): novedades con EmailOctopus, base heredada de Mailchimp, reconfirmación y aperturas y clics', async () => {
+  it('/politica-de-privacidad (versión 1.15): novedades con EmailOctopus, base heredada de Mailchimp, reconfirmación del cambio y aperturas y clics', async () => {
     const { main, text } = await page('/politica-de-privacidad');
     const clean = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
     const items = (heading: string) => section(main, heading).els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
     const item = (heading: string, start: string) => items(heading).find(t => t.startsWith(start)) ?? '';
-    // §2: los datos de las novedades (aperturas y clics) y de dónde vienen los de la base heredada
+    // §2: los datos de las novedades (aperturas y clics) y de dónde vienen los de la base heredada, también su historial
+    // de aperturas y clics de Mailchimp; sin hablar de una «suscripción» que casi nadie hizo (revisión del 27-11-2026)
     expect(item('2.', 'Novedades por correo:')).toBe(
-      'Novedades por correo: si las recibes, tu nombre y correo, cuándo y cómo te suscribiste, si abres cada correo y en qué enlaces haces clic, y tu baja si la pides.',
+      'Novedades por correo: si las recibes, tu nombre y correo, cuándo y cómo entraste a la lista, si abres cada correo y en qué enlaces haces clic, y tu baja si la pides.',
     );
     expect(section(main, '2.').text).toContain(
-      'Si ya recibías nuestras novedades, tus datos de suscripción vienen de Mailchimp, la plataforma que usábamos antes para enviarlas.',
+      'Si ya recibías nuestras novedades, tu nombre, tu correo, cuándo y cómo entraste a la lista y si abriste o hiciste clic en nuestros correos anteriores vienen de Mailchimp, la plataforma que usábamos antes para enviarlas.',
     );
-    // §3: a quién se envían, la baja en cada correo, la reconfirmación a los 12 meses y la medición (EmailOctopus, Términos §7.4)
+    // §3: a quién se envían, la baja en cada correo, la reconfirmación solo en el cambio (14 días, como el correo de
+    // reconfirmación), la medición (EmailOctopus, Términos §7.4), que se puede apagar en cada envío (help.emailoctopus.com,
+    // artículo 187), y el historial de Mailchimp para las tandas y la reconfirmación
     const bases = section(main, '3.').text;
     for (const s of [
-      'Novedades por correo. Las enviamos con EmailOctopus (punto 5) a quienes marcan la casilla opcional de un formulario y a quienes ya las recibían desde Mailchimp, la plataforma que usábamos antes.',
+      'Novedades por correo. Te las enviamos con EmailOctopus (punto 5) si marcas la casilla opcional de un formulario o si ya las recibías desde Mailchimp, la plataforma que usábamos antes.',
       'Cada correo trae un enlace para darte de baja.',
-      'Si no abriste ni hiciste clic en ninguno de nuestros correos en los últimos 12 meses, antes de enviarte más te pedimos que confirmes que quieres seguir recibiéndolos.',
-      'EmailOctopus registra si abres cada correo y en qué enlaces haces clic; lo usamos para medir nuestros correos y para saber a quién pedirle esa confirmación.',
+      'Si ya las recibías desde Mailchimp y no abriste ni hiciste clic en ninguno de nuestros correos en los 12 meses anteriores al cambio, antes de enviarte más te pedimos que confirmes que quieres seguir recibiéndolas; si no confirmas en 14 días, pasas a baja.',
+      'EmailOctopus registra si abres cada correo y en qué enlaces haces clic, y lo usamos para medir nuestros correos; esa medición se puede desactivar en cada envío.',
+      'Si ya las recibías, también usamos tus aperturas y clics en Mailchimp para ordenar los primeros envíos y para saber a quién pedirle esa confirmación.',
     ]) {
       expect(bases, s).toContain(s);
     }
     expect(text).not.toContain('solo si marcas la casilla opcional de un formulario');
+    // La reconfirmación ya no se promete como regla permanente
+    expect(text).not.toContain('en los últimos 12 meses');
+    // Ni «suscripción» ni «te suscribiste» en la política: la base heredada casi no se suscribió (entró por cotizaciones
+    // y consultas); la base es la Ley 19.496, art. 28 B
+    expect(text).not.toMatch(/te suscribiste|tu suscripción|datos de suscripción|suscripción anterior/i);
+    // El plazo de 4 años de las bajas no tenía cómo cumplirse (EmailOctopus no borra solo y borrar una baja la dejaría volver)
+    expect(item('7.', 'Novedades y ofertas:')).not.toContain('4 años');
     // §5: EmailOctopus como encargado (razón social y país de sus Términos; datos en la UE; subencargados enlazados)
     // y Mailchimp hasta que se cierre su cuenta
     const sharing = section(main, '5.');
     expect(item('5.', 'EmailOctopus')).toBe(
-      'EmailOctopus (Three Hearts Digital Ltd, Reino Unido): envío de nuestras novedades por correo y registro de tu suscripción o tu baja, de si abres cada correo y de en qué enlaces haces clic. Guarda los datos sobre todo en Irlanda (Unión Europea) y trabaja con sus propios proveedores, algunos en Estados Unidos, que publica en su lista de subencargados.',
+      'EmailOctopus (Three Hearts Digital Ltd, Reino Unido): envío de nuestras novedades por correo y registro de cómo entraste a la lista, de tu baja, de si abres cada correo y de en qué enlaces haces clic. Guarda los datos sobre todo en Irlanda (Unión Europea) y trabaja con sus propios proveedores, algunos en Estados Unidos, que publica en su lista de subencargados.',
     );
     const subprocessors = sharing.els.flatMap(el => [...el.querySelectorAll('a')]).find(a => a.textContent === 'lista de subencargados');
     expect(subprocessors?.getAttribute('href')).toBe('https://emailoctopus.com/legal/subprocessors');
@@ -1128,9 +1146,9 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '6.').text).toContain(
       'Varios de estos proveedores tratan los datos fuera de Chile, principalmente en Estados Unidos, la Unión Europea y el Reino Unido.',
     );
-    // §7: el registro de novedades es EmailOctopus; la baja, 4 años marcada como baja
+    // §7: el registro de novedades es EmailOctopus; la baja queda marcada mientras usemos esa lista
     expect(item('7.', 'Novedades y ofertas:')).toBe(
-      'Novedades y ofertas: tu nombre, tu correo, la constancia de tu suscripción y las aperturas y los clics de cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se elimine tu solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como retiro. Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja por 4 años, para respetar tu baja y poder demostrar tu suscripción.',
+      'Novedades y ofertas: tu nombre, tu correo, la constancia de cómo entraste a la lista y las aperturas y los clics de cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se elimine tu solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como baja. Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y poder demostrar por qué te escribimos.',
     );
     expect(text).not.toContain('pasan a nuestro registro de novedades');
   });
