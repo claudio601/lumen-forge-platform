@@ -59,12 +59,19 @@
 // quien ya las recibía desde Mailchimp. Base de la base heredada (dueño, 2026-11-27, sin abogado):
 // la Ley del consumidor, «si ya las recibías porque nos pediste una cotización o información, o
 // compraste; puedes darte de baja en cada correo (Ley 19.496, art. 28 B)»; los contactos de Mailchimp
-// son de eLIGHTS.CL SpA. Solo en el cambio, quien ya las recibía y no abrió ni hizo clic en los 12
-// meses anteriores reconfirma primero y, si no confirma en 14 días, pasa a baja (plan, paso 22).
-// EmailOctopus mide aperturas y clics (sus Términos §7.4 piden informarlo) y deja apagar cada uno en
-// cada envío (help.emailoctopus.com/article/187-campaign-tracking, revisado el 2026-11-27). Las bajas
+// son de eLIGHTS.CL SpA. Los instaladores activos (decisión B1 del dueño, 2026-11-27) llevan su
+// origen verdadero en la misma base («o porque estabas en nuestra lista de instaladores eléctricos
+// desde 2019»), sin decir de dónde salió la lista. Las altas del sitio confirman su correo (doble
+// opt-in). Solo en el cambio, quien ya las recibía y no abrió ni hizo clic en los correos enviados
+// en los 12 meses anteriores (desde el 27-11-2025) reconfirma primero y, si no confirma, deja de
+// recibirlas (el plazo de la baja lo fija el dueño con el correo de reconfirmación, D8); los
+// instaladores inactivos no entran. EmailOctopus mide aperturas y clics (sus Términos §7.4 piden
+// informarlo y dicen que el cliente puede apagarlo) y deja apagar cada uno en cada envío
+// (help.emailoctopus.com/article/187-campaign-tracking, revisado el 2026-11-27). La supresión (bajas
+// y rebotes de Mailchimp, retiros del sitio) se sube a EmailOctopus solo con el correo. Las bajas
 // quedan marcadas en EmailOctopus mientras usemos la lista (sin plazo de borrado: borrar una baja
-// permitiría volver a sumarla). §2, §3, §5, §6 y §7; el detalle operativo está en
+// permitiría volver a sumarla). Claude (Anthropic) administra las altas, las bajas y los envíos
+// (§5). §2, §3, §5, §6 y §7; el detalle operativo está en
 // docs/operacion/registro-de-autorizaciones.md §3. Mailchimp queda en §5 hasta que se cierre esa
 // cuenta (está en pausa).
 // El texto describe lo que hace el código; si cambia uno, cambia el otro:
@@ -152,7 +159,7 @@ const PURPOSES: [string, string][] = [
   ['Proteger el sitio y prevenir abusos y fraudes', 'Interés legítimo'],
   [
     'Enviarte novedades y ofertas por correo y saber si abres esos correos y en qué enlaces haces clic (ver «Novedades por correo», más abajo)',
-    'Tu consentimiento, si marcas la casilla opcional de un formulario, o la Ley del consumidor, si ya las recibías porque nos pediste una cotización o información, o compraste; puedes darte de baja en cada correo (Ley 19.496, art. 28 B)',
+    'Tu consentimiento, si marcas la casilla opcional de un formulario, o la Ley del consumidor, si ya las recibías porque nos pediste una cotización o información, o compraste, o porque estabas en nuestra lista de instaladores eléctricos desde 2019; puedes darte de baja en cada correo (Ley 19.496, art. 28 B)',
   ],
   [
     'Recordar tus datos en tu navegador para completar los formularios, solo si marcas esa casilla',
@@ -243,7 +250,7 @@ const PrivacidadPage = () => (
       </li>
       <li>
         <strong>Novedades por correo:</strong> si las recibes, tu nombre y correo, cuándo y cómo entraste a la lista, si abres
-        cada correo y en qué enlaces haces clic, y tu baja si la pides.
+        cada correo y en qué enlaces haces clic, y tu baja.
       </li>
       <li>
         <strong>Datos técnicos:</strong> dirección IP, tipo de navegador y registros de funcionamiento y seguridad del sitio y del
@@ -262,7 +269,8 @@ const PrivacidadPage = () => (
       datos vienen de ella. Si haces tu solicitud en nuestra tienda de Jumpseller, sus datos vienen de esa plataforma. Los
       parámetros de campaña vienen del enlace con el que llegaste. Si ya recibías nuestras novedades, tu nombre, tu correo,
       cuándo y cómo entraste a la lista y si abriste o hiciste clic en nuestros correos anteriores vienen de Mailchimp, la
-      plataforma que usábamos antes para enviarlas.
+      plataforma que usábamos antes para enviarlas. Si te diste de baja o tu correo rebotó en Mailchimp, tu correo viene de
+      ahí.
     </p>
 
     <h2>3. Para qué los usamos y con qué base legal</h2>
@@ -316,11 +324,13 @@ const PrivacidadPage = () => (
     </p>
     <p>
       <strong>Novedades por correo.</strong> Te las enviamos con EmailOctopus (punto 5) si marcas la casilla opcional de un
-      formulario o si ya las recibías desde Mailchimp, la plataforma que usábamos antes. Cada correo trae un enlace para darte
-      de baja. Si ya las recibías desde Mailchimp y no abriste ni hiciste clic en ninguno de nuestros correos en los 12 meses
-      anteriores al cambio, antes de enviarte más te pedimos que confirmes que quieres seguir recibiéndolas; si no confirmas en
-      14 días, pasas a baja. EmailOctopus registra si abres cada correo y en qué enlaces haces clic, y lo usamos para medir
-      nuestros correos; esa medición se puede desactivar en cada envío. Si ya las recibías, también usamos tus aperturas y clics
+      formulario y confirmas tu correo con el enlace que te enviamos, o si ya las recibías desde Mailchimp, la plataforma que
+      usábamos antes. Cada correo trae un enlace para darte de baja. Si ya las recibías desde Mailchimp y no abriste ni hiciste
+      clic en ninguno de los correos que te enviamos en los 12 meses anteriores al cambio, antes de enviarte más te pedimos una
+      vez que confirmes que quieres seguir recibiéndolas; si no confirmas, dejamos de enviártelas. Si estabas en nuestra lista
+      de instaladores eléctricos y no abriste ni hiciste clic en ninguno de los correos que te enviamos en esos 12 meses, no te
+      las enviamos más. EmailOctopus registra si abres cada correo y en qué enlaces haces clic, y lo usamos para medir nuestros
+      correos; nosotros podemos desactivar esa medición en cada envío. Si ya las recibías, también usamos tus aperturas y clics
       en Mailchimp para ordenar los primeros envíos y para saber a quién pedirle esa confirmación.
     </p>
 
@@ -384,7 +394,7 @@ const PrivacidadPage = () => (
       <li>
         <strong>Anthropic PBC</strong> (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus
         conversaciones (punto 4), y de las herramientas con que nuestro equipo prepara cotizaciones y respuestas a partir de tu
-        solicitud.
+        solicitud y administra la lista de novedades por correo (altas, bajas y envíos).
       </li>
       <li>
         <strong>Upstash Inc.:</strong> registro técnico temporal que relaciona cada solicitud hecha en nuestra tienda de Jumpseller
@@ -466,9 +476,11 @@ const PrivacidadPage = () => (
       <li>
         <strong>Novedades y ofertas:</strong> tu nombre, tu correo, la constancia de cómo entraste a la lista y las aperturas y
         los clics de cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se
-        elimine tu solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como baja. Cuando te das de baja,
-        tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y
-        poder demostrar por qué te escribimos.
+        elimine tu solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como baja. Si te diste de baja o tu
+        correo rebotó en Mailchimp, o si en una solicitud no marcaste la casilla y no estabas en la lista, guardamos en
+        EmailOctopus solo tu correo, marcado como baja y con su motivo, para no enviarte novedades. Cuando te das de baja, o si
+        no confirmas cuando te lo pedimos, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para
+        respetarla, no volver a escribirte y poder demostrar por qué te escribimos.
       </li>
       <li>
         <strong>Constancia de tus autorizaciones</strong> (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.

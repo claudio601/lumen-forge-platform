@@ -709,7 +709,7 @@ describe('páginas legales y de compra: contenido', () => {
     }
     // §5: Anthropic también para la revisión
     expect(section(main, '5.').text).toContain(
-      'Anthropic PBC (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus conversaciones (punto 4), y de las herramientas con que nuestro equipo prepara cotizaciones y respuestas a partir de tu solicitud.',
+      'Anthropic PBC (Estados Unidos): inteligencia artificial del asistente de WhatsApp y de la revisión de sus conversaciones (punto 4), y de las herramientas con que nuestro equipo prepara cotizaciones y respuestas a partir de tu solicitud y administra la lista de novedades por correo (altas, bajas y envíos).',
     );
     // §7: plazos de la copia y de la tabla de claves; Twilio con su plazo configurado
     const items = section(main, '7.').els.flatMap(el => [...el.querySelectorAll('li')].map(clean));
@@ -763,9 +763,10 @@ describe('páginas legales y de compra: contenido', () => {
     expect(basisOf('Saber qué canales y campañas generan solicitudes')).toBe(
       'Interés legítimo de eLIGHTS en evaluar su publicidad; puedes oponerte desde «Configurar cookies», al pie de cada página, o escribiéndonos',
     );
-    // Base de la base heredada: la Ley del consumidor, con el texto aprobado por el dueño el 27-11-2026 (Q6)
+    // Base de la base heredada: la Ley del consumidor, con el texto aprobado por el dueño el 27-11-2026 (Q6), más el
+    // origen verdadero de los instaladores activos (decisión B1 del mismo día; sin decir de dónde salió la lista)
     expect(basisOf('Enviarte novedades y ofertas por correo y saber si abres esos correos')).toBe(
-      'Tu consentimiento, si marcas la casilla opcional de un formulario, o la Ley del consumidor, si ya las recibías porque nos pediste una cotización o información, o compraste; puedes darte de baja en cada correo (Ley 19.496, art. 28 B)',
+      'Tu consentimiento, si marcas la casilla opcional de un formulario, o la Ley del consumidor, si ya las recibías porque nos pediste una cotización o información, o compraste, o porque estabas en nuestra lista de instaladores eléctricos desde 2019; puedes darte de baja en cada correo (Ley 19.496, art. 28 B)',
     );
     expect(rows.find(([p]) => p?.startsWith('Enviarte novedades'))?.[0]).toBe(
       'Enviarte novedades y ofertas por correo y saber si abres esos correos y en qué enlaces haces clic (ver «Novedades por correo», más abajo)',
@@ -802,7 +803,7 @@ describe('páginas legales y de compra: contenido', () => {
     const retention = section(main, '7.').text;
     for (const s of [
       'Si en una solicitud posterior no marcas la casilla, lo tomamos como baja.',
-      'Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y poder demostrar por qué te escribimos.',
+      'Cuando te das de baja, o si no confirmas cuando te lo pedimos, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y poder demostrar por qué te escribimos.',
       'Constancia de tus autorizaciones (casillas, versión y fecha): junto con tu solicitud y por el mismo plazo.',
       'Tu decisión sobre cookies: 12 meses en tu navegador',
       'las de Google Analytics, hasta 13 meses; las de medición de anuncios y su copia en el almacenamiento local de tu navegador (_gcl_ls), hasta 90 días',
@@ -1098,21 +1099,27 @@ describe('páginas legales y de compra: contenido', () => {
     const item = (heading: string, start: string) => items(heading).find(t => t.startsWith(start)) ?? '';
     // §2: los datos de las novedades (aperturas y clics) y de dónde vienen los de la base heredada, también su historial
     // de aperturas y clics de Mailchimp; sin hablar de una «suscripción» que casi nadie hizo (revisión del 27-11-2026)
+    // (la baja no siempre la pide la persona: también quien no reconfirma o una tanda detenida)
     expect(item('2.', 'Novedades por correo:')).toBe(
-      'Novedades por correo: si las recibes, tu nombre y correo, cuándo y cómo entraste a la lista, si abres cada correo y en qué enlaces haces clic, y tu baja si la pides.',
+      'Novedades por correo: si las recibes, tu nombre y correo, cuándo y cómo entraste a la lista, si abres cada correo y en qué enlaces haces clic, y tu baja.',
     );
     expect(section(main, '2.').text).toContain(
       'Si ya recibías nuestras novedades, tu nombre, tu correo, cuándo y cómo entraste a la lista y si abriste o hiciste clic en nuestros correos anteriores vienen de Mailchimp, la plataforma que usábamos antes para enviarlas.',
     );
-    // §3: a quién se envían, la baja en cada correo, la reconfirmación solo en el cambio (14 días, como el correo de
-    // reconfirmación), la medición (EmailOctopus, Términos §7.4), que se puede apagar en cada envío (help.emailoctopus.com,
-    // artículo 187), y el historial de Mailchimp para las tandas y la reconfirmación
+    // La supresión (bajas y rebotes de Mailchimp) también viene de ahí
+    expect(section(main, '2.').text).toContain('Si te diste de baja o tu correo rebotó en Mailchimp, tu correo viene de ahí.');
+    // §3: a quién se envían (con la confirmación del doble opt-in), la baja en cada correo, la reconfirmación solo en el
+    // cambio, contada por los correos enviados en esos 12 meses (como los archivos de importación), sin publicar un plazo
+    // que el dueño no ha fijado (D8; el correo de reconfirmación tampoco lo nombra), los instaladores inactivos, la
+    // medición (EmailOctopus, Términos §7.4: «which you may enable or disable»), que apagamos nosotros en cada envío
+    // (help.emailoctopus.com, artículo 187), y el historial de Mailchimp para las tandas y la reconfirmación
     const bases = section(main, '3.').text;
     for (const s of [
-      'Novedades por correo. Te las enviamos con EmailOctopus (punto 5) si marcas la casilla opcional de un formulario o si ya las recibías desde Mailchimp, la plataforma que usábamos antes.',
+      'Novedades por correo. Te las enviamos con EmailOctopus (punto 5) si marcas la casilla opcional de un formulario y confirmas tu correo con el enlace que te enviamos, o si ya las recibías desde Mailchimp, la plataforma que usábamos antes.',
       'Cada correo trae un enlace para darte de baja.',
-      'Si ya las recibías desde Mailchimp y no abriste ni hiciste clic en ninguno de nuestros correos en los 12 meses anteriores al cambio, antes de enviarte más te pedimos que confirmes que quieres seguir recibiéndolas; si no confirmas en 14 días, pasas a baja.',
-      'EmailOctopus registra si abres cada correo y en qué enlaces haces clic, y lo usamos para medir nuestros correos; esa medición se puede desactivar en cada envío.',
+      'Si ya las recibías desde Mailchimp y no abriste ni hiciste clic en ninguno de los correos que te enviamos en los 12 meses anteriores al cambio, antes de enviarte más te pedimos una vez que confirmes que quieres seguir recibiéndolas; si no confirmas, dejamos de enviártelas.',
+      'Si estabas en nuestra lista de instaladores eléctricos y no abriste ni hiciste clic en ninguno de los correos que te enviamos en esos 12 meses, no te las enviamos más.',
+      'EmailOctopus registra si abres cada correo y en qué enlaces haces clic, y lo usamos para medir nuestros correos; nosotros podemos desactivar esa medición en cada envío.',
       'Si ya las recibías, también usamos tus aperturas y clics en Mailchimp para ordenar los primeros envíos y para saber a quién pedirle esa confirmación.',
     ]) {
       expect(bases, s).toContain(s);
@@ -1123,6 +1130,8 @@ describe('páginas legales y de compra: contenido', () => {
     // Ni «suscripción» ni «te suscribiste» en la política: la base heredada casi no se suscribió (entró por cotizaciones
     // y consultas); la base es la Ley 19.496, art. 28 B
     expect(text).not.toMatch(/te suscribiste|tu suscripción|datos de suscripción|suscripción anterior/i);
+    // Sin un plazo de días para la baja de quien no reconfirma (lo fija el dueño con el correo, D8)
+    expect(bases).not.toMatch(/si no confirmas en \d+ días/);
     // El plazo de 4 años de las bajas no tenía cómo cumplirse (EmailOctopus no borra solo y borrar una baja la dejaría volver)
     expect(item('7.', 'Novedades y ofertas:')).not.toContain('4 años');
     // §5: EmailOctopus como encargado (razón social y país de sus Términos; datos en la UE; subencargados enlazados)
@@ -1146,9 +1155,11 @@ describe('páginas legales y de compra: contenido', () => {
     expect(section(main, '6.').text).toContain(
       'Varios de estos proveedores tratan los datos fuera de Chile, principalmente en Estados Unidos, la Unión Europea y el Reino Unido.',
     );
-    // §7: el registro de novedades es EmailOctopus; la baja queda marcada mientras usemos esa lista
+    // §7: el registro de novedades es EmailOctopus; la supresión (bajas y rebotes de Mailchimp, quien no marcó la casilla
+    // sin estar en la lista) va solo con el correo; la baja, también la de quien no reconfirma, queda marcada mientras
+    // usemos esa lista
     expect(item('7.', 'Novedades y ofertas:')).toBe(
-      'Novedades y ofertas: tu nombre, tu correo, la constancia de cómo entraste a la lista y las aperturas y los clics de cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se elimine tu solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como baja. Cuando te das de baja, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y poder demostrar por qué te escribimos.',
+      'Novedades y ofertas: tu nombre, tu correo, la constancia de cómo entraste a la lista y las aperturas y los clics de cada correo quedan en EmailOctopus, nuestro registro de novedades, mientras no te des de baja, aunque se elimine tu solicitud. Si en una solicitud posterior no marcas la casilla, lo tomamos como baja. Si te diste de baja o tu correo rebotó en Mailchimp, o si en una solicitud no marcaste la casilla y no estabas en la lista, guardamos en EmailOctopus solo tu correo, marcado como baja y con su motivo, para no enviarte novedades. Cuando te das de baja, o si no confirmas cuando te lo pedimos, tu registro queda en EmailOctopus marcado como baja mientras usemos esa lista, para respetarla, no volver a escribirte y poder demostrar por qué te escribimos.',
     );
     expect(text).not.toContain('pasan a nuestro registro de novedades');
   });
